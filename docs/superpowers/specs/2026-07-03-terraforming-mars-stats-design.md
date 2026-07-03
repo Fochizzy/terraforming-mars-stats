@@ -569,6 +569,61 @@ GitHub is not the primary runtime image host because repository size, file limit
 
 Analytics are split across personal, group, and global aggregate scopes.
 
+### Sentence-Form Insights
+
+The app should generate plain-English insight cards in addition to charts and tables.
+
+These insights should summarize statistically meaningful relationships such as:
+
+1. how adding or removing an expansion changes score composition
+2. how adding or removing a promo set changes inferred playstyles
+3. which maps become stronger or weaker when certain expansions are included
+4. which corporations or preludes gain or lose performance under different expansion mixes
+5. which inferred playstyles become more common or more successful when specific expansions or promos are present
+
+Example insight format:
+
+1. "In this group, adding Colonies increases average winning score and shifts winning inferred styles toward economy and trade-heavy play."
+2. "When Turmoil is present, your group funds more awards and inferred milestone-race styles become less common."
+3. "With Promo Set 2022 enabled, this group plays more Jovian-heavy endgames and card-point totals rise."
+
+Every sentence-form insight must include:
+
+1. a confidence marker
+2. a visible sample size
+3. the relevant filter context
+
+### Improvement Insights
+
+The app should also provide player-improvement insight cards.
+
+These are not generic strategy tips. They must be derived from the player's actual history compared with:
+
+1. their own best-performing games
+2. stronger players in the same group
+3. winners in similar map, player-count, expansion, and promo contexts
+
+Improvement insights should focus on:
+
+1. playstyles
+2. maps
+3. corporations and preludes
+4. award and milestone aggression
+5. head-to-head adaptation patterns
+
+`Award and milestone aggression` means how often a player pushes for milestones and funds awards relative to:
+
+1. their total games
+2. their winning games
+3. stronger players in the same group
+4. the group baseline
+
+Example coaching insight format:
+
+1. "You win more often on Elysium when your inferred style is board control instead of economy engine."
+2. "In 4-player games with Prelude and Colonies, your best results come when you fund awards more often than your personal average."
+3. "Compared with the strongest players in this group, you claim fewer milestones in winning-position games."
+
 ### Leaderboards
 
 Leaderboards are a first-class analytics surface, not just a sorted win-count list.
@@ -650,7 +705,9 @@ Each player profile shows:
 23. declared versus inferred style comparison
 24. personal best style views
 25. personal leaderboard position and component breakdown
-26. personal trends over time
+26. personal sentence-form insights
+27. personal improvement insights
+28. personal trends over time
 
 ### Group Analytics
 
@@ -677,6 +734,7 @@ Each group view shows:
 19. declared versus inferred style comparison for the group
 20. best style views for the group across player-count, map, and expansion slices
 21. weighted leaderboard with win rate, placement, and differential components
+22. group sentence-form insights about expansion, promo, and lineup effects
 
 ### Global Aggregate Analytics
 
@@ -696,6 +754,7 @@ Global aggregate views can show:
 10. declared versus inferred style agreement rates
 11. best style views by map, player count, expansion mix, corporation, and prelude
 12. global leaderboard-style rankings only in aggregate segment form, not as cross-group named player tables
+13. global sentence-form insights about expansion, promo, map, corporation, prelude, and inferred-style interactions
 
 ## Statistics to Support
 
@@ -742,6 +801,17 @@ Global aggregate views can show:
 8. best expansion mixes
 9. best pairings
 
+### Expansion and Promo Interaction Statistics
+
+1. map performance by expansion mix
+2. corporation performance by expansion mix
+3. prelude performance by expansion mix
+4. inferred style distribution by expansion mix
+5. inferred style win rate by expansion mix
+6. promo-set impact on corporations, preludes, maps, and inferred styles
+7. add-versus-remove effect sizes for an expansion or promo set
+8. sentence-form interaction summaries
+
 ### Milestone and Award Statistics
 
 1. claim frequency
@@ -767,6 +837,16 @@ Global aggregate views can show:
 3. how generation count changes when the lineup changes
 4. how winner profiles change when the group composition changes
 5. how specific groups influence corporation and prelude performance
+
+### Improvement Statistics
+
+1. player's best-performing inferred styles by map and player count
+2. player's strongest maps relative to their own baseline
+3. player's strongest corporations and preludes relative to their own baseline
+4. award-funding aggression compared with win rate
+5. milestone-claim aggression compared with win rate
+6. comparison with stronger players in the same group
+7. coaching insight trigger conditions
 
 ### Style Statistics
 
@@ -809,6 +889,8 @@ The app should prioritize graphs that remain readable on a phone.
 
 Charts must be available directly on `My Profile`, `Group`, and `Insights`, with `Insights` providing the most flexible filtered view.
 
+Charts should be paired with sentence-form insight cards when the system detects a meaningful relationship worth calling out.
+
 Recommended visual types:
 
 1. stacked bar charts for score composition
@@ -822,6 +904,7 @@ Recommended visual types:
 9. agreement-versus-mismatch charts for declared and inferred styles
 10. ranked best-style charts by player, group, map, corporation, or prelude
 11. leaderboard component charts showing win rate, placement, and differential contributions
+12. expansion and promo interaction charts showing add-versus-remove effects
 
 Graph design rules:
 
@@ -829,6 +912,7 @@ Graph design rules:
 2. include sample size on views that may be misread
 3. allow filters for player, group, map, expansion mix, player count, corporation, prelude, and style
 4. clearly label whether a style chart is based on inferred styles, declared styles, or both
+5. pair major charts with sentence-form summary insights where useful
 
 ## Reliability Rules
 
@@ -886,6 +970,8 @@ The app will be built as a phone-first web application with responsive screens a
 21. promo-set browsing by year or edition with card thumbnails and full images
 22. promo-set bulk selection and select-all behavior
 23. weighted leaderboard views with transparent scoring components
+24. sentence-form interaction insights
+25. player-improvement insight cards based on real play history
 
 ### V1 Can Be Lightweight In
 
@@ -923,7 +1009,9 @@ Those items must be functional, but they do not need extensive polish before the
 24. Promo sets are selectable by year or edition with bulk select-all behavior
 25. Promo sets can be opened to browse included cards and images
 26. Weighted leaderboards combine win rate, placement, and point differential
-27. My player profile is the default landing page
+27. Sentence-form insight cards summarize expansion, promo, map, corporation, prelude, and inferred-style effects
+28. Improvement insights help players adjust playstyles, maps, and award-milestone aggression
+29. My player profile is the default landing page
 
 ## External References
 
