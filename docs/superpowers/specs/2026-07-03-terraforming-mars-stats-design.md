@@ -75,8 +75,9 @@ Tracked setup scope includes:
 3. Venus Next
 4. Colonies
 5. Turmoil
-6. Additional maps and map-linked milestones and awards
-7. Future expansion-ready catalog structure
+6. Promo cards and promo corporations
+7. Additional maps and map-linked milestones and awards
+8. Future expansion-ready catalog structure
 
 The app stores actual expansions used per game, not just group preferences.
 
@@ -450,6 +451,8 @@ It powers:
 3. optional key-card tagging
 4. style evidence views
 
+The catalog must include all supported promo cards and promo corporations.
+
 ### Metadata Fields
 
 Each `cards` row stores:
@@ -485,6 +488,15 @@ The import process:
 4. updates local card records
 5. never mutates historical game logs
 
+Because upstream fan-maintained sources may be incomplete, the catalog system must support manual override records for missing official promo cards and promo corporations.
+
+Override support must allow:
+
+1. manual metadata entries
+2. manual image entries
+3. source attribution per overridden card
+4. coexistence with the primary imported catalog
+
 ### GitHub Usage Boundary
 
 GitHub may store:
@@ -498,6 +510,58 @@ GitHub is not the primary runtime image host because repository size, file limit
 ## Analytics Model
 
 Analytics are split across personal, group, and global aggregate scopes.
+
+### Leaderboards
+
+Leaderboards are a first-class analytics surface, not just a sorted win-count list.
+
+The app should support multiple leaderboard views:
+
+1. raw wins
+2. win percentage
+3. average placement
+4. average score
+5. weighted performance leaderboard
+
+The default leaderboard should be the `weighted performance leaderboard`.
+
+### Weighted Performance Leaderboard
+
+The weighted performance leaderboard should consider:
+
+1. win percentage
+2. margin of victory in wins
+3. how close a player was in non-winning finishes
+4. strength of repeated high placements
+
+The recommended default leaderboard formula is a composite score built from:
+
+1. `win_rate_component`
+2. `placement_component`
+3. `differential_component`
+
+Definitions:
+
+1. `win_rate_component`: rewards percentage of games won
+2. `placement_component`: rewards higher finishes, with second place worth more than third and so on
+3. `differential_component`: rewards larger winning margins and softens penalties for close losses compared with blowout losses
+
+Differential rules:
+
+1. for a winner, `win differential` is the point margin over second place
+2. for non-winners, `finish differential` is the point gap to the next higher placement
+3. a close second should score materially better than a distant second
+4. a close third should score materially better than a distant third
+
+The leaderboard system should expose the underlying components so users can see:
+
+1. win percentage
+2. average finish
+3. average winning margin
+4. average losing margin to the next higher place
+5. weighted leaderboard score
+
+The formula should be configurable by administrators later, but v1 should ship with one default scoring method and transparent component breakdowns.
 
 ### Personal Analytics
 
@@ -527,7 +591,8 @@ Each player profile shows:
 22. how style and score composition shift across different groups
 23. declared versus inferred style comparison
 24. personal best style views
-25. personal trends over time
+25. personal leaderboard position and component breakdown
+26. personal trends over time
 
 ### Group Analytics
 
@@ -553,6 +618,7 @@ Each group view shows:
 18. how lineup changes alter score composition, game pace, and winning styles
 19. declared versus inferred style comparison for the group
 20. best style views for the group across player-count, map, and expansion slices
+21. weighted leaderboard with win rate, placement, and differential components
 
 ### Global Aggregate Analytics
 
@@ -571,6 +637,7 @@ Global aggregate views can show:
 9. aggregate group-composition effects where sample size is large enough
 10. declared versus inferred style agreement rates
 11. best style views by map, player count, expansion mix, corporation, and prelude
+12. global leaderboard-style rankings only in aggregate segment form, not as cross-group named player tables
 
 ## Statistics to Support
 
@@ -581,6 +648,16 @@ Global aggregate views can show:
 3. podium rate
 4. average winning score
 5. average final megacredit tiebreak amount
+
+### Leaderboard Statistics
+
+1. weighted leaderboard score
+2. win percentage
+3. average finish position
+4. average winning margin
+5. average losing margin to the next higher placement
+6. placement-weighted differential score
+7. leaderboard movement over time
 
 ### Score Composition Statistics
 
@@ -686,6 +763,7 @@ Recommended visual types:
 8. delta charts for group-context and lineup-change effects
 9. agreement-versus-mismatch charts for declared and inferred styles
 10. ranked best-style charts by player, group, map, corporation, or prelude
+11. leaderboard component charts showing win rate, placement, and differential contributions
 
 Graph design rules:
 
@@ -745,6 +823,8 @@ The app will be built as a phone-first web application with responsive screens a
 16. best-style views with sample thresholds
 17. optional key-card tagging
 18. cached card metadata and image pipeline
+19. full promo-card support, including override handling for upstream gaps
+20. weighted leaderboard views with transparent scoring components
 
 ### V1 Can Be Lightweight In
 
@@ -777,7 +857,9 @@ Those items must be functional, but they do not need extensive polish before the
 19. Declared-versus-inferred style comparison is first-class analytics
 20. Best-style reporting is a first-class analytics concept
 21. Charts and graphs appear on My Profile, Group, and Insights
-22. My player profile is the default landing page
+22. Full promo-card support is required, even when upstream sources are incomplete
+23. Weighted leaderboards combine win rate, placement, and point differential
+24. My player profile is the default landing page
 
 ## External References
 
