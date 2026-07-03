@@ -138,21 +138,24 @@ Rules:
 4. `preludes`
 5. `milestones`
 6. `awards`
-7. `cards`
-8. `style_definitions`
+7. `promo_sets`
+8. `cards`
+9. `style_definitions`
 
 ### Join Tables
 
 1. `group_default_expansions`
-2. `game_expansions`
-3. `game_player_preludes`
-4. `map_milestones`
-5. `map_awards`
-6. `game_milestones`
-7. `game_awards`
-8. `game_player_declared_styles`
-9. `game_player_inferred_styles`
-10. `game_player_key_cards`
+2. `group_default_promo_sets`
+3. `game_expansions`
+4. `game_promo_sets`
+5. `game_player_preludes`
+6. `map_milestones`
+7. `map_awards`
+8. `game_milestones`
+9. `game_awards`
+10. `game_player_declared_styles`
+11. `game_player_inferred_styles`
+12. `game_player_key_cards`
 
 ### Group Settings
 
@@ -164,12 +167,14 @@ Rules:
 4. image/reference preferences
 
 `group_default_expansions` stores the default expansion profile for the group.
+`group_default_promo_sets` stores the default promo-year or promo-edition profile for the group.
 
 When a new game is created:
 
 1. the group default expansion set is preselected
-2. the logger can change it for that game
-3. the actual game still stores its own `game_expansions` rows
+2. the group default promo-set selection is preselected
+3. the logger can change both for that game
+4. the actual game still stores its own `game_expansions` and `game_promo_sets` rows
 
 ### Players
 
@@ -195,6 +200,7 @@ This supports:
 6. `notes`
 
 `game_expansions` stores which expansions were active for that specific game.
+`game_promo_sets` stores which promo years or promo editions were active for that specific game.
 
 ### Game Player Rows
 
@@ -276,9 +282,11 @@ Collect:
 3. map
 4. player count
 5. expansions used
-6. generation count
+6. promo years or promo editions used
+7. generation count
 
 Default expansions come from the group's saved default profile.
+Default promo selections come from the group's saved default promo profile.
 
 ### Step 2: Players
 
@@ -453,6 +461,55 @@ It powers:
 
 The catalog must include all supported promo cards and promo corporations.
 
+### Promo Set Model
+
+Promos must be organized into explicit promo sets so users can work with them by year or edition instead of by individual card only.
+
+Each `promo_sets` row stores:
+
+1. promo set name
+2. promo year
+3. promo edition or release label
+4. display order
+5. source attribution
+
+Each promo card or promo corporation should link to its `promo_set_id`.
+
+### Promo Selection UX
+
+Promo selection is part of game setup and group defaults.
+
+The app should allow users to:
+
+1. select promo content by year
+2. select promo content by promo edition or release bundle
+3. select all cards in a promo set with one action
+4. clear all cards in a promo set with one action
+5. save a default promo-set profile for a group
+
+This means the app supports both:
+
+1. granular promo-set selection
+2. bulk select-all behavior for a full promo year or edition
+
+### Promo Browsing UX
+
+Users must be able to open a promo year or promo edition and browse that promo set directly.
+
+Inside a promo-set detail view, the app should show:
+
+1. the promo-set name and year
+2. the list of included cards and corporations
+3. thumbnail images for each item
+4. tap-through access to the full card image
+5. card number, card type, and card name
+
+This promo-set view should be available from:
+
+1. group settings when choosing default promo sets
+2. game setup when selecting promos used for a game
+3. the broader card-reference browsing experience
+
 ### Metadata Fields
 
 Each `cards` row stores:
@@ -463,9 +520,10 @@ Each `cards` row stores:
 4. card type
 5. expansion code
 6. expansion name
-7. source image URL
-8. source attribution
-9. sync metadata
+7. promo set id when applicable
+8. source image URL
+9. source attribution
+10. sync metadata
 
 ### Image Strategy
 
@@ -808,23 +866,26 @@ The app will be built as a phone-first web application with responsive screens a
 1. auth and group model
 2. player profiles
 3. group default expansion profile
-4. per-game setup logging
-5. score entry with final megacredits, generation count, and Jovian points
-6. explicit milestone and award recording including who funded each award
-7. individual stats
-8. group stats
-9. global aggregate winner stats with opt-in
-10. visual graphs
-11. head-to-head comparisons
-12. group-composition and lineup-change analytics
-13. inferred styles
-14. optional declared styles
-15. declared-versus-inferred style comparison views
-16. best-style views with sample thresholds
-17. optional key-card tagging
-18. cached card metadata and image pipeline
-19. full promo-card support, including override handling for upstream gaps
-20. weighted leaderboard views with transparent scoring components
+4. group default promo-set profile
+5. per-game setup logging
+6. score entry with final megacredits, generation count, and Jovian points
+7. explicit milestone and award recording including who funded each award
+8. individual stats
+9. group stats
+10. global aggregate winner stats with opt-in
+11. visual graphs
+12. head-to-head comparisons
+13. group-composition and lineup-change analytics
+14. inferred styles
+15. optional declared styles
+16. declared-versus-inferred style comparison views
+17. best-style views with sample thresholds
+18. optional key-card tagging
+19. cached card metadata and image pipeline
+20. full promo-card support, including override handling for upstream gaps
+21. promo-set browsing by year or edition with card thumbnails and full images
+22. promo-set bulk selection and select-all behavior
+23. weighted leaderboard views with transparent scoring components
 
 ### V1 Can Be Lightweight In
 
@@ -842,24 +903,27 @@ Those items must be functional, but they do not need extensive polish before the
 4. Full expansion-aware support from the start
 5. Hybrid catalog-first setup data with simple numeric final scoring
 6. Group default expansions with per-game overrides
-7. Final megacredits tracked as tiebreak data
-8. Winners and placements tracked explicitly
-9. Jovian points tracked as an explicit score subcategory
-10. Milestones and awards recorded as explicit map-aware outcomes
-11. Who funded each award is recorded explicitly
-12. Generation count logged for every game
-13. Both inferred and optional declared styles supported
-14. Styles are fixed definitions, not freeform labels
-15. Optional key cards supported from a cached catalog
-16. Cached thumbnails and full-size card images supported
-17. Individual, group, and opt-in global analytics all supported
-18. Head-to-head and group-context comparisons are first-class analytics
-19. Declared-versus-inferred style comparison is first-class analytics
-20. Best-style reporting is a first-class analytics concept
-21. Charts and graphs appear on My Profile, Group, and Insights
-22. Full promo-card support is required, even when upstream sources are incomplete
-23. Weighted leaderboards combine win rate, placement, and point differential
-24. My player profile is the default landing page
+7. Group default promo sets with per-game overrides
+8. Final megacredits tracked as tiebreak data
+9. Winners and placements tracked explicitly
+10. Jovian points tracked as an explicit score subcategory
+11. Milestones and awards recorded as explicit map-aware outcomes
+12. Who funded each award is recorded explicitly
+13. Generation count logged for every game
+14. Both inferred and optional declared styles supported
+15. Styles are fixed definitions, not freeform labels
+16. Optional key cards supported from a cached catalog
+17. Cached thumbnails and full-size card images supported
+18. Individual, group, and opt-in global analytics all supported
+19. Head-to-head and group-context comparisons are first-class analytics
+20. Declared-versus-inferred style comparison is first-class analytics
+21. Best-style reporting is a first-class analytics concept
+22. Charts and graphs appear on My Profile, Group, and Insights
+23. Full promo-card support is required, even when upstream sources are incomplete
+24. Promo sets are selectable by year or edition with bulk select-all behavior
+25. Promo sets can be opened to browse included cards and images
+26. Weighted leaderboards combine win rate, placement, and point differential
+27. My player profile is the default landing page
 
 ## External References
 
