@@ -203,10 +203,11 @@ It stores:
 10. `card_points_total`
 11. `card_points_microbes`
 12. `card_points_animals`
-13. `tr_points`
-14. `milestone_points`
-15. `award_points`
-16. derived or validated `other_card_points`
+13. `card_points_jovian`
+14. `tr_points`
+15. `milestone_points`
+16. `award_points`
+17. derived or validated `other_card_points`
 
 `game_player_preludes` supports one or more preludes per player.
 
@@ -243,10 +244,11 @@ This supports map-specific milestone analytics such as who wins a specific miles
 
 1. `game_id`
 2. `award_id`
-3. `place`
-4. `winner_game_player_id`
+3. `funded_by_game_player_id`
+4. `place`
+5. `winner_game_player_id`
 
-This model supports first and second place and can represent ties without losing the explicit award result.
+This model supports explicit award funding history, first and second place, and ties without losing the explicit award result.
 
 `milestone_points` and `award_points` stay on `game_players` for quick totals, but must be validated against the milestone and award rows.
 
@@ -284,7 +286,8 @@ Collect:
 1. which milestones were claimed
 2. who won each claimed milestone
 3. which awards were funded
-4. who placed first and second on each funded award
+4. who funded each funded award
+5. who placed first and second on each funded award
 
 ### Step 4: Final Scores
 
@@ -295,13 +298,14 @@ Collect for each player:
 3. total card points
 4. microbe card points
 5. animal card points
-6. Terraform Rating points
-7. milestone points
-8. award points
-9. total points
-10. final megacredits
+6. Jovian points
+7. Terraform Rating points
+8. milestone points
+9. award points
+10. total points
+11. final megacredits
 
-The app derives `other_card_points = card_points_total - card_points_microbes - card_points_animals`.
+The app derives `other_card_points = card_points_total - card_points_microbes - card_points_animals - card_points_jovian`.
 
 ### Step 5: Optional Playstyle and Key Cards
 
@@ -317,9 +321,10 @@ Show compact player summaries and block or warn on inconsistencies:
 
 1. milestone rows not matching milestone points
 2. award rows not matching award points
-3. invalid map-linked selections
-4. impossible tiebreak ordering
-5. invalid card-point subtotals
+3. missing award funders on funded awards
+4. invalid map-linked selections
+5. impossible tiebreak ordering
+6. invalid card-point subtotals
 
 ## Playstyle System
 
@@ -469,7 +474,11 @@ Each player profile shows:
 16. inferred style profile
 17. declared style profile where available
 18. key-card evidence where available
-19. personal trends over time
+19. head-to-head record versus other players
+20. average score differential versus specific opponents
+21. average placement differential versus specific opponents
+22. how style and score composition shift across different groups
+23. personal trends over time
 
 ### Group Analytics
 
@@ -487,9 +496,12 @@ Each group view shows:
 10. tiebreak frequency by final megacredits
 11. most-claimed milestones
 12. most-funded awards
-13. most successful playstyles
-14. meta shifts over time
-15. group winners leaderboard
+13. which players fund which awards most often
+14. most successful playstyles
+15. meta shifts over time
+16. group winners leaderboard
+17. head-to-head tables for players inside the group
+18. how lineup changes alter score composition, game pace, and winning styles
 
 ### Global Aggregate Analytics
 
@@ -505,6 +517,7 @@ Global aggregate views can show:
 6. expansion mix effects
 7. milestone and award correlations with winning
 8. key cards associated with winning styles
+9. aggregate group-composition effects where sample size is large enough
 
 ## Statistics to Support
 
@@ -520,13 +533,14 @@ Global aggregate views can show:
 
 1. average cities points
 2. average greenery points
-3. average TR points
-4. average milestone points
-5. average award points
-6. average total card points
-7. average microbe card points
-8. average animal card points
-9. average other card points
+3. average total card points
+4. average microbe card points
+5. average animal card points
+6. average Jovian points
+7. average other card points
+8. average TR points
+9. average milestone points
+10. average award points
 
 ### Corporation and Prelude Statistics
 
@@ -546,7 +560,25 @@ Global aggregate views can show:
 2. win correlation
 3. per-map milestone success
 4. per-map award success
-5. which players or styles convert specific milestones and awards most effectively
+5. which players fund specific awards most often
+6. which players or styles convert specific milestones and awards most effectively
+
+### Head-to-Head Statistics
+
+1. player-versus-player win-loss record
+2. average score differential between two players
+3. average placement differential between two players
+4. corporation performance in specific head-to-head matchups
+5. playstyle performance in specific head-to-head matchups
+6. head-to-head outcomes filtered by map, player count, and expansion mix
+
+### Group-Context Statistics
+
+1. how a player's score composition changes between groups
+2. how a player's style shifts when particular opponents are present
+3. how generation count changes when the lineup changes
+4. how winner profiles change when the group composition changes
+5. how specific groups influence corporation and prelude performance
 
 ### Style Statistics
 
@@ -578,6 +610,8 @@ Recommended visual types:
 4. heatmaps for corporation versus map and corporation versus player count
 5. scatter plots for generation count versus total points
 6. comparison bars for winners versus non-winners
+7. head-to-head matrix views for player-versus-player records
+8. delta charts for group-context and lineup-change effects
 
 Graph design rules:
 
@@ -622,16 +656,18 @@ The app will be built as a phone-first web application with responsive screens a
 2. player profiles
 3. group default expansion profile
 4. per-game setup logging
-5. score entry with final megacredits and generation count
-6. explicit milestone and award recording
+5. score entry with final megacredits, generation count, and Jovian points
+6. explicit milestone and award recording including who funded each award
 7. individual stats
 8. group stats
 9. global aggregate winner stats with opt-in
 10. visual graphs
-11. inferred styles
-12. optional declared styles
-13. optional key-card tagging
-14. cached card metadata and image pipeline
+11. head-to-head comparisons
+12. group-composition and lineup-change analytics
+13. inferred styles
+14. optional declared styles
+15. optional key-card tagging
+16. cached card metadata and image pipeline
 
 ### V1 Can Be Lightweight In
 
@@ -651,14 +687,17 @@ Those items must be functional, but they do not need extensive polish before the
 6. Group default expansions with per-game overrides
 7. Final megacredits tracked as tiebreak data
 8. Winners and placements tracked explicitly
-9. Milestones and awards recorded as explicit map-aware outcomes
-10. Generation count logged for every game
-11. Both inferred and optional declared styles supported
-12. Styles are fixed definitions, not freeform labels
-13. Optional key cards supported from a cached catalog
-14. Cached thumbnails and full-size card images supported
-15. Individual, group, and opt-in global analytics all supported
-16. My player profile is the default landing page
+9. Jovian points tracked as an explicit score subcategory
+10. Milestones and awards recorded as explicit map-aware outcomes
+11. Who funded each award is recorded explicitly
+12. Generation count logged for every game
+13. Both inferred and optional declared styles supported
+14. Styles are fixed definitions, not freeform labels
+15. Optional key cards supported from a cached catalog
+16. Cached thumbnails and full-size card images supported
+17. Individual, group, and opt-in global analytics all supported
+18. Head-to-head and group-context comparisons are first-class analytics
+19. My player profile is the default landing page
 
 ## External References
 
