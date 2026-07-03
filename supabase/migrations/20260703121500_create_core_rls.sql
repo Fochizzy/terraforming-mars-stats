@@ -10,6 +10,8 @@ create function public.is_group_member(target_group_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -23,6 +25,8 @@ create function public.can_edit_group(target_group_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -37,6 +41,8 @@ create function public.is_group_owner(target_group_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -51,6 +57,8 @@ create function public.can_read_game(target_game_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -64,6 +72,8 @@ create function public.can_edit_game(target_game_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -77,6 +87,8 @@ create function public.can_read_game_player(target_game_player_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -91,6 +103,8 @@ create function public.can_edit_game_player(target_game_player_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -111,24 +125,8 @@ using (public.is_group_member(group_id));
 
 create policy "owners manage group memberships"
 on public.group_members for all
-using (
-  exists (
-    select 1
-    from public.group_members gm
-    where gm.group_id = group_members.group_id
-      and gm.user_id = auth.uid()
-      and gm.role = 'owner'
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.group_members gm
-    where gm.group_id = group_members.group_id
-      and gm.user_id = auth.uid()
-      and gm.role = 'owner'
-  )
-);
+using (public.is_group_owner(group_members.group_id))
+with check (public.is_group_owner(group_members.group_id));
 
 create policy "members can read settings"
 on public.group_settings for select
@@ -187,3 +185,12 @@ with check (
       and public.can_edit_group(g.group_id)
   )
 );
+
+create policy "members can read game revisions"
+on public.game_revisions for select
+using (public.can_read_game(game_id));
+
+create policy "editors can write game revisions"
+on public.game_revisions for all
+using (public.can_edit_game(game_id))
+with check (public.can_edit_game(game_id));
