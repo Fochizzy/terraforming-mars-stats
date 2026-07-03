@@ -54,6 +54,16 @@ The app has four top-level destinations:
 3. `Group`
 4. `Insights`
 
+### Chart and Graph Surfaces
+
+Charts and graphs are not limited to one analytics page. They appear in three primary places:
+
+1. `My Profile`: personal trend charts, score-composition charts, head-to-head charts, and personal style comparison charts
+2. `Group`: group meta charts, winners charts, lineup-change charts, and group playstyle charts
+3. `Insights`: a dedicated comparison and exploration surface with filters, larger charts, cross-player comparisons, and cross-group aggregate charts
+
+The `Insights` area is the full chart lab, but both `My Profile` and `Group` should surface the highest-value charts directly instead of forcing users into a separate analytics page for everything.
+
 ## Supported Rules Scope
 
 The app supports full expansion-aware game logging from the start, with per-game expansion selections and group defaults.
@@ -362,6 +372,43 @@ It stores:
 1. one primary declared style
 2. up to two declared modifiers
 
+### Style Comparison
+
+The app compares declared and inferred styles whenever both exist.
+
+It should track:
+
+1. exact primary-style agreement rate
+2. partial agreement rate when modifiers overlap
+3. mismatch frequency
+4. performance when declared and inferred styles agree
+5. performance when declared and inferred styles disagree
+6. most common declared-to-inferred translations
+
+This comparison should be visible at the personal, group, and global aggregate levels.
+
+### Best Style
+
+`Best style` is a first-class analytic, but it must be defined carefully.
+
+By default, `best style` means the style with the strongest outcome under a minimum sample threshold using:
+
+1. win rate as the primary metric
+2. average placement as the first secondary metric
+3. average score as the second secondary metric
+
+The app should support `best style` views for:
+
+1. a player
+2. a group
+3. a corporation
+4. a prelude
+5. a map
+6. a player-count slice
+7. a global aggregate view
+
+If sample size is too small, the app should not claim a best style and should instead show the top candidate styles with low-confidence markers.
+
 ### Style Definitions
 
 All styles are explicitly defined in `style_definitions`.
@@ -478,7 +525,9 @@ Each player profile shows:
 20. average score differential versus specific opponents
 21. average placement differential versus specific opponents
 22. how style and score composition shift across different groups
-23. personal trends over time
+23. declared versus inferred style comparison
+24. personal best style views
+25. personal trends over time
 
 ### Group Analytics
 
@@ -502,6 +551,8 @@ Each group view shows:
 16. group winners leaderboard
 17. head-to-head tables for players inside the group
 18. how lineup changes alter score composition, game pace, and winning styles
+19. declared versus inferred style comparison for the group
+20. best style views for the group across player-count, map, and expansion slices
 
 ### Global Aggregate Analytics
 
@@ -518,6 +569,8 @@ Global aggregate views can show:
 7. milestone and award correlations with winning
 8. key cards associated with winning styles
 9. aggregate group-composition effects where sample size is large enough
+10. declared versus inferred style agreement rates
+11. best style views by map, player count, expansion mix, corporation, and prelude
 
 ## Statistics to Support
 
@@ -590,6 +643,23 @@ Global aggregate views can show:
 6. style score fingerprints
 7. declared versus inferred agreement
 8. key cards associated with each style
+9. best style by player
+10. best style by group
+11. best style by corporation
+12. best style by prelude
+13. best style by map
+14. best style by player count
+
+### Declared Versus Inferred Statistics
+
+1. exact primary-style agreement rate
+2. partial agreement rate through modifier overlap
+3. mismatch rate
+4. agreement rate by player
+5. agreement rate by group
+6. agreement rate by style
+7. performance delta between agreed and disagreed style readings
+8. most common mismatch patterns
 
 ### Tempo and Game-Length Statistics
 
@@ -602,6 +672,8 @@ Global aggregate views can show:
 
 The app should prioritize graphs that remain readable on a phone.
 
+Charts must be available directly on `My Profile`, `Group`, and `Insights`, with `Insights` providing the most flexible filtered view.
+
 Recommended visual types:
 
 1. stacked bar charts for score composition
@@ -612,12 +684,15 @@ Recommended visual types:
 6. comparison bars for winners versus non-winners
 7. head-to-head matrix views for player-versus-player records
 8. delta charts for group-context and lineup-change effects
+9. agreement-versus-mismatch charts for declared and inferred styles
+10. ranked best-style charts by player, group, map, corporation, or prelude
 
 Graph design rules:
 
 1. default to one clear question per chart
 2. include sample size on views that may be misread
 3. allow filters for player, group, map, expansion mix, player count, corporation, prelude, and style
+4. clearly label whether a style chart is based on inferred styles, declared styles, or both
 
 ## Reliability Rules
 
@@ -666,8 +741,10 @@ The app will be built as a phone-first web application with responsive screens a
 12. group-composition and lineup-change analytics
 13. inferred styles
 14. optional declared styles
-15. optional key-card tagging
-16. cached card metadata and image pipeline
+15. declared-versus-inferred style comparison views
+16. best-style views with sample thresholds
+17. optional key-card tagging
+18. cached card metadata and image pipeline
 
 ### V1 Can Be Lightweight In
 
@@ -697,7 +774,10 @@ Those items must be functional, but they do not need extensive polish before the
 16. Cached thumbnails and full-size card images supported
 17. Individual, group, and opt-in global analytics all supported
 18. Head-to-head and group-context comparisons are first-class analytics
-19. My player profile is the default landing page
+19. Declared-versus-inferred style comparison is first-class analytics
+20. Best-style reporting is a first-class analytics concept
+21. Charts and graphs appear on My Profile, Group, and Insights
+22. My player profile is the default landing page
 
 ## External References
 
