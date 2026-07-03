@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import HomePage from './page';
 
 describe('HomePage', () => {
   it('renders the Terraforming Mars stats CTA', () => {
-    render(HomePage());
+    render(<HomePage />);
 
     expect(
       screen.getByRole('heading', { name: /terraforming mars stats/i }),
