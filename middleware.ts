@@ -3,20 +3,24 @@ import { isProtectedPath } from '@/features/auth/route-guards';
 import { updateSupabaseSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  const { response, user } = await updateSupabaseSession(request);
+  const response = await updateSupabaseSession(request);
 
   if (!isProtectedPath(request.nextUrl.pathname)) {
     return response;
   }
 
-  if (user) {
-    return response;
+  const hasSupabaseAuthCookie = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith('sb-'));
+
+  if (!hasSupabaseAuthCookie) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.searchParams.set('next', request.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  const loginUrl = request.nextUrl.clone();
-  loginUrl.pathname = '/login';
-  loginUrl.searchParams.set('next', request.nextUrl.pathname);
-  return NextResponse.redirect(loginUrl);
+  return response;
 }
 
 export const config = {
