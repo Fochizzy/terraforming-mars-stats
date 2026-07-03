@@ -15,6 +15,7 @@ The app is designed around one main principle: logging a finished game must stay
 3. Provide meaningful personal, group, and global aggregate insights.
 4. Support optional card evidence without making card tagging mandatory.
 5. Keep shared data secure and group-scoped by default.
+6. Feel recognizably Terraforming Mars in color, typography, and UI tone rather than like a generic stats dashboard.
 
 ## Non-Goals
 
@@ -63,6 +64,32 @@ Charts and graphs are not limited to one analytics page. They appear in three pr
 3. `Insights`: a dedicated comparison and exploration surface with filters, larger charts, cross-player comparisons, and cross-group aggregate charts
 
 The `Insights` area is the full chart lab, but both `My Profile` and `Group` should surface the highest-value charts directly instead of forcing users into a separate analytics page for everything.
+
+### Visual Design Direction
+
+The app should be visually appealing and should deliberately echo the board game's visual language instead of using a generic analytics dashboard style.
+
+The interface should take inspiration from the game's core aesthetic cues:
+
+1. warm Mars reds, rusts, copper, and dusty orange tones
+2. dark space-toned backgrounds and panels
+3. strong contrast accent colors for oceans, greenery, heat, and corporate UI elements
+4. bold sci-fi display typography for titles and section headers
+5. cleaner supporting text for dense stats and tables
+6. card-like panels and plaque-like framing inspired by board and card components
+
+The goal is not to reproduce the board game one-to-one. The goal is to make the app feel unmistakably Terraforming Mars while remaining readable and modern on a phone.
+
+Charts, filters, and profile cards should all inherit this same visual system so analytics still feel like part of the game world.
+
+Visual system requirements:
+
+1. Use a license-compatible display font for titles and major numeric callouts that evokes the game's sci-fi header style.
+2. Use a cleaner, highly readable companion font for dense tables, filters, and form controls.
+3. Build the palette around Mars rust, copper, dust orange, deep space charcoal, muted metallic neutrals, ocean blue, and greenery accents.
+4. Treat gameplay colors as semantic accents, so greenery, ocean, heat, TR, milestones, and awards can be recognized quickly in charts and summaries.
+5. Use card-like surfaces, framed stat modules, and subtle metallic or plaque-inspired separators instead of flat generic dashboard cards.
+6. Avoid a plain default mobile-app look; the app should feel thematic even when the user is just viewing tables or entering scores.
 
 ## Supported Rules Scope
 
@@ -954,6 +981,7 @@ Graph design rules:
 3. allow filters for player, group, map, expansion mix, player count, corporation, prelude, and style
 4. clearly label whether a style chart is based on inferred styles, declared styles, or both
 5. pair major charts with sentence-form summary insights where useful
+6. use the same Terraforming Mars-inspired visual system for charts, legends, cards, and empty states instead of dropping into generic analytics defaults
 
 ## Reliability Rules
 
@@ -1014,6 +1042,7 @@ The app will be built as a phone-first web application with responsive screens a
 24. sentence-form interaction insights
 25. player-improvement insight cards based on real play history
 26. progress-over-time analytics and sentence-form progress insights
+27. board-game-inspired visual theming for fonts, palette, surfaces, and charts
 
 ### V1 Can Be Lightweight In
 
@@ -1055,6 +1084,7 @@ Those items must be functional, but they do not need extensive polish before the
 28. Improvement insights help players adjust playstyles, maps, and award-milestone aggression
 29. Progress-over-time analytics track win rates, playstyles, and improvement trends
 30. My player profile is the default landing page
+31. The visual system should echo Terraforming Mars typography, palette, and component styling while staying readable on a phone
 
 ## External References
 
