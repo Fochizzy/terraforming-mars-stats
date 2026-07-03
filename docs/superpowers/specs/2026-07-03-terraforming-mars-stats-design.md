@@ -4,7 +4,7 @@ Date: 2026-07-03
 
 ## Overview
 
-This app is a phone-first Terraforming Mars statistics tracker for a small group of friends. It supports shared access, post-game manual entry, individual and group analytics, optional global aggregate analytics, playstyle analysis, visual graphs, and an optional card-reference layer backed by a cached card catalog.
+This app is a phone-first Terraforming Mars statistics tracker for a small group of friends. It supports shared access, post-game manual entry, cloud-backed saved data, individual and group analytics, optional global aggregate analytics, playstyle analysis, visual graphs, and an optional card-reference layer backed by a cached card catalog.
 
 The app is designed around one main principle: logging a finished game must stay fast enough that people will actually use it. Structured setup data is captured where comparison matters, while score entry remains focused on endgame results instead of full turn-by-turn or full deck tracking.
 
@@ -16,6 +16,7 @@ The app is designed around one main principle: logging a finished game must stay
 4. Support optional card evidence without making card tagging mandatory.
 5. Keep shared data secure and group-scoped by default.
 6. Feel recognizably Terraforming Mars in color, typography, and UI tone rather than like a generic stats dashboard.
+7. Store saved gameplay, profile, settings, and catalog data in the cloud rather than relying on device-local persistence.
 
 ## Non-Goals
 
@@ -23,6 +24,7 @@ The app is designed around one main principle: logging a finished game must stay
 2. The app does not attempt rules enforcement during live play.
 3. The app does not use GitHub as the primary runtime image host.
 4. The app does not expose identifiable cross-group data without opt-in.
+5. The app is not local-first for canonical saved data.
 
 ## Primary Users
 
@@ -123,6 +125,24 @@ Each group has members with roles:
 1. `owner`
 2. `editor`
 3. `viewer`
+
+### Cloud Storage Direction
+
+Saved application data is cloud-backed by default.
+
+This includes:
+
+1. groups and memberships
+2. player profiles
+3. game logs and score rows
+4. group defaults and settings
+5. catalog metadata and overrides
+6. card images and thumbnails
+7. derived analytics materializations when used
+
+Device-local storage must not be the system of record for any saved gameplay or profile data.
+
+If the app later uses local device storage at all, it should be limited to temporary UI state, short-lived caches, or in-progress drafts that sync to the cloud and are never treated as the canonical saved copy.
 
 ### RLS Strategy
 
@@ -574,7 +594,7 @@ The import process:
 1. fetches card metadata
 2. caches full-size images
 3. generates or stores thumbnails
-4. updates local card records
+4. updates cloud-hosted card records
 5. never mutates historical game logs
 
 Because upstream fan-maintained sources may be incomplete, the catalog system must support manual override records for missing official promo cards and promo corporations.
@@ -1015,6 +1035,10 @@ Use Supabase for:
 3. Row Level Security
 4. Storage for card thumbnails and full-size images
 
+Supabase is the primary system of record for saved application data, including games, players, groups, settings, catalog metadata, and image assets.
+
+The app may keep transient in-memory or device cache layers for performance, but saved user data must persist to the cloud rather than existing only on the phone.
+
 The app will be built as a phone-first web application with responsive screens and a strong mobile logging flow.
 
 ## Implementation Priorities
@@ -1048,6 +1072,7 @@ The app will be built as a phone-first web application with responsive screens a
 25. player-improvement insight cards based on real play history
 26. progress-over-time analytics and sentence-form progress insights
 27. board-game-inspired visual theming for fonts, palette, surfaces, and charts
+28. cloud-backed persistence for saved user, group, game, and catalog data
 
 ### V1 Can Be Lightweight In
 
@@ -1090,6 +1115,7 @@ Those items must be functional, but they do not need extensive polish before the
 29. Progress-over-time analytics track win rates, playstyles, and improvement trends
 30. My player profile is the default landing page
 31. The visual system should echo Terraforming Mars typography, palette, and component styling while staying readable on a phone
+32. Saved data is cloud-backed with Supabase as the system of record, not local phone storage
 
 ## External References
 
