@@ -245,13 +245,13 @@ It stores:
 8. `cities_points`
 9. `greenery_points`
 10. `card_points_total`
-11. `card_points_microbes`
-12. `card_points_animals`
-13. `card_points_jovian`
+11. nullable `card_points_microbes`
+12. nullable `card_points_animals`
+13. nullable `card_points_jovian`
 14. `tr_points`
 15. `milestone_points`
 16. `award_points`
-17. derived or validated `other_card_points`
+17. nullable derived `other_card_points`
 
 `game_player_preludes` supports one or more preludes per player.
 
@@ -342,16 +342,20 @@ Collect for each player:
 1. cities
 2. greenery
 3. total card points
-4. microbe card points
-5. animal card points
-6. Jovian points
+4. optional microbe card points
+5. optional animal card points
+6. optional Jovian points
 7. Terraform Rating points
 8. milestone points
 9. award points
 10. total points
 11. final megacredits
 
-The app derives `other_card_points = card_points_total - card_points_microbes - card_points_animals - card_points_jovian`.
+`Total card points` is required.
+
+The microbe, animal, and Jovian card-point breakdowns are optional enrichment fields for better analytics and style inference.
+
+The app derives `other_card_points = card_points_total - card_points_microbes - card_points_animals - card_points_jovian` only when all three optional card subfields are present. Otherwise `other_card_points` remains null.
 
 ### Step 5: Optional Playstyle and Key Cards
 
@@ -370,7 +374,7 @@ Show compact player summaries and block or warn on inconsistencies:
 3. missing award funders on funded awards
 4. invalid map-linked selections
 5. impossible tiebreak ordering
-6. invalid card-point subtotals
+6. invalid optional card-point subtotals when breakdown data is entered
 
 ## Playstyle System
 
@@ -835,10 +839,10 @@ Global aggregate views can show:
 1. average cities points
 2. average greenery points
 3. average total card points
-4. average microbe card points
-5. average animal card points
-6. average Jovian points
-7. average other card points
+4. average microbe card points when recorded
+5. average animal card points when recorded
+6. average Jovian points when recorded
+7. average other card points when derivable
 8. average TR points
 9. average milestone points
 10. average award points
@@ -993,6 +997,7 @@ Rules:
 2. Ranking and correlation views use minimum sample thresholds.
 3. Small-sample results are visually marked as low-confidence.
 4. Inferred style without card evidence is marked lower confidence than declared style with key-card support.
+5. Analytics that rely on optional microbe, animal, Jovian, or derived other-card breakdowns must show data coverage or entered-sample count so missing optional data is not mistaken for zero.
 
 ## Privacy and Data Boundaries
 
@@ -1021,7 +1026,7 @@ The app will be built as a phone-first web application with responsive screens a
 3. group default expansion profile
 4. group default promo-set profile
 5. per-game setup logging
-6. score entry with final megacredits, generation count, and Jovian points
+6. score entry with final megacredits, generation count, required total card points, and optional Jovian, microbe, and animal breakdowns
 7. explicit milestone and award recording including who funded each award
 8. individual stats
 9. group stats
@@ -1063,7 +1068,7 @@ Those items must be functional, but they do not need extensive polish before the
 7. Group default promo sets with per-game overrides
 8. Final megacredits tracked as tiebreak data
 9. Winners and placements tracked explicitly
-10. Jovian points tracked as an explicit score subcategory
+10. Jovian, animal, and microbe card-point breakdowns are optional score subcategories layered on top of required total card points
 11. Milestones and awards recorded as explicit map-aware outcomes
 12. Who funded each award is recorded explicitly
 13. Generation count logged for every game
