@@ -624,6 +624,30 @@ Example coaching insight format:
 2. "In 4-player games with Prelude and Colonies, your best results come when you fund awards more often than your personal average."
 3. "Compared with the strongest players in this group, you claim fewer milestones in winning-position games."
 
+### Time-Based Progress Insights
+
+The app should explicitly track evidence over time, not just cumulative lifetime totals.
+
+This includes:
+
+1. how win rate changes over time
+2. how inferred and declared playstyles shift over time
+3. how score composition changes over time
+4. how leaderboard position changes over time
+5. how milestone and award aggression changes over time
+6. whether a player is actually improving over time
+
+Time-based progress insights should be available as both:
+
+1. charts
+2. sentence-form progress summaries
+
+Example progress insight format:
+
+1. "Over your last 12 games, your win rate has improved and your inferred styles have shifted away from balanced play toward milestone-race and board-control finishes."
+2. "Your recent games show stronger performance on Hellas when you play more aggressively for milestones than you did earlier in the year."
+3. "Since adding Colonies to your group's default setup, your winning scores and award-funding rate have both increased."
+
 ### Leaderboards
 
 Leaderboards are a first-class analytics surface, not just a sorted win-count list.
@@ -707,7 +731,8 @@ Each player profile shows:
 25. personal leaderboard position and component breakdown
 26. personal sentence-form insights
 27. personal improvement insights
-28. personal trends over time
+28. personal trend evidence over time
+29. personal progress-over-time insights
 
 ### Group Analytics
 
@@ -735,6 +760,7 @@ Each group view shows:
 20. best style views for the group across player-count, map, and expansion slices
 21. weighted leaderboard with win rate, placement, and differential components
 22. group sentence-form insights about expansion, promo, and lineup effects
+23. group trend evidence over time for meta shifts, playstyles, and win patterns
 
 ### Global Aggregate Analytics
 
@@ -755,6 +781,7 @@ Global aggregate views can show:
 11. best style views by map, player count, expansion mix, corporation, and prelude
 12. global leaderboard-style rankings only in aggregate segment form, not as cross-group named player tables
 13. global sentence-form insights about expansion, promo, map, corporation, prelude, and inferred-style interactions
+14. global over-time trend evidence for playstyles, win rates, and expansion-era changes
 
 ## Statistics to Support
 
@@ -848,6 +875,19 @@ Global aggregate views can show:
 6. comparison with stronger players in the same group
 7. coaching insight trigger conditions
 
+### Time-Series and Progress Statistics
+
+1. rolling win rate over time
+2. rolling average placement over time
+3. rolling leaderboard score over time
+4. inferred-style frequency over time
+5. declared-style frequency over time
+6. score-composition changes over time
+7. milestone-claim aggression over time
+8. award-funding aggression over time
+9. improvement delta between early and recent play windows
+10. expansion-era and promo-era before-versus-after comparisons
+
 ### Style Statistics
 
 1. style frequency
@@ -905,6 +945,7 @@ Recommended visual types:
 10. ranked best-style charts by player, group, map, corporation, or prelude
 11. leaderboard component charts showing win rate, placement, and differential contributions
 12. expansion and promo interaction charts showing add-versus-remove effects
+13. rolling progress charts for win rate, placement, leaderboard score, and playstyle shifts over time
 
 Graph design rules:
 
@@ -972,6 +1013,7 @@ The app will be built as a phone-first web application with responsive screens a
 23. weighted leaderboard views with transparent scoring components
 24. sentence-form interaction insights
 25. player-improvement insight cards based on real play history
+26. progress-over-time analytics and sentence-form progress insights
 
 ### V1 Can Be Lightweight In
 
@@ -1011,7 +1053,8 @@ Those items must be functional, but they do not need extensive polish before the
 26. Weighted leaderboards combine win rate, placement, and point differential
 27. Sentence-form insight cards summarize expansion, promo, map, corporation, prelude, and inferred-style effects
 28. Improvement insights help players adjust playstyles, maps, and award-milestone aggression
-29. My player profile is the default landing page
+29. Progress-over-time analytics track win rates, playstyles, and improvement trends
+30. My player profile is the default landing page
 
 ## External References
 
