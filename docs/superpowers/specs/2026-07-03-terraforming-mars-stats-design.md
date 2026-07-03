@@ -176,6 +176,7 @@ Rules:
 5. `players`
 6. `games`
 7. `game_players`
+8. `game_revisions`
 
 ### Reference Catalog Tables
 
@@ -188,6 +189,7 @@ Rules:
 7. `promo_sets`
 8. `cards`
 9. `style_definitions`
+10. `catalog_snapshots`
 
 ### Join Tables
 
@@ -244,10 +246,38 @@ This supports:
 3. `map_id`
 4. `player_count`
 5. `generation_count`
-6. `notes`
+6. nullable `source_game_id`
+7. `status` (`draft` or `finalized`)
+8. nullable `catalog_snapshot_id`
+9. `created_by_user_id`
+10. `updated_by_user_id`
+11. nullable `finalized_at`
+12. nullable `finalized_by_user_id`
+13. `notes`
 
 `game_expansions` stores which expansions were active for that specific game.
 `game_promo_sets` stores which promo years or promo editions were active for that specific game.
+
+### Game Lifecycle and Edit History
+
+Games support a lightweight lifecycle:
+
+1. `draft`: an in-progress cloud-saved log that can be resumed later
+2. `finalized`: a completed game that counts in default analytics and leaderboards
+
+Editors and owners may update finalized games, but those edits must not silently overwrite history.
+
+`game_revisions` stores:
+
+1. `game_id`
+2. revision timestamp
+3. editor user id
+4. revision reason or note when provided
+5. a coarse full-game snapshot payload for audit and recovery
+
+V1 does not need field-level diff visualization. A revision-snapshot model is sufficient as long as finalized game edits are traceable.
+
+Draft games are excluded from official statistics by default unless a user explicitly asks to view draft or incomplete data.
 
 ### Game Player Rows
 
@@ -282,7 +312,17 @@ Placement is based on:
 1. `total_points` descending
 2. `final_megacredits` descending as the tiebreaker
 
-`placement` and `is_winner` are stored explicitly for fast analytics, but validated from score data.
+If both `total_points` and `final_megacredits` are equal, the result is a true tie.
+
+True-tie rules:
+
+1. tied players share the same placement
+2. tied first-place players are all stored as winners
+3. no arbitrary hidden ordering is introduced for analytics or UI display
+4. win differential across a true tie boundary is zero
+5. leaderboard differential logic must preserve ties instead of forcing a false margin
+
+`placement` and `is_winner` are stored explicitly for fast analytics, but validated from score data and tie rules.
 
 ## Milestones and Awards
 
@@ -322,6 +362,21 @@ The logging flow is a phone-first stepper.
 
 ### Step 1: Game Setup
 
+Before entering details, the logger can choose a starting mode:
+
+1. new game from group defaults
+2. duplicate the setup from a previous game in the same group
+
+When duplicating a previous game setup, the app should copy setup-level context such as:
+
+1. map
+2. player count
+3. expansions
+4. promo sets
+5. selected players
+
+Corporations, preludes, milestones, awards, scores, winners, and notes should not be copied automatically into the new game result.
+
 Collect:
 
 1. group
@@ -334,6 +389,8 @@ Collect:
 
 Default expansions come from the group's saved default profile.
 Default promo selections come from the group's saved default promo profile.
+
+New logs should save as cloud-backed drafts until they are finalized.
 
 ### Step 2: Players
 
@@ -395,6 +452,14 @@ Show compact player summaries and block or warn on inconsistencies:
 4. invalid map-linked selections
 5. impossible tiebreak ordering
 6. invalid optional card-point subtotals when breakdown data is entered
+7. data-coverage summary for optional fields used by later analytics
+
+From review, the logger can either:
+
+1. finalize the game
+2. save the draft and return later
+
+Finalizing the game should stamp the current catalog snapshot reference and make the game eligible for default leaderboards and stats.
 
 ## Playstyle System
 
@@ -576,6 +641,21 @@ Each `cards` row stores:
 9. source attribution
 10. sync metadata
 
+### Catalog Snapshot Stamping
+
+Each import or catalog sync should create a `catalog_snapshots` row.
+
+Each snapshot stores:
+
+1. source name
+2. imported timestamp
+3. source manifest, version label, or hash when available
+4. notes about overrides or patch-level fixes when relevant
+
+Each game stores the `catalog_snapshot_id` that was current when the game was finalized.
+
+This snapshot reference is primarily for traceability and historical interpretation. Historical game results remain driven by the logged game data itself, but the app should still preserve which catalog version or override state was active at the time.
+
 ### Image Strategy
 
 Cache both:
@@ -740,6 +820,8 @@ Differential rules:
 2. for non-winners, `finish differential` is the point gap to the next higher placement
 3. a close second should score materially better than a distant second
 4. a close third should score materially better than a distant third
+5. if first place is a true tie, winning differential is zero for the tied winners
+6. tie-aware differential logic must not invent artificial gaps between tied placements
 
 The leaderboard system should expose the underlying components so users can see:
 
@@ -916,6 +998,15 @@ Global aggregate views can show:
 4. how winner profiles change when the group composition changes
 5. how specific groups influence corporation and prelude performance
 
+### Data Quality and Lifecycle Statistics
+
+1. draft versus finalized game counts
+2. optional card-breakdown coverage rate
+3. declared-style entry rate
+4. key-card tagging coverage rate
+5. post-finalization edit frequency
+6. true tie frequency
+
 ### Improvement Statistics
 
 1. player's best-performing inferred styles by map and player count
@@ -1006,6 +1097,7 @@ Graph design rules:
 4. clearly label whether a style chart is based on inferred styles, declared styles, or both
 5. pair major charts with sentence-form summary insights where useful
 6. use the same Terraforming Mars-inspired visual system for charts, legends, cards, and empty states instead of dropping into generic analytics defaults
+7. show visible data-coverage badges or entered-data counts when optional inputs materially affect the chart
 
 ## Reliability Rules
 
@@ -1018,6 +1110,8 @@ Rules:
 3. Small-sample results are visually marked as low-confidence.
 4. Inferred style without card evidence is marked lower confidence than declared style with key-card support.
 5. Analytics that rely on optional microbe, animal, Jovian, or derived other-card breakdowns must show data coverage or entered-sample count so missing optional data is not mistaken for zero.
+6. Official leaderboards and headline statistics use finalized games by default, not drafts.
+7. True ties must be displayed and counted as ties rather than being broken arbitrarily for presentation convenience.
 
 ## Privacy and Data Boundaries
 
@@ -1073,6 +1167,11 @@ The app will be built as a phone-first web application with responsive screens a
 26. progress-over-time analytics and sentence-form progress insights
 27. board-game-inspired visual theming for fonts, palette, surfaces, and charts
 28. cloud-backed persistence for saved user, group, game, and catalog data
+29. draft and finalized game lifecycle with revision history for finalized edits
+30. duplicate-from-previous-game setup flow
+31. explicit true-tie handling across logging, analytics, and leaderboards
+32. visible data-coverage indicators for analytics built from optional inputs
+33. catalog snapshot stamping for historical traceability
 
 ### V1 Can Be Lightweight In
 
@@ -1116,6 +1215,11 @@ Those items must be functional, but they do not need extensive polish before the
 30. My player profile is the default landing page
 31. The visual system should echo Terraforming Mars typography, palette, and component styling while staying readable on a phone
 32. Saved data is cloud-backed with Supabase as the system of record, not local phone storage
+33. Games support draft and finalized states, and finalized edits keep revision history
+34. Loggers can duplicate a previous game setup to speed up repeated group entry
+35. True ties are preserved explicitly instead of being broken by arbitrary ordering
+36. Analytics surface data coverage when optional inputs affect interpretation
+37. Games retain a catalog snapshot reference for historical traceability
 
 ## External References
 
