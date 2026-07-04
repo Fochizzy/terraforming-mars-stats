@@ -17,9 +17,6 @@ create table public.game_log_events (
   created_at timestamptz not null default now()
 );
 
-create index game_log_events_import_order_idx
-on public.game_log_events (game_log_import_id, event_order);
-
 alter table public.game_log_events
 add constraint game_log_events_import_order_unique
 unique (game_log_import_id, event_order);

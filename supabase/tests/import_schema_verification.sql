@@ -25,7 +25,7 @@ where tc.table_schema = 'public'
     'game_result_screenshot_imports',
     'player_import_aliases'
   )
-  and tc.constraint_type in ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY')
+  and tc.constraint_type in ('PRIMARY KEY', 'UNIQUE', 'FOREIGN KEY', 'CHECK')
 
 union all
 
@@ -36,7 +36,6 @@ select
 from pg_indexes
 where schemaname = 'public'
   and indexname in (
-    'game_log_events_import_order_idx',
     'game_result_screenshot_imports_game_id_created_at_idx',
     'player_import_aliases_group_player_idx'
   )

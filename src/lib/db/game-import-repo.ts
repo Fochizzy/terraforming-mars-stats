@@ -46,6 +46,24 @@ type RawSavedGameLogEventRow = {
   id: string;
 };
 
+function isMissingSplitScreenshotTableError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code =
+    'code' in error && typeof error.code === 'string' ? error.code : null;
+  const message =
+    'message' in error && typeof error.message === 'string'
+      ? error.message
+      : null;
+
+  return (
+    code === 'PGRST205' &&
+    message?.includes('game_result_screenshot_imports') === true
+  );
+}
+
 function countImportLines(rawLogText: string) {
   const normalized = rawLogText.trim();
 
@@ -101,7 +119,77 @@ async function cleanupFailedScreenshotImport(input: {
     );
   }
 
-  await Promise.allSettled(cleanupTasks);
+  const cleanupResults = await Promise.allSettled(cleanupTasks);
+  const cleanupFailures = cleanupResults.flatMap((result) => {
+    if (result.status === 'rejected') {
+      return [result.reason];
+    }
+
+    if (
+      result.value &&
+      typeof result.value === 'object' &&
+      'error' in result.value &&
+      result.value.error
+    ) {
+      return [result.value.error];
+    }
+
+    return [];
+  });
+
+  return cleanupFailures.map((failure) =>
+    failure instanceof Error ? failure.message : String(failure),
+  );
+}
+
+function buildCleanupAwareError(input: {
+  cleanupFailures: string[];
+  originalError: unknown;
+}) {
+  const originalMessage =
+    input.originalError instanceof Error
+      ? input.originalError.message
+      : String(input.originalError);
+
+  if (input.cleanupFailures.length === 0) {
+    return input.originalError instanceof Error
+      ? input.originalError
+      : new Error(originalMessage);
+  }
+
+  const cleanupMessage = input.cleanupFailures.join('; ');
+  const error = new Error(
+    `${originalMessage} Cleanup failed: ${cleanupMessage}`,
+  );
+
+  if (input.originalError instanceof Error) {
+    error.cause = input.originalError;
+  }
+
+  return error;
+}
+
+async function saveLegacyScreenshotMetadata(input: {
+  gameLogImportId: string;
+  screenshotFile: File;
+  screenshotObjectPath: string;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+}) {
+  const { error } = await input.supabase
+    .from('game_log_imports')
+    .update({
+      screenshot_mime_type: input.screenshotFile.type || null,
+      screenshot_object_path: input.screenshotObjectPath,
+      screenshot_original_name: input.screenshotFile.name,
+      screenshot_size_bytes: input.screenshotFile.size,
+    })
+    .eq('id', input.gameLogImportId)
+    .select('id')
+    .single();
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function saveGameLogImport(input: {
@@ -142,9 +230,13 @@ export async function saveGameLogImport(input: {
 
   if (error) {
     if (screenshotObjectPath) {
-      await cleanupFailedScreenshotImport({
+      const cleanupFailures = await cleanupFailedScreenshotImport({
         screenshotObjectPath,
         supabase,
+      });
+      throw buildCleanupAwareError({
+        cleanupFailures,
+        originalError: error,
       });
     }
     throw error;
@@ -171,12 +263,40 @@ export async function saveGameLogImport(input: {
       .single();
 
     if (screenshotError) {
-      await cleanupFailedScreenshotImport({
+      if (isMissingSplitScreenshotTableError(screenshotError)) {
+        try {
+          await saveLegacyScreenshotMetadata({
+            gameLogImportId: data.id,
+            screenshotFile: input.screenshotFile,
+            screenshotObjectPath,
+            supabase,
+          });
+          return {
+            id: data.id,
+            screenshotObjectPath,
+          };
+        } catch (legacyScreenshotError) {
+          const cleanupFailures = await cleanupFailedScreenshotImport({
+            supabase,
+            gameLogImportId: data.id,
+            screenshotObjectPath,
+          });
+          throw buildCleanupAwareError({
+            cleanupFailures,
+            originalError: legacyScreenshotError,
+          });
+        }
+      }
+
+      const cleanupFailures = await cleanupFailedScreenshotImport({
         supabase,
         gameLogImportId: data.id,
         screenshotObjectPath,
       });
-      throw screenshotError;
+      throw buildCleanupAwareError({
+        cleanupFailures,
+        originalError: screenshotError,
+      });
     }
   }
 
@@ -238,17 +358,6 @@ export async function saveGameLogEvents(input: {
     throw error;
   }
 
-  const retainedEventOrders = input.events.map((event) => event.eventOrder).join(',');
-  const { error: staleDeleteError } = await supabase
-    .from('game_log_events')
-    .delete()
-    .eq('game_log_import_id', input.gameLogImportId)
-    .not('event_order', 'in', `(${retainedEventOrders})`);
-
-  if (staleDeleteError) {
-    throw staleDeleteError;
-  }
-
   return ((data ?? []) as RawSavedGameLogEventRow[]).map((row) => ({
     eventOrder: row.event_order,
     id: row.id,
@@ -296,6 +405,18 @@ export async function getLatestGameLogImportSummary(input: {
     .maybeSingle();
 
   if (screenshotError) {
+    if (isMissingSplitScreenshotTableError(screenshotError)) {
+      return {
+        createdAt: row.created_at,
+        detectedSource: row.detected_source,
+        id: row.id,
+        lineCount: row.line_count,
+        parseStatus: row.parse_status,
+        rawLogText: row.raw_log_text,
+        screenshotOriginalName: row.screenshot_original_name ?? null,
+      };
+    }
+
     throw screenshotError;
   }
 

@@ -239,14 +239,14 @@ describe('saveGameLogImport', () => {
     ]);
   });
 
-  it('cleans up the raw import row and uploaded screenshot when screenshot metadata insert fails', async () => {
+  it('surfaces cleanup failures when screenshot metadata insert fails', async () => {
     const upload = vi.fn().mockResolvedValue({
       data: { path: 'game-3/failing-endgame-png' },
       error: null,
     });
     const remove = vi.fn().mockResolvedValue({
       data: null,
-      error: null,
+      error: new Error('storage cleanup failed'),
     });
     const storageFrom = vi.fn(() => ({
       remove,
@@ -259,7 +259,7 @@ describe('saveGameLogImport', () => {
       error: null,
     });
     const cleanupEq = vi.fn().mockResolvedValue({
-      error: null,
+      error: new Error('raw import cleanup failed'),
     });
     const cleanupDelete = vi.fn(() => ({
       eq: cleanupEq,
@@ -308,13 +308,104 @@ describe('saveGameLogImport', () => {
         screenshotFile,
         userId: 'user-3',
       }),
-    ).rejects.toThrow('screenshot insert failed');
+    ).rejects.toThrow(
+      'screenshot insert failed Cleanup failed: storage cleanup failed; raw import cleanup failed',
+    );
 
     expect(cleanupDelete).toHaveBeenCalledTimes(1);
     expect(cleanupEq).toHaveBeenCalledWith('id', 'import-failed');
     expect(remove).toHaveBeenCalledWith([
       expect.stringMatching(/^game-3\/[a-z0-9-]+-failing-endgame-png$/),
     ]);
+  });
+
+  it('falls back to legacy screenshot columns when the split screenshot table is missing', async () => {
+    const upload = vi.fn().mockResolvedValue({
+      data: { path: 'game-5/legacy-endgame-png' },
+      error: null,
+    });
+    const storageFrom = vi.fn(() => ({
+      upload,
+    }));
+    const importInsert = vi.fn().mockReturnThis();
+    const importSelect = vi.fn().mockReturnThis();
+    const importSingle = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: { id: 'import-legacy' },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { id: 'import-legacy' },
+        error: null,
+      });
+    const importUpdate = vi.fn().mockReturnThis();
+    const importEq = vi.fn().mockReturnThis();
+    const screenshotInsert = vi.fn().mockReturnThis();
+    const screenshotSelect = vi.fn().mockReturnThis();
+    const screenshotSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        code: 'PGRST205',
+        details: null,
+        hint: "Perhaps you meant the table 'public.game_log_imports'",
+        message:
+          "Could not find the table 'public.game_result_screenshot_imports' in the schema cache",
+      },
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            eq: importEq,
+            insert: importInsert,
+            select: importSelect,
+            single: importSingle,
+            update: importUpdate,
+          };
+        }
+
+        if (table === 'game_result_screenshot_imports') {
+          return {
+            insert: screenshotInsert,
+            select: screenshotSelect,
+            single: screenshotSingle,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      storage: {
+        from: storageFrom,
+      },
+    } as never);
+
+    const screenshotFile = new File(['image-bits'], 'legacy endgame.png', {
+      type: 'image/png',
+    });
+
+    const result = await repo.saveGameLogImport({
+      gameId: 'game-5',
+      rawLogText: 'Legacy screenshot import',
+      screenshotFile,
+      userId: 'user-5',
+    });
+
+    expect(result).toEqual({
+      id: 'import-legacy',
+      screenshotObjectPath: expect.stringMatching(
+        /^game-5\/[a-z0-9-]+-legacy-endgame-png$/,
+      ),
+    });
+    expect(screenshotInsert).toHaveBeenCalledTimes(1);
+    expect(importUpdate).toHaveBeenCalledWith({
+      screenshot_mime_type: 'image/png',
+      screenshot_object_path: result.screenshotObjectPath,
+      screenshot_original_name: 'legacy endgame.png',
+      screenshot_size_bytes: screenshotFile.size,
+    });
+    expect(importEq).toHaveBeenCalledWith('id', 'import-legacy');
   });
 });
 
@@ -323,16 +414,7 @@ describe('saveGameLogEvents', () => {
     vi.clearAllMocks();
   });
 
-  it('upserts parsed game log events and only prunes stale rows after the replacement write succeeds', async () => {
-    const staleDeleteNot = vi.fn().mockResolvedValue({
-      error: null,
-    });
-    const staleDeleteEq = vi.fn(() => ({
-      not: staleDeleteNot,
-    }));
-    const staleDelete = vi.fn(() => ({
-      eq: staleDeleteEq,
-    }));
+  it('upserts parsed game log events without deleting previously saved rows from shorter reparses', async () => {
     const upsert = vi.fn().mockReturnThis();
     const select = vi.fn().mockReturnThis();
     const order = vi.fn().mockResolvedValue({
@@ -347,7 +429,6 @@ describe('saveGameLogEvents', () => {
       from: vi.fn((table: string) => {
         if (table === 'game_log_events') {
           return {
-            delete: staleDelete,
             order,
             select,
             upsert,
@@ -416,12 +497,6 @@ describe('saveGameLogEvents', () => {
       ]),
       expect.anything(),
     );
-    expect(staleDelete).toHaveBeenCalledTimes(1);
-    expect(staleDeleteEq).toHaveBeenCalledWith(
-      'game_log_import_id',
-      'import-1',
-    );
-    expect(staleDeleteNot).toHaveBeenCalledWith('event_order', 'in', '(1,2)');
     expect(result).toEqual([
       { eventOrder: 1, id: 'event-1' },
       { eventOrder: 2, id: 'event-2' },
@@ -429,15 +504,6 @@ describe('saveGameLogEvents', () => {
   });
 
   it('does not clear previously saved rows when the replacement upsert fails', async () => {
-    const staleDeleteNot = vi.fn().mockResolvedValue({
-      error: null,
-    });
-    const staleDeleteEq = vi.fn(() => ({
-      not: staleDeleteNot,
-    }));
-    const staleDelete = vi.fn(() => ({
-      eq: staleDeleteEq,
-    }));
     const upsert = vi.fn().mockReturnThis();
     const select = vi.fn().mockReturnThis();
     const order = vi.fn().mockResolvedValue({
@@ -449,7 +515,6 @@ describe('saveGameLogEvents', () => {
       from: vi.fn((table: string) => {
         if (table === 'game_log_events') {
           return {
-            delete: staleDelete,
             order,
             select,
             upsert,
@@ -476,10 +541,6 @@ describe('saveGameLogEvents', () => {
         gameLogImportId: 'import-2',
       }),
     ).rejects.toThrow('event upsert failed');
-
-    expect(staleDelete).not.toHaveBeenCalled();
-    expect(staleDeleteEq).not.toHaveBeenCalled();
-    expect(staleDeleteNot).not.toHaveBeenCalled();
   });
 
   it('preserves previously saved rows when a reparse returns zero events', async () => {
@@ -765,6 +826,83 @@ describe('getLatestGameLogImportSummary', () => {
       parseStatus: 'saved_as_draft',
       rawLogText: 'legacy raw log',
       screenshotOriginalName: 'legacy-endgame.png',
+    });
+  });
+
+  it('falls back to legacy screenshot metadata when the split screenshot table is missing', async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        created_at: '2026-07-04T09:48:00.000Z',
+        detected_source: 'manual_web_import',
+        id: 'legacy-import-2',
+        line_count: 5,
+        parse_status: 'saved_as_draft',
+        raw_log_text: 'legacy screenshot table missing',
+        screenshot_original_name: 'legacy-only.png',
+      },
+      error: null,
+    });
+    const limit = vi.fn().mockReturnThis();
+    const order = vi.fn().mockReturnThis();
+    const eq = vi.fn().mockReturnThis();
+    const select = vi.fn().mockReturnThis();
+    const screenshotMaybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        code: 'PGRST205',
+        details: null,
+        hint: "Perhaps you meant the table 'public.game_log_imports'",
+        message:
+          "Could not find the table 'public.game_result_screenshot_imports' in the schema cache",
+      },
+    });
+    const screenshotLimit = vi.fn().mockReturnThis();
+    const screenshotOrder = vi.fn().mockReturnThis();
+    const screenshotEq = vi.fn().mockReturnThis();
+    const screenshotSelect = vi.fn().mockReturnThis();
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            eq,
+            limit,
+            maybeSingle,
+            order,
+            select,
+          };
+        }
+
+        if (table === 'game_result_screenshot_imports') {
+          return {
+            eq: screenshotEq,
+            limit: screenshotLimit,
+            maybeSingle: screenshotMaybeSingle,
+            order: screenshotOrder,
+            select: screenshotSelect,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const result = await repo.getLatestGameLogImportSummary({
+      gameId: 'game-2',
+    });
+
+    expect(screenshotEq).toHaveBeenCalledWith(
+      'game_log_import_id',
+      'legacy-import-2',
+    );
+    expect(result).toEqual({
+      createdAt: '2026-07-04T09:48:00.000Z',
+      detectedSource: 'manual_web_import',
+      id: 'legacy-import-2',
+      lineCount: 5,
+      parseStatus: 'saved_as_draft',
+      rawLogText: 'legacy screenshot table missing',
+      screenshotOriginalName: 'legacy-only.png',
     });
   });
 });
