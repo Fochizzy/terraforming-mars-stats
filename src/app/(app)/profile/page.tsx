@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { ProfileDashboard } from '@/features/analytics/profile-dashboard';
+import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { getProfileAnalytics } from '@/lib/db/analytics-repo';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 
@@ -8,7 +9,12 @@ export default async function ProfilePage() {
   const profileAnalytics = await getProfileAnalytics(context.groupId, context.userId);
 
   return (
-    <AppShell title="My Profile">
+    <AppShell
+      headerActions={
+        <GroupSwitcher currentGroupId={context.groupId} returnPath="/profile" />
+      }
+      title="My Profile"
+    >
       <ProfileDashboard
         coverage={profileAnalytics?.coverage ?? null}
         headToHeadRows={profileAnalytics?.headToHeadRows ?? []}

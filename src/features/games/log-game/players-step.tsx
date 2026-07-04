@@ -1,14 +1,22 @@
 'use client';
 
+import { useState } from 'react';
+import { SelectChevron } from '@/components/ui/select-chevron';
+import { StepHeading } from '@/components/ui/step-heading';
+import {
+  signupFullNameSchema,
+} from '@/features/auth/username-auth';
+import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 import type {
   CorporationOption,
   PreludeOption,
 } from '@/lib/db/reference-repo';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
-import type { UseFormRegister } from 'react-hook-form';
+import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
 
 type PlayersStepProps = {
   corporationOptions: CorporationOption[];
+  playerCount: number;
   playerOptions: Array<{
     id: string;
     display_name: string;
@@ -16,65 +24,158 @@ type PlayersStepProps = {
   preludeOptions: PreludeOption[];
   register: UseFormRegister<LogGameDraftInput>;
   selectedPlayerIds: string[];
+  setValue: UseFormSetValue<LogGameDraftInput>;
 };
 
 export function PlayersStep({
   corporationOptions,
+  playerCount,
   playerOptions,
   preludeOptions,
   register,
   selectedPlayerIds,
+  setValue,
 }: PlayersStepProps) {
+  const [playerEntry, setPlayerEntry] = useState('');
+  const [playerEntryError, setPlayerEntryError] = useState('');
   const selectedPlayers = selectedPlayerIds
-    .map((playerId) => playerOptions.find((player) => player.id === playerId))
-    .filter((player): player is NonNullable<typeof player> => Boolean(player));
+    .map(
+      (playerId) =>
+        playerOptions.find((player) => player.id === playerId) ?? {
+          id: playerId,
+          display_name: playerId,
+        },
+    );
+
+  function handleAddPlayer() {
+    try {
+      setPlayerEntryError('');
+      const rawValue = playerEntry.trim();
+
+      if (!rawValue) {
+        return;
+      }
+
+      if (selectedPlayerIds.length >= playerCount) {
+        setPlayerEntryError('Remove a player before adding another seat.');
+        return;
+      }
+
+      const normalizedEntry = normalizePlayerAlias(rawValue);
+      const existingSelection = selectedPlayers.find(
+        (player) =>
+          normalizePlayerAlias(player.display_name) === normalizedEntry,
+      );
+
+      if (existingSelection) {
+        setPlayerEntryError('That player is already selected for this game.');
+        return;
+      }
+
+      const existingPlayer = playerOptions.find(
+        (player) =>
+          normalizePlayerAlias(player.display_name) === normalizedEntry,
+      );
+      const nextReference = existingPlayer
+        ? existingPlayer.id
+        : signupFullNameSchema.parse(rawValue);
+
+      setValue('selectedPlayerIds', [...selectedPlayerIds, nextReference], {
+        shouldDirty: true,
+      });
+      setPlayerEntry('');
+    } catch (error) {
+      setPlayerEntryError(
+        error instanceof Error
+          ? error.message
+          : 'Enter a full player name in First Name Last Name format.',
+      );
+    }
+  }
+
+  function handleRemovePlayer(playerId: string) {
+    setValue(
+      'selectedPlayerIds',
+      selectedPlayerIds.filter((selectedPlayerId) => selectedPlayerId !== playerId),
+      {
+        shouldDirty: true,
+      },
+    );
+  }
 
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-orange-900/30 bg-black/25 p-4">
-      <h2 className="font-serif text-xl font-semibold">Players</h2>
-      <p className="text-sm text-stone-300">
-        Pick saved players, then assign corporation and prelude selections.
+    <section className="tm-panel flex flex-col gap-4">
+      <StepHeading step="02" title="Players" />
+      <p className="tm-body-copy text-sm">
+        Pick saved players from the roster or type a full name to create that
+        player on save.
       </p>
-      <p className="text-xs uppercase tracking-[0.22em] text-orange-300">
-        {selectedPlayers.length} saved profiles selected
+      <p className="tm-data-label">
+        {selectedPlayers.length} of {playerCount} seats filled
       </p>
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="tm-data-label">Add Or Select Player</span>
+          <input
+            aria-label="Add Or Select Player"
+            className="tm-input"
+            list="group-player-roster"
+            onChange={(event) => setPlayerEntry(event.target.value)}
+            placeholder="First Name Last Name"
+            value={playerEntry}
+          />
+          <datalist id="group-player-roster">
+            {playerOptions.map((player) => (
+              <option key={player.id} value={player.display_name} />
+            ))}
+          </datalist>
+        </label>
+        <button
+          className="tm-button-secondary self-end px-4 py-3 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={selectedPlayers.length >= playerCount || playerEntry.trim().length === 0}
+          onClick={handleAddPlayer}
+          type="button"
+        >
+          Add Player
+        </button>
+      </div>
+      {playerEntryError ? (
+        <p className="text-sm text-red-300">{playerEntryError}</p>
+      ) : null}
       <div className="grid gap-3">
-        {playerOptions.map((player) => (
-          <label
-            className="flex items-center gap-3 rounded-xl border border-stone-800 bg-stone-950/50 px-3 py-3 text-sm"
+        {selectedPlayers.map((player) => (
+          <div
+            className="tm-stat-card flex items-center justify-between gap-3 text-sm"
             key={player.id}
           >
-            <input
-              type="checkbox"
-              value={player.id}
-              {...register('selectedPlayerIds')}
-            />
-            {player.display_name}
-          </label>
+            <span>{player.display_name}</span>
+            <button
+              className="tm-button-secondary px-4 py-2 text-xs"
+              onClick={() => handleRemovePlayer(player.id)}
+              type="button"
+            >
+              Remove
+            </button>
+          </div>
         ))}
       </div>
       {selectedPlayers.length === 0 ? (
-        <p className="text-sm text-stone-400">
-          Select at least one saved player to assign corporations and preludes.
+        <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
+          Add at least one player to assign corporations and preludes.
         </p>
       ) : (
         <div className="grid gap-4">
           {selectedPlayers.map((player) => (
-            <article
-              className="rounded-2xl border border-stone-800 bg-stone-950/60 p-4"
-              key={player.id}
-            >
-              <h3 className="font-serif text-lg font-semibold">
+            <article className="tm-stat-card" key={player.id}>
+              <p className="font-semibold text-stone-100">
                 {player.display_name}
-              </h3>
+              </p>
               <div className="mt-4 grid gap-4">
-                <label className="flex flex-col gap-2 text-sm">
-                  <span className="font-semibold text-stone-200">
-                    Corporation
-                  </span>
+                <label className="relative flex flex-col gap-2 text-sm">
+                  <span className="tm-data-label">Corporation</span>
                   <select
                     aria-label={`${player.display_name} Corporation`}
-                    className="rounded-xl border border-stone-800 bg-black/30 px-4 py-3"
+                    className="tm-input appearance-none pr-9"
                     defaultValue=""
                     {...register(
                       `playerSelections.${player.id}.corporationId` as const,
@@ -87,16 +188,20 @@ export function PlayersStep({
                       </option>
                     ))}
                   </select>
+                  <SelectChevron />
                 </label>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 lg:grid-cols-3">
                   {[0, 1, 2].map((slotIndex) => (
-                    <label className="flex flex-col gap-2 text-sm" key={slotIndex}>
-                      <span className="font-semibold text-stone-200">
+                    <label
+                      className="relative flex flex-col gap-2 text-sm"
+                      key={slotIndex}
+                    >
+                      <span className="tm-data-label">
                         Prelude {slotIndex + 1}
                       </span>
                       <select
                         aria-label={`${player.display_name} Prelude ${slotIndex + 1}`}
-                        className="rounded-xl border border-stone-800 bg-black/30 px-4 py-3"
+                        className="tm-input appearance-none pr-9"
                         defaultValue=""
                         {...register(
                           `playerSelections.${player.id}.preludeIds.${slotIndex}` as const,
@@ -109,6 +214,7 @@ export function PlayersStep({
                           </option>
                         ))}
                       </select>
+                      <SelectChevron />
                     </label>
                   ))}
                 </div>
