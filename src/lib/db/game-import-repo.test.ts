@@ -276,6 +276,7 @@ describe('getLatestGameLogImportSummary', () => {
         line_count: 3,
         parse_status: 'saved_as_draft',
         raw_log_text: 'Friday Mars won\nSecond Seat lost\nFinal credits: 8',
+        screenshot_original_name: null,
       },
       error: null,
     });
@@ -332,6 +333,7 @@ describe('getLatestGameLogImportSummary', () => {
         'line_count',
         'parse_status',
         'raw_log_text',
+        'screenshot_original_name',
       ].join(', '),
     );
     expect(eq).toHaveBeenCalledWith('game_id', 'game-1');
@@ -363,6 +365,7 @@ describe('getLatestGameLogImportSummary', () => {
         line_count: 2,
         parse_status: 'saved_as_draft',
         raw_log_text: 'new raw log',
+        screenshot_original_name: null,
       },
       error: null,
     });
@@ -424,6 +427,77 @@ describe('getLatestGameLogImportSummary', () => {
       parseStatus: 'saved_as_draft',
       rawLogText: 'new raw log',
       screenshotOriginalName: 'new-screenshot.png',
+    });
+  });
+
+  it('falls back to legacy screenshot metadata on game_log_imports when no split screenshot row exists', async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        created_at: '2026-07-02T18:00:00.000Z',
+        detected_source: 'manual_web_import',
+        id: 'legacy-import-1',
+        line_count: 4,
+        parse_status: 'saved_as_draft',
+        raw_log_text: 'legacy raw log',
+        screenshot_original_name: 'legacy-endgame.png',
+      },
+      error: null,
+    });
+    const limit = vi.fn().mockReturnThis();
+    const order = vi.fn().mockReturnThis();
+    const eq = vi.fn().mockReturnThis();
+    const select = vi.fn().mockReturnThis();
+    const screenshotMaybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const screenshotLimit = vi.fn().mockReturnThis();
+    const screenshotOrder = vi.fn().mockReturnThis();
+    const screenshotEq = vi.fn().mockReturnThis();
+    const screenshotSelect = vi.fn().mockReturnThis();
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            eq,
+            limit,
+            maybeSingle,
+            order,
+            select,
+          };
+        }
+
+        if (table === 'game_result_screenshot_imports') {
+          return {
+            eq: screenshotEq,
+            limit: screenshotLimit,
+            maybeSingle: screenshotMaybeSingle,
+            order: screenshotOrder,
+            select: screenshotSelect,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const result = await repo.getLatestGameLogImportSummary({
+      gameId: 'game-1',
+    });
+
+    expect(screenshotEq).toHaveBeenCalledWith(
+      'game_log_import_id',
+      'legacy-import-1',
+    );
+    expect(result).toEqual({
+      createdAt: '2026-07-02T18:00:00.000Z',
+      detectedSource: 'manual_web_import',
+      id: 'legacy-import-1',
+      lineCount: 4,
+      parseStatus: 'saved_as_draft',
+      rawLogText: 'legacy raw log',
+      screenshotOriginalName: 'legacy-endgame.png',
     });
   });
 });

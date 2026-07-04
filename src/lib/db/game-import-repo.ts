@@ -35,6 +35,7 @@ type RawGameLogImportSummaryRow = {
   line_count: number;
   parse_status: string;
   raw_log_text: string;
+  screenshot_original_name: string | null;
 };
 
 type RawScreenshotImportRow = {
@@ -211,6 +212,7 @@ export async function getLatestGameLogImportSummary(input: {
         'line_count',
         'parse_status',
         'raw_log_text',
+        'screenshot_original_name',
       ].join(', '),
     )
     .eq('game_id', input.gameId)
@@ -249,6 +251,7 @@ export async function getLatestGameLogImportSummary(input: {
     lineCount: row.line_count,
     parseStatus: row.parse_status,
     rawLogText: row.raw_log_text,
-    screenshotOriginalName: screenshotRow?.original_name ?? null,
+    screenshotOriginalName:
+      screenshotRow?.original_name ?? row.screenshot_original_name ?? null,
   };
 }
