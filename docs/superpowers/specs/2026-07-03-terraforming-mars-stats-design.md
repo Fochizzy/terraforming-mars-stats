@@ -183,6 +183,7 @@ Rules:
 9. `game_log_imports`
 10. `game_log_events`
 11. `game_result_screenshot_imports`
+12. `player_import_aliases`
 
 ### Reference Catalog Tables
 
@@ -242,6 +243,24 @@ This supports:
 1. one person logging games for everyone
 2. recurring named player statistics
 3. personal profile views for signed-in players
+
+### Player Import Aliases
+
+Imported evidence must link back to the correct saved player profiles inside the group.
+
+`player_import_aliases` stores:
+
+1. `player_id`
+2. `source_type` such as `game_log` or `screenshot_ocr`
+3. `alias_text`
+4. normalized alias text for matching
+5. `created_at`
+
+This supports:
+
+1. repeated imports where exported names differ slightly from saved display names
+2. screenshot OCR variants such as punctuation, spacing, or recognition mistakes
+3. safer future auto-matching after a user confirms that an imported name belongs to a specific player profile
 
 ### Games
 
@@ -350,6 +369,7 @@ These rows support:
 2. OCR-assisted prefilling of endgame score fields
 3. reparsing older screenshots when OCR or layout rules improve
 4. cross-checking screenshot-derived score fields against pasted-log or manual entry
+5. cross-checking OCR-detected player names against saved player profiles and confirmed aliases
 
 ### Game Player Rows
 
@@ -445,6 +465,7 @@ This page should:
 5. cross-check overlapping fields such as player names, corporation names, generation count, total score, and final megacredits
 6. show a structured review screen before the user relies on imported data
 7. let the user edit confirmed numeric fields and continue into the normal log-game flow with the parsed evidence attached to the game
+8. require explicit player-profile resolution when any imported participant name is ambiguous or unmatched
 
 The web import page is an enhancement layer, not a separate product. It should feel like part of the `Log Game` experience rather than a disconnected admin tool.
 
@@ -477,6 +498,7 @@ When importing game evidence, the app should:
 7. cross-check overlapping fields from the screenshot and the pasted log
 8. prefill only the fields the parser or OCR can justify with high confidence
 9. show unresolved or low-confidence matches for review instead of silently guessing
+10. let the user confirm or correct every imported player-to-profile link before finalization
 
 Collect:
 
@@ -500,6 +522,14 @@ Collect:
 1. selected players from saved profiles
 2. corporation for each player
 3. prelude selection for each player
+
+When imported evidence is present:
+
+1. each imported participant must link to exactly one group player profile before the game can finalize
+2. exact display-name matches may auto-link
+3. normalized or alias-based matches may be suggested but must remain reviewable
+4. ambiguous matches must require explicit user confirmation
+5. the user may save a confirmed alias for future imports
 
 ### Step 3: Milestones and Awards
 
@@ -595,11 +625,12 @@ Rules:
 1. manual finalized results remain authoritative for winners, placements, scores, milestones, awards, and official leaderboard inclusion
 2. every parsed event stores a confidence level such as `high`, `medium`, `low`, or `unparsed`
 3. every OCR-derived score field stores confidence and remains user-editable before import
-4. import review must surface matched players, unmatched names, matched cards, unmatched cards, suspicious encoding, OCR ambiguities, and skipped lines
+4. import review must surface matched players, ambiguous player matches, unmatched names, matched cards, unmatched cards, suspicious encoding, OCR ambiguities, and skipped lines
 5. imported-log analytics must be labeled with visible coverage counts so they are not mistaken for all finalized games
 6. the raw source text and screenshot asset must be retained so old imports can be reparsed when the parser improves
 7. v1 should parse one known export format and one known endgame screenshot layout well rather than pretending to support every source loosely
 8. when screenshot-derived scores and pasted-log-derived evidence conflict, the review screen must surface the mismatch instead of choosing silently
+9. no import may finalize until every imported participant is linked to the intended saved player profile
 
 ## Playstyle System
 
@@ -1346,6 +1377,7 @@ The app will be built as a phone-first web application with responsive screens a
 37. imported-log analytics for cards played, tag profiles, timing, and board-control patterns
 38. exact digital endgame screenshot parsing for OCR-assisted score prefill
 39. editable review step that combines screenshot-derived numeric fields with pasted-log-derived event evidence
+40. explicit player-profile resolution and alias saving for imported evidence
 
 ### V1 Can Be Lightweight In
 
@@ -1355,6 +1387,7 @@ The app will be built as a phone-first web application with responsive screens a
 4. parser repair tooling beyond a clear import review surface
 5. support for multiple external log formats
 6. support for general screenshots or real-world photos beyond the known digital results screen
+7. sophisticated fuzzy player matching beyond exact, normalized, and user-confirmed alias flows
 
 Those items must be functional, but they do not need extensive polish before the core logging and analytics loop works.
 
@@ -1403,6 +1436,8 @@ Those items must be functional, but they do not need extensive polish before the
 41. V1 supports one known exported-log format and one known digital endgame screenshot layout well before expanding to additional formats
 42. Card tag metadata is part of the catalog so imported played-card events can power tag analytics
 43. Screenshot OCR is an assisted score-entry layer, not a replacement for explicit milestone, award, prelude, and expansion review
+44. Imported participants must be explicitly linked to the correct saved player profiles before import data becomes finalized game data
+45. Confirmed player aliases can be reused for future imports to improve match accuracy without hiding ambiguity
 
 ## External References
 
