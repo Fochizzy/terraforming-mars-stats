@@ -4,9 +4,9 @@ Date: 2026-07-03
 
 ## Overview
 
-This app is a phone-first Terraforming Mars statistics tracker for a small group of friends. It supports shared access, post-game manual entry, an optional in-app web import for pasted exported game logs, cloud-backed saved data, individual and group analytics, optional global aggregate analytics, playstyle analysis, visual graphs, and an optional card-reference layer backed by a cached card catalog.
+This app is a phone-first Terraforming Mars statistics tracker for a small group of friends. It supports shared access, post-game manual entry, an optional in-app web import page for pasted exported game logs and endgame result screenshots, cloud-backed saved data, individual and group analytics, optional global aggregate analytics, playstyle analysis, visual graphs, and an optional card-reference layer backed by a cached card catalog.
 
-The app is designed around one main principle: logging a finished game must stay fast enough that people will actually use it. Structured setup data is captured where comparison matters, while score entry remains focused on endgame results instead of mandatory manual turn-by-turn entry. When a digital export is available, a pasted game log can be imported into Supabase and parsed by the app as an optional enrichment layer for deeper event analytics.
+The app is designed around one main principle: logging a finished game must stay fast enough that people will actually use it. Structured setup data is captured where comparison matters, while score entry remains focused on endgame results instead of mandatory manual turn-by-turn entry. When digital evidence is available, a pasted game log and an exact endgame results screenshot can be imported into Supabase and parsed by the app as optional enrichment and score-entry assist layers.
 
 ## Product Goals
 
@@ -17,7 +17,7 @@ The app is designed around one main principle: logging a finished game must stay
 5. Keep shared data secure and group-scoped by default.
 6. Feel recognizably Terraforming Mars in color, typography, and UI tone rather than like a generic stats dashboard.
 7. Store saved gameplay, profile, settings, and catalog data in the cloud rather than relying on device-local persistence.
-8. Support an optional web page where a user can paste an exported game log, save the raw text to Supabase, and let the app parse it into event-level analytics data.
+8. Support an optional web page where a user can paste an exported game log, add an endgame results screenshot, save both to Supabase, and let the app parse them into editable numeric and event-level data.
 
 ## Non-Goals
 
@@ -27,6 +27,7 @@ The app is designed around one main principle: logging a finished game must stay
 4. The app does not expose identifiable cross-group data without opt-in.
 5. The app is not local-first for canonical saved data.
 6. The app does not attempt perfect replay reconstruction, exact hidden-hand tracking, or full engine-state simulation from imported logs in v1.
+7. The app does not try to support arbitrary tabletop photos or many unrelated screenshot layouts in v1; it targets one known digital endgame screen layout first.
 
 ## Primary Users
 
@@ -181,6 +182,7 @@ Rules:
 8. `game_revisions`
 9. `game_log_imports`
 10. `game_log_events`
+11. `game_result_screenshot_imports`
 
 ### Reference Catalog Tables
 
@@ -325,6 +327,30 @@ These tables support:
 3. preserving unresolved or partially parsed lines without inventing false certainty
 4. running optional imported-log analytics only on the games that have coverage
 
+### Imported Endgame Result Screenshots
+
+Endgame result screenshots are optional OCR-assisted score-entry evidence attached to a game.
+
+`game_result_screenshot_imports` stores:
+
+1. `game_id`
+2. `storage_object_path`
+3. `ocr_engine_version`
+4. `parse_status` such as `parsed`, `partial`, or `failed`
+5. `detected_layout`
+6. `confidence_summary`
+7. `extracted_fields jsonb`
+8. `created_by_user_id`
+9. `created_at`
+10. nullable `parsed_at`
+
+These rows support:
+
+1. storing the screenshot in Supabase Storage for audit and review
+2. OCR-assisted prefilling of endgame score fields
+3. reparsing older screenshots when OCR or layout rules improve
+4. cross-checking screenshot-derived score fields against pasted-log or manual entry
+
 ### Game Player Rows
 
 Each `game_players` row represents one player's final result in one game.
@@ -408,15 +434,17 @@ The logging flow is a phone-first stepper.
 
 ### Optional Web Import Page
 
-Inside the authenticated app, users can open a dedicated web page to paste an exported game log.
+Inside the authenticated app, users can open a dedicated web page to paste an exported game log and add an endgame screenshot.
 
 This page should:
 
 1. accept a full text paste of a known export format
-2. save the raw text to Supabase immediately
-3. run the parser server-side in the app
-4. show a structured import review before the user relies on imported data
-5. let the user continue into the normal log-game flow with the parsed evidence attached to the game
+2. accept an upload or paste of one known digital endgame results screen layout
+3. save the raw text and screenshot evidence to Supabase immediately
+4. run the text parser and screenshot OCR server-side in the app
+5. cross-check overlapping fields such as player names, corporation names, generation count, total score, and final megacredits
+6. show a structured review screen before the user relies on imported data
+7. let the user edit confirmed numeric fields and continue into the normal log-game flow with the parsed evidence attached to the game
 
 The web import page is an enhancement layer, not a separate product. It should feel like part of the `Log Game` experience rather than a disconnected admin tool.
 
@@ -426,7 +454,7 @@ Before entering details, the logger can choose a starting mode:
 
 1. new game from group defaults
 2. duplicate the setup from a previous game in the same group
-3. import an exported game log from the in-app web import page
+3. import game evidence from the in-app web import page
 
 When duplicating a previous game setup, the app should copy setup-level context such as:
 
@@ -438,15 +466,17 @@ When duplicating a previous game setup, the app should copy setup-level context 
 
 Corporations, preludes, milestones, awards, scores, winners, and notes should not be copied automatically into the new game result.
 
-When importing an exported game log, the app should:
+When importing game evidence, the app should:
 
 1. create or attach a draft game
-2. store the raw pasted log in Supabase
+2. store the raw pasted log and screenshot evidence in Supabase
 3. parse the log line by line into normalized events
-4. match player names against selected players
-5. match card names against the card catalog
-6. prefill only the fields the parser can justify with high confidence
-7. show unresolved or low-confidence matches for review instead of silently guessing
+4. OCR the screenshot into candidate numeric score fields
+5. match player names against selected players
+6. match corporation names and card names against the catalog where possible
+7. cross-check overlapping fields from the screenshot and the pasted log
+8. prefill only the fields the parser or OCR can justify with high confidence
+9. show unresolved or low-confidence matches for review instead of silently guessing
 
 Collect:
 
@@ -505,6 +535,30 @@ The microbe, animal, and Jovian card-point breakdowns are optional enrichment fi
 
 The app derives `other_card_points = card_points_total - card_points_microbes - card_points_animals - card_points_jovian` only when all three optional card subfields are present. Otherwise `other_card_points` remains null.
 
+An imported endgame screenshot may prefill:
+
+1. player names
+2. likely corporation names
+3. generation count
+4. TR points
+5. milestone points
+6. award points
+7. greenery points
+8. cities points
+9. total card points
+10. total points
+11. final megacredits
+12. winner and placement inferred from total points and final megacredits
+
+An imported endgame screenshot does not by itself prove:
+
+1. which specific milestones were claimed
+2. who funded each award
+3. who placed first and second on each award
+4. preludes, expansion mix, or map
+5. styles or key cards
+6. microbe, animal, or Jovian sub-breakdowns inside total card points
+
 ### Step 5: Optional Playstyle and Key Cards
 
 Collect optional inputs:
@@ -532,18 +586,20 @@ From review, the logger can either:
 
 Finalizing the game should stamp the current catalog snapshot reference and make the game eligible for default leaderboards and stats.
 
-### Imported Log Reliability Rules
+### Imported Evidence Reliability Rules
 
-Imported logs are treated as an evidence stream with explicit confidence, not as unquestioned truth.
+Imported logs and screenshots are treated as evidence streams with explicit confidence, not as unquestioned truth.
 
 Rules:
 
 1. manual finalized results remain authoritative for winners, placements, scores, milestones, awards, and official leaderboard inclusion
 2. every parsed event stores a confidence level such as `high`, `medium`, `low`, or `unparsed`
-3. import review must surface matched players, unmatched names, matched cards, unmatched cards, suspicious encoding, and skipped lines
-4. imported-log analytics must be labeled with visible coverage counts so they are not mistaken for all finalized games
-5. the raw source text must be retained so old imports can be reparsed when the parser improves
-6. v1 should parse one known export format well rather than pretending to support every source loosely
+3. every OCR-derived score field stores confidence and remains user-editable before import
+4. import review must surface matched players, unmatched names, matched cards, unmatched cards, suspicious encoding, OCR ambiguities, and skipped lines
+5. imported-log analytics must be labeled with visible coverage counts so they are not mistaken for all finalized games
+6. the raw source text and screenshot asset must be retained so old imports can be reparsed when the parser improves
+7. v1 should parse one known export format and one known endgame screenshot layout well rather than pretending to support every source loosely
+8. when screenshot-derived scores and pasted-log-derived evidence conflict, the review screen must surface the mismatch instead of choosing silently
 
 ## Playstyle System
 
@@ -1067,6 +1123,12 @@ Global aggregate views can show:
 9. per-generation tag ramp by player and corporation
 10. imported-log coverage rate and parsed-event confidence coverage
 
+### OCR-Assisted Entry Statistics
+
+1. screenshot-assisted score-entry coverage rate
+2. OCR-confirmed score-field coverage by game
+3. mismatch rate between screenshot OCR and pasted-log evidence when both are present
+
 ### Expansion and Promo Interaction Statistics
 
 1. map performance by expansion mix
@@ -1282,6 +1344,8 @@ The app will be built as a phone-first web application with responsive screens a
 35. Supabase-backed raw import storage plus normalized parsed event storage
 36. card tag metadata required for imported-log tag analytics
 37. imported-log analytics for cards played, tag profiles, timing, and board-control patterns
+38. exact digital endgame screenshot parsing for OCR-assisted score prefill
+39. editable review step that combines screenshot-derived numeric fields with pasted-log-derived event evidence
 
 ### V1 Can Be Lightweight In
 
@@ -1290,12 +1354,13 @@ The app will be built as a phone-first web application with responsive screens a
 3. deep card-reference browsing polish
 4. parser repair tooling beyond a clear import review surface
 5. support for multiple external log formats
+6. support for general screenshots or real-world photos beyond the known digital results screen
 
 Those items must be functional, but they do not need extensive polish before the core logging and analytics loop works.
 
 ## Final Design Decisions
 
-1. Manual post-game entry remains the default flow, with an optional authenticated web page for pasting exported game logs into Supabase for server-side parsing
+1. Manual post-game entry remains the default flow, with an optional authenticated web page for combining pasted exported game logs and an endgame screenshot into one reviewable import flow
 2. Phone-first interface
 3. Shared-group access with Supabase auth
 4. Full expansion-aware support from the start
@@ -1334,8 +1399,10 @@ Those items must be functional, but they do not need extensive polish before the
 37. Games retain a catalog snapshot reference for historical traceability
 38. Imported logs are optional enrichment data, not the authoritative source for official finalized results
 39. The app stores raw pasted logs in Supabase and parses them into normalized events inside the app
-40. V1 supports one known exported-log format well before expanding to additional formats
-41. Card tag metadata is part of the catalog so imported played-card events can power tag analytics
+40. The app stores imported endgame screenshots in Supabase Storage and OCRs them into editable score candidates inside the app
+41. V1 supports one known exported-log format and one known digital endgame screenshot layout well before expanding to additional formats
+42. Card tag metadata is part of the catalog so imported played-card events can power tag analytics
+43. Screenshot OCR is an assisted score-entry layer, not a replacement for explicit milestone, award, prelude, and expansion review
 
 ## External References
 
