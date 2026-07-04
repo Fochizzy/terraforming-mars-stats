@@ -3,6 +3,12 @@ from information_schema.views
 where table_schema = 'analytics'
 order by table_name;
 
+select table_schema, table_name
+from information_schema.views
+where table_schema = 'analytics'
+  and table_name like '%import%'
+order by table_name;
+
 select table_name, column_name
 from information_schema.columns
 where table_schema = 'analytics'
@@ -13,6 +19,7 @@ where table_schema = 'analytics'
     'group_score_source_averages',
     'group_style_performance',
     'head_to_head',
+    'import_coverage',
     'lineup_effects',
     'player_data_coverage',
     'player_game_results',

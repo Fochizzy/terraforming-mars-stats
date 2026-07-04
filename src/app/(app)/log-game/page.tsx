@@ -12,8 +12,8 @@ import {
   saveDraftGame,
 } from '@/lib/db/game-draft-repo';
 import { getLatestGameLogImportSummary } from '@/lib/db/game-import-repo';
-import { getGroupSettings } from '@/lib/db/group-settings-repo';
 import { resolveLogGamePlayerReferences } from '@/lib/db/log-game-player-resolution';
+import { getGroupSettings } from '@/lib/db/group-settings-repo';
 import { listPlayers } from '@/lib/db/player-repo';
 import {
   getLatestCatalogSnapshotId,
@@ -195,6 +195,7 @@ export default async function LogGamePage({
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/log-game" />
       }
       title="Log Game"
+      wide
     >
       {importSummary ? (
         <ImportEvidenceSummary importSummary={importSummary} />

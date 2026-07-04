@@ -1,7 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { buildCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
+import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
+import { SelectChevron } from '@/components/ui/select-chevron';
+import { StatusBanner } from '@/components/ui/status-banner';
+import { StepHeading } from '@/components/ui/step-heading';
 import type { MapOption } from '@/lib/db/reference-repo';
+import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { ImportReviewPanel } from './import-review-panel';
 
 export type WebImportDraftValues = {
@@ -9,6 +15,7 @@ export type WebImportDraftValues = {
   exportedGameLog: string;
   generationCount: number;
   mapId: string;
+  participantNames: string[];
   playedOn: string;
   playerCount: number;
 };
@@ -16,21 +23,62 @@ export type WebImportDraftValues = {
 export type WebImportActionResult = {
   gameId?: string;
   message?: string;
+  review?: ImportReviewModel;
   status: 'error' | 'idle' | 'success';
 };
 
+function getClipboardImageFile(
+  clipboardData: DataTransfer | null,
+): File | null {
+  if (!clipboardData) {
+    return null;
+  }
+
+  for (const file of Array.from(clipboardData.files ?? [])) {
+    if (file.type.startsWith('image/')) {
+      return file;
+    }
+  }
+
+  for (const item of Array.from(clipboardData.items ?? [])) {
+    if (item.kind !== 'file' || !item.type.startsWith('image/')) {
+      continue;
+    }
+
+    return item.getAsFile();
+  }
+
+  return null;
+}
+
+function getImportErrorMessage(error: unknown) {
+  if (
+    error instanceof Error &&
+    error.message.includes('Server Components render')
+  ) {
+    return 'The import save failed on the server. If this only happens in the deployed app, the web import server configuration may be incomplete.';
+  }
+
+  return describeUnknownError(error, 'Unable to save this import draft right now.');
+}
+
 type WebImportPageProps = {
-  initialValues: Omit<WebImportDraftValues, 'endgameScreenshot' | 'exportedGameLog'>;
+  initialValues: Omit<
+    WebImportDraftValues,
+    'endgameScreenshot' | 'exportedGameLog' | 'participantNames'
+  >;
   mapOptions: MapOption[];
-  onStartImport: (
-    values: WebImportDraftValues,
+  onAnalyzeImportEvidence: (
+    formData: FormData,
   ) => Promise<WebImportActionResult>;
+  onConfirmImportReview: (formData: FormData) => Promise<WebImportActionResult>;
 };
 
 export function WebImportPage({
   initialValues,
   mapOptions,
-  onStartImport,
+  onAnalyzeImportEvidence,
+  onConfirmImportReview,
 }: WebImportPageProps) {
   const [playedOn, setPlayedOn] = useState(initialValues.playedOn);
   const [mapId, setMapId] = useState(initialValues.mapId);
@@ -39,157 +87,301 @@ export function WebImportPage({
     initialValues.generationCount,
   );
   const [exportedGameLog, setExportedGameLog] = useState('');
+  const [participantsText, setParticipantsText] = useState('');
   const [endgameScreenshot, setEndgameScreenshot] = useState<File | null>(null);
   const [feedback, setFeedback] = useState<WebImportActionResult>({
     status: 'idle',
   });
+  const [review, setReview] = useState<ImportReviewModel | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
+    string | null
+  >(null);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (!endgameScreenshot) {
+      setScreenshotPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(endgameScreenshot);
+    setScreenshotPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [endgameScreenshot]);
+
+  function handlePaste(event: React.ClipboardEvent<HTMLFormElement>) {
+    const pastedScreenshot = getClipboardImageFile(event.clipboardData);
+
+    if (!pastedScreenshot) {
+      return;
+    }
+
+    event.preventDefault();
+    setEndgameScreenshot(pastedScreenshot);
+    setFeedback({
+      status: 'idle',
+    });
+  }
+
+  function handleScreenshotDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const droppedFile = Array.from(event.dataTransfer.files ?? []).find(
+      (file) => file.type.startsWith('image/'),
+    );
+
+    if (droppedFile) {
+      setEndgameScreenshot(droppedFile);
+    }
+  }
+
+  function buildCurrentFormData() {
+    return buildCreateImportDraftFormData({
+      endgameScreenshot,
+      exportedGameLog: exportedGameLog.trim(),
+      generationCount,
+      mapId,
+      participants: participantsText,
+      playedOn,
+      playerCount,
+    });
+  }
+
+  async function handleAnalyzeSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
+    setReview(null);
 
     try {
-      const result = await onStartImport({
-        endgameScreenshot,
-        exportedGameLog: exportedGameLog.trim(),
-        generationCount,
-        mapId,
-        playedOn,
-        playerCount,
-      });
+      const result = await onAnalyzeImportEvidence(buildCurrentFormData());
 
       setFeedback(result);
+      setReview(result.review ?? null);
     } catch (error) {
       setFeedback({
         status: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Unable to save this import draft right now.',
+        message: getImportErrorMessage(error),
       });
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  async function handleConfirmImport() {
+    setIsConfirming(true);
+
+    try {
+      const result = await onConfirmImportReview(buildCurrentFormData());
+
+      setFeedback(result);
+    } catch (error) {
+      setFeedback({
+        status: 'error',
+        message: getImportErrorMessage(error),
+      });
+    } finally {
+      setIsConfirming(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      <section className="rounded-2xl border border-orange-900/30 bg-black/25 p-4">
-        <h1 className="font-serif text-2xl font-semibold">Web Import</h1>
-        <p className="mt-2 text-sm text-stone-300">
-          Paste an exported game log, attach the endgame screenshot reference,
-          and prepare a guided handoff into the shared scoring flow.
+    <div className="flex flex-col gap-5">
+      <section className="tm-panel flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="tm-data-label">Field Report · Manual Entry</p>
+            <h1 className="tm-panel-title mt-1 text-xl">
+              Web Import Manifest
+            </h1>
+          </div>
+          <span className="tm-coverage-badge shrink-0">Unlogged</span>
+        </div>
+        <p className="tm-body-copy text-sm">
+          Paste an exported game log, attach the endgame screenshot, and
+          prepare a guided handoff into the shared scoring flow.
         </p>
       </section>
 
       <form
-        className="flex flex-col gap-4 rounded-2xl border border-stone-800 bg-stone-950/50 p-4"
-        onSubmit={handleSubmit}
+        className="tm-panel flex flex-col gap-6"
+        onPaste={handlePaste}
+        onSubmit={handleAnalyzeSubmit}
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="font-semibold text-stone-200">Played On</span>
-            <input
-              aria-label="Played On"
-              className="rounded-xl border border-stone-800 bg-black/30 px-4 py-3"
-              onChange={(event) => setPlayedOn(event.target.value)}
-              type="date"
-              value={playedOn}
-            />
-          </label>
+        <div className="flex flex-col gap-4">
+          <StepHeading step="01" title="Match Setup" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="tm-data-label">Played On</span>
+              <input
+                aria-label="Played On"
+                className="tm-input"
+                onChange={(event) => setPlayedOn(event.target.value)}
+                type="date"
+                value={playedOn}
+              />
+            </label>
 
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="font-semibold text-stone-200">Map</span>
-            <select
-              aria-label="Map"
-              className="rounded-xl border border-stone-800 bg-black/30 px-4 py-3"
-              onChange={(event) => setMapId(event.target.value)}
-              value={mapId}
+            <label className="relative flex flex-col gap-2 text-sm">
+              <span className="tm-data-label">Map</span>
+              <select
+                aria-label="Map"
+                className="tm-input appearance-none pr-9"
+                onChange={(event) => setMapId(event.target.value)}
+                value={mapId}
+              >
+                {mapOptions.map((map) => (
+                  <option key={map.id} value={map.id}>
+                    {map.name}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </label>
+
+            <label className="relative flex flex-col gap-2 text-sm">
+              <span className="tm-data-label">Player Count</span>
+              <select
+                aria-label="Player Count"
+                className="tm-input appearance-none pr-9"
+                onChange={(event) => setPlayerCount(Number(event.target.value))}
+                value={playerCount}
+              >
+                {[1, 2, 3, 4, 5].map((count) => (
+                  <option key={count} value={count}>
+                    {count}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="tm-data-label">Generation Count</span>
+              <input
+                aria-label="Generation Count"
+                className="tm-input"
+                min={1}
+                onChange={(event) => setGenerationCount(Number(event.target.value))}
+                type="number"
+                value={generationCount}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <StepHeading step="02" title="Game Log" />
+          <div
+            className="overflow-hidden rounded-2xl border"
+            style={{ borderColor: 'var(--tm-panel-border)' }}
+          >
+            <div
+              className="flex items-center gap-2 border-b px-4 py-2"
+              style={{
+                background: 'rgba(4, 6, 10, 0.55)',
+                borderColor: 'var(--tm-panel-border)',
+              }}
             >
-              {mapOptions.map((map) => (
-                <option key={map.id} value={map.id}>
-                  {map.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="font-semibold text-stone-200">Player Count</span>
-            <select
-              aria-label="Player Count"
-              className="rounded-xl border border-stone-800 bg-black/30 px-4 py-3"
-              onChange={(event) => setPlayerCount(Number(event.target.value))}
-              value={playerCount}
-            >
-              {[1, 2, 3, 4, 5].map((count) => (
-                <option key={count} value={count}>
-                  {count}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="font-semibold text-stone-200">Generation Count</span>
-            <input
-              aria-label="Generation Count"
-              className="rounded-xl border border-stone-800 bg-black/30 px-4 py-3"
-              min={1}
-              onChange={(event) => setGenerationCount(Number(event.target.value))}
-              type="number"
-              value={generationCount}
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+              <span className="tm-data-label text-[10px]">
+                Exported Game Log Feed
+              </span>
+            </div>
+            <textarea
+              aria-label="Exported Game Log"
+              className="min-h-36 w-full resize-y bg-black/40 px-4 py-3 font-mono text-xs leading-relaxed text-emerald-100/90 outline-none placeholder:text-stone-500"
+              onChange={(event) => setExportedGameLog(event.target.value)}
+              placeholder="Paste the exported log text here."
+              value={exportedGameLog}
             />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <StepHeading step="03" title="Participants" />
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="sr-only">Participants</span>
+            <textarea
+              aria-label="Participants"
+              className="tm-input min-h-24"
+              onChange={(event) => setParticipantsText(event.target.value)}
+              placeholder="Enter one participant name per line."
+              value={participantsText}
+            />
+            <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+              One participant name per line, matched conservatively to the
+              shared player roster.
+            </p>
           </label>
         </div>
 
-        <label className="flex flex-col gap-2 text-sm">
-          <span className="font-semibold text-stone-200">Exported Game Log</span>
-          <textarea
-            aria-label="Exported Game Log"
-            className="min-h-36 rounded-2xl border border-stone-800 bg-black/30 px-4 py-3"
-            onChange={(event) => setExportedGameLog(event.target.value)}
-            placeholder="Paste the exported log text here."
-            value={exportedGameLog}
-          />
-        </label>
-
-        <label className="flex flex-col gap-2 text-sm">
-          <span className="font-semibold text-stone-200">Endgame Screenshot</span>
-          <input
-            aria-label="Endgame Screenshot"
-            accept="image/*"
-            className="rounded-xl border border-dashed border-stone-700 bg-black/20 px-4 py-3 text-sm"
-            onChange={(event) =>
-              setEndgameScreenshot(event.target.files?.[0] ?? null)
-            }
-            type="file"
-          />
-        </label>
+        <div className="flex flex-col gap-3">
+          <StepHeading step="04" title="Endgame Evidence" />
+          <div
+            className="relative rounded-2xl border border-dashed px-4 py-6 text-center transition-colors"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleScreenshotDrop}
+            style={{ borderColor: 'rgba(192, 162, 127, 0.4)' }}
+          >
+            {screenshotPreviewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt="Endgame screenshot preview"
+                className="mx-auto max-h-40 rounded-xl border"
+                src={screenshotPreviewUrl}
+                style={{ borderColor: 'var(--tm-panel-border)' }}
+              />
+            ) : (
+              <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
+                Drop the endgame screenshot here, or choose a file below.
+              </p>
+            )}
+            <input
+              aria-label="Endgame Screenshot"
+              accept="image/*"
+              className="mx-auto mt-4 block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
+              onChange={(event) =>
+                setEndgameScreenshot(event.target.files?.[0] ?? null)
+              }
+              type="file"
+            />
+            <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
+              Paste a copied screenshot anywhere in this form to attach it.
+            </p>
+            {endgameScreenshot ? (
+              <p className="mt-1 text-xs tm-accent-copy">
+                Attached screenshot: {endgameScreenshot.name}
+              </p>
+            ) : null}
+          </div>
+        </div>
 
         {feedback.message ? (
-          <p
-            className={
-              feedback.status === 'error'
-                ? 'text-sm text-amber-200'
-                : 'text-sm text-emerald-300'
-            }
-          >
-            {feedback.message}
-          </p>
+          <StatusBanner message={feedback.message} status={feedback.status} />
         ) : null}
 
         <button
-          className="rounded-full bg-orange-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isSubmitting}
           type="submit"
         >
-          {isSubmitting ? 'Saving Import Draft...' : 'Save Import Draft'}
+          {isSubmitting ? 'Analyzing Import Evidence...' : 'Analyze Import Evidence'}
         </button>
       </form>
 
-      <ImportReviewPanel />
+      <ImportReviewPanel review={review} />
+
+      {review ? (
+        <button
+          className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isConfirming}
+          onClick={handleConfirmImport}
+          type="button"
+        >
+          {isConfirming ? 'Saving Import Draft...' : 'Confirm Import Draft'}
+        </button>
+      ) : null}
     </div>
   );
 }

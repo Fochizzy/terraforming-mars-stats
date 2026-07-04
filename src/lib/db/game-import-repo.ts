@@ -27,6 +27,14 @@ export type SaveGameLogEventInput = {
   tileType?: string | null;
 };
 
+export type SaveGameLogScreenshotParseInput = {
+  confidenceSummary?: Record<string, unknown>;
+  detectedLayout?: string | null;
+  extractedFields?: Record<string, unknown>;
+  ocrEngineVersion?: string;
+  parseStatus?: string;
+};
+
 type RawGameLogImportSummaryRow = {
   created_at: string;
   detected_source: string;
@@ -227,12 +235,24 @@ async function saveLegacyScreenshotMetadata(input: {
 
 export async function saveGameLogImport(input: {
   gameId: string;
+  logParseSummary?: {
+    contextLineCount: number;
+    drawInfoLineCount: number;
+    ignoredLineCount: number;
+    parsedEventCount: number;
+  };
   rawLogText: string;
+  screenshotParse?: SaveGameLogScreenshotParseInput;
   screenshotFile: File | null;
   userId: string;
 }) {
   const normalizedRawLogText = input.rawLogText.trim();
   const lineCount = countImportLines(normalizedRawLogText);
+  const unparsedLineCount = input.logParseSummary
+    ? input.logParseSummary.contextLineCount +
+      input.logParseSummary.drawInfoLineCount +
+      input.logParseSummary.ignoredLineCount
+    : lineCount;
   let screenshotObjectPath: string | null = null;
   let supabase = await createSupabaseServerClient();
 
@@ -248,15 +268,17 @@ export async function saveGameLogImport(input: {
   const { data, error } = await supabase
     .from('game_log_imports')
     .insert({
-      confidence_summary: {},
+      confidence_summary: input.logParseSummary ?? {},
       created_by_user_id: input.userId,
       detected_source: 'manual_web_import',
       game_id: input.gameId,
       line_count: lineCount,
       parse_status: 'saved_as_draft',
-      parser_version: 'manual-web-import-v1',
+      parser_version: input.logParseSummary
+        ? 'manual-web-import-v2'
+        : 'manual-web-import-v1',
       raw_log_text: normalizedRawLogText,
-      unparsed_line_count: lineCount,
+      unparsed_line_count: unparsedLineCount,
     })
     .select('id')
     .single();
@@ -276,20 +298,21 @@ export async function saveGameLogImport(input: {
   }
 
   if (input.screenshotFile && screenshotObjectPath) {
+    const screenshotParse = input.screenshotParse;
     const { error: screenshotError } = await supabase
       .from('game_result_screenshot_imports')
       .insert({
-        confidence_summary: {},
+        confidence_summary: screenshotParse?.confidenceSummary ?? {},
         created_by_user_id: input.userId,
-        detected_layout: null,
-        extracted_fields: {},
+        detected_layout: screenshotParse?.detectedLayout ?? null,
+        extracted_fields: screenshotParse?.extractedFields ?? {},
         file_size_bytes: input.screenshotFile.size,
         game_id: input.gameId,
         game_log_import_id: data.id,
         mime_type: input.screenshotFile.type || null,
-        ocr_engine_version: 'pending',
+        ocr_engine_version: screenshotParse?.ocrEngineVersion ?? 'pending',
         original_name: input.screenshotFile.name,
-        parse_status: 'saved_as_draft',
+        parse_status: screenshotParse?.parseStatus ?? 'saved_as_draft',
         storage_object_path: screenshotObjectPath,
       })
       .select('id')

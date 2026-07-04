@@ -1,16 +1,34 @@
-export function ImportReviewPanel() {
+import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
+import { ImportPlayerResolutionPanel } from './import-player-resolution-panel';
+import { ImportScoreCandidatesPanel } from './import-score-candidates-panel';
+
+type ImportReviewPanelProps = {
+  review: ImportReviewModel | null;
+};
+
+export function ImportReviewPanel({ review }: ImportReviewPanelProps) {
+  if (!review) {
+    return null;
+  }
+
   return (
-    <section className="rounded-2xl border border-orange-900/30 bg-black/25 p-4">
-      <h2 className="font-serif text-xl font-semibold">Import Review</h2>
-      <p className="mt-2 text-sm text-stone-300">
-        This workflow is set up for pasted logs, screenshot evidence, alias
-        matching, and parser review before the final scoring pass.
+    <section className="tm-panel flex flex-col gap-3">
+      <h2 className="tm-panel-title text-lg">Import Review</h2>
+      <p className="tm-body-copy text-sm">
+        Parsed {review.parsedEventCount} actionable log events and ignored{' '}
+        {review.ignoredLineCount} filler lines.
       </p>
-      <ul className="mt-4 grid gap-2 text-sm text-stone-200">
-        <li>Declared setup data is captured first so the scoring wizard starts in the right shape.</li>
-        <li>Imported evidence is now stored with the draft so the shared log flow can reopen it later.</li>
-        <li>Player alias normalization is ready for matching imported names to saved profiles.</li>
-      </ul>
+      <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+        {review.drawInfoLineCount} draw-only lines were kept as context.
+      </p>
+      {review.requiresPlayerConfirmation ? (
+        <p className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+          Some imported names still need profile confirmation before final
+          scoring.
+        </p>
+      ) : null}
+      <ImportPlayerResolutionPanel playerLinks={review.playerLinks} />
+      <ImportScoreCandidatesPanel scoreCandidates={review.scoreCandidates} />
     </section>
   );
 }

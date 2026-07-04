@@ -1,7 +1,16 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { WebImportPage } from './web-import-page';
+
+const review = {
+  drawInfoLineCount: 1,
+  ignoredLineCount: 2,
+  parsedEventCount: 3,
+  playerLinks: [{ importedName: 'Friday Mars', status: 'unmatched' as const }],
+  requiresPlayerConfirmation: true,
+  scoreCandidates: [{ playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 }],
+};
 
 describe('WebImportPage', () => {
   it('renders the protected import workflow fields', () => {
@@ -17,7 +26,8 @@ describe('WebImportPage', () => {
           { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
-        onStartImport={vi.fn()}
+        onAnalyzeImportEvidence={vi.fn()}
+        onConfirmImportReview={vi.fn()}
       />,
     );
 
@@ -28,18 +38,103 @@ describe('WebImportPage', () => {
       screen.getByLabelText(/exported game log/i),
     ).toBeInTheDocument();
     expect(
+      screen.getByLabelText(/participants/i),
+    ).toBeInTheDocument();
+    expect(
       screen.getByLabelText(/endgame screenshot/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /save import draft/i }),
+      screen.queryByRole('button', { name: /save import draft/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
     ).toBeInTheDocument();
   });
 
-  it('submits the structured import draft payload', async () => {
+  it('analyzes the structured import payload and shows the review before confirmation', async () => {
     const user = userEvent.setup();
-    const onStartImport = vi.fn().mockResolvedValue({
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
       status: 'success' as const,
-      message: 'Import draft saved.',
+      message: 'Import evidence analyzed.',
+      review,
+    });
+    const onConfirmImportReview = vi.fn();
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.clear(screen.getByLabelText(/played on/i));
+    await user.type(screen.getByLabelText(/played on/i), '2026-07-04');
+    await user.selectOptions(screen.getByLabelText(/map/i), 'elysium');
+    await user.selectOptions(screen.getByLabelText(/player count/i), '3');
+    await user.clear(screen.getByLabelText(/generation count/i));
+    await user.type(screen.getByLabelText(/generation count/i), '12');
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars won by 6 points.',
+    );
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Second Seat{enter}Third Seat',
+    );
+
+    const screenshot = new File(['evidence'], 'endgame.png', {
+      type: 'image/png',
+    });
+
+    await user.upload(screen.getByLabelText(/endgame screenshot/i), screenshot);
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0];
+
+    expect(submittedFormData).toBeInstanceOf(FormData);
+    expect(submittedFormData.get('playedOn')).toBe('2026-07-04');
+    expect(submittedFormData.get('mapId')).toBe('elysium');
+    expect(submittedFormData.get('playerCount')).toBe('3');
+    expect(submittedFormData.get('generationCount')).toBe('12');
+    expect(submittedFormData.get('exportedGameLog')).toBe(
+      'Friday Mars won by 6 points.',
+    );
+    expect(submittedFormData.get('participants')).toBe(
+      ['Friday Mars', 'Second Seat', 'Third Seat'].join('\n'),
+    );
+    expect(submittedFormData.get('endgameScreenshot')).toBe(screenshot);
+
+    expect(screen.getByText(/import evidence analyzed/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/parsed 3 actionable log events and ignored 2 filler lines/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Friday Mars: 62 total/i)).toBeInTheDocument();
+    expect(onConfirmImportReview).not.toHaveBeenCalled();
+  });
+
+  it('attaches a pasted screenshot from the clipboard', async () => {
+    const user = userEvent.setup();
+    const pastedScreenshot = new File(['clipboard-image'], 'pasted-scoreboard.png', {
+      type: 'image/png',
+    });
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
     });
 
     render(
@@ -54,39 +149,138 @@ describe('WebImportPage', () => {
           { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
-        onStartImport={onStartImport}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onConfirmImportReview={vi.fn()}
       />,
     );
 
-    await user.clear(screen.getByLabelText(/played on/i));
-    await user.type(screen.getByLabelText(/played on/i), '2026-07-04');
-    await user.selectOptions(screen.getByLabelText(/map/i), 'elysium');
-    await user.selectOptions(screen.getByLabelText(/player count/i), '3');
-    await user.clear(screen.getByLabelText(/generation count/i));
-    await user.type(screen.getByLabelText(/generation count/i), '12');
     await user.type(
       screen.getByLabelText(/exported game log/i),
       'Friday Mars won by 6 points.',
     );
-
-    const screenshot = new File(['evidence'], 'endgame.png', {
-      type: 'image/png',
-    });
-
-    await user.upload(screen.getByLabelText(/endgame screenshot/i), screenshot);
-    await user.click(screen.getByRole('button', { name: /save import draft/i }));
-
-    await waitFor(() =>
-      expect(onStartImport).toHaveBeenCalledWith({
-        endgameScreenshot: screenshot,
-        exportedGameLog: 'Friday Mars won by 6 points.',
-        generationCount: 12,
-        mapId: 'elysium',
-        playedOn: '2026-07-04',
-        playerCount: 3,
-      }),
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Second Seat{enter}Third Seat',
     );
 
-    expect(screen.getByText(/import draft saved/i)).toBeInTheDocument();
+    fireEvent.paste(screen.getByLabelText(/exported game log/i), {
+      clipboardData: {
+        files: [pastedScreenshot],
+        items: [
+          {
+            getAsFile: () => pastedScreenshot,
+            kind: 'file',
+            type: 'image/png',
+          },
+        ],
+      },
+    });
+
+    expect(
+      screen.getByText(/attached screenshot: pasted-scoreboard\.png/i),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0];
+
+    expect(submittedFormData).toBeInstanceOf(FormData);
+    expect(submittedFormData.get('endgameScreenshot')).toBe(pastedScreenshot);
+  });
+
+  it('shows a friendlier message when a server action returns a masked production error', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockRejectedValue(
+      new Error(
+        'An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.',
+      ),
+    );
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars won by 6 points.',
+    );
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Second Seat',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    expect(
+      await screen.findByText(
+        /the import save failed on the server\. if this only happens in the deployed app, the web import server configuration may be incomplete\./i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the message from a plain server error object instead of the generic fallback', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockRejectedValue({
+      code: '42501',
+      details: 'new row violates row-level security policy for table "game_log_imports"',
+      hint: null,
+      message: 'permission denied for table game_log_imports',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars won by 6 points.',
+    );
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Second Seat',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    expect(
+      await screen.findByText(
+        /permission denied for table game_log_imports/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/unable to save this import draft right now\./i),
+    ).not.toBeInTheDocument();
   });
 });

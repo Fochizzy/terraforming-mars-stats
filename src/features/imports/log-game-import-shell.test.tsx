@@ -18,10 +18,24 @@ describe('LogGameImportShell', () => {
     navigationMocks.push.mockReset();
   });
 
-  it('creates a draft and routes into the shared log-game flow', async () => {
+  it('analyzes import evidence before confirming a draft and routing into the shared log-game flow', async () => {
     const user = userEvent.setup();
     const screenshotFile = new File(['evidence'], 'endgame.png', {
       type: 'image/png',
+    });
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        drawInfoLineCount: 1,
+        ignoredLineCount: 2,
+        parsedEventCount: 3,
+        playerLinks: [{ importedName: 'Friday Mars', status: 'exact' as const }],
+        requiresPlayerConfirmation: false,
+        scoreCandidates: [
+          { playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 },
+        ],
+      },
     });
     const onCreateImportDraft = vi.fn().mockResolvedValue({
       status: 'success' as const,
@@ -41,6 +55,7 @@ describe('LogGameImportShell', () => {
           { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportDraft={onCreateImportDraft}
       />,
     );
@@ -55,23 +70,42 @@ describe('LogGameImportShell', () => {
       screen.getByLabelText(/exported game log/i),
       'Friday Mars won by 6 points.',
     );
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Second Seat{enter}Third Seat',
+    );
     await user.upload(
       screen.getByLabelText(/endgame screenshot/i),
       screenshotFile,
     );
-    await user.click(screen.getByRole('button', { name: /save import draft/i }));
-
-    await waitFor(() =>
-      expect(onCreateImportDraft).toHaveBeenCalledWith({
-        endgameScreenshot: screenshotFile,
-        endgameScreenshotName: 'endgame.png',
-        exportedGameLog: 'Friday Mars won by 6 points.',
-        generationCount: 12,
-        mapId: 'elysium',
-        playedOn: '2026-07-04',
-        playerCount: 3,
-      }),
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
     );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+    expect(onCreateImportDraft).not.toHaveBeenCalled();
+
+    const submittedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0];
+
+    expect(submittedFormData).toBeInstanceOf(FormData);
+    expect(submittedFormData.get('playedOn')).toBe('2026-07-04');
+    expect(submittedFormData.get('mapId')).toBe('elysium');
+    expect(submittedFormData.get('playerCount')).toBe('3');
+    expect(submittedFormData.get('generationCount')).toBe('12');
+    expect(submittedFormData.get('exportedGameLog')).toBe(
+      'Friday Mars won by 6 points.',
+    );
+    expect(submittedFormData.get('participants')).toBe(
+      ['Friday Mars', 'Second Seat', 'Third Seat'].join('\n'),
+    );
+    expect(submittedFormData.get('endgameScreenshot')).toBe(screenshotFile);
+    expect(
+      screen.getByText(/parsed 3 actionable log events and ignored 2 filler lines/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /confirm import draft/i }));
+
+    await waitFor(() => expect(onCreateImportDraft).toHaveBeenCalledTimes(1));
 
     await waitFor(() =>
       expect(navigationMocks.push).toHaveBeenCalledWith('/log-game?gameId=game-1'),
@@ -80,6 +114,17 @@ describe('LogGameImportShell', () => {
 
   it('shows an error message and does not route when import persistence fails', async () => {
     const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      review: {
+        drawInfoLineCount: 0,
+        ignoredLineCount: 0,
+        parsedEventCount: 0,
+        playerLinks: [],
+        requiresPlayerConfirmation: false,
+        scoreCandidates: [],
+      },
+    });
     const onCreateImportDraft = vi
       .fn()
       .mockRejectedValue(new Error('Storage upload failed.'));
@@ -96,6 +141,7 @@ describe('LogGameImportShell', () => {
           { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportDraft={onCreateImportDraft}
       />,
     );
@@ -104,7 +150,14 @@ describe('LogGameImportShell', () => {
       screen.getByLabelText(/exported game log/i),
       'Friday Mars won by 6 points.',
     );
-    await user.click(screen.getByRole('button', { name: /save import draft/i }));
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Second Seat',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+    await user.click(screen.getByRole('button', { name: /confirm import draft/i }));
 
     await waitFor(() =>
       expect(screen.getByText(/storage upload failed/i)).toBeInTheDocument(),

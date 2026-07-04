@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
 import type { MapOption } from '@/lib/db/reference-repo';
-import type { CreateImportDraftInput } from '@/lib/imports/build-import-draft';
 import { WebImportPage, type WebImportActionResult } from './web-import-page';
 
 type LogGameImportShellProps = {
@@ -13,36 +13,44 @@ type LogGameImportShellProps = {
     playerCount: number;
   };
   mapOptions: MapOption[];
-  onCreateImportDraft: (
-    values: CreateImportDraftInput,
+  onAnalyzeImportEvidence: (
+    formData: FormData,
   ) => Promise<WebImportActionResult>;
+  onCreateImportDraft: (formData: FormData) => Promise<WebImportActionResult>;
 };
 
 export function LogGameImportShell({
   initialValues,
   mapOptions,
+  onAnalyzeImportEvidence,
   onCreateImportDraft,
 }: LogGameImportShellProps) {
   const router = useRouter();
 
-  async function handleStartImport(values: {
-    endgameScreenshot: File | null;
-    exportedGameLog: string;
-    generationCount: number;
-    mapId: string;
-    playedOn: string;
-    playerCount: number;
-  }): Promise<WebImportActionResult> {
+  async function handleAnalyzeImport(
+    formData: FormData,
+  ): Promise<WebImportActionResult> {
     try {
-      const result = await onCreateImportDraft({
-        endgameScreenshot: values.endgameScreenshot,
-        endgameScreenshotName: values.endgameScreenshot?.name ?? null,
-        exportedGameLog: values.exportedGameLog,
-        generationCount: values.generationCount,
-        mapId: values.mapId,
-        playedOn: values.playedOn,
-        playerCount: values.playerCount,
-      });
+      const result = await onAnalyzeImportEvidence(formData);
+
+      return {
+        ...result,
+        message: result.message ?? 'Import evidence analyzed.',
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: describeUnknownError(
+          error,
+          'Unable to analyze this import evidence right now.',
+        ),
+      };
+    }
+  }
+
+  async function handleStartImport(formData: FormData): Promise<WebImportActionResult> {
+    try {
+      const result = await onCreateImportDraft(formData);
 
       if (result.status === 'success' && result.gameId) {
         router.push(`/log-game?gameId=${result.gameId}`);
@@ -55,10 +63,10 @@ export function LogGameImportShell({
     } catch (error) {
       return {
         status: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Unable to save this import draft right now.',
+        message: describeUnknownError(
+          error,
+          'Unable to save this import draft right now.',
+        ),
       };
     }
   }
@@ -67,7 +75,8 @@ export function LogGameImportShell({
     <WebImportPage
       initialValues={initialValues}
       mapOptions={mapOptions}
-      onStartImport={handleStartImport}
+      onAnalyzeImportEvidence={handleAnalyzeImport}
+      onConfirmImportReview={handleStartImport}
     />
   );
 }

@@ -7,9 +7,11 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 describe('saveGameLogImport', () => {
+  const mutableEnv = process.env as unknown as Record<string, string | undefined>;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE;
+    delete mutableEnv['SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE'];
   });
 
   it('stores raw logs and screenshot metadata in separate tables', async () => {
@@ -65,6 +67,14 @@ describe('saveGameLogImport', () => {
     const result = await repo.saveGameLogImport({
       gameId: 'game-1',
       rawLogText: 'Friday Mars won\nSecond Seat lost',
+      screenshotParse: {
+        detectedLayout: 'digital_endgame_results',
+        extractedFields: {
+          playerRows: [{ playerName: 'Friday Mars', totalPoints: 62 }],
+        },
+        ocrEngineVersion: 'tesseract.js-v7',
+        parseStatus: 'parsed',
+      },
       screenshotFile,
       userId: 'user-1',
     });
@@ -100,22 +110,25 @@ describe('saveGameLogImport', () => {
       expect.objectContaining({
         confidence_summary: {},
         created_by_user_id: 'user-1',
-        detected_layout: null,
-        extracted_fields: {},
+        detected_layout: 'digital_endgame_results',
+        extracted_fields: {
+          playerRows: [{ playerName: 'Friday Mars', totalPoints: 62 }],
+        },
         file_size_bytes: screenshotFile.size,
         game_id: 'game-1',
         game_log_import_id: 'import-1',
         mime_type: 'image/png',
-        ocr_engine_version: 'pending',
+        ocr_engine_version: 'tesseract.js-v7',
         original_name: 'Endgame Results!!.PNG',
-        parse_status: 'saved_as_draft',
+        parse_status: 'parsed',
         storage_object_path: result.screenshotObjectPath,
       }),
     );
   });
 
   it('uses the configured import-evidence bucket override when present', async () => {
-    process.env.SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE = 'custom-import-bucket';
+    mutableEnv['SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE'] =
+      'custom-import-bucket';
 
     const upload = vi.fn().mockResolvedValue({
       data: { path: 'game-2/custom-endgame-png' },
