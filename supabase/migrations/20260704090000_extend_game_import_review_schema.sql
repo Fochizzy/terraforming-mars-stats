@@ -20,6 +20,9 @@ create table public.game_log_events (
 create index game_log_events_import_order_idx
 on public.game_log_events (game_log_import_id, event_order);
 
+create unique index game_log_imports_game_id_id_idx
+on public.game_log_imports (game_id, id);
+
 create table public.game_result_screenshot_imports (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete cascade,
@@ -43,6 +46,12 @@ on public.game_result_screenshot_imports (game_id, created_at desc);
 
 create unique index game_result_screenshot_imports_import_id_idx
 on public.game_result_screenshot_imports (game_log_import_id);
+
+alter table public.game_result_screenshot_imports
+add constraint game_result_screenshot_imports_game_import_match_fk
+foreign key (game_id, game_log_import_id)
+references public.game_log_imports (game_id, id)
+on delete cascade;
 
 create table public.player_import_aliases (
   id uuid primary key default gen_random_uuid(),

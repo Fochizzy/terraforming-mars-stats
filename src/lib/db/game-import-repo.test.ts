@@ -175,6 +175,84 @@ describe('saveGameLogImport', () => {
 
     expect(storageFrom).toHaveBeenCalledWith('custom-import-bucket');
   });
+
+  it('cleans up the raw import row and uploaded screenshot when screenshot metadata insert fails', async () => {
+    const upload = vi.fn().mockResolvedValue({
+      data: { path: 'game-3/failing-endgame-png' },
+      error: null,
+    });
+    const remove = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const storageFrom = vi.fn(() => ({
+      remove,
+      upload,
+    }));
+    const importInsert = vi.fn().mockReturnThis();
+    const importSelect = vi.fn().mockReturnThis();
+    const importSingle = vi.fn().mockResolvedValue({
+      data: { id: 'import-failed' },
+      error: null,
+    });
+    const cleanupEq = vi.fn().mockResolvedValue({
+      error: null,
+    });
+    const cleanupDelete = vi.fn(() => ({
+      eq: cleanupEq,
+    }));
+    const screenshotInsert = vi.fn().mockReturnThis();
+    const screenshotSelect = vi.fn().mockReturnThis();
+    const screenshotSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: new Error('screenshot insert failed'),
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            delete: cleanupDelete,
+            insert: importInsert,
+            select: importSelect,
+            single: importSingle,
+          };
+        }
+
+        if (table === 'game_result_screenshot_imports') {
+          return {
+            insert: screenshotInsert,
+            select: screenshotSelect,
+            single: screenshotSingle,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      storage: {
+        from: storageFrom,
+      },
+    } as never);
+
+    const screenshotFile = new File(['image-bits'], 'failing endgame.png', {
+      type: 'image/png',
+    });
+
+    await expect(
+      repo.saveGameLogImport({
+        gameId: 'game-3',
+        rawLogText: 'Cleanup import',
+        screenshotFile,
+        userId: 'user-3',
+      }),
+    ).rejects.toThrow('screenshot insert failed');
+
+    expect(cleanupDelete).toHaveBeenCalledTimes(1);
+    expect(cleanupEq).toHaveBeenCalledWith('id', 'import-failed');
+    expect(remove).toHaveBeenCalledWith([
+      expect.stringMatching(/^game-3\/[a-z0-9-]+-failing-endgame-png$/),
+    ]);
+  });
 });
 
 describe('saveGameLogEvents', () => {

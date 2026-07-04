@@ -85,6 +85,19 @@ async function uploadScreenshotFile(input: {
   };
 }
 
+async function cleanupFailedScreenshotImport(input: {
+  gameLogImportId: string;
+  screenshotObjectPath: string;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+}) {
+  await Promise.allSettled([
+    input.supabase.from('game_log_imports').delete().eq('id', input.gameLogImportId),
+    input.supabase.storage
+      .from(getServerEnv().SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE)
+      .remove([input.screenshotObjectPath]),
+  ]);
+}
+
 export async function saveGameLogImport(input: {
   gameId: string;
   rawLogText: string;
@@ -146,6 +159,11 @@ export async function saveGameLogImport(input: {
       .single();
 
     if (screenshotError) {
+      await cleanupFailedScreenshotImport({
+        gameLogImportId: data.id,
+        screenshotObjectPath,
+        supabase,
+      });
       throw screenshotError;
     }
   }
