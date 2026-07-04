@@ -323,14 +323,17 @@ describe('saveGameLogEvents', () => {
     vi.clearAllMocks();
   });
 
-  it('persists parsed game log events separately from the raw import row', async () => {
-    const cleanupEq = vi.fn().mockResolvedValue({
+  it('upserts parsed game log events and only prunes stale rows after the replacement write succeeds', async () => {
+    const staleDeleteNot = vi.fn().mockResolvedValue({
       error: null,
     });
-    const cleanupDelete = vi.fn(() => ({
-      eq: cleanupEq,
+    const staleDeleteEq = vi.fn(() => ({
+      not: staleDeleteNot,
     }));
-    const insert = vi.fn().mockReturnThis();
+    const staleDelete = vi.fn(() => ({
+      eq: staleDeleteEq,
+    }));
+    const upsert = vi.fn().mockReturnThis();
     const select = vi.fn().mockReturnThis();
     const order = vi.fn().mockResolvedValue({
       data: [
@@ -344,10 +347,10 @@ describe('saveGameLogEvents', () => {
       from: vi.fn((table: string) => {
         if (table === 'game_log_events') {
           return {
-            delete: cleanupDelete,
-            insert,
+            delete: staleDelete,
             order,
             select,
+            upsert,
           };
         }
 
@@ -361,6 +364,7 @@ describe('saveGameLogEvents', () => {
           confidenceLevel: 'high',
           eventOrder: 1,
           eventType: 'generation_started',
+          gamePlayerId: 'game-player-1',
           generationNumber: 4,
           lineClassification: 'event',
           payload: { generation: 4 },
@@ -380,7 +384,7 @@ describe('saveGameLogEvents', () => {
       gameLogImportId: 'import-1',
     });
 
-    expect(insert).toHaveBeenCalledWith([
+    expect(upsert).toHaveBeenCalledWith([
       expect.objectContaining({
         confidence_level: 'high',
         event_order: 1,
@@ -402,13 +406,81 @@ describe('saveGameLogEvents', () => {
         raw_line: 'Izzy placed greenery tile at 29',
         tile_type: 'greenery',
       }),
-    ]);
-    expect(cleanupDelete).toHaveBeenCalledTimes(1);
-    expect(cleanupEq).toHaveBeenCalledWith('game_log_import_id', 'import-1');
+    ], {
+      onConflict: 'game_log_import_id,event_order',
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.not.arrayContaining([
+        expect.objectContaining({
+          game_player_id: expect.anything(),
+        }),
+      ]),
+      expect.anything(),
+    );
+    expect(staleDelete).toHaveBeenCalledTimes(1);
+    expect(staleDeleteEq).toHaveBeenCalledWith(
+      'game_log_import_id',
+      'import-1',
+    );
+    expect(staleDeleteNot).toHaveBeenCalledWith('event_order', 'in', '(1,2)');
     expect(result).toEqual([
       { eventOrder: 1, id: 'event-1' },
       { eventOrder: 2, id: 'event-2' },
     ]);
+  });
+
+  it('does not clear previously saved rows when the replacement upsert fails', async () => {
+    const staleDeleteNot = vi.fn().mockResolvedValue({
+      error: null,
+    });
+    const staleDeleteEq = vi.fn(() => ({
+      not: staleDeleteNot,
+    }));
+    const staleDelete = vi.fn(() => ({
+      eq: staleDeleteEq,
+    }));
+    const upsert = vi.fn().mockReturnThis();
+    const select = vi.fn().mockReturnThis();
+    const order = vi.fn().mockResolvedValue({
+      data: null,
+      error: new Error('event upsert failed'),
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_events') {
+          return {
+            delete: staleDelete,
+            order,
+            select,
+            upsert,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    await expect(
+      repo.saveGameLogEvents({
+        events: [
+          {
+            confidenceLevel: 'high',
+            eventOrder: 1,
+            eventType: 'generation_started',
+            generationNumber: 5,
+            lineClassification: 'event',
+            payload: { generation: 5 },
+            rawLine: 'Generation 5',
+          },
+        ],
+        gameLogImportId: 'import-2',
+      }),
+    ).rejects.toThrow('event upsert failed');
+
+    expect(staleDelete).not.toHaveBeenCalled();
+    expect(staleDeleteEq).not.toHaveBeenCalled();
+    expect(staleDeleteNot).not.toHaveBeenCalled();
   });
 });
 

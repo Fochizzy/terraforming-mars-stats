@@ -90,7 +90,7 @@ async function cleanupFailedScreenshotImport(input: {
   gameLogImportId?: string;
   screenshotObjectPath: string;
 }) {
-  const cleanupTasks = [
+  const cleanupTasks: Array<PromiseLike<unknown>> = [
     input.supabase.storage
       .from(getServerEnv().SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE)
       .remove([input.screenshotObjectPath]),
@@ -192,22 +192,22 @@ export async function saveGameLogEvents(input: {
   gameLogImportId: string;
 }) {
   const supabase = await createSupabaseServerClient();
-  const { error: deleteError } = await supabase
-    .from('game_log_events')
-    .delete()
-    .eq('game_log_import_id', input.gameLogImportId);
-
-  if (deleteError) {
-    throw deleteError;
-  }
-
   if (input.events.length === 0) {
+    const { error: deleteError } = await supabase
+      .from('game_log_events')
+      .delete()
+      .eq('game_log_import_id', input.gameLogImportId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
     return [];
   }
 
   const { data, error } = await supabase
     .from('game_log_events')
-    .insert(
+    .upsert(
       input.events.map((event) => ({
         board_space: event.boardSpace ?? null,
         card_id: event.cardId ?? null,
@@ -215,7 +215,6 @@ export async function saveGameLogEvents(input: {
         event_order: event.eventOrder,
         event_type: event.eventType,
         game_log_import_id: input.gameLogImportId,
-        game_player_id: event.gamePlayerId ?? null,
         generation_number: event.generationNumber ?? null,
         line_classification: event.lineClassification ?? null,
         payload: event.payload ?? {},
@@ -224,12 +223,26 @@ export async function saveGameLogEvents(input: {
         resource_type: event.resourceType ?? null,
         tile_type: event.tileType ?? null,
       })),
+      {
+        onConflict: 'game_log_import_id,event_order',
+      },
     )
     .select('id, event_order')
     .order('event_order', { ascending: true });
 
   if (error) {
     throw error;
+  }
+
+  const retainedEventOrders = input.events.map((event) => event.eventOrder).join(',');
+  const { error: staleDeleteError } = await supabase
+    .from('game_log_events')
+    .delete()
+    .eq('game_log_import_id', input.gameLogImportId)
+    .not('event_order', 'in', `(${retainedEventOrders})`);
+
+  if (staleDeleteError) {
+    throw staleDeleteError;
   }
 
   return ((data ?? []) as RawSavedGameLogEventRow[]).map((row) => ({
