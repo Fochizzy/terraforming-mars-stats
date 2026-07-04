@@ -4,6 +4,64 @@ import { describe, expect, it, vi } from 'vitest';
 import { LogGameWizard } from './log-game-wizard';
 
 describe('LogGameWizard', () => {
+  it('adds a typed player name that is not already in the saved roster', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[]}
+        expansionOptions={[
+          { id: 'e1', code: 'base', name: 'Base Game' },
+        ]}
+        initialValues={{
+          awardClaims: {},
+          gameId: undefined,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          milestoneClaims: {},
+          playedOn: '2026-07-03',
+          mapId: 'tharsis',
+          notes: '',
+          playerCount: 1,
+          playerScores: {},
+          playerSelections: {},
+          generationCount: 10,
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: [],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-typed',
+          message: 'Game finalized.',
+        })}
+        onSaveDraft={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-typed',
+          message: 'Draft saved.',
+        })}
+        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+        preludeOptions={[]}
+        promoSetOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/add or select player/i),
+      'New Player Name',
+    );
+    await user.click(screen.getByRole('button', { name: /add player/i }));
+
+    expect(screen.getByText(/1 of 1 seats filled/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/add or select player/i)).toHaveValue('');
+    expect(screen.getAllByRole('button', { name: /remove/i })).toHaveLength(1);
+  });
+
   it('submits a full draft payload with player, score, milestone, award, and style data', async () => {
     const user = userEvent.setup();
     const onFinalizeGame = vi.fn().mockResolvedValue({

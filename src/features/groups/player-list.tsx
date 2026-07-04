@@ -1,6 +1,7 @@
 'use client';
 
 import { startTransition, useState } from 'react';
+import { signupFullNameSchema } from '@/features/auth/username-auth';
 
 type PlayerListProps = {
   onAddPlayer: (displayName: string) => Promise<{
@@ -21,6 +22,8 @@ export function PlayerList({ onAddPlayer, players }: PlayerListProps) {
     status: 'success' | 'error';
     text: string;
   } | null>(null);
+  const fullNameResult = signupFullNameSchema.safeParse(displayName);
+  const canAddPlayer = fullNameResult.success;
 
   return (
     <section className="rounded-2xl border border-orange-900/40 bg-black/25 p-4">
@@ -35,11 +38,20 @@ export function PlayerList({ onAddPlayer, players }: PlayerListProps) {
         className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!fullNameResult.success) {
+            setMessage({
+              status: 'error',
+              text:
+                fullNameResult.error.issues[0]?.message ??
+                'Enter a full player name in First Name Last Name format.',
+            });
+            return;
+          }
           setIsPending(true);
           setMessage(null);
           startTransition(async () => {
             try {
-              const result = await onAddPlayer(displayName);
+              const result = await onAddPlayer(fullNameResult.data);
               setMessage({ status: result.status, text: result.message });
               if (result.status === 'success') {
                 setDisplayName('');
@@ -64,12 +76,13 @@ export function PlayerList({ onAddPlayer, players }: PlayerListProps) {
             aria-label="Add Player Name"
             className="rounded-xl border border-stone-800 bg-stone-950/70 px-4 py-3 text-stone-100"
             onChange={(event) => setDisplayName(event.target.value)}
+            placeholder="First Name Last Name"
             value={displayName}
           />
         </label>
         <button
           className="self-end rounded-full bg-orange-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isPending || displayName.trim().length < 2}
+          disabled={isPending || !canAddPlayer}
           type="submit"
         >
           {isPending ? 'Adding…' : 'Add Player'}

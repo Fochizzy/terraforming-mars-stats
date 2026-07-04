@@ -1,24 +1,25 @@
 import { AppShell } from '@/components/layout/app-shell';
+import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { PlayerList } from '@/features/groups/player-list';
+import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
-import { listPlayers, upsertPlayer } from '@/lib/db/player-repo';
+import { createPlayerIfMissing, listPlayers } from '@/lib/db/player-repo';
+import { signupFullNameSchema } from '@/features/auth/username-auth';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-
-const playerNameSchema = z.string().trim().min(2).max(40);
 
 export default async function PlayersPage() {
-  const context = await requireCurrentGroupContext();
+  const context = await requireGroupContextOrRedirect();
   const players = await listPlayers(context.groupId);
 
   async function handleAddPlayer(displayName: string) {
     'use server';
 
     const activeContext = await requireCurrentGroupContext();
-    const parsedDisplayName = playerNameSchema.parse(displayName);
-    await upsertPlayer({
-      group_id: activeContext.groupId,
-      display_name: parsedDisplayName,
+    const parsedDisplayName = signupFullNameSchema.parse(displayName);
+    await createPlayerIfMissing({
+      displayName: parsedDisplayName,
+      groupId: activeContext.groupId,
+      linkedUserId: null,
     });
     revalidatePath('/group/players');
     revalidatePath('/log-game');
@@ -30,7 +31,15 @@ export default async function PlayersPage() {
   }
 
   return (
-    <AppShell title="Players">
+    <AppShell
+      headerActions={
+        <GroupSwitcher
+          currentGroupId={context.groupId}
+          returnPath="/group/players"
+        />
+      }
+      title="Players"
+    >
       <PlayerList onAddPlayer={handleAddPlayer} players={players} />
     </AppShell>
   );

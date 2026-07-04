@@ -100,8 +100,13 @@ export function LogGameWizard({
   const playerStyles =
     useWatch({ control: form.control, name: 'playerStyles' }) ?? {};
   const selectedPlayers = selectedPlayerIds
-    .map((playerId) => playerOptions.find((player) => player.id === playerId))
-    .filter((player): player is NonNullable<typeof player> => Boolean(player));
+    .map(
+      (playerId) =>
+        playerOptions.find((player) => player.id === playerId) ?? {
+          id: playerId,
+          display_name: playerId,
+        },
+    );
   const normalizedExpansionCodes = normalizeSelectedExpansionCodes(expansionCodes);
   const visibleCorporations = filterCorporationOptions(
     corporationOptions,
@@ -181,10 +186,12 @@ export function LogGameWizard({
       />
       <PlayersStep
         corporationOptions={visibleCorporations}
+        playerCount={playerCount}
         playerOptions={playerOptions}
         preludeOptions={visiblePreludes}
         register={form.register}
         selectedPlayerIds={selectedPlayerIds}
+        setValue={form.setValue}
       />
       <MilestonesStep
         awardClaims={awardClaims}

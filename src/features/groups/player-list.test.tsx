@@ -23,4 +23,20 @@ describe('PlayerList', () => {
 
     await waitFor(() => expect(onAddPlayer).toHaveBeenCalledWith('Second Seat'));
   });
+
+  it('requires a first and last name before allowing a roster add', async () => {
+    const user = userEvent.setup();
+
+    render(<PlayerList onAddPlayer={vi.fn()} players={[]} />);
+
+    const input = screen.getByLabelText(/add player name/i);
+    const button = screen.getByRole('button', { name: /add player/i });
+
+    await user.type(input, 'Friday');
+    expect(button).toBeDisabled();
+
+    await user.clear(input);
+    await user.type(input, 'Friday Mars');
+    expect(button).toBeEnabled();
+  });
 });

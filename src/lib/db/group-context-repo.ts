@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { setCurrentUserLastActiveGroup } from './user-profile-repo';
 
 export type CurrentGroupContext = {
   userId: string;
@@ -6,6 +7,56 @@ export type CurrentGroupContext = {
   groupName: string;
   role: 'owner' | 'editor' | 'viewer';
 };
+
+export type CurrentUserGroup = {
+  groupId: string;
+  groupName: string;
+  role: 'owner' | 'editor' | 'viewer';
+};
+
+function getJoinedGroupName(value: unknown) {
+  if (!value || typeof value !== 'object') {
+    return '';
+  }
+
+  if ('name' in value && typeof value.name === 'string') {
+    return value.name;
+  }
+
+  return '';
+}
+
+export async function listCurrentUserGroups(): Promise<CurrentUserGroup[]> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw userError;
+  }
+
+  if (!user) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('group_members')
+    .select('group_id, role, groups(name)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((membership) => ({
+    groupId: membership.group_id,
+    groupName: getJoinedGroupName(membership.groups),
+    role: membership.role,
+  }));
+}
 
 export async function getCurrentGroupContext(): Promise<CurrentGroupContext | null> {
   const supabase = await createSupabaseServerClient();
@@ -22,38 +73,43 @@ export async function getCurrentGroupContext(): Promise<CurrentGroupContext | nu
     return null;
   }
 
-  // Until multi-group switching exists, use the earliest group membership.
-  const { data: membership, error: membershipError } = await supabase
-    .from('group_members')
-    .select('group_id, role')
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('last_active_group_id')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
-    .limit(1)
     .maybeSingle();
 
-  if (membershipError) {
-    throw membershipError;
+  if (profileError) {
+    throw profileError;
   }
+
+  const memberships = await listCurrentUserGroups();
+
+  if (memberships.length === 0) {
+    return null;
+  }
+
+  const membership =
+    memberships.find(
+      (candidate) => candidate.groupId === profile?.last_active_group_id,
+    ) ?? memberships[0];
 
   if (!membership) {
     return null;
   }
 
-  const { data: group, error: groupError } = await supabase
-    .from('groups')
-    .select('name')
-    .eq('id', membership.group_id)
-    .single();
-
-  if (groupError) {
-    throw groupError;
+  if (profile && profile.last_active_group_id !== membership.groupId) {
+    await setCurrentUserLastActiveGroup({
+      groupId: membership.groupId,
+      userId: user.id,
+    });
   }
 
   return {
-    userId: user.id,
-    groupId: membership.group_id,
-    groupName: group.name,
+    groupId: membership.groupId,
+    groupName: membership.groupName,
     role: membership.role,
+    userId: user.id,
   };
 }
 
