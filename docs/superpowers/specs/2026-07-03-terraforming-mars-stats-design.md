@@ -4,9 +4,9 @@ Date: 2026-07-03
 
 ## Overview
 
-This app is a phone-first Terraforming Mars statistics tracker for a small group of friends. It supports shared access, post-game manual entry, cloud-backed saved data, individual and group analytics, optional global aggregate analytics, playstyle analysis, visual graphs, and an optional card-reference layer backed by a cached card catalog.
+This app is a phone-first Terraforming Mars statistics tracker for a small group of friends. It supports shared access, post-game manual entry, an optional in-app web import for pasted exported game logs, cloud-backed saved data, individual and group analytics, optional global aggregate analytics, playstyle analysis, visual graphs, and an optional card-reference layer backed by a cached card catalog.
 
-The app is designed around one main principle: logging a finished game must stay fast enough that people will actually use it. Structured setup data is captured where comparison matters, while score entry remains focused on endgame results instead of full turn-by-turn or full deck tracking.
+The app is designed around one main principle: logging a finished game must stay fast enough that people will actually use it. Structured setup data is captured where comparison matters, while score entry remains focused on endgame results instead of mandatory manual turn-by-turn entry. When a digital export is available, a pasted game log can be imported into Supabase and parsed by the app as an optional enrichment layer for deeper event analytics.
 
 ## Product Goals
 
@@ -17,14 +17,16 @@ The app is designed around one main principle: logging a finished game must stay
 5. Keep shared data secure and group-scoped by default.
 6. Feel recognizably Terraforming Mars in color, typography, and UI tone rather than like a generic stats dashboard.
 7. Store saved gameplay, profile, settings, and catalog data in the cloud rather than relying on device-local persistence.
+8. Support an optional web page where a user can paste an exported game log, save the raw text to Supabase, and let the app parse it into event-level analytics data.
 
 ## Non-Goals
 
-1. The app does not track every action, generation-by-generation economy, or every card played.
+1. The app does not require manual turn-by-turn entry for every game, and it does not depend on imported logs for baseline winner and score analytics.
 2. The app does not attempt rules enforcement during live play.
 3. The app does not use GitHub as the primary runtime image host.
 4. The app does not expose identifiable cross-group data without opt-in.
 5. The app is not local-first for canonical saved data.
+6. The app does not attempt perfect replay reconstruction, exact hidden-hand tracking, or full engine-state simulation from imported logs in v1.
 
 ## Primary Users
 
@@ -177,6 +179,8 @@ Rules:
 6. `games`
 7. `game_players`
 8. `game_revisions`
+9. `game_log_imports`
+10. `game_log_events`
 
 ### Reference Catalog Tables
 
@@ -279,6 +283,48 @@ V1 does not need field-level diff visualization. A revision-snapshot model is su
 
 Draft games are excluded from official statistics by default unless a user explicitly asks to view draft or incomplete data.
 
+### Imported Game Logs
+
+Imported game logs are optional evidence attached to a game, not a replacement for the manual finalized result.
+
+`game_log_imports` stores:
+
+1. `game_id`
+2. `raw_log_text`
+3. `parser_version`
+4. `parse_status` such as `parsed`, `partial`, or `failed`
+5. `detected_source`
+6. `confidence_summary`
+7. `line_count`
+8. `unparsed_line_count`
+9. `created_by_user_id`
+10. `created_at`
+11. nullable `parsed_at`
+
+`game_log_events` stores normalized parsed events:
+
+1. `game_log_import_id`
+2. nullable `game_player_id`
+3. nullable `generation_number`
+4. `event_order`
+5. `event_type`
+6. nullable `card_id`
+7. nullable `resource_type`
+8. nullable `resource_amount`
+9. nullable `tile_type`
+10. nullable `board_space`
+11. `confidence_level`
+12. `raw_line`
+13. `payload jsonb`
+14. `created_at`
+
+These tables support:
+
+1. storing the pasted source text in Supabase for traceability
+2. reparsing older imports when the parser improves
+3. preserving unresolved or partially parsed lines without inventing false certainty
+4. running optional imported-log analytics only on the games that have coverage
+
 ### Game Player Rows
 
 Each `game_players` row represents one player's final result in one game.
@@ -360,12 +406,27 @@ This model supports explicit award funding history, first and second place, and 
 
 The logging flow is a phone-first stepper.
 
+### Optional Web Import Page
+
+Inside the authenticated app, users can open a dedicated web page to paste an exported game log.
+
+This page should:
+
+1. accept a full text paste of a known export format
+2. save the raw text to Supabase immediately
+3. run the parser server-side in the app
+4. show a structured import review before the user relies on imported data
+5. let the user continue into the normal log-game flow with the parsed evidence attached to the game
+
+The web import page is an enhancement layer, not a separate product. It should feel like part of the `Log Game` experience rather than a disconnected admin tool.
+
 ### Step 1: Game Setup
 
 Before entering details, the logger can choose a starting mode:
 
 1. new game from group defaults
 2. duplicate the setup from a previous game in the same group
+3. import an exported game log from the in-app web import page
 
 When duplicating a previous game setup, the app should copy setup-level context such as:
 
@@ -376,6 +437,16 @@ When duplicating a previous game setup, the app should copy setup-level context 
 5. selected players
 
 Corporations, preludes, milestones, awards, scores, winners, and notes should not be copied automatically into the new game result.
+
+When importing an exported game log, the app should:
+
+1. create or attach a draft game
+2. store the raw pasted log in Supabase
+3. parse the log line by line into normalized events
+4. match player names against selected players
+5. match card names against the card catalog
+6. prefill only the fields the parser can justify with high confidence
+7. show unresolved or low-confidence matches for review instead of silently guessing
 
 Collect:
 
@@ -460,6 +531,19 @@ From review, the logger can either:
 2. save the draft and return later
 
 Finalizing the game should stamp the current catalog snapshot reference and make the game eligible for default leaderboards and stats.
+
+### Imported Log Reliability Rules
+
+Imported logs are treated as an evidence stream with explicit confidence, not as unquestioned truth.
+
+Rules:
+
+1. manual finalized results remain authoritative for winners, placements, scores, milestones, awards, and official leaderboard inclusion
+2. every parsed event stores a confidence level such as `high`, `medium`, `low`, or `unparsed`
+3. import review must surface matched players, unmatched names, matched cards, unmatched cards, suspicious encoding, and skipped lines
+4. imported-log analytics must be labeled with visible coverage counts so they are not mistaken for all finalized games
+5. the raw source text must be retained so old imports can be reparsed when the parser improves
+6. v1 should parse one known export format well rather than pretending to support every source loosely
 
 ## Playstyle System
 
@@ -637,9 +721,17 @@ Each `cards` row stores:
 5. expansion code
 6. expansion name
 7. promo set id when applicable
-8. source image URL
-9. source attribution
-10. sync metadata
+8. tag metadata for supported Terraforming Mars tags
+9. source image URL
+10. source attribution
+11. sync metadata
+
+Tag metadata is required for imported-log analytics such as:
+
+1. per-player tag profiles
+2. tags played by generation
+3. corporation-specific tag tendencies
+4. win-rate comparisons between different tag mixes
 
 ### Catalog Snapshot Stamping
 
@@ -960,6 +1052,20 @@ Global aggregate views can show:
 7. best player counts
 8. best expansion mixes
 9. best pairings
+10. played-card support by corporation when imported logs are available
+
+### Imported Log Statistics
+
+1. most-played cards
+2. most-played cards in wins versus losses
+3. cards played by generation
+4. average first-generation timing for repeatable engine cards
+5. action-use timing by player and corporation
+6. tile placement frequencies and board-space heatmaps
+7. tag counts by player, corporation, map, and expansion mix
+8. tag counts in wins versus losses
+9. per-generation tag ramp by player and corporation
+10. imported-log coverage rate and parsed-event confidence coverage
 
 ### Expansion and Promo Interaction Statistics
 
@@ -1172,18 +1278,24 @@ The app will be built as a phone-first web application with responsive screens a
 31. explicit true-tie handling across logging, analytics, and leaderboards
 32. visible data-coverage indicators for analytics built from optional inputs
 33. catalog snapshot stamping for historical traceability
+34. optional in-app web page for pasted exported game logs
+35. Supabase-backed raw import storage plus normalized parsed event storage
+36. card tag metadata required for imported-log tag analytics
+37. imported-log analytics for cards played, tag profiles, timing, and board-control patterns
 
 ### V1 Can Be Lightweight In
 
 1. advanced style inference formulas
 2. heavy admin sync tooling
 3. deep card-reference browsing polish
+4. parser repair tooling beyond a clear import review surface
+5. support for multiple external log formats
 
 Those items must be functional, but they do not need extensive polish before the core logging and analytics loop works.
 
 ## Final Design Decisions
 
-1. Manual post-game entry only for v1
+1. Manual post-game entry remains the default flow, with an optional authenticated web page for pasting exported game logs into Supabase for server-side parsing
 2. Phone-first interface
 3. Shared-group access with Supabase auth
 4. Full expansion-aware support from the start
@@ -1220,6 +1332,10 @@ Those items must be functional, but they do not need extensive polish before the
 35. True ties are preserved explicitly instead of being broken by arbitrary ordering
 36. Analytics surface data coverage when optional inputs affect interpretation
 37. Games retain a catalog snapshot reference for historical traceability
+38. Imported logs are optional enrichment data, not the authoritative source for official finalized results
+39. The app stores raw pasted logs in Supabase and parses them into normalized events inside the app
+40. V1 supports one known exported-log format well before expanding to additional formats
+41. Card tag metadata is part of the catalog so imported played-card events can power tag analytics
 
 ## External References
 
