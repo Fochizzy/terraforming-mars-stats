@@ -482,6 +482,52 @@ describe('saveGameLogEvents', () => {
     expect(staleDeleteEq).not.toHaveBeenCalled();
     expect(staleDeleteNot).not.toHaveBeenCalled();
   });
+
+  it('preserves previously saved rows when a reparse returns zero events', async () => {
+    const eq = vi.fn().mockResolvedValue({
+      data: [
+        { id: 'event-7', event_order: 1 },
+        { id: 'event-8', event_order: 2 },
+      ],
+      error: null,
+    });
+    const limit = vi.fn().mockReturnThis();
+    const order = vi.fn().mockReturnThis();
+    const select = vi.fn().mockReturnThis();
+    const deleteFn = vi.fn();
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_events') {
+          return {
+            delete: deleteFn,
+            eq,
+            limit,
+            order,
+            select,
+            upsert: vi.fn(),
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const result = await repo.saveGameLogEvents({
+      events: [],
+      gameLogImportId: 'import-3',
+    });
+
+    expect(deleteFn).not.toHaveBeenCalled();
+    expect(select).toHaveBeenCalledWith('id, event_order');
+    expect(eq).toHaveBeenCalledWith('game_log_import_id', 'import-3');
+    expect(order).not.toHaveBeenCalled();
+    expect(limit).not.toHaveBeenCalled();
+    expect(result).toEqual([
+      { eventOrder: 1, id: 'event-7' },
+      { eventOrder: 2, id: 'event-8' },
+    ]);
+  });
 });
 
 describe('getLatestGameLogImportSummary', () => {

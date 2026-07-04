@@ -193,16 +193,21 @@ export async function saveGameLogEvents(input: {
 }) {
   const supabase = await createSupabaseServerClient();
   if (input.events.length === 0) {
-    const { error: deleteError } = await supabase
+    const { data, error } = await supabase
       .from('game_log_events')
-      .delete()
+      .select('id, event_order')
       .eq('game_log_import_id', input.gameLogImportId);
 
-    if (deleteError) {
-      throw deleteError;
+    if (error) {
+      throw error;
     }
 
-    return [];
+    return ((data ?? []) as RawSavedGameLogEventRow[])
+      .sort((left, right) => left.event_order - right.event_order)
+      .map((row) => ({
+        eventOrder: row.event_order,
+        id: row.id,
+      }));
   }
 
   const { data, error } = await supabase

@@ -5,14 +5,14 @@ export type PlayerImportAlias = {
   aliasText: string;
   normalizedAlias: string;
   playerId: string;
-  sourceType: string;
+  sourceType: 'game_log' | 'screenshot_ocr';
 };
 
 type RawPlayerImportAliasRow = {
   alias_text: string;
   normalized_alias: string;
   player_id: string;
-  source_type: string;
+  source_type: 'game_log' | 'screenshot_ocr';
 };
 
 export async function savePlayerImportAlias(input: {

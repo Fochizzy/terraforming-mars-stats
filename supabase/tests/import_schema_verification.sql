@@ -31,7 +31,7 @@ union all
 
 select
   'index' as schema_item_type,
-  schemaname as table_name,
+  tablename as table_name,
   indexname as schema_item_name
 from pg_indexes
 where schemaname = 'public'
