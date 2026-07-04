@@ -1,10 +1,11 @@
-import { writeFile } from 'node:fs/promises';
+import {
+  HADRONIKLE_SOURCE_CACHE_PATH,
+  loadHadronikleSourceHtml,
+} from './import-reference-data';
 
 async function main() {
-  const response = await fetch('https://tm.hadronikle.com/');
-  const html = await response.text();
-
-  await writeFile('scripts/catalog/source/hadronikle-home.html', html, 'utf8');
+  await loadHadronikleSourceHtml({ preferCached: false });
+  console.log(`Saved Hadronikle source to ${HADRONIKLE_SOURCE_CACHE_PATH}.`);
 }
 
 void main();

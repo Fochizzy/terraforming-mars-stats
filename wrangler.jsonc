@@ -4,6 +4,11 @@
   "name": "terraforming-mars-stats",
   "compatibility_date": "2026-07-04",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://qjtwgrjjwnqafbvkkfex.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_bOcMTVbweIlEwP5aQZIjKQ_1LbYrmHG",
+    "SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE": "tm-import-evidence"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

@@ -14,23 +14,162 @@ export type StyleSeed = {
   name: string;
 };
 
+export type PromoSetSeed = {
+  display_name: string;
+  display_order: number;
+  edition_label: string;
+  promo_year: number | null;
+  slug: string;
+  source_attribution: string;
+};
+
+export type MilestoneSeed = {
+  code: string;
+  name: string;
+};
+
+export type AwardSeed = {
+  code: string;
+  name: string;
+};
+
+export type MapMilestoneSeed = {
+  mapCode: string;
+  milestoneCode: string;
+};
+
+export type MapAwardSeed = {
+  awardCode: string;
+  mapCode: string;
+};
+
 export const referenceDimensions: {
   expansions: ExpansionSeed[];
   maps: MapSeed[];
+  promoSets: PromoSetSeed[];
+  milestones: MilestoneSeed[];
+  awards: AwardSeed[];
+  mapMilestones: MapMilestoneSeed[];
+  mapAwards: MapAwardSeed[];
   styles: StyleSeed[];
 } = {
   expansions: [
     { code: 'base', name: 'Base Game' },
     { code: 'corporate_era', name: 'Corporate Era' },
     { code: 'prelude', name: 'Prelude' },
+    { code: 'prelude_2', name: 'Prelude 2' },
     { code: 'venus_next', name: 'Venus Next' },
     { code: 'colonies', name: 'Colonies' },
     { code: 'turmoil', name: 'Turmoil' },
+    { code: 'promo', name: 'Promo Cards' },
+    { code: 'automa', name: 'Automa' },
   ],
   maps: [
     { code: 'tharsis', name: 'Tharsis' },
     { code: 'hellas', name: 'Hellas' },
     { code: 'elysium', name: 'Elysium' },
+  ],
+  promoSets: [
+    {
+      slug: 'classic-promo-projects',
+      display_name: 'Classic Promo Projects',
+      edition_label: 'Cards 209-212',
+      promo_year: null,
+      display_order: 10,
+      source_attribution: 'https://tm.hadronikle.com/',
+    },
+    {
+      slug: 'x-series-promos',
+      display_name: 'X Series Promos',
+      edition_label: 'Promo Cards X01-X79',
+      promo_year: null,
+      display_order: 20,
+      source_attribution: 'https://tm.hadronikle.com/',
+    },
+    {
+      slug: 'promo-corporations',
+      display_name: 'Promo Corporations',
+      edition_label: 'Promo Corporation Bundle',
+      promo_year: null,
+      display_order: 30,
+      source_attribution: 'https://tm.hadronikle.com/',
+    },
+    {
+      slug: 'promo-global-events',
+      display_name: 'Promo Global Events',
+      edition_label: 'Turmoil Promo Events',
+      promo_year: null,
+      display_order: 40,
+      source_attribution: 'https://tm.hadronikle.com/',
+    },
+  ],
+  milestones: [
+    { code: 'terraformer', name: 'Terraformer' },
+    { code: 'mayor', name: 'Mayor' },
+    { code: 'gardener', name: 'Gardener' },
+    { code: 'builder', name: 'Builder' },
+    { code: 'planner', name: 'Planner' },
+    { code: 'diversifier', name: 'Diversifier' },
+    { code: 'tactician', name: 'Tactician' },
+    { code: 'polar_explorer', name: 'Polar Explorer' },
+    { code: 'energizer', name: 'Energizer' },
+    { code: 'rim_settler', name: 'Rim Settler' },
+    { code: 'generalist', name: 'Generalist' },
+    { code: 'specialist', name: 'Specialist' },
+    { code: 'ecologist', name: 'Ecologist' },
+    { code: 'tycoon', name: 'Tycoon' },
+    { code: 'legend', name: 'Legend' },
+  ],
+  awards: [
+    { code: 'landlord', name: 'Landlord' },
+    { code: 'banker', name: 'Banker' },
+    { code: 'scientist', name: 'Scientist' },
+    { code: 'thermalist', name: 'Thermalist' },
+    { code: 'miner', name: 'Miner' },
+    { code: 'cultivator', name: 'Cultivator' },
+    { code: 'magnate', name: 'Magnate' },
+    { code: 'space_baron', name: 'Space Baron' },
+    { code: 'excentric', name: 'Excentric' },
+    { code: 'contractor', name: 'Contractor' },
+    { code: 'celebrity', name: 'Celebrity' },
+    { code: 'industrialist', name: 'Industrialist' },
+    { code: 'desert_settler', name: 'Desert Settler' },
+    { code: 'estate_dealer', name: 'Estate Dealer' },
+    { code: 'benefactor', name: 'Benefactor' },
+  ],
+  mapMilestones: [
+    { mapCode: 'tharsis', milestoneCode: 'terraformer' },
+    { mapCode: 'tharsis', milestoneCode: 'mayor' },
+    { mapCode: 'tharsis', milestoneCode: 'gardener' },
+    { mapCode: 'tharsis', milestoneCode: 'builder' },
+    { mapCode: 'tharsis', milestoneCode: 'planner' },
+    { mapCode: 'hellas', milestoneCode: 'diversifier' },
+    { mapCode: 'hellas', milestoneCode: 'tactician' },
+    { mapCode: 'hellas', milestoneCode: 'polar_explorer' },
+    { mapCode: 'hellas', milestoneCode: 'energizer' },
+    { mapCode: 'hellas', milestoneCode: 'rim_settler' },
+    { mapCode: 'elysium', milestoneCode: 'generalist' },
+    { mapCode: 'elysium', milestoneCode: 'specialist' },
+    { mapCode: 'elysium', milestoneCode: 'ecologist' },
+    { mapCode: 'elysium', milestoneCode: 'tycoon' },
+    { mapCode: 'elysium', milestoneCode: 'legend' },
+  ],
+  mapAwards: [
+    { mapCode: 'tharsis', awardCode: 'landlord' },
+    { mapCode: 'tharsis', awardCode: 'banker' },
+    { mapCode: 'tharsis', awardCode: 'scientist' },
+    { mapCode: 'tharsis', awardCode: 'thermalist' },
+    { mapCode: 'tharsis', awardCode: 'miner' },
+    { mapCode: 'hellas', awardCode: 'cultivator' },
+    { mapCode: 'hellas', awardCode: 'magnate' },
+    { mapCode: 'hellas', awardCode: 'space_baron' },
+    { mapCode: 'hellas', awardCode: 'excentric' },
+    { mapCode: 'hellas', awardCode: 'contractor' },
+    { mapCode: 'elysium', awardCode: 'celebrity' },
+    { mapCode: 'elysium', awardCode: 'industrialist' },
+    { mapCode: 'elysium', awardCode: 'desert_settler' },
+    { mapCode: 'elysium', awardCode: 'estate_dealer' },
+    { mapCode: 'elysium', awardCode: 'benefactor' },
   ],
   styles: [
     {

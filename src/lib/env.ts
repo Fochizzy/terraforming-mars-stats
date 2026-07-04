@@ -12,11 +12,22 @@ const serverEnvSchema = z.object({
     .default('tm-import-evidence'),
 });
 
+const bundledPublicEnv = {
+  // Cloudflare Worker vars are available at runtime, but the client bundle needs
+  // build-time values for browser-side Supabase initialization.
+  NEXT_PUBLIC_SUPABASE_URL: 'https://qjtwgrjjwnqafbvkkfex.supabase.co',
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+    'sb_publishable_bOcMTVbweIlEwP5aQZIjKQ_1LbYrmHG',
+} as const;
+
 export function getPublicEnv() {
   return publicEnvSchema.parse({
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_URL:
+      process.env.NEXT_PUBLIC_SUPABASE_URL ??
+      bundledPublicEnv.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+      bundledPublicEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   });
 }
 

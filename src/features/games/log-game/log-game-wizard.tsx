@@ -23,6 +23,12 @@ import { ReviewStep } from './review-step';
 import { ScoresStep } from './scores-step';
 import { SetupStep } from './setup-step';
 import { StyleStep } from './style-step';
+import {
+  filterCardOptions,
+  filterCorporationOptions,
+  filterPreludeOptions,
+  normalizeSelectedExpansionCodes,
+} from './reference-filters';
 
 type GameSubmitResult = {
   status: 'success' | 'error';
@@ -81,6 +87,8 @@ export function LogGameWizard({
     useWatch({ control: form.control, name: 'playerCount' }) ?? 0;
   const expansionCodes =
     useWatch({ control: form.control, name: 'expansionCodes' }) ?? [];
+  const promoSetSlugs =
+    useWatch({ control: form.control, name: 'promoSetSlugs' }) ?? [];
   const milestoneClaims =
     useWatch({ control: form.control, name: 'milestoneClaims' }) ?? {};
   const awardClaims =
@@ -94,13 +102,29 @@ export function LogGameWizard({
   const selectedPlayers = selectedPlayerIds
     .map((playerId) => playerOptions.find((player) => player.id === playerId))
     .filter((player): player is NonNullable<typeof player> => Boolean(player));
+  const normalizedExpansionCodes = normalizeSelectedExpansionCodes(expansionCodes);
+  const visibleCorporations = filterCorporationOptions(
+    corporationOptions,
+    normalizedExpansionCodes,
+    promoSetSlugs,
+  );
+  const visiblePreludes = filterPreludeOptions(
+    preludeOptions,
+    normalizedExpansionCodes,
+    promoSetSlugs,
+  );
+  const visibleCards = filterCardOptions(
+    cardOptions,
+    normalizedExpansionCodes,
+    promoSetSlugs,
+  );
   const visibleMilestones = milestoneOptions.filter(
     (milestone) => milestone.mapId === currentMapId,
   );
   const visibleAwards = awardOptions.filter((award) => award.mapId === currentMapId);
   const review = buildGameReview({
     awardClaims,
-    expansionCodes,
+    expansionCodes: normalizedExpansionCodes,
     gameId: form.getValues('gameId'),
     mapAwardIds: visibleAwards.map((award) => award.awardId),
     mapMilestoneIds: visibleMilestones.map((milestone) => milestone.milestoneId),
@@ -156,9 +180,9 @@ export function LogGameWizard({
         register={form.register}
       />
       <PlayersStep
-        corporationOptions={corporationOptions}
+        corporationOptions={visibleCorporations}
         playerOptions={playerOptions}
-        preludeOptions={preludeOptions}
+        preludeOptions={visiblePreludes}
         register={form.register}
         selectedPlayerIds={selectedPlayerIds}
       />
@@ -172,7 +196,7 @@ export function LogGameWizard({
       />
       <ScoresStep register={form.register} selectedPlayers={selectedPlayers} />
       <StyleStep
-        cardOptions={cardOptions}
+        cardOptions={visibleCards}
         register={form.register}
         selectedPlayers={selectedPlayers}
         styleOptions={styleOptions}

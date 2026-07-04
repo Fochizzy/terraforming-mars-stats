@@ -25,12 +25,15 @@ export type CorporationOption = {
   name: string;
   expansionCode: string;
   promoSetSlug: string | null;
+  requiredExpansionCodes: string[];
 };
 
 export type PreludeOption = {
   id: string;
   name: string;
   expansionCode: string;
+  promoSetSlug: string | null;
+  requiredExpansionCodes: string[];
 };
 
 export type MapMilestoneOption = {
@@ -57,6 +60,7 @@ export type CardOption = {
   cardName: string;
   expansionCode: string;
   promoSetSlug: string | null;
+  requiredExpansionCodes: string[];
 };
 
 export type PromoCardOption = {
@@ -74,11 +78,43 @@ type JoinedName = {
   name: string;
 };
 
+type PromoSetLookupRow = {
+  id: string;
+  slug: string;
+};
+
+function normalizeExpansionCodeList(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+}
+
+async function resolvePromoSetSlugByIdMap(promoSetIds: string[]) {
+  if (promoSetIds.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('promo_sets')
+    .select('id, slug')
+    .in('id', [...new Set(promoSetIds)]);
+
+  if (error) {
+    throw error;
+  }
+
+  return new Map(
+    (data as PromoSetLookupRow[]).map((promoSet) => [promoSet.id, promoSet.slug]),
+  );
+}
+
 export async function listExpansions(): Promise<ExpansionOption[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('expansions')
     .select('id, code, name')
+    .neq('code', 'promo')
     .order('name');
 
   if (error) {
@@ -128,18 +164,29 @@ export async function listCorporations(): Promise<CorporationOption[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('corporations')
-    .select('id, name, expansion_code')
+    .select('id, name, expansion_code, promo_set_id, required_expansion_codes')
     .order('name');
 
   if (error) {
     throw error;
   }
 
+  const promoSetSlugById = await resolvePromoSetSlugByIdMap(
+    data
+      .map((corporation) => corporation.promo_set_id)
+      .filter((promoSetId): promoSetId is string => Boolean(promoSetId)),
+  );
+
   return data.map((corporation) => ({
     id: corporation.id,
     name: corporation.name,
     expansionCode: corporation.expansion_code,
-    promoSetSlug: null,
+    promoSetSlug: corporation.promo_set_id
+      ? promoSetSlugById.get(corporation.promo_set_id) ?? null
+      : null,
+    requiredExpansionCodes: normalizeExpansionCodeList(
+      corporation.required_expansion_codes,
+    ),
   }));
 }
 
@@ -147,17 +194,29 @@ export async function listPreludes(): Promise<PreludeOption[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('preludes')
-    .select('id, name, expansion_code')
+    .select('id, name, expansion_code, promo_set_id, required_expansion_codes')
     .order('name');
 
   if (error) {
     throw error;
   }
 
+  const promoSetSlugById = await resolvePromoSetSlugByIdMap(
+    data
+      .map((prelude) => prelude.promo_set_id)
+      .filter((promoSetId): promoSetId is string => Boolean(promoSetId)),
+  );
+
   return data.map((prelude) => ({
     id: prelude.id,
     name: prelude.name,
     expansionCode: prelude.expansion_code,
+    promoSetSlug: prelude.promo_set_id
+      ? promoSetSlugById.get(prelude.promo_set_id) ?? null
+      : null,
+    requiredExpansionCodes: normalizeExpansionCodeList(
+      prelude.required_expansion_codes,
+    ),
   }));
 }
 
@@ -223,19 +282,33 @@ export async function listCards(): Promise<CardOption[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('cards')
-    .select('id, card_number, card_name, expansion_code')
+    .select(
+      'id, card_number, card_name, expansion_code, promo_set_id, required_expansion_codes',
+    )
+    .eq('card_type', 'Project')
     .order('card_name');
 
   if (error) {
     throw error;
   }
 
+  const promoSetSlugById = await resolvePromoSetSlugByIdMap(
+    data
+      .map((card) => card.promo_set_id)
+      .filter((promoSetId): promoSetId is string => Boolean(promoSetId)),
+  );
+
   return data.map((card) => ({
     id: card.id,
     cardNumber: card.card_number,
     cardName: card.card_name,
     expansionCode: card.expansion_code,
-    promoSetSlug: null,
+    promoSetSlug: card.promo_set_id
+      ? promoSetSlugById.get(card.promo_set_id) ?? null
+      : null,
+    requiredExpansionCodes: normalizeExpansionCodeList(
+      card.required_expansion_codes,
+    ),
   }));
 }
 

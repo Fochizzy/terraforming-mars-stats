@@ -29,6 +29,7 @@ describe('LogGameWizard', () => {
             expansionCode: 'base',
             id: 'card1',
             promoSetSlug: null,
+            requiredExpansionCodes: ['base'],
           },
         ]}
         corporationOptions={[
@@ -37,6 +38,7 @@ describe('LogGameWizard', () => {
             id: 'corp1',
             name: 'Tharsis Republic',
             promoSetSlug: null,
+            requiredExpansionCodes: ['base'],
           },
         ]}
         expansionOptions={[
@@ -80,6 +82,8 @@ describe('LogGameWizard', () => {
             expansionCode: 'prelude',
             id: 'prelude1',
             name: 'Allied Bank',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['prelude'],
           },
         ]}
         promoSetOptions={[
@@ -192,5 +196,155 @@ describe('LogGameWizard', () => {
       }),
     );
     expect(onFinalizeGame).not.toHaveBeenCalled();
+  });
+
+  it('filters corporation, prelude, and key-card choices to the selected expansions and promo bundles', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[
+          {
+            cardName: 'Colonizer Training Camp',
+            cardNumber: '001',
+            expansionCode: 'base',
+            id: 'card-base',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['base'],
+          },
+          {
+            cardName: 'Political Alliance',
+            cardNumber: 'X09',
+            expansionCode: 'promo',
+            id: 'card-promo',
+            promoSetSlug: 'x-series-promos',
+            requiredExpansionCodes: ['turmoil'],
+          },
+        ]}
+        corporationOptions={[
+          {
+            expansionCode: 'base',
+            id: 'corp-base',
+            name: 'Tharsis Republic',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['base'],
+          },
+          {
+            expansionCode: 'colonies',
+            id: 'corp-colonies',
+            name: 'Poseidon',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['colonies'],
+          },
+          {
+            expansionCode: 'promo',
+            id: 'corp-promo',
+            name: 'Arcadian Communities',
+            promoSetSlug: 'promo-corporations',
+            requiredExpansionCodes: [],
+          },
+        ]}
+        expansionOptions={[
+          { id: 'e1', code: 'base', name: 'Base Game' },
+          { id: 'e2', code: 'prelude', name: 'Prelude' },
+          { id: 'e3', code: 'colonies', name: 'Colonies' },
+          { id: 'e4', code: 'turmoil', name: 'Turmoil' },
+        ]}
+        initialValues={{
+          awardClaims: {},
+          gameId: undefined,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          milestoneClaims: {},
+          playedOn: '2026-07-03',
+          mapId: 'tharsis',
+          notes: '',
+          playerCount: 1,
+          playerScores: {},
+          playerSelections: {},
+          generationCount: 10,
+          playerStyles: {},
+          expansionCodes: ['base', 'prelude'],
+          promoSetSlugs: [],
+          selectedPlayerIds: ['p1'],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-2',
+          message: 'Game finalized.',
+        })}
+        onSaveDraft={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-2',
+          message: 'Draft saved.',
+        })}
+        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+        preludeOptions={[
+          {
+            expansionCode: 'prelude',
+            id: 'prelude-base',
+            name: 'Allied Bank',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['prelude'],
+          },
+          {
+            expansionCode: 'prelude',
+            id: 'prelude-promo',
+            name: 'Corporate Archives',
+            promoSetSlug: 'x-series-promos',
+            requiredExpansionCodes: ['prelude'],
+          },
+        ]}
+        promoSetOptions={[
+          {
+            id: 'promo-x',
+            slug: 'x-series-promos',
+            displayName: 'X Series Promos',
+            editionLabel: 'Promo Cards X01-X79',
+            promoYear: null,
+          },
+          {
+            id: 'promo-corp',
+            slug: 'promo-corporations',
+            displayName: 'Promo Corporations',
+            editionLabel: 'Promo Corporation Bundle',
+            promoYear: null,
+          },
+        ]}
+        styleOptions={[{ code: 'balanced', id: 'style1', name: 'Balanced' }]}
+      />,
+    );
+
+    expect(screen.getByRole('option', { name: /tharsis republic/i })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /poseidon/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: /arcadian communities/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('option', { name: /allied bank/i })).toHaveLength(3);
+    expect(
+      screen.queryByRole('option', { name: /corporate archives/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('option', { name: /001 - colonizer training camp/i }),
+    ).toHaveLength(3);
+    expect(
+      screen.queryByRole('option', { name: /x09 - political alliance/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText(/colonies/i));
+    await user.click(screen.getByLabelText(/x series promos/i));
+    await user.click(screen.getByLabelText(/turmoil/i));
+    await user.click(screen.getByLabelText(/promo corporations/i));
+
+    expect(screen.getByRole('option', { name: /poseidon/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: /arcadian communities/i }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('option', { name: /corporate archives/i })).toHaveLength(3);
+    expect(
+      screen.getAllByRole('option', { name: /x09 - political alliance/i }),
+    ).toHaveLength(3);
   });
 });

@@ -8,6 +8,7 @@ import {
   type GroupSettingsInput,
 } from '@/lib/validation/group-settings';
 import { revalidatePath } from 'next/cache';
+import { normalizeSelectedExpansionCodes } from '@/features/games/log-game/reference-filters';
 
 export default async function GroupSettingsPage() {
   const context = await requireCurrentGroupContext();
@@ -45,7 +46,9 @@ export default async function GroupSettingsPage() {
         initialValues={{
           groupName: settings.groupName,
           globalAnalyticsEnabled: settings.globalAnalyticsEnabled,
-          defaultExpansionCodes: settings.defaultExpansionCodes,
+          defaultExpansionCodes: normalizeSelectedExpansionCodes(
+            settings.defaultExpansionCodes,
+          ),
           defaultPromoSetSlugs: settings.defaultPromoSetSlugs,
         }}
         expansionOptions={expansionOptions}

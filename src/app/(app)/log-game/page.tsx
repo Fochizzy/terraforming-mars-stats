@@ -29,6 +29,7 @@ import {
   type LogGameDraftInput,
 } from '@/lib/validation/log-game';
 import { revalidatePath } from 'next/cache';
+import { normalizeSelectedExpansionCodes } from '@/features/games/log-game/reference-filters';
 
 export default async function LogGamePage({
   searchParams,
@@ -80,7 +81,9 @@ export default async function LogGamePage({
     playerScores: {},
     playerSelections: {},
     playerStyles: {},
-    expansionCodes: groupSettings.defaultExpansionCodes,
+    expansionCodes: normalizeSelectedExpansionCodes(
+      groupSettings.defaultExpansionCodes,
+    ),
     promoSetSlugs: groupSettings.defaultPromoSetSlugs,
     selectedPlayerIds: playerOptions.slice(0, 2).map((player) => player.id),
   };
