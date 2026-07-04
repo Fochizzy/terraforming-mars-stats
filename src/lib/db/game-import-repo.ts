@@ -18,7 +18,6 @@ export type SaveGameLogEventInput = {
   confidenceLevel: string;
   eventOrder: number;
   eventType: string;
-  gamePlayerId?: string | null;
   generationNumber?: number | null;
   lineClassification?: string | null;
   payload?: Record<string, unknown>;

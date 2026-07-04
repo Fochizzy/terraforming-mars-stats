@@ -364,7 +364,6 @@ describe('saveGameLogEvents', () => {
           confidenceLevel: 'high',
           eventOrder: 1,
           eventType: 'generation_started',
-          gamePlayerId: 'game-player-1',
           generationNumber: 4,
           lineClassification: 'event',
           payload: { generation: 4 },

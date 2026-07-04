@@ -59,6 +59,10 @@ foreign key (game_id, game_log_import_id)
 references public.game_log_imports (game_id, id)
 on delete cascade;
 
+alter table public.players
+add constraint players_group_id_id_unique
+unique (group_id, id);
+
 create table public.player_import_aliases (
   id uuid primary key default gen_random_uuid(),
   group_id uuid not null references public.groups(id) on delete cascade,
@@ -69,6 +73,16 @@ create table public.player_import_aliases (
   created_at timestamptz not null default now(),
   unique (group_id, source_type, normalized_alias)
 );
+
+alter table public.player_import_aliases
+add constraint player_import_aliases_group_player_fk
+foreign key (group_id, player_id)
+references public.players (group_id, id)
+on delete cascade;
+
+alter table public.player_import_aliases
+add constraint player_import_aliases_source_type_check
+check (source_type in ('game_log', 'screenshot_ocr'));
 
 create index player_import_aliases_group_player_idx
 on public.player_import_aliases (group_id, player_id);
