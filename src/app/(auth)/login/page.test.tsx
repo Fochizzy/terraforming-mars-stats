@@ -7,11 +7,14 @@ describe('LoginPage', () => {
     render(await LoginPage({}));
 
     const heading = screen.getByRole('heading', { name: /join your group/i });
-    const button = screen.getByRole('button', { name: /email me a sign-in link/i });
+    const button = screen.getByRole('button', { name: /^sign in$/i });
 
     expect(heading).toBeInTheDocument();
     expect(heading).toHaveClass('tm-display-title');
     expect(button).toBeInTheDocument();
     expect(button).toHaveClass('tm-button-primary');
+    expect(
+      screen.getByText(/username and 4-digit pin/i),
+    ).toBeInTheDocument();
   });
 });

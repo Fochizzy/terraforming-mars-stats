@@ -92,8 +92,13 @@ export function LogGameWizard({
   const playerStyles =
     useWatch({ control: form.control, name: 'playerStyles' }) ?? {};
   const selectedPlayers = selectedPlayerIds
-    .map((playerId) => playerOptions.find((player) => player.id === playerId))
-    .filter((player): player is NonNullable<typeof player> => Boolean(player));
+    .map(
+      (playerId) =>
+        playerOptions.find((player) => player.id === playerId) ?? {
+          id: playerId,
+          display_name: playerId,
+        },
+    );
   const visibleMilestones = milestoneOptions.filter(
     (milestone) => milestone.mapId === currentMapId,
   );
@@ -157,10 +162,12 @@ export function LogGameWizard({
       />
       <PlayersStep
         corporationOptions={corporationOptions}
+        playerCount={playerCount}
         playerOptions={playerOptions}
         preludeOptions={preludeOptions}
         register={form.register}
         selectedPlayerIds={selectedPlayerIds}
+        setValue={form.setValue}
       />
       <MilestonesStep
         awardClaims={awardClaims}

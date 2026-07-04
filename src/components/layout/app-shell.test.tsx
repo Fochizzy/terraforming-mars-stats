@@ -15,4 +15,14 @@ describe('AppShell', () => {
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');
     expect(screen.getByRole('navigation')).toHaveClass('tm-bottom-nav');
   });
+
+  it('renders header controls when provided', () => {
+    render(
+      <AppShell headerActions={<div>group switcher</div>} title="My Profile">
+        content
+      </AppShell>,
+    );
+
+    expect(screen.getByText(/group switcher/i)).toBeInTheDocument();
+  });
 });
