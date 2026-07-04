@@ -20,8 +20,13 @@ create table public.game_log_events (
 create index game_log_events_import_order_idx
 on public.game_log_events (game_log_import_id, event_order);
 
-create unique index game_log_imports_game_id_id_idx
-on public.game_log_imports (game_id, id);
+alter table public.game_log_events
+add constraint game_log_events_import_order_unique
+unique (game_log_import_id, event_order);
+
+alter table public.game_log_imports
+add constraint game_log_imports_game_id_id_unique
+unique (game_id, id);
 
 create table public.game_result_screenshot_imports (
   id uuid primary key default gen_random_uuid(),
@@ -44,8 +49,9 @@ create table public.game_result_screenshot_imports (
 create index game_result_screenshot_imports_game_id_created_at_idx
 on public.game_result_screenshot_imports (game_id, created_at desc);
 
-create unique index game_result_screenshot_imports_import_id_idx
-on public.game_result_screenshot_imports (game_log_import_id);
+alter table public.game_result_screenshot_imports
+add constraint game_result_screenshot_imports_import_id_unique
+unique (game_log_import_id);
 
 alter table public.game_result_screenshot_imports
 add constraint game_result_screenshot_imports_game_import_match_fk

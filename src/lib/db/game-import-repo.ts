@@ -86,16 +86,23 @@ async function uploadScreenshotFile(input: {
 }
 
 async function cleanupFailedScreenshotImport(input: {
-  gameLogImportId: string;
-  screenshotObjectPath: string;
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  gameLogImportId?: string;
+  screenshotObjectPath: string;
 }) {
-  await Promise.allSettled([
-    input.supabase.from('game_log_imports').delete().eq('id', input.gameLogImportId),
+  const cleanupTasks = [
     input.supabase.storage
       .from(getServerEnv().SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE)
       .remove([input.screenshotObjectPath]),
-  ]);
+  ];
+
+  if (input.gameLogImportId) {
+    cleanupTasks.push(
+      input.supabase.from('game_log_imports').delete().eq('id', input.gameLogImportId),
+    );
+  }
+
+  await Promise.allSettled(cleanupTasks);
 }
 
 export async function saveGameLogImport(input: {
@@ -135,6 +142,12 @@ export async function saveGameLogImport(input: {
     .single();
 
   if (error) {
+    if (screenshotObjectPath) {
+      await cleanupFailedScreenshotImport({
+        screenshotObjectPath,
+        supabase,
+      });
+    }
     throw error;
   }
 
@@ -160,9 +173,9 @@ export async function saveGameLogImport(input: {
 
     if (screenshotError) {
       await cleanupFailedScreenshotImport({
+        supabase,
         gameLogImportId: data.id,
         screenshotObjectPath,
-        supabase,
       });
       throw screenshotError;
     }
@@ -178,11 +191,20 @@ export async function saveGameLogEvents(input: {
   events: SaveGameLogEventInput[];
   gameLogImportId: string;
 }) {
+  const supabase = await createSupabaseServerClient();
+  const { error: deleteError } = await supabase
+    .from('game_log_events')
+    .delete()
+    .eq('game_log_import_id', input.gameLogImportId);
+
+  if (deleteError) {
+    throw deleteError;
+  }
+
   if (input.events.length === 0) {
     return [];
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('game_log_events')
     .insert(

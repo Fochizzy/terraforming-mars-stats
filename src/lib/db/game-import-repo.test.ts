@@ -176,6 +176,69 @@ describe('saveGameLogImport', () => {
     expect(storageFrom).toHaveBeenCalledWith('custom-import-bucket');
   });
 
+  it('removes an uploaded screenshot when the raw import row insert fails', async () => {
+    const upload = vi.fn().mockResolvedValue({
+      data: { path: 'game-4/failing-raw-import-png' },
+      error: null,
+    });
+    const remove = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const storageFrom = vi.fn(() => ({
+      remove,
+      upload,
+    }));
+    const importInsert = vi.fn().mockReturnThis();
+    const importSelect = vi.fn().mockReturnThis();
+    const importSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: new Error('raw import insert failed'),
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            insert: importInsert,
+            select: importSelect,
+            single: importSingle,
+          };
+        }
+
+        if (table === 'game_result_screenshot_imports') {
+          return {
+            insert: vi.fn().mockReturnThis(),
+            select: vi.fn().mockReturnThis(),
+            single: vi.fn(),
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      storage: {
+        from: storageFrom,
+      },
+    } as never);
+
+    const screenshotFile = new File(['image-bits'], 'failing raw import.png', {
+      type: 'image/png',
+    });
+
+    await expect(
+      repo.saveGameLogImport({
+        gameId: 'game-4',
+        rawLogText: 'Failed raw import',
+        screenshotFile,
+        userId: 'user-4',
+      }),
+    ).rejects.toThrow('raw import insert failed');
+
+    expect(remove).toHaveBeenCalledWith([
+      expect.stringMatching(/^game-4\/[a-z0-9-]+-failing-raw-import-png$/),
+    ]);
+  });
+
   it('cleans up the raw import row and uploaded screenshot when screenshot metadata insert fails', async () => {
     const upload = vi.fn().mockResolvedValue({
       data: { path: 'game-3/failing-endgame-png' },
@@ -261,6 +324,12 @@ describe('saveGameLogEvents', () => {
   });
 
   it('persists parsed game log events separately from the raw import row', async () => {
+    const cleanupEq = vi.fn().mockResolvedValue({
+      error: null,
+    });
+    const cleanupDelete = vi.fn(() => ({
+      eq: cleanupEq,
+    }));
     const insert = vi.fn().mockReturnThis();
     const select = vi.fn().mockReturnThis();
     const order = vi.fn().mockResolvedValue({
@@ -275,6 +344,7 @@ describe('saveGameLogEvents', () => {
       from: vi.fn((table: string) => {
         if (table === 'game_log_events') {
           return {
+            delete: cleanupDelete,
             insert,
             order,
             select,
@@ -333,6 +403,8 @@ describe('saveGameLogEvents', () => {
         tile_type: 'greenery',
       }),
     ]);
+    expect(cleanupDelete).toHaveBeenCalledTimes(1);
+    expect(cleanupEq).toHaveBeenCalledWith('game_log_import_id', 'import-1');
     expect(result).toEqual([
       { eventOrder: 1, id: 'event-1' },
       { eventOrder: 2, id: 'event-2' },
