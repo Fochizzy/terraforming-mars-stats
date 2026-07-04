@@ -23,6 +23,7 @@ on public.game_log_events (game_log_import_id, event_order);
 create table public.game_result_screenshot_imports (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete cascade,
+  game_log_import_id uuid not null references public.game_log_imports(id) on delete cascade,
   storage_object_path text not null,
   original_name text,
   mime_type text,
@@ -39,6 +40,9 @@ create table public.game_result_screenshot_imports (
 
 create index game_result_screenshot_imports_game_id_created_at_idx
 on public.game_result_screenshot_imports (game_id, created_at desc);
+
+create unique index game_result_screenshot_imports_import_id_idx
+on public.game_result_screenshot_imports (game_log_import_id);
 
 create table public.player_import_aliases (
   id uuid primary key default gen_random_uuid(),

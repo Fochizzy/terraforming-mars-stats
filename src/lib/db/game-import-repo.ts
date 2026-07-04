@@ -134,6 +134,7 @@ export async function saveGameLogImport(input: {
         extracted_fields: {},
         file_size_bytes: input.screenshotFile.size,
         game_id: input.gameId,
+        game_log_import_id: data.id,
         mime_type: input.screenshotFile.type || null,
         ocr_engine_version: 'pending',
         original_name: input.screenshotFile.name,
@@ -230,7 +231,7 @@ export async function getLatestGameLogImportSummary(input: {
   const { data: screenshotData, error: screenshotError } = await supabase
     .from('game_result_screenshot_imports')
     .select('original_name')
-    .eq('game_id', input.gameId)
+    .eq('game_log_import_id', row.id)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();

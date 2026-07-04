@@ -104,6 +104,7 @@ describe('saveGameLogImport', () => {
         extracted_fields: {},
         file_size_bytes: screenshotFile.size,
         game_id: 'game-1',
+        game_log_import_id: 'import-1',
         mime_type: 'image/png',
         ocr_engine_version: 'pending',
         original_name: 'Endgame Results!!.PNG',
@@ -337,7 +338,7 @@ describe('getLatestGameLogImportSummary', () => {
     expect(order).toHaveBeenCalledWith('created_at', { ascending: false });
     expect(limit).toHaveBeenCalledWith(1);
     expect(screenshotSelect).toHaveBeenCalledWith('original_name');
-    expect(screenshotEq).toHaveBeenCalledWith('game_id', 'game-1');
+    expect(screenshotEq).toHaveBeenCalledWith('game_log_import_id', 'import-2');
     expect(screenshotOrder).toHaveBeenCalledWith('created_at', {
       ascending: false,
     });
@@ -350,6 +351,79 @@ describe('getLatestGameLogImportSummary', () => {
       parseStatus: 'saved_as_draft',
       rawLogText: 'Friday Mars won\nSecond Seat lost\nFinal credits: 8',
       screenshotOriginalName: 'endgame.png',
+    });
+  });
+
+  it('keeps the latest raw import paired with its own screenshot when a game has multiple imports', async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        created_at: '2026-07-04T07:00:00.000Z',
+        detected_source: 'manual_web_import',
+        id: 'import-new',
+        line_count: 2,
+        parse_status: 'saved_as_draft',
+        raw_log_text: 'new raw log',
+      },
+      error: null,
+    });
+    const limit = vi.fn().mockReturnThis();
+    const order = vi.fn().mockReturnThis();
+    const eq = vi.fn().mockReturnThis();
+    const select = vi.fn().mockReturnThis();
+    const screenshotMaybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        original_name: 'new-screenshot.png',
+      },
+      error: null,
+    });
+    const screenshotLimit = vi.fn().mockReturnThis();
+    const screenshotOrder = vi.fn().mockReturnThis();
+    const screenshotEq = vi.fn().mockReturnThis();
+    const screenshotSelect = vi.fn().mockReturnThis();
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            eq,
+            limit,
+            maybeSingle,
+            order,
+            select,
+          };
+        }
+
+        if (table === 'game_result_screenshot_imports') {
+          return {
+            eq: screenshotEq,
+            limit: screenshotLimit,
+            maybeSingle: screenshotMaybeSingle,
+            order: screenshotOrder,
+            select: screenshotSelect,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const result = await repo.getLatestGameLogImportSummary({
+      gameId: 'game-1',
+    });
+
+    expect(eq).toHaveBeenCalledWith('game_id', 'game-1');
+    expect(screenshotEq).toHaveBeenCalledWith(
+      'game_log_import_id',
+      'import-new',
+    );
+    expect(result).toEqual({
+      createdAt: '2026-07-04T07:00:00.000Z',
+      detectedSource: 'manual_web_import',
+      id: 'import-new',
+      lineCount: 2,
+      parseStatus: 'saved_as_draft',
+      rawLogText: 'new raw log',
+      screenshotOriginalName: 'new-screenshot.png',
     });
   });
 });
