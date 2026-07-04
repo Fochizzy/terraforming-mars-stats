@@ -347,12 +347,13 @@ Imported game logs are optional evidence attached to a game, not a replacement f
 12. `raw_line`
 13. `payload jsonb`
 14. `created_at`
+15. nullable `line_classification` such as `event`, `context`, `draw_info`, `chatty_filler`, or `ignored_noise`
 
 These tables support:
 
 1. storing the pasted source text in Supabase for traceability
 2. reparsing older imports when the parser improves
-3. preserving unresolved or partially parsed lines without inventing false certainty
+3. preserving unresolved, contextual, or intentionally ignored lines without inventing false certainty
 4. running optional imported-log analytics only on the games that have coverage
 
 ### Imported Endgame Result Screenshots
@@ -375,7 +376,7 @@ Endgame result screenshots are optional OCR-assisted score-entry evidence attach
 These rows support:
 
 1. storing the screenshot in Supabase Storage for audit and review
-2. OCR-assisted prefilling of endgame score fields
+2. OCR-assisted prefilling of endgame score fields and score-source breakdown fields when the supported layout shows them
 3. reparsing older screenshots when OCR or layout rules improve
 4. cross-checking screenshot-derived score fields against pasted-log or manual entry
 5. cross-checking OCR-detected player names against saved player profiles and confirmed aliases
@@ -475,6 +476,7 @@ This page should:
 6. show a structured review screen before the user relies on imported data
 7. let the user edit confirmed numeric fields and continue into the normal log-game flow with the parsed evidence attached to the game
 8. require explicit player-profile resolution when any imported participant name is ambiguous or unmatched
+9. classify each game-log line as actionable event, useful context, draw-only information, or ignorable filler so noisy text does not break the import
 
 The web import page is an enhancement layer, not a separate product. It should feel like part of the `Log Game` experience rather than a disconnected admin tool.
 
@@ -508,6 +510,7 @@ When importing game evidence, the app should:
 8. prefill only the fields the parser or OCR can justify with high confidence
 9. show unresolved or low-confidence matches for review instead of silently guessing
 10. let the user confirm or correct every imported player-to-profile link before finalization
+11. ignore or separately label non-analytic filler text such as greetings, perspective-specific prompts, and client chatter when it does not affect the final dataset
 
 Collect:
 
@@ -589,6 +592,19 @@ An imported endgame screenshot may prefill:
 11. final megacredits
 12. winner and placement inferred from total points and final megacredits
 
+When the supported screenshot layout includes a score-source breakdown screen, OCR should also attempt to prefill:
+
+1. cities points
+2. greenery points
+3. TR points
+4. milestone points
+5. award points
+6. total card points
+7. microbe card points when explicitly shown
+8. animal card points when explicitly shown
+9. Jovian card points when explicitly shown
+10. other visible point-source rows that map directly to the finalized score schema
+
 An imported endgame screenshot does not by itself prove:
 
 1. which specific milestones were claimed
@@ -596,7 +612,7 @@ An imported endgame screenshot does not by itself prove:
 3. who placed first and second on each award
 4. preludes, expansion mix, or map
 5. styles or key cards
-6. microbe, animal, or Jovian sub-breakdowns inside total card points
+6. microbe, animal, or Jovian sub-breakdowns unless the supported screenshot explicitly shows them in a stable OCR-friendly layout
 
 ### Step 5: Optional Playstyle and Key Cards
 
@@ -640,6 +656,8 @@ Rules:
 7. v1 should parse one known export format and one known endgame screenshot layout well rather than pretending to support every source loosely
 8. when screenshot-derived scores and pasted-log-derived evidence conflict, the review screen must surface the mismatch instead of choosing silently
 9. no import may finalize until every imported participant is linked to the intended saved player profile
+10. filler text in the log must be classified and ignored or downgraded deliberately rather than counted as hard parser failures
+11. perspective-dependent lines such as `You drew ...` may be retained as low-authority context, but they must not override player-scoped factual events unless the parser can resolve perspective safely
 
 ## Playstyle System
 
@@ -1162,12 +1180,14 @@ Global aggregate views can show:
 8. tag counts in wins versus losses
 9. per-generation tag ramp by player and corporation
 10. imported-log coverage rate and parsed-event confidence coverage
+11. ignored-filler-line rate and parser-noise tolerance coverage
 
 ### OCR-Assisted Entry Statistics
 
 1. screenshot-assisted score-entry coverage rate
 2. OCR-confirmed score-field coverage by game
 3. mismatch rate between screenshot OCR and pasted-log evidence when both are present
+4. score-source breakdown coverage rate when the supported screenshot layout is present
 
 ### Expansion and Promo Interaction Statistics
 
@@ -1387,6 +1407,8 @@ The app will be built as a phone-first web application with responsive screens a
 38. exact digital endgame screenshot parsing for OCR-assisted score prefill
 39. editable review step that combines screenshot-derived numeric fields with pasted-log-derived event evidence
 40. explicit player-profile resolution and alias saving for imported evidence
+41. score-source screenshot parsing for supported endgame breakdown layouts
+42. noise-tolerant game-log parsing that classifies and filters filler text without losing relevant events
 
 ### V1 Can Be Lightweight In
 
@@ -1397,6 +1419,7 @@ The app will be built as a phone-first web application with responsive screens a
 5. support for multiple external log formats
 6. support for general screenshots or real-world photos beyond the known digital results screen
 7. sophisticated fuzzy player matching beyond exact, normalized, and user-confirmed alias flows
+8. deep use of perspective-dependent draw and discard chatter beyond simple ignore-or-context classification
 
 Those items must be functional, but they do not need extensive polish before the core logging and analytics loop works.
 
@@ -1448,6 +1471,8 @@ Those items must be functional, but they do not need extensive polish before the
 44. Screenshot OCR is an assisted score-entry layer, not a replacement for explicit milestone, award, prelude, and expansion review
 45. Imported participants must be explicitly linked to the correct saved player profiles before import data becomes finalized game data
 46. Confirmed player aliases can be reused for future imports to improve match accuracy without hiding ambiguity
+47. Supported endgame score-source screenshots may prefill point-origin fields, including optional sub-breakdowns when the exact layout exposes them clearly
+48. Game-log filler text is expected and must be filtered or downgraded by the parser instead of treated as a fatal import problem
 
 ## External References
 
