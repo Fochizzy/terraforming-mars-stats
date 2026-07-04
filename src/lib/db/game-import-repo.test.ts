@@ -278,7 +278,11 @@ describe('saveGameLogImport', () => {
     const screenshotSelect = vi.fn().mockReturnThis();
     const screenshotSingle = vi.fn().mockResolvedValue({
       data: null,
-      error: new Error('screenshot insert failed'),
+      error: Object.assign(new Error('screenshot insert failed'), {
+        code: 'ScreenshotInsertFailed',
+        details: 'insert into split screenshot table failed',
+        hint: 'Check the screenshot/import pairing',
+      }),
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
@@ -319,7 +323,7 @@ describe('saveGameLogImport', () => {
         userId: 'user-3',
       }),
     ).rejects.toThrow(
-      'screenshot insert failed Cleanup failed: storage cleanup failed | code: StorageCleanup | details: remove failed for uploaded object | hint: Check the evidence bucket; raw import cleanup failed | code: RawCleanup | details: delete affected 0 rows | hint: Check raw import state',
+      'screenshot insert failed | code: ScreenshotInsertFailed | details: insert into split screenshot table failed | hint: Check the screenshot/import pairing Cleanup failed: storage cleanup failed | code: StorageCleanup | details: remove failed for uploaded object | hint: Check the evidence bucket; raw import cleanup failed | code: RawCleanup | details: delete affected 0 rows | hint: Check raw import state',
     );
 
     expect(cleanupDelete).toHaveBeenCalledTimes(1);
@@ -424,19 +428,8 @@ describe('saveGameLogEvents', () => {
     vi.clearAllMocks();
   });
 
-  it('upserts parsed game log events and prunes stale rows after a successful shorter reparse', async () => {
-    const staleDeleteNot = vi.fn().mockResolvedValue({
-      error: null,
-    });
-    const staleDeleteEq = vi.fn(() => ({
-      not: staleDeleteNot,
-    }));
-    const staleDelete = vi.fn(() => ({
-      eq: staleDeleteEq,
-    }));
-    const upsert = vi.fn().mockReturnThis();
-    const select = vi.fn().mockReturnThis();
-    const order = vi.fn().mockResolvedValue({
+  it('replaces stale parsed rows through an atomic RPC on a successful shorter reparse', async () => {
+    const rpc = vi.fn().mockResolvedValue({
       data: [
         { id: 'event-1', event_order: 1 },
         { id: 'event-2', event_order: 2 },
@@ -446,17 +439,9 @@ describe('saveGameLogEvents', () => {
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
       from: vi.fn((table: string) => {
-        if (table === 'game_log_events') {
-          return {
-            delete: staleDelete,
-            order,
-            select,
-            upsert,
-          };
-        }
-
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc,
     } as never);
 
     const result = await repo.saveGameLogEvents({
@@ -484,73 +469,56 @@ describe('saveGameLogEvents', () => {
       gameLogImportId: 'import-1',
     });
 
-    expect(upsert).toHaveBeenCalledWith([
-      expect.objectContaining({
-        confidence_level: 'high',
-        event_order: 1,
-        event_type: 'generation_started',
-        game_log_import_id: 'import-1',
-        generation_number: 4,
-        line_classification: 'event',
-        payload: { generation: 4 },
-        raw_line: 'Generation 4',
-      }),
-      expect.objectContaining({
-        board_space: '29',
-        confidence_level: 'medium',
-        event_order: 2,
-        event_type: 'tile_placed',
-        game_log_import_id: 'import-1',
-        line_classification: 'event',
-        payload: { tileType: 'greenery' },
-        raw_line: 'Izzy placed greenery tile at 29',
-        tile_type: 'greenery',
-      }),
-    ], {
-      onConflict: 'game_log_import_id,event_order',
+    expect(rpc).toHaveBeenCalledWith('replace_game_log_events', {
+      p_events: [
+        {
+          board_space: null,
+          card_id: null,
+          confidence_level: 'high',
+          event_order: 1,
+          event_type: 'generation_started',
+          generation_number: 4,
+          line_classification: 'event',
+          payload: { generation: 4 },
+          raw_line: 'Generation 4',
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          board_space: '29',
+          card_id: null,
+          confidence_level: 'medium',
+          event_order: 2,
+          event_type: 'tile_placed',
+          generation_number: null,
+          line_classification: 'event',
+          payload: { tileType: 'greenery' },
+          raw_line: 'Izzy placed greenery tile at 29',
+          resource_amount: null,
+          resource_type: null,
+          tile_type: 'greenery',
+        },
+      ],
+      p_game_log_import_id: 'import-1',
     });
-    expect(upsert).toHaveBeenCalledWith(
-      expect.not.arrayContaining([
-        expect.objectContaining({
-          game_player_id: expect.anything(),
-        }),
-      ]),
-      expect.anything(),
-    );
-    expect(staleDelete).toHaveBeenCalledTimes(1);
-    expect(staleDeleteEq).toHaveBeenCalledWith(
-      'game_log_import_id',
-      'import-1',
-    );
-    expect(staleDeleteNot).toHaveBeenCalledWith('event_order', 'in', '(1,2)');
     expect(result).toEqual([
       { eventOrder: 1, id: 'event-1' },
       { eventOrder: 2, id: 'event-2' },
     ]);
   });
 
-  it('does not clear previously saved rows when the replacement upsert fails', async () => {
-    const staleDelete = vi.fn();
-    const upsert = vi.fn().mockReturnThis();
-    const select = vi.fn().mockReturnThis();
-    const order = vi.fn().mockResolvedValue({
+  it('does not wipe previously saved rows when the atomic replacement RPC fails', async () => {
+    const rpc = vi.fn().mockResolvedValue({
       data: null,
-      error: new Error('event upsert failed'),
+      error: new Error('event replacement failed'),
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
       from: vi.fn((table: string) => {
-        if (table === 'game_log_events') {
-          return {
-            delete: staleDelete,
-            order,
-            select,
-            upsert,
-          };
-        }
-
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc,
     } as never);
 
     await expect(
@@ -568,9 +536,9 @@ describe('saveGameLogEvents', () => {
         ],
         gameLogImportId: 'import-2',
       }),
-    ).rejects.toThrow('event upsert failed');
+    ).rejects.toThrow('event replacement failed');
 
-    expect(staleDelete).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 
   it('preserves previously saved rows when a reparse returns zero events', async () => {
