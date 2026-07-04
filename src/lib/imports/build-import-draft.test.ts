@@ -6,7 +6,7 @@ describe('buildImportDraft', () => {
     expect(
       buildImportDraft({
         defaultExpansionCodes: ['base', 'prelude'],
-        defaultPromoSetSlugs: ['2022-promos'],
+        defaultPromoSetSlugs: ['2022-seasonal-promos'],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
           endgameScreenshotName: 'endgame.png',
@@ -34,7 +34,7 @@ describe('buildImportDraft', () => {
       playerScores: {},
       playerSelections: {},
       playerStyles: {},
-      promoSetSlugs: ['2022-promos'],
+      promoSetSlugs: ['2022-seasonal-promos'],
       selectedPlayerIds: [],
     });
   });

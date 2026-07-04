@@ -7,7 +7,7 @@ describe('cloneGameSetup', () => {
       mapId: 'elysium',
       playerCount: 4,
       expansionCodes: ['base', 'prelude', 'colonies'],
-      promoSetSlugs: ['2022-promos'],
+      promoSetSlugs: ['2022-seasonal-promos'],
       selectedPlayerIds: ['a', 'b', 'c', 'd'],
       totalPoints: [85, 79, 76, 63],
     });
@@ -46,7 +46,7 @@ describe('mergeDraftIntoInitialValues', () => {
         notes: 'Imported evidence attached',
         playedOn: '2026-07-04',
         playerCount: 4,
-        promoSetSlugs: ['2022-promos'],
+        promoSetSlugs: ['2022-seasonal-promos'],
       },
     );
 
@@ -55,7 +55,7 @@ describe('mergeDraftIntoInitialValues', () => {
     expect(merged.playerCount).toBe(4);
     expect(merged.generationCount).toBe(12);
     expect(merged.expansionCodes).toEqual(['base', 'prelude']);
-    expect(merged.promoSetSlugs).toEqual(['2022-promos']);
+    expect(merged.promoSetSlugs).toEqual(['2022-seasonal-promos']);
     expect(merged.selectedPlayerIds).toEqual([]);
     expect(merged.playerScores).toEqual({});
   });

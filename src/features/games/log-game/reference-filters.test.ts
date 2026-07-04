@@ -36,7 +36,7 @@ describe('reference option filters', () => {
       id: 'corp-promo',
       name: 'Arcadian Communities',
       expansionCode: 'promo',
-      promoSetSlug: 'promo-corporations',
+      promoSetSlug: '2018-boardgamegeek-promos',
       requiredExpansionCodes: [],
     },
   ];
@@ -53,7 +53,7 @@ describe('reference option filters', () => {
       id: 'prelude-promo',
       name: 'Corporate Archives',
       expansionCode: 'prelude',
-      promoSetSlug: 'x-series-promos',
+      promoSetSlug: '2022-seasonal-promos',
       requiredExpansionCodes: ['prelude'],
     },
     {
@@ -79,7 +79,7 @@ describe('reference option filters', () => {
       cardNumber: 'X09',
       cardName: 'Political Alliance',
       expansionCode: 'promo',
-      promoSetSlug: 'x-series-promos',
+      promoSetSlug: '2019-turmoil-promos',
       requiredExpansionCodes: ['turmoil'],
     },
   ];
@@ -90,7 +90,7 @@ describe('reference option filters', () => {
     ]);
 
     expect(
-      filterCorporationOptions(corporationOptions, ['base', 'colonies'], ['promo-corporations']),
+      filterCorporationOptions(corporationOptions, ['base', 'colonies'], ['2018-boardgamegeek-promos']),
     ).toEqual(corporationOptions);
   });
 
@@ -100,24 +100,24 @@ describe('reference option filters', () => {
     ]);
 
     expect(
-      filterPreludeOptions(preludeOptions, ['base', 'prelude'], ['x-series-promos']),
+      filterPreludeOptions(preludeOptions, ['base', 'prelude'], ['2022-seasonal-promos']),
     ).toEqual([preludeOptions[0], preludeOptions[1]]);
 
     expect(
       filterPreludeOptions(
         preludeOptions,
         ['base', 'prelude', 'prelude_2', 'colonies'],
-        ['x-series-promos'],
+        ['2022-seasonal-promos'],
       ),
     ).toEqual(preludeOptions);
   });
 
-  it('keeps combo promo cards hidden until both the promo bundle and required expansion are selected', () => {
-    expect(filterCardOptions(cardOptions, ['base'], ['x-series-promos'])).toEqual([
+  it('keeps combo promo cards hidden until both the promo release and required expansion are selected', () => {
+    expect(filterCardOptions(cardOptions, ['base'], ['2019-turmoil-promos'])).toEqual([
       cardOptions[0],
     ]);
 
-    expect(filterCardOptions(cardOptions, ['base', 'turmoil'], ['x-series-promos'])).toEqual(
+    expect(filterCardOptions(cardOptions, ['base', 'turmoil'], ['2019-turmoil-promos'])).toEqual(
       cardOptions,
     );
   });

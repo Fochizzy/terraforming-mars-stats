@@ -1,3 +1,5 @@
+import { fandomPromoSets } from './promo-fandom-data';
+
 export type ExpansionSeed = {
   code: string;
   name: string;
@@ -69,40 +71,7 @@ export const referenceDimensions: {
     { code: 'hellas', name: 'Hellas' },
     { code: 'elysium', name: 'Elysium' },
   ],
-  promoSets: [
-    {
-      slug: 'classic-promo-projects',
-      display_name: 'Classic Promo Projects',
-      edition_label: 'Cards 209-212',
-      promo_year: null,
-      display_order: 10,
-      source_attribution: 'https://tm.hadronikle.com/',
-    },
-    {
-      slug: 'x-series-promos',
-      display_name: 'X Series Promos',
-      edition_label: 'Promo Cards X01-X79',
-      promo_year: null,
-      display_order: 20,
-      source_attribution: 'https://tm.hadronikle.com/',
-    },
-    {
-      slug: 'promo-corporations',
-      display_name: 'Promo Corporations',
-      edition_label: 'Promo Corporation Bundle',
-      promo_year: null,
-      display_order: 30,
-      source_attribution: 'https://tm.hadronikle.com/',
-    },
-    {
-      slug: 'promo-global-events',
-      display_name: 'Promo Global Events',
-      edition_label: 'Turmoil Promo Events',
-      promo_year: null,
-      display_order: 40,
-      source_attribution: 'https://tm.hadronikle.com/',
-    },
-  ],
+  promoSets: fandomPromoSets,
   milestones: [
     { code: 'terraformer', name: 'Terraformer' },
     { code: 'mayor', name: 'Mayor' },

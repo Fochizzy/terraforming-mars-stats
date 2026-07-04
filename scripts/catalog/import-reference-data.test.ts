@@ -92,7 +92,7 @@ describe('buildCatalogImportPayload', () => {
     });
     expect(payload.cards[0]?.sync_metadata).toMatchObject({
       category: 'Project',
-      promoSetSlug: 'x-series-promos',
+      promoSetSlug: '2019-turmoil-promos',
       requiredExpansionCodes: ['turmoil'],
       sourcePrimary: 'Promo',
       sourceTags: ['Promo', 'Turmoil'],
@@ -103,7 +103,7 @@ describe('buildCatalogImportPayload', () => {
         code: 'promo:arcadian-communities',
         expansion_code: 'promo',
         name: 'Arcadian Communities',
-        promo_set_slug: 'promo-corporations',
+        promo_set_slug: '2018-boardgamegeek-promos',
         required_expansion_codes: [],
       },
     ]);
@@ -113,9 +113,50 @@ describe('buildCatalogImportPayload', () => {
         code: 'X39',
         expansion_code: 'prelude',
         name: 'Corporate Archives',
-        promo_set_slug: 'x-series-promos',
+        promo_set_slug: '2022-seasonal-promos',
         required_expansion_codes: ['prelude'],
       },
+    ]);
+  });
+
+  it('maps later promo cards to their fandom-backed year and release set', () => {
+    const payload = buildCatalogImportPayload([
+      {
+        cat: 'Project',
+        exp: 'Promo',
+        primary: 'Promo',
+        tags: ['Promo'],
+        num: 'X44',
+        name: '16 Psyche',
+        img: 'https://example.com/16-psyche.png',
+        thumb: 'https://example.com/16-psyche-thumb.png',
+      },
+      {
+        cat: 'Project',
+        exp: 'Promo',
+        primary: 'Promo',
+        tags: ['Promo'],
+        num: 'X72',
+        name: 'Casinos',
+        img: 'https://example.com/casinos.png',
+        thumb: 'https://example.com/casinos-thumb.png',
+      },
+      {
+        cat: 'Project',
+        exp: 'Promo',
+        primary: 'Promo',
+        tags: ['Promo'],
+        num: 'X79',
+        name: 'Sterling Vents',
+        img: 'https://example.com/sterling-vents.png',
+        thumb: 'https://example.com/sterling-vents-thumb.png',
+      },
+    ]);
+
+    expect(payload.cards.map((card) => card.sync_metadata?.promoSetSlug)).toEqual([
+      '2023-spielbox-promos',
+      '2024-wsbg-promos',
+      '2026-seasonal-promos',
     ]);
   });
 });

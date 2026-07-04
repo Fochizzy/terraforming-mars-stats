@@ -55,7 +55,7 @@ export function PromoSetBrowser({
       <div className="flex flex-col gap-1">
         <h2 className="font-serif text-lg font-semibold">Promo Sets</h2>
         <p className="text-sm text-stone-300">
-          Browse each promo year or bundle, then open a full card image from the
+          Browse each promo year and release set, then open a full card image from the
           cached catalog reference.
         </p>
       </div>

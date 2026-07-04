@@ -3,6 +3,7 @@ import {
   normalizeCardRecord,
   type NormalizedCardRecord,
 } from '../../src/features/catalog/catalog-record';
+import { resolveFandomPromoSet } from './promo-fandom-data';
 
 export const HADRONIKLE_SOURCE_ATTRIBUTION = 'https://tm.hadronikle.com/';
 export const HADRONIKLE_SOURCE_CACHE_PATH =
@@ -19,8 +20,6 @@ const EXPANSION_NAME_TO_CODE: Record<string, string> = {
   Promo: 'promo',
   Automa: 'automa',
 };
-
-const CLASSIC_PROMO_CARD_NUMBERS = new Set(['209', '210', '211', '212']);
 
 export type HadronikleCardRecord = {
   cat: string;
@@ -92,23 +91,18 @@ function resolvePromoSetSlug(card: HadronikleCardRecord) {
     return null;
   }
 
-  if (card.cat === 'Corporation') {
-    return 'promo-corporations';
+  const promoSet = resolveFandomPromoSet({
+    cardName: card.name,
+    cardNumber: card.num,
+  });
+
+  if (!promoSet) {
+    throw new Error(
+      `Missing fandom promo mapping for ${card.cat} ${card.num || card.name}`,
+    );
   }
 
-  if (card.cat === 'GlobalEvent') {
-    return 'promo-global-events';
-  }
-
-  if (CLASSIC_PROMO_CARD_NUMBERS.has(card.num)) {
-    return 'classic-promo-projects';
-  }
-
-  if (/^X\d+$/i.test(card.num)) {
-    return 'x-series-promos';
-  }
-
-  return 'x-series-promos';
+  return promoSet.slug;
 }
 
 function resolveRequiredExpansionCodes(card: HadronikleCardRecord) {
@@ -127,7 +121,14 @@ function buildSourceCardId(card: HadronikleCardRecord) {
 }
 
 function buildCardRecord(card: HadronikleCardRecord): NormalizedCardRecord {
-  const promoSetSlug = resolvePromoSetSlug(card);
+  const promoSet = resolveFandomPromoSet({
+    cardName: card.name,
+    cardNumber: card.num,
+  });
+  const promoSetSlug =
+    card.tags.includes('Promo') || card.primary === 'Promo'
+      ? resolvePromoSetSlug(card)
+      : null;
   const requiredExpansionCodes = resolveRequiredExpansionCodes(card);
 
   return normalizeCardRecord({
@@ -143,6 +144,8 @@ function buildCardRecord(card: HadronikleCardRecord): NormalizedCardRecord {
     syncMetadata: {
       category: card.cat,
       promoSetSlug,
+      promoReleaseSource: promoSet?.editionLabel ?? null,
+      promoReleaseYear: promoSet?.promoYear ?? null,
       requiredExpansionCodes,
       sourceExpansion: card.exp,
       sourcePrimary: card.primary,

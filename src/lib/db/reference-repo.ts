@@ -143,6 +143,7 @@ export async function listPromoSets(): Promise<PromoSetOption[]> {
   const { data, error } = await supabase
     .from('promo_sets')
     .select('id, slug, display_name, edition_label, promo_year')
+    .not('promo_year', 'is', null)
     .order('display_order')
     .order('promo_year', { ascending: true, nullsFirst: false })
     .order('display_name');

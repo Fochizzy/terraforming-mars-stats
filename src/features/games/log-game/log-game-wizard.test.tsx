@@ -89,9 +89,9 @@ describe('LogGameWizard', () => {
         promoSetOptions={[
           {
             id: 'promo-2022',
-            slug: '2022-promos',
-            displayName: '2022 Promo Pack',
-            editionLabel: '2022 Promo Pack',
+            slug: '2022-seasonal-promos',
+            displayName: 'Seasonal Promos',
+            editionLabel: 'Seasonal promo',
             promoYear: 2022,
           },
         ]}
@@ -136,7 +136,7 @@ describe('LogGameWizard', () => {
     await user.clear(screen.getByLabelText(/generation count/i));
     await user.type(screen.getByLabelText(/generation count/i), '11');
     await user.click(screen.getByLabelText(/colonies/i));
-    await user.click(screen.getByLabelText(/2022 promo pack/i));
+    await user.click(screen.getByLabelText(/seasonal promos \(2022\)/i));
     await user.click(screen.getByRole('button', { name: /save draft setup/i }));
 
     await waitFor(() =>
@@ -191,14 +191,14 @@ describe('LogGameWizard', () => {
           },
         },
         expansionCodes: ['base', 'prelude', 'colonies'],
-        promoSetSlugs: ['2022-promos'],
+        promoSetSlugs: ['2022-seasonal-promos'],
         selectedPlayerIds: ['p1', 'p2'],
       }),
     );
     expect(onFinalizeGame).not.toHaveBeenCalled();
   });
 
-  it('filters corporation, prelude, and key-card choices to the selected expansions and promo bundles', async () => {
+  it('filters corporation, prelude, and key-card choices to the selected expansions and promo releases', async () => {
     const user = userEvent.setup();
 
     render(
@@ -218,7 +218,7 @@ describe('LogGameWizard', () => {
             cardNumber: 'X09',
             expansionCode: 'promo',
             id: 'card-promo',
-            promoSetSlug: 'x-series-promos',
+            promoSetSlug: '2019-turmoil-promos',
             requiredExpansionCodes: ['turmoil'],
           },
         ]}
@@ -241,7 +241,7 @@ describe('LogGameWizard', () => {
             expansionCode: 'promo',
             id: 'corp-promo',
             name: 'Arcadian Communities',
-            promoSetSlug: 'promo-corporations',
+            promoSetSlug: '2018-boardgamegeek-promos',
             requiredExpansionCodes: [],
           },
         ]}
@@ -293,24 +293,31 @@ describe('LogGameWizard', () => {
             expansionCode: 'prelude',
             id: 'prelude-promo',
             name: 'Corporate Archives',
-            promoSetSlug: 'x-series-promos',
+            promoSetSlug: '2022-seasonal-promos',
             requiredExpansionCodes: ['prelude'],
           },
         ]}
         promoSetOptions={[
           {
             id: 'promo-x',
-            slug: 'x-series-promos',
-            displayName: 'X Series Promos',
-            editionLabel: 'Promo Cards X01-X79',
-            promoYear: null,
+            slug: '2019-turmoil-promos',
+            displayName: 'Turmoil Promos',
+            editionLabel: 'Turmoil',
+            promoYear: 2019,
+          },
+          {
+            id: 'promo-seasonal-2022',
+            slug: '2022-seasonal-promos',
+            displayName: 'Seasonal Promos',
+            editionLabel: 'Seasonal promo',
+            promoYear: 2022,
           },
           {
             id: 'promo-corp',
-            slug: 'promo-corporations',
-            displayName: 'Promo Corporations',
-            editionLabel: 'Promo Corporation Bundle',
-            promoYear: null,
+            slug: '2018-boardgamegeek-promos',
+            displayName: 'BoardGameGeek Promos',
+            editionLabel: 'BoardGameGeek promo',
+            promoYear: 2018,
           },
         ]}
         styleOptions={[{ code: 'balanced', id: 'style1', name: 'Balanced' }]}
@@ -334,9 +341,10 @@ describe('LogGameWizard', () => {
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByLabelText(/colonies/i));
-    await user.click(screen.getByLabelText(/x series promos/i));
-    await user.click(screen.getByLabelText(/turmoil/i));
-    await user.click(screen.getByLabelText(/promo corporations/i));
+    await user.click(screen.getByLabelText(/turmoil promos \(2019\)/i));
+    await user.click(screen.getByLabelText(/^turmoil$/i));
+    await user.click(screen.getByLabelText(/seasonal promos \(2022\)/i));
+    await user.click(screen.getByLabelText(/boardgamegeek promos \(2018\)/i));
 
     expect(screen.getByRole('option', { name: /poseidon/i })).toBeInTheDocument();
     expect(
