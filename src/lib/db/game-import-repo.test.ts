@@ -246,7 +246,12 @@ describe('saveGameLogImport', () => {
     });
     const remove = vi.fn().mockResolvedValue({
       data: null,
-      error: new Error('storage cleanup failed'),
+      error: {
+        code: 'StorageCleanup',
+        details: 'remove failed for uploaded object',
+        hint: 'Check the evidence bucket',
+        message: 'storage cleanup failed',
+      },
     });
     const storageFrom = vi.fn(() => ({
       remove,
@@ -259,7 +264,12 @@ describe('saveGameLogImport', () => {
       error: null,
     });
     const cleanupEq = vi.fn().mockResolvedValue({
-      error: new Error('raw import cleanup failed'),
+      error: {
+        code: 'RawCleanup',
+        details: 'delete affected 0 rows',
+        hint: 'Check raw import state',
+        message: 'raw import cleanup failed',
+      },
     });
     const cleanupDelete = vi.fn(() => ({
       eq: cleanupEq,
@@ -309,7 +319,7 @@ describe('saveGameLogImport', () => {
         userId: 'user-3',
       }),
     ).rejects.toThrow(
-      'screenshot insert failed Cleanup failed: storage cleanup failed; raw import cleanup failed',
+      'screenshot insert failed Cleanup failed: storage cleanup failed | code: StorageCleanup | details: remove failed for uploaded object | hint: Check the evidence bucket; raw import cleanup failed | code: RawCleanup | details: delete affected 0 rows | hint: Check raw import state',
     );
 
     expect(cleanupDelete).toHaveBeenCalledTimes(1);
@@ -414,7 +424,16 @@ describe('saveGameLogEvents', () => {
     vi.clearAllMocks();
   });
 
-  it('upserts parsed game log events without deleting previously saved rows from shorter reparses', async () => {
+  it('upserts parsed game log events and prunes stale rows after a successful shorter reparse', async () => {
+    const staleDeleteNot = vi.fn().mockResolvedValue({
+      error: null,
+    });
+    const staleDeleteEq = vi.fn(() => ({
+      not: staleDeleteNot,
+    }));
+    const staleDelete = vi.fn(() => ({
+      eq: staleDeleteEq,
+    }));
     const upsert = vi.fn().mockReturnThis();
     const select = vi.fn().mockReturnThis();
     const order = vi.fn().mockResolvedValue({
@@ -429,6 +448,7 @@ describe('saveGameLogEvents', () => {
       from: vi.fn((table: string) => {
         if (table === 'game_log_events') {
           return {
+            delete: staleDelete,
             order,
             select,
             upsert,
@@ -497,6 +517,12 @@ describe('saveGameLogEvents', () => {
       ]),
       expect.anything(),
     );
+    expect(staleDelete).toHaveBeenCalledTimes(1);
+    expect(staleDeleteEq).toHaveBeenCalledWith(
+      'game_log_import_id',
+      'import-1',
+    );
+    expect(staleDeleteNot).toHaveBeenCalledWith('event_order', 'in', '(1,2)');
     expect(result).toEqual([
       { eventOrder: 1, id: 'event-1' },
       { eventOrder: 2, id: 'event-2' },
@@ -504,6 +530,7 @@ describe('saveGameLogEvents', () => {
   });
 
   it('does not clear previously saved rows when the replacement upsert fails', async () => {
+    const staleDelete = vi.fn();
     const upsert = vi.fn().mockReturnThis();
     const select = vi.fn().mockReturnThis();
     const order = vi.fn().mockResolvedValue({
@@ -515,6 +542,7 @@ describe('saveGameLogEvents', () => {
       from: vi.fn((table: string) => {
         if (table === 'game_log_events') {
           return {
+            delete: staleDelete,
             order,
             select,
             upsert,
@@ -541,6 +569,8 @@ describe('saveGameLogEvents', () => {
         gameLogImportId: 'import-2',
       }),
     ).rejects.toThrow('event upsert failed');
+
+    expect(staleDelete).not.toHaveBeenCalled();
   });
 
   it('preserves previously saved rows when a reparse returns zero events', async () => {

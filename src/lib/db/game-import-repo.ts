@@ -46,6 +46,45 @@ type RawSavedGameLogEventRow = {
   id: string;
 };
 
+function formatStructuredError(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (!error || typeof error !== 'object') {
+    return String(error);
+  }
+
+  const message =
+    'message' in error && typeof error.message === 'string'
+      ? error.message
+      : null;
+  const code =
+    'code' in error && typeof error.code === 'string' ? error.code : null;
+  const details =
+    'details' in error && typeof error.details === 'string'
+      ? error.details
+      : null;
+  const hint =
+    'hint' in error && typeof error.hint === 'string' ? error.hint : null;
+
+  const parts = [message ?? 'Unknown error'];
+
+  if (code) {
+    parts.push(`code: ${code}`);
+  }
+
+  if (details) {
+    parts.push(`details: ${details}`);
+  }
+
+  if (hint) {
+    parts.push(`hint: ${hint}`);
+  }
+
+  return parts.join(' | ');
+}
+
 function isMissingSplitScreenshotTableError(error: unknown) {
   if (!error || typeof error !== 'object') {
     return false;
@@ -138,7 +177,7 @@ async function cleanupFailedScreenshotImport(input: {
   });
 
   return cleanupFailures.map((failure) =>
-    failure instanceof Error ? failure.message : String(failure),
+    formatStructuredError(failure),
   );
 }
 
@@ -147,9 +186,7 @@ function buildCleanupAwareError(input: {
   originalError: unknown;
 }) {
   const originalMessage =
-    input.originalError instanceof Error
-      ? input.originalError.message
-      : String(input.originalError);
+    formatStructuredError(input.originalError);
 
   if (input.cleanupFailures.length === 0) {
     return input.originalError instanceof Error
@@ -356,6 +393,17 @@ export async function saveGameLogEvents(input: {
 
   if (error) {
     throw error;
+  }
+
+  const retainedEventOrders = input.events.map((event) => event.eventOrder).join(',');
+  const { error: staleDeleteError } = await supabase
+    .from('game_log_events')
+    .delete()
+    .eq('game_log_import_id', input.gameLogImportId)
+    .not('event_order', 'in', `(${retainedEventOrders})`);
+
+  if (staleDeleteError) {
+    throw staleDeleteError;
   }
 
   return ((data ?? []) as RawSavedGameLogEventRow[]).map((row) => ({
