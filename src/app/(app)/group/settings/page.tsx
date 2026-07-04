@@ -1,16 +1,56 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { GroupSettingsForm } from '@/features/groups/group-settings-form';
+import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
+import { getGroupSettings, saveGroupSettings } from '@/lib/db/group-settings-repo';
+import { listExpansions, listPromoSets } from '@/lib/db/reference-repo';
+import {
+  groupSettingsSchema,
+  type GroupSettingsInput,
+} from '@/lib/validation/group-settings';
+import { revalidatePath } from 'next/cache';
 
-export default function GroupSettingsPage() {
+export default async function GroupSettingsPage() {
+  const context = await requireCurrentGroupContext();
+  const [settings, expansionOptions, promoSetOptions] = await Promise.all([
+    getGroupSettings(context.groupId),
+    listExpansions(),
+    listPromoSets(),
+  ]);
+
+  async function handleSaveGroupSettings(values: GroupSettingsInput) {
+    'use server';
+
+    const activeContext = await requireCurrentGroupContext();
+    const parsed = groupSettingsSchema.parse(values);
+    await saveGroupSettings({
+      group_id: activeContext.groupId,
+      group_name: parsed.groupName,
+      global_analytics_enabled: parsed.globalAnalyticsEnabled,
+      default_expansion_codes: parsed.defaultExpansionCodes,
+      default_promo_set_slugs: parsed.defaultPromoSetSlugs,
+    });
+    revalidatePath('/group');
+    revalidatePath('/group/settings');
+    revalidatePath('/log-game');
+
+    return {
+      status: 'success' as const,
+      message: 'Group defaults saved for future games.',
+    };
+  }
+
   return (
     <AppShell title="Group Settings">
       <GroupSettingsForm
         initialValues={{
-          groupName: 'Friday Mars',
-          globalAnalyticsEnabled: false,
-          defaultExpansionCodes: ['base', 'prelude'],
-          defaultPromoSetSlugs: [],
+          groupName: settings.groupName,
+          globalAnalyticsEnabled: settings.globalAnalyticsEnabled,
+          defaultExpansionCodes: settings.defaultExpansionCodes,
+          defaultPromoSetSlugs: settings.defaultPromoSetSlugs,
         }}
+        expansionOptions={expansionOptions}
+        onSave={handleSaveGroupSettings}
+        promoSetOptions={promoSetOptions}
       />
     </AppShell>
   );

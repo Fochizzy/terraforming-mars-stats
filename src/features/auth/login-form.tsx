@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { buildAuthCallbackUrl } from './build-auth-callback-url';
 
 type LoginStatus = 'idle' | 'sent' | 'error';
 
-export function LoginForm() {
+export function LoginForm({ nextPath = '/profile' }: { nextPath?: string }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<LoginStatus>('idle');
 
@@ -16,7 +17,10 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/profile`,
+        emailRedirectTo: buildAuthCallbackUrl(
+          window.location.origin,
+          nextPath,
+        ),
       },
     });
 
@@ -24,17 +28,17 @@ export function LoginForm() {
   }
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+    <form className="tm-panel flex flex-col gap-4" onSubmit={onSubmit}>
       <input
         required
-        className="rounded-xl border border-stone-600 bg-stone-950 px-4 py-3"
+        className="tm-input"
         type="email"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         placeholder="you@example.com"
       />
       <button
-        className="rounded-full bg-orange-400 px-5 py-3 font-semibold text-slate-950"
+        className="tm-button-primary"
         type="submit"
       >
         Email me a sign-in link

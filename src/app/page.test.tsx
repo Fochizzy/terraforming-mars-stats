@@ -6,11 +6,16 @@ describe('HomePage', () => {
   it('renders the Terraforming Mars stats CTA', () => {
     render(<HomePage />);
 
-    expect(
-      screen.getByRole('heading', { name: /terraforming mars stats/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /sign in to your group/i }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole('heading', {
+      name: /terraforming mars stats/i,
+    });
+    const signInLink = screen.getByRole('link', {
+      name: /sign in to your group/i,
+    });
+
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveClass('tm-display-title');
+    expect(signInLink).toBeInTheDocument();
+    expect(signInLink).toHaveClass('tm-button-primary');
   });
 });

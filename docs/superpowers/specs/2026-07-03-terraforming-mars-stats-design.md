@@ -85,6 +85,15 @@ The interface should take inspiration from the game's core aesthetic cues:
 
 The goal is not to reproduce the board game one-to-one. The goal is to make the app feel unmistakably Terraforming Mars while remaining readable and modern on a phone.
 
+The approved intensity for the visual system is `medium`.
+
+That means:
+
+1. the app should feel clearly game-inspired at a glance
+2. headers, panels, navigation, charts, and stat cards should use visible thematic framing
+3. forms and score-entry controls should stay cleaner and more data-first than the surrounding chrome
+4. textures and metallic framing should be noticeable but restrained enough that the app still reads quickly on a phone
+
 Charts, filters, and profile cards should all inherit this same visual system so analytics still feel like part of the game world.
 
 Visual system requirements:
@@ -1424,20 +1433,21 @@ Those items must be functional, but they do not need extensive polish before the
 29. Progress-over-time analytics track win rates, playstyles, and improvement trends
 30. My player profile is the default landing page
 31. The visual system should echo Terraforming Mars typography, palette, and component styling while staying readable on a phone
-32. Saved data is cloud-backed with Supabase as the system of record, not local phone storage
-33. Games support draft and finalized states, and finalized edits keep revision history
-34. Loggers can duplicate a previous game setup to speed up repeated group entry
-35. True ties are preserved explicitly instead of being broken by arbitrary ordering
-36. Analytics surface data coverage when optional inputs affect interpretation
-37. Games retain a catalog snapshot reference for historical traceability
-38. Imported logs are optional enrichment data, not the authoritative source for official finalized results
-39. The app stores raw pasted logs in Supabase and parses them into normalized events inside the app
-40. The app stores imported endgame screenshots in Supabase Storage and OCRs them into editable score candidates inside the app
-41. V1 supports one known exported-log format and one known digital endgame screenshot layout well before expanding to additional formats
-42. Card tag metadata is part of the catalog so imported played-card events can power tag analytics
-43. Screenshot OCR is an assisted score-entry layer, not a replacement for explicit milestone, award, prelude, and expansion review
-44. Imported participants must be explicitly linked to the correct saved player profiles before import data becomes finalized game data
-45. Confirmed player aliases can be reused for future imports to improve match accuracy without hiding ambiguity
+32. The approved theme intensity is medium: clearly Terraforming Mars, with visible plaque-like framing and atmospheric backgrounds, but without sacrificing fast score-entry readability
+33. Saved data is cloud-backed with Supabase as the system of record, not local phone storage
+34. Games support draft and finalized states, and finalized edits keep revision history
+35. Loggers can duplicate a previous game setup to speed up repeated group entry
+36. True ties are preserved explicitly instead of being broken by arbitrary ordering
+37. Analytics surface data coverage when optional inputs affect interpretation
+38. Games retain a catalog snapshot reference for historical traceability
+39. Imported logs are optional enrichment data, not the authoritative source for official finalized results
+40. The app stores raw pasted logs in Supabase and parses them into normalized events inside the app
+41. The app stores imported endgame screenshots in Supabase Storage and OCRs them into editable score candidates inside the app
+42. V1 supports one known exported-log format and one known digital endgame screenshot layout well before expanding to additional formats
+43. Card tag metadata is part of the catalog so imported played-card events can power tag analytics
+44. Screenshot OCR is an assisted score-entry layer, not a replacement for explicit milestone, award, prelude, and expansion review
+45. Imported participants must be explicitly linked to the correct saved player profiles before import data becomes finalized game data
+46. Confirmed player aliases can be reused for future imports to improve match accuracy without hiding ambiguity
 
 ## External References
 

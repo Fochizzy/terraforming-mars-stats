@@ -6,8 +6,8 @@ export function ChartFrame({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-orange-900/40 bg-black/25 p-4">
-      <h2 className="font-serif text-lg font-semibold">{title}</h2>
+    <section className="tm-panel">
+      <h2 className="tm-panel-title text-lg font-semibold">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
   );

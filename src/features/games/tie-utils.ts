@@ -13,14 +13,18 @@ export function rankPlayers(players: RankedPlayerInput[]) {
     return right.finalMegacredits - left.finalMegacredits;
   });
 
+  let previousPlacement = 0;
+
   return sorted.map((player, index) => {
     const previous = sorted[index - 1];
     const placement =
       previous &&
       previous.totalPoints === player.totalPoints &&
       previous.finalMegacredits === player.finalMegacredits
-        ? index
+        ? previousPlacement
         : index + 1;
+
+    previousPlacement = placement;
 
     return {
       ...player,

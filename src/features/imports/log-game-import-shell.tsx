@@ -1,0 +1,73 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import type { MapOption } from '@/lib/db/reference-repo';
+import type { CreateImportDraftInput } from '@/lib/imports/build-import-draft';
+import { WebImportPage, type WebImportActionResult } from './web-import-page';
+
+type LogGameImportShellProps = {
+  initialValues: {
+    generationCount: number;
+    mapId: string;
+    playedOn: string;
+    playerCount: number;
+  };
+  mapOptions: MapOption[];
+  onCreateImportDraft: (
+    values: CreateImportDraftInput,
+  ) => Promise<WebImportActionResult>;
+};
+
+export function LogGameImportShell({
+  initialValues,
+  mapOptions,
+  onCreateImportDraft,
+}: LogGameImportShellProps) {
+  const router = useRouter();
+
+  async function handleStartImport(values: {
+    endgameScreenshot: File | null;
+    exportedGameLog: string;
+    generationCount: number;
+    mapId: string;
+    playedOn: string;
+    playerCount: number;
+  }): Promise<WebImportActionResult> {
+    try {
+      const result = await onCreateImportDraft({
+        endgameScreenshot: values.endgameScreenshot,
+        endgameScreenshotName: values.endgameScreenshot?.name ?? null,
+        exportedGameLog: values.exportedGameLog,
+        generationCount: values.generationCount,
+        mapId: values.mapId,
+        playedOn: values.playedOn,
+        playerCount: values.playerCount,
+      });
+
+      if (result.status === 'success' && result.gameId) {
+        router.push(`/log-game?gameId=${result.gameId}`);
+      }
+
+      return {
+        ...result,
+        message: result.message ?? 'Import draft and evidence saved.',
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Unable to save this import draft right now.',
+      };
+    }
+  }
+
+  return (
+    <WebImportPage
+      initialValues={initialValues}
+      mapOptions={mapOptions}
+      onStartImport={handleStartImport}
+    />
+  );
+}

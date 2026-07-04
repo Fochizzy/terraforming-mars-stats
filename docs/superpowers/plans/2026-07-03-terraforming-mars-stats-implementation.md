@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a phone-first Terraforming Mars statistics web app with Supabase-backed auth, cloud storage, guided game logging, reference catalog support, and personal, group, and aggregate analytics.
+**Goal:** Build a phone-first Terraforming Mars statistics web app with Supabase-backed auth, cloud storage, guided game logging, an authenticated web import surface for pasted logs and exact endgame screenshots, reference catalog support, and personal, group, and aggregate analytics.
 
-**Architecture:** Build a Next.js App Router application with clear feature boundaries under `src/features`, backed by a Supabase Postgres schema with RLS, storage buckets for card imagery, and SQL views/functions for analytics. Keep live user workflows server-first where possible, use client components for forms and charts only, and persist inferred analytics data at game finalization so profile and leaderboard reads stay fast.
+**Architecture:** Build a Next.js App Router application with clear feature boundaries under `src/features`, backed by a Supabase Postgres schema with RLS, storage buckets for card imagery and imported screenshot evidence, and SQL views/functions for analytics. Keep live user workflows server-first where possible, use client components for forms and charts only, and add a protected `/log-game/import` web workflow that saves raw evidence, runs parser and OCR adapters, and hands reviewed data back to the normal draft-based logging flow. Persist inferred analytics data at game finalization so profile and leaderboard reads stay fast.
 
 **Tech Stack:** Next.js 15 App Router, React 19, TypeScript, Tailwind CSS, Supabase (`@supabase/supabase-js`, `@supabase/ssr`), Postgres SQL migrations, React Hook Form, Zod, Recharts, Vitest, React Testing Library, Playwright
 
@@ -19,12 +19,14 @@
 - `src/features/auth/`: login flow, auth guards, membership-aware redirects
 - `src/features/groups/`: group settings, recurring players, role-gated actions
 - `src/features/games/`: draft/finalized game logging wizard, score validation, revisions, tie handling
+- `src/features/imports/`: authenticated web import page, evidence review, parser/OCR mismatch surfacing, and alias confirmation UI
 - `src/features/catalog/`: promo browsing, key-card selection, catalog metadata loaders
 - `src/features/analytics/`: profile, group, leaderboard, head-to-head, trend, and coverage queries
 - `src/features/styles/`: declared style definitions, inferred style engine, style comparison utilities
 - `src/features/insights/`: sentence-form insight builders and chart annotation helpers
 - `src/lib/supabase/`: browser, server, and middleware Supabase clients
 - `src/lib/db/`: typed repositories and query helpers
+- `src/lib/imports/`: parser adapters, OCR normalization, player-alias matching, and confidence helpers
 - `src/lib/validation/`: shared Zod schemas for forms and server actions
 - `src/lib/theme/`: board-game-inspired design tokens and chart colors
 - `scripts/catalog/`: Hadronikle import, thumbnail generation, and storage upload scripts
@@ -39,7 +41,7 @@ This spec is broad, but the subsystems are tightly coupled through a shared sche
 
 1. establish the web app and Supabase foundation
 2. land the schema and reference catalog spine
-3. deliver logging and group-management workflows
+3. deliver logging, web import, and group-management workflows
 4. add analytics, insights, and charts
 5. harden with tests, QA, and deployment polish
 
@@ -482,23 +484,26 @@ git add middleware.ts .env.example src/lib/env.ts src/lib/supabase src/features/
 git commit -m "feat: add Supabase auth shell and protected routing"
 ```
 
-### Task 3: Create the Core Supabase Schema, RLS Policies, and Lifecycle Tables
+### Task 3: Create the Core Supabase Schema, Import Lifecycle Tables, and RLS Policies
 
 **Files:**
 - Create: `supabase/config.toml`
 - Create: `supabase/migrations/20260703120000_create_core_tables.sql`
+- Create: `supabase/migrations/20260703121800_create_import_tables.sql`
 - Create: `supabase/migrations/20260703121500_create_core_rls.sql`
 - Create: `supabase/tests/core_schema_verification.sql`
+- Create: `supabase/tests/import_schema_verification.sql`
 
 - [ ] **Step 1: Initialize Supabase locally and create the migration files**
 
 ```bash
 npx supabase init
 npx supabase migration new create_core_tables
+npx supabase migration new create_import_tables
 npx supabase migration new create_core_rls
 ```
 
-Expected: `supabase/config.toml` exists and two migration files are created under `supabase/migrations/`.
+Expected: `supabase/config.toml` exists and three migration files are created under `supabase/migrations/`.
 
 - [ ] **Step 2: Add a verification SQL script that will fail before the core schema exists**
 
@@ -609,7 +614,83 @@ create table public.game_revisions (
 );
 ```
 
-- [ ] **Step 5: Implement RLS and role-based access**
+- [ ] **Step 5: Add web-import evidence tables, raw-event storage, and player alias support**
+
+```sql
+-- supabase/migrations/20260703121800_create_import_tables.sql
+create table public.game_log_imports (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references public.games(id) on delete cascade,
+  raw_log_text text not null,
+  parser_version text not null,
+  parse_status text not null check (parse_status in ('parsed', 'partial', 'failed')),
+  detected_source text not null,
+  confidence_summary jsonb not null default '{}'::jsonb,
+  line_count integer not null default 0,
+  unparsed_line_count integer not null default 0,
+  created_by_user_id uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  parsed_at timestamptz
+);
+
+create table public.game_log_events (
+  id uuid primary key default gen_random_uuid(),
+  game_log_import_id uuid not null references public.game_log_imports(id) on delete cascade,
+  game_player_id uuid references public.game_players(id) on delete set null,
+  generation_number integer,
+  event_order integer not null,
+  event_type text not null,
+  card_id uuid,
+  resource_type text,
+  resource_amount integer,
+  tile_type text,
+  board_space text,
+  confidence_level text not null check (confidence_level in ('high', 'medium', 'low')),
+  raw_line text not null,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table public.game_result_screenshot_imports (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references public.games(id) on delete cascade,
+  storage_object_path text not null,
+  ocr_engine_version text not null,
+  parse_status text not null check (parse_status in ('parsed', 'partial', 'failed')),
+  detected_layout text not null,
+  confidence_summary jsonb not null default '{}'::jsonb,
+  extracted_fields jsonb not null default '{}'::jsonb,
+  created_by_user_id uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  parsed_at timestamptz
+);
+
+create table public.player_import_aliases (
+  id uuid primary key default gen_random_uuid(),
+  player_id uuid not null references public.players(id) on delete cascade,
+  source_type text not null,
+  alias_text text not null,
+  normalized_alias_text text not null,
+  created_at timestamptz not null default now(),
+  unique (player_id, source_type, normalized_alias_text)
+);
+```
+
+```sql
+-- supabase/tests/import_schema_verification.sql
+select table_name
+from information_schema.tables
+where table_schema = 'public'
+  and table_name in (
+    'game_log_imports',
+    'game_log_events',
+    'game_result_screenshot_imports',
+    'player_import_aliases'
+  )
+order by table_name;
+```
+
+- [ ] **Step 6: Implement RLS and role-based access**
 
 ```sql
 -- supabase/migrations/20260703121500_create_core_rls.sql
@@ -802,9 +883,92 @@ with check (
       and public.can_edit_group(g.group_id)
   )
 );
+
+alter table public.game_log_imports enable row level security;
+alter table public.game_log_events enable row level security;
+alter table public.game_result_screenshot_imports enable row level security;
+alter table public.player_import_aliases enable row level security;
+
+create policy "members read game log imports"
+on public.game_log_imports for select
+using (public.can_read_game(game_id));
+
+create policy "editors manage game log imports"
+on public.game_log_imports for all
+using (public.can_edit_game(game_id))
+with check (public.can_edit_game(game_id));
+
+create policy "members read game log events"
+on public.game_log_events for select
+using (
+  exists (
+    select 1
+    from public.game_log_imports gli
+    where gli.id = game_log_events.game_log_import_id
+      and public.can_read_game(gli.game_id)
+  )
+);
+
+create policy "editors manage game log events"
+on public.game_log_events for all
+using (
+  exists (
+    select 1
+    from public.game_log_imports gli
+    where gli.id = game_log_events.game_log_import_id
+      and public.can_edit_game(gli.game_id)
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.game_log_imports gli
+    where gli.id = game_log_events.game_log_import_id
+      and public.can_edit_game(gli.game_id)
+  )
+);
+
+create policy "members read screenshot imports"
+on public.game_result_screenshot_imports for select
+using (public.can_read_game(game_id));
+
+create policy "editors manage screenshot imports"
+on public.game_result_screenshot_imports for all
+using (public.can_edit_game(game_id))
+with check (public.can_edit_game(game_id));
+
+create policy "members read player import aliases"
+on public.player_import_aliases for select
+using (
+  exists (
+    select 1
+    from public.players p
+    where p.id = player_import_aliases.player_id
+      and public.is_group_member(p.group_id)
+  )
+);
+
+create policy "editors manage player import aliases"
+on public.player_import_aliases for all
+using (
+  exists (
+    select 1
+    from public.players p
+    where p.id = player_import_aliases.player_id
+      and public.can_edit_group(p.group_id)
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.players p
+    where p.id = player_import_aliases.player_id
+      and public.can_edit_group(p.group_id)
+  )
+);
 ```
 
-- [ ] **Step 6: Verify the schema and policies locally**
+- [ ] **Step 7: Verify the schema and policies locally**
 
 Run: `npx supabase db reset --local`
 
@@ -814,11 +978,15 @@ Run: `npx supabase db query --local -f supabase/tests/core_schema_verification.s
 
 Expected: rows including `group_id`, `played_on`, `status`, `catalog_snapshot_id`, and `finalized_at`.
 
-- [ ] **Step 7: Commit the core schema milestone**
+Run: `npx supabase db query --local -f supabase/tests/import_schema_verification.sql`
+
+Expected: rows for `game_log_imports`, `game_log_events`, `game_result_screenshot_imports`, and `player_import_aliases`.
+
+- [ ] **Step 8: Commit the core schema milestone**
 
 ```bash
-git add supabase/config.toml supabase/migrations/20260703120000_create_core_tables.sql supabase/migrations/20260703121500_create_core_rls.sql supabase/tests/core_schema_verification.sql
-git commit -m "feat: add core schema and RLS policies"
+git add supabase/config.toml supabase/migrations/20260703120000_create_core_tables.sql supabase/migrations/20260703121800_create_import_tables.sql supabase/migrations/20260703121500_create_core_rls.sql supabase/tests/core_schema_verification.sql supabase/tests/import_schema_verification.sql
+git commit -m "feat: add core schema, import tables, and RLS policies"
 ```
 
 ### Task 4: Add Reference Catalog, Promo, Map, and Storage Support
@@ -1703,7 +1871,7 @@ git add src/lib/validation/group-settings.ts src/lib/db/group-settings-repo.ts s
 git commit -m "feat: add group settings and recurring player management"
 ```
 
-### Task 7: Build the Draft-Based Game Logging Wizard for Setup and Player Selection
+### Task 7: Build the Draft-Based Game Logging Wizard for Setup, Start Modes, and Player Selection
 
 **Files:**
 - Create: `src/lib/validation/log-game.ts`
@@ -1826,13 +1994,21 @@ export async function saveDraftSnapshot(gameId: string, payload: Record<string, 
 // src/features/games/log-game/setup-step.tsx
 'use client';
 
+import Link from 'next/link';
+
 export function SetupStep() {
   return (
     <section className="flex flex-col gap-4">
       <h2 className="font-serif text-xl font-semibold">Game Setup</h2>
       <p className="text-sm text-stone-300">
-        Choose the group, map, player count, expansions, promos, and generation count.
+        Start from group defaults, duplicate a recent setup, or jump to the web import page for pasted logs and endgame screenshots.
       </p>
+      <Link
+        className="inline-flex w-fit rounded-full border border-cyan-400/40 px-4 py-2 text-sm text-cyan-200"
+        href="/log-game/import"
+      >
+        Open Web Import
+      </Link>
     </section>
   );
 }
@@ -1899,10 +2075,10 @@ Expected: `✔ No ESLint warnings or errors`
 
 ```bash
 git add src/lib/validation/log-game.ts src/lib/db/game-draft-repo.ts src/features/games/log-game src/app/'(app)'/log-game
-git commit -m "feat: add draft game setup and player logging flow"
+git commit -m "feat: add draft game setup, start modes, and player logging flow"
 ```
 
-### Task 8: Finish Scoring, Finalization, Revisions, and True-Tie Handling
+### Task 8: Finish Scoring, Import Review, Finalization, Revisions, and True-Tie Handling
 
 **Files:**
 - Create: `src/features/games/log-game/milestones-step.tsx`
@@ -2074,7 +2250,7 @@ export function ReviewStep() {
     <section className="flex flex-col gap-4">
       <h2 className="font-serif text-xl font-semibold">Review and Finalize</h2>
       <p className="text-sm text-stone-300">
-        Show validation warnings, optional-data coverage, and finalize or save the draft.
+        Show validation warnings, optional-data coverage, OCR or pasted-log conflicts, alias resolution prompts, and finalize or save the draft.
       </p>
     </section>
   );
@@ -2104,6 +2280,8 @@ export function LogGameWizard() {
 }
 ```
 
+Expected: the review step is the single point where manual entry, pasted-log evidence, and screenshot-derived candidates are reconciled before finalization.
+
 - [ ] **Step 6: Verify finalization rules and lint**
 
 Run: `npm run test -- src/features/games/finalize-game.test.ts`
@@ -2118,7 +2296,7 @@ Expected: `✔ No ESLint warnings or errors`
 
 ```bash
 git add src/features/games/log-game src/features/games/finalize-game.ts src/features/games/tie-utils.ts src/features/games/finalize-game.test.ts
-git commit -m "feat: finalize game scoring and tie handling"
+git commit -m "feat: add import-aware review, scoring, and tie handling"
 ```
 
 ### Task 9: Add Analytics Views, Leaderboards, Head-to-Head Queries, and Coverage Metrics
@@ -2456,13 +2634,19 @@ git add src/components/charts src/features/analytics/profile-dashboard.tsx src/f
 git commit -m "feat: add profile and group dashboards"
 ```
 
-### Task 11: Add Insights, Style Inference, Promo Browsing, and End-to-End QA
+### Task 11: Add Insights, Style Inference, the Authenticated Web Import Website, Promo Browsing, and End-to-End QA
 
 **Files:**
 - Create: `src/features/styles/infer-style.ts`
 - Create: `src/features/styles/infer-style.test.ts`
 - Create: `src/features/insights/build-insight-cards.ts`
+- Create: `src/features/imports/web-import-page.tsx`
+- Create: `src/features/imports/import-review-panel.tsx`
+- Create: `src/lib/db/game-import-repo.ts`
+- Create: `src/lib/imports/normalize-player-alias.ts`
+- Create: `src/app/(app)/log-game/import/page.tsx`
 - Create: `src/features/catalog/promo-set-browser.tsx`
+- Create: `src/features/imports/web-import-page.test.tsx`
 - Modify: `src/app/(app)/insights/page.tsx`
 - Create: `tests/e2e/log-game-draft.spec.ts`
 - Create: `docs/deployment.md`
@@ -2496,7 +2680,7 @@ Run: `npm run test -- src/features/styles/infer-style.test.ts`
 
 Expected: `FAIL` because `infer-style.ts` does not exist yet.
 
-- [ ] **Step 3: Implement deterministic style inference and sentence-form insights**
+- [ ] **Step 3: Implement deterministic style inference, sentence-form insights, and import matching helpers**
 
 ```ts
 // src/features/styles/infer-style.ts
@@ -2538,7 +2722,111 @@ export function buildInsightCard(params: {
 }
 ```
 
-- [ ] **Step 4: Implement the insights page, promo browser shell, and first Playwright flow**
+```ts
+// src/lib/imports/normalize-player-alias.ts
+export function normalizePlayerAlias(input: string) {
+  return input.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+```
+
+```ts
+// src/lib/db/game-import-repo.ts
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+
+export async function createGameLogImport(input: {
+  game_id: string;
+  raw_log_text: string;
+  parser_version: string;
+  detected_source: string;
+  created_by_user_id: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('game_log_imports')
+    .insert({
+      ...input,
+      parse_status: 'partial',
+      confidence_summary: {},
+      line_count: input.raw_log_text.split('\n').length,
+      unparsed_line_count: 0,
+    })
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+```
+
+```tsx
+// src/features/imports/web-import-page.test.tsx
+import { render, screen } from '@testing-library/react';
+import { WebImportPage } from './web-import-page';
+
+describe('WebImportPage', () => {
+  it('renders the protected import workflow copy', () => {
+    render(<WebImportPage />);
+
+    expect(
+      screen.getByRole('heading', { name: /web import/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/paste a supported exported game log/i),
+    ).toBeInTheDocument();
+  });
+});
+```
+
+- [ ] **Step 4: Implement the insights page, promo browser shell, authenticated web import page, and first Playwright flows**
+
+```tsx
+// src/features/imports/import-review-panel.tsx
+export function ImportReviewPanel() {
+  return (
+    <section className="rounded-2xl border border-orange-900/40 bg-black/25 p-4">
+      <h2 className="font-serif text-lg font-semibold">Import Review</h2>
+      <p className="mt-2 text-sm text-stone-300">
+        Surface matched players, ambiguous aliases, OCR score candidates, and conflicts between pasted-log evidence and the screenshot before the draft moves into the normal log-game flow.
+      </p>
+    </section>
+  );
+}
+```
+
+```tsx
+// src/features/imports/web-import-page.tsx
+'use client';
+
+import { ImportReviewPanel } from './import-review-panel';
+
+export function WebImportPage() {
+  return (
+    <div className="flex flex-col gap-4">
+      <section className="rounded-2xl border border-orange-900/40 bg-black/25 p-4">
+        <h1 className="font-serif text-2xl font-semibold">Web Import</h1>
+        <p className="mt-2 text-sm text-stone-300">
+          Paste a supported exported game log, upload the exact digital endgame results screen, and review the parsed evidence before it pre-fills the shared draft.
+        </p>
+      </section>
+      <ImportReviewPanel />
+    </div>
+  );
+}
+```
+
+```tsx
+// src/app/(app)/log-game/import/page.tsx
+import { AppShell } from '@/components/layout/app-shell';
+import { WebImportPage } from '@/features/imports/web-import-page';
+
+export default function LogGameImportPage() {
+  return (
+    <AppShell title="Web Import">
+      <WebImportPage />
+    </AppShell>
+  );
+}
+```
 
 ```tsx
 // src/features/catalog/promo-set-browser.tsx
@@ -2610,6 +2898,14 @@ test('unauthenticated user is redirected to login from /log-game', async ({ page
     page.getByRole('heading', { name: /join your group/i }),
   ).toBeVisible();
 });
+
+test('unauthenticated user is redirected to login from /log-game/import', async ({ page }) => {
+  await page.goto('/log-game/import');
+  await expect(page).toHaveURL(/\/login/);
+  await expect(
+    page.getByRole('heading', { name: /join your group/i }),
+  ).toBeVisible();
+});
 ```
 
 - [ ] **Step 5: Add deployment notes for the first real environment**
@@ -2620,40 +2916,46 @@ test('unauthenticated user is redirected to login from /log-game', async ({ page
 
 1. Create a Supabase project and set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
 2. Run the schema migrations before uploading catalog data.
-3. Create `tm-card-full` and `tm-card-thumbs` buckets if the migration has not already done so.
+3. Create `tm-card-full`, `tm-card-thumbs`, and a private screenshot-evidence bucket if the migration has not already done so.
 4. Import reference data before inviting the first group so maps, corporations, preludes, milestones, awards, and promo sets are selectable.
-5. Run `npm run build`, `npm run test`, and `npm run test:e2e` before each release.
+5. Configure the parser and OCR adapter environment expected by the protected `/log-game/import` route.
+6. Run `npm run build`, `npm run test`, and `npm run test:e2e` before each release.
 ```
 
-- [ ] **Step 6: Verify style inference, e2e auth redirect, and production build**
+- [ ] **Step 6: Verify style inference, the web import surface, e2e auth redirects, and production build**
 
 Run: `npm run test -- src/features/styles/infer-style.test.ts`
 
 Expected: `PASS  src/features/styles/infer-style.test.ts`
 
+Run: `npm run test -- src/features/imports/web-import-page.test.tsx`
+
+Expected: `PASS  src/features/imports/web-import-page.test.tsx`
+
 Run: `npm run test:e2e -- --grep "unauthenticated user is redirected"`
 
-Expected: `1 passed`
+Expected: `2 passed`
 
 Run: `npm run build`
 
 Expected: `Compiled successfully`
 
-- [ ] **Step 7: Commit the insights, style inference, and QA pass**
+- [ ] **Step 7: Commit the insights, import website, style inference, and QA pass**
 
 ```bash
-git add src/features/styles src/features/insights src/features/catalog/promo-set-browser.tsx src/app/'(app)'/insights/page.tsx tests/e2e/log-game-draft.spec.ts docs/deployment.md
-git commit -m "feat: add insights, style inference, and qa coverage"
+git add src/features/styles src/features/insights src/features/imports src/lib/imports/normalize-player-alias.ts src/lib/db/game-import-repo.ts src/features/catalog/promo-set-browser.tsx src/app/'(app)'/insights/page.tsx src/app/'(app)'/log-game/import/page.tsx tests/e2e/log-game-draft.spec.ts docs/deployment.md
+git commit -m "feat: add import website, insights, and qa coverage"
 ```
 
 ## Self-Review
 
 ### Spec Coverage
 
-- Auth, cloud storage, groups, RLS, and shared access are covered by Tasks 2 and 3.
+- Auth, cloud storage, groups, RLS, shared access, and import evidence persistence are covered by Tasks 2 and 3.
 - Player profiles, group defaults, promo defaults, and opt-in aggregate analytics hooks are covered by Tasks 3, 4, and 6.
-- Draft/finalized logging, duplicate-from-previous setup, milestones, awards, optional card subfields, revision history, and true-tie handling are covered by Tasks 7 and 8.
-- Catalog metadata, promo browsing, cached images, and historical catalog snapshotting are covered by Tasks 4 and 11.
+- Draft/finalized logging, duplicate-from-previous setup, web import launch, milestones, awards, optional card subfields, revision history, and true-tie handling are covered by Tasks 7 and 8.
+- Catalog metadata, promo browsing, cached images, historical catalog snapshotting, and import-review card matching hooks are covered by Tasks 4 and 11.
+- The authenticated web import website, pasted-log storage, screenshot review, alias normalization, and import QA are covered by Task 11.
 - Personal, group, and insights dashboards, weighted leaderboards, head-to-head comparisons, optional-data coverage, style inference, and sentence-form insights are covered by Tasks 9, 10, and 11.
 - Board-game-inspired visual theming is established in Tasks 1 and 5, then reused in Tasks 10 and 11.
 
@@ -2666,5 +2968,5 @@ git commit -m "feat: add insights, style inference, and qa coverage"
 ### Type Consistency
 
 - The plan consistently uses `card_points_total`, optional `card_points_microbes`, `card_points_animals`, and `card_points_jovian`.
-- Game lifecycle fields stay consistent as `status`, `catalog_snapshot_id`, `finalized_at`, and `game_revisions`.
+- Game lifecycle fields stay consistent as `status`, `catalog_snapshot_id`, `finalized_at`, `game_revisions`, and the import evidence tables attached by `game_id`.
 - Analytics references `finalized` games as the default source of truth throughout the plan.

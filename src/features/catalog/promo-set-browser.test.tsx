@@ -1,0 +1,66 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import { PromoSetBrowser } from './promo-set-browser';
+
+describe('PromoSetBrowser', () => {
+  it('switches between promo sets and shows the cards for the active set', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PromoSetBrowser
+        cards={[
+          {
+            cardName: 'Merger',
+            cardNumber: 'P39',
+            cardType: 'Event',
+            expansionCode: 'PROMO',
+            fullImageUrl: 'https://example.com/merger.png',
+            id: 'card-1',
+            promoSetId: 'promo-1',
+            thumbnailUrl: 'https://example.com/merger-thumb.png',
+          },
+          {
+            cardName: 'Community Services',
+            cardNumber: 'P02',
+            cardType: 'Automated',
+            expansionCode: 'PROMO',
+            fullImageUrl: 'https://example.com/community.png',
+            id: 'card-2',
+            promoSetId: 'promo-2',
+            thumbnailUrl: 'https://example.com/community-thumb.png',
+          },
+        ]}
+        promoSets={[
+          {
+            displayName: 'Big Box Promos',
+            editionLabel: 'Big Box',
+            id: 'promo-1',
+            promoYear: 2024,
+            slug: 'big-box',
+          },
+          {
+            displayName: 'BoardGameGeek Pack',
+            editionLabel: 'BGG',
+            id: 'promo-2',
+            promoYear: 2025,
+            slug: 'bgg-pack',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText(/Merger/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Merger full image/i }),
+    ).toHaveAttribute('href', 'https://example.com/merger.png');
+
+    await user.selectOptions(screen.getByLabelText(/promo set/i), 'promo-2');
+
+    expect(
+      screen.getByRole('heading', { name: /BoardGameGeek Pack/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Community Services/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Merger/i)).not.toBeInTheDocument();
+  });
+});

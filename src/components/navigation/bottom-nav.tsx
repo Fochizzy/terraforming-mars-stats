@@ -9,10 +9,10 @@ const items = [
 
 export function BottomNav() {
   return (
-    <nav className="grid grid-cols-4 gap-2 border-t border-stone-700 bg-black/35 px-4 py-3">
+    <nav className="tm-bottom-nav">
       {items.map((item) => (
         <Link
-          className="text-center text-xs text-stone-200"
+          className="tm-bottom-nav__link"
           href={item.href}
           key={item.href}
         >

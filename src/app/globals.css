@@ -4,11 +4,221 @@
 
 :root {
   color-scheme: dark;
+  --tm-space-950: #080b10;
+  --tm-space-900: #0d1117;
+  --tm-space-850: #141a22;
+  --tm-space-800: #1a212a;
+  --tm-rust-700: #8e3d1f;
+  --tm-rust-600: #ad5129;
+  --tm-copper-500: #c97738;
+  --tm-copper-400: #dda15d;
+  --tm-dust-300: #ecd09f;
+  --tm-metal-500: #6f5b4a;
+  --tm-metal-300: #c0a27f;
+  --tm-greenery: #7ba73d;
+  --tm-ocean: #63afd6;
+  --tm-tr: #f06a32;
+  --tm-text: #f6eddf;
+  --tm-muted: #d1c1ad;
+  --tm-panel-border: rgba(214, 130, 66, 0.42);
+  --tm-panel-highlight: rgba(255, 226, 184, 0.12);
+  --tm-shadow: rgba(4, 6, 10, 0.52);
+  --tm-font-display: "Aldrich", "Orbitron", "Eurostile", "Trebuchet MS", sans-serif;
+  --tm-font-body: "Rajdhani", "Segoe UI", "Trebuchet MS", sans-serif;
 }
 
 body {
   margin: 0;
-  background: #0c0f14;
-  color: #f5f5f4;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(209, 104, 54, 0.26), transparent 32%),
+    radial-gradient(circle at 18% 14%, rgba(99, 175, 214, 0.12), transparent 18%),
+    linear-gradient(180deg, #35150e 0%, #11161d 24%, #090c11 100%);
+  color: var(--tm-text);
+  font-family: var(--tm-font-body);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@layer components {
+  .tm-app-shell {
+    @apply min-h-screen text-stone-100;
+    background:
+      radial-gradient(circle at top, rgba(213, 105, 53, 0.24), transparent 30%),
+      linear-gradient(180deg, #411911 0%, #161b22 24%, #090c11 100%);
+  }
+
+  .tm-app-header {
+    @apply border-b px-5 py-5;
+    border-color: var(--tm-panel-border);
+    background:
+      linear-gradient(180deg, rgba(44, 24, 18, 0.88), rgba(14, 18, 24, 0.92));
+    box-shadow: inset 0 -1px 0 rgba(255, 224, 184, 0.08);
+  }
+
+  .tm-display-eyebrow {
+    color: var(--tm-dust-300);
+    font-family: var(--tm-font-display);
+    font-size: 0.72rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+  }
+
+  .tm-display-title {
+    color: #f9efe2;
+    font-family: var(--tm-font-display);
+    letter-spacing: 0.08em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.42);
+    text-transform: uppercase;
+  }
+
+  .tm-body-copy {
+    color: var(--tm-muted);
+    line-height: 1.6;
+  }
+
+  .tm-panel {
+    @apply rounded-2xl border p-4;
+    background:
+      linear-gradient(180deg, rgba(29, 35, 43, 0.92), rgba(11, 14, 20, 0.94));
+    border-color: var(--tm-panel-border);
+    box-shadow:
+      0 16px 32px var(--tm-shadow),
+      inset 0 1px 0 var(--tm-panel-highlight);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .tm-panel::before {
+    background:
+      linear-gradient(135deg, rgba(255, 216, 168, 0.08), transparent 24%, transparent 72%, rgba(99, 175, 214, 0.06));
+    content: '';
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .tm-panel > * {
+    position: relative;
+  }
+
+  .tm-panel-title {
+    color: var(--tm-dust-300);
+    font-family: var(--tm-font-display);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tm-stat-card {
+    @apply rounded-2xl border p-3;
+    background:
+      linear-gradient(180deg, rgba(32, 19, 16, 0.72), rgba(15, 18, 24, 0.84));
+    border-color: rgba(192, 162, 127, 0.24);
+    box-shadow: inset 0 1px 0 rgba(255, 229, 191, 0.06);
+  }
+
+  .tm-data-label {
+    color: var(--tm-copper-400);
+    font-family: var(--tm-font-display);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .tm-accent-copy {
+    color: #9bd8f4;
+  }
+
+  .tm-muted-copy {
+    color: var(--tm-muted);
+  }
+
+  .tm-coverage-badge {
+    @apply inline-flex rounded-full border px-3 py-1 text-xs;
+    background: rgba(57, 118, 153, 0.18);
+    border-color: rgba(99, 175, 214, 0.34);
+    box-shadow: inset 0 1px 0 rgba(201, 236, 255, 0.08);
+    color: #d8eef8;
+  }
+
+  .tm-button-primary {
+    @apply rounded-full border px-5 py-3 text-center text-sm font-semibold;
+    background: linear-gradient(180deg, #efb96f 0%, #d78643 48%, #bd612a 100%);
+    border-color: rgba(255, 217, 172, 0.48);
+    box-shadow:
+      0 12px 24px rgba(88, 35, 18, 0.32),
+      inset 0 1px 0 rgba(255, 240, 214, 0.55);
+    color: #27150e;
+    font-family: var(--tm-font-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition:
+      transform 140ms ease,
+      box-shadow 140ms ease;
+  }
+
+  .tm-button-primary:hover {
+    box-shadow:
+      0 16px 28px rgba(88, 35, 18, 0.38),
+      inset 0 1px 0 rgba(255, 240, 214, 0.6);
+    transform: translateY(-1px);
+  }
+
+  .tm-input {
+    @apply rounded-2xl border px-4 py-3 text-sm;
+    background: rgba(7, 10, 15, 0.82);
+    border-color: rgba(192, 162, 127, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 231, 200, 0.05);
+    color: var(--tm-text);
+  }
+
+  .tm-input::placeholder {
+    color: rgba(209, 193, 173, 0.68);
+  }
+
+  .tm-input:focus {
+    border-color: rgba(221, 161, 93, 0.62);
+    outline: 2px solid rgba(240, 106, 50, 0.16);
+    outline-offset: 2px;
+  }
+
+  .tm-bottom-nav {
+    @apply grid grid-cols-4 gap-2 border-t px-4 py-3;
+    background:
+      linear-gradient(180deg, rgba(18, 23, 31, 0.96), rgba(8, 11, 15, 0.98));
+    border-color: var(--tm-panel-border);
+    box-shadow: 0 -10px 24px rgba(3, 5, 8, 0.42);
+  }
+
+  .tm-bottom-nav__link {
+    @apply rounded-2xl border px-2 py-2 text-center text-xs;
+    background: rgba(28, 19, 17, 0.42);
+    border-color: transparent;
+    color: #deceb7;
+    font-family: var(--tm-font-display);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .tm-bottom-nav__link:hover {
+    background: rgba(66, 34, 24, 0.68);
+    border-color: rgba(213, 127, 68, 0.32);
+  }
+
+  .tm-score-track {
+    @apply h-2 rounded-full;
+    background: rgba(12, 15, 20, 0.86);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  }
+
+  .tm-score-fill {
+    @apply h-2 rounded-full;
+    background: linear-gradient(90deg, var(--tm-rust-600) 0%, var(--tm-copper-500) 62%, var(--tm-copper-400) 100%);
+    box-shadow:
+      0 0 12px rgba(209, 120, 56, 0.2),
+      inset 0 1px 0 rgba(255, 234, 208, 0.3);
+  }
 }

@@ -8,7 +8,11 @@ type StyleInput = {
 };
 
 export function inferPrimaryStyle(input: StyleInput) {
-  if ((input.cardPointsJovian ?? 0) >= 15) {
+  const jovianPoints = input.cardPointsJovian ?? 0;
+  const jovianShare =
+    input.cardPointsTotal > 0 ? jovianPoints / input.cardPointsTotal : 0;
+
+  if (jovianPoints >= 15 || (jovianPoints >= 7 && jovianShare >= 0.25)) {
     return { primary: 'jovian_payoff', confidence: 0.86 };
   }
 
