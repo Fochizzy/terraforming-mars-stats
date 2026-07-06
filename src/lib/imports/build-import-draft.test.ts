@@ -297,6 +297,80 @@ describe('buildImportDraft', () => {
     });
   });
 
+  it('adds proved curated board card points on top of a complete calculated card total when no stronger total source exists', () => {
+    expect(
+      buildImportDraft({
+        cardScoring: [
+          {
+            autoScoredCards: [
+              {
+                cardId: 'card-1',
+                cardName: 'Pets',
+                category: 'animals',
+                evidenceSummary: '3 animal => 3 VP',
+                humanSummary: '1 VP per animal on this card',
+                points: 3,
+                sourceType: 'curated',
+              },
+              {
+                cardId: 'card-2',
+                cardName: 'Research Network',
+                category: 'other',
+                evidenceSummary: '2 science tags => 2 VP',
+                humanSummary: '1 VP per science tag you have',
+                points: 2,
+                sourceType: 'ocr',
+              },
+            ],
+            pendingCards: [],
+            playerName: 'Friday Mars',
+            totals: {
+              animals: 3,
+              complete: true,
+              jovian: 0,
+              microbes: 0,
+              other: 2,
+              total: 5,
+            },
+          },
+        ],
+        curatedBoardItems: [
+          {
+            cardName: 'Commercial District',
+            itemType: 'card',
+            mapId: 'tharsis',
+            notes: ['The Commercial District placement had 3 adjacent cities.'],
+            playerName: 'Friday Mars',
+            points: 3,
+            sourceType: 'log_and_board',
+            status: 'proved',
+          },
+        ],
+        defaultExpansionCodes: ['base'],
+        defaultPromoSetSlugs: [],
+        groupId: '11111111-1111-4111-8111-111111111111',
+        importValues: {
+          endgameScreenshotName: 'endgame.png',
+          exportedGameLog: 'Friday Mars played Pets',
+          generationCount: 11,
+          mapId: 'tharsis',
+          participantNames: ['Friday Mars'],
+          playedOn: '2026-07-04',
+          playerCount: 1,
+        },
+        playerSelections: [
+          { importedName: 'Friday Mars', playerId: 'player-1' },
+        ],
+        selectedPlayerIds: ['player-1'],
+      }).playerScores,
+    ).toMatchObject({
+      'player-1': {
+        cardPointsAnimals: 3,
+        cardPointsTotal: 8,
+      },
+    });
+  });
+
   it('merges proved curated board award values and leaves unresolved board card values unset', () => {
     const curatedBoardItems: CuratedBoardImportItem[] = [
       {

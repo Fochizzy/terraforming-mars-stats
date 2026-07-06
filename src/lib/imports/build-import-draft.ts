@@ -383,6 +383,12 @@ export function buildImportDraft(input: {
         cardScoringSummary?.autoScoredCards.some(
           (card) => card.category === category,
         ) ?? false;
+      const provedCuratedBoardCardPoints =
+        expectedCuratedBoardCardPointsByPlayerId.get(playerId);
+      const completeCalculatedCardPointsTotal =
+        cardScoringSummary?.totals.complete
+          ? cardScoringSummary.totals.total + (provedCuratedBoardCardPoints ?? 0)
+          : undefined;
       const mergedScore = {
         awardPoints:
           logScore.awardPoints ??
@@ -412,10 +418,8 @@ export function buildImportDraft(input: {
         cardPointsTotal:
           logScore.cardPointsTotal ??
           scoreCandidate?.cardPointsTotal ??
-          (cardScoringSummary?.totals.complete
-            ? cardScoringSummary.totals.total
-            : undefined) ??
-          expectedCuratedBoardCardPointsByPlayerId.get(playerId),
+          completeCalculatedCardPointsTotal ??
+          provedCuratedBoardCardPoints,
         citiesPoints: logScore.citiesPoints ?? scoreCandidate?.citiesPoints,
         finalMegacredits:
           logScore.finalMegacredits ?? scoreCandidate?.finalMegacredits,
