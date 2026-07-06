@@ -23,11 +23,11 @@ describe('requireGroupContextOrRedirect', () => {
     vi.clearAllMocks();
   });
 
-  it('redirects to the web import page when the signed-in user is not in a group', async () => {
+  it('redirects to the claim page when the signed-in user is not in a group', async () => {
     groupContextMocks.getCurrentGroupContext.mockResolvedValue(null);
 
     await requireGroupContextOrRedirect();
 
-    expect(navigationMocks.redirect).toHaveBeenCalledWith('/log-game/import');
+    expect(navigationMocks.redirect).toHaveBeenCalledWith('/claim-player');
   });
 });
