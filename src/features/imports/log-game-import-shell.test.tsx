@@ -163,6 +163,7 @@ describe('LogGameImportShell', () => {
       itemLabel: 'Commercial District',
       message:
         'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerId: 'player-1',
       playerName: 'Friday Mars',
       scoreField: 'cardPointsTotal',
     });
@@ -242,5 +243,105 @@ describe('LogGameImportShell', () => {
     );
     expect(readImportReviewJumpState('game-1')).toBeNull();
     expect(navigationMocks.push).not.toHaveBeenCalled();
+  });
+
+  it('stores the mapped roster player id for manual-review jumps when the imported name differs from the selected roster display name', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        boardReviewItems: [
+          {
+            cardName: 'Commercial District',
+            itemType: 'card' as const,
+            mapId: 'tharsis',
+            notes: [
+              'The city placement from Commercial District could not be linked safely from the imported log.',
+            ],
+            playerName: 'Imported Alias',
+            sourceType: 'log_and_board' as const,
+            status: 'review_needed' as const,
+          },
+        ],
+        detectedParticipantNames: ['Imported Alias'],
+        drawInfoLineCount: 0,
+        ignoredLineCount: 0,
+        parsedEventCount: 1,
+        playerLinks: [
+          {
+            candidates: [
+              {
+                displayName: 'Roster Name',
+                gamesPlayed: 5,
+                id: 'player-roster',
+                linkedFullName: null,
+                linkedUsername: null,
+                matchReason: 'fallback' as const,
+                matchScore: 0,
+              },
+            ],
+            importedName: 'Imported Alias',
+            requiresConfirmation: true,
+            selectedPlayerId: null,
+            status: 'unmatched' as const,
+          },
+        ],
+        requiresPlayerConfirmation: true,
+        scoreCandidates: [],
+      },
+    });
+    const onCreateImportDraft = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      gameId: 'game-alias',
+      message: 'Import draft saved.',
+    });
+
+    render(
+      <LogGameImportShell
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportDraft={onCreateImportDraft}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Imported Alias played Commercial District.',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+    await user.selectOptions(
+      await screen.findByLabelText(/match imported player imported alias/i),
+      'player-roster',
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: /fill manually commercial district for imported alias/i,
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: /confirm import draft/i }));
+
+    await waitFor(() => expect(onCreateImportDraft).toHaveBeenCalledTimes(1));
+
+    expect(readImportReviewJumpState('game-alias')).toEqual({
+      gameId: 'game-alias',
+      itemLabel: 'Commercial District',
+      message:
+        'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerId: 'player-roster',
+      playerName: 'Imported Alias',
+      scoreField: 'cardPointsTotal',
+    });
   });
 });

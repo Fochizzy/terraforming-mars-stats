@@ -3,6 +3,7 @@ export type ImportReviewJumpField = 'awardPoints' | 'cardPointsTotal';
 export type ImportReviewJumpTarget = {
   itemLabel: string;
   message: string;
+  playerId?: string;
   playerName: string;
   scoreField: ImportReviewJumpField;
 };
@@ -39,6 +40,7 @@ function parseStoredImportReviewJumpState(
       typeof parsed.gameId !== 'string' ||
       typeof parsed.itemLabel !== 'string' ||
       typeof parsed.message !== 'string' ||
+      (parsed.playerId != null && typeof parsed.playerId !== 'string') ||
       typeof parsed.playerName !== 'string' ||
       !isImportReviewJumpField(parsed.scoreField)
     ) {

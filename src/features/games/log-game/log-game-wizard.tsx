@@ -130,11 +130,15 @@ export function LogGameWizard({
       return;
     }
 
-    const matchingPlayer = selectedPlayers.find(
-      (player) =>
-        normalizePlayerAlias(player.display_name) ===
-        normalizePlayerAlias(storedJumpState.playerName),
-    );
+    const matchingPlayer =
+      (storedJumpState.playerId
+        ? selectedPlayers.find((player) => player.id === storedJumpState.playerId)
+        : null) ??
+      selectedPlayers.find(
+        (player) =>
+          normalizePlayerAlias(player.display_name) ===
+          normalizePlayerAlias(storedJumpState.playerName),
+      );
 
     if (!matchingPlayer) {
       return;

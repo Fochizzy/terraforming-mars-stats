@@ -493,4 +493,81 @@ describe('LogGameWizard', () => {
 
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   });
+
+  it('highlights the mapped roster player even when the stored imported name differs from that roster display name', async () => {
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    saveImportReviewJumpState({
+      gameId: 'game-alias',
+      itemLabel: 'Commercial District',
+      message:
+        'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerId: 'player-roster',
+      playerName: 'Imported Alias',
+      scoreField: 'cardPointsTotal',
+    });
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[]}
+        expansionOptions={[{ id: 'e1', code: 'base', name: 'Base Game' }]}
+        initialValues={{
+          awardClaims: {},
+          gameId: 'game-alias',
+          groupId: '11111111-1111-4111-8111-111111111111',
+          milestoneClaims: {},
+          playedOn: '2026-07-03',
+          mapId: 'tharsis',
+          notes: '',
+          playerCount: 1,
+          playerScores: {},
+          playerSelections: {},
+          generationCount: 10,
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: ['player-roster'],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-alias',
+          message: 'Game finalized.',
+        })}
+        onSaveDraft={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-alias',
+          message: 'Draft saved.',
+        })}
+        playerOptions={[{ id: 'player-roster', display_name: 'Roster Name' }]}
+        preludeOptions={[]}
+        promoSetOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          /commercial district was not read and still needs manual entry\./i,
+        ),
+      ).toBeInTheDocument(),
+    );
+
+    const highlightedInput = screen.getByLabelText(/roster name total card points/i);
+    expect(highlightedInput).toHaveAttribute(
+      'data-manual-review-highlight',
+      'true',
+    );
+    expect(highlightedInput).toHaveFocus();
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(readImportReviewJumpState('game-alias')).toBeNull();
+
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
 });

@@ -87,6 +87,26 @@ function formatManualReviewScoreFieldLabel(
   }
 }
 
+function resolveManualReviewJumpTargetWithPlayerSelection(input: {
+  playerSelections: Record<string, string>;
+  target: ImportReviewJumpTarget | null;
+}): ImportReviewJumpTarget | null {
+  if (!input.target) {
+    return null;
+  }
+
+  const selectedPlayerId = input.playerSelections[input.target.playerName]?.trim() ?? '';
+
+  if (!selectedPlayerId) {
+    return input.target;
+  }
+
+  return {
+    ...input.target,
+    playerId: selectedPlayerId,
+  };
+}
+
 type WebImportPageProps = {
   initialValues: Omit<
     WebImportDraftValues,
@@ -289,7 +309,10 @@ export function WebImportPage({
     try {
       const result = await onConfirmImportReview(
         buildCurrentFormData(),
-        manualReviewJumpTarget,
+        resolveManualReviewJumpTargetWithPlayerSelection({
+          playerSelections,
+          target: manualReviewJumpTarget,
+        }),
       );
 
       setFeedback(result);

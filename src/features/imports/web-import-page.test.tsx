@@ -484,6 +484,7 @@ describe('WebImportPage', () => {
       itemLabel: 'Commercial District',
       message:
         'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerId: 'player-1',
       playerName: 'Friday Mars',
       scoreField: 'cardPointsTotal',
     });

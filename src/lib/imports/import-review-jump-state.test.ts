@@ -16,6 +16,7 @@ describe('importReviewJumpState', () => {
       itemLabel: 'Commercial District',
       message:
         'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerId: 'player-1',
       playerName: 'Friday Mars',
       scoreField: 'cardPointsTotal',
     });
@@ -25,6 +26,7 @@ describe('importReviewJumpState', () => {
       itemLabel: 'Commercial District',
       message:
         'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerId: 'player-1',
       playerName: 'Friday Mars',
       scoreField: 'cardPointsTotal',
     });
@@ -35,9 +37,31 @@ describe('importReviewJumpState', () => {
       itemLabel: 'Commercial District',
       message:
         'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerId: 'player-1',
       playerName: 'Friday Mars',
       scoreField: 'cardPointsTotal',
     });
     expect(readImportReviewJumpState('game-1')).toBeNull();
+  });
+
+  it('keeps reading older stored jump targets that only have the imported player name', () => {
+    window.sessionStorage.setItem(
+      'tm.import-review.jump-state',
+      JSON.stringify({
+        gameId: 'legacy-game',
+        itemLabel: 'Commercial District',
+        message: 'Legacy message.',
+        playerName: 'Imported Alias',
+        scoreField: 'cardPointsTotal',
+      }),
+    );
+
+    expect(readImportReviewJumpState('legacy-game')).toEqual({
+      gameId: 'legacy-game',
+      itemLabel: 'Commercial District',
+      message: 'Legacy message.',
+      playerName: 'Imported Alias',
+      scoreField: 'cardPointsTotal',
+    });
   });
 });
