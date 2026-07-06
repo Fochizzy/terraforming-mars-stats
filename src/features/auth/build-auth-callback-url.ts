@@ -1,4 +1,4 @@
-const DEFAULT_NEXT_PATH = '/profile';
+const DEFAULT_NEXT_PATH = '/log-game/import';
 
 export function normalizeNextPath(nextPath: string | null | undefined) {
   if (!nextPath || !nextPath.startsWith('/') || nextPath.startsWith('//')) {
@@ -6,6 +6,14 @@ export function normalizeNextPath(nextPath: string | null | undefined) {
   }
 
   return nextPath;
+}
+
+export function buildAuthCompletePath(nextPath: string) {
+  return `/auth/complete?next=${encodeURIComponent(normalizeNextPath(nextPath))}`;
+}
+
+export function buildAuthCompleteClaimPath(nextPath: string) {
+  return `/claim-player?next=${encodeURIComponent(normalizeNextPath(nextPath))}`;
 }
 
 export function buildAuthCallbackUrl(origin: string, nextPath: string) {
