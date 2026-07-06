@@ -15,6 +15,7 @@ import {
 import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
 import { listImportResolutionPlayers } from '@/lib/db/import-player-resolution-repo';
+import { createPlayerIfMissing } from '@/lib/db/player-repo';
 import {
   describeUnknownError,
   serializeUnknownError,
@@ -364,6 +365,58 @@ export default async function LogGameImportPage() {
     }
   }
 
+  async function handleCreateImportPlayer(importedName: string) {
+    'use server';
+
+    try {
+      const activeContext = await getCurrentGroupContext();
+
+      if (!activeContext) {
+        throw new Error(
+          'Join a group before creating roster players from import review.',
+        );
+      }
+
+      const displayName = importedName.trim();
+
+      if (!displayName) {
+        throw new Error('Choose an imported name before creating a player.');
+      }
+
+      const createdPlayer = await createPlayerIfMissing({
+        displayName,
+        groupId: activeContext.groupId,
+        linkedUserId: null,
+      });
+
+      revalidatePath('/group');
+      revalidatePath('/group/players');
+      revalidatePath('/log-game');
+
+      return {
+        status: 'success' as const,
+        message: 'Player added to the shared roster.',
+        createdPlayer: {
+          displayName: createdPlayer.display_name,
+          id: createdPlayer.id,
+        },
+      };
+    } catch (error) {
+      console.error(
+        'Web import player creation failed',
+        serializeUnknownError(error),
+      );
+
+      return {
+        status: 'error' as const,
+        message: describeUnknownError(
+          error,
+          'Unable to create that roster player right now.',
+        ),
+      };
+    }
+  }
+
   return (
     <AppShell
       navItems={
@@ -383,6 +436,7 @@ export default async function LogGameImportPage() {
         }}
         mapOptions={mapOptions}
         onAnalyzeImportEvidence={handleAnalyzeImportEvidence}
+        onCreateImportPlayer={handleCreateImportPlayer}
         onCreateImportDraft={handleCreateImportDraft}
       />
     </AppShell>

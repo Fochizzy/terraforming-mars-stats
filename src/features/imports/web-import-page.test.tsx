@@ -81,6 +81,7 @@ describe('WebImportPage', () => {
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
         onAnalyzeImportEvidence={vi.fn()}
+        onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
       />,
     );
@@ -127,6 +128,7 @@ describe('WebImportPage', () => {
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={onConfirmImportReview}
       />,
     );
@@ -208,6 +210,7 @@ describe('WebImportPage', () => {
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={onConfirmImportReview}
       />,
     );
@@ -245,6 +248,88 @@ describe('WebImportPage', () => {
     expect(JSON.parse(String(submittedFormData.get('confirmedPlayerLinks')))).toEqual([
       { importedName: 'Friday Mars', playerId: 'player-1' },
       { importedName: 'Unknown Friend', playerId: 'player-2' },
+    ]);
+  });
+
+  it('creates a new roster player from an unmatched import row and selects it', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
+    });
+    const onCreateImportPlayer = vi.fn().mockResolvedValue({
+      createdPlayer: {
+        displayName: 'Unknown Friend',
+        id: 'player-new',
+      },
+      message: 'Player added to the shared roster.',
+      status: 'success' as const,
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={onCreateImportPlayer}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars won by 6 points.',
+    );
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Unknown Friend',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    const confirmButton = await screen.findByRole('button', {
+      name: /confirm import draft/i,
+    });
+    expect(confirmButton).toBeDisabled();
+
+    await user.click(
+      screen.getByRole('button', { name: /create player unknown friend/i }),
+    );
+
+    await waitFor(() =>
+      expect(onCreateImportPlayer).toHaveBeenCalledWith('Unknown Friend'),
+    );
+
+    expect(
+      await screen.findByText(/player added to the shared roster\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/match imported player unknown friend/i)).toHaveValue(
+      'player-new',
+    );
+    expect(confirmButton).toBeEnabled();
+
+    await user.click(confirmButton);
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
+    expect(JSON.parse(String(submittedFormData.get('confirmedPlayerLinks')))).toEqual([
+      { importedName: 'Friday Mars', playerId: 'player-1' },
+      { importedName: 'Unknown Friend', playerId: 'player-new' },
     ]);
   });
 
@@ -286,6 +371,7 @@ describe('WebImportPage', () => {
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={onConfirmImportReview}
       />,
     );
@@ -342,6 +428,7 @@ describe('WebImportPage', () => {
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
       />,
     );
@@ -405,6 +492,7 @@ describe('WebImportPage', () => {
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
       />,
     );
@@ -450,6 +538,7 @@ describe('WebImportPage', () => {
           { code: 'elysium', id: 'elysium', name: 'Elysium' },
         ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
       />,
     );

@@ -1,6 +1,8 @@
 import type { ImportPlayerLinkMatch } from '@/lib/imports/resolve-import-player-links';
 
 type ImportPlayerResolutionPanelProps = {
+  creatingImportedName?: string | null;
+  onCreatePlayer?: (importedName: string) => Promise<void>;
   onSelectionChange: (importedName: string, playerId: string) => void;
   playerLinks: ImportPlayerLinkMatch[];
   playerSelections: Record<string, string>;
@@ -26,6 +28,8 @@ function describeMatchReason(matchReason: ImportPlayerLinkMatch['candidates'][nu
 }
 
 export function ImportPlayerResolutionPanel({
+  creatingImportedName,
+  onCreatePlayer,
   onSelectionChange,
   playerLinks,
   playerSelections,
@@ -77,6 +81,19 @@ export function ImportPlayerResolutionPanel({
                 ))}
               </select>
             </label>
+            {onCreatePlayer && link.status === 'unmatched' ? (
+              <button
+                aria-label={`Create player ${link.importedName}`}
+                className="mt-3 tm-button-secondary px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={creatingImportedName !== null}
+                onClick={() => void onCreatePlayer(link.importedName)}
+                type="button"
+              >
+                {creatingImportedName === link.importedName
+                  ? 'Creating Player...'
+                  : 'Create Player'}
+              </button>
+            ) : null}
             <p className="mt-2 text-xs" style={{ color: 'var(--tm-muted)' }}>
               {describeMatchReason(
                 link.candidates.find(

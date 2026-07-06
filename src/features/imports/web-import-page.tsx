@@ -6,6 +6,7 @@ import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StatusBanner } from '@/components/ui/status-banner';
 import { StepHeading } from '@/components/ui/step-heading';
+import { applyCreatedImportPlayerToReview } from '@/lib/imports/apply-created-import-player-to-review';
 import type { MapOption } from '@/lib/db/reference-repo';
 import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { ImportReviewPanel } from './import-review-panel';
@@ -25,6 +26,15 @@ export type WebImportActionResult = {
   message?: string;
   review?: ImportReviewModel;
   status: 'error' | 'idle' | 'success';
+};
+
+export type WebImportCreatePlayerResult = {
+  createdPlayer?: {
+    displayName: string;
+    id: string;
+  };
+  message?: string;
+  status: 'error' | 'success';
 };
 
 function getClipboardImageFile(
@@ -71,6 +81,9 @@ type WebImportPageProps = {
   onAnalyzeImportEvidence: (
     formData: FormData,
   ) => Promise<WebImportActionResult>;
+  onCreateImportPlayer?: (
+    importedName: string,
+  ) => Promise<WebImportCreatePlayerResult>;
   onConfirmImportReview: (formData: FormData) => Promise<WebImportActionResult>;
 };
 
@@ -78,6 +91,7 @@ export function WebImportPage({
   initialValues,
   mapOptions,
   onAnalyzeImportEvidence,
+  onCreateImportPlayer,
   onConfirmImportReview,
 }: WebImportPageProps) {
   const [playedOn, setPlayedOn] = useState(initialValues.playedOn);
@@ -95,6 +109,9 @@ export function WebImportPage({
   const [review, setReview] = useState<ImportReviewModel | null>(null);
   const [playerSelections, setPlayerSelections] = useState<Record<string, string>>(
     {},
+  );
+  const [creatingImportedName, setCreatingImportedName] = useState<string | null>(
+    null,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -120,12 +137,19 @@ export function WebImportPage({
       return;
     }
 
-    setPlayerSelections(
+    setPlayerSelections((current) =>
       Object.fromEntries(
-        review.playerLinks.map((link) => [
-          link.importedName,
-          link.selectedPlayerId ?? '',
-        ]),
+        review.playerLinks.map((link) => {
+          const currentSelection = current[link.importedName]?.trim() ?? '';
+          const hasCurrentCandidate = link.candidates.some(
+            (candidate) => candidate.id === currentSelection,
+          );
+
+          return [
+            link.importedName,
+            hasCurrentCandidate ? currentSelection : link.selectedPlayerId ?? '',
+          ];
+        }),
       ),
     );
   }, [review]);
@@ -236,6 +260,48 @@ export function WebImportPage({
       });
     } finally {
       setIsConfirming(false);
+    }
+  }
+
+  async function handleCreatePlayer(importedName: string) {
+    if (!onCreateImportPlayer) {
+      return;
+    }
+
+    setCreatingImportedName(importedName);
+
+    try {
+      const result = await onCreateImportPlayer(importedName);
+
+      setFeedback({
+        message: result.message,
+        status: result.status,
+      });
+
+      if (!result.createdPlayer) {
+        return;
+      }
+
+      setReview((current) =>
+        current
+          ? applyCreatedImportPlayerToReview(current, {
+              createdPlayerId: result.createdPlayer.id,
+              displayName: result.createdPlayer.displayName,
+              importedName,
+            })
+          : current,
+      );
+      setPlayerSelections((current) => ({
+        ...current,
+        [importedName]: result.createdPlayer?.id ?? '',
+      }));
+    } catch (error) {
+      setFeedback({
+        status: 'error',
+        message: getImportErrorMessage(error),
+      });
+    } finally {
+      setCreatingImportedName(null);
     }
   }
 
@@ -426,6 +492,8 @@ export function WebImportPage({
       </form>
 
       <ImportReviewPanel
+        creatingImportedName={creatingImportedName}
+        onCreatePlayer={handleCreatePlayer}
         onSelectionChange={(importedName, playerId) =>
           setPlayerSelections((current) => ({
             ...current,
