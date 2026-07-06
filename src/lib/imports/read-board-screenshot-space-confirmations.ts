@@ -387,14 +387,15 @@ function classifyBandSamples(input: {
         sample.r > 88 && sample.g > 60 && sample.r - sample.b > 18 &&
         sample.g - sample.b > 6,
     ) / totalSamples;
-  const rankedClassScores = [
+  const classScores = [
     ['ocean', oceanScore],
     ['greenery', greeneryScore],
     ['city', cityScore],
     ['tan', tanScore],
-  ].sort(
+  ] as const;
+  const rankedClassScores = [...classScores].sort(
     (left, right) => right[1] - left[1],
-  ) as ReadonlyArray<readonly [typeof input extends never ? never : string, number]>;
+  );
   const [bestClass, bestScore] = rankedClassScores[0];
   const secondBestScore = rankedClassScores[1]?.[1] ?? 0;
 
