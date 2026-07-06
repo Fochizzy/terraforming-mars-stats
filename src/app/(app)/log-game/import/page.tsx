@@ -21,6 +21,7 @@ import {
   serializeUnknownError,
 } from '@/lib/errors/describe-unknown-error';
 import { buildImportDraft } from '@/lib/imports/build-import-draft';
+import { buildImportBoardSnapshot } from '@/lib/imports/build-import-board-snapshot';
 import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
@@ -72,6 +73,14 @@ export default async function LogGameImportPage() {
     try {
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
+      const boardSnapshot =
+        values.mapId === 'tharsis'
+          ? buildImportBoardSnapshot({
+              events: parsedGameLog.events,
+              mapId: values.mapId,
+            })
+          : null;
+      void boardSnapshot;
       const detectedParticipantNames =
         values.participantNames.length > 0
           ? values.participantNames
@@ -141,6 +150,14 @@ export default async function LogGameImportPage() {
     try {
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
+      const boardSnapshot =
+        values.mapId === 'tharsis'
+          ? buildImportBoardSnapshot({
+              events: parsedGameLog.events,
+              mapId: values.mapId,
+            })
+          : null;
+      void boardSnapshot;
       const detectedParticipantNames =
         values.participantNames.length > 0
           ? values.participantNames
