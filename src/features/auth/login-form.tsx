@@ -3,11 +3,10 @@
 import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
-  buildSyntheticAuthEmail,
-  normalizeUsername,
-  pinSchema,
-  signupFullNameSchema,
-} from './username-auth';
+  buildAuthCallbackUrl,
+  buildAuthCompletePath,
+} from './build-auth-callback-url';
+import { submitUsernameAuth } from './submit-username-auth';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
@@ -17,7 +16,7 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
   const [pin, setPin] = useState('');
   const [status, setStatus] = useState<{
     message: string;
-    state: 'error' | 'idle';
+    state: 'error' | 'idle' | 'success';
   }>({
     message: '',
     state: 'idle',
@@ -30,62 +29,32 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
     setStatus({ message: '', state: 'idle' });
 
     try {
-      const normalizedUsername = normalizeUsername(username);
-      const parsedPin = pinSchema.parse(pin);
       const supabase = createSupabaseBrowserClient();
+      const completionPath = buildAuthCompletePath(nextPath);
+      const result = await submitUsernameAuth({
+        client: supabase,
+        emailRedirectTo: buildAuthCallbackUrl(window.location.origin, nextPath),
+        fullName,
+        mode,
+        pin,
+        username,
+      });
 
-      if (mode === 'sign-in') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: buildSyntheticAuthEmail(normalizedUsername),
-          password: parsedPin,
-        });
-
-        if (error) {
-          setStatus({
-            message: 'Unknown username or incorrect PIN.',
-            state: 'error',
-          });
-          return;
+      if (!result.ok) {
+        if (result.nextMode) {
+          setMode(result.nextMode);
         }
 
-        window.location.assign(nextPath);
+        setStatus(result.status);
         return;
       }
 
-      const parsedFullName = signupFullNameSchema.parse(fullName);
-      const { data, error } = await supabase.auth.signUp({
-        email: buildSyntheticAuthEmail(normalizedUsername),
-        options: {
-          data: {
-            full_name: parsedFullName,
-          },
-        },
-        password: parsedPin,
-      });
-
-      if (error || !data.user) {
-        setStatus({
-          message: 'That username is unavailable right now.',
-          state: 'error',
-        });
+      if (result.action === 'awaiting-email') {
+        setStatus(result.status);
         return;
       }
 
-      const { error: profileError } = await supabase.from('user_profiles').insert({
-        full_name: parsedFullName,
-        user_id: data.user.id,
-        username: normalizedUsername,
-      });
-
-      if (profileError) {
-        setStatus({
-          message: 'Could not finish creating that account.',
-          state: 'error',
-        });
-        return;
-      }
-
-      window.location.assign(nextPath);
+      window.location.assign(completionPath);
     } catch (error) {
       setStatus({
         message:
@@ -148,14 +117,14 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
         />
       </label>
       <label className="flex flex-col gap-2 text-sm">
-        <span className="tm-data-label">4-Digit PIN</span>
+        <span className="tm-data-label">6-Digit PIN</span>
         <input
-          aria-label="4-Digit PIN"
+          aria-label="6-Digit PIN"
           className="tm-input"
           inputMode="numeric"
-          maxLength={4}
+          maxLength={6}
           onChange={(event) => setPin(event.target.value)}
-          placeholder="1234"
+          placeholder="123456"
           required
           type="password"
           value={pin}
@@ -164,8 +133,14 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
       <button className="tm-button-primary" type="submit">
         {mode === 'sign-in' ? 'Sign In' : 'Create Account'}
       </button>
-      {status.state === 'error' ? (
-        <p className="text-sm text-red-300">{status.message}</p>
+      {status.state !== 'idle' ? (
+        <p
+          className={
+            status.state === 'error' ? 'text-sm tm-text-danger' : 'text-sm tm-text-success'
+          }
+        >
+          {status.message}
+        </p>
       ) : null}
     </form>
   );
