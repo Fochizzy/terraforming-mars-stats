@@ -26,6 +26,7 @@ import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-playe
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { isSupportedBoardMapId } from '@/lib/imports/board-space-maps';
+import { calculateImportCardScores } from '@/lib/imports/card-scoring/calculate-import-card-scores';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
 import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
 import {
@@ -33,17 +34,133 @@ import {
   type ParsedEndgameScoreScreenshot,
 } from '@/lib/imports/parse-endgame-score-screenshot';
 import { parseGameLog } from '@/lib/imports/parse-game-log';
+import { readBoardStateScreenshot } from '@/lib/imports/card-scoring/read-board-state-screenshot';
 import { readEndgameScreenshot } from '@/lib/imports/read-endgame-screenshot';
 import { resolveImportPlayerLinks } from '@/lib/imports/resolve-import-player-links';
+import { scoreCuratedBoardImportItems } from '@/lib/imports/score-curated-board-import-items';
 import {
+  listCardScoringReferences,
+  listCorporations,
   listCards,
   listMapAwards,
   listMapMilestones,
   listMaps,
+  listPreludes,
+  listStyles,
 } from '@/lib/db/reference-repo';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { parseImportPlayerScores } from '@/lib/imports/parse-import-player-scores';
+
+const importScoreCandidateFields = [
+  'awardPoints',
+  'cardPointsAnimals',
+  'cardPointsJovian',
+  'cardPointsMicrobes',
+  'cardPointsTotal',
+  'citiesPoints',
+  'finalMegacredits',
+  'greeneryPoints',
+  'milestonePoints',
+  'totalPoints',
+  'trPoints',
+] as const;
+const OCR_ENGINE_VERSION = 'tesseract.js-v7';
+
+function buildLogScoreCandidates(input: {
+  playerNames: string[];
+  rawLogText: string;
+}) {
+  if (input.playerNames.length === 0) {
+    return [];
+  }
+
+  const parsedScores = parseImportPlayerScores({
+    evidence: input.rawLogText,
+    players: input.playerNames.map((playerName) => ({
+      id: playerName,
+      name: playerName,
+    })),
+  });
+
+  return input.playerNames.flatMap((playerName) => {
+    const score = parsedScores[playerName];
+
+    if (!score) {
+      return [];
+    }
+
+    const candidate = { playerName } as {
+      playerName: string;
+    } & Partial<typeof score>;
+
+    for (const field of importScoreCandidateFields) {
+      const value = score[field];
+
+      if (typeof value === 'number') {
+        candidate[field] = value;
+      }
+    }
+
+    return Object.keys(candidate).length > 1 ? [candidate] : [];
+  });
+}
+
+function buildEndgameScreenshotParse(
+  parsedScreenshot: ParsedEndgameScoreScreenshot,
+) {
+  return {
+    detectedLayout: parsedScreenshot.playerRows.length
+      ? 'digital_endgame_results'
+      : null,
+    extractedFields: {
+      playerRows: parsedScreenshot.playerRows,
+    },
+    ocrEngineVersion: OCR_ENGINE_VERSION,
+    parseStatus: parsedScreenshot.playerRows.length
+      ? 'parsed'
+      : 'score_extraction_skipped',
+  } as const;
+}
+
+async function readBoardScreenshotEvidence(boardScreenshots: File[]) {
+  return Promise.all(
+    boardScreenshots.map(async (file) => {
+      try {
+        const textLines = await readBoardStateScreenshot(file);
+
+        return {
+          file,
+          parse: {
+            detectedLayout: 'board_state',
+            extractedFields: { textLines },
+            ocrEngineVersion: OCR_ENGINE_VERSION,
+            parseStatus: textLines.length > 0 ? 'parsed' : 'saved_as_draft',
+          },
+          textLines,
+        };
+      } catch (error) {
+        console.warn(
+          'Board screenshot OCR failed',
+          file.name,
+          serializeUnknownError(error),
+        );
+
+        return {
+          file,
+          parse: {
+            detectedLayout: 'board_state',
+            extractedFields: { textLines: [] },
+            ocrEngineVersion: OCR_ENGINE_VERSION,
+            parseStatus: 'saved_as_draft',
+          },
+          textLines: [] as string[],
+        };
+      }
+    }),
+  );
+}
 
 export default async function LogGameImportPage() {
   const supabase = await createSupabaseServerClient();
@@ -81,17 +198,34 @@ export default async function LogGameImportPage() {
               mapId: values.mapId,
             })
           : null;
-      void boardSnapshot;
+      const curatedBoardItems =
+        boardSnapshot == null
+          ? []
+          : scoreCuratedBoardImportItems({
+              boardSnapshot,
+              events: parsedGameLog.events,
+              mapId: boardSnapshot.mapId,
+            });
       const detectedParticipantNames =
         values.participantNames.length > 0
           ? values.participantNames
           : extractGameLogParticipantNames(parsedGameLog);
+      const screenshotReadOptions = {
+        expectedPlayerCount: Math.max(
+          values.playerCount,
+          detectedParticipantNames.length,
+        ),
+        expectedPlayerNames: detectedParticipantNames,
+      };
       let parsedScreenshot: ParsedEndgameScoreScreenshot = { playerRows: [] };
 
       if (values.endgameScreenshot) {
         try {
           parsedScreenshot = parseEndgameScoreScreenshot(
-            await readEndgameScreenshot(values.endgameScreenshot),
+            await readEndgameScreenshot(
+              values.endgameScreenshot,
+              screenshotReadOptions,
+            ),
           );
         } catch (error) {
           console.warn(
@@ -100,6 +234,12 @@ export default async function LogGameImportPage() {
           );
         }
       }
+      const boardScreenshotEvidence = await readBoardScreenshotEvidence(
+        values.boardScreenshots,
+      );
+      const boardStateTextLines = boardScreenshotEvidence.flatMap(
+        (screenshot) => screenshot.textLines,
+      );
 
       const activeContext = await getCurrentGroupContext();
       const importedNames = Array.from(
@@ -108,6 +248,10 @@ export default async function LogGameImportPage() {
           ...parsedScreenshot.playerRows.map((row) => row.playerName),
         ]),
       );
+      const logScoreCandidates = buildLogScoreCandidates({
+        playerNames: importedNames,
+        rawLogText: values.exportedGameLog,
+      });
 
       if (importedNames.length === 0) {
         throw new Error(
@@ -115,6 +259,11 @@ export default async function LogGameImportPage() {
         );
       }
 
+      const cardScoring = await calculateImportCardScores({
+        boardStateTextLines,
+        cardReferences: await listCardScoringReferences(),
+        events: parsedGameLog.events,
+      });
       const playerLinks = activeContext
         ? resolveImportPlayerLinks(
             importedNames,
@@ -127,6 +276,9 @@ export default async function LogGameImportPage() {
         status: 'success' as const,
         message: `Parsed ${parsedGameLog.events.length} log events and ${parsedScreenshot.playerRows.length} screenshot score rows.`,
         review: buildImportReviewModel({
+          boardReviewItems: curatedBoardItems,
+          cardScoring,
+          logScoreCandidates,
           logParse: parsedGameLog,
           playerLinks,
           screenshotParse: parsedScreenshot,
@@ -158,11 +310,25 @@ export default async function LogGameImportPage() {
               mapId: values.mapId,
             })
           : null;
-      void boardSnapshot;
+      const curatedBoardItems =
+        boardSnapshot == null
+          ? []
+          : scoreCuratedBoardImportItems({
+              boardSnapshot,
+              events: parsedGameLog.events,
+              mapId: boardSnapshot.mapId,
+            });
       const detectedParticipantNames =
         values.participantNames.length > 0
           ? values.participantNames
           : extractGameLogParticipantNames(parsedGameLog);
+      const screenshotReadOptions = {
+        expectedPlayerCount: Math.max(
+          values.playerCount,
+          detectedParticipantNames.length,
+        ),
+        expectedPlayerNames: detectedParticipantNames,
+      };
       const activeSupabase = await createSupabaseServerClient();
       const {
         data: { user: activeUser },
@@ -243,17 +409,32 @@ export default async function LogGameImportPage() {
       }
 
       const activeGroupSettings = await getGroupSettings(importGroup.groupId);
-      const [awardOptions, cards, milestoneOptions] = await Promise.all([
+      const [
+        awardOptions,
+        cardScoringReferences,
+        cards,
+        corporationOptions,
+        milestoneOptions,
+        preludeOptions,
+        styleOptions,
+      ] = await Promise.all([
         listMapAwards(),
+        listCardScoringReferences(),
         listCards(),
+        listCorporations(),
         listMapMilestones(),
+        listPreludes(),
+        listStyles(),
       ]);
       let parsedScreenshot: ParsedEndgameScoreScreenshot = { playerRows: [] };
 
       if (values.endgameScreenshot) {
         try {
           parsedScreenshot = parseEndgameScoreScreenshot(
-            await readEndgameScreenshot(values.endgameScreenshot),
+            await readEndgameScreenshot(
+              values.endgameScreenshot,
+              screenshotReadOptions,
+            ),
           );
         } catch (error) {
           console.warn(
@@ -262,6 +443,17 @@ export default async function LogGameImportPage() {
           );
         }
       }
+      const boardScreenshotEvidence = await readBoardScreenshotEvidence(
+        values.boardScreenshots,
+      );
+      const boardStateTextLines = boardScreenshotEvidence.flatMap(
+        (screenshot) => screenshot.textLines,
+      );
+      const cardScoring = await calculateImportCardScores({
+        boardStateTextLines,
+        cardReferences: cardScoringReferences,
+        events: parsedGameLog.events,
+      });
 
       if (
         detectedParticipantNames.length === 0 &&
@@ -274,6 +466,10 @@ export default async function LogGameImportPage() {
 
       const draftForm = buildImportDraft({
         awardOptions,
+        cardScoring,
+        cardOptions: cards,
+        corporationOptions,
+        curatedBoardItems,
         defaultExpansionCodes: activeGroupSettings.defaultExpansionCodes,
         defaultPromoSetSlugs: activeGroupSettings.defaultPromoSetSlugs,
         groupId: importGroup.groupId,
@@ -284,8 +480,10 @@ export default async function LogGameImportPage() {
         milestoneOptions,
         parsedGameLog,
         playerSelections: confirmedPlayerLinks,
+        preludeOptions,
         scoreCandidates: parsedScreenshot.playerRows,
         selectedPlayerIds: importGroup.selectedPlayerIds,
+        styleOptions,
       });
       const draft = await saveDraftGame({
         form: draftForm,
@@ -300,21 +498,24 @@ export default async function LogGameImportPage() {
           parsedEventCount: parsedGameLog.events.length,
         },
         rawLogText: values.exportedGameLog,
-        screenshotParse: values.endgameScreenshot
-          ? {
-              detectedLayout: parsedScreenshot.playerRows.length
-                ? 'digital_endgame_results'
-                : null,
-              extractedFields: {
-                playerRows: parsedScreenshot.playerRows,
-              },
-              ocrEngineVersion: 'tesseract.js-v7',
-              parseStatus: parsedScreenshot.playerRows.length
-                ? 'parsed'
-                : 'saved_as_draft',
-            }
-          : undefined,
+        screenshotParse: undefined,
         screenshotFile: values.endgameScreenshot,
+        screenshots: [
+          ...(values.endgameScreenshot
+            ? [
+                {
+                  file: values.endgameScreenshot,
+                  kind: 'endgame_score' as const,
+                  parse: buildEndgameScreenshotParse(parsedScreenshot),
+                },
+              ]
+            : []),
+          ...boardScreenshotEvidence.map((screenshot) => ({
+            file: screenshot.file,
+            kind: 'board_state' as const,
+            parse: screenshot.parse,
+          })),
+        ],
         userId: activeUser.id,
       });
       await saveGameLogEvents({

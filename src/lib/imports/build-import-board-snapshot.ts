@@ -26,10 +26,19 @@ export function buildImportBoardSnapshot(input: {
 
   const spaces: Record<string, ImportBoardOccupant> = {};
 
-  for (const event of input.events) {
+  for (const [index, event] of input.events.entries()) {
     if (event.eventType !== 'tile_placed') {
       continue;
     }
+
+    const previousEvent = input.events[index - 1];
+    const inferredSourceCardName =
+      previousEvent?.eventType === 'card_played' &&
+      previousEvent.actor === event.actor &&
+      previousEvent.card.toLowerCase() === 'commercial district' &&
+      event.tile.toLowerCase() === 'city'
+        ? previousEvent.card
+        : null;
 
     const notes =
       boardSpaceMap.spaces[event.space] == null
@@ -39,16 +48,22 @@ export function buildImportBoardSnapshot(input: {
         : [];
 
     spaces[event.space] = {
-      confidence: event.tile.toLowerCase() === 'city' ? 'medium' : 'high',
+      confidence:
+        inferredSourceCardName != null
+          ? 'high'
+          : event.tile.toLowerCase() === 'city'
+            ? 'medium'
+            : 'high',
       notes,
       ownerPlayerName: event.actor,
-      sourceCardName:
-        event.tile.toLowerCase() === 'city' ||
-        event.tile.toLowerCase() === 'greenery' ||
-        event.tile.toLowerCase() === 'ocean'
+      sourceCardName: inferredSourceCardName
+        ? inferredSourceCardName
+        : event.tile.toLowerCase() === 'city' ||
+            event.tile.toLowerCase() === 'greenery' ||
+            event.tile.toLowerCase() === 'ocean'
           ? null
           : event.tile,
-      sourceType: 'log_explicit',
+      sourceType: inferredSourceCardName ? 'log_inferred' : 'log_explicit',
       tileKind: event.tile,
     };
   }

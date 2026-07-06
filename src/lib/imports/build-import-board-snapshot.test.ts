@@ -3,6 +3,36 @@ import { buildImportBoardSnapshot } from './build-import-board-snapshot';
 import type { SupportedBoardMapId } from './board-space-maps';
 
 describe('buildImportBoardSnapshot', () => {
+  it('infers Commercial District when a same-player play is immediately followed by the generic city placement it creates', () => {
+    const snapshot = buildImportBoardSnapshot({
+      events: [
+        {
+          actor: 'Izzy',
+          card: 'Commercial District',
+          eventType: 'card_played',
+          lineNumber: 410,
+          rawLine: 'Izzy played Commercial District',
+        },
+        {
+          actor: 'Izzy',
+          eventType: 'tile_placed',
+          lineNumber: 411,
+          rawLine: 'Izzy placed city tile at 21',
+          space: '21',
+          tile: 'city',
+        },
+      ],
+      mapId: 'tharsis',
+    });
+
+    expect(snapshot.spaces['21']).toMatchObject({
+      ownerPlayerName: 'Izzy',
+      sourceCardName: 'Commercial District',
+      sourceType: 'log_inferred',
+      tileKind: 'city',
+    });
+  });
+
   it('reconstructs occupied spaces from parsed tile placements and links named tiles safely', () => {
     const snapshot = buildImportBoardSnapshot({
       events: [
@@ -52,15 +82,22 @@ describe('buildImportBoardSnapshot', () => {
       events: [
         {
           actor: 'Corey',
-          card: 'City Parks',
+          card: 'Commercial District',
           eventType: 'card_played',
-          lineNumber: 854,
-          rawLine: 'Corey played City Parks',
+          lineNumber: 833,
+          rawLine: 'Corey played Commercial District',
+        },
+        {
+          actor: 'Friday',
+          card: 'Mining Area',
+          eventType: 'card_played',
+          lineNumber: 834,
+          rawLine: 'Friday played Mining Area',
         },
         {
           actor: 'Corey',
           eventType: 'tile_placed',
-          lineNumber: 834,
+          lineNumber: 835,
           rawLine: 'Corey placed city tile at 19',
           space: '19',
           tile: 'city',
@@ -68,7 +105,7 @@ describe('buildImportBoardSnapshot', () => {
         {
           actor: 'Corey',
           eventType: 'tile_placed',
-          lineNumber: 835,
+          lineNumber: 836,
           rawLine: 'Corey placed greenery tile at 20',
           space: '20',
           tile: 'greenery',
@@ -76,7 +113,7 @@ describe('buildImportBoardSnapshot', () => {
         {
           actor: 'Corey',
           eventType: 'tile_placed',
-          lineNumber: 836,
+          lineNumber: 837,
           rawLine: 'Corey placed ocean tile at 21',
           space: '21',
           tile: 'ocean',

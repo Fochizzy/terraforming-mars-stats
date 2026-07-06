@@ -3,10 +3,19 @@ import { buildImportDraftNotes } from './build-import-draft-notes';
 import type { ParsedCardPointBreakdown, ParsedGameLog } from './parse-game-log';
 import type { ParsedEndgameScoreScreenshot } from './parse-endgame-score-screenshot';
 import type {
+  CardOption,
+  CorporationOption,
   MapAwardOption,
   MapMilestoneOption,
+  PreludeOption,
+  StyleOption,
 } from '@/lib/db/reference-repo';
 import { normalizePlayerAlias } from './normalize-player-alias';
+import { parseImportPlayerScores } from './parse-import-player-scores';
+import { parseImportPlayerSelections } from './parse-import-player-selections';
+import { parseImportPlayerStyles } from './parse-import-player-styles';
+import type { ImportPlayerCardScoringSummary } from './card-scoring/card-scoring-types';
+import type { CuratedBoardImportItem } from './score-curated-board-import-items';
 
 export type ImportDraftValues = {
   endgameScreenshotName?: string | null;
@@ -28,6 +37,10 @@ export type CreateImportDraftInput = ImportDraftValues & {
 
 export function buildImportDraft(input: {
   awardOptions?: MapAwardOption[];
+  cardScoring?: ImportPlayerCardScoringSummary[];
+  cardOptions?: CardOption[];
+  corporationOptions?: CorporationOption[];
+  curatedBoardItems?: CuratedBoardImportItem[];
   defaultExpansionCodes: string[];
   defaultPromoSetSlugs: string[];
   groupId: string;
@@ -38,8 +51,10 @@ export function buildImportDraft(input: {
     events?: ParsedGameLog['events'];
   };
   playerSelections?: Array<{ importedName: string; playerId: string }>;
+  preludeOptions?: PreludeOption[];
   scoreCandidates?: ParsedEndgameScoreScreenshot['playerRows'];
   selectedPlayerIds: string[];
+  styleOptions?: StyleOption[];
 }): LogGameDraftInput {
   const fallbackPlayerSelections = input.importValues.participantNames.flatMap(
     (participantName, index) => {
@@ -75,6 +90,17 @@ export function buildImportDraft(input: {
       selection.importedName,
     ]),
   );
+  const importedPlayers = playerSelections.map((selection) => ({
+    id: selection.playerId,
+    name: selection.importedName,
+  }));
+  const logScoresByPlayerId =
+    importedPlayers.length > 0
+      ? parseImportPlayerScores({
+          evidence: input.importValues.exportedGameLog,
+          players: importedPlayers,
+        })
+      : {};
   const cardBreakdownsByPlayerId = new Map(
     input.importValues.participantNames.flatMap((participantName, index) => {
       const playerId = input.selectedPlayerIds[index];
@@ -98,6 +124,35 @@ export function buildImportDraft(input: {
       return playerId ? [[playerId, candidate] as const] : [];
     }),
   );
+  const playerSelectionsPrefill =
+    playerSelections.length > 0 &&
+    input.corporationOptions &&
+    input.preludeOptions
+      ? parseImportPlayerSelections({
+          corporationOptions: input.corporationOptions,
+          participants: playerSelections,
+          preludeOptions: input.preludeOptions,
+          rawLogText: input.importValues.exportedGameLog,
+        })
+      : {};
+  const playerStylesPrefill =
+    playerSelections.length > 0 && input.parsedGameLog?.events
+      ? parseImportPlayerStyles({
+          cardOptions: input.cardOptions ?? [],
+          events: input.parsedGameLog.events,
+          participants: playerSelections,
+          styleOptions: input.styleOptions,
+        })
+      : {};
+  const cardScoringByPlayerId = new Map(
+    (input.cardScoring ?? []).flatMap((summary) => {
+      const playerId = playerIdByImportedName.get(
+        normalizePlayerAlias(summary.playerName),
+      );
+
+      return playerId ? [[playerId, summary] as const] : [];
+    }),
+  );
   const milestoneIdByName = new Map(
     (input.milestoneOptions ?? [])
       .filter((milestone) => milestone.mapId === input.importValues.mapId)
@@ -110,50 +165,6 @@ export function buildImportDraft(input: {
     (input.awardOptions ?? [])
       .filter((award) => award.mapId === input.importValues.mapId)
       .map((award) => [normalizePlayerAlias(award.awardName), award.awardId]),
-  );
-  const playerScores = Object.fromEntries(
-    selectedPlayerIds.flatMap((playerId) => {
-      const importedName = importedNameByPlayerId.get(playerId);
-      const scoreCandidate = scoreCandidatesByPlayerId.get(playerId);
-      const cardPointBreakdown =
-        cardBreakdownsByPlayerId.get(playerId) ??
-        (importedName
-          ? input.parsedGameLog?.cardPointBreakdowns.find(
-              (breakdown) =>
-                normalizePlayerAlias(breakdown.playerName) ===
-                normalizePlayerAlias(importedName),
-            )
-          : undefined);
-
-      if (!scoreCandidate && !cardPointBreakdown) {
-        return [];
-      }
-
-      return [
-        [
-          playerId,
-          {
-            awardPoints: scoreCandidate?.awardPoints,
-            cardPointsAnimals:
-              scoreCandidate?.cardPointsAnimals ??
-              cardPointBreakdown?.cardPointsAnimals,
-            cardPointsJovian:
-              scoreCandidate?.cardPointsJovian ??
-              cardPointBreakdown?.cardPointsJovian,
-            cardPointsMicrobes:
-              scoreCandidate?.cardPointsMicrobes ??
-              cardPointBreakdown?.cardPointsMicrobes,
-            cardPointsTotal: scoreCandidate?.cardPointsTotal,
-            citiesPoints: scoreCandidate?.citiesPoints,
-            finalMegacredits: scoreCandidate?.finalMegacredits,
-            greeneryPoints: scoreCandidate?.greeneryPoints,
-            milestonePoints: scoreCandidate?.milestonePoints,
-            totalPoints: scoreCandidate?.totalPoints,
-            trPoints: scoreCandidate?.trPoints,
-          },
-        ],
-      ];
-    }),
   );
   const milestoneClaims: LogGameDraftInput['milestoneClaims'] = {};
   const awardClaims: LogGameDraftInput['awardClaims'] = {};
@@ -229,6 +240,178 @@ export function buildImportDraft(input: {
     }
   }
 
+  for (const item of input.curatedBoardItems ?? []) {
+    if (item.itemType !== 'award' || item.status !== 'proved') {
+      continue;
+    }
+
+    const awardId = awardIdByName.get(normalizePlayerAlias(item.awardName));
+    const fundedByPlayerId = playerIdByImportedName.get(
+      normalizePlayerAlias(item.fundedByPlayerName),
+    );
+    const firstPlaceWinnerPlayerIds = (item.firstPlacePlayerNames ?? []).flatMap(
+      (playerName) => {
+        const playerId = playerIdByImportedName.get(
+          normalizePlayerAlias(playerName),
+        );
+        return playerId ? [playerId] : [];
+      },
+    );
+    const secondPlaceWinnerPlayerIds = (item.secondPlacePlayerNames ?? []).flatMap(
+      (playerName) => {
+        const playerId = playerIdByImportedName.get(
+          normalizePlayerAlias(playerName),
+        );
+        return playerId ? [playerId] : [];
+      },
+    );
+
+    if (
+      !awardId ||
+      !fundedByPlayerId ||
+      firstPlaceWinnerPlayerIds.length !==
+        (item.firstPlacePlayerNames?.length ?? 0) ||
+      secondPlaceWinnerPlayerIds.length !==
+        (item.secondPlacePlayerNames?.length ?? 0)
+    ) {
+      continue;
+    }
+
+    const existingClaim = awardClaims[awardId] ?? {
+      firstPlaceWinnerPlayerIds: [],
+      funded: false,
+      fundedByPlayerId: '',
+      secondPlaceWinnerPlayerIds: [],
+    };
+
+    awardClaims[awardId] = {
+      firstPlaceWinnerPlayerIds:
+        existingClaim.firstPlaceWinnerPlayerIds.length > 0
+          ? existingClaim.firstPlaceWinnerPlayerIds
+          : firstPlaceWinnerPlayerIds,
+      funded: existingClaim.funded || true,
+      fundedByPlayerId: existingClaim.fundedByPlayerId || fundedByPlayerId,
+      secondPlaceWinnerPlayerIds:
+        existingClaim.secondPlaceWinnerPlayerIds.length > 0
+          ? existingClaim.secondPlaceWinnerPlayerIds
+          : secondPlaceWinnerPlayerIds,
+    };
+  }
+
+  const expectedMilestonePointsByPlayerId = new Map<string, number>();
+
+  for (const claim of Object.values(milestoneClaims)) {
+    if (!claim.claimed || !claim.winnerPlayerId) {
+      continue;
+    }
+
+    expectedMilestonePointsByPlayerId.set(
+      claim.winnerPlayerId,
+      (expectedMilestonePointsByPlayerId.get(claim.winnerPlayerId) ?? 0) + 5,
+    );
+  }
+
+  const expectedAwardPointsByPlayerId = new Map<string, number>();
+
+  for (const claim of Object.values(awardClaims)) {
+    if (!claim.funded) {
+      continue;
+    }
+
+    for (const playerId of claim.firstPlaceWinnerPlayerIds) {
+      expectedAwardPointsByPlayerId.set(
+        playerId,
+        (expectedAwardPointsByPlayerId.get(playerId) ?? 0) + 5,
+      );
+    }
+
+    for (const playerId of claim.secondPlaceWinnerPlayerIds) {
+      if (claim.firstPlaceWinnerPlayerIds.includes(playerId)) {
+        continue;
+      }
+
+      expectedAwardPointsByPlayerId.set(
+        playerId,
+        (expectedAwardPointsByPlayerId.get(playerId) ?? 0) + 2,
+      );
+    }
+  }
+
+  const playerScores = Object.fromEntries(
+    selectedPlayerIds.flatMap((playerId) => {
+      const importedName = importedNameByPlayerId.get(playerId);
+      const scoreCandidate = scoreCandidatesByPlayerId.get(playerId);
+      const cardScoringSummary = cardScoringByPlayerId.get(playerId);
+      const logScore = logScoresByPlayerId[playerId] ?? {};
+      const cardPointBreakdown =
+        cardBreakdownsByPlayerId.get(playerId) ??
+        (importedName
+          ? input.parsedGameLog?.cardPointBreakdowns.find(
+              (breakdown) =>
+                normalizePlayerAlias(breakdown.playerName) ===
+                normalizePlayerAlias(importedName),
+            )
+          : undefined);
+      const hasCalculatedCategory = (
+        category: 'animals' | 'jovian' | 'microbes',
+      ) =>
+        cardScoringSummary?.autoScoredCards.some(
+          (card) => card.category === category,
+        ) ?? false;
+      const mergedScore = {
+        awardPoints:
+          logScore.awardPoints ??
+          scoreCandidate?.awardPoints ??
+          expectedAwardPointsByPlayerId.get(playerId),
+        cardPointsAnimals:
+          logScore.cardPointsAnimals ??
+          cardPointBreakdown?.cardPointsAnimals ??
+          scoreCandidate?.cardPointsAnimals ??
+          (hasCalculatedCategory('animals')
+            ? cardScoringSummary?.totals.animals
+            : undefined),
+        cardPointsJovian:
+          logScore.cardPointsJovian ??
+          cardPointBreakdown?.cardPointsJovian ??
+          scoreCandidate?.cardPointsJovian ??
+          (hasCalculatedCategory('jovian')
+            ? cardScoringSummary?.totals.jovian
+            : undefined),
+        cardPointsMicrobes:
+          logScore.cardPointsMicrobes ??
+          cardPointBreakdown?.cardPointsMicrobes ??
+          scoreCandidate?.cardPointsMicrobes ??
+          (hasCalculatedCategory('microbes')
+            ? cardScoringSummary?.totals.microbes
+            : undefined),
+        cardPointsTotal:
+          logScore.cardPointsTotal ??
+          scoreCandidate?.cardPointsTotal ??
+          (cardScoringSummary?.totals.complete
+            ? cardScoringSummary.totals.total
+            : undefined),
+        citiesPoints: logScore.citiesPoints ?? scoreCandidate?.citiesPoints,
+        finalMegacredits:
+          logScore.finalMegacredits ?? scoreCandidate?.finalMegacredits,
+        greeneryPoints: logScore.greeneryPoints ?? scoreCandidate?.greeneryPoints,
+        milestonePoints:
+          logScore.milestonePoints ??
+          scoreCandidate?.milestonePoints ??
+          expectedMilestonePointsByPlayerId.get(playerId),
+        totalPoints: logScore.totalPoints ?? scoreCandidate?.totalPoints,
+        trPoints: logScore.trPoints ?? scoreCandidate?.trPoints,
+      };
+
+      if (
+        Object.values(mergedScore).every((value) => typeof value === 'undefined')
+      ) {
+        return [];
+      }
+
+      return [[playerId, mergedScore] as const];
+    }),
+  );
+
   return {
     awardClaims,
     expansionCodes: [...input.defaultExpansionCodes],
@@ -244,8 +427,8 @@ export function buildImportDraft(input: {
     playedOn: input.importValues.playedOn,
     playerCount: selectedPlayerIds.length || input.importValues.playerCount,
     playerScores,
-    playerSelections: {},
-    playerStyles: {},
+    playerSelections: playerSelectionsPrefill,
+    playerStyles: playerStylesPrefill,
     promoSetSlugs: [...input.defaultPromoSetSlugs],
     selectedPlayerIds,
   };
