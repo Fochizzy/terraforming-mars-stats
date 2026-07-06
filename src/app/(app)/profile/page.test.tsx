@@ -16,13 +16,22 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/components/layout/app-shell', () => ({
   AppShell: ({
     children,
+    navItems,
     title,
   }: {
     children: ReactNode;
+    navItems?: Array<{ href: string; label: string }>;
     title: string;
   }) => (
     <div>
       <h1>{title}</h1>
+      <nav>
+        {navItems?.map((item) => (
+          <a href={item.href} key={item.href}>
+            {item.label}
+          </a>
+        ))}
+      </nav>
       {children}
     </div>
   ),
@@ -58,6 +67,16 @@ describe('ProfilePage', () => {
     expect(
       screen.getByRole('link', { name: /review saved player matches/i }),
     ).toHaveAttribute('href', '/claim-player');
+    expect(screen.getByRole('link', { name: /log game/i })).toHaveAttribute(
+      'href',
+      '/log-game',
+    );
+    expect(
+      screen.queryByRole('link', { name: /^group$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /insights/i }),
+    ).not.toBeInTheDocument();
     expect(navigationMocks.redirect).not.toHaveBeenCalled();
     expect(getProfileAnalytics).not.toHaveBeenCalled();
   });
