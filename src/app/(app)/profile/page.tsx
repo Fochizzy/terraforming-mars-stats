@@ -8,7 +8,7 @@ import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 
 const noGroupNavItems = [
   { href: '/profile', label: 'My Profile' },
-  { href: '/log-game', label: 'Log Game' },
+  { href: '/log-game/import', label: 'Log Game' },
 ] as const;
 
 export default async function ProfilePage() {

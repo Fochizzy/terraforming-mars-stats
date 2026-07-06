@@ -25,7 +25,10 @@ import { buildImportBoardSnapshot } from '@/lib/imports/build-import-board-snaps
 import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
-import { isSupportedBoardMapId } from '@/lib/imports/board-space-maps';
+import {
+  isSupportedBoardMapId,
+  type SupportedBoardMapId,
+} from '@/lib/imports/board-space-maps';
 import { calculateImportCardScores } from '@/lib/imports/card-scoring/calculate-import-card-scores';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
 import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
@@ -34,11 +37,6 @@ import {
   type ParsedEndgameScoreScreenshot,
 } from '@/lib/imports/parse-endgame-score-screenshot';
 import { parseGameLog } from '@/lib/imports/parse-game-log';
-import { readBoardStateScreenshot } from '@/lib/imports/card-scoring/read-board-state-screenshot';
-import { readEndgameScreenshot } from '@/lib/imports/read-endgame-screenshot';
-import {
-  readBoardScreenshotSpaceConfirmations,
-} from '@/lib/imports/read-board-screenshot-space-confirmations';
 import { resolveImportPlayerLinks } from '@/lib/imports/resolve-import-player-links';
 import {
   scoreCuratedBoardImportItems,
@@ -73,6 +71,40 @@ const importScoreCandidateFields = [
   'trPoints',
 ] as const;
 const OCR_ENGINE_VERSION = 'tesseract.js-v7';
+
+async function readEndgameScreenshotOnDemand(
+  file: File,
+  options?: {
+    expectedPlayerCount?: number;
+    expectedPlayerNames?: string[];
+  },
+) {
+  const { readEndgameScreenshot } = await import(
+    '@/lib/imports/read-endgame-screenshot'
+  );
+
+  return readEndgameScreenshot(file, options);
+}
+
+async function readBoardStateScreenshotOnDemand(file: File) {
+  const { readBoardStateScreenshot } = await import(
+    '@/lib/imports/card-scoring/read-board-state-screenshot'
+  );
+
+  return readBoardStateScreenshot(file);
+}
+
+async function readBoardScreenshotSpaceConfirmationsOnDemand(input: {
+  mapId: SupportedBoardMapId;
+  requests: Array<{ spaceId: string }>;
+  screenshots: File[];
+}) {
+  const { readBoardScreenshotSpaceConfirmations } = await import(
+    '@/lib/imports/read-board-screenshot-space-confirmations'
+  );
+
+  return readBoardScreenshotSpaceConfirmations(input);
+}
 
 function buildLogScoreCandidates(input: {
   playerNames: string[];
@@ -162,7 +194,7 @@ async function readBoardScreenshotEvidence(boardScreenshots: File[]) {
   return Promise.all(
     boardScreenshots.map(async (file) => {
       try {
-        const textLines = await readBoardStateScreenshot(file);
+        const textLines = await readBoardStateScreenshotOnDemand(file);
 
         return {
           file,
@@ -251,7 +283,7 @@ export default async function LogGameImportPage() {
         boardSnapshot != null &&
         values.boardScreenshots.length > 0 &&
         boardScreenshotConfirmationRequests.length > 0
-          ? await readBoardScreenshotSpaceConfirmations({
+          ? await readBoardScreenshotSpaceConfirmationsOnDemand({
               mapId: boardSnapshot.mapId,
               requests: boardScreenshotConfirmationRequests,
               screenshots: values.boardScreenshots,
@@ -279,7 +311,7 @@ export default async function LogGameImportPage() {
       if (values.endgameScreenshot) {
         try {
           parsedScreenshot = parseEndgameScoreScreenshot(
-            await readEndgameScreenshot(
+            await readEndgameScreenshotOnDemand(
               values.endgameScreenshot,
               screenshotReadOptions,
             ),
@@ -386,7 +418,7 @@ export default async function LogGameImportPage() {
         boardSnapshot != null &&
         values.boardScreenshots.length > 0 &&
         boardScreenshotConfirmationRequests.length > 0
-          ? await readBoardScreenshotSpaceConfirmations({
+          ? await readBoardScreenshotSpaceConfirmationsOnDemand({
               mapId: boardSnapshot.mapId,
               requests: boardScreenshotConfirmationRequests,
               screenshots: values.boardScreenshots,
@@ -511,7 +543,7 @@ export default async function LogGameImportPage() {
       if (values.endgameScreenshot) {
         try {
           parsedScreenshot = parseEndgameScoreScreenshot(
-            await readEndgameScreenshot(
+            await readEndgameScreenshotOnDemand(
               values.endgameScreenshot,
               screenshotReadOptions,
             ),
