@@ -53,11 +53,23 @@ function normalizeName(value: string) {
   return normalizePlayerAlias(value);
 }
 
+const explicitCityTileNames = new Set(
+  ['city', 'Capital', 'Noctis City'].map((tileName) => normalizeName(tileName)),
+);
+
 function isMatchingTileKind(tileKind: string, expectedTileKinds: string[]) {
   const normalizedTileKind = normalizeName(tileKind);
 
   return expectedTileKinds.some(
-    (expectedTileKind) => normalizeName(expectedTileKind) === normalizedTileKind,
+    (expectedTileKind) => {
+      const normalizedExpectedTileKind = normalizeName(expectedTileKind);
+
+      if (normalizedExpectedTileKind === normalizeName('city')) {
+        return explicitCityTileNames.has(normalizedTileKind);
+      }
+
+      return normalizedExpectedTileKind === normalizedTileKind;
+    },
   );
 }
 

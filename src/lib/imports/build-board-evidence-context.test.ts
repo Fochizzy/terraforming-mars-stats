@@ -115,6 +115,68 @@ describe('buildBoardEvidenceContext', () => {
     });
   });
 
+  it('counts named city tiles as cities for adjacent city queries', () => {
+    const context = buildBoardEvidenceContext({
+      boardSnapshot: {
+        mapId: 'tharsis',
+        spaces: {
+          '20': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Corey',
+            sourceCardName: 'Capital',
+            sourceType: 'log_explicit',
+            tileKind: 'Capital',
+          },
+          '21': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Izzy',
+            sourceCardName: 'Commercial District',
+            sourceType: 'log_inferred',
+            tileKind: 'city',
+          },
+          '22': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Friday',
+            sourceCardName: 'Noctis City',
+            sourceType: 'log_explicit',
+            tileKind: 'Noctis City',
+          },
+          '29': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Friday',
+            sourceCardName: null,
+            sourceType: 'log_explicit',
+            tileKind: 'greenery',
+          },
+          '30': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Colette',
+            sourceCardName: null,
+            sourceType: 'log_explicit',
+            tileKind: 'ocean',
+          },
+        },
+      },
+    });
+
+    expect(
+      context.countAdjacentMatchingTiles({
+        spaceId: '21',
+        tileKinds: ['city'],
+      }),
+    ).toEqual({
+      count: 2,
+      notes: [],
+      requestedSpaceIds: [],
+      status: 'proved',
+    });
+  });
+
   it('keeps confirmed unknown screenshot evidence unresolved and still requests that space', () => {
     const context = buildBoardEvidenceContext({
       boardSnapshot: {

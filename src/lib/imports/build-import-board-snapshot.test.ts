@@ -64,6 +64,37 @@ describe('buildImportBoardSnapshot', () => {
     });
   });
 
+  it('infers Commercial Harbor when a same-player play is immediately followed by the generic city placement it creates', () => {
+    const snapshot = buildImportBoardSnapshot({
+      events: [
+        {
+          actor: 'Izzy',
+          card: 'Commercial Harbor',
+          eventType: 'card_played',
+          lineNumber: 612,
+          rawLine: 'Izzy played Commercial Harbor',
+        },
+        {
+          actor: 'Izzy',
+          eventType: 'tile_placed',
+          lineNumber: 613,
+          rawLine: 'Izzy placed city tile at 21',
+          space: '21',
+          tile: 'city',
+        },
+      ],
+      mapId: 'tharsis',
+    });
+
+    expect(snapshot.spaces['21']).toMatchObject({
+      confidence: 'high',
+      ownerPlayerName: 'Izzy',
+      sourceCardName: 'Commercial Harbor',
+      sourceType: 'log_inferred',
+      tileKind: 'city',
+    });
+  });
+
   it('reconstructs occupied spaces from parsed tile placements and links named tiles safely', () => {
     const snapshot = buildImportBoardSnapshot({
       events: [
