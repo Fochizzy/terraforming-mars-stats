@@ -36,8 +36,14 @@ import {
 import { parseGameLog } from '@/lib/imports/parse-game-log';
 import { readBoardStateScreenshot } from '@/lib/imports/card-scoring/read-board-state-screenshot';
 import { readEndgameScreenshot } from '@/lib/imports/read-endgame-screenshot';
+import {
+  readBoardScreenshotSpaceConfirmations,
+} from '@/lib/imports/read-board-screenshot-space-confirmations';
 import { resolveImportPlayerLinks } from '@/lib/imports/resolve-import-player-links';
-import { scoreCuratedBoardImportItems } from '@/lib/imports/score-curated-board-import-items';
+import {
+  scoreCuratedBoardImportItems,
+  type CuratedBoardImportItem,
+} from '@/lib/imports/score-curated-board-import-items';
 import {
   listCardScoringReferences,
   listCorporations,
@@ -124,6 +130,34 @@ function buildEndgameScreenshotParse(
   } as const;
 }
 
+function buildBoardScreenshotConfirmationRequests(
+  items: CuratedBoardImportItem[],
+) {
+  const requests = new Map<string, { spaceId: string }>();
+
+  for (const item of items) {
+    if (
+      item.itemType !== 'card' ||
+      item.cardName !== 'Commercial District' ||
+      !item.requestedSpaceIds?.length
+    ) {
+      continue;
+    }
+
+    for (const spaceId of item.requestedSpaceIds) {
+      if (requests.has(spaceId)) {
+        continue;
+      }
+
+      requests.set(spaceId, {
+        spaceId,
+      });
+    }
+  }
+
+  return [...requests.values()];
+}
+
 async function readBoardScreenshotEvidence(boardScreenshots: File[]) {
   return Promise.all(
     boardScreenshots.map(async (file) => {
@@ -202,6 +236,27 @@ export default async function LogGameImportPage() {
               mapId: values.mapId,
             })
           : null;
+      const initialCuratedBoardItems =
+        boardSnapshot == null
+          ? []
+          : scoreCuratedBoardImportItems({
+              boardSnapshot,
+              events: parsedGameLog.events,
+              mapId: boardSnapshot.mapId,
+              participantNames: detectedParticipantNames,
+            });
+      const boardScreenshotConfirmationRequests =
+        buildBoardScreenshotConfirmationRequests(initialCuratedBoardItems);
+      const boardScreenshotConfirmations =
+        boardSnapshot != null &&
+        values.boardScreenshots.length > 0 &&
+        boardScreenshotConfirmationRequests.length > 0
+          ? await readBoardScreenshotSpaceConfirmations({
+              mapId: boardSnapshot.mapId,
+              requests: boardScreenshotConfirmationRequests,
+              screenshots: values.boardScreenshots,
+            })
+          : undefined;
       const curatedBoardItems =
         boardSnapshot == null
           ? []
@@ -210,6 +265,7 @@ export default async function LogGameImportPage() {
               events: parsedGameLog.events,
               mapId: boardSnapshot.mapId,
               participantNames: detectedParticipantNames,
+              screenshotConfirmations: boardScreenshotConfirmations,
             });
       const screenshotReadOptions = {
         expectedPlayerCount: Math.max(
@@ -315,6 +371,27 @@ export default async function LogGameImportPage() {
               mapId: values.mapId,
             })
           : null;
+      const initialCuratedBoardItems =
+        boardSnapshot == null
+          ? []
+          : scoreCuratedBoardImportItems({
+              boardSnapshot,
+              events: parsedGameLog.events,
+              mapId: boardSnapshot.mapId,
+              participantNames: detectedParticipantNames,
+            });
+      const boardScreenshotConfirmationRequests =
+        buildBoardScreenshotConfirmationRequests(initialCuratedBoardItems);
+      const boardScreenshotConfirmations =
+        boardSnapshot != null &&
+        values.boardScreenshots.length > 0 &&
+        boardScreenshotConfirmationRequests.length > 0
+          ? await readBoardScreenshotSpaceConfirmations({
+              mapId: boardSnapshot.mapId,
+              requests: boardScreenshotConfirmationRequests,
+              screenshots: values.boardScreenshots,
+            })
+          : undefined;
       const curatedBoardItems =
         boardSnapshot == null
           ? []
@@ -323,6 +400,7 @@ export default async function LogGameImportPage() {
               events: parsedGameLog.events,
               mapId: boardSnapshot.mapId,
               participantNames: detectedParticipantNames,
+              screenshotConfirmations: boardScreenshotConfirmations,
             });
       const screenshotReadOptions = {
         expectedPlayerCount: Math.max(

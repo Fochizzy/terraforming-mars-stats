@@ -37,6 +37,22 @@ describe('scoreCuratedBoardImportItems', () => {
           space: '21',
           tile: 'city',
         },
+        {
+          actor: 'Friday',
+          eventType: 'tile_placed',
+          lineNumber: 15,
+          rawLine: 'Friday placed greenery tile at 29',
+          space: '29',
+          tile: 'greenery',
+        },
+        {
+          actor: 'Friday',
+          eventType: 'tile_placed',
+          lineNumber: 16,
+          rawLine: 'Friday placed ocean tile at 30',
+          space: '30',
+          tile: 'ocean',
+        },
       ],
       mapId: 'tharsis',
     });
@@ -75,6 +91,22 @@ describe('scoreCuratedBoardImportItems', () => {
             rawLine: 'Izzy placed city tile at 21',
             space: '21',
             tile: 'city',
+          },
+          {
+            actor: 'Friday',
+            eventType: 'tile_placed',
+            lineNumber: 15,
+            rawLine: 'Friday placed greenery tile at 29',
+            space: '29',
+            tile: 'greenery',
+          },
+          {
+            actor: 'Friday',
+            eventType: 'tile_placed',
+            lineNumber: 16,
+            rawLine: 'Friday placed ocean tile at 30',
+            space: '30',
+            tile: 'ocean',
           },
         ],
         mapId: 'tharsis',
@@ -124,6 +156,22 @@ describe('scoreCuratedBoardImportItems', () => {
           space: '21',
           tile: 'city',
         },
+        {
+          actor: 'Friday',
+          eventType: 'tile_placed',
+          lineNumber: 15,
+          rawLine: 'Friday placed greenery tile at 29',
+          space: '29',
+          tile: 'greenery',
+        },
+        {
+          actor: 'Friday',
+          eventType: 'tile_placed',
+          lineNumber: 16,
+          rawLine: 'Friday placed ocean tile at 30',
+          space: '30',
+          tile: 'ocean',
+        },
       ],
       mapId: 'tharsis',
     });
@@ -162,6 +210,22 @@ describe('scoreCuratedBoardImportItems', () => {
             rawLine: 'Izzy placed city tile at 21',
             space: '21',
             tile: 'city',
+          },
+          {
+            actor: 'Friday',
+            eventType: 'tile_placed',
+            lineNumber: 15,
+            rawLine: 'Friday placed greenery tile at 29',
+            space: '29',
+            tile: 'greenery',
+          },
+          {
+            actor: 'Friday',
+            eventType: 'tile_placed',
+            lineNumber: 16,
+            rawLine: 'Friday placed ocean tile at 30',
+            space: '30',
+            tile: 'ocean',
           },
         ],
         mapId: 'tharsis',
@@ -240,6 +304,183 @@ describe('scoreCuratedBoardImportItems', () => {
         cardName: 'Commercial District',
         itemType: 'card',
         playerName: 'Izzy',
+        status: 'review_needed',
+      }),
+    );
+  });
+
+  it('uses screenshot confirmations to prove Commercial District adjacency when the log-first snapshot leaves curated neighbors unresolved', () => {
+    const boardSnapshot = buildImportBoardSnapshot({
+      events: [
+        {
+          actor: 'Corey',
+          eventType: 'tile_placed',
+          lineNumber: 11,
+          rawLine: 'Corey placed city tile at 20',
+          space: '20',
+          tile: 'city',
+        },
+        {
+          actor: 'Izzy',
+          card: 'Commercial District',
+          eventType: 'card_played',
+          lineNumber: 13,
+          rawLine: 'Izzy played Commercial District',
+        },
+        {
+          actor: 'Izzy',
+          eventType: 'tile_placed',
+          lineNumber: 14,
+          rawLine: 'Izzy placed city tile at 21',
+          space: '21',
+          tile: 'city',
+        },
+      ],
+      mapId: 'tharsis',
+    });
+
+    expect(
+      scoreCuratedBoardImportItems({
+        boardSnapshot,
+        events: [
+          {
+            actor: 'Corey',
+            eventType: 'tile_placed',
+            lineNumber: 11,
+            rawLine: 'Corey placed city tile at 20',
+            space: '20',
+            tile: 'city',
+          },
+          {
+            actor: 'Izzy',
+            card: 'Commercial District',
+            eventType: 'card_played',
+            lineNumber: 13,
+            rawLine: 'Izzy played Commercial District',
+          },
+          {
+            actor: 'Izzy',
+            eventType: 'tile_placed',
+            lineNumber: 14,
+            rawLine: 'Izzy placed city tile at 21',
+            space: '21',
+            tile: 'city',
+          },
+        ],
+        mapId: 'tharsis',
+        screenshotConfirmations: {
+          '22': {
+            status: 'confirmed',
+            tileKind: 'city',
+          },
+          '29': {
+            status: 'confirmed',
+            tileKind: 'greenery',
+          },
+          '30': {
+            status: 'confirmed',
+            tileKind: 'occupied_other',
+          },
+        },
+      } as any),
+    ).toContainEqual(
+      expect.objectContaining({
+        cardName: 'Commercial District',
+        itemType: 'card',
+        notes: expect.arrayContaining([
+          'Commercial District at space 21 had 2 adjacent city tiles in curated board coverage.',
+        ]),
+        playerName: 'Izzy',
+        points: 2,
+        requestedSpaceIds: [],
+        status: 'proved',
+      }),
+    );
+  });
+
+  it('keeps Commercial District review-only and lists the remaining spaces when screenshot confirmation stays inconclusive', () => {
+    const boardSnapshot = buildImportBoardSnapshot({
+      events: [
+        {
+          actor: 'Corey',
+          eventType: 'tile_placed',
+          lineNumber: 11,
+          rawLine: 'Corey placed city tile at 20',
+          space: '20',
+          tile: 'city',
+        },
+        {
+          actor: 'Izzy',
+          card: 'Commercial District',
+          eventType: 'card_played',
+          lineNumber: 13,
+          rawLine: 'Izzy played Commercial District',
+        },
+        {
+          actor: 'Izzy',
+          eventType: 'tile_placed',
+          lineNumber: 14,
+          rawLine: 'Izzy placed city tile at 21',
+          space: '21',
+          tile: 'city',
+        },
+      ],
+      mapId: 'tharsis',
+    });
+
+    expect(
+      scoreCuratedBoardImportItems({
+        boardSnapshot,
+        events: [
+          {
+            actor: 'Corey',
+            eventType: 'tile_placed',
+            lineNumber: 11,
+            rawLine: 'Corey placed city tile at 20',
+            space: '20',
+            tile: 'city',
+          },
+          {
+            actor: 'Izzy',
+            card: 'Commercial District',
+            eventType: 'card_played',
+            lineNumber: 13,
+            rawLine: 'Izzy played Commercial District',
+          },
+          {
+            actor: 'Izzy',
+            eventType: 'tile_placed',
+            lineNumber: 14,
+            rawLine: 'Izzy placed city tile at 21',
+            space: '21',
+            tile: 'city',
+          },
+        ],
+        mapId: 'tharsis',
+        screenshotConfirmations: {
+          '22': {
+            status: 'inconclusive',
+            tileKind: 'unknown',
+          },
+          '29': {
+            status: 'confirmed',
+            tileKind: 'greenery',
+          },
+          '30': {
+            status: 'confirmed',
+            tileKind: 'empty',
+          },
+        },
+      } as any),
+    ).toContainEqual(
+      expect.objectContaining({
+        cardName: 'Commercial District',
+        itemType: 'card',
+        notes: expect.arrayContaining([
+          'Commercial District at space 21 still needs confirmation for adjacent spaces 22.',
+        ]),
+        playerName: 'Izzy',
+        requestedSpaceIds: ['22'],
         status: 'review_needed',
       }),
     );

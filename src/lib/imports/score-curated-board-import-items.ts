@@ -2,6 +2,10 @@ import { getBoardSpaceMap, type SupportedBoardMapId } from './board-space-maps';
 import type { ImportBoardSnapshot } from './build-import-board-snapshot';
 import { normalizePlayerAlias } from './normalize-player-alias';
 import type { ParsedActionGameLogEvent } from './parse-game-log';
+import type {
+  BoardSpaceConfirmation,
+  BoardScreenshotTileKind,
+} from './read-board-screenshot-space-confirmations';
 
 type CuratedBoardReviewStatus = 'proved' | 'review_needed';
 
@@ -12,6 +16,7 @@ export type CuratedBoardCardImportItem = {
   notes: string[];
   playerName: string;
   points?: number;
+  requestedSpaceIds?: string[];
   sourceType: 'log_and_board';
   status: CuratedBoardReviewStatus;
 };
@@ -91,9 +96,19 @@ function isCityTileName(tileName: string | null | undefined) {
   return tileName != null && explicitCityTileNames.has(normalizeName(tileName));
 }
 
+function isConfirmedNonCityTileKind(tileKind: BoardScreenshotTileKind) {
+  return (
+    tileKind === 'empty' ||
+    tileKind === 'greenery' ||
+    tileKind === 'ocean' ||
+    tileKind === 'occupied_other'
+  );
+}
+
 function buildCommercialDistrictItems(input: {
   boardSnapshot: ImportBoardSnapshot;
   events: ParsedActionGameLogEvent[];
+  screenshotConfirmations?: Record<string, BoardSpaceConfirmation>;
 }): CuratedBoardCardImportItem[] {
   const boardSpaceMap = getBoardSpaceMap(input.boardSnapshot.mapId);
 
@@ -122,6 +137,7 @@ function buildCommercialDistrictItems(input: {
             'The city placement from Commercial District could not be linked safely from the imported log.',
           ],
           playerName: event.actor,
+          requestedSpaceIds: [],
           sourceType: 'log_and_board',
           status: 'review_needed',
         },
@@ -141,16 +157,68 @@ function buildCommercialDistrictItems(input: {
             `Commercial District was linked to space ${spaceId}, but that space is outside curated adjacency coverage for ${input.boardSnapshot.mapId}.`,
           ],
           playerName: event.actor,
+          requestedSpaceIds: [],
           sourceType: 'log_and_board',
           status: 'review_needed',
         },
       ];
     }
 
-    const adjacentCityCount = spaceDefinition.neighbors.reduce((count, neighborId) => {
+    const requestedSpaceIds: string[] = [];
+    let adjacentCityCount = 0;
+
+    for (const neighborId of spaceDefinition.neighbors) {
       const occupant = input.boardSnapshot.spaces[neighborId];
-      return isCityTileName(occupant?.tileKind) ? count + 1 : count;
-    }, 0);
+
+      if (isCityTileName(occupant?.tileKind)) {
+        adjacentCityCount += 1;
+        continue;
+      }
+
+      if (occupant) {
+        continue;
+      }
+
+      const confirmation = input.screenshotConfirmations?.[neighborId];
+
+      if (
+        !confirmation ||
+        confirmation.status === 'conflict' ||
+        confirmation.status === 'inconclusive' ||
+        confirmation.tileKind === 'unknown'
+      ) {
+        requestedSpaceIds.push(neighborId);
+        continue;
+      }
+
+      if (confirmation.tileKind === 'city') {
+        adjacentCityCount += 1;
+        continue;
+      }
+
+      if (isConfirmedNonCityTileKind(confirmation.tileKind)) {
+        continue;
+      }
+
+      requestedSpaceIds.push(neighborId);
+    }
+
+    if (requestedSpaceIds.length > 0) {
+      return [
+        {
+          cardName: 'Commercial District',
+          itemType: 'card',
+          mapId: input.boardSnapshot.mapId,
+          notes: [
+            `Commercial District at space ${spaceId} still needs confirmation for adjacent spaces ${requestedSpaceIds.join(', ')}.`,
+          ],
+          playerName: event.actor,
+          requestedSpaceIds,
+          sourceType: 'log_and_board',
+          status: 'review_needed',
+        },
+      ];
+    }
 
     return [
       {
@@ -162,6 +230,7 @@ function buildCommercialDistrictItems(input: {
         ],
         playerName: event.actor,
         points: adjacentCityCount,
+        requestedSpaceIds,
         sourceType: 'log_and_board',
         status: 'proved',
       },
@@ -311,11 +380,13 @@ export function scoreCuratedBoardImportItems(input: {
   events: ParsedActionGameLogEvent[];
   mapId: SupportedBoardMapId;
   participantNames?: string[];
+  screenshotConfirmations?: Record<string, BoardSpaceConfirmation>;
 }): CuratedBoardImportItem[] {
   return [
     ...buildCommercialDistrictItems({
       boardSnapshot: input.boardSnapshot,
       events: input.events,
+      screenshotConfirmations: input.screenshotConfirmations,
     }),
     ...buildAwardItems({
       events: input.events,
