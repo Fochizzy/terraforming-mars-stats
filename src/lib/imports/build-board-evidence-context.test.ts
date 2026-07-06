@@ -115,6 +115,49 @@ describe('buildBoardEvidenceContext', () => {
     });
   });
 
+  it('keeps confirmed unknown screenshot evidence unresolved and still requests that space', () => {
+    const context = buildBoardEvidenceContext({
+      boardSnapshot: {
+        mapId: 'tharsis',
+        spaces: {
+          '20': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Friday',
+            sourceCardName: null,
+            sourceType: 'log_explicit',
+            tileKind: 'ocean',
+          },
+          '21': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Izzy',
+            sourceCardName: 'Capital',
+            sourceType: 'log_inferred',
+            tileKind: 'city',
+          },
+        },
+      },
+      screenshotConfirmations: {
+        '22': { status: 'confirmed', tileKind: 'unknown' },
+        '29': { status: 'confirmed', tileKind: 'empty' },
+        '30': { status: 'confirmed', tileKind: 'occupied_other' },
+      },
+    });
+
+    expect(
+      context.countAdjacentMatchingTiles({
+        spaceId: '21',
+        tileKinds: ['ocean'],
+      }),
+    ).toEqual({
+      count: 1,
+      notes: ['Adjacent spaces 22 still need confirmation.'],
+      requestedSpaceIds: ['22'],
+      status: 'review_needed',
+    });
+  });
+
   it('counts owned matching tiles for award consumers without changing milestone behavior', () => {
     const context = buildBoardEvidenceContext({
       boardSnapshot: {

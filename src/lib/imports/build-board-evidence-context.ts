@@ -126,6 +126,11 @@ export function buildBoardEvidenceContext(input: {
           };
         }
 
+        if (confirmation.tileKind === 'unknown') {
+          requestedSpaceIds.push(neighborId);
+          continue;
+        }
+
         usedScreenshotConfirmation = true;
 
         if (isMatchingConfirmedTile(confirmation, query.tileKinds)) {

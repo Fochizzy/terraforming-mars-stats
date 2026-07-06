@@ -4,6 +4,12 @@ import {
   type SupportedBoardMapId,
 } from './board-space-maps';
 
+const supportedBoardAwareGenericCityPlacers = new Set([
+  'capital',
+  'commercial district',
+  'commercial harbor',
+]);
+
 export type ImportBoardOccupant = {
   confidence: 'high' | 'medium';
   notes: string[];
@@ -35,7 +41,9 @@ export function buildImportBoardSnapshot(input: {
     const inferredSourceCardName =
       previousEvent?.eventType === 'card_played' &&
       previousEvent.actor === event.actor &&
-      previousEvent.card.toLowerCase() === 'commercial district' &&
+      supportedBoardAwareGenericCityPlacers.has(
+        previousEvent.card.toLowerCase(),
+      ) &&
       event.tile.toLowerCase() === 'city'
         ? previousEvent.card
         : null;

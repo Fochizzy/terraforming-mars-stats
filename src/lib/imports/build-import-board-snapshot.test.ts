@@ -33,6 +33,37 @@ describe('buildImportBoardSnapshot', () => {
     });
   });
 
+  it('infers Capital when a same-player play is immediately followed by the generic city placement it creates', () => {
+    const snapshot = buildImportBoardSnapshot({
+      events: [
+        {
+          actor: 'Izzy',
+          card: 'Capital',
+          eventType: 'card_played',
+          lineNumber: 512,
+          rawLine: 'Izzy played Capital',
+        },
+        {
+          actor: 'Izzy',
+          eventType: 'tile_placed',
+          lineNumber: 513,
+          rawLine: 'Izzy placed city tile at 21',
+          space: '21',
+          tile: 'city',
+        },
+      ],
+      mapId: 'tharsis',
+    });
+
+    expect(snapshot.spaces['21']).toMatchObject({
+      confidence: 'high',
+      ownerPlayerName: 'Izzy',
+      sourceCardName: 'Capital',
+      sourceType: 'log_inferred',
+      tileKind: 'city',
+    });
+  });
+
   it('reconstructs occupied spaces from parsed tile placements and links named tiles safely', () => {
     const snapshot = buildImportBoardSnapshot({
       events: [
