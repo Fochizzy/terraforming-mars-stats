@@ -2,22 +2,25 @@ import { AppShell } from '@/components/layout/app-shell';
 import { LogGameImportShell } from '@/features/imports/log-game-import-shell';
 import {
   resolveOrCreateImportGroup,
-  selectCurrentGroupPlayerIds,
 } from '@/lib/db/import-group-repo';
 import { saveDraftGame } from '@/lib/db/game-draft-repo';
 import {
   saveGameLogEvents,
   saveGameLogImport,
 } from '@/lib/db/game-import-repo';
-import { listPlayerImportAliasesForGroup } from '@/lib/db/player-import-alias-repo';
+import {
+  listPlayerImportAliasesForGroup,
+  savePlayerImportAlias,
+} from '@/lib/db/player-import-alias-repo';
 import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
+import { listImportResolutionPlayers } from '@/lib/db/import-player-resolution-repo';
 import {
   describeUnknownError,
   serializeUnknownError,
 } from '@/lib/errors/describe-unknown-error';
-import { listPlayers } from '@/lib/db/player-repo';
 import { buildImportDraft } from '@/lib/imports/build-import-draft';
+import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
@@ -89,20 +92,13 @@ export default async function LogGameImportPage() {
           ...parsedScreenshot.playerRows.map((row) => row.playerName),
         ]),
       );
-      const [currentGroupPlayers, playerAliases] = activeContext
-        ? await Promise.all([
-            listPlayers(activeContext.groupId),
-            listPlayerImportAliasesForGroup(activeContext.groupId),
-          ])
-        : [[], []];
-      const playerLinks = resolveImportPlayerLinks(
-        importedNames,
-        currentGroupPlayers.map((player) => ({
-          displayName: player.display_name,
-          id: player.id,
-        })),
-        playerAliases,
-      );
+      const playerLinks = activeContext
+        ? resolveImportPlayerLinks(
+            importedNames,
+            await listImportResolutionPlayers(activeContext.groupId),
+            await listPlayerImportAliasesForGroup(activeContext.groupId),
+          )
+        : { matches: [], unresolvedCount: 0 };
 
       return {
         status: 'success' as const,
@@ -146,37 +142,60 @@ export default async function LogGameImportPage() {
       }
 
       const activeContext = await getCurrentGroupContext();
-      let importGroup;
+      let importGroup: {
+        createdNewGroup: boolean;
+        createdProfileNames: string[];
+        groupId: string;
+        groupName: string;
+        selectedPlayerIds: string[];
+      };
 
-      try {
-        importGroup = await resolveOrCreateImportGroup({
-          importingUserId: activeUser.id,
-          participantNames: values.participantNames,
-        });
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message.includes('SUPABASE_SERVICE_ROLE_KEY')
-        ) {
-          if (!activeContext) {
+      const confirmedPlayerLinks = values.confirmedPlayerLinks ?? [];
+
+      if (activeContext) {
+        const currentGroupPlayers = await listImportResolutionPlayers(
+          activeContext.groupId,
+        );
+        const playerById = new Map(
+          currentGroupPlayers.map((player) => [player.id, player]),
+        );
+        const selectedPlayerIds = confirmedPlayerLinks.map((link) => link.playerId);
+
+        if (selectedPlayerIds.length > 0) {
+          const uniqueSelectedPlayerIds = new Set(selectedPlayerIds);
+
+          if (uniqueSelectedPlayerIds.size !== selectedPlayerIds.length) {
             throw new Error(
-              'Web import group matching is not configured yet. Add SUPABASE_SERVICE_ROLE_KEY to enable imports for users without a current group.',
+              'Each imported player must map to a different roster player.',
             );
           }
 
-          const currentGroupPlayers = await listPlayers(activeContext.groupId);
+          const missingPlayerId = selectedPlayerIds.find(
+            (playerId) => !playerById.has(playerId),
+          );
 
-          importGroup = {
-            createdNewGroup: false,
-            createdProfileNames: [] as string[],
-            groupId: activeContext.groupId,
-            groupName: activeContext.groupName,
-            selectedPlayerIds: selectCurrentGroupPlayerIds(
-              values.participantNames,
-              currentGroupPlayers,
-            ),
-          };
-        } else {
+          if (missingPlayerId) {
+            throw new Error('One confirmed player match is no longer available.');
+          }
+        }
+
+        importGroup = {
+          createdNewGroup: false,
+          createdProfileNames: [],
+          groupId: activeContext.groupId,
+          groupName: activeContext.groupName,
+          selectedPlayerIds:
+            confirmedPlayerLinks.length > 0
+              ? confirmedPlayerLinks.map((link) => link.playerId)
+              : [],
+        };
+      } else {
+        try {
+          importGroup = await resolveOrCreateImportGroup({
+            importingUserId: activeUser.id,
+            participantNames: values.participantNames,
+          });
+        } catch (error) {
           throw error;
         }
       }
@@ -210,12 +229,7 @@ export default async function LogGameImportPage() {
         importValues: values,
         milestoneOptions,
         parsedGameLog,
-        playerSelections: values.participantNames.flatMap(
-          (importedName, index) => {
-            const playerId = importGroup.selectedPlayerIds[index];
-            return playerId ? [{ importedName, playerId }] : [];
-          },
-        ),
+        playerSelections: confirmedPlayerLinks,
         scoreCandidates: parsedScreenshot.playerRows,
         selectedPlayerIds: importGroup.selectedPlayerIds,
       });
@@ -256,6 +270,37 @@ export default async function LogGameImportPage() {
         }),
         gameLogImportId: gameLogImport.id,
       });
+      if (confirmedPlayerLinks.length > 0) {
+        const aliasPlayers = await listImportResolutionPlayers(importGroup.groupId);
+        const aliasesToSave = buildConfirmedPlayerAliases({
+          confirmedPlayerLinks,
+          participantNames: values.participantNames,
+          players: aliasPlayers,
+          screenshotPlayerNames: parsedScreenshot.playerRows.map(
+            (row) => row.playerName,
+          ),
+        });
+
+        const aliasSaveResults = await Promise.allSettled(
+          aliasesToSave.map((alias) =>
+            savePlayerImportAlias({
+              aliasText: alias.aliasText,
+              groupId: importGroup.groupId,
+              playerId: alias.playerId,
+              sourceType: alias.sourceType,
+            }),
+          ),
+        );
+        const aliasFailures = aliasSaveResults.flatMap((result) =>
+          result.status === 'rejected'
+            ? [serializeUnknownError(result.reason)]
+            : [],
+        );
+
+        if (aliasFailures.length > 0) {
+          console.warn('Import alias save failed', aliasFailures);
+        }
+      }
 
       revalidatePath('/group');
       revalidatePath('/group/players');

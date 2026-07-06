@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { buildCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
 import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
 import { SelectChevron } from '@/components/ui/select-chevron';
@@ -93,6 +93,9 @@ export function WebImportPage({
     status: 'idle',
   });
   const [review, setReview] = useState<ImportReviewModel | null>(null);
+  const [playerSelections, setPlayerSelections] = useState<Record<string, string>>(
+    {},
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
@@ -110,6 +113,22 @@ export function WebImportPage({
 
     return () => URL.revokeObjectURL(objectUrl);
   }, [endgameScreenshot]);
+
+  useEffect(() => {
+    if (!review) {
+      setPlayerSelections({});
+      return;
+    }
+
+    setPlayerSelections(
+      Object.fromEntries(
+        review.playerLinks.map((link) => [
+          link.importedName,
+          link.selectedPlayerId ?? '',
+        ]),
+      ),
+    );
+  }, [review]);
 
   function handlePaste(event: React.ClipboardEvent<HTMLFormElement>) {
     const pastedScreenshot = getClipboardImageFile(event.clipboardData);
@@ -138,6 +157,12 @@ export function WebImportPage({
 
   function buildCurrentFormData() {
     return buildCreateImportDraftFormData({
+      confirmedPlayerLinks: review
+        ? review.playerLinks.flatMap((link) => {
+            const playerId = playerSelections[link.importedName]?.trim() ?? '';
+            return playerId ? [{ importedName: link.importedName, playerId }] : [];
+          })
+        : [],
       endgameScreenshot,
       exportedGameLog: exportedGameLog.trim(),
       generationCount,
@@ -147,6 +172,28 @@ export function WebImportPage({
       playerCount,
     });
   }
+
+  const hasDuplicateSelections = useMemo(() => {
+    if (!review) {
+      return false;
+    }
+
+    const selectedIds = review.playerLinks
+      .map((link) => playerSelections[link.importedName]?.trim() ?? '')
+      .filter(Boolean);
+
+    return new Set(selectedIds).size !== selectedIds.length;
+  }, [playerSelections, review]);
+
+  const hasMissingSelections = useMemo(() => {
+    if (!review) {
+      return false;
+    }
+
+    return review.playerLinks.some(
+      (link) => !(playerSelections[link.importedName]?.trim()),
+    );
+  }, [playerSelections, review]);
 
   async function handleAnalyzeSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -370,17 +417,39 @@ export function WebImportPage({
         </button>
       </form>
 
-      <ImportReviewPanel review={review} />
+      <ImportReviewPanel
+        onSelectionChange={(importedName, playerId) =>
+          setPlayerSelections((current) => ({
+            ...current,
+            [importedName]: playerId,
+          }))
+        }
+        playerSelections={playerSelections}
+        review={review}
+      />
 
       {review ? (
-        <button
-          className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isConfirming}
-          onClick={handleConfirmImport}
-          type="button"
-        >
-          {isConfirming ? 'Saving Import Draft...' : 'Confirm Import Draft'}
-        </button>
+        <div className="flex flex-col gap-3">
+          {hasMissingSelections ? (
+            <p className="text-sm text-amber-100">
+              Choose a roster player for every imported name before creating the
+              draft.
+            </p>
+          ) : null}
+          {hasDuplicateSelections ? (
+            <p className="text-sm text-rose-300">
+              Each imported player must map to a different roster player.
+            </p>
+          ) : null}
+          <button
+            className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isConfirming || hasDuplicateSelections || hasMissingSelections}
+            onClick={handleConfirmImport}
+            type="button"
+          >
+            {isConfirming ? 'Saving Import Draft...' : 'Confirm Import Draft'}
+          </button>
+        </div>
       ) : null}
     </div>
   );

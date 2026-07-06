@@ -30,7 +30,34 @@ describe('LogGameImportShell', () => {
         drawInfoLineCount: 1,
         ignoredLineCount: 2,
         parsedEventCount: 3,
-        playerLinks: [{ importedName: 'Friday Mars', status: 'exact' as const }],
+        playerLinks: [
+          {
+            candidates: [
+              {
+                displayName: 'Friday Mars',
+                gamesPlayed: 8,
+                id: 'player-1',
+                linkedFullName: 'Friday Mars',
+                linkedUsername: 'friday-mars',
+                matchReason: 'display_name_exact' as const,
+                matchScore: 400,
+              },
+              {
+                displayName: 'Second Seat',
+                gamesPlayed: 3,
+                id: 'player-2',
+                linkedFullName: null,
+                linkedUsername: null,
+                matchReason: 'fallback' as const,
+                matchScore: 0,
+              },
+            ],
+            importedName: 'Friday Mars',
+            requiresConfirmation: false,
+            selectedPlayerId: 'player-1',
+            status: 'exact' as const,
+          },
+        ],
         requiresPlayerConfirmation: false,
         scoreCandidates: [
           { playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 },
@@ -107,6 +134,11 @@ describe('LogGameImportShell', () => {
 
     await waitFor(() => expect(onCreateImportDraft).toHaveBeenCalledTimes(1));
 
+    const confirmedFormData = onCreateImportDraft.mock.calls[0]?.[0] as FormData;
+    expect(JSON.parse(String(confirmedFormData.get('confirmedPlayerLinks')))).toEqual([
+      { importedName: 'Friday Mars', playerId: 'player-1' },
+    ]);
+
     await waitFor(() =>
       expect(navigationMocks.push).toHaveBeenCalledWith('/log-game?gameId=game-1'),
     );
@@ -120,7 +152,25 @@ describe('LogGameImportShell', () => {
         drawInfoLineCount: 0,
         ignoredLineCount: 0,
         parsedEventCount: 0,
-        playerLinks: [],
+        playerLinks: [
+          {
+            candidates: [
+              {
+                displayName: 'Friday Mars',
+                gamesPlayed: 8,
+                id: 'player-1',
+                linkedFullName: 'Friday Mars',
+                linkedUsername: 'friday-mars',
+                matchReason: 'display_name_exact' as const,
+                matchScore: 400,
+              },
+            ],
+            importedName: 'Friday Mars',
+            requiresConfirmation: false,
+            selectedPlayerId: 'player-1',
+            status: 'exact' as const,
+          },
+        ],
         requiresPlayerConfirmation: false,
         scoreCandidates: [],
       },

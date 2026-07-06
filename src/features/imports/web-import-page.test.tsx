@@ -7,7 +7,60 @@ const review = {
   drawInfoLineCount: 1,
   ignoredLineCount: 2,
   parsedEventCount: 3,
-  playerLinks: [{ importedName: 'Friday Mars', status: 'unmatched' as const }],
+  playerLinks: [
+    {
+      candidates: [
+        {
+          displayName: 'Friday Mars',
+          gamesPlayed: 11,
+          id: 'player-1',
+          linkedFullName: 'Friday Mars',
+          linkedUsername: 'friday-mars',
+          matchReason: 'display_name_exact' as const,
+          matchScore: 400,
+        },
+        {
+          displayName: 'Second Seat',
+          gamesPlayed: 4,
+          id: 'player-2',
+          linkedFullName: null,
+          linkedUsername: null,
+          matchReason: 'fallback' as const,
+          matchScore: 0,
+        },
+      ],
+      importedName: 'Friday Mars',
+      requiresConfirmation: false,
+      selectedPlayerId: 'player-1',
+      status: 'exact' as const,
+    },
+    {
+      candidates: [
+        {
+          displayName: 'Second Seat',
+          gamesPlayed: 4,
+          id: 'player-2',
+          linkedFullName: null,
+          linkedUsername: null,
+          matchReason: 'fallback' as const,
+          matchScore: 0,
+        },
+        {
+          displayName: 'Third Seat',
+          gamesPlayed: 2,
+          id: 'player-3',
+          linkedFullName: null,
+          linkedUsername: null,
+          matchReason: 'fallback' as const,
+          matchScore: 0,
+        },
+      ],
+      importedName: 'Unknown Friend',
+      requiresConfirmation: true,
+      selectedPlayerId: null,
+      status: 'unmatched' as const,
+    },
+  ],
   requiresPlayerConfirmation: true,
   scoreCandidates: [{ playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 }],
 };
@@ -123,7 +176,75 @@ describe('WebImportPage', () => {
       screen.getByText(/parsed 3 actionable log events and ignored 2 filler lines/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/Friday Mars: 62 total/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/match imported player friday mars/i),
+    ).toBeInTheDocument();
     expect(onConfirmImportReview).not.toHaveBeenCalled();
+  });
+
+  it('requires every imported player to have a selected roster player before confirmation', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars won by 6 points.',
+    );
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Unknown Friend',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    const confirmButton = await screen.findByRole('button', {
+      name: /confirm import draft/i,
+    });
+
+    expect(confirmButton).toBeDisabled();
+
+    await user.selectOptions(
+      screen.getByLabelText(/match imported player unknown friend/i),
+      'player-2',
+    );
+
+    expect(confirmButton).toBeEnabled();
+
+    await user.click(confirmButton);
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
+    expect(JSON.parse(String(submittedFormData.get('confirmedPlayerLinks')))).toEqual([
+      { importedName: 'Friday Mars', playerId: 'player-1' },
+      { importedName: 'Unknown Friend', playerId: 'player-2' },
+    ]);
   });
 
   it('attaches a pasted screenshot from the clipboard', async () => {

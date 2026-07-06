@@ -2,6 +2,10 @@ import type { CreateImportDraftInput } from './build-import-draft';
 import { parseImportParticipants } from './parse-import-participants';
 
 export type CreateImportDraftFormValues = {
+  confirmedPlayerLinks?: Array<{
+    importedName: string;
+    playerId: string;
+  }>;
   endgameScreenshot: File | null;
   exportedGameLog: string;
   generationCount: number;
@@ -10,6 +14,41 @@ export type CreateImportDraftFormValues = {
   playedOn: string;
   playerCount: number;
 };
+
+function readConfirmedPlayerLinks(formData: FormData) {
+  const rawValue = readTextField(formData, 'confirmedPlayerLinks');
+
+  if (!rawValue) {
+    return [] as Array<{ importedName: string; playerId: string }>;
+  }
+
+  const parsedValue = JSON.parse(rawValue);
+
+  if (!Array.isArray(parsedValue)) {
+    throw new Error('Expected confirmedPlayerLinks to be an array.');
+  }
+
+  return parsedValue.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return [];
+    }
+
+    const importedName =
+      'importedName' in entry && typeof entry.importedName === 'string'
+        ? entry.importedName.trim()
+        : '';
+    const playerId =
+      'playerId' in entry && typeof entry.playerId === 'string'
+        ? entry.playerId.trim()
+        : '';
+
+    if (!importedName || !playerId) {
+      return [];
+    }
+
+    return [{ importedName, playerId }];
+  });
+}
 
 function readTextField(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -51,6 +90,10 @@ export function buildCreateImportDraftFormData(
   formData.set('generationCount', String(values.generationCount));
   formData.set('exportedGameLog', values.exportedGameLog.trim());
   formData.set('participants', values.participants);
+  formData.set(
+    'confirmedPlayerLinks',
+    JSON.stringify(values.confirmedPlayerLinks ?? []),
+  );
 
   if (values.endgameScreenshot) {
     formData.set('endgameScreenshot', values.endgameScreenshot);
@@ -68,6 +111,7 @@ export function parseCreateImportDraftFormData(
   );
 
   return {
+    confirmedPlayerLinks: readConfirmedPlayerLinks(formData),
     endgameScreenshot,
     endgameScreenshotName: endgameScreenshot?.name ?? null,
     exportedGameLog: readTextField(formData, 'exportedGameLog'),

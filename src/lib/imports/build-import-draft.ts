@@ -19,6 +19,10 @@ export type ImportDraftValues = {
 };
 
 export type CreateImportDraftInput = ImportDraftValues & {
+  confirmedPlayerLinks?: Array<{
+    importedName: string;
+    playerId: string;
+  }>;
   endgameScreenshot: File | null;
 };
 

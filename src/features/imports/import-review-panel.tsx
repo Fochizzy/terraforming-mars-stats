@@ -3,10 +3,16 @@ import { ImportPlayerResolutionPanel } from './import-player-resolution-panel';
 import { ImportScoreCandidatesPanel } from './import-score-candidates-panel';
 
 type ImportReviewPanelProps = {
+  onSelectionChange: (importedName: string, playerId: string) => void;
   review: ImportReviewModel | null;
+  playerSelections: Record<string, string>;
 };
 
-export function ImportReviewPanel({ review }: ImportReviewPanelProps) {
+export function ImportReviewPanel({
+  onSelectionChange,
+  review,
+  playerSelections,
+}: ImportReviewPanelProps) {
   if (!review) {
     return null;
   }
@@ -27,7 +33,11 @@ export function ImportReviewPanel({ review }: ImportReviewPanelProps) {
           scoring.
         </p>
       ) : null}
-      <ImportPlayerResolutionPanel playerLinks={review.playerLinks} />
+      <ImportPlayerResolutionPanel
+        onSelectionChange={onSelectionChange}
+        playerLinks={review.playerLinks}
+        playerSelections={playerSelections}
+      />
       <ImportScoreCandidatesPanel scoreCandidates={review.scoreCandidates} />
     </section>
   );

@@ -142,9 +142,10 @@ export function parseImportPlayerScores(input: {
       continue;
     }
 
-    const { name: _name, ...scoreFields } = playerScore;
     const populatedScore = Object.fromEntries(
-      Object.entries(scoreFields).filter(([, value]) => value !== undefined),
+      Object.entries(playerScore).filter(
+        ([key, value]) => key !== 'name' && value !== undefined,
+      ),
     ) as LogGameDraftInput['playerScores'][string];
 
     if (Object.keys(populatedScore).length > 0) {
