@@ -8,6 +8,7 @@ type BoardAwareAwardRule =
   | {
       awardName: string;
       mode: 'review_needed';
+      requestedAdjacentTileKinds?: string[];
       reviewNote: string;
     }
   | {
@@ -28,6 +29,7 @@ const boardAwareAwardRulesByMap: Record<
     {
       awardName: 'Landlord',
       mode: 'review_needed',
+      requestedAdjacentTileKinds: ['ocean'],
       reviewNote:
         'Landlord still needs targeted ocean-adjacency confirmation before importing winners.',
     },
@@ -49,6 +51,7 @@ const boardAwareAwardRulesByMap: Record<
     {
       awardName: 'Estate Dealer',
       mode: 'review_needed',
+      requestedAdjacentTileKinds: ['ocean'],
       reviewNote:
         'Estate Dealer still needs targeted ocean-adjacency confirmation before importing winners.',
     },
@@ -110,6 +113,33 @@ function buildRankedOwnedTileCounts(input: {
     );
 }
 
+function buildRequestedAdjacentSpaceIds(input: {
+  boardEvidenceContext: BoardEvidenceContext;
+  events: ParsedActionGameLogEvent[];
+  tileKinds: string[];
+}) {
+  const requestedSpaceIds = new Set<string>();
+
+  for (const event of input.events) {
+    if (event.eventType !== 'tile_placed') {
+      continue;
+    }
+
+    const adjacentQuery = input.boardEvidenceContext.countAdjacentMatchingTiles({
+      spaceId: event.space,
+      tileKinds: input.tileKinds,
+    });
+
+    for (const requestedSpaceId of adjacentQuery.requestedSpaceIds) {
+      requestedSpaceIds.add(requestedSpaceId);
+    }
+  }
+
+  return [...requestedSpaceIds].sort((left, right) =>
+    left.localeCompare(right, undefined, { numeric: true }),
+  );
+}
+
 export function scoreBoardAwareAwardItems(input: {
   boardEvidenceContext: BoardEvidenceContext;
   events: ParsedActionGameLogEvent[];
@@ -139,6 +169,14 @@ export function scoreBoardAwareAwardItems(input: {
     }
 
     if (rule.mode === 'review_needed') {
+      const requestedSpaceIds = rule.requestedAdjacentTileKinds
+        ? buildRequestedAdjacentSpaceIds({
+            boardEvidenceContext: input.boardEvidenceContext,
+            events: input.events,
+            tileKinds: rule.requestedAdjacentTileKinds,
+          })
+        : [];
+
       return [
         {
           awardName: rule.awardName,
@@ -146,6 +184,7 @@ export function scoreBoardAwareAwardItems(input: {
           itemType: 'award',
           mapId: input.mapId,
           notes: [rule.reviewNote],
+          requestedSpaceIds,
           sourceType: 'log',
           status: 'review_needed',
         },

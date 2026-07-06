@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { buildBoardEvidenceContext } from './build-board-evidence-context';
 import { buildBoardScreenshotConfirmationRequests } from './build-board-screenshot-confirmation-requests';
+import { scoreBoardAwareAwardItems } from './score-board-aware-award-items';
 
 describe('buildBoardScreenshotConfirmationRequests', () => {
   it('deduplicates requested spaces from board-aware cards and awards', () => {
@@ -44,5 +46,56 @@ describe('buildBoardScreenshotConfirmationRequests', () => {
         ],
       }),
     ).toEqual([{ spaceId: '20' }, { spaceId: '22' }, { spaceId: '29' }]);
+  });
+
+  it('collects requested spaces from live board-aware award scorer output', () => {
+    const awardItems = scoreBoardAwareAwardItems({
+      boardEvidenceContext: buildBoardEvidenceContext({
+        boardSnapshot: {
+          mapId: 'tharsis',
+          spaces: {
+            '21': {
+              confidence: 'high',
+              notes: [],
+              ownerPlayerName: 'Friday',
+              sourceCardName: null,
+              sourceType: 'log_explicit',
+              tileKind: 'city',
+            },
+          },
+        },
+      }),
+      events: [
+        {
+          actor: 'Friday',
+          award: 'Landlord',
+          eventType: 'award_funded',
+          lineNumber: 1,
+          rawLine: 'Friday funded Landlord award',
+        },
+        {
+          actor: 'Friday',
+          eventType: 'tile_placed',
+          lineNumber: 2,
+          rawLine: 'Friday placed city tile at 21',
+          space: '21',
+          tile: 'city',
+        },
+      ],
+      mapId: 'tharsis',
+      participantNames: ['Friday'],
+    });
+
+    expect(
+      buildBoardScreenshotConfirmationRequests({
+        awardItems,
+        cardScoring: [],
+      }),
+    ).toEqual([
+      { spaceId: '20' },
+      { spaceId: '22' },
+      { spaceId: '29' },
+      { spaceId: '30' },
+    ]);
   });
 });

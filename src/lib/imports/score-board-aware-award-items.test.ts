@@ -3,6 +3,107 @@ import { buildBoardEvidenceContext } from './build-board-evidence-context';
 import { scoreBoardAwareAwardItems } from './score-board-aware-award-items';
 
 describe('scoreBoardAwareAwardItems', () => {
+  it('collects real requested ocean-adjacency spaces for Landlord from shared board evidence', () => {
+    const boardEvidenceContext = buildBoardEvidenceContext({
+      boardSnapshot: {
+        mapId: 'tharsis',
+        spaces: {
+          '21': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Friday',
+            sourceCardName: null,
+            sourceType: 'log_explicit',
+            tileKind: 'city',
+          },
+        },
+      },
+    });
+
+    expect(
+      scoreBoardAwareAwardItems({
+        boardEvidenceContext,
+        events: [
+          {
+            actor: 'Friday',
+            award: 'Landlord',
+            eventType: 'award_funded',
+            lineNumber: 1,
+            rawLine: 'Friday funded Landlord award',
+          },
+          {
+            actor: 'Friday',
+            eventType: 'tile_placed',
+            lineNumber: 2,
+            rawLine: 'Friday placed city tile at 21',
+            space: '21',
+            tile: 'city',
+          },
+        ],
+        mapId: 'tharsis',
+        participantNames: ['Friday'],
+      }),
+    ).toContainEqual(
+      expect.objectContaining({
+        awardName: 'Landlord',
+        notes: expect.arrayContaining([
+          'Landlord still needs targeted ocean-adjacency confirmation before importing winners.',
+        ]),
+        requestedSpaceIds: ['20', '22', '29', '30'],
+        status: 'review_needed',
+      }),
+    );
+  });
+
+  it('collects real requested ocean-adjacency spaces for Estate Dealer from shared board evidence', () => {
+    const boardEvidenceContext = buildBoardEvidenceContext({
+      boardSnapshot: {
+        mapId: 'elysium',
+        spaces: {
+          '31': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Corey',
+            sourceCardName: null,
+            sourceType: 'log_explicit',
+            tileKind: 'greenery',
+          },
+        },
+      },
+    });
+
+    expect(
+      scoreBoardAwareAwardItems({
+        boardEvidenceContext,
+        events: [
+          {
+            actor: 'Corey',
+            award: 'Estate Dealer',
+            eventType: 'award_funded',
+            lineNumber: 1,
+            rawLine: 'Corey funded Estate Dealer award',
+          },
+          {
+            actor: 'Corey',
+            eventType: 'tile_placed',
+            lineNumber: 2,
+            rawLine: 'Corey placed greenery tile at 31',
+            space: '31',
+            tile: 'greenery',
+          },
+        ],
+        mapId: 'elysium',
+        participantNames: ['Corey'],
+      }),
+    ).toContainEqual(
+      expect.objectContaining({
+        awardName: 'Estate Dealer',
+        requestedSpaceIds: ['30', '32', '39', '40'],
+        status: 'review_needed',
+      }),
+    );
+  });
+
   it('proves Cultivator from shared board evidence and preserves shared zero-count second place', () => {
     const boardEvidenceContext = buildBoardEvidenceContext({
       boardSnapshot: {

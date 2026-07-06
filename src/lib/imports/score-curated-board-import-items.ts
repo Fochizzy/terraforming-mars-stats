@@ -37,53 +37,6 @@ export type CuratedBoardImportItem =
   | CuratedBoardCardImportItem
   | CuratedBoardAwardImportItem;
 
-type CuratedBoardAwardRule =
-  | {
-      awardName: string;
-      mode: 'review_needed';
-      reviewNote: string;
-    }
-  | {
-      awardName: string;
-      mode: 'tile_count';
-      tileKind: string;
-    };
-
-const curatedBoardAwardRulesByMap: Record<
-  SupportedBoardMapId,
-  CuratedBoardAwardRule[]
-> = {
-  tharsis: [
-    {
-      awardName: 'Landlord',
-      mode: 'review_needed',
-      reviewNote:
-        'Landlord still needs targeted ocean-adjacency confirmation before importing winners.',
-    },
-  ],
-  hellas: [
-    {
-      awardName: 'Cultivator',
-      mode: 'tile_count',
-      tileKind: 'greenery',
-    },
-  ],
-  elysium: [
-    {
-      awardName: 'Desert Settler',
-      mode: 'review_needed',
-      reviewNote:
-        'Desert Settler still needs targeted area confirmation before importing winners.',
-    },
-    {
-      awardName: 'Estate Dealer',
-      mode: 'review_needed',
-      reviewNote:
-        'Estate Dealer still needs targeted ocean-adjacency confirmation before importing winners.',
-    },
-  ],
-};
-
 const explicitCityTileNames = new Set(
   ['city', 'Capital', 'Noctis City'].map((tileName) => normalizePlayerAlias(tileName)),
 );
@@ -238,143 +191,6 @@ function buildCommercialDistrictItems(input: {
   });
 }
 
-function buildAwardResultMap(events: ParsedActionGameLogEvent[]) {
-  const awardNames = new Set<string>();
-
-  for (const event of events) {
-    if (event.eventType === 'award_result') {
-      awardNames.add(normalizeName(event.award));
-    }
-  }
-
-  return awardNames;
-}
-
-function getRankedTileCounts(input: {
-  events: ParsedActionGameLogEvent[];
-  participantNames?: string[];
-  tileKind: string;
-}) {
-  const countsByPlayerName = new Map<string, number>();
-
-  for (const participantName of input.participantNames ?? []) {
-    countsByPlayerName.set(participantName, 0);
-  }
-
-  for (const event of input.events) {
-    if (
-      event.eventType === 'tile_placed' &&
-      normalizeName(event.tile) === normalizeName(input.tileKind)
-    ) {
-      countsByPlayerName.set(
-        event.actor,
-        (countsByPlayerName.get(event.actor) ?? 0) + 1,
-      );
-    }
-  }
-
-  return [...countsByPlayerName.entries()]
-    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]));
-}
-
-function buildAwardItems(input: {
-  events: ParsedActionGameLogEvent[];
-  mapId: SupportedBoardMapId;
-  participantNames?: string[];
-}): CuratedBoardAwardImportItem[] {
-  const rulesByName = new Map(
-    curatedBoardAwardRulesByMap[input.mapId].map((rule) => [
-      normalizeName(rule.awardName),
-      rule,
-    ] as const),
-  );
-  const awardResults = buildAwardResultMap(input.events);
-
-  return input.events.flatMap<CuratedBoardAwardImportItem>((event) => {
-    if (
-      event.eventType !== 'award_funded' ||
-      awardResults.has(normalizeName(event.award))
-    ) {
-      return [];
-    }
-
-    const rule = rulesByName.get(normalizeName(event.award));
-
-    if (!rule) {
-      return [];
-    }
-
-    if (rule.mode === 'review_needed') {
-      return [
-        {
-          awardName: rule.awardName,
-          fundedByPlayerName: event.actor,
-          itemType: 'award',
-          mapId: input.mapId,
-          notes: [rule.reviewNote],
-          sourceType: 'log',
-          status: 'review_needed',
-        },
-      ];
-    }
-
-    const rankedCounts = getRankedTileCounts({
-      events: input.events,
-      participantNames: input.participantNames,
-      tileKind: rule.tileKind,
-    });
-
-    if (rankedCounts.length === 0 || rankedCounts[0]?.[1] == null) {
-      return [
-        {
-          awardName: rule.awardName,
-          fundedByPlayerName: event.actor,
-          itemType: 'award',
-          mapId: input.mapId,
-          notes: [
-            `${rule.awardName} was funded, but the imported log did not prove any ${rule.tileKind} placements.`,
-          ],
-          sourceType: 'log',
-          status: 'review_needed',
-        },
-      ];
-    }
-
-    const topCount = rankedCounts[0][1];
-    const firstPlacePlayerNames = rankedCounts
-      .filter(([, count]) => count === topCount)
-      .map(([playerName]) => playerName);
-    const secondPlaceCount =
-      firstPlacePlayerNames.length === 1
-        ? rankedCounts.find(([, count]) => count < topCount)?.[1]
-        : undefined;
-    const secondPlacePlayerNames =
-      secondPlaceCount == null
-        ? []
-        : rankedCounts
-            .filter(([, count]) => count === secondPlaceCount)
-            .map(([playerName]) => playerName);
-
-    return [
-      {
-        awardName: rule.awardName,
-        firstPlacePlayerNames,
-        fundedByPlayerName: event.actor,
-        itemType: 'award',
-        mapId: input.mapId,
-        notes: [
-          `${rule.awardName} used ${rule.tileKind} placements from the imported log: ${rankedCounts
-            .map(([playerName, count]) => `${playerName} ${count}`)
-            .join(', ')}.`,
-        ],
-        secondPlacePlayerNames,
-        sourceType: 'log',
-        status: 'proved',
-      },
-    ];
-  });
-}
-
 export function scoreCuratedBoardImportItems(input: {
   boardSnapshot: ImportBoardSnapshot;
   events: ParsedActionGameLogEvent[];
@@ -382,16 +198,9 @@ export function scoreCuratedBoardImportItems(input: {
   participantNames?: string[];
   screenshotConfirmations?: Record<string, BoardSpaceConfirmation>;
 }): CuratedBoardImportItem[] {
-  return [
-    ...buildCommercialDistrictItems({
-      boardSnapshot: input.boardSnapshot,
-      events: input.events,
-      screenshotConfirmations: input.screenshotConfirmations,
-    }),
-    ...buildAwardItems({
-      events: input.events,
-      mapId: input.mapId,
-      participantNames: input.participantNames,
-    }),
-  ];
+  return buildCommercialDistrictItems({
+    boardSnapshot: input.boardSnapshot,
+    events: input.events,
+    screenshotConfirmations: input.screenshotConfirmations,
+  });
 }

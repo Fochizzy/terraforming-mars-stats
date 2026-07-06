@@ -382,7 +382,7 @@ describe('scoreCuratedBoardImportItems', () => {
             tileKind: 'occupied_other',
           },
         },
-      } as any),
+      } satisfies Parameters<typeof scoreCuratedBoardImportItems>[0]),
     ).toContainEqual(
       expect.objectContaining({
         cardName: 'Commercial District',
@@ -471,7 +471,7 @@ describe('scoreCuratedBoardImportItems', () => {
             tileKind: 'empty',
           },
         },
-      } as any),
+      } satisfies Parameters<typeof scoreCuratedBoardImportItems>[0]),
     ).toContainEqual(
       expect.objectContaining({
         cardName: 'Commercial District',
@@ -486,7 +486,7 @@ describe('scoreCuratedBoardImportItems', () => {
     );
   });
 
-  it('uses map-aware award names instead of hard-coding Tharsis objectives', () => {
+  it('does not emit runtime award items because the shared award scorer owns board-aware awards', () => {
     const boardSnapshot = buildImportBoardSnapshot({
       events: [
         {
@@ -555,67 +555,6 @@ describe('scoreCuratedBoardImportItems', () => {
         ],
         mapId: 'hellas',
       }),
-    ).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          awardName: 'Cultivator',
-          firstPlacePlayerNames: ['Colette'],
-          fundedByPlayerName: 'Friday',
-          itemType: 'award',
-          secondPlacePlayerNames: ['Corey'],
-          status: 'proved',
-        }),
-      ]),
-    );
-  });
-
-  it('keeps zero-placement participants eligible for shared second place on Cultivator', () => {
-    const boardSnapshot = buildImportBoardSnapshot({
-      events: [
-        {
-          actor: 'Colette',
-          eventType: 'tile_placed',
-          lineNumber: 21,
-          rawLine: 'Colette placed greenery tile at 18',
-          space: '18',
-          tile: 'greenery',
-        },
-      ],
-      mapId: 'hellas',
-    });
-
-    expect(
-      scoreCuratedBoardImportItems({
-        boardSnapshot,
-        events: [
-          {
-            actor: 'Friday',
-            award: 'Cultivator',
-            eventType: 'award_funded',
-            lineNumber: 20,
-            rawLine: 'Friday funded Cultivator award',
-          },
-          {
-            actor: 'Colette',
-            eventType: 'tile_placed',
-            lineNumber: 21,
-            rawLine: 'Colette placed greenery tile at 18',
-            space: '18',
-            tile: 'greenery',
-          },
-        ],
-        mapId: 'hellas',
-        participantNames: ['Colette', 'Corey', 'Izzy'],
-      }),
-    ).toContainEqual(
-      expect.objectContaining({
-        awardName: 'Cultivator',
-        firstPlacePlayerNames: ['Colette'],
-        fundedByPlayerName: 'Friday',
-        itemType: 'award',
-        secondPlacePlayerNames: ['Corey', 'Izzy'],
-        status: 'proved',
-      }),
-    );
+    ).toEqual([]);
   });
 });
