@@ -1,4 +1,5 @@
 export const protectedPrefixes = [
+  '/claim-player',
   '/profile',
   '/group',
   '/insights',
