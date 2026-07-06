@@ -64,4 +64,20 @@ describe('importReviewJumpState', () => {
       scoreField: 'cardPointsTotal',
     });
   });
+
+  it('rejects malformed stored jump targets that contain playerId null', () => {
+    window.sessionStorage.setItem(
+      'tm.import-review.jump-state',
+      JSON.stringify({
+        gameId: 'null-player-id-game',
+        itemLabel: 'Commercial District',
+        message: 'Malformed message.',
+        playerId: null,
+        playerName: 'Imported Alias',
+        scoreField: 'cardPointsTotal',
+      }),
+    );
+
+    expect(readImportReviewJumpState('null-player-id-game')).toBeNull();
+  });
 });
