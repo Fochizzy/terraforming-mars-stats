@@ -13,6 +13,7 @@ function formatBreakdown(summary: ImportPlayerCardScoringSummary['totals']) {
 }
 
 type ImportCardScoringPanelProps = {
+  suppressedManualReviewTargets?: ImportReviewJumpTarget[];
   onSelectManualReviewJumpTarget?: (target: ImportReviewJumpTarget) => void;
   selectedManualReviewJumpTarget?: ImportReviewJumpTarget | null;
   summaries: ImportPlayerCardScoringSummary[];
@@ -47,7 +48,19 @@ function buildPendingCardJumpTarget(
   };
 }
 
+function isSameManualReviewJumpTarget(
+  left: ImportReviewJumpTarget,
+  right: ImportReviewJumpTarget,
+) {
+  return (
+    left.itemLabel === right.itemLabel &&
+    left.playerName === right.playerName &&
+    left.scoreField === right.scoreField
+  );
+}
+
 export function ImportCardScoringPanel({
+  suppressedManualReviewTargets = [],
   onSelectManualReviewJumpTarget,
   selectedManualReviewJumpTarget,
   summaries,
@@ -84,6 +97,11 @@ export function ImportCardScoringPanel({
               <ul className="mt-3 flex flex-col gap-2 text-xs text-amber-100">
                 {summary.pendingCards.map((card) => {
                   const jumpTarget = buildPendingCardJumpTarget(summary, card);
+                  const isSuppressed =
+                    jumpTarget != null &&
+                    suppressedManualReviewTargets.some((target) =>
+                      isSameManualReviewJumpTarget(target, jumpTarget),
+                    );
                   const isSelected =
                     jumpTarget != null &&
                     selectedManualReviewJumpTarget?.itemLabel ===
@@ -93,7 +111,7 @@ export function ImportCardScoringPanel({
                     selectedManualReviewJumpTarget.scoreField ===
                       jumpTarget.scoreField;
 
-                  if (!jumpTarget) {
+                  if (!jumpTarget || isSuppressed) {
                     return (
                       <li key={`${summary.playerName}-${card.cardId}-pending`}>
                         Review {card.cardName}: {card.reason}

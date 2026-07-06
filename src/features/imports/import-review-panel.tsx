@@ -137,6 +137,10 @@ export function ImportReviewPanel({
   const cardScoring = review.cardScoring ?? [];
   const logScoreCandidates = review.logScoreCandidates ?? [];
   const boardReviewItems = review.boardReviewItems ?? [];
+  const boardReviewJumpTargets = boardReviewItems.flatMap((item) => {
+    const jumpTarget = buildBoardReviewJumpTarget(item);
+    return jumpTarget ? [jumpTarget] : [];
+  });
   const scoreCrossChecks = review.scoreCrossChecks ?? [];
 
   return (
@@ -241,6 +245,7 @@ export function ImportReviewPanel({
       <ImportCardScoringPanel
         onSelectManualReviewJumpTarget={onSelectManualReviewJumpTarget}
         selectedManualReviewJumpTarget={selectedManualReviewJumpTarget}
+        suppressedManualReviewTargets={boardReviewJumpTargets}
         summaries={cardScoring}
       />
       <ImportPlayerResolutionPanel
