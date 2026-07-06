@@ -12,9 +12,11 @@ export const supportedBoardMapIds = [
 
 export type SupportedBoardMapId = (typeof supportedBoardMapIds)[number];
 
+export type BoardSpaceRegistry = Partial<Record<string, BoardSpaceDefinition>>;
+
 export type BoardSpaceMap = {
   mapId: SupportedBoardMapId;
-  spaces: Record<string, BoardSpaceDefinition>;
+  spaces: BoardSpaceRegistry;
 };
 
 const sharedBoardGeometry = {
@@ -24,7 +26,7 @@ const sharedBoardGeometry = {
 
 function createBoardSpaces(
   reservedTile?: BoardSpaceDefinition['reservedTile'],
-): Record<string, BoardSpaceDefinition> {
+): BoardSpaceRegistry {
   return {
     '21': {
       id: '21',

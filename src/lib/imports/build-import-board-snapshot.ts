@@ -22,7 +22,7 @@ export function buildImportBoardSnapshot(input: {
   events: ParsedActionGameLogEvent[];
   mapId: SupportedBoardMapId;
 }): ImportBoardSnapshot {
-  getBoardSpaceMap(input.mapId);
+  const boardSpaceMap = getBoardSpaceMap(input.mapId);
 
   const spaces: Record<string, ImportBoardOccupant> = {};
 
@@ -31,9 +31,16 @@ export function buildImportBoardSnapshot(input: {
       continue;
     }
 
+    const notes =
+      boardSpaceMap.spaces[event.space] == null
+        ? [
+            `Space ${event.space} is outside curated board coverage for ${boardSpaceMap.mapId}.`,
+          ]
+        : [];
+
     spaces[event.space] = {
       confidence: event.tile.toLowerCase() === 'city' ? 'medium' : 'high',
-      notes: [],
+      notes,
       ownerPlayerName: event.actor,
       sourceCardName:
         event.tile.toLowerCase() === 'city' ||
