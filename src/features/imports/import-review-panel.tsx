@@ -17,6 +17,8 @@ export function ImportReviewPanel({
     return null;
   }
 
+  const detectedParticipantNames = review.detectedParticipantNames ?? [];
+
   return (
     <section className="tm-panel flex flex-col gap-3">
       <h2 className="tm-panel-title text-lg">Import Review</h2>
@@ -27,6 +29,11 @@ export function ImportReviewPanel({
       <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
         {review.drawInfoLineCount} draw-only lines were kept as context.
       </p>
+      {detectedParticipantNames.length > 0 ? (
+        <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+          Detected from log: {detectedParticipantNames.join(', ')}
+        </p>
+      ) : null}
       {review.requiresPlayerConfirmation ? (
         <p className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
           Some imported names still need profile confirmation before final

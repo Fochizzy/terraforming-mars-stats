@@ -6,10 +6,6 @@ export function parseImportParticipants(input: string) {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  if (participants.length === 0) {
-    throw new Error('Add at least one participant before saving the import.');
-  }
-
   const seenAliases = new Set<string>();
 
   for (const participant of participants) {

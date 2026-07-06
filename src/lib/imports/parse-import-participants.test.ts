@@ -8,6 +8,10 @@ describe('parseImportParticipants', () => {
     ).toEqual(['Friday Mars', 'Second Seat', 'Third Seat']);
   });
 
+  it('allows the manual participant field to be blank', () => {
+    expect(parseImportParticipants('   ')).toEqual([]);
+  });
+
   it('rejects duplicate participant aliases after normalization', () => {
     expect(() => parseImportParticipants('Friday Mars\nfriday-mars')).toThrow(
       /must be unique/i,

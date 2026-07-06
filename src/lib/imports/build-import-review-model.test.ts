@@ -6,6 +6,7 @@ describe('buildImportReviewModel', () => {
     expect(
       buildImportReviewModel({
         logParse: {
+          cardPointBreakdowns: [],
           drawInfoLineCount: 1,
           events: [
             {
@@ -27,6 +28,7 @@ describe('buildImportReviewModel', () => {
         },
       }),
     ).toMatchObject({
+      detectedParticipantNames: ['Izzy'],
       drawInfoLineCount: 1,
       ignoredLineCount: 2,
       parsedEventCount: 1,

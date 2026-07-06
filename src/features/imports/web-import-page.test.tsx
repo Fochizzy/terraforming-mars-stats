@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { WebImportPage } from './web-import-page';
 
 const review = {
+  detectedParticipantNames: ['Friday Mars'],
   drawInfoLineCount: 1,
   ignoredLineCount: 2,
   parsedEventCount: 3,
@@ -245,6 +246,76 @@ describe('WebImportPage', () => {
       { importedName: 'Friday Mars', playerId: 'player-1' },
       { importedName: 'Unknown Friend', playerId: 'player-2' },
     ]);
+  });
+
+  it('auto-fills detected log participants when the manual field is blank', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        ...review,
+        detectedParticipantNames: ['Friday Mars', 'Second Seat'],
+        playerLinks: [
+          review.playerLinks[0],
+          {
+            ...review.playerLinks[1],
+            candidates: [review.playerLinks[1].candidates[0]],
+            importedName: 'Second Seat',
+            selectedPlayerId: 'player-2',
+            status: 'suggested' as const,
+          },
+        ],
+      },
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars played Earth Catapult.',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/participants/i)).toHaveValue(
+        'Friday Mars\nSecond Seat',
+      ),
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: /confirm import draft/i }),
+    );
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
+    expect(submittedFormData.get('participants')).toBe(
+      ['Friday Mars', 'Second Seat'].join('\n'),
+    );
   });
 
   it('attaches a pasted screenshot from the clipboard', async () => {

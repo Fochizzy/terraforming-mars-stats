@@ -53,6 +53,21 @@ describe('parseCreateImportDraftFormData', () => {
     });
   });
 
+  it('allows manual participants to be omitted until the import review detects them', () => {
+    const formData = new FormData();
+
+    formData.set('playedOn', '2026-07-04');
+    formData.set('mapId', 'elysium');
+    formData.set('playerCount', '3');
+    formData.set('generationCount', '12');
+    formData.set('exportedGameLog', 'Friday Mars played Earth Catapult.');
+    formData.set('participants', '');
+
+    expect(parseCreateImportDraftFormData(formData)).toMatchObject({
+      participantNames: [],
+    });
+  });
+
   it('round-trips confirmed player links from the import review step', () => {
     const formData = buildCreateImportDraftFormData({
       confirmedPlayerLinks: [

@@ -23,6 +23,7 @@ import { buildImportDraft } from '@/lib/imports/build-import-draft';
 import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
+import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
 import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
 import {
   parseEndgameScoreScreenshot,
@@ -70,6 +71,10 @@ export default async function LogGameImportPage() {
     try {
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
+      const detectedParticipantNames =
+        values.participantNames.length > 0
+          ? values.participantNames
+          : extractGameLogParticipantNames(parsedGameLog);
       let parsedScreenshot: ParsedEndgameScoreScreenshot = { playerRows: [] };
 
       if (values.endgameScreenshot) {
@@ -88,10 +93,17 @@ export default async function LogGameImportPage() {
       const activeContext = await getCurrentGroupContext();
       const importedNames = Array.from(
         new Set([
-          ...values.participantNames,
+          ...detectedParticipantNames,
           ...parsedScreenshot.playerRows.map((row) => row.playerName),
         ]),
       );
+
+      if (importedNames.length === 0) {
+        throw new Error(
+          'Add participant names or import evidence that includes player names.',
+        );
+      }
+
       const playerLinks = activeContext
         ? resolveImportPlayerLinks(
             importedNames,
@@ -127,6 +139,11 @@ export default async function LogGameImportPage() {
 
     try {
       const values = parseCreateImportDraftFormData(formData);
+      const parsedGameLog = parseGameLog(values.exportedGameLog);
+      const detectedParticipantNames =
+        values.participantNames.length > 0
+          ? values.participantNames
+          : extractGameLogParticipantNames(parsedGameLog);
       const activeSupabase = await createSupabaseServerClient();
       const {
         data: { user: activeUser },
@@ -190,10 +207,16 @@ export default async function LogGameImportPage() {
               : [],
         };
       } else {
+        if (detectedParticipantNames.length === 0) {
+          throw new Error(
+            'Add participant names before creating a new group from this import.',
+          );
+        }
+
         try {
           importGroup = await resolveOrCreateImportGroup({
             importingUserId: activeUser.id,
-            participantNames: values.participantNames,
+            participantNames: detectedParticipantNames,
           });
         } catch (error) {
           throw error;
@@ -201,7 +224,6 @@ export default async function LogGameImportPage() {
       }
 
       const activeGroupSettings = await getGroupSettings(importGroup.groupId);
-      const parsedGameLog = parseGameLog(values.exportedGameLog);
       const [awardOptions, cards, milestoneOptions] = await Promise.all([
         listMapAwards(),
         listCards(),
@@ -221,12 +243,25 @@ export default async function LogGameImportPage() {
           );
         }
       }
+
+      if (
+        detectedParticipantNames.length === 0 &&
+        parsedScreenshot.playerRows.length === 0
+      ) {
+        throw new Error(
+          'Add participant names or import evidence that includes player names.',
+        );
+      }
+
       const draftForm = buildImportDraft({
         awardOptions,
         defaultExpansionCodes: activeGroupSettings.defaultExpansionCodes,
         defaultPromoSetSlugs: activeGroupSettings.defaultPromoSetSlugs,
         groupId: importGroup.groupId,
-        importValues: values,
+        importValues: {
+          ...values,
+          participantNames: detectedParticipantNames,
+        },
         milestoneOptions,
         parsedGameLog,
         playerSelections: confirmedPlayerLinks,
@@ -274,7 +309,7 @@ export default async function LogGameImportPage() {
         const aliasPlayers = await listImportResolutionPlayers(importGroup.groupId);
         const aliasesToSave = buildConfirmedPlayerAliases({
           confirmedPlayerLinks,
-          participantNames: values.participantNames,
+          participantNames: detectedParticipantNames,
           players: aliasPlayers,
           screenshotPlayerNames: parsedScreenshot.playerRows.map(
             (row) => row.playerName,

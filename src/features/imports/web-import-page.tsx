@@ -203,6 +203,13 @@ export function WebImportPage({
     try {
       const result = await onAnalyzeImportEvidence(buildCurrentFormData());
 
+      if (
+        !participantsText.trim() &&
+        result.review?.detectedParticipantNames?.length
+      ) {
+        setParticipantsText(result.review.detectedParticipantNames.join('\n'));
+      }
+
       setFeedback(result);
       setReview(result.review ?? null);
     } catch (error) {
@@ -346,19 +353,20 @@ export function WebImportPage({
         </div>
 
         <div className="flex flex-col gap-2">
-          <StepHeading step="03" title="Participants" />
+          <StepHeading step="03" title="Participants (Optional)" />
           <label className="flex flex-col gap-2 text-sm">
             <span className="sr-only">Participants</span>
             <textarea
               aria-label="Participants"
               className="tm-input min-h-24"
               onChange={(event) => setParticipantsText(event.target.value)}
-              placeholder="Enter one participant name per line."
+              placeholder="Leave blank to detect names from the pasted log, or enter one name per line."
               value={participantsText}
             />
             <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-              One participant name per line, matched conservatively to the
-              shared player roster.
+              Leave this blank to auto-detect names from the pasted log when
+              possible, or enter one participant name per line to override the
+              detected list.
             </p>
           </label>
         </div>
