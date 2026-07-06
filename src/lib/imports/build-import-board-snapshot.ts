@@ -1,5 +1,8 @@
 import type { ParsedActionGameLogEvent } from './parse-game-log';
-import { getBoardSpaceMap } from './board-space-maps';
+import {
+  getBoardSpaceMap,
+  type SupportedBoardMapId,
+} from './board-space-maps';
 
 export type ImportBoardOccupant = {
   confidence: 'high' | 'medium';
@@ -11,13 +14,13 @@ export type ImportBoardOccupant = {
 };
 
 export type ImportBoardSnapshot = {
-  mapId: string;
+  mapId: SupportedBoardMapId;
   spaces: Record<string, ImportBoardOccupant>;
 };
 
 export function buildImportBoardSnapshot(input: {
   events: ParsedActionGameLogEvent[];
-  mapId: string;
+  mapId: SupportedBoardMapId;
 }): ImportBoardSnapshot {
   getBoardSpaceMap(input.mapId);
 

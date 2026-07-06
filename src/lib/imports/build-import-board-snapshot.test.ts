@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { buildImportBoardSnapshot } from './build-import-board-snapshot';
+import type { SupportedBoardMapId } from './board-space-maps';
+
+function expectSupportedBoardMapId(
+  mapId: SupportedBoardMapId,
+): SupportedBoardMapId {
+  return mapId;
+}
 
 describe('buildImportBoardSnapshot', () => {
   it('reconstructs occupied spaces from parsed tile placements and links named tiles safely', () => {
@@ -32,6 +39,7 @@ describe('buildImportBoardSnapshot', () => {
       mapId: 'tharsis',
     });
 
+    expect(expectSupportedBoardMapId(snapshot.mapId)).toBe('tharsis');
     expect(snapshot.spaces['21']).toMatchObject({
       ownerPlayerName: 'Izzy',
       sourceCardName: 'Mining Area',
@@ -62,6 +70,22 @@ describe('buildImportBoardSnapshot', () => {
           space: '19',
           tile: 'city',
         },
+        {
+          actor: 'Corey',
+          eventType: 'tile_placed',
+          lineNumber: 835,
+          rawLine: 'Corey placed greenery tile at 20',
+          space: '20',
+          tile: 'greenery',
+        },
+        {
+          actor: 'Corey',
+          eventType: 'tile_placed',
+          lineNumber: 836,
+          rawLine: 'Corey placed ocean tile at 21',
+          space: '21',
+          tile: 'ocean',
+        },
       ],
       mapId: 'tharsis',
     });
@@ -70,6 +94,16 @@ describe('buildImportBoardSnapshot', () => {
       ownerPlayerName: 'Corey',
       sourceCardName: null,
       tileKind: 'city',
+    });
+    expect(snapshot.spaces['20']).toMatchObject({
+      ownerPlayerName: 'Corey',
+      sourceCardName: null,
+      tileKind: 'greenery',
+    });
+    expect(snapshot.spaces['21']).toMatchObject({
+      ownerPlayerName: 'Corey',
+      sourceCardName: null,
+      tileKind: 'ocean',
     });
   });
 });

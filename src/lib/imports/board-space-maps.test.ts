@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getBoardSpaceMap } from './board-space-maps';
+import { getBoardSpaceMap, isSupportedBoardMapId } from './board-space-maps';
 
 describe('getBoardSpaceMap', () => {
   it('supports all three official board map ids', () => {
@@ -34,5 +34,12 @@ describe('getBoardSpaceMap', () => {
     expect(elysium.spaces['31']).toMatchObject({
       id: '31',
     });
+  });
+
+  it('rejects unsupported board map ids', () => {
+    expect(isSupportedBoardMapId('custom')).toBe(false);
+    expect(() => getBoardSpaceMap('custom')).toThrowError(
+      'Unsupported board map for curated board import: custom',
+    );
   });
 });
