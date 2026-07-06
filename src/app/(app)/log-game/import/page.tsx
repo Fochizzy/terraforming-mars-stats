@@ -191,6 +191,10 @@ export default async function LogGameImportPage() {
     try {
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
+      const detectedParticipantNames =
+        values.participantNames.length > 0
+          ? values.participantNames
+          : extractGameLogParticipantNames(parsedGameLog);
       const boardSnapshot =
         isSupportedBoardMapId(values.mapId)
           ? buildImportBoardSnapshot({
@@ -205,11 +209,8 @@ export default async function LogGameImportPage() {
               boardSnapshot,
               events: parsedGameLog.events,
               mapId: boardSnapshot.mapId,
+              participantNames: detectedParticipantNames,
             });
-      const detectedParticipantNames =
-        values.participantNames.length > 0
-          ? values.participantNames
-          : extractGameLogParticipantNames(parsedGameLog);
       const screenshotReadOptions = {
         expectedPlayerCount: Math.max(
           values.playerCount,
@@ -303,6 +304,10 @@ export default async function LogGameImportPage() {
     try {
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
+      const detectedParticipantNames =
+        values.participantNames.length > 0
+          ? values.participantNames
+          : extractGameLogParticipantNames(parsedGameLog);
       const boardSnapshot =
         isSupportedBoardMapId(values.mapId)
           ? buildImportBoardSnapshot({
@@ -317,11 +322,8 @@ export default async function LogGameImportPage() {
               boardSnapshot,
               events: parsedGameLog.events,
               mapId: boardSnapshot.mapId,
+              participantNames: detectedParticipantNames,
             });
-      const detectedParticipantNames =
-        values.participantNames.length > 0
-          ? values.participantNames
-          : extractGameLogParticipantNames(parsedGameLog);
       const screenshotReadOptions = {
         expectedPlayerCount: Math.max(
           values.playerCount,

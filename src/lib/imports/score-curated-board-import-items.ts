@@ -79,8 +79,16 @@ const curatedBoardAwardRulesByMap: Record<
   ],
 };
 
+const explicitCityTileNames = new Set(
+  ['city', 'Capital', 'Noctis City'].map((tileName) => normalizePlayerAlias(tileName)),
+);
+
 function normalizeName(value: string) {
   return normalizePlayerAlias(value);
+}
+
+function isCityTileName(tileName: string | null | undefined) {
+  return tileName != null && explicitCityTileNames.has(normalizeName(tileName));
 }
 
 function buildCommercialDistrictItems(input: {
@@ -141,9 +149,7 @@ function buildCommercialDistrictItems(input: {
 
     const adjacentCityCount = spaceDefinition.neighbors.reduce((count, neighborId) => {
       const occupant = input.boardSnapshot.spaces[neighborId];
-      return normalizeName(occupant?.tileKind ?? '') === normalizeName('city')
-        ? count + 1
-        : count;
+      return isCityTileName(occupant?.tileKind) ? count + 1 : count;
     }, 0);
 
     return [
@@ -177,9 +183,14 @@ function buildAwardResultMap(events: ParsedActionGameLogEvent[]) {
 
 function getRankedTileCounts(input: {
   events: ParsedActionGameLogEvent[];
+  participantNames?: string[];
   tileKind: string;
 }) {
   const countsByPlayerName = new Map<string, number>();
+
+  for (const participantName of input.participantNames ?? []) {
+    countsByPlayerName.set(participantName, 0);
+  }
 
   for (const event of input.events) {
     if (
@@ -200,6 +211,7 @@ function getRankedTileCounts(input: {
 function buildAwardItems(input: {
   events: ParsedActionGameLogEvent[];
   mapId: SupportedBoardMapId;
+  participantNames?: string[];
 }): CuratedBoardAwardImportItem[] {
   const rulesByName = new Map(
     curatedBoardAwardRulesByMap[input.mapId].map((rule) => [
@@ -239,6 +251,7 @@ function buildAwardItems(input: {
 
     const rankedCounts = getRankedTileCounts({
       events: input.events,
+      participantNames: input.participantNames,
       tileKind: rule.tileKind,
     });
 
@@ -297,6 +310,7 @@ export function scoreCuratedBoardImportItems(input: {
   boardSnapshot: ImportBoardSnapshot;
   events: ParsedActionGameLogEvent[];
   mapId: SupportedBoardMapId;
+  participantNames?: string[];
 }): CuratedBoardImportItem[] {
   return [
     ...buildCommercialDistrictItems({
@@ -306,6 +320,7 @@ export function scoreCuratedBoardImportItems(input: {
     ...buildAwardItems({
       events: input.events,
       mapId: input.mapId,
+      participantNames: input.participantNames,
     }),
   ];
 }

@@ -90,6 +90,93 @@ describe('scoreCuratedBoardImportItems', () => {
     );
   });
 
+  it('counts named city tiles as cities for Commercial District adjacency', () => {
+    const boardSnapshot = buildImportBoardSnapshot({
+      events: [
+        {
+          actor: 'Corey',
+          eventType: 'tile_placed',
+          lineNumber: 11,
+          rawLine: 'Corey placed Capital tile at 20',
+          space: '20',
+          tile: 'Capital',
+        },
+        {
+          actor: 'Friday',
+          eventType: 'tile_placed',
+          lineNumber: 12,
+          rawLine: 'Friday placed Noctis City tile at 22',
+          space: '22',
+          tile: 'Noctis City',
+        },
+        {
+          actor: 'Izzy',
+          card: 'Commercial District',
+          eventType: 'card_played',
+          lineNumber: 13,
+          rawLine: 'Izzy played Commercial District',
+        },
+        {
+          actor: 'Izzy',
+          eventType: 'tile_placed',
+          lineNumber: 14,
+          rawLine: 'Izzy placed city tile at 21',
+          space: '21',
+          tile: 'city',
+        },
+      ],
+      mapId: 'tharsis',
+    });
+
+    expect(
+      scoreCuratedBoardImportItems({
+        boardSnapshot,
+        events: [
+          {
+            actor: 'Corey',
+            eventType: 'tile_placed',
+            lineNumber: 11,
+            rawLine: 'Corey placed Capital tile at 20',
+            space: '20',
+            tile: 'Capital',
+          },
+          {
+            actor: 'Friday',
+            eventType: 'tile_placed',
+            lineNumber: 12,
+            rawLine: 'Friday placed Noctis City tile at 22',
+            space: '22',
+            tile: 'Noctis City',
+          },
+          {
+            actor: 'Izzy',
+            card: 'Commercial District',
+            eventType: 'card_played',
+            lineNumber: 13,
+            rawLine: 'Izzy played Commercial District',
+          },
+          {
+            actor: 'Izzy',
+            eventType: 'tile_placed',
+            lineNumber: 14,
+            rawLine: 'Izzy placed city tile at 21',
+            space: '21',
+            tile: 'city',
+          },
+        ],
+        mapId: 'tharsis',
+      }),
+    ).toContainEqual(
+      expect.objectContaining({
+        cardName: 'Commercial District',
+        itemType: 'card',
+        playerName: 'Izzy',
+        points: 2,
+        status: 'proved',
+      }),
+    );
+  });
+
   it('returns review_needed when Commercial District was played but placement is not provable', () => {
     const boardSnapshot = buildImportBoardSnapshot({
       events: [
@@ -238,6 +325,56 @@ describe('scoreCuratedBoardImportItems', () => {
           status: 'proved',
         }),
       ]),
+    );
+  });
+
+  it('keeps zero-placement participants eligible for shared second place on Cultivator', () => {
+    const boardSnapshot = buildImportBoardSnapshot({
+      events: [
+        {
+          actor: 'Colette',
+          eventType: 'tile_placed',
+          lineNumber: 21,
+          rawLine: 'Colette placed greenery tile at 18',
+          space: '18',
+          tile: 'greenery',
+        },
+      ],
+      mapId: 'hellas',
+    });
+
+    expect(
+      scoreCuratedBoardImportItems({
+        boardSnapshot,
+        events: [
+          {
+            actor: 'Friday',
+            award: 'Cultivator',
+            eventType: 'award_funded',
+            lineNumber: 20,
+            rawLine: 'Friday funded Cultivator award',
+          },
+          {
+            actor: 'Colette',
+            eventType: 'tile_placed',
+            lineNumber: 21,
+            rawLine: 'Colette placed greenery tile at 18',
+            space: '18',
+            tile: 'greenery',
+          },
+        ],
+        mapId: 'hellas',
+        participantNames: ['Colette', 'Corey', 'Izzy'],
+      }),
+    ).toContainEqual(
+      expect.objectContaining({
+        awardName: 'Cultivator',
+        firstPlacePlayerNames: ['Colette'],
+        fundedByPlayerName: 'Friday',
+        itemType: 'award',
+        secondPlacePlayerNames: ['Corey', 'Izzy'],
+        status: 'proved',
+      }),
     );
   });
 });
