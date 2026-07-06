@@ -73,34 +73,67 @@ describe('referenceDimensions', () => {
       promo_year: 2026,
     });
 
-    expect(referenceDimensions.milestones.map((entry) => entry.code)).toEqual(
-      expect.arrayContaining([
-        'terraformer',
-        'mayor',
-        'gardener',
-        'builder',
-        'planner',
-        'diversifier',
-        'tycoon',
+    expect(referenceDimensions.milestones.map((entry) => entry.code)).toEqual([
+      'terraformer',
+      'mayor',
+      'gardener',
+      'builder',
+      'planner',
+      'diversifier',
+      'tactician',
+      'polar_explorer',
+      'energizer',
+      'rim_settler',
+      'generalist',
+      'specialist',
+      'ecologist',
+      'tycoon',
+      'legend',
+    ]);
+
+    expect(referenceDimensions.awards.map((entry) => entry.code)).toEqual([
+      'landlord',
+      'banker',
+      'scientist',
+      'thermalist',
+      'miner',
+      'cultivator',
+      'magnate',
+      'space_baron',
+      'excentric',
+      'contractor',
+      'celebrity',
+      'industrialist',
+      'desert_settler',
+      'estate_dealer',
+      'benefactor',
+    ]);
+
+    const milestoneCountsByMap = Object.fromEntries(
+      referenceDimensions.maps.map((map) => [
+        map.code,
+        referenceDimensions.mapMilestones.filter((entry) => entry.mapCode === map.code)
+          .length,
       ]),
     );
 
-    expect(
-      referenceDimensions.mapMilestones.filter((entry) => entry.mapCode === 'hellas'),
-    ).toEqual(
-      expect.arrayContaining([
-        { mapCode: 'hellas', milestoneCode: 'diversifier' },
-        { mapCode: 'hellas', milestoneCode: 'polar_explorer' },
+    const awardCountsByMap = Object.fromEntries(
+      referenceDimensions.maps.map((map) => [
+        map.code,
+        referenceDimensions.mapAwards.filter((entry) => entry.mapCode === map.code).length,
       ]),
     );
 
-    expect(
-      referenceDimensions.mapAwards.filter((entry) => entry.mapCode === 'elysium'),
-    ).toEqual(
-      expect.arrayContaining([
-        { mapCode: 'elysium', awardCode: 'celebrity' },
-        { mapCode: 'elysium', awardCode: 'benefactor' },
-      ]),
-    );
+    expect(milestoneCountsByMap).toEqual({
+      elysium: 5,
+      hellas: 5,
+      tharsis: 5,
+    });
+
+    expect(awardCountsByMap).toEqual({
+      elysium: 5,
+      hellas: 5,
+      tharsis: 5,
+    });
   });
 });
