@@ -8,7 +8,7 @@ export async function requireGroupContextOrRedirect(): Promise<CurrentGroupConte
   const context = await getCurrentGroupContext();
 
   if (!context) {
-    redirect('/log-game/import');
+    redirect('/claim-player');
   }
 
   return context;
