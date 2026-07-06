@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { setCurrentUserLastActiveGroup } from './user-profile-repo';
 
 type GlobalPlayerRow = {
   created_at?: string | null;
@@ -14,6 +15,18 @@ export type ImportParticipantIdentity = {
   linkedUserId: string | null;
   normalizedName: string;
   token: string;
+};
+
+type ImportGroupResolution = {
+  createdNewGroup: boolean;
+  createdProfileNames: string[];
+  groupId: string | null;
+  groupName: string;
+  selectedPlayerIds: string[];
+};
+
+type ImportGroupResolutionPreview = ImportGroupResolution & {
+  participantIdentities: ImportParticipantIdentity[];
 };
 
 function buildPlayerIdentityToken(player: {
@@ -185,12 +198,23 @@ export function selectCurrentGroupPlayerIds(
   });
 }
 
-export async function resolveOrCreateImportGroup(input: {
-  importingUserId: string;
+function toImportGroupResolution(
+  preview: ImportGroupResolutionPreview,
+): ImportGroupResolution {
+  return {
+    createdNewGroup: preview.createdNewGroup,
+    createdProfileNames: preview.createdProfileNames,
+    groupId: preview.groupId,
+    groupName: preview.groupName,
+    selectedPlayerIds: preview.selectedPlayerIds,
+  };
+}
+
+async function previewImportGroupResolutionWithAdmin(input: {
+  admin: ReturnType<typeof createSupabaseAdminClient>;
   participantNames: string[];
-}) {
-  const admin = createSupabaseAdminClient();
-  const { data: playerRows, error: playerRowsError } = await admin
+}): Promise<ImportGroupResolutionPreview> {
+  const { data: playerRows, error: playerRowsError } = await input.admin
     .from('players')
     .select('id, group_id, display_name, linked_user_id, created_at')
     .order('created_at', { ascending: true });
@@ -217,7 +241,7 @@ export async function resolveOrCreateImportGroup(input: {
       participantIdentities,
       groupPlayers,
     );
-    const { data: group, error: groupError } = await admin
+    const { data: group, error: groupError } = await input.admin
       .from('groups')
       .select('id, name')
       .eq('id', matchingGroupId)
@@ -227,13 +251,64 @@ export async function resolveOrCreateImportGroup(input: {
       throw groupError;
     }
 
+    return {
+      createdNewGroup: false,
+      createdProfileNames: [],
+      groupId: group.id,
+      groupName: group.name,
+      participantIdentities,
+      selectedPlayerIds,
+    };
+  }
+
+  return {
+    createdNewGroup: true,
+    createdProfileNames: participantIdentities
+      .filter((participant) => !participant.linkedUserId)
+      .map((participant) => participant.displayName),
+    groupId: null,
+    groupName: buildImportGroupName(input.participantNames),
+    participantIdentities,
+    selectedPlayerIds: [],
+  };
+}
+
+export async function previewImportGroupResolution(input: {
+  participantNames: string[];
+}) {
+  const admin = createSupabaseAdminClient();
+  const preview = await previewImportGroupResolutionWithAdmin({
+    admin,
+    participantNames: input.participantNames,
+  });
+
+  return toImportGroupResolution(preview);
+}
+
+export async function resolveOrCreateImportGroup(input: {
+  importingUserId: string;
+  participantNames: string[];
+}) {
+  const admin = createSupabaseAdminClient();
+  const preview = await previewImportGroupResolutionWithAdmin({
+    admin,
+    participantNames: input.participantNames,
+  });
+
+  if (!preview.createdNewGroup) {
+    const groupId = preview.groupId;
+
+    if (!groupId) {
+      throw new Error('Expected an existing group id when preview reuses a roster.');
+    }
+
     const existingMemberRows = [
       input.importingUserId,
-      ...participantIdentities
+      ...preview.participantIdentities
         .map((participant) => participant.linkedUserId)
         .filter((value): value is string => Boolean(value)),
     ].map((userId) => ({
-      group_id: matchingGroupId,
+      group_id: groupId,
       role: 'editor' as const,
       user_id: userId,
     }));
@@ -249,19 +324,18 @@ export async function resolveOrCreateImportGroup(input: {
       throw membershipError;
     }
 
-    return {
-      createdNewGroup: false,
-      createdProfileNames: [] as string[],
-      groupId: group.id,
-      groupName: group.name,
-      selectedPlayerIds,
-    };
+    await setCurrentUserLastActiveGroup({
+      groupId,
+      userId: input.importingUserId,
+    });
+
+    return toImportGroupResolution(preview);
   }
 
   const { data: group, error: groupError } = await admin
     .from('groups')
     .insert({
-      name: buildImportGroupName(input.participantNames),
+      name: preview.groupName,
     })
     .select('id, name')
     .single();
@@ -272,7 +346,7 @@ export async function resolveOrCreateImportGroup(input: {
 
   const memberRows = [
     input.importingUserId,
-    ...participantIdentities
+    ...preview.participantIdentities
       .map((participant) => participant.linkedUserId)
       .filter((value): value is string => Boolean(value)),
   ].map((userId) => ({
@@ -305,7 +379,7 @@ export async function resolveOrCreateImportGroup(input: {
   const { data: insertedPlayers, error: insertedPlayersError } = await admin
     .from('players')
     .insert(
-      participantIdentities.map((participant) => ({
+      preview.participantIdentities.map((participant) => ({
         display_name: participant.displayName,
         group_id: group.id,
         linked_user_id: participant.linkedUserId,
@@ -317,15 +391,18 @@ export async function resolveOrCreateImportGroup(input: {
     throw insertedPlayersError;
   }
 
+  await setCurrentUserLastActiveGroup({
+    groupId: group.id,
+    userId: input.importingUserId,
+  });
+
   return {
     createdNewGroup: true,
-    createdProfileNames: participantIdentities
-      .filter((participant) => !participant.linkedUserId)
-      .map((participant) => participant.displayName),
+    createdProfileNames: preview.createdProfileNames,
     groupId: group.id,
     groupName: group.name,
     selectedPlayerIds: selectImportPlayerIds(
-      participantIdentities,
+      preview.participantIdentities,
       (insertedPlayers ?? []) as GlobalPlayerRow[],
     ),
   };
