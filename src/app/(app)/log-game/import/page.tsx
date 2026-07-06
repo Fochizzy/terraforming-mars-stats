@@ -22,6 +22,8 @@ import {
 } from '@/lib/errors/describe-unknown-error';
 import { buildImportDraft } from '@/lib/imports/build-import-draft';
 import { buildImportBoardSnapshot } from '@/lib/imports/build-import-board-snapshot';
+import { buildBoardEvidenceContext } from '@/lib/imports/build-board-evidence-context';
+import { buildBoardScreenshotConfirmationRequests } from '@/lib/imports/build-board-screenshot-confirmation-requests';
 import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
@@ -29,7 +31,6 @@ import {
   isSupportedBoardMapId,
   type SupportedBoardMapId,
 } from '@/lib/imports/board-space-maps';
-import { calculateImportCardScores } from '@/lib/imports/card-scoring/calculate-import-card-scores';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
 import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
 import {
@@ -42,6 +43,7 @@ import {
   scoreCuratedBoardImportItems,
   type CuratedBoardImportItem,
 } from '@/lib/imports/score-curated-board-import-items';
+import { scoreBoardAwareAwardItems } from '@/lib/imports/score-board-aware-award-items';
 import {
   listCardScoringReferences,
   listCorporations,
@@ -106,6 +108,18 @@ async function readBoardScreenshotSpaceConfirmationsOnDemand(input: {
   return readBoardScreenshotSpaceConfirmations(input);
 }
 
+async function calculateImportCardScoresOnDemand(
+  input: Parameters<
+    typeof import('@/lib/imports/card-scoring/calculate-import-card-scores').calculateImportCardScores
+  >[0],
+) {
+  const { calculateImportCardScores } = await import(
+    '@/lib/imports/card-scoring/calculate-import-card-scores'
+  );
+
+  return calculateImportCardScores(input);
+}
+
 function buildLogScoreCandidates(input: {
   playerNames: string[];
   rawLogText: string;
@@ -145,6 +159,12 @@ function buildLogScoreCandidates(input: {
   });
 }
 
+function isCuratedBoardCardItem(
+  item: CuratedBoardImportItem,
+): item is Extract<CuratedBoardImportItem, { itemType: 'card' }> {
+  return item.itemType === 'card';
+}
+
 function buildEndgameScreenshotParse(
   parsedScreenshot: ParsedEndgameScoreScreenshot,
 ) {
@@ -160,34 +180,6 @@ function buildEndgameScreenshotParse(
       ? 'parsed'
       : 'score_extraction_skipped',
   } as const;
-}
-
-function buildBoardScreenshotConfirmationRequests(
-  items: CuratedBoardImportItem[],
-) {
-  const requests = new Map<string, { spaceId: string }>();
-
-  for (const item of items) {
-    if (
-      item.itemType !== 'card' ||
-      item.cardName !== 'Commercial District' ||
-      !item.requestedSpaceIds?.length
-    ) {
-      continue;
-    }
-
-    for (const spaceId of item.requestedSpaceIds) {
-      if (requests.has(spaceId)) {
-        continue;
-      }
-
-      requests.set(spaceId, {
-        spaceId,
-      });
-    }
-  }
-
-  return [...requests.values()];
 }
 
 async function readBoardScreenshotEvidence(boardScreenshots: File[]) {
@@ -268,37 +260,6 @@ export default async function LogGameImportPage() {
               mapId: values.mapId,
             })
           : null;
-      const initialCuratedBoardItems =
-        boardSnapshot == null
-          ? []
-          : scoreCuratedBoardImportItems({
-              boardSnapshot,
-              events: parsedGameLog.events,
-              mapId: boardSnapshot.mapId,
-              participantNames: detectedParticipantNames,
-            });
-      const boardScreenshotConfirmationRequests =
-        buildBoardScreenshotConfirmationRequests(initialCuratedBoardItems);
-      const boardScreenshotConfirmations =
-        boardSnapshot != null &&
-        values.boardScreenshots.length > 0 &&
-        boardScreenshotConfirmationRequests.length > 0
-          ? await readBoardScreenshotSpaceConfirmationsOnDemand({
-              mapId: boardSnapshot.mapId,
-              requests: boardScreenshotConfirmationRequests,
-              screenshots: values.boardScreenshots,
-            })
-          : undefined;
-      const curatedBoardItems =
-        boardSnapshot == null
-          ? []
-          : scoreCuratedBoardImportItems({
-              boardSnapshot,
-              events: parsedGameLog.events,
-              mapId: boardSnapshot.mapId,
-              participantNames: detectedParticipantNames,
-              screenshotConfirmations: boardScreenshotConfirmations,
-            });
       const screenshotReadOptions = {
         expectedPlayerCount: Math.max(
           values.playerCount,
@@ -348,11 +309,79 @@ export default async function LogGameImportPage() {
         );
       }
 
-      const cardScoring = await calculateImportCardScores({
+      const cardReferences = await listCardScoringReferences();
+      const initialBoardEvidenceContext =
+        boardSnapshot == null
+          ? undefined
+          : buildBoardEvidenceContext({
+              boardSnapshot,
+            });
+      const initialCardScoring = await calculateImportCardScoresOnDemand({
+        boardEvidenceContext: initialBoardEvidenceContext,
         boardStateTextLines,
-        cardReferences: await listCardScoringReferences(),
+        cardReferences,
         events: parsedGameLog.events,
       });
+      const initialAwardItems =
+        initialBoardEvidenceContext == null
+          ? []
+          : scoreBoardAwareAwardItems({
+              boardEvidenceContext: initialBoardEvidenceContext,
+              events: parsedGameLog.events,
+              mapId: initialBoardEvidenceContext.mapId,
+              participantNames: detectedParticipantNames,
+            });
+      const boardScreenshotConfirmationRequests =
+        buildBoardScreenshotConfirmationRequests({
+          awardItems: initialAwardItems,
+          cardScoring: initialCardScoring,
+        });
+      const boardScreenshotConfirmations =
+        boardSnapshot != null &&
+        values.boardScreenshots.length > 0 &&
+        boardScreenshotConfirmationRequests.length > 0
+          ? await readBoardScreenshotSpaceConfirmationsOnDemand({
+              mapId: boardSnapshot.mapId,
+              requests: boardScreenshotConfirmationRequests,
+              screenshots: values.boardScreenshots,
+            })
+          : undefined;
+      const finalBoardEvidenceContext =
+        boardSnapshot == null
+          ? undefined
+          : buildBoardEvidenceContext({
+              boardSnapshot,
+              screenshotConfirmations: boardScreenshotConfirmations,
+            });
+      const cardScoring =
+        finalBoardEvidenceContext == null
+          ? initialCardScoring
+          : await calculateImportCardScoresOnDemand({
+              boardEvidenceContext: finalBoardEvidenceContext,
+              boardStateTextLines,
+              cardReferences,
+              events: parsedGameLog.events,
+            });
+      const curatedBoardCardItems =
+        boardSnapshot == null
+          ? []
+          : scoreCuratedBoardImportItems({
+              boardSnapshot,
+              events: parsedGameLog.events,
+              mapId: boardSnapshot.mapId,
+              participantNames: detectedParticipantNames,
+              screenshotConfirmations: boardScreenshotConfirmations,
+            }).filter(isCuratedBoardCardItem);
+      const awardItems =
+        finalBoardEvidenceContext == null
+          ? []
+          : scoreBoardAwareAwardItems({
+              boardEvidenceContext: finalBoardEvidenceContext,
+              events: parsedGameLog.events,
+              mapId: finalBoardEvidenceContext.mapId,
+              participantNames: detectedParticipantNames,
+            });
+      const curatedBoardItems = [...curatedBoardCardItems, ...awardItems];
       const playerLinks = activeContext
         ? resolveImportPlayerLinks(
             importedNames,
@@ -403,37 +432,6 @@ export default async function LogGameImportPage() {
               mapId: values.mapId,
             })
           : null;
-      const initialCuratedBoardItems =
-        boardSnapshot == null
-          ? []
-          : scoreCuratedBoardImportItems({
-              boardSnapshot,
-              events: parsedGameLog.events,
-              mapId: boardSnapshot.mapId,
-              participantNames: detectedParticipantNames,
-            });
-      const boardScreenshotConfirmationRequests =
-        buildBoardScreenshotConfirmationRequests(initialCuratedBoardItems);
-      const boardScreenshotConfirmations =
-        boardSnapshot != null &&
-        values.boardScreenshots.length > 0 &&
-        boardScreenshotConfirmationRequests.length > 0
-          ? await readBoardScreenshotSpaceConfirmationsOnDemand({
-              mapId: boardSnapshot.mapId,
-              requests: boardScreenshotConfirmationRequests,
-              screenshots: values.boardScreenshots,
-            })
-          : undefined;
-      const curatedBoardItems =
-        boardSnapshot == null
-          ? []
-          : scoreCuratedBoardImportItems({
-              boardSnapshot,
-              events: parsedGameLog.events,
-              mapId: boardSnapshot.mapId,
-              participantNames: detectedParticipantNames,
-              screenshotConfirmations: boardScreenshotConfirmations,
-            });
       const screenshotReadOptions = {
         expectedPlayerCount: Math.max(
           values.playerCount,
@@ -561,11 +559,78 @@ export default async function LogGameImportPage() {
       const boardStateTextLines = boardScreenshotEvidence.flatMap(
         (screenshot) => screenshot.textLines,
       );
-      const cardScoring = await calculateImportCardScores({
+      const initialBoardEvidenceContext =
+        boardSnapshot == null
+          ? undefined
+          : buildBoardEvidenceContext({
+              boardSnapshot,
+            });
+      const initialCardScoring = await calculateImportCardScoresOnDemand({
+        boardEvidenceContext: initialBoardEvidenceContext,
         boardStateTextLines,
         cardReferences: cardScoringReferences,
         events: parsedGameLog.events,
       });
+      const initialAwardItems =
+        initialBoardEvidenceContext == null
+          ? []
+          : scoreBoardAwareAwardItems({
+              boardEvidenceContext: initialBoardEvidenceContext,
+              events: parsedGameLog.events,
+              mapId: initialBoardEvidenceContext.mapId,
+              participantNames: detectedParticipantNames,
+            });
+      const boardScreenshotConfirmationRequests =
+        buildBoardScreenshotConfirmationRequests({
+          awardItems: initialAwardItems,
+          cardScoring: initialCardScoring,
+        });
+      const boardScreenshotConfirmations =
+        boardSnapshot != null &&
+        values.boardScreenshots.length > 0 &&
+        boardScreenshotConfirmationRequests.length > 0
+          ? await readBoardScreenshotSpaceConfirmationsOnDemand({
+              mapId: boardSnapshot.mapId,
+              requests: boardScreenshotConfirmationRequests,
+              screenshots: values.boardScreenshots,
+            })
+          : undefined;
+      const finalBoardEvidenceContext =
+        boardSnapshot == null
+          ? undefined
+          : buildBoardEvidenceContext({
+              boardSnapshot,
+              screenshotConfirmations: boardScreenshotConfirmations,
+            });
+      const cardScoring =
+        finalBoardEvidenceContext == null
+          ? initialCardScoring
+          : await calculateImportCardScoresOnDemand({
+              boardEvidenceContext: finalBoardEvidenceContext,
+              boardStateTextLines,
+              cardReferences: cardScoringReferences,
+              events: parsedGameLog.events,
+            });
+      const curatedBoardCardItems =
+        boardSnapshot == null
+          ? []
+          : scoreCuratedBoardImportItems({
+              boardSnapshot,
+              events: parsedGameLog.events,
+              mapId: boardSnapshot.mapId,
+              participantNames: detectedParticipantNames,
+              screenshotConfirmations: boardScreenshotConfirmations,
+            }).filter(isCuratedBoardCardItem);
+      const awardItems =
+        finalBoardEvidenceContext == null
+          ? []
+          : scoreBoardAwareAwardItems({
+              boardEvidenceContext: finalBoardEvidenceContext,
+              events: parsedGameLog.events,
+              mapId: finalBoardEvidenceContext.mapId,
+              participantNames: detectedParticipantNames,
+            });
+      const curatedBoardItems = [...curatedBoardCardItems, ...awardItems];
 
       if (
         detectedParticipantNames.length === 0 &&

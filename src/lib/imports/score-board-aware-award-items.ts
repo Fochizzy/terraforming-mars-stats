@@ -1,0 +1,211 @@
+import type { BoardEvidenceContext } from './build-board-evidence-context';
+import type { SupportedBoardMapId } from './board-space-maps';
+import { normalizePlayerAlias } from './normalize-player-alias';
+import type { ParsedActionGameLogEvent } from './parse-game-log';
+import type { CuratedBoardAwardImportItem } from './score-curated-board-import-items';
+
+type BoardAwareAwardRule =
+  | {
+      awardName: string;
+      mode: 'review_needed';
+      reviewNote: string;
+    }
+  | {
+      awardName: string;
+      mode: 'tile_count';
+      tileKinds: string[];
+    };
+
+export type BoardAwareAwardImportItem = CuratedBoardAwardImportItem & {
+  requestedSpaceIds?: string[];
+};
+
+const boardAwareAwardRulesByMap: Record<
+  SupportedBoardMapId,
+  BoardAwareAwardRule[]
+> = {
+  tharsis: [
+    {
+      awardName: 'Landlord',
+      mode: 'review_needed',
+      reviewNote:
+        'Landlord still needs targeted ocean-adjacency confirmation before importing winners.',
+    },
+  ],
+  hellas: [
+    {
+      awardName: 'Cultivator',
+      mode: 'tile_count',
+      tileKinds: ['greenery'],
+    },
+  ],
+  elysium: [
+    {
+      awardName: 'Desert Settler',
+      mode: 'review_needed',
+      reviewNote:
+        'Desert Settler still needs targeted area confirmation before importing winners.',
+    },
+    {
+      awardName: 'Estate Dealer',
+      mode: 'review_needed',
+      reviewNote:
+        'Estate Dealer still needs targeted ocean-adjacency confirmation before importing winners.',
+    },
+  ],
+};
+
+function normalizeName(value: string) {
+  return normalizePlayerAlias(value);
+}
+
+function buildExplicitAwardResultNames(events: ParsedActionGameLogEvent[]) {
+  return new Set(
+    events
+      .filter((event) => event.eventType === 'award_result')
+      .map((event) => normalizeName(event.award)),
+  );
+}
+
+function buildRankedOwnedTileCounts(input: {
+  boardEvidenceContext: BoardEvidenceContext;
+  events: ParsedActionGameLogEvent[];
+  participantNames?: string[];
+  tileKinds: string[];
+}) {
+  const playerNamesByNormalizedName = new Map<string, string>();
+
+  for (const participantName of input.participantNames ?? []) {
+    playerNamesByNormalizedName.set(normalizeName(participantName), participantName);
+  }
+
+  for (const event of input.events) {
+    if (
+      event.eventType !== 'tile_placed' ||
+      !input.tileKinds.some(
+        (tileKind) => normalizeName(tileKind) === normalizeName(event.tile),
+      )
+    ) {
+      continue;
+    }
+
+    const normalizedActorName = normalizeName(event.actor);
+
+    if (!playerNamesByNormalizedName.has(normalizedActorName)) {
+      playerNamesByNormalizedName.set(normalizedActorName, event.actor);
+    }
+  }
+
+  return [...playerNamesByNormalizedName.values()]
+    .map((playerName) => ({
+      count: input.boardEvidenceContext.countOwnedMatchingTiles({
+        playerName,
+        tileKinds: input.tileKinds,
+      }).count,
+      playerName,
+    }))
+    .sort(
+      (left, right) =>
+        right.count - left.count || left.playerName.localeCompare(right.playerName),
+    );
+}
+
+export function scoreBoardAwareAwardItems(input: {
+  boardEvidenceContext: BoardEvidenceContext;
+  events: ParsedActionGameLogEvent[];
+  mapId: SupportedBoardMapId;
+  participantNames?: string[];
+}) {
+  const rulesByName = new Map(
+    boardAwareAwardRulesByMap[input.mapId].map((rule) => [
+      normalizeName(rule.awardName),
+      rule,
+    ] as const),
+  );
+  const explicitAwardResultNames = buildExplicitAwardResultNames(input.events);
+
+  return input.events.flatMap<BoardAwareAwardImportItem>((event) => {
+    if (
+      event.eventType !== 'award_funded' ||
+      explicitAwardResultNames.has(normalizeName(event.award))
+    ) {
+      return [];
+    }
+
+    const rule = rulesByName.get(normalizeName(event.award));
+
+    if (!rule) {
+      return [];
+    }
+
+    if (rule.mode === 'review_needed') {
+      return [
+        {
+          awardName: rule.awardName,
+          fundedByPlayerName: event.actor,
+          itemType: 'award',
+          mapId: input.mapId,
+          notes: [rule.reviewNote],
+          sourceType: 'log',
+          status: 'review_needed',
+        },
+      ];
+    }
+
+    const rankedCounts = buildRankedOwnedTileCounts({
+      boardEvidenceContext: input.boardEvidenceContext,
+      events: input.events,
+      participantNames: input.participantNames,
+      tileKinds: rule.tileKinds,
+    });
+
+    if (rankedCounts.length === 0 || rankedCounts[0]?.count == null) {
+      return [
+        {
+          awardName: rule.awardName,
+          fundedByPlayerName: event.actor,
+          itemType: 'award',
+          mapId: input.mapId,
+          notes: [
+            `${rule.awardName} was funded, but the imported log did not prove any ${rule.tileKinds.join('/')} ownership from board evidence.`,
+          ],
+          sourceType: 'log',
+          status: 'review_needed',
+        },
+      ];
+    }
+
+    const topCount = rankedCounts[0].count;
+    const firstPlacePlayerNames = rankedCounts
+      .filter((entry) => entry.count === topCount)
+      .map((entry) => entry.playerName);
+    const secondPlaceCount =
+      firstPlacePlayerNames.length === 1
+        ? rankedCounts.find((entry) => entry.count < topCount)?.count
+        : undefined;
+    const secondPlacePlayerNames =
+      secondPlaceCount == null
+        ? []
+        : rankedCounts
+            .filter((entry) => entry.count === secondPlaceCount)
+            .map((entry) => entry.playerName);
+
+    return [
+      {
+        awardName: rule.awardName,
+        firstPlacePlayerNames,
+        fundedByPlayerName: event.actor,
+        itemType: 'award',
+        mapId: input.mapId,
+        notes: [
+          `${rule.awardName} used board-owned ${rule.tileKinds.join('/')} counts: ${rankedCounts
+            .map((entry) => `${entry.playerName} ${entry.count}`)
+            .join(', ')}.`,
+        ],
+        secondPlacePlayerNames,
+        sourceType: 'log',
+        status: 'proved',
+      },
+    ];
+  });
+}
