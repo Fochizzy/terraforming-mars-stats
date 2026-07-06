@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readImportReviewJumpState } from '@/lib/imports/import-review-jump-state';
 import { LogGameImportShell } from './log-game-import-shell';
 
 const navigationMocks = vi.hoisted(() => ({
@@ -16,9 +17,10 @@ vi.mock('next/navigation', () => ({
 describe('LogGameImportShell', () => {
   beforeEach(() => {
     navigationMocks.push.mockReset();
+    window.sessionStorage.clear();
   });
 
-  it('analyzes import evidence before confirming a draft and routing into the shared log-game flow', async () => {
+  it('stores the selected manual-review jump target after a successful draft creation and then routes into the shared log-game flow', async () => {
     const user = userEvent.setup();
     const screenshotFile = new File(['evidence'], 'endgame.png', {
       type: 'image/png',
@@ -27,6 +29,19 @@ describe('LogGameImportShell', () => {
       status: 'success' as const,
       message: 'Import evidence analyzed.',
       review: {
+        boardReviewItems: [
+          {
+            cardName: 'Commercial District',
+            itemType: 'card' as const,
+            mapId: 'tharsis',
+            notes: [
+              'The city placement from Commercial District could not be linked safely from the imported log.',
+            ],
+            playerName: 'Friday Mars',
+            sourceType: 'log_and_board' as const,
+            status: 'review_needed' as const,
+          },
+        ],
         drawInfoLineCount: 1,
         ignoredLineCount: 2,
         parsedEventCount: 3,
@@ -130,6 +145,11 @@ describe('LogGameImportShell', () => {
       screen.getByText(/parsed 3 actionable log events and ignored 2 filler lines/i),
     ).toBeInTheDocument();
 
+    await user.click(
+      screen.getByRole('button', {
+        name: /fill manually commercial district for friday mars/i,
+      }),
+    );
     await user.click(screen.getByRole('button', { name: /confirm import draft/i }));
 
     await waitFor(() => expect(onCreateImportDraft).toHaveBeenCalledTimes(1));
@@ -138,6 +158,14 @@ describe('LogGameImportShell', () => {
     expect(JSON.parse(String(confirmedFormData.get('confirmedPlayerLinks')))).toEqual([
       { importedName: 'Friday Mars', playerId: 'player-1' },
     ]);
+    expect(readImportReviewJumpState('game-1')).toEqual({
+      gameId: 'game-1',
+      itemLabel: 'Commercial District',
+      message:
+        'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerName: 'Friday Mars',
+      scoreField: 'cardPointsTotal',
+    });
 
     await waitFor(() =>
       expect(navigationMocks.push).toHaveBeenCalledWith('/log-game?gameId=game-1'),
@@ -212,6 +240,7 @@ describe('LogGameImportShell', () => {
     await waitFor(() =>
       expect(screen.getByText(/storage upload failed/i)).toBeInTheDocument(),
     );
+    expect(readImportReviewJumpState('game-1')).toBeNull();
     expect(navigationMocks.push).not.toHaveBeenCalled();
   });
 });

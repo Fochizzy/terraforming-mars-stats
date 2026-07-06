@@ -1,6 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import {
+  readImportReviewJumpState,
+  saveImportReviewJumpState,
+} from '@/lib/imports/import-review-jump-state';
 import { LogGameWizard } from './log-game-wizard';
 
 describe('LogGameWizard', () => {
@@ -412,5 +416,81 @@ describe('LogGameWizard', () => {
     expect(
       screen.getAllByRole('option', { name: /x09 - political alliance/i }),
     ).toHaveLength(3);
+  });
+
+  it('consumes a stored import-review jump target for the matching game and highlights the score field that still needs manual entry', async () => {
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    saveImportReviewJumpState({
+      gameId: 'game-jump',
+      itemLabel: 'Commercial District',
+      message:
+        'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerName: 'Friday Mars',
+      scoreField: 'cardPointsTotal',
+    });
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[]}
+        expansionOptions={[{ id: 'e1', code: 'base', name: 'Base Game' }]}
+        initialValues={{
+          awardClaims: {},
+          gameId: 'game-jump',
+          groupId: '11111111-1111-4111-8111-111111111111',
+          milestoneClaims: {},
+          playedOn: '2026-07-03',
+          mapId: 'tharsis',
+          notes: '',
+          playerCount: 1,
+          playerScores: {},
+          playerSelections: {},
+          generationCount: 10,
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: ['p1'],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-jump',
+          message: 'Game finalized.',
+        })}
+        onSaveDraft={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-jump',
+          message: 'Draft saved.',
+        })}
+        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+        preludeOptions={[]}
+        promoSetOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          /commercial district was not read and still needs manual entry\./i,
+        ),
+      ).toBeInTheDocument(),
+    );
+
+    const highlightedInput = screen.getByLabelText(/friday mars total card points/i);
+    expect(highlightedInput).toHaveAttribute(
+      'data-manual-review-highlight',
+      'true',
+    );
+    expect(highlightedInput).toHaveFocus();
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(readImportReviewJumpState('game-jump')).toBeNull();
+
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   });
 });

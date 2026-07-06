@@ -1,12 +1,122 @@
-import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
+import type {
+  ImportReviewModel,
+  ImportScoreCrossCheck,
+} from '@/lib/imports/build-import-review-model';
+import type { CuratedBoardImportItem } from '@/lib/imports/score-curated-board-import-items';
+import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
+import { ImportCardScoringPanel } from './import-card-scoring-panel';
 import { ImportPlayerResolutionPanel } from './import-player-resolution-panel';
 import { ImportScoreCandidatesPanel } from './import-score-candidates-panel';
+
+function formatScoreFieldLabel(field: string) {
+  switch (field) {
+    case 'awardPoints':
+      return 'awards';
+    case 'cardPointsAnimals':
+      return 'animal card points';
+    case 'cardPointsJovian':
+      return 'Jovian card points';
+    case 'cardPointsMicrobes':
+      return 'microbe card points';
+    case 'cardPointsTotal':
+      return 'card points';
+    case 'citiesPoints':
+      return 'cities';
+    case 'finalMegacredits':
+      return 'final MC';
+    case 'greeneryPoints':
+      return 'greenery';
+    case 'milestonePoints':
+      return 'milestones';
+    case 'totalPoints':
+      return 'total';
+    case 'trPoints':
+      return 'TR';
+    default:
+      return field;
+  }
+}
+
+function formatScoreFieldList(fields: string[]) {
+  return fields.map(formatScoreFieldLabel).join(', ');
+}
+
+function buildScoreCrossCheckMessage(check: ImportScoreCrossCheck) {
+  switch (check.status) {
+    case 'conflict': {
+      const conflictSummary = formatScoreFieldList(check.conflictingFields);
+      const matchSummary =
+        check.matchingFields.length > 0
+          ? ` but match on ${formatScoreFieldList(check.matchingFields)}`
+          : '';
+
+      return `${check.playerName}: log and screenshot disagree on ${conflictSummary}${matchSummary}.`;
+    }
+    case 'log_only':
+      return `${check.playerName}: the log provided score data without a screenshot match.`;
+    case 'matched':
+      return `${check.playerName}: log and screenshot agree on ${formatScoreFieldList(check.matchingFields)}.`;
+    case 'screenshot_only':
+      return `${check.playerName}: the screenshot provided score data without a log score row.`;
+    default:
+      return '';
+  }
+}
+
+function formatManualReviewScoreFieldLabel(scoreField: ImportReviewJumpTarget['scoreField']) {
+  switch (scoreField) {
+    case 'awardPoints':
+      return 'Award Points';
+    case 'cardPointsTotal':
+      return 'Total Card Points';
+    default:
+      return scoreField;
+  }
+}
+
+function buildBoardReviewItemHeading(item: CuratedBoardImportItem) {
+  if (item.itemType === 'card') {
+    return `${item.cardName} · ${item.playerName}`;
+  }
+
+  return `${item.awardName} · ${item.fundedByPlayerName}`;
+}
+
+function buildBoardReviewJumpTarget(
+  item: CuratedBoardImportItem,
+): ImportReviewJumpTarget | null {
+  if (item.status !== 'review_needed') {
+    return null;
+  }
+
+  if (item.itemType === 'card') {
+    return {
+      itemLabel: item.cardName,
+      message:
+        item.notes[0] ??
+        `${item.cardName} could not be read from the imported board evidence.`,
+      playerName: item.playerName,
+      scoreField: 'cardPointsTotal',
+    };
+  }
+
+  return {
+    itemLabel: item.awardName,
+    message:
+      item.notes[0] ??
+      `${item.awardName} could not be read from the imported board evidence.`,
+    playerName: item.fundedByPlayerName,
+    scoreField: 'awardPoints',
+  };
+}
 
 type ImportReviewPanelProps = {
   creatingImportedName?: string | null;
   onCreatePlayer?: (importedName: string) => Promise<void>;
   onSelectionChange: (importedName: string, playerId: string) => void;
+  onSelectManualReviewJumpTarget?: (target: ImportReviewJumpTarget) => void;
   review: ImportReviewModel | null;
+  selectedManualReviewJumpTarget?: ImportReviewJumpTarget | null;
   playerSelections: Record<string, string>;
 };
 
@@ -14,7 +124,9 @@ export function ImportReviewPanel({
   creatingImportedName,
   onCreatePlayer,
   onSelectionChange,
+  onSelectManualReviewJumpTarget,
   review,
+  selectedManualReviewJumpTarget,
   playerSelections,
 }: ImportReviewPanelProps) {
   if (!review) {
@@ -22,6 +134,10 @@ export function ImportReviewPanel({
   }
 
   const detectedParticipantNames = review.detectedParticipantNames ?? [];
+  const cardScoring = review.cardScoring ?? [];
+  const logScoreCandidates = review.logScoreCandidates ?? [];
+  const boardReviewItems = review.boardReviewItems ?? [];
+  const scoreCrossChecks = review.scoreCrossChecks ?? [];
 
   return (
     <section className="tm-panel flex flex-col gap-3">
@@ -39,11 +155,90 @@ export function ImportReviewPanel({
         </p>
       ) : null}
       {review.requiresPlayerConfirmation ? (
-        <p className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+        <p className="tm-banner-warning">
           Some imported names still need profile confirmation before final
           scoring.
         </p>
       ) : null}
+      {logScoreCandidates.length > 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+          <h3 className="tm-data-label text-xs">Log Score Hints</h3>
+          <ul className="mt-3 flex flex-col gap-2 text-sm">
+            {logScoreCandidates.map((candidate) => (
+              <li
+                className="rounded-xl bg-white/[0.03] px-3 py-2 text-stone-100"
+                key={`log-${candidate.playerName}`}
+              >
+                {candidate.playerName}: {candidate.totalPoints ?? 'unknown'} total
+                {candidate.trPoints == null ? null : `, ${candidate.trPoints} TR`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {scoreCrossChecks.length > 0 ? (
+        <div className="rounded-2xl border border-cyan-400/25 bg-cyan-500/10 p-4">
+          <h3 className="tm-data-label text-xs">Evidence Cross-Check</h3>
+          <ul className="mt-3 flex flex-col gap-2 text-sm text-cyan-50">
+            {scoreCrossChecks.map((check) => (
+              <li key={`${check.playerName}-${check.status}`}>
+                {buildScoreCrossCheckMessage(check)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {boardReviewItems.length > 0 ? (
+        <div className="rounded-2xl border border-amber-300/25 bg-amber-500/10 p-4">
+          <h3 className="tm-data-label text-xs">Curated Board Review</h3>
+          <ul className="mt-3 flex flex-col gap-3 text-sm">
+            {boardReviewItems.map((item) => {
+              const jumpTarget = buildBoardReviewJumpTarget(item);
+              const isSelected =
+                jumpTarget != null &&
+                selectedManualReviewJumpTarget?.itemLabel === jumpTarget.itemLabel &&
+                selectedManualReviewJumpTarget.playerName === jumpTarget.playerName &&
+                selectedManualReviewJumpTarget.scoreField === jumpTarget.scoreField;
+
+              return (
+                <li
+                  className="rounded-xl bg-white/[0.03] px-3 py-3"
+                  key={`${item.itemType}-${buildBoardReviewItemHeading(item)}`}
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex flex-col gap-1">
+                      <p className="font-semibold text-stone-100">
+                        {buildBoardReviewItemHeading(item)}
+                      </p>
+                      {item.notes[0] ? (
+                        <p style={{ color: 'var(--tm-muted)' }}>{item.notes[0]}</p>
+                      ) : null}
+                      <p className="text-xs tm-accent-copy">
+                        {item.status === 'review_needed'
+                          ? 'Needs manual review before final scoring.'
+                          : 'Curated board evidence covered this item.'}
+                      </p>
+                    </div>
+                    {jumpTarget ? (
+                      <button
+                        aria-label={`Fill manually ${jumpTarget.itemLabel} for ${jumpTarget.playerName}`}
+                        className="tm-button-secondary shrink-0"
+                        onClick={() => onSelectManualReviewJumpTarget?.(jumpTarget)}
+                        type="button"
+                      >
+                        {isSelected
+                          ? `Manual fill selected · ${formatManualReviewScoreFieldLabel(jumpTarget.scoreField)}`
+                          : 'Fill manually'}
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+      <ImportCardScoringPanel summaries={cardScoring} />
       <ImportPlayerResolutionPanel
         creatingImportedName={creatingImportedName}
         onCreatePlayer={onCreatePlayer}

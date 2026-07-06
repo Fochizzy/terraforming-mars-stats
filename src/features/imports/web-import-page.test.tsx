@@ -4,9 +4,31 @@ import { describe, expect, it, vi } from 'vitest';
 import { WebImportPage } from './web-import-page';
 
 const review = {
+  boardReviewItems: [
+    {
+      cardName: 'Commercial District',
+      itemType: 'card' as const,
+      mapId: 'tharsis',
+      notes: [
+        'The city placement from Commercial District could not be linked safely from the imported log.',
+      ],
+      playerName: 'Friday Mars',
+      sourceType: 'log_and_board' as const,
+      status: 'review_needed' as const,
+    },
+  ],
   detectedParticipantNames: ['Friday Mars'],
   drawInfoLineCount: 1,
   ignoredLineCount: 2,
+  logScoreCandidates: [
+    {
+      awardPoints: 2,
+      milestonePoints: 5,
+      playerName: 'Friday Mars',
+      totalPoints: 61,
+      trPoints: 18,
+    },
+  ],
   parsedEventCount: 3,
   playerLinks: [
     {
@@ -63,6 +85,14 @@ const review = {
     },
   ],
   requiresPlayerConfirmation: true,
+  scoreCrossChecks: [
+    {
+      conflictingFields: ['totalPoints'],
+      matchingFields: ['awardPoints', 'milestonePoints', 'trPoints'],
+      playerName: 'Friday Mars',
+      status: 'conflict' as const,
+    },
+  ],
   scoreCandidates: [{ playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 }],
 };
 
@@ -99,11 +129,45 @@ describe('WebImportPage', () => {
       screen.getByLabelText(/endgame screenshot/i),
     ).toBeInTheDocument();
     expect(
+      screen.getByLabelText(/board screenshots/i),
+    ).toBeInTheDocument();
+    expect(
       screen.queryByRole('button', { name: /save import draft/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     ).toBeInTheDocument();
+  });
+
+  it('focuses the exported game log textarea when the game log panel is clicked', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={vi.fn()}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    const exportedGameLog = screen.getByLabelText(/exported game log/i);
+
+    exportedGameLog.blur();
+    expect(exportedGameLog).not.toHaveFocus();
+
+    await user.click(screen.getByText(/exported game log feed/i));
+
+    expect(exportedGameLog).toHaveFocus();
   });
 
   it('analyzes the structured import payload and shows the review before confirmation', async () => {
@@ -151,8 +215,18 @@ describe('WebImportPage', () => {
     const screenshot = new File(['evidence'], 'endgame.png', {
       type: 'image/png',
     });
+    const boardOne = new File(['board-one'], 'board-1.png', {
+      type: 'image/png',
+    });
+    const boardTwo = new File(['board-two'], 'board-2.png', {
+      type: 'image/png',
+    });
 
     await user.upload(screen.getByLabelText(/endgame screenshot/i), screenshot);
+    await user.upload(screen.getByLabelText(/board screenshots/i), [
+      boardOne,
+      boardTwo,
+    ]);
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     );
@@ -173,10 +247,17 @@ describe('WebImportPage', () => {
       ['Friday Mars', 'Second Seat', 'Third Seat'].join('\n'),
     );
     expect(submittedFormData.get('endgameScreenshot')).toBe(screenshot);
+    expect(submittedFormData.getAll('boardScreenshots')).toEqual([
+      boardOne,
+      boardTwo,
+    ]);
 
     expect(screen.getByText(/import evidence analyzed/i)).toBeInTheDocument();
     expect(
       screen.getByText(/parsed 3 actionable log events and ignored 2 filler lines/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/friday mars: log and screenshot disagree on total/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/Friday Mars: 62 total/i)).toBeInTheDocument();
     expect(
@@ -331,6 +412,81 @@ describe('WebImportPage', () => {
       { importedName: 'Friday Mars', playerId: 'player-1' },
       { importedName: 'Unknown Friend', playerId: 'player-new' },
     ]);
+  });
+
+  it('shows unresolved curated board items and lets the user select a manual fill jump target', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        ...review,
+        playerLinks: [review.playerLinks[0]],
+        requiresPlayerConfirmation: false,
+      },
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars played Commercial District.',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    expect(
+      await screen.findByRole('button', {
+        name: /fill manually commercial district for friday mars/i,
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /fill manually commercial district for friday mars/i,
+      }),
+    );
+
+    expect(
+      screen.getByText(
+        /after the draft is created, we'll jump to friday mars total card points so you can fill them manually\./i,
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /confirm import draft/i }),
+    );
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    expect(onConfirmImportReview.mock.calls[0]?.[1]).toEqual({
+      itemLabel: 'Commercial District',
+      message:
+        'The city placement from Commercial District could not be linked safely from the imported log.',
+      playerName: 'Friday Mars',
+      scoreField: 'cardPointsTotal',
+    });
   });
 
   it('auto-fills detected log participants when the manual field is blank', async () => {

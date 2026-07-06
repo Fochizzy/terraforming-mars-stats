@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
 import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
 import { SelectChevron } from '@/components/ui/select-chevron';
@@ -9,9 +9,11 @@ import { StepHeading } from '@/components/ui/step-heading';
 import { applyCreatedImportPlayerToReview } from '@/lib/imports/apply-created-import-player-to-review';
 import type { MapOption } from '@/lib/db/reference-repo';
 import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
+import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
 import { ImportReviewPanel } from './import-review-panel';
 
 export type WebImportDraftValues = {
+  boardScreenshots: File[];
   endgameScreenshot: File | null;
   exportedGameLog: string;
   generationCount: number;
@@ -72,10 +74,26 @@ function getImportErrorMessage(error: unknown) {
   return describeUnknownError(error, 'Unable to save this import draft right now.');
 }
 
+function formatManualReviewScoreFieldLabel(
+  scoreField: ImportReviewJumpTarget['scoreField'],
+) {
+  switch (scoreField) {
+    case 'awardPoints':
+      return 'Award Points';
+    case 'cardPointsTotal':
+      return 'Total Card Points';
+    default:
+      return scoreField;
+  }
+}
+
 type WebImportPageProps = {
   initialValues: Omit<
     WebImportDraftValues,
-    'endgameScreenshot' | 'exportedGameLog' | 'participantNames'
+    | 'boardScreenshots'
+    | 'endgameScreenshot'
+    | 'exportedGameLog'
+    | 'participantNames'
   >;
   mapOptions: MapOption[];
   onAnalyzeImportEvidence: (
@@ -84,7 +102,10 @@ type WebImportPageProps = {
   onCreateImportPlayer?: (
     importedName: string,
   ) => Promise<WebImportCreatePlayerResult>;
-  onConfirmImportReview: (formData: FormData) => Promise<WebImportActionResult>;
+  onConfirmImportReview: (
+    formData: FormData,
+    jumpTarget?: ImportReviewJumpTarget | null,
+  ) => Promise<WebImportActionResult>;
 };
 
 export function WebImportPage({
@@ -94,6 +115,7 @@ export function WebImportPage({
   onCreateImportPlayer,
   onConfirmImportReview,
 }: WebImportPageProps) {
+  const exportedGameLogRef = useRef<HTMLTextAreaElement | null>(null);
   const [playedOn, setPlayedOn] = useState(initialValues.playedOn);
   const [mapId, setMapId] = useState(initialValues.mapId);
   const [playerCount, setPlayerCount] = useState(initialValues.playerCount);
@@ -103,6 +125,7 @@ export function WebImportPage({
   const [exportedGameLog, setExportedGameLog] = useState('');
   const [participantsText, setParticipantsText] = useState('');
   const [endgameScreenshot, setEndgameScreenshot] = useState<File | null>(null);
+  const [boardScreenshots, setBoardScreenshots] = useState<File[]>([]);
   const [feedback, setFeedback] = useState<WebImportActionResult>({
     status: 'idle',
   });
@@ -113,6 +136,8 @@ export function WebImportPage({
   const [creatingImportedName, setCreatingImportedName] = useState<string | null>(
     null,
   );
+  const [manualReviewJumpTarget, setManualReviewJumpTarget] =
+    useState<ImportReviewJumpTarget | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
@@ -134,6 +159,7 @@ export function WebImportPage({
   useEffect(() => {
     if (!review) {
       setPlayerSelections({});
+      setManualReviewJumpTarget(null);
       return;
     }
 
@@ -179,8 +205,18 @@ export function WebImportPage({
     }
   }
 
+  function handleBoardScreenshotChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    setBoardScreenshots(Array.from(event.target.files ?? []));
+    setFeedback({
+      status: 'idle',
+    });
+  }
+
   function buildCurrentFormData() {
     return buildCreateImportDraftFormData({
+      boardScreenshots,
       confirmedPlayerLinks: review
         ? review.playerLinks.flatMap((link) => {
             const playerId = playerSelections[link.importedName]?.trim() ?? '';
@@ -223,6 +259,7 @@ export function WebImportPage({
     event.preventDefault();
     setIsSubmitting(true);
     setReview(null);
+    setManualReviewJumpTarget(null);
 
     try {
       const result = await onAnalyzeImportEvidence(buildCurrentFormData());
@@ -250,7 +287,10 @@ export function WebImportPage({
     setIsConfirming(true);
 
     try {
-      const result = await onConfirmImportReview(buildCurrentFormData());
+      const result = await onConfirmImportReview(
+        buildCurrentFormData(),
+        manualReviewJumpTarget,
+      );
 
       setFeedback(result);
     } catch (error) {
@@ -282,18 +322,20 @@ export function WebImportPage({
         return;
       }
 
+      const createdPlayer = result.createdPlayer;
+
       setReview((current) =>
         current
           ? applyCreatedImportPlayerToReview(current, {
-              createdPlayerId: result.createdPlayer.id,
-              displayName: result.createdPlayer.displayName,
+              createdPlayerId: createdPlayer.id,
+              displayName: createdPlayer.displayName,
               importedName,
             })
           : current,
       );
       setPlayerSelections((current) => ({
         ...current,
-        [importedName]: result.createdPlayer?.id ?? '',
+        [importedName]: createdPlayer.id,
       }));
     } catch (error) {
       setFeedback({
@@ -394,6 +436,7 @@ export function WebImportPage({
           <StepHeading step="02" title="Game Log" />
           <div
             className="overflow-hidden rounded-2xl border"
+            onClick={() => exportedGameLogRef.current?.focus()}
             style={{ borderColor: 'var(--tm-panel-border)' }}
           >
             <div
@@ -413,6 +456,7 @@ export function WebImportPage({
               className="min-h-36 w-full resize-y bg-black/40 px-4 py-3 font-mono text-xs leading-relaxed text-emerald-100/90 outline-none placeholder:text-stone-500"
               onChange={(event) => setExportedGameLog(event.target.value)}
               placeholder="Paste the exported log text here."
+              ref={exportedGameLogRef}
               value={exportedGameLog}
             />
           </div>
@@ -476,6 +520,27 @@ export function WebImportPage({
               </p>
             ) : null}
           </div>
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="tm-data-label">Board Screenshots (Optional)</span>
+            <input
+              aria-label="Board Screenshots"
+              accept="image/*"
+              className="block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
+              multiple
+              onChange={handleBoardScreenshotChange}
+              type="file"
+            />
+            <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+              Add zero or more board-state screenshots when endgame card
+              scoring needs tile, tag, or resource context.
+            </p>
+            {boardScreenshots.length ? (
+              <p className="text-xs tm-accent-copy">
+                Attached board screenshots:{' '}
+                {boardScreenshots.map((file) => file.name).join(', ')}
+              </p>
+            ) : null}
+          </label>
         </div>
 
         {feedback.message ? (
@@ -500,20 +565,32 @@ export function WebImportPage({
             [importedName]: playerId,
           }))
         }
+        onSelectManualReviewJumpTarget={setManualReviewJumpTarget}
         playerSelections={playerSelections}
         review={review}
+        selectedManualReviewJumpTarget={manualReviewJumpTarget}
       />
 
       {review ? (
         <div className="flex flex-col gap-3">
+          {manualReviewJumpTarget ? (
+            <p className="text-sm tm-accent-copy">
+              After the draft is created, we&apos;ll jump to{' '}
+              {manualReviewJumpTarget.playerName}{' '}
+              {formatManualReviewScoreFieldLabel(
+                manualReviewJumpTarget.scoreField,
+              )}{' '}
+              so you can fill them manually.
+            </p>
+          ) : null}
           {hasMissingSelections ? (
-            <p className="text-sm text-amber-100">
+            <p className="text-sm tm-text-warning">
               Choose a roster player for every imported name before creating the
               draft.
             </p>
           ) : null}
           {hasDuplicateSelections ? (
-            <p className="text-sm text-rose-300">
+            <p className="text-sm tm-text-danger">
               Each imported player must map to a different roster player.
             </p>
           ) : null}

@@ -1,10 +1,16 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { startTransition, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import type { Resolver } from 'react-hook-form';
 import { useForm, useWatch } from 'react-hook-form';
+import { StatusBanner } from '@/components/ui/status-banner';
 import { buildGameReview } from '@/features/games/finalize-game';
+import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import {
+  consumeImportReviewJumpState,
+  type ImportReviewJumpTarget,
+} from '@/lib/imports/import-review-jump-state';
 import type {
   CardOption,
   CorporationOption,
@@ -34,6 +40,10 @@ type GameSubmitResult = {
   status: 'success' | 'error';
   gameId?: string;
   message: string;
+};
+
+type ManualReviewScoreHighlight = ImportReviewJumpTarget & {
+  playerId: string;
 };
 
 type LogGameWizardProps = {
@@ -75,6 +85,8 @@ export function LogGameWizard({
     defaultValues: initialValues,
   });
   const [isPending, setIsPending] = useState(false);
+  const [manualReviewHighlight, setManualReviewHighlight] =
+    useState<ManualReviewScoreHighlight | null>(null);
   const [result, setResult] = useState<GameSubmitResult | null>(null);
   const [submitMode, setSubmitMode] = useState<'draft' | 'finalize'>('draft');
   const selectedPlayerIds =
@@ -107,6 +119,35 @@ export function LogGameWizard({
           display_name: playerId,
         },
     );
+  useEffect(() => {
+    if (!initialValues.gameId) {
+      return;
+    }
+
+    const storedJumpState = consumeImportReviewJumpState(initialValues.gameId);
+
+    if (!storedJumpState) {
+      return;
+    }
+
+    const matchingPlayer = selectedPlayers.find(
+      (player) =>
+        normalizePlayerAlias(player.display_name) ===
+        normalizePlayerAlias(storedJumpState.playerName),
+    );
+
+    if (!matchingPlayer) {
+      return;
+    }
+
+    setManualReviewHighlight({
+      itemLabel: storedJumpState.itemLabel,
+      message: storedJumpState.message,
+      playerId: matchingPlayer.id,
+      playerName: matchingPlayer.display_name,
+      scoreField: storedJumpState.scoreField,
+    });
+  }, [initialValues.gameId, selectedPlayers]);
   const normalizedExpansionCodes = normalizeSelectedExpansionCodes(expansionCodes);
   const visibleCorporations = filterCorporationOptions(
     corporationOptions,
@@ -201,7 +242,11 @@ export function LogGameWizard({
         register={form.register}
         selectedPlayers={selectedPlayers}
       />
-      <ScoresStep register={form.register} selectedPlayers={selectedPlayers} />
+      <ScoresStep
+        manualReviewHighlight={manualReviewHighlight}
+        register={form.register}
+        selectedPlayers={selectedPlayers}
+      />
       <StyleStep
         cardOptions={visibleCards}
         register={form.register}
@@ -215,19 +260,11 @@ export function LogGameWizard({
         selectedPlayers={selectedPlayers}
       />
       {result ? (
-        <p
-          className={
-            result.status === 'success'
-              ? 'text-sm text-emerald-300'
-              : 'text-sm text-rose-300'
-          }
-        >
-          {result.message}
-        </p>
+        <StatusBanner message={result.message} status={result.status} />
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
-          className="rounded-full bg-orange-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="tm-button-primary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isPending}
           onClick={() => setSubmitMode('draft')}
           type="submit"
@@ -235,7 +272,7 @@ export function LogGameWizard({
           {isPending && submitMode === 'draft' ? 'Saving...' : 'Save Draft Setup'}
         </button>
         <button
-          className="rounded-full border border-cyan-300/60 px-5 py-3 font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="tm-button-secondary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isPending || hasBlockingIssues}
           onClick={() => setSubmitMode('finalize')}
           type="submit"

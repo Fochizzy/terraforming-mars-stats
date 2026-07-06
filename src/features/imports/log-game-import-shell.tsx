@@ -2,6 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
+import {
+  saveImportReviewJumpState,
+  type ImportReviewJumpTarget,
+} from '@/lib/imports/import-review-jump-state';
 import type { MapOption } from '@/lib/db/reference-repo';
 import {
   WebImportPage,
@@ -56,11 +60,21 @@ export function LogGameImportShell({
     }
   }
 
-  async function handleStartImport(formData: FormData): Promise<WebImportActionResult> {
+  async function handleStartImport(
+    formData: FormData,
+    jumpTarget?: ImportReviewJumpTarget | null,
+  ): Promise<WebImportActionResult> {
     try {
       const result = await onCreateImportDraft(formData);
 
       if (result.status === 'success' && result.gameId) {
+        if (jumpTarget) {
+          saveImportReviewJumpState({
+            gameId: result.gameId,
+            ...jumpTarget,
+          });
+        }
+
         router.push(`/log-game?gameId=${result.gameId}`);
       }
 
