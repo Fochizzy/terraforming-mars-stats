@@ -238,7 +238,11 @@ export function ImportReviewPanel({
           </ul>
         </div>
       ) : null}
-      <ImportCardScoringPanel summaries={cardScoring} />
+      <ImportCardScoringPanel
+        onSelectManualReviewJumpTarget={onSelectManualReviewJumpTarget}
+        selectedManualReviewJumpTarget={selectedManualReviewJumpTarget}
+        summaries={cardScoring}
+      />
       <ImportPlayerResolutionPanel
         creatingImportedName={creatingImportedName}
         onCreatePlayer={onCreatePlayer}

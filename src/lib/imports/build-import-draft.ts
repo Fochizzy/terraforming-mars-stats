@@ -387,7 +387,7 @@ export function buildImportDraft(input: {
         expectedCuratedBoardCardPointsByPlayerId.get(playerId);
       const completeCalculatedCardPointsTotal =
         cardScoringSummary?.totals.complete
-          ? cardScoringSummary.totals.total + (provedCuratedBoardCardPoints ?? 0)
+          ? cardScoringSummary.totals.total
           : undefined;
       const mergedScore = {
         awardPoints:

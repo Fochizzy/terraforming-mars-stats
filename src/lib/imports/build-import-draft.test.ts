@@ -297,7 +297,7 @@ describe('buildImportDraft', () => {
     });
   });
 
-  it('adds proved curated board card points on top of a complete calculated card total when no stronger total source exists', () => {
+  it('does not double count proved curated board card points on top of a complete calculated card total', () => {
     expect(
       buildImportDraft({
         cardScoring: [
@@ -366,7 +366,7 @@ describe('buildImportDraft', () => {
     ).toMatchObject({
       'player-1': {
         cardPointsAnimals: 3,
-        cardPointsTotal: 8,
+        cardPointsTotal: 5,
       },
     });
   });
