@@ -337,6 +337,31 @@ export function buildImportDraft(input: {
     }
   }
 
+  const expectedCuratedBoardCardPointsByPlayerId = new Map<string, number>();
+
+  for (const item of input.curatedBoardItems ?? []) {
+    if (
+      item.itemType !== 'card' ||
+      item.status !== 'proved' ||
+      typeof item.points !== 'number'
+    ) {
+      continue;
+    }
+
+    const playerId = playerIdByImportedName.get(
+      normalizePlayerAlias(item.playerName),
+    );
+
+    if (!playerId) {
+      continue;
+    }
+
+    expectedCuratedBoardCardPointsByPlayerId.set(
+      playerId,
+      (expectedCuratedBoardCardPointsByPlayerId.get(playerId) ?? 0) + item.points,
+    );
+  }
+
   const playerScores = Object.fromEntries(
     selectedPlayerIds.flatMap((playerId) => {
       const importedName = importedNameByPlayerId.get(playerId);
@@ -389,7 +414,8 @@ export function buildImportDraft(input: {
           scoreCandidate?.cardPointsTotal ??
           (cardScoringSummary?.totals.complete
             ? cardScoringSummary.totals.total
-            : undefined),
+            : undefined) ??
+          expectedCuratedBoardCardPointsByPlayerId.get(playerId),
         citiesPoints: logScore.citiesPoints ?? scoreCandidate?.citiesPoints,
         finalMegacredits:
           logScore.finalMegacredits ?? scoreCandidate?.finalMegacredits,

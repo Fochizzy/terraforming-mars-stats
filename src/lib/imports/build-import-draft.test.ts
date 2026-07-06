@@ -319,6 +319,16 @@ describe('buildImportDraft', () => {
         sourceType: 'log_and_board',
         status: 'review_needed',
       },
+      {
+        cardName: 'Commercial District',
+        itemType: 'card',
+        mapId: 'hellas',
+        notes: ['The Commercial District placement had 3 adjacent cities.'],
+        playerName: 'Third Seat',
+        points: 3,
+        sourceType: 'log_and_board',
+        status: 'proved',
+      },
     ];
 
     expect(
@@ -359,6 +369,7 @@ describe('buildImportDraft', () => {
         },
         'player-3': {
           awardPoints: 2,
+          cardPointsTotal: 3,
         },
       },
     });
