@@ -36,6 +36,35 @@ describe('resolveImportParticipantIdentities', () => {
     ]);
   });
 
+  it('falls back to an exact normalized name token when no linked account exists', () => {
+    const resolved = resolveImportParticipantIdentities(
+      ['Friday-Mars!!'],
+      [
+        {
+          display_name: 'Friday Mars',
+          group_id: 'group-1',
+          id: 'player-1',
+          linked_user_id: null,
+        },
+        {
+          display_name: 'Friday   Mars',
+          group_id: 'group-2',
+          id: 'player-2',
+          linked_user_id: null,
+        },
+      ],
+    );
+
+    expect(resolved).toEqual([
+      {
+        displayName: 'Friday-Mars!!',
+        linkedUserId: null,
+        normalizedName: 'friday mars',
+        token: 'name:friday mars',
+      },
+    ]);
+  });
+
   it('throws when one exact imported name maps to multiple linked users', () => {
     expect(() =>
       resolveImportParticipantIdentities(
@@ -56,6 +85,12 @@ describe('resolveImportParticipantIdentities', () => {
         ],
       ),
     ).toThrow(/multiple existing users/i);
+  });
+
+  it('throws with the duplicate exact token when imported participants collapse together', () => {
+    expect(() =>
+      resolveImportParticipantIdentities(['Friday Mars', 'Friday-Mars'], []),
+    ).toThrow(/name:friday mars/i);
   });
 });
 
@@ -107,6 +142,46 @@ describe('findExactGroupRosterMatch', () => {
     expect(
       buildGroupRosterSignature(importedParticipants.map((participant) => participant.token)),
     ).toBe('user:user-1|user:user-2');
+  });
+
+  it('throws with the exact roster signature when two groups already share it', () => {
+    const importedParticipants = resolveImportParticipantIdentities(
+      ['Second Seat', 'Friday Mars'],
+      [],
+    );
+
+    expect(() =>
+      findExactGroupRosterMatch(importedParticipants, [
+        {
+          created_at: '2026-07-04T00:00:00Z',
+          display_name: 'Friday Mars',
+          group_id: 'group-1',
+          id: 'player-1',
+          linked_user_id: null,
+        },
+        {
+          created_at: '2026-07-04T00:00:00Z',
+          display_name: 'Second Seat',
+          group_id: 'group-1',
+          id: 'player-2',
+          linked_user_id: null,
+        },
+        {
+          created_at: '2026-07-04T00:00:00Z',
+          display_name: 'Friday-Mars',
+          group_id: 'group-2',
+          id: 'player-3',
+          linked_user_id: null,
+        },
+        {
+          created_at: '2026-07-04T00:00:00Z',
+          display_name: 'Second  Seat',
+          group_id: 'group-2',
+          id: 'player-4',
+          linked_user_id: null,
+        },
+      ]),
+    ).toThrow(/name:friday mars\|name:second seat/i);
   });
 });
 

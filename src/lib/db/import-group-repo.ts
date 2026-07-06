@@ -31,6 +31,20 @@ export function buildGroupRosterSignature(tokens: string[]) {
   return [...tokens].sort().join('|');
 }
 
+function findDuplicateToken(tokens: string[]) {
+  const seenTokens = new Set<string>();
+
+  for (const token of tokens) {
+    if (seenTokens.has(token)) {
+      return token;
+    }
+
+    seenTokens.add(token);
+  }
+
+  return null;
+}
+
 export function resolveImportParticipantIdentities(
   participantNames: string[],
   playerRows: Array<Pick<GlobalPlayerRow, 'display_name' | 'group_id' | 'id' | 'linked_user_id'>>,
@@ -62,11 +76,13 @@ export function resolveImportParticipantIdentities(
     };
   });
 
-  const uniqueTokens = new Set(identities.map((identity) => identity.token));
+  const duplicateToken = findDuplicateToken(
+    identities.map((identity) => identity.token),
+  );
 
-  if (uniqueTokens.size !== identities.length) {
+  if (duplicateToken) {
     throw new Error(
-      'Imported participants resolve to duplicate existing users. Update the names before saving.',
+      `Imported participants collapse to the same exact token (${duplicateToken}). Update the names before saving.`,
     );
   }
 
@@ -99,7 +115,7 @@ export function findExactGroupRosterMatch(
 
   if (matchingGroupIds.length > 1) {
     throw new Error(
-      'Multiple groups already use this exact player set. Clean up the duplicates before importing.',
+      `Multiple groups already share the same exact roster signature (${importedSignature}). Clean up the duplicates before importing.`,
     );
   }
 
