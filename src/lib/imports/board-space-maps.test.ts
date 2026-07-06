@@ -38,6 +38,12 @@ describe('getBoardSpaceMap', () => {
     expect(elysium.spaces['31']).not.toHaveProperty('reservedTile');
   });
 
+  it('exposes empty region registries for all three supported maps until a rule needs them', () => {
+    expect(getBoardSpaceMap('tharsis').regions).toEqual({});
+    expect(getBoardSpaceMap('hellas').regions).toEqual({});
+    expect(getBoardSpaceMap('elysium').regions).toEqual({});
+  });
+
   it('rejects unsupported board map ids', () => {
     expect(isSupportedBoardMapId('custom')).toBe(false);
     expect(() => getBoardSpaceMap('custom')).toThrowError(

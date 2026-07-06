@@ -14,8 +14,11 @@ export type SupportedBoardMapId = (typeof supportedBoardMapIds)[number];
 
 export type BoardSpaceRegistry = Partial<Record<string, BoardSpaceDefinition>>;
 
+export type BoardRegionRegistry = Record<string, string[]>;
+
 export type BoardSpaceMap = {
   mapId: SupportedBoardMapId;
+  regions: BoardRegionRegistry;
   spaces: BoardSpaceRegistry;
 };
 
@@ -43,14 +46,17 @@ function createBoardSpaces(
 const boardSpaceMaps: Record<SupportedBoardMapId, BoardSpaceMap> = {
   tharsis: {
     mapId: 'tharsis',
+    regions: {},
     spaces: createBoardSpaces('Noctis City'),
   },
   hellas: {
     mapId: 'hellas',
+    regions: {},
     spaces: createBoardSpaces(),
   },
   elysium: {
     mapId: 'elysium',
+    regions: {},
     spaces: createBoardSpaces(),
   },
 };
