@@ -25,6 +25,7 @@ import { buildImportBoardSnapshot } from '@/lib/imports/build-import-board-snaps
 import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
+import { isSupportedBoardMapId } from '@/lib/imports/board-space-maps';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
 import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
 import {
@@ -74,7 +75,7 @@ export default async function LogGameImportPage() {
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
       const boardSnapshot =
-        values.mapId === 'tharsis'
+        isSupportedBoardMapId(values.mapId)
           ? buildImportBoardSnapshot({
               events: parsedGameLog.events,
               mapId: values.mapId,
@@ -151,7 +152,7 @@ export default async function LogGameImportPage() {
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
       const boardSnapshot =
-        values.mapId === 'tharsis'
+        isSupportedBoardMapId(values.mapId)
           ? buildImportBoardSnapshot({
               events: parsedGameLog.events,
               mapId: values.mapId,

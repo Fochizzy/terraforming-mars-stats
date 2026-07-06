@@ -4,27 +4,65 @@ export type BoardSpaceDefinition = {
   reservedTile?: 'Noctis City';
 };
 
+export const supportedBoardMapIds = [
+  'tharsis',
+  'hellas',
+  'elysium',
+] as const;
+
+export type SupportedBoardMapId = (typeof supportedBoardMapIds)[number];
+
 export type BoardSpaceMap = {
-  mapId: string;
+  mapId: SupportedBoardMapId;
   spaces: Record<string, BoardSpaceDefinition>;
 };
 
-const tharsisSpaces: Record<string, BoardSpaceDefinition> = {
-  '21': { id: '21', neighbors: ['20', '22', '29', '30'] },
-  '31': {
-    id: '31',
-    neighbors: ['30', '32', '39', '40'],
-    reservedTile: 'Noctis City',
+const sharedBoardGeometry = {
+  '21': ['20', '22', '29', '30'],
+  '31': ['30', '32', '39', '40'],
+} as const;
+
+function createBoardSpaces(
+  reservedTile?: BoardSpaceDefinition['reservedTile'],
+): Record<string, BoardSpaceDefinition> {
+  return {
+    '21': {
+      id: '21',
+      neighbors: [...sharedBoardGeometry['21']],
+    },
+    '31': {
+      id: '31',
+      neighbors: [...sharedBoardGeometry['31']],
+      ...(reservedTile ? { reservedTile } : {}),
+    },
+  };
+}
+
+const boardSpaceMaps: Record<SupportedBoardMapId, BoardSpaceMap> = {
+  tharsis: {
+    mapId: 'tharsis',
+    spaces: createBoardSpaces('Noctis City'),
+  },
+  hellas: {
+    mapId: 'hellas',
+    spaces: createBoardSpaces(),
+  },
+  elysium: {
+    mapId: 'elysium',
+    spaces: createBoardSpaces(),
   },
 };
 
+export function isSupportedBoardMapId(
+  mapId: string,
+): mapId is SupportedBoardMapId {
+  return supportedBoardMapIds.includes(mapId as SupportedBoardMapId);
+}
+
 export function getBoardSpaceMap(mapId: string): BoardSpaceMap {
-  if (mapId !== 'tharsis') {
+  if (!isSupportedBoardMapId(mapId)) {
     throw new Error(`Unsupported board map for curated board import: ${mapId}`);
   }
 
-  return {
-    mapId: 'tharsis',
-    spaces: tharsisSpaces,
-  };
+  return boardSpaceMaps[mapId];
 }
