@@ -31,9 +31,11 @@ describe('getBoardSpaceMap', () => {
     expect(hellas.spaces['31']).toMatchObject({
       id: '31',
     });
+    expect(hellas.spaces['31']).not.toHaveProperty('reservedTile');
     expect(elysium.spaces['31']).toMatchObject({
       id: '31',
     });
+    expect(elysium.spaces['31']).not.toHaveProperty('reservedTile');
   });
 
   it('rejects unsupported board map ids', () => {

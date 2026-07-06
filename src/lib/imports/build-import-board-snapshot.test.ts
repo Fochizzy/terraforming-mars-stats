@@ -1,12 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import { buildImportBoardSnapshot } from './build-import-board-snapshot';
 import type { SupportedBoardMapId } from './board-space-maps';
-
-function expectSupportedBoardMapId(
-  mapId: SupportedBoardMapId,
-): SupportedBoardMapId {
-  return mapId;
-}
 
 describe('buildImportBoardSnapshot', () => {
   it('reconstructs occupied spaces from parsed tile placements and links named tiles safely', () => {
@@ -39,7 +33,8 @@ describe('buildImportBoardSnapshot', () => {
       mapId: 'tharsis',
     });
 
-    expect(expectSupportedBoardMapId(snapshot.mapId)).toBe('tharsis');
+    expectTypeOf(snapshot.mapId).toEqualTypeOf<SupportedBoardMapId>();
+    expect(snapshot.mapId).toBe('tharsis');
     expect(snapshot.spaces['21']).toMatchObject({
       ownerPlayerName: 'Izzy',
       sourceCardName: 'Mining Area',
