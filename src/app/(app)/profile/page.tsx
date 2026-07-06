@@ -6,7 +6,10 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { getProfileAnalytics } from '@/lib/db/analytics-repo';
 import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 
-const noGroupNavItems = [{ href: '/profile', label: 'My Profile' }] as const;
+const noGroupNavItems = [
+  { href: '/profile', label: 'My Profile' },
+  { href: '/log-game', label: 'Log Game' },
+] as const;
 
 export default async function ProfilePage() {
   const context = await getCurrentGroupContext();
