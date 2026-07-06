@@ -232,4 +232,154 @@ describe('calculateImportCardScores', () => {
       },
     ]);
   });
+
+  it('still scores OCR tile-count cards that depend on self tile totals', async () => {
+    const result = await calculateImportCardScores({
+      cardReferences: [
+        {
+          cardName: 'Urban Survey',
+          cardNumber: '006',
+          cardType: 'Project',
+          expansionCode: 'base',
+          fullImageUrl: 'https://example.com/urban-survey.png',
+          id: 'card-urban-survey',
+          imageUrl: 'https://example.com/urban-survey.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+          sourceCardId: 'project:base:006',
+          sourceTags: [],
+          thumbnailUrl: 'https://example.com/urban-survey-thumb.png',
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Urban Survey',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Urban Survey',
+        },
+        {
+          actor: 'Friday Mars',
+          eventType: 'tile_placed',
+          lineNumber: 2,
+          rawLine: 'Friday Mars placed city tile at 10',
+          space: '10',
+          tile: 'city',
+        },
+        {
+          actor: 'Friday Mars',
+          eventType: 'tile_placed',
+          lineNumber: 3,
+          rawLine: 'Friday Mars placed city tile at 11',
+          space: '11',
+          tile: 'city',
+        },
+      ],
+      ocrTextLinesByCardId: {
+        'card-urban-survey': ['1 VP for every city tile.'],
+      },
+    });
+
+    expect(result).toEqual([
+      {
+        autoScoredCards: [
+          expect.objectContaining({
+            cardName: 'Urban Survey',
+            category: 'other',
+            evidenceSummary: '2 city tiles => 2 VP',
+            points: 2,
+          }),
+        ],
+        pendingCards: [],
+        playerName: 'Friday Mars',
+        totals: {
+          animals: 0,
+          complete: true,
+          jovian: 0,
+          microbes: 0,
+          other: 2,
+          total: 2,
+        },
+      },
+    ]);
+  });
+
+  it('still scores OCR non-science tag-count cards from their played tags', async () => {
+    const result = await calculateImportCardScores({
+      cardReferences: [
+        {
+          cardName: 'Steel Works',
+          cardNumber: '007',
+          cardType: 'Project',
+          expansionCode: 'base',
+          fullImageUrl: 'https://example.com/steel-works.png',
+          id: 'card-steel-works',
+          imageUrl: 'https://example.com/steel-works.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+          sourceCardId: 'project:base:007',
+          sourceTags: ['Building'],
+          thumbnailUrl: 'https://example.com/steel-works-thumb.png',
+        },
+        {
+          cardName: 'Builder Hall',
+          cardNumber: '008',
+          cardType: 'Project',
+          expansionCode: 'base',
+          fullImageUrl: 'https://example.com/builder-hall.png',
+          id: 'card-builder-hall',
+          imageUrl: 'https://example.com/builder-hall.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+          sourceCardId: 'project:base:008',
+          sourceTags: ['Building'],
+          thumbnailUrl: 'https://example.com/builder-hall-thumb.png',
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Steel Works',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Steel Works',
+        },
+        {
+          actor: 'Friday Mars',
+          card: 'Builder Hall',
+          eventType: 'card_played',
+          lineNumber: 2,
+          rawLine: 'Friday Mars played Builder Hall',
+        },
+      ],
+      ocrTextLinesByCardId: {
+        'card-builder-hall': ['1 VP for every 2 building tags you have.'],
+        'card-steel-works': ['Action: gain 2 steel.'],
+      },
+    });
+
+    expect(result).toEqual([
+      {
+        autoScoredCards: [
+          expect.objectContaining({
+            cardName: 'Builder Hall',
+            category: 'other',
+            evidenceSummary: '2 building tags => 1 VP',
+            points: 1,
+          }),
+        ],
+        pendingCards: [],
+        playerName: 'Friday Mars',
+        totals: {
+          animals: 0,
+          complete: true,
+          jovian: 0,
+          microbes: 0,
+          other: 1,
+          total: 1,
+        },
+      },
+    ]);
+  });
 });

@@ -10,15 +10,20 @@ import type {
 } from './card-scoring-types';
 
 function isLikelyVariableScoreCandidate(evidence: {
+  cardId: string;
   cardName: string;
   resourceCountsByType: Record<string, number>;
+  selfTileCounts: Record<string, number>;
   sourceTags: string[];
+}, input: {
+  ocrTextLinesByCardId?: Record<string, string[]>;
 }) {
   return (
+    (input.ocrTextLinesByCardId?.[evidence.cardId]?.length ?? 0) > 0 ||
     getCuratedCardScoringRule({ cardName: evidence.cardName }) !== null ||
     Object.keys(evidence.resourceCountsByType).length > 0 ||
-    evidence.sourceTags.includes('science') ||
-    evidence.sourceTags.includes('jovian')
+    evidence.sourceTags.length > 0 ||
+    Object.keys(evidence.selfTileCounts).length > 0
   );
 }
 
@@ -44,7 +49,7 @@ export async function calculateImportCardScores(input: {
   const summariesByPlayerName = new Map<string, ImportPlayerCardScoringSummary>();
 
   for (const evidence of evidenceRows) {
-    if (!isLikelyVariableScoreCandidate(evidence)) {
+    if (!isLikelyVariableScoreCandidate(evidence, input)) {
       continue;
     }
 
