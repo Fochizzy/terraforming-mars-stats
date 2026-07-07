@@ -43,6 +43,13 @@ describe('LogGameImportShell', () => {
           },
         ],
         drawInfoLineCount: 1,
+        groupResolution: {
+          action: 'reuse' as const,
+          groupName: 'Friday / Second',
+          participantCount: 2,
+          summary:
+            'This import will reuse Friday / Second because its roster exactly matches an existing group.',
+        },
         ignoredLineCount: 2,
         parsedEventCount: 3,
         playerLinks: [
@@ -144,6 +151,11 @@ describe('LogGameImportShell', () => {
     expect(
       screen.getByText(/parsed 3 actionable log events and ignored 2 filler lines/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /this import will reuse friday \/ second because its roster exactly matches an existing group\./i,
+      ),
+    ).toBeInTheDocument();
 
     await user.click(
       screen.getByRole('button', {
@@ -179,6 +191,13 @@ describe('LogGameImportShell', () => {
       status: 'success' as const,
       review: {
         drawInfoLineCount: 0,
+        groupResolution: {
+          action: 'create' as const,
+          groupName: 'Friday Mars / Second Seat',
+          participantCount: 2,
+          summary:
+            'This import will create Friday Mars / Second Seat because no existing group has this exact roster.',
+        },
         ignoredLineCount: 0,
         parsedEventCount: 0,
         playerLinks: [
@@ -266,6 +285,13 @@ describe('LogGameImportShell', () => {
         ],
         detectedParticipantNames: ['Imported Alias'],
         drawInfoLineCount: 0,
+        groupResolution: {
+          action: 'create' as const,
+          groupName: 'Imported Alias',
+          participantCount: 1,
+          summary:
+            'This import will create Imported Alias because no existing group has this exact roster.',
+        },
         ignoredLineCount: 0,
         parsedEventCount: 1,
         playerLinks: [

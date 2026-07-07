@@ -6,7 +6,6 @@ import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StatusBanner } from '@/components/ui/status-banner';
 import { StepHeading } from '@/components/ui/step-heading';
-import { applyCreatedImportPlayerToReview } from '@/lib/imports/apply-created-import-player-to-review';
 import type { MapOption } from '@/lib/db/reference-repo';
 import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
@@ -28,15 +27,6 @@ export type WebImportActionResult = {
   message?: string;
   review?: ImportReviewModel;
   status: 'error' | 'idle' | 'success';
-};
-
-export type WebImportCreatePlayerResult = {
-  createdPlayer?: {
-    displayName: string;
-    id: string;
-  };
-  message?: string;
-  status: 'error' | 'success';
 };
 
 function getClipboardImageFile(
@@ -119,9 +109,6 @@ type WebImportPageProps = {
   onAnalyzeImportEvidence: (
     formData: FormData,
   ) => Promise<WebImportActionResult>;
-  onCreateImportPlayer?: (
-    importedName: string,
-  ) => Promise<WebImportCreatePlayerResult>;
   onConfirmImportReview: (
     formData: FormData,
     jumpTarget?: ImportReviewJumpTarget | null,
@@ -132,7 +119,6 @@ export function WebImportPage({
   initialValues,
   mapOptions,
   onAnalyzeImportEvidence,
-  onCreateImportPlayer,
   onConfirmImportReview,
 }: WebImportPageProps) {
   const exportedGameLogRef = useRef<HTMLTextAreaElement | null>(null);
@@ -152,9 +138,6 @@ export function WebImportPage({
   const [review, setReview] = useState<ImportReviewModel | null>(null);
   const [playerSelections, setPlayerSelections] = useState<Record<string, string>>(
     {},
-  );
-  const [creatingImportedName, setCreatingImportedName] = useState<string | null>(
-    null,
   );
   const [manualReviewJumpTarget, setManualReviewJumpTarget] =
     useState<ImportReviewJumpTarget | null>(null);
@@ -200,6 +183,14 @@ export function WebImportPage({
     );
   }, [review]);
 
+  function invalidateReview() {
+    setFeedback({
+      status: 'idle',
+    });
+    setReview(null);
+    setManualReviewJumpTarget(null);
+  }
+
   function handlePaste(event: React.ClipboardEvent<HTMLFormElement>) {
     const pastedScreenshot = getClipboardImageFile(event.clipboardData);
 
@@ -208,10 +199,8 @@ export function WebImportPage({
     }
 
     event.preventDefault();
+    invalidateReview();
     setEndgameScreenshot(pastedScreenshot);
-    setFeedback({
-      status: 'idle',
-    });
   }
 
   function handleScreenshotDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -221,6 +210,7 @@ export function WebImportPage({
     );
 
     if (droppedFile) {
+      invalidateReview();
       setEndgameScreenshot(droppedFile);
     }
   }
@@ -228,10 +218,8 @@ export function WebImportPage({
   function handleBoardScreenshotChange(
     event: React.ChangeEvent<HTMLInputElement>,
   ) {
+    invalidateReview();
     setBoardScreenshots(Array.from(event.target.files ?? []));
-    setFeedback({
-      status: 'idle',
-    });
   }
 
   function buildCurrentFormData() {
@@ -326,50 +314,6 @@ export function WebImportPage({
     }
   }
 
-  async function handleCreatePlayer(importedName: string) {
-    if (!onCreateImportPlayer) {
-      return;
-    }
-
-    setCreatingImportedName(importedName);
-
-    try {
-      const result = await onCreateImportPlayer(importedName);
-
-      setFeedback({
-        message: result.message,
-        status: result.status,
-      });
-
-      if (!result.createdPlayer) {
-        return;
-      }
-
-      const createdPlayer = result.createdPlayer;
-
-      setReview((current) =>
-        current
-          ? applyCreatedImportPlayerToReview(current, {
-              createdPlayerId: createdPlayer.id,
-              displayName: createdPlayer.displayName,
-              importedName,
-            })
-          : current,
-      );
-      setPlayerSelections((current) => ({
-        ...current,
-        [importedName]: createdPlayer.id,
-      }));
-    } catch (error) {
-      setFeedback({
-        status: 'error',
-        message: getImportErrorMessage(error),
-      });
-    } finally {
-      setCreatingImportedName(null);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-5">
       <section className="tm-panel flex flex-col gap-3">
@@ -401,7 +345,10 @@ export function WebImportPage({
               <input
                 aria-label="Played On"
                 className="tm-input"
-                onChange={(event) => setPlayedOn(event.target.value)}
+                onChange={(event) => {
+                  invalidateReview();
+                  setPlayedOn(event.target.value);
+                }}
                 type="date"
                 value={playedOn}
               />
@@ -412,7 +359,10 @@ export function WebImportPage({
               <select
                 aria-label="Map"
                 className="tm-input appearance-none pr-9"
-                onChange={(event) => setMapId(event.target.value)}
+                onChange={(event) => {
+                  invalidateReview();
+                  setMapId(event.target.value);
+                }}
                 value={mapId}
               >
                 {mapOptions.map((map) => (
@@ -429,7 +379,10 @@ export function WebImportPage({
               <select
                 aria-label="Player Count"
                 className="tm-input appearance-none pr-9"
-                onChange={(event) => setPlayerCount(Number(event.target.value))}
+                onChange={(event) => {
+                  invalidateReview();
+                  setPlayerCount(Number(event.target.value));
+                }}
                 value={playerCount}
               >
                 {[1, 2, 3, 4, 5].map((count) => (
@@ -447,7 +400,10 @@ export function WebImportPage({
                 aria-label="Generation Count"
                 className="tm-input"
                 min={1}
-                onChange={(event) => setGenerationCount(Number(event.target.value))}
+                onChange={(event) => {
+                  invalidateReview();
+                  setGenerationCount(Number(event.target.value));
+                }}
                 type="number"
                 value={generationCount}
               />
@@ -477,7 +433,10 @@ export function WebImportPage({
             <textarea
               aria-label="Exported Game Log"
               className="min-h-36 w-full resize-y bg-black/40 px-4 py-3 font-mono text-xs leading-relaxed text-emerald-100/90 outline-none placeholder:text-stone-500"
-              onChange={(event) => setExportedGameLog(event.target.value)}
+              onChange={(event) => {
+                invalidateReview();
+                setExportedGameLog(event.target.value);
+              }}
               placeholder="Paste the exported log text here."
               ref={exportedGameLogRef}
               value={exportedGameLog}
@@ -492,7 +451,10 @@ export function WebImportPage({
             <textarea
               aria-label="Participants"
               className="tm-input min-h-24"
-              onChange={(event) => setParticipantsText(event.target.value)}
+              onChange={(event) => {
+                invalidateReview();
+                setParticipantsText(event.target.value);
+              }}
               placeholder="Leave blank to detect names from the pasted log, or enter one name per line."
               value={participantsText}
             />
@@ -529,9 +491,10 @@ export function WebImportPage({
               aria-label="Endgame Screenshot"
               accept="image/*"
               className="mx-auto mt-4 block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
-              onChange={(event) =>
-                setEndgameScreenshot(event.target.files?.[0] ?? null)
-              }
+              onChange={(event) => {
+                invalidateReview();
+                setEndgameScreenshot(event.target.files?.[0] ?? null);
+              }}
               type="file"
             />
             <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
@@ -580,8 +543,6 @@ export function WebImportPage({
       </form>
 
       <ImportReviewPanel
-        creatingImportedName={creatingImportedName}
-        onCreatePlayer={handleCreatePlayer}
         onSelectionChange={(importedName, playerId) =>
           setPlayerSelections((current) => ({
             ...current,

@@ -100,12 +100,21 @@ function buildBoardReviewJumpTarget(
     };
   }
 
+  const awardWinnerName =
+    item.firstPlacePlayerNames?.length === 1
+      ? item.firstPlacePlayerNames[0]
+      : null;
+
+  if (!awardWinnerName) {
+    return null;
+  }
+
   return {
     itemLabel: item.awardName,
     message:
       item.notes[0] ??
       `${item.awardName} could not be read from the imported board evidence.`,
-    playerName: item.fundedByPlayerName,
+    playerName: awardWinnerName,
     scoreField: 'awardPoints',
   };
 }
@@ -160,6 +169,12 @@ export function ImportReviewPanel({
           scoring.
         </p>
       ) : null}
+      <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4">
+        <h3 className="tm-data-label text-xs">Roster Destination</h3>
+        <p className="mt-2 text-sm text-amber-50">
+          {review.groupResolution.summary}
+        </p>
+      </div>
       {logScoreCandidates.length > 0 ? (
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
           <h3 className="tm-data-label text-xs">Log Score Hints</h3>
