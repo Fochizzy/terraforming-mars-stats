@@ -38,6 +38,25 @@ describe('getBoardSpaceMap', () => {
     expect(elysium.spaces['31']).not.toHaveProperty('reservedTile');
   });
 
+  it('recognizes the official board space ids even when adjacency is not yet trusted for scoring', () => {
+    const tharsis = getBoardSpaceMap('tharsis');
+
+    expect(tharsis.spaces['20']).toMatchObject({
+      id: '20',
+    });
+    expect(tharsis.spaces['21']).toMatchObject({
+      id: '21',
+      neighbors: expect.any(Array),
+    });
+    expect(tharsis.spaces['31']).toMatchObject({
+      id: '31',
+      reservedTile: 'Noctis City',
+    });
+    expect(tharsis.spaces['63']).toMatchObject({
+      id: '63',
+    });
+  });
+
   it('exposes empty region registries for all three supported maps until a rule needs them', () => {
     expect(getBoardSpaceMap('tharsis').regions).toEqual({});
     expect(getBoardSpaceMap('hellas').regions).toEqual({});

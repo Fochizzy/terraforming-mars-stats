@@ -1,157 +1,371 @@
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import { normalizePlayerAlias } from './normalize-player-alias';
 
-type ImportScorePlayer = {
-  id: string;
-  name: string;
-};
+export type ImportScoreField =
+  | 'citiesPoints'
+  | 'greeneryPoints'
+  | 'cardPointsTotal'
+  | 'cardPointsMicrobes'
+  | 'cardPointsAnimals'
+  | 'cardPointsJovian'
+  | 'trPoints'
+  | 'milestonePoints'
+  | 'awardPoints'
+  | 'totalPoints'
+  | 'finalMegacredits';
 
-type ImportScoreField = keyof LogGameDraftInput['playerScores'][string];
-
-type StructuredPlayerScore = {
+export type ImportScorePlayer = {
+  id?: string;
   name: string;
+  playerId?: string;
 } & Partial<Record<ImportScoreField, number>>;
 
-type ScoreEvidence =
-  | string
-  | {
-      players?: StructuredPlayerScore[];
-    };
+export type StructuredImportScoreEvidence = {
+  players: ImportScorePlayer[];
+};
 
-const SCORE_FIELD_PATTERNS: Array<{
+export type ParseImportPlayerScoresInput = {
+  evidence: StructuredImportScoreEvidence | string;
+  players: Array<{ id: string; name: string }>;
+};
+
+type ScoreObservation = {
+  conflicted: boolean;
+  values: Set<number>;
+};
+
+type ParsedTextScores = Record<
+  string,
+  Partial<Record<ImportScoreField, ScoreObservation>>
+>;
+
+type ScoreMatchCandidate = {
+  end: number;
   field: ImportScoreField;
-  pattern: RegExp;
-}> = [
-  { field: 'citiesPoints', pattern: /\b(?:cities|city points?)\s+(-?\d+)\b/gi },
-  { field: 'greeneryPoints', pattern: /\b(?:greenery|greenery points?)\s+(-?\d+)\b/gi },
-  {
-    field: 'cardPointsTotal',
-    pattern: /\b(?:cards|card points?|total card points?)\s+(-?\d+)\b/gi,
-  },
-  { field: 'cardPointsMicrobes', pattern: /\b(?:microbes?|microbe points?)\s+(-?\d+)\b/gi },
-  { field: 'cardPointsAnimals', pattern: /\b(?:animals?|animal points?)\s+(-?\d+)\b/gi },
-  { field: 'cardPointsJovian', pattern: /\b(?:jovian|jovian points?)\s+(-?\d+)\b/gi },
-  { field: 'trPoints', pattern: /\b(?:tr|terraform rating)\s+(-?\d+)\b/gi },
-  { field: 'milestonePoints', pattern: /\b(?:milestones?|milestone points?)\s+(-?\d+)\b/gi },
-  { field: 'awardPoints', pattern: /\b(?:awards?|award points?)\s+(-?\d+)\b/gi },
-  { field: 'totalPoints', pattern: /\b(?:total|total points?)\s+(-?\d+)\b/gi },
-  { field: 'finalMegacredits', pattern: /\b(?:mc|final megacredits?)\s+(-?\d+)\b/gi },
+  specificity: number;
+  start: number;
+  value: number;
+};
+
+const scoreFields: ReadonlyArray<ImportScoreField> = [
+  'citiesPoints',
+  'greeneryPoints',
+  'cardPointsTotal',
+  'cardPointsMicrobes',
+  'cardPointsAnimals',
+  'cardPointsJovian',
+  'trPoints',
+  'milestonePoints',
+  'awardPoints',
+  'totalPoints',
+  'finalMegacredits',
 ];
 
-function resolvePlayerId(name: string, players: ImportScorePlayer[]) {
-  const normalizedName = normalizePlayerAlias(name);
+const fieldPatterns: Record<ImportScoreField, { aliases: string[] }> = {
+  awardPoints: { aliases: ['award points', 'awards', 'award'] },
+  cardPointsAnimals: { aliases: ['animal points', 'animals points', 'animals'] },
+  cardPointsJovian: { aliases: ['jovian points', 'jovian'] },
+  cardPointsMicrobes: { aliases: ['microbe points', 'microbes points', 'microbes'] },
+  cardPointsTotal: {
+    aliases: [
+      'total card points',
+      'card points total',
+      'card points',
+      'cards',
+      'card',
+    ],
+  },
+  citiesPoints: { aliases: ['cities points', 'city points', 'cities', 'city'] },
+  finalMegacredits: {
+    aliases: ['final megacredits', 'megacredits', 'final mc', 'mc'],
+  },
+  greeneryPoints: { aliases: ['greenery points', 'greenery'] },
+  milestonePoints: { aliases: ['milestone points', 'milestones', 'milestone'] },
+  totalPoints: { aliases: ['total points', 'total'] },
+  trPoints: { aliases: ['terraform rating', 'tr'] },
+};
 
-  if (!normalizedName) {
-    return null;
-  }
+function normalizeImportToken(input: string) {
+  return normalizePlayerAlias(input).replace(/\s+/g, ' ');
+}
 
-  const exactMatches = players.filter(
-    (player) => normalizePlayerAlias(player.name) === normalizedName,
+function escapeRegExp(input: string) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isValidScoreValue(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 999
   );
-
-  if (exactMatches.length === 1) {
-    return exactMatches[0]?.id ?? null;
-  }
-
-  const partialMatches = players.filter((player) =>
-    normalizePlayerAlias(player.name).includes(normalizedName),
-  );
-
-  return partialMatches.length === 1 ? partialMatches[0]?.id ?? null : null;
 }
 
-function keepNonConflictingScore(
-  target: Partial<Record<ImportScoreField, number>>,
-  field: ImportScoreField,
-  value: number,
-  conflicts: Set<ImportScoreField>,
-) {
-  if (conflicts.has(field)) {
-    return;
-  }
-
-  if (field in target && target[field] !== value) {
-    delete target[field];
-    conflicts.add(field);
-    return;
-  }
-
-  target[field] = value;
-}
-
-function parseScoreFields(text: string) {
-  const score: Partial<Record<ImportScoreField, number>> = {};
-  const conflicts = new Set<ImportScoreField>();
-
-  for (const { field, pattern } of SCORE_FIELD_PATTERNS) {
-    pattern.lastIndex = 0;
-
-    for (const match of text.matchAll(pattern)) {
-      const value = Number(match[1]);
-
-      if (Number.isFinite(value)) {
-        keepNonConflictingScore(score, field, value, conflicts);
-      }
-    }
-  }
-
-  return score;
-}
-
-function parseTextEvidenceLine(line: string) {
-  const [namePart, scorePart] = line.split(/:(.+)/).map((part) => part?.trim());
-
-  if (!namePart || !scorePart) {
-    return null;
-  }
-
+function createObservation(): ScoreObservation {
   return {
-    name: namePart,
-    score: parseScoreFields(scorePart),
+    conflicted: false,
+    values: new Set<number>(),
   };
 }
 
-export function parseImportPlayerScores(input: {
-  evidence: ScoreEvidence;
-  players: ImportScorePlayer[];
-}): LogGameDraftInput['playerScores'] {
-  const scores: LogGameDraftInput['playerScores'] = {};
+function observeValue(
+  fields: Partial<Record<ImportScoreField, ScoreObservation>>,
+  field: ImportScoreField,
+  value: number,
+) {
+  const observation = fields[field] ?? createObservation();
 
-  if (typeof input.evidence === 'string') {
-    for (const line of input.evidence.split(/\r?\n/)) {
-      const parsedLine = parseTextEvidenceLine(line.trim());
-
-      if (!parsedLine) {
-        continue;
-      }
-
-      const playerId = resolvePlayerId(parsedLine.name, input.players);
-
-      if (playerId && Object.keys(parsedLine.score).length > 0) {
-        scores[playerId] = parsedLine.score;
-      }
-    }
-
-    return scores;
+  if (observation.conflicted) {
+    fields[field] = observation;
+    return;
   }
 
-  for (const playerScore of input.evidence.players ?? []) {
-    const playerId = resolvePlayerId(playerScore.name, input.players);
+  if (observation.values.size === 0 || observation.values.has(value)) {
+    observation.values.add(value);
+  } else {
+    observation.values.clear();
+    observation.conflicted = true;
+  }
+
+  fields[field] = observation;
+}
+
+function materializeObservations(
+  observations: Partial<Record<ImportScoreField, ScoreObservation>>,
+) {
+  const output: Partial<Record<ImportScoreField, number>> = {};
+
+  for (const field of scoreFields) {
+    const observation = observations[field];
+
+    if (!observation || observation.conflicted || observation.values.size !== 1) {
+      continue;
+    }
+
+    const value = [...observation.values][0];
+
+    if (value !== undefined) {
+      output[field] = value;
+    }
+  }
+
+  return output;
+}
+
+function resolvePlayerIdByName(
+  players: Array<{ id: string; name: string }>,
+  name: string,
+) {
+  const normalizedName = normalizeImportToken(name);
+  const matches = players.filter(
+    (player) => normalizeImportToken(player.name) === normalizedName,
+  );
+
+  return matches.length === 1 ? matches[0]!.id : '';
+}
+
+function resolvePlayerId(
+  players: Array<{ id: string; name: string }>,
+  row: ImportScorePlayer,
+) {
+  const explicitId = row.playerId?.trim() || row.id?.trim() || '';
+
+  if (explicitId && players.some((player) => player.id === explicitId)) {
+    return explicitId;
+  }
+
+  return resolvePlayerIdByName(players, row.name);
+}
+
+function parseStructuredEvidence(
+  players: Array<{ id: string; name: string }>,
+  evidence: StructuredImportScoreEvidence,
+): LogGameDraftInput['playerScores'] {
+  const observations: Record<
+    string,
+    Partial<Record<ImportScoreField, ScoreObservation>>
+  > = {};
+
+  for (const row of evidence.players) {
+    const playerId = resolvePlayerId(players, row);
 
     if (!playerId) {
       continue;
     }
 
-    const populatedScore = Object.fromEntries(
-      Object.entries(playerScore).filter(
-        ([key, value]) => key !== 'name' && value !== undefined,
-      ),
-    ) as LogGameDraftInput['playerScores'][string];
+    const playerObservations = observations[playerId] ?? {};
 
-    if (Object.keys(populatedScore).length > 0) {
-      scores[playerId] = populatedScore;
+    for (const field of scoreFields) {
+      const value = row[field];
+
+      if (!isValidScoreValue(value)) {
+        continue;
+      }
+
+      observeValue(playerObservations, field, value);
+    }
+
+    observations[playerId] = playerObservations;
+  }
+
+  return Object.fromEntries(
+    Object.entries(observations).flatMap(([playerId, playerObservations]) => {
+      const compacted = materializeObservations(playerObservations);
+
+      return Object.keys(compacted).length > 0
+        ? [[playerId, compacted] as const]
+        : [];
+    }),
+  );
+}
+
+function buildFieldMatchers(field: ImportScoreField) {
+  const aliases = fieldPatterns[field].aliases;
+  const escaped = aliases
+    .slice()
+    .sort((left, right) => right.length - left.length)
+    .map((alias) => escapeRegExp(alias));
+
+  return escaped.flatMap((alias) => [
+    new RegExp(`\\b(${alias})\\s+([0-9]{1,3})\\b`, 'gi'),
+    new RegExp(`\\b([0-9]{1,3})\\s+(${alias})\\b`, 'gi'),
+  ]);
+}
+
+const fieldMatchers: Record<ImportScoreField, RegExp[]> = Object.fromEntries(
+  scoreFields.map((field) => [field, buildFieldMatchers(field)]),
+) as Record<ImportScoreField, RegExp[]>;
+
+function overlaps(left: ScoreMatchCandidate, right: ScoreMatchCandidate) {
+  return left.start < right.end && right.start < left.end;
+}
+
+function collectClauseScoreCandidates(clause: string) {
+  const candidates: ScoreMatchCandidate[] = [];
+
+  for (const field of scoreFields) {
+    for (const matcher of fieldMatchers[field]) {
+      matcher.lastIndex = 0;
+
+      for (const match of clause.matchAll(matcher)) {
+        const valueText = match[2] ?? match[1];
+        const value = Number(valueText);
+
+        if (!isValidScoreValue(value)) {
+          continue;
+        }
+
+        const start = match.index ?? 0;
+        const end = start + match[0].length;
+
+        candidates.push({
+          end,
+          field,
+          specificity: match[0].length,
+          start,
+          value,
+        });
+      }
     }
   }
 
-  return scores;
+  return candidates;
+}
+
+function selectClauseScoreCandidates(candidates: ScoreMatchCandidate[]) {
+  const accepted: ScoreMatchCandidate[] = [];
+
+  for (const candidate of candidates.sort(
+    (left, right) =>
+      right.specificity - left.specificity || left.start - right.start,
+  )) {
+    if (accepted.some((acceptedCandidate) => overlaps(candidate, acceptedCandidate))) {
+      continue;
+    }
+
+    accepted.push(candidate);
+  }
+
+  return accepted;
+}
+
+function collectTextScoreObservations(
+  clause: string,
+  playerId: string,
+  scores: ParsedTextScores,
+) {
+  const playerScores = scores[playerId] ?? {};
+  const candidates = selectClauseScoreCandidates(
+    collectClauseScoreCandidates(clause),
+  );
+
+  for (const candidate of candidates) {
+    observeValue(playerScores, candidate.field, candidate.value);
+  }
+
+  scores[playerId] = playerScores;
+}
+
+function parseTextEvidence(
+  players: Array<{ id: string; name: string }>,
+  evidence: string,
+): LogGameDraftInput['playerScores'] {
+  const normalizedPlayers = players.map((player) => {
+    const token = normalizeImportToken(player.name);
+
+    return {
+      id: player.id,
+      tokenMatcher: new RegExp(`(?:^|\\s)${escapeRegExp(token)}(?:\\s|$)`),
+    };
+  });
+  const scores: ParsedTextScores = {};
+
+  for (const rawLine of evidence.split(/\r?\n/)) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      continue;
+    }
+
+    const normalizedLine = normalizeImportToken(line);
+    const matches = normalizedPlayers.filter(({ tokenMatcher }) =>
+      tokenMatcher.test(normalizedLine),
+    );
+
+    if (matches.length !== 1) {
+      continue;
+    }
+
+    for (const clause of line.split(/[;,]/)) {
+      const trimmedClause = clause.trim();
+
+      if (!trimmedClause) {
+        continue;
+      }
+
+      collectTextScoreObservations(trimmedClause, matches[0]!.id, scores);
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(scores).flatMap(([playerId, playerObservations]) => {
+      const compacted = materializeObservations(playerObservations);
+
+      return Object.keys(compacted).length > 0
+        ? [[playerId, compacted] as const]
+        : [];
+    }),
+  );
+}
+
+export function parseImportPlayerScores(
+  input: ParseImportPlayerScoresInput,
+): LogGameDraftInput['playerScores'] {
+  if (typeof input.evidence === 'string') {
+    return parseTextEvidence(input.players, input.evidence);
+  }
+
+  return parseStructuredEvidence(input.players, input.evidence);
 }

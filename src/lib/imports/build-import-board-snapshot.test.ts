@@ -185,7 +185,7 @@ describe('buildImportBoardSnapshot', () => {
     });
 
     expect(snapshot.spaces['19']).toMatchObject({
-      notes: ['Space 19 is outside curated board coverage for tharsis.'],
+      notes: [],
       ownerPlayerName: 'Corey',
       sourceCardName: null,
       tileKind: 'city',

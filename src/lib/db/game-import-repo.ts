@@ -35,6 +35,17 @@ export type SaveGameLogScreenshotParseInput = {
   parseStatus?: string;
 };
 
+export type SaveGameLogScreenshotEvidenceKind =
+  | 'board_state'
+  | 'endgame_score';
+
+export type SaveGameLogScreenshotInput = {
+  displayOrder?: number;
+  file: File;
+  kind: SaveGameLogScreenshotEvidenceKind;
+  parse?: SaveGameLogScreenshotParseInput;
+};
+
 type RawGameLogImportSummaryRow = {
   created_at: string;
   detected_source: string;
@@ -47,11 +58,16 @@ type RawGameLogImportSummaryRow = {
 
 type RawScreenshotImportRow = {
   original_name: string | null;
+  parse_status?: string | null;
 };
 
 type RawSavedGameLogEventRow = {
   event_order: number;
   id: string;
+};
+
+type NormalizedSaveGameLogScreenshotInput = SaveGameLogScreenshotInput & {
+  displayOrder: number;
 };
 
 function formatStructuredError(error: unknown) {
@@ -117,18 +133,108 @@ function countImportLines(rawLogText: string) {
   return normalized.split(/\r?\n/).length;
 }
 
+function getScreenshotPlayerRows(
+  screenshotParse?: SaveGameLogScreenshotParseInput,
+) {
+  const playerRows = screenshotParse?.extractedFields?.playerRows;
+
+  return Array.isArray(playerRows) ? playerRows : [];
+}
+
+function deriveScreenshotParseStatus(
+  screenshotParse?: SaveGameLogScreenshotParseInput,
+) {
+  if (screenshotParse?.parseStatus && screenshotParse.parseStatus !== 'saved_as_draft') {
+    return screenshotParse.parseStatus;
+  }
+
+  return getScreenshotPlayerRows(screenshotParse).length > 0
+    ? 'parsed'
+    : 'score_extraction_skipped';
+}
+
+function deriveImportParseStatus(input: {
+  logParseSummary?: {
+    contextLineCount: number;
+    drawInfoLineCount: number;
+    ignoredLineCount: number;
+    parsedEventCount: number;
+  };
+  screenshots: NormalizedSaveGameLogScreenshotInput[];
+}) {
+  const hasParsedLog = Boolean(input.logParseSummary?.parsedEventCount);
+  const endgameScreenshot = input.screenshots.find(
+    (screenshot) => screenshot.kind === 'endgame_score',
+  );
+
+  if (endgameScreenshot) {
+    const screenshotStatus = deriveScreenshotParseStatus(endgameScreenshot.parse);
+
+    if (hasParsedLog) {
+      return screenshotStatus === 'parsed'
+        ? 'log_parsed_score_extracted'
+        : 'log_parsed_score_extraction_skipped';
+    }
+
+    return screenshotStatus === 'parsed'
+      ? 'score_extracted'
+      : 'score_extraction_skipped';
+  }
+
+  return hasParsedLog ? 'log_parsed' : 'saved_as_draft';
+}
+
+function normalizeSaveGameLogScreenshots(input: {
+  screenshotFile?: File | null;
+  screenshotParse?: SaveGameLogScreenshotParseInput;
+  screenshots?: SaveGameLogScreenshotInput[];
+}): NormalizedSaveGameLogScreenshotInput[] {
+  const rawScreenshots =
+    input.screenshots && input.screenshots.length > 0
+      ? input.screenshots
+      : input.screenshotFile
+        ? [
+            {
+              file: input.screenshotFile,
+              kind: 'endgame_score' as const,
+              parse: input.screenshotParse,
+            },
+          ]
+        : [];
+  const nextDisplayOrderByKind = new Map<SaveGameLogScreenshotEvidenceKind, number>();
+
+  return rawScreenshots.map((screenshot) => {
+    const nextDisplayOrder =
+      nextDisplayOrderByKind.get(screenshot.kind) ?? 0;
+    const displayOrder =
+      typeof screenshot.displayOrder === 'number'
+        ? screenshot.displayOrder
+        : nextDisplayOrder;
+
+    nextDisplayOrderByKind.set(
+      screenshot.kind,
+      Math.max(nextDisplayOrder, displayOrder + 1),
+    );
+
+    return {
+      ...screenshot,
+      displayOrder,
+    };
+  });
+}
+
 async function uploadScreenshotFile(input: {
   gameId: string;
   screenshotFile: File;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
 }) {
   const { SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE } = getServerEnv();
-  const supabase = await createSupabaseServerClient();
   const screenshotObjectPath = buildImportEvidencePath({
     fileName: input.screenshotFile.name,
     gameId: input.gameId,
   });
 
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await input.supabase.storage
     .from(SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE)
     .upload(screenshotObjectPath, input.screenshotFile, {
       contentType: input.screenshotFile.type || undefined,
@@ -139,22 +245,23 @@ async function uploadScreenshotFile(input: {
     throw uploadError;
   }
 
-  return {
-    screenshotObjectPath,
-    supabase,
-  };
+  return screenshotObjectPath;
 }
 
 async function cleanupFailedScreenshotImport(input: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
   gameLogImportId?: string;
-  screenshotObjectPath: string;
+  screenshotObjectPaths: string[];
 }) {
-  const cleanupTasks: Array<PromiseLike<unknown>> = [
-    input.supabase.storage
-      .from(getServerEnv().SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE)
-      .remove([input.screenshotObjectPath]),
-  ];
+  const cleanupTasks: Array<PromiseLike<unknown>> = [];
+
+  if (input.screenshotObjectPaths.length > 0) {
+    cleanupTasks.push(
+      input.supabase.storage
+        .from(getServerEnv().SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE)
+        .remove(input.screenshotObjectPaths),
+    );
+  }
 
   if (input.gameLogImportId) {
     cleanupTasks.push(
@@ -243,9 +350,11 @@ export async function saveGameLogImport(input: {
   };
   rawLogText: string;
   screenshotParse?: SaveGameLogScreenshotParseInput;
-  screenshotFile: File | null;
+  screenshotFile?: File | null;
+  screenshots?: SaveGameLogScreenshotInput[];
   userId: string;
 }) {
+  const screenshots = normalizeSaveGameLogScreenshots(input);
   const normalizedRawLogText = input.rawLogText.trim();
   const lineCount = countImportLines(normalizedRawLogText);
   const unparsedLineCount = input.logParseSummary
@@ -253,16 +362,28 @@ export async function saveGameLogImport(input: {
       input.logParseSummary.drawInfoLineCount +
       input.logParseSummary.ignoredLineCount
     : lineCount;
-  let screenshotObjectPath: string | null = null;
-  let supabase = await createSupabaseServerClient();
+  const importParseStatus = deriveImportParseStatus({
+    logParseSummary: input.logParseSummary,
+    screenshots,
+  });
+  const primaryEndgameScreenshot =
+    screenshots.find((screenshot) => screenshot.kind === 'endgame_score') ?? null;
+  const supabase = await createSupabaseServerClient();
+  const uploadedScreenshots: Array<
+    NormalizedSaveGameLogScreenshotInput & { screenshotObjectPath: string }
+  > = [];
 
-  if (input.screenshotFile) {
-    const uploaded = await uploadScreenshotFile({
+  for (const screenshot of screenshots) {
+    const screenshotObjectPath = await uploadScreenshotFile({
       gameId: input.gameId,
-      screenshotFile: input.screenshotFile,
+      screenshotFile: screenshot.file,
+      supabase,
     });
-    screenshotObjectPath = uploaded.screenshotObjectPath;
-    supabase = uploaded.supabase;
+
+    uploadedScreenshots.push({
+      ...screenshot,
+      screenshotObjectPath,
+    });
   }
 
   const { data, error } = await supabase
@@ -273,7 +394,7 @@ export async function saveGameLogImport(input: {
       detected_source: 'manual_web_import',
       game_id: input.gameId,
       line_count: lineCount,
-      parse_status: 'saved_as_draft',
+      parse_status: importParseStatus,
       parser_version: input.logParseSummary
         ? 'manual-web-import-v2'
         : 'manual-web-import-v1',
@@ -284,9 +405,11 @@ export async function saveGameLogImport(input: {
     .single();
 
   if (error) {
-    if (screenshotObjectPath) {
+    if (uploadedScreenshots.length > 0) {
       const cleanupFailures = await cleanupFailedScreenshotImport({
-        screenshotObjectPath,
+        screenshotObjectPaths: uploadedScreenshots.map(
+          (screenshot) => screenshot.screenshotObjectPath,
+        ),
         supabase,
       });
       throw buildCleanupAwareError({
@@ -297,68 +420,86 @@ export async function saveGameLogImport(input: {
     throw error;
   }
 
-  if (input.screenshotFile && screenshotObjectPath) {
-    const screenshotParse = input.screenshotParse;
-    const { error: screenshotError } = await supabase
-      .from('game_result_screenshot_imports')
-      .insert({
-        confidence_summary: screenshotParse?.confidenceSummary ?? {},
-        created_by_user_id: input.userId,
-        detected_layout: screenshotParse?.detectedLayout ?? null,
-        extracted_fields: screenshotParse?.extractedFields ?? {},
-        file_size_bytes: input.screenshotFile.size,
-        game_id: input.gameId,
-        game_log_import_id: data.id,
-        mime_type: input.screenshotFile.type || null,
-        ocr_engine_version: screenshotParse?.ocrEngineVersion ?? 'pending',
-        original_name: input.screenshotFile.name,
-        parse_status: screenshotParse?.parseStatus ?? 'saved_as_draft',
-        storage_object_path: screenshotObjectPath,
-      })
-      .select('id')
-      .single();
+  if (uploadedScreenshots.length > 0) {
+    for (const screenshot of uploadedScreenshots) {
+      const { error: screenshotError } = await supabase
+        .from('game_result_screenshot_imports')
+        .insert({
+          confidence_summary: screenshot.parse?.confidenceSummary ?? {},
+          created_by_user_id: input.userId,
+          detected_layout: screenshot.parse?.detectedLayout ?? null,
+          display_order: screenshot.displayOrder,
+          evidence_kind: screenshot.kind,
+          extracted_fields: screenshot.parse?.extractedFields ?? {},
+          file_size_bytes: screenshot.file.size,
+          game_id: input.gameId,
+          game_log_import_id: data.id,
+          mime_type: screenshot.file.type || null,
+          ocr_engine_version: screenshot.parse?.ocrEngineVersion ?? 'pending',
+          original_name: screenshot.file.name,
+          parse_status:
+            deriveScreenshotParseStatus(screenshot.parse) ?? 'saved_as_draft',
+          storage_object_path: screenshot.screenshotObjectPath,
+        })
+        .select('id')
+        .single();
 
-    if (screenshotError) {
-      if (isMissingSplitScreenshotTableError(screenshotError)) {
-        try {
-          await saveLegacyScreenshotMetadata({
-            gameLogImportId: data.id,
-            screenshotFile: input.screenshotFile,
-            screenshotObjectPath,
-            supabase,
-          });
-          return {
-            id: data.id,
-            screenshotObjectPath,
-          };
-        } catch (legacyScreenshotError) {
-          const cleanupFailures = await cleanupFailedScreenshotImport({
-            supabase,
-            gameLogImportId: data.id,
-            screenshotObjectPath,
-          });
-          throw buildCleanupAwareError({
-            cleanupFailures,
-            originalError: legacyScreenshotError,
-          });
+      if (screenshotError) {
+        if (
+          isMissingSplitScreenshotTableError(screenshotError) &&
+          primaryEndgameScreenshot &&
+          uploadedScreenshots.length === 1 &&
+          primaryEndgameScreenshot.kind === 'endgame_score'
+        ) {
+          try {
+            await saveLegacyScreenshotMetadata({
+              gameLogImportId: data.id,
+              screenshotFile: primaryEndgameScreenshot.file,
+              screenshotObjectPath: screenshot.screenshotObjectPath,
+              supabase,
+            });
+            return {
+              id: data.id,
+              screenshotObjectPath: screenshot.screenshotObjectPath,
+            };
+          } catch (legacyScreenshotError) {
+            const cleanupFailures = await cleanupFailedScreenshotImport({
+              supabase,
+              gameLogImportId: data.id,
+              screenshotObjectPaths: uploadedScreenshots.map(
+                (uploadedScreenshot) => uploadedScreenshot.screenshotObjectPath,
+              ),
+            });
+            throw buildCleanupAwareError({
+              cleanupFailures,
+              originalError: legacyScreenshotError,
+            });
+          }
         }
-      }
 
-      const cleanupFailures = await cleanupFailedScreenshotImport({
-        supabase,
-        gameLogImportId: data.id,
-        screenshotObjectPath,
-      });
-      throw buildCleanupAwareError({
-        cleanupFailures,
-        originalError: screenshotError,
-      });
+        const cleanupFailures = await cleanupFailedScreenshotImport({
+          supabase,
+          gameLogImportId: data.id,
+          screenshotObjectPaths: uploadedScreenshots.map(
+            (uploadedScreenshot) => uploadedScreenshot.screenshotObjectPath,
+          ),
+        });
+        throw buildCleanupAwareError({
+          cleanupFailures,
+          originalError: screenshotError,
+        });
+      }
     }
   }
 
   return {
     id: data.id,
-    screenshotObjectPath,
+    screenshotObjectPath:
+      uploadedScreenshots.find(
+        (screenshot) => screenshot.kind === 'endgame_score',
+      )?.screenshotObjectPath ??
+      uploadedScreenshots[0]?.screenshotObjectPath ??
+      null,
   };
 }
 
@@ -447,7 +588,7 @@ export async function getLatestGameLogImportSummary(input: {
 
   const { data: screenshotData, error: screenshotError } = await supabase
     .from('game_result_screenshot_imports')
-    .select('original_name')
+    .select('original_name, parse_status')
     .eq('game_log_import_id', row.id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -470,13 +611,19 @@ export async function getLatestGameLogImportSummary(input: {
   }
 
   const screenshotRow = screenshotData as RawScreenshotImportRow | null;
+  const screenshotParseStatus =
+    row.parse_status === 'saved_as_draft' &&
+    screenshotRow?.parse_status &&
+    screenshotRow.parse_status !== 'saved_as_draft'
+      ? screenshotRow.parse_status
+      : row.parse_status;
 
   return {
     createdAt: row.created_at,
     detectedSource: row.detected_source,
     id: row.id,
     lineCount: row.line_count,
-    parseStatus: row.parse_status,
+    parseStatus: screenshotParseStatus,
     rawLogText: row.raw_log_text,
     screenshotOriginalName:
       screenshotRow?.original_name ?? row.screenshot_original_name ?? null,

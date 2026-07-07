@@ -117,6 +117,26 @@ function buildCommercialDistrictItems(input: {
       ];
     }
 
+    if (
+      !Array.isArray(spaceDefinition.neighbors) ||
+      spaceDefinition.neighbors.length === 0
+    ) {
+      return [
+        {
+          cardName: 'Commercial District',
+          itemType: 'card',
+          mapId: input.boardSnapshot.mapId,
+          notes: [
+            `Commercial District was linked to space ${spaceId}, but that space does not yet have trusted adjacency coverage for ${input.boardSnapshot.mapId}.`,
+          ],
+          playerName: event.actor,
+          requestedSpaceIds: [],
+          sourceType: 'log_and_board',
+          status: 'review_needed',
+        },
+      ];
+    }
+
     const requestedSpaceIds: string[] = [];
     let adjacentCityCount = 0;
 

@@ -104,6 +104,20 @@ export function buildBoardEvidenceContext(input: {
         };
       }
 
+      if (
+        !Array.isArray(spaceDefinition.neighbors) ||
+        spaceDefinition.neighbors.length === 0
+      ) {
+        return {
+          count: 0,
+          notes: [
+            `Space ${query.spaceId} does not yet have trusted adjacency coverage for ${input.boardSnapshot.mapId}.`,
+          ],
+          requestedSpaceIds: [],
+          status: 'review_needed',
+        };
+      }
+
       const requestedSpaceIds: string[] = [];
       let count = 0;
       let usedScreenshotConfirmation = false;

@@ -177,6 +177,38 @@ describe('buildBoardEvidenceContext', () => {
     });
   });
 
+  it('keeps reserved or otherwise known spaces review-only when their adjacency map is not trusted yet', () => {
+    const context = buildBoardEvidenceContext({
+      boardSnapshot: {
+        mapId: 'tharsis',
+        spaces: {
+          '31': {
+            confidence: 'high',
+            notes: [],
+            ownerPlayerName: 'Colette',
+            sourceCardName: 'Noctis City',
+            sourceType: 'log_explicit',
+            tileKind: 'Noctis City',
+          },
+        },
+      },
+    });
+
+    expect(
+      context.countAdjacentMatchingTiles({
+        spaceId: '31',
+        tileKinds: ['ocean'],
+      }),
+    ).toEqual({
+      count: 0,
+      notes: [
+        'Space 31 does not yet have trusted adjacency coverage for tharsis.',
+      ],
+      requestedSpaceIds: [],
+      status: 'review_needed',
+    });
+  });
+
   it('keeps confirmed unknown screenshot evidence unresolved and still requests that space', () => {
     const context = buildBoardEvidenceContext({
       boardSnapshot: {

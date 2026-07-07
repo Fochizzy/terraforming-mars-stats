@@ -389,37 +389,49 @@ export function buildImportDraft(input: {
         cardScoringSummary?.totals.complete
           ? cardScoringSummary.totals.total
           : undefined;
+      const cardPointsAnimals =
+        logScore.cardPointsAnimals ??
+        cardPointBreakdown?.cardPointsAnimals ??
+        scoreCandidate?.cardPointsAnimals ??
+        (hasCalculatedCategory('animals')
+          ? cardScoringSummary?.totals.animals
+          : undefined);
+      const cardPointsJovian =
+        logScore.cardPointsJovian ??
+        cardPointBreakdown?.cardPointsJovian ??
+        scoreCandidate?.cardPointsJovian ??
+        (hasCalculatedCategory('jovian')
+          ? cardScoringSummary?.totals.jovian
+          : undefined);
+      const cardPointsMicrobes =
+        logScore.cardPointsMicrobes ??
+        cardPointBreakdown?.cardPointsMicrobes ??
+        scoreCandidate?.cardPointsMicrobes ??
+        (hasCalculatedCategory('microbes')
+          ? cardScoringSummary?.totals.microbes
+          : undefined);
+      const hasPartialCardCategoryBreakdown =
+        typeof cardPointsAnimals === 'number' ||
+        typeof cardPointsJovian === 'number' ||
+        typeof cardPointsMicrobes === 'number';
+      const allowBoardOnlyCardPointsTotalFallback =
+        cardScoringSummary == null &&
+        !hasPartialCardCategoryBreakdown;
       const mergedScore = {
         awardPoints:
           logScore.awardPoints ??
           scoreCandidate?.awardPoints ??
           expectedAwardPointsByPlayerId.get(playerId),
-        cardPointsAnimals:
-          logScore.cardPointsAnimals ??
-          cardPointBreakdown?.cardPointsAnimals ??
-          scoreCandidate?.cardPointsAnimals ??
-          (hasCalculatedCategory('animals')
-            ? cardScoringSummary?.totals.animals
-            : undefined),
-        cardPointsJovian:
-          logScore.cardPointsJovian ??
-          cardPointBreakdown?.cardPointsJovian ??
-          scoreCandidate?.cardPointsJovian ??
-          (hasCalculatedCategory('jovian')
-            ? cardScoringSummary?.totals.jovian
-            : undefined),
-        cardPointsMicrobes:
-          logScore.cardPointsMicrobes ??
-          cardPointBreakdown?.cardPointsMicrobes ??
-          scoreCandidate?.cardPointsMicrobes ??
-          (hasCalculatedCategory('microbes')
-            ? cardScoringSummary?.totals.microbes
-            : undefined),
+        cardPointsAnimals,
+        cardPointsJovian,
+        cardPointsMicrobes,
         cardPointsTotal:
           logScore.cardPointsTotal ??
           scoreCandidate?.cardPointsTotal ??
           completeCalculatedCardPointsTotal ??
-          provedCuratedBoardCardPoints,
+          (allowBoardOnlyCardPointsTotalFallback
+            ? provedCuratedBoardCardPoints
+            : undefined),
         citiesPoints: logScore.citiesPoints ?? scoreCandidate?.citiesPoints,
         finalMegacredits:
           logScore.finalMegacredits ?? scoreCandidate?.finalMegacredits,

@@ -371,6 +371,75 @@ describe('buildImportDraft', () => {
     });
   });
 
+  it('leaves cardPointsTotal unset when only partial calculated categories and separate proved board-card points are available', () => {
+    const draft = buildImportDraft({
+      cardScoring: [
+        {
+          autoScoredCards: [
+            {
+              cardId: 'card-1',
+              cardName: 'Pets',
+              category: 'animals',
+              evidenceSummary: '3 animal => 3 VP',
+              humanSummary: '1 VP per animal on this card',
+              points: 3,
+              sourceType: 'curated',
+            },
+          ],
+          pendingCards: [
+            {
+              cardId: 'card-2',
+              cardName: 'Commercial District',
+              reason: 'Commercial District still needs board confirmation.',
+              requestedSpaceIds: ['21'],
+              reviewKind: 'board_evidence',
+            },
+          ],
+          playerName: 'Friday Mars',
+          totals: {
+            animals: 3,
+            complete: false,
+            jovian: 0,
+            microbes: 0,
+            other: 0,
+            total: 3,
+          },
+        },
+      ],
+      curatedBoardItems: [
+        {
+          cardName: 'Commercial District',
+          itemType: 'card',
+          mapId: 'tharsis',
+          notes: ['The Commercial District placement had 2 adjacent cities.'],
+          playerName: 'Friday Mars',
+          points: 2,
+          sourceType: 'log_and_board',
+          status: 'proved',
+        },
+      ],
+      defaultExpansionCodes: ['base'],
+      defaultPromoSetSlugs: [],
+      groupId: '11111111-1111-4111-8111-111111111111',
+      importValues: {
+        endgameScreenshotName: 'endgame.png',
+        exportedGameLog: 'Friday Mars played Pets',
+        generationCount: 11,
+        mapId: 'tharsis',
+        participantNames: ['Friday Mars'],
+        playedOn: '2026-07-04',
+        playerCount: 1,
+      },
+      playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
+      selectedPlayerIds: ['player-1'],
+    });
+
+    expect(draft.playerScores['player-1']).toMatchObject({
+      cardPointsAnimals: 3,
+    });
+    expect(draft.playerScores['player-1']?.cardPointsTotal).toBeUndefined();
+  });
+
   it('merges proved curated board award values and leaves unresolved board card values unset', () => {
     const curatedBoardItems: CuratedBoardImportItem[] = [
       {

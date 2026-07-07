@@ -38,6 +38,7 @@ import {
   type ParsedEndgameScoreScreenshot,
 } from '@/lib/imports/parse-endgame-score-screenshot';
 import { parseGameLog } from '@/lib/imports/parse-game-log';
+import { readBoardScreenshotSpaceConfirmationsSafely } from '@/lib/imports/read-board-screenshot-space-confirmations-safely';
 import { resolveImportPlayerLinks } from '@/lib/imports/resolve-import-player-links';
 import {
   scoreCuratedBoardImportItems,
@@ -340,10 +341,13 @@ export default async function LogGameImportPage() {
         boardSnapshot != null &&
         values.boardScreenshots.length > 0 &&
         boardScreenshotConfirmationRequests.length > 0
-          ? await readBoardScreenshotSpaceConfirmationsOnDemand({
-              mapId: boardSnapshot.mapId,
-              requests: boardScreenshotConfirmationRequests,
-              screenshots: values.boardScreenshots,
+          ? await readBoardScreenshotSpaceConfirmationsSafely({
+              input: {
+                mapId: boardSnapshot.mapId,
+                requests: boardScreenshotConfirmationRequests,
+                screenshots: values.boardScreenshots,
+              },
+              readConfirmations: readBoardScreenshotSpaceConfirmationsOnDemand,
             })
           : undefined;
       const finalBoardEvidenceContext =
@@ -589,10 +593,13 @@ export default async function LogGameImportPage() {
         boardSnapshot != null &&
         values.boardScreenshots.length > 0 &&
         boardScreenshotConfirmationRequests.length > 0
-          ? await readBoardScreenshotSpaceConfirmationsOnDemand({
-              mapId: boardSnapshot.mapId,
-              requests: boardScreenshotConfirmationRequests,
-              screenshots: values.boardScreenshots,
+          ? await readBoardScreenshotSpaceConfirmationsSafely({
+              input: {
+                mapId: boardSnapshot.mapId,
+                requests: boardScreenshotConfirmationRequests,
+                screenshots: values.boardScreenshots,
+              },
+              readConfirmations: readBoardScreenshotSpaceConfirmationsOnDemand,
             })
           : undefined;
       const finalBoardEvidenceContext =

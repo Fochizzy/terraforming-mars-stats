@@ -2,6 +2,7 @@ import type { CreateImportDraftInput } from './build-import-draft';
 import { parseImportParticipants } from './parse-import-participants';
 
 export type CreateImportDraftFormValues = {
+  boardScreenshots?: File[];
   confirmedPlayerLinks?: Array<{
     importedName: string;
     playerId: string;
@@ -13,6 +14,10 @@ export type CreateImportDraftFormValues = {
   participants: string;
   playedOn: string;
   playerCount: number;
+};
+
+export type ParsedCreateImportDraftFormData = CreateImportDraftInput & {
+  boardScreenshots: File[];
 };
 
 function readConfirmedPlayerLinks(formData: FormData) {
@@ -79,6 +84,20 @@ function readOptionalFileField(formData: FormData, key: string) {
   return value;
 }
 
+function readOptionalFileListField(formData: FormData, key: string) {
+  return formData.getAll(key).flatMap((value) => {
+    if (!(value instanceof File)) {
+      return [];
+    }
+
+    if (!value.name && value.size === 0) {
+      return [];
+    }
+
+    return [value];
+  });
+}
+
 export function buildCreateImportDraftFormData(
   values: CreateImportDraftFormValues,
 ) {
@@ -99,18 +118,23 @@ export function buildCreateImportDraftFormData(
     formData.set('endgameScreenshot', values.endgameScreenshot);
   }
 
+  for (const boardScreenshot of values.boardScreenshots ?? []) {
+    formData.append('boardScreenshots', boardScreenshot);
+  }
+
   return formData;
 }
 
 export function parseCreateImportDraftFormData(
   formData: FormData,
-): CreateImportDraftInput {
+): ParsedCreateImportDraftFormData {
   const endgameScreenshot = readOptionalFileField(
     formData,
     'endgameScreenshot',
   );
 
   return {
+    boardScreenshots: readOptionalFileListField(formData, 'boardScreenshots'),
     confirmedPlayerLinks: readConfirmedPlayerLinks(formData),
     endgameScreenshot,
     endgameScreenshotName: endgameScreenshot?.name ?? null,

@@ -1,6 +1,6 @@
 export type BoardSpaceDefinition = {
   id: string;
-  neighbors: string[];
+  neighbors?: string[];
   reservedTile?: 'Noctis City';
 };
 
@@ -24,23 +24,35 @@ export type BoardSpaceMap = {
 
 const sharedBoardGeometry = {
   '21': ['20', '22', '29', '30'],
-  '31': ['30', '32', '39', '40'],
 } as const;
+
+const OFFICIAL_BOARD_SPACE_COUNT = 63;
+
+function createKnownBoardSpaceRegistry() {
+  return Object.fromEntries(
+    Array.from({ length: OFFICIAL_BOARD_SPACE_COUNT }, (_, index) => {
+      const id = String(index + 1);
+
+      return [id, { id } satisfies BoardSpaceDefinition];
+    }),
+  ) as BoardSpaceRegistry;
+}
 
 function createBoardSpaces(
   reservedTile?: BoardSpaceDefinition['reservedTile'],
 ): BoardSpaceRegistry {
-  return {
-    '21': {
-      id: '21',
-      neighbors: [...sharedBoardGeometry['21']],
-    },
-    '31': {
-      id: '31',
-      neighbors: [...sharedBoardGeometry['31']],
-      ...(reservedTile ? { reservedTile } : {}),
-    },
+  const spaces = createKnownBoardSpaceRegistry();
+
+  spaces['21'] = {
+    id: '21',
+    neighbors: [...sharedBoardGeometry['21']],
   };
+  spaces['31'] = {
+    id: '31',
+    ...(reservedTile ? { reservedTile } : {}),
+  };
+
+  return spaces;
 }
 
 const boardSpaceMaps: Record<SupportedBoardMapId, BoardSpaceMap> = {

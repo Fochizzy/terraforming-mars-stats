@@ -215,6 +215,23 @@ export function scoreBoardAwareAwardItems(input: {
     }
 
     const topCount = rankedCounts[0].count;
+
+    if (topCount === 0) {
+      return [
+        {
+          awardName: rule.awardName,
+          fundedByPlayerName: event.actor,
+          itemType: 'award',
+          mapId: input.mapId,
+          notes: [
+            `${rule.awardName} was funded, but the imported log did not prove any ${rule.tileKinds.join('/')} ownership from board evidence.`,
+          ],
+          sourceType: 'log',
+          status: 'review_needed',
+        },
+      ];
+    }
+
     const firstPlacePlayerNames = rankedCounts
       .filter((entry) => entry.count === topCount)
       .map((entry) => entry.playerName);

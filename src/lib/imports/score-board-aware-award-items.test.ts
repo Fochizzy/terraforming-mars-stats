@@ -98,7 +98,7 @@ describe('scoreBoardAwareAwardItems', () => {
     ).toContainEqual(
       expect.objectContaining({
         awardName: 'Estate Dealer',
-        requestedSpaceIds: ['30', '32', '39', '40'],
+        requestedSpaceIds: [],
         status: 'review_needed',
       }),
     );
@@ -150,6 +150,37 @@ describe('scoreBoardAwareAwardItems', () => {
         firstPlacePlayerNames: ['Colette'],
         secondPlacePlayerNames: ['Corey', 'Friday'],
         status: 'proved',
+      }),
+    );
+  });
+
+  it('keeps Cultivator reviewable when the imported evidence did not prove any greenery ownership', () => {
+    const boardEvidenceContext = buildBoardEvidenceContext({
+      boardSnapshot: { mapId: 'hellas', spaces: {} },
+    });
+
+    expect(
+      scoreBoardAwareAwardItems({
+        boardEvidenceContext,
+        events: [
+          {
+            actor: 'Friday',
+            award: 'Cultivator',
+            eventType: 'award_funded',
+            lineNumber: 1,
+            rawLine: 'Friday funded Cultivator award',
+          },
+        ],
+        mapId: 'hellas',
+        participantNames: ['Colette', 'Corey', 'Friday'],
+      }),
+    ).toContainEqual(
+      expect.objectContaining({
+        awardName: 'Cultivator',
+        notes: [
+          'Cultivator was funded, but the imported log did not prove any greenery ownership from board evidence.',
+        ],
+        status: 'review_needed',
       }),
     );
   });

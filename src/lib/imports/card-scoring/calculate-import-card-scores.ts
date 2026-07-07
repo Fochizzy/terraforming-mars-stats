@@ -1,6 +1,5 @@
 import type { BoardEvidenceContext } from '@/lib/imports/build-board-evidence-context';
 import type { ParsedGameLog } from '@/lib/imports/parse-game-log';
-import { getCuratedCardScoringRule } from './curated-card-scoring-rules';
 import { deriveCardScoreEvidence } from './derive-card-score-evidence';
 import { resolveCardScoringRule } from './resolve-card-scoring-rule';
 import { scoreCardFromEvidence } from './score-card-from-evidence';
@@ -8,24 +7,6 @@ import type {
   CardScoringReference,
   ImportPlayerCardScoringSummary,
 } from './card-scoring-types';
-
-function isLikelyVariableScoreCandidate(evidence: {
-  cardId: string;
-  cardName: string;
-  resourceCountsByType: Record<string, number>;
-  selfTileCounts: Record<string, number>;
-  sourceTags: string[];
-}, input: {
-  ocrTextLinesByCardId?: Record<string, string[]>;
-}) {
-  return (
-    (input.ocrTextLinesByCardId?.[evidence.cardId]?.length ?? 0) > 0 ||
-    getCuratedCardScoringRule({ cardName: evidence.cardName }) !== null ||
-    Object.keys(evidence.resourceCountsByType).length > 0 ||
-    evidence.sourceTags.length > 0 ||
-    Object.keys(evidence.selfTileCounts).length > 0
-  );
-}
 
 function sortCardNames(left: { cardName: string }, right: { cardName: string }) {
   return left.cardName.localeCompare(right.cardName);
@@ -49,18 +30,15 @@ export async function calculateImportCardScores(input: {
   const summariesByPlayerName = new Map<string, ImportPlayerCardScoringSummary>();
 
   for (const evidence of evidenceRows) {
-    if (!isLikelyVariableScoreCandidate(evidence, input)) {
-      continue;
-    }
-
     const card = cardReferenceById.get(evidence.cardId);
 
     if (!card) {
       continue;
     }
 
+    const existingSummary = summariesByPlayerName.get(evidence.playerName);
     const playerSummary =
-      summariesByPlayerName.get(evidence.playerName) ??
+      existingSummary ??
       {
         autoScoredCards: [],
         pendingCards: [],
@@ -92,7 +70,9 @@ export async function calculateImportCardScores(input: {
     }
 
     if (resolution.status === 'no_scoring') {
-      summariesByPlayerName.set(evidence.playerName, playerSummary);
+      if (existingSummary) {
+        summariesByPlayerName.set(evidence.playerName, playerSummary);
+      }
       continue;
     }
 

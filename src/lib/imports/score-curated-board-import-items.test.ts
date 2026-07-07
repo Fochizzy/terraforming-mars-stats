@@ -309,6 +309,64 @@ describe('scoreCuratedBoardImportItems', () => {
     );
   });
 
+  it('returns review_needed when Commercial District is linked to a known space without trusted adjacency coverage', () => {
+    const boardSnapshot = buildImportBoardSnapshot({
+      events: [
+        {
+          actor: 'Izzy',
+          card: 'Commercial District',
+          eventType: 'card_played',
+          lineNumber: 13,
+          rawLine: 'Izzy played Commercial District',
+        },
+        {
+          actor: 'Izzy',
+          eventType: 'tile_placed',
+          lineNumber: 14,
+          rawLine: 'Izzy placed city tile at 31',
+          space: '31',
+          tile: 'city',
+        },
+      ],
+      mapId: 'hellas',
+    });
+
+    expect(
+      scoreCuratedBoardImportItems({
+        boardSnapshot,
+        events: [
+          {
+            actor: 'Izzy',
+            card: 'Commercial District',
+            eventType: 'card_played',
+            lineNumber: 13,
+            rawLine: 'Izzy played Commercial District',
+          },
+          {
+            actor: 'Izzy',
+            eventType: 'tile_placed',
+            lineNumber: 14,
+            rawLine: 'Izzy placed city tile at 31',
+            space: '31',
+            tile: 'city',
+          },
+        ],
+        mapId: 'hellas',
+      }),
+    ).toContainEqual(
+      expect.objectContaining({
+        cardName: 'Commercial District',
+        itemType: 'card',
+        notes: expect.arrayContaining([
+          'Commercial District was linked to space 31, but that space does not yet have trusted adjacency coverage for hellas.',
+        ]),
+        playerName: 'Izzy',
+        requestedSpaceIds: [],
+        status: 'review_needed',
+      }),
+    );
+  });
+
   it('uses screenshot confirmations to prove Commercial District adjacency when the log-first snapshot leaves curated neighbors unresolved', () => {
     const boardSnapshot = buildImportBoardSnapshot({
       events: [

@@ -5,10 +5,17 @@ import {
 } from '@/lib/db/card-scoring-rule-cache-repo';
 import { buildBoardEvidenceContext } from '@/lib/imports/build-board-evidence-context';
 import { calculateImportCardScores } from './calculate-import-card-scores';
+import { readOcrTextLinesFromUrl } from './read-ocr-text-lines';
 
 vi.mock('@/lib/db/card-scoring-rule-cache-repo', () => ({
   getCardScoringRuleCache: vi.fn(),
   upsertCardScoringRuleCache: vi.fn(),
+}));
+
+vi.mock('./read-ocr-text-lines', () => ({
+  readOcrTextLinesFromBuffer: vi.fn(),
+  readOcrTextLinesFromFile: vi.fn(),
+  readOcrTextLinesFromUrl: vi.fn(),
 }));
 
 describe('calculateImportCardScores', () => {
@@ -16,6 +23,7 @@ describe('calculateImportCardScores', () => {
     vi.clearAllMocks();
     vi.mocked(getCardScoringRuleCache).mockResolvedValue(null);
     vi.mocked(upsertCardScoringRuleCache).mockResolvedValue(undefined);
+    vi.mocked(readOcrTextLinesFromUrl).mockResolvedValue([]);
   });
 
   it('scores supported resource and science-tag cards and leaves ambiguous cards pending review', async () => {
@@ -381,5 +389,147 @@ describe('calculateImportCardScores', () => {
         },
       },
     ]);
+  });
+
+  it('scores uncached OCR cards through the live fallback path when no preloaded OCR lines were supplied', async () => {
+    vi.mocked(readOcrTextLinesFromUrl).mockImplementation(async (url) => {
+      if (url.includes('builder-hall')) {
+        return ['1 VP for every 2 building tags you have.'];
+      }
+
+      return ['Action: gain 2 steel.'];
+    });
+
+    const result = await calculateImportCardScores({
+      cardReferences: [
+        {
+          cardName: 'Steel Works',
+          cardNumber: '007',
+          cardType: 'Project',
+          expansionCode: 'base',
+          fullImageUrl: 'https://example.com/steel-works.png',
+          id: 'card-steel-works',
+          imageUrl: 'https://example.com/steel-works.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+          sourceCardId: 'project:base:007',
+          sourceTags: ['Building'],
+          thumbnailUrl: 'https://example.com/steel-works-thumb.png',
+        },
+        {
+          cardName: 'Builder Hall',
+          cardNumber: '008',
+          cardType: 'Project',
+          expansionCode: 'base',
+          fullImageUrl: 'https://example.com/builder-hall.png',
+          id: 'card-builder-hall',
+          imageUrl: 'https://example.com/builder-hall.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+          sourceCardId: 'project:base:008',
+          sourceTags: ['Building'],
+          thumbnailUrl: 'https://example.com/builder-hall-thumb.png',
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Steel Works',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Steel Works',
+        },
+        {
+          actor: 'Friday Mars',
+          card: 'Builder Hall',
+          eventType: 'card_played',
+          lineNumber: 2,
+          rawLine: 'Friday Mars played Builder Hall',
+        },
+      ],
+    });
+
+    expect(readOcrTextLinesFromUrl).toHaveBeenCalledWith(
+      'https://example.com/builder-hall.png',
+    );
+    expect(result).toEqual([
+      {
+        autoScoredCards: [
+          expect.objectContaining({
+            cardName: 'Builder Hall',
+            category: 'other',
+            evidenceSummary: '2 building tags => 1 VP',
+            points: 1,
+          }),
+        ],
+        pendingCards: [],
+        playerName: 'Friday Mars',
+        totals: {
+          animals: 0,
+          complete: true,
+          jovian: 0,
+          microbes: 0,
+          other: 1,
+          total: 1,
+        },
+      },
+    ]);
+  });
+
+  it('reuses cached non-scoring rules without rereading the card image', async () => {
+    vi.mocked(getCardScoringRuleCache).mockImplementation(async (cardId) =>
+      cardId === 'card-acquired-company'
+        ? {
+            cardId,
+            confidence: 0.9,
+            createdAt: '2026-07-07T16:00:00.000Z',
+            humanSummary: 'No endgame VP formula was found on this card.',
+            id: 'cache-row-1',
+            ocrEngineVersion: 'tesseract.js-v7',
+            rulePayload: { mode: 'none' },
+            sourceType: 'ocr',
+            updatedAt: '2026-07-07T16:00:00.000Z',
+          }
+        : null,
+    );
+
+    const result = await calculateImportCardScores({
+      cardReferences: [
+        {
+          cardName: 'Acquired Company',
+          cardNumber: '106',
+          cardType: 'Project',
+          expansionCode: 'corporate_era',
+          fullImageUrl: 'https://example.com/acquired-company.png',
+          id: 'card-acquired-company',
+          imageUrl: 'https://example.com/acquired-company.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['corporate_era'],
+          sourceCardId: 'project:corporate_era:106',
+          sourceTags: ['Base'],
+          thumbnailUrl: 'https://example.com/acquired-company-thumb.png',
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Acquired Company',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Acquired Company',
+        },
+        {
+          actor: 'Friday Mars',
+          eventType: 'tile_placed',
+          lineNumber: 2,
+          rawLine: 'Friday Mars placed city tile at 10',
+          space: '10',
+          tile: 'city',
+        },
+      ],
+    });
+
+    expect(readOcrTextLinesFromUrl).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
   });
 });
