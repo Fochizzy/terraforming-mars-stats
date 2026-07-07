@@ -1,130 +1,133 @@
 Date: 2026-07-07
 
-# Email-Backed Username PIN Recovery Design
+# Email + PIN Login And Recovery Design
 
 ## Overview
 
-This change keeps the user-facing `username + PIN` login model, but makes every new account register with a real recovery email. The real email becomes the Supabase auth email, while `username` remains the everyday login handle stored in `public.user_profiles` and auth metadata.
+This change switches the app from `username + PIN` sign-in to `email + PIN` sign-in. Username remains part of the account model for display, saved-player matching, and group-facing identity, but it is no longer used as the auth credential.
 
-The login page gains a `Reset PIN` action. That flow accepts a username, resolves it to the stored recovery email on the server, and sends a Supabase recovery link without revealing whether the username exists. The recovery link returns the user to a dedicated reset-PIN screen where they choose a new 6-digit PIN.
+The login page gains a `Reset PIN` action. Because sign-in is now email-first, recovery becomes straightforward: the user enters their email, Supabase sends a recovery link, and the app redirects that recovery session into a dedicated reset-PIN screen where the user chooses a new 6-digit PIN.
 
-This rollout also backfills the one existing legacy user, `Fochizzy`, with the real email `izzy.hodnett@gmail.com` so recovery works immediately for that account.
+This rollout also backfills the only existing user, `Fochizzy`, so their account email becomes `izzy.hodnett@gmail.com` and recovery works immediately after deploy.
 
 ## Goals
 
-1. Require a real email address when creating a new account.
-2. Preserve `username + PIN` as the visible sign-in experience.
-3. Add a `Reset PIN` button on the login page.
-4. Send Supabase recovery emails using the stored real email for the username.
-5. Keep legacy username sign-in working during the transition.
-6. Backfill `Fochizzy` with `izzy.hodnett@gmail.com`.
+1. Switch sign-in from username-based to email-based.
+2. Require a real email address for all new registrations.
+3. Add a `Reset PIN` action on the login page.
+4. Support PIN reset through Supabase recovery emails.
+5. Preserve username as an app identity field even though it is no longer the auth credential.
+6. Backfill `Fochizzy` to `izzy.hodnett@gmail.com`.
 
 ## Non-Goals
 
 1. Replacing Supabase Auth with a custom auth system.
-2. Switching the product to email-first sign-in.
-3. Redesigning group, roster, or game logging behavior.
-4. Bulk-migrating every historical synthetic-email account in this change.
-5. Adding a general profile-settings email-management screen in this pass.
+2. Preserving username-first login.
+3. Redesigning group, roster, or game logging flows.
+4. Adding a full account-settings email-management feature in this pass.
+5. Migrating a large population of existing auth users beyond the explicitly named `Fochizzy` account.
 
 ## Product Decisions
 
-### Account Credentials
+### Sign-In Credentials
 
-Each new account must have:
+Each account has:
 
-1. a globally unique `username`
-2. a required `full_name`
-3. a required real `email`
+1. a required `email`
+2. a required `username`
+3. a required `full_name`
 4. a required 6-digit PIN
 
-Users still sign in with:
+Users sign in with:
 
-1. `username`
+1. `email`
 2. `PIN`
 
-The login screen should not require the user to remember or type their email for routine sign-in.
+Users do not sign in with username anymore.
+
+### Registration Fields
+
+Create-account mode collects:
+
+1. full name
+2. username
+3. email
+4. 6-digit PIN
+
+Username remains visible in the product for player identity and app context, but not for authentication.
 
 ### Recovery Entry Point
 
 The login page shows a single `Reset PIN` action in sign-in mode.
 
-The reset flow starts from the username already typed into the form. If the username is blank, the UI should prompt the user to enter a username first rather than switching to an email-first recovery flow.
+Recovery uses the same email the user signs in with. If the email input is blank, the UI asks the user to enter their email first.
 
 ### Recovery Privacy
 
-Recovery must not disclose whether:
+The recovery request should not reveal whether an email exists in the system. The response after requesting reset should always be:
 
-1. a username exists
-2. a recovery email is on file
-3. the account is a legacy synthetic-email account
+1. `If that email is registered, a recovery link has been sent.`
 
-The response after requesting recovery should always be:
+### Existing Accounts
 
-1. `If that account has a registered email, a recovery link has been sent.`
+This rollout assumes `Fochizzy` is the only existing account that needs migration. That account is backfilled to the real email `izzy.hodnett@gmail.com`.
 
-### Legacy Account Compatibility
-
-Legacy accounts created under the synthetic-email model must keep working for username + PIN sign-in.
-
-For this rollout:
-
-1. `Fochizzy` is explicitly backfilled to a real email and becomes recovery-enabled immediately.
-2. Other legacy synthetic-email accounts, if any exist, continue signing in through the fallback path but do not gain recovery until they are separately backfilled.
+If any other legacy synthetic-email auth users still exist, they are out of scope for this rollout and must be migrated separately before they can use email-first sign-in.
 
 ## Technical Approach
 
 ### Auth Identity Model
 
-The current implementation derives the Supabase auth email from the username. That no longer works for recovery because reset emails must go to a real address.
+The current implementation derives auth identity from a synthetic username email. That complexity is removed.
 
-For new accounts:
+For all new accounts:
 
 1. create the Supabase auth user with the real email
 2. set the Supabase password to the chosen 6-digit PIN
-3. write `username`, `full_name`, and normalized `email` into `public.user_profiles`
-4. store `username` in auth user metadata so post-auth flows can resolve it without relying on synthetic emails
+3. store `full_name` and `username` in auth user metadata
+4. store `email`, `username`, and `full_name` in `public.user_profiles`
 
-For legacy accounts:
+For the existing migrated account:
 
-1. keep the existing synthetic-email sign-in path available as a fallback
-2. move specific users to real-email auth only when they are explicitly backfilled
+1. update `auth.users.email`
+2. update `public.user_profiles.email`
+3. preserve the existing user id, username, and account ownership
 
-### Server-Side Username Resolution
+### Sign-In Path
 
-The browser must no longer translate username into an auth email directly.
+The browser submits:
 
-Instead, introduce server-side auth entry points that:
+1. `email`
+2. `PIN`
 
-1. normalize the provided username
-2. resolve the login email using a privileged server lookup
-3. attempt Supabase auth using the resolved real email when present
-4. fall back to the synthetic email path for legacy accounts without a real stored email
+The client signs in directly with Supabase `signInWithPassword({ email, password: pin })`.
 
-This keeps the login experience unchanged while removing email lookup from the browser.
+No username lookup or synthetic-email fallback remains in the runtime auth flow after this switch.
 
 ### Recovery Dispatch
 
-Add a server-side recovery action that:
+The recovery request uses the email already typed into the login form.
 
-1. accepts a username
-2. resolves the matching stored email with the same privileged lookup path
-3. triggers Supabase `resetPasswordForEmail` using a redirect back into the app
-4. always returns the same generic success message
+The simplest path is:
 
-If the username is unknown or the account still lacks a real email, the action returns the generic success message without sending anything.
+1. validate the email format client-side
+2. call Supabase `resetPasswordForEmail(email, { redirectTo })`
+3. always show the generic success message
+
+No privileged username-to-email lookup is needed anymore.
 
 ### Recovery Callback Routing
 
-The current callback route always exchanges the auth code and then redirects into the normal auth-complete path. Recovery links need a separate branch.
+The current auth callback always redirects to the normal auth-complete path. Recovery links need a separate branch.
 
 The callback flow should:
 
 1. exchange the recovery or auth code for a session
-2. detect recovery links and redirect them straight to the reset-PIN route
-3. continue sending non-recovery auth links through the existing `/auth/complete` path
+2. detect recovery links
+3. redirect recovery sessions to the reset-PIN route
+4. continue sending normal auth links through `/auth/complete`
 
-This prevents a recovery session from accidentally running the normal post-signup claim flow.
+This keeps reset-PIN isolated from the normal post-signup claim flow.
 
 ### Reset PIN Screen
 
@@ -133,31 +136,22 @@ Add a dedicated authenticated recovery page that:
 1. confirms the user has a valid recovery session
 2. collects a new 6-digit PIN
 3. collects the same PIN again for confirmation
-4. validates exact 6-digit format and match
+4. validates format and match
 5. updates the Supabase password
-6. redirects the user back into the app after success
+6. redirects back into the signed-in app after success
 
-The reset screen does not ask for username or email again because the recovery session already identifies the account.
+The reset screen does not ask for email again because the recovery session already identifies the account.
 
 ### Complete-Auth Session Handling
 
-The current `completeAuthSession` logic derives usernames from synthetic auth emails. New accounts will no longer use those synthetic emails.
+The current `completeAuthSession` logic tries to derive usernames from synthetic auth emails. After the switch, that should stop being the primary source.
 
-Update completion logic so it resolves usernames in this order:
+Update completion logic so it resolves account identity in this order:
 
-1. `user.user_metadata.username` for new real-email accounts
-2. synthetic-email parsing as a fallback for legacy accounts
+1. `user.user_metadata.username`
+2. existing `user_profiles` row by `user.id`
 
-That keeps profile creation and the existing saved-player claim flow intact for both account generations.
-
-### Privileged Supabase Access
-
-Use the existing service-role admin client for:
-
-1. server-side username-to-email lookup
-2. one-time auth-user backfill for `Fochizzy`
-
-Do not expose direct email lookup to the client, and do not add a public browser-readable profile query for anonymous username resolution.
+Synthetic-email parsing should be removed from the mainline design and kept only if required temporarily during the one-time Fochizzy migration verification.
 
 ## Data Model Changes
 
@@ -167,52 +161,52 @@ Extend `public.user_profiles` with:
 
 1. `email text null`
 
-Rules:
+Migration behavior:
 
-1. new accounts must write a normalized lowercase non-empty email
-2. profile emails must be unique when present
-3. existing rows may remain null until explicitly backfilled
+1. add the column as nullable first for safe rollout
+2. backfill `Fochizzy`
+3. require email for all new inserts and updates created through the app
 
-Recommended constraint shape:
+Recommended constraint:
 
-1. a unique index on `lower(email)` with `where email is not null`
+1. a unique index on `lower(email)` where `email is not null`
 
 ### Auth Metadata
 
-New account creation must include:
+New account creation should store:
 
 1. `full_name`
 2. `username`
 
-in auth user metadata so post-auth completion can rebuild or confirm the `user_profiles` row.
+in auth user metadata so the completion route can rebuild missing profile rows without depending on email parsing.
 
 ## UI Changes
 
+### Sign-In Mode
+
+Sign-in mode should collect only:
+
+1. email
+2. 6-digit PIN
+
+Below the main submit button, add:
+
+1. `Reset PIN`
+
 ### Create Account Mode
 
-The create-account form should collect:
+Create-account mode should collect:
 
 1. full name
 2. username
 3. email
 4. 6-digit PIN
 
-Helper copy should explain that the email is used for PIN recovery.
+Helper copy should explain that the email is used for sign-in and PIN recovery.
 
-### Sign-In Mode
+### Reset Request State
 
-The sign-in form should continue to collect only:
-
-1. username
-2. PIN
-
-Below the main submit button, add:
-
-1. `Reset PIN`
-
-### Reset PIN Request State
-
-After recovery is requested, the form should show the generic success message in-place instead of navigating away immediately.
+After a recovery request, show the generic success message in-place instead of navigating away immediately.
 
 ### Reset PIN Completion Screen
 
@@ -220,51 +214,54 @@ The reset screen should show:
 
 1. a title explaining the user is setting a new PIN
 2. new PIN and confirm-PIN inputs
-3. validation feedback for non-6-digit or mismatched values
+3. validation feedback for invalid or mismatched values
 4. a success redirect back into the signed-in app
 
 ## Validation Rules
 
+### Email
+
+1. required for sign-in
+2. required for create-account
+3. validated as a real email format
+4. normalized to trimmed lowercase before storage and auth submission
+
 ### Username
 
-1. required
+1. required for create-account
 2. normalized with the existing username rules
 3. unique across all accounts
 
-### Email
-
-1. required for new account creation
-2. validated as a real email format
-3. normalized to trimmed lowercase
-4. unique across `user_profiles` when present
-
 ### PIN
 
-1. new-account PIN: exactly 6 digits
-2. reset-PIN value: exactly 6 digits
-3. sign-in PIN: accept 6 digits for new accounts and allow the current legacy fallback path for older 4-digit accounts
+1. sign-in PIN: exactly 6 digits
+2. create-account PIN: exactly 6 digits
+3. reset-PIN value: exactly 6 digits
+4. reset-PIN confirmation must match exactly
 
 ## Failure Handling
 
 ### Sign-In Failures
 
-The UI should continue to use one generic message:
+Use one generic sign-in error:
 
-1. `Unknown username or incorrect PIN.`
-
-This keeps username existence private even when the server-side username lookup succeeds.
+1. `Unknown email or incorrect PIN.`
 
 ### Recovery Failures
 
-If lookup or mail dispatch fails unexpectedly, the server logs the error and the UI still returns the generic success message unless the system is broadly unavailable.
+Even if the email does not exist or the recovery attempt fails in a recoverable way, the user should still see:
+
+1. `If that email is registered, a recovery link has been sent.`
+
+Unexpected system failures should still be logged.
 
 ### Signup Failures
 
 Show clear messages for:
 
 1. invalid email format
-2. username already taken
-3. email already in use
+2. email already in use
+3. username already taken
 4. invalid PIN
 
 ### Reset Failures
@@ -274,7 +271,7 @@ Show clear messages for:
 1. invalid or expired recovery session
 2. mismatched PIN confirmation
 3. invalid 6-digit PIN format
-4. Supabase password update failure
+4. password update failure
 
 ## Backfill Plan
 
@@ -284,68 +281,68 @@ Run a one-time privileged update for the existing `Fochizzy` account:
 
 1. set `public.user_profiles.email` to `izzy.hodnett@gmail.com`
 2. update the matching Supabase auth user email to `izzy.hodnett@gmail.com`
-3. preserve the existing username and account ownership
-4. preserve immediate sign-in and recovery eligibility after the update
+3. preserve the existing `user_id`
+4. preserve the existing `username`
+5. verify the migrated account can request and receive a recovery email
 
-If the auth email update requires explicit confirmation-state preservation, the backfill path should set that at the same time so recovery works immediately after rollout.
+If the auth email update requires confirmation-state handling to keep recovery available immediately, include that as part of the backfill procedure.
 
 ## Migration Plan
 
 1. add nullable `email` to `public.user_profiles`
 2. add the partial unique email index
-3. update auth helper validation to require email on create-account flows
-4. add server-side username sign-in and recovery entry points
-5. change new-account auth creation to use the real email instead of a synthetic one
-6. update auth metadata and completion logic so usernames no longer depend on synthetic emails
+3. update create-account validation to require email
+4. switch the login form from username to email
+5. switch sign-in auth calls from synthetic-email generation to direct email sign-in
+6. add the recovery request flow using `resetPasswordForEmail`
 7. add the recovery-aware callback branch
-8. add the reset-PIN page and password-update flow
-9. add the login-page `Reset PIN` button and request state
+8. add the reset-PIN route and UI
+9. update completion logic to rely on metadata/profile identity instead of synthetic-email parsing
 10. run the one-time `Fochizzy` backfill
-11. deploy the coordinated auth change and verify live
+11. deploy and verify the email-first auth flow live
 
 ## Testing Plan
 
 ### Auth Tests
 
-1. create-account mode renders a required email field
-2. signup sends the real email to Supabase auth creation
-3. signup stores username metadata for completion
-4. sign-in still accepts username + PIN only in the UI
-5. sign-in resolves real-email accounts server-side
-6. sign-in still falls back for legacy synthetic-email accounts
+1. sign-in mode renders email and PIN fields
+2. create-account mode renders full name, username, email, and PIN
+3. sign-in submits `email + PIN` to Supabase
+4. create-account submits the real email to Supabase auth creation
+5. create-account stores username metadata for profile completion
+6. duplicate email and duplicate username failures render correctly
 
 ### Recovery Tests
 
-1. reset request requires a username value on the form
-2. reset request returns the generic success message for both found and not-found usernames
-3. recovery dispatch calls Supabase recovery for real-email accounts
-4. legacy no-email accounts do not reveal non-recovery state
-5. recovery callback redirects to the reset-PIN route instead of `/auth/complete`
-6. reset-PIN accepts matching 6-digit values and updates the password
-7. reset-PIN rejects mismatched or invalid values
+1. reset request requires an email value in the form
+2. reset request calls `resetPasswordForEmail` with the correct redirect
+3. reset request always returns the generic success message
+4. recovery callback redirects to the reset-PIN route
+5. reset-PIN accepts matching 6-digit values and updates the password
+6. reset-PIN rejects invalid or mismatched values
 
 ### Repository And Route Tests
 
 1. profile email uniqueness is enforced
-2. completion logic resolves username from metadata first and synthetic email second
-3. the recovery route rejects malformed input safely
-4. the login page keeps generic error and recovery messages
+2. completion logic rebuilds or confirms profile identity from metadata
+3. reset callback handling does not fall into the normal auth-complete branch
+4. the login page copy consistently uses email-first wording
 
 ### Live Verification
 
-1. create a new account with username, real email, and 6-digit PIN
-2. request `Reset PIN` from the login screen
-3. follow the recovery link into the reset screen
-4. set a new 6-digit PIN and sign in successfully with it
-5. verify `Fochizzy` can receive the recovery email after backfill
+1. create a new account with full name, username, email, and 6-digit PIN
+2. sign out and sign back in with email + PIN
+3. request `Reset PIN`
+4. follow the recovery link into the reset screen
+5. set a new 6-digit PIN and sign in successfully with it
+6. verify `Fochizzy` can receive the recovery email after backfill
 
 ## Rollout Notes
 
-This should ship as one coordinated auth change because registration, username sign-in, recovery dispatch, callback routing, and reset completion all depend on the same identity model.
+This should ship as one coordinated auth change because sign-in fields, signup, recovery dispatch, callback routing, and reset completion all depend on the same email-first identity model.
 
-Backward compatibility rules:
+Key rollout assumptions:
 
-1. new accounts require a real email and a 6-digit PIN
-2. old accounts keep working for sign-in during the transition
-3. `Fochizzy` is explicitly upgraded in this rollout
-4. recovery remains generic and non-enumerating at every stage
+1. `Fochizzy` is the only existing user that needs migration in this rollout
+2. email becomes the only supported login credential after deploy
+3. username remains part of the app data model, but not the auth flow
