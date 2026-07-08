@@ -1,7 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { startTransition, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import type { Resolver } from 'react-hook-form';
 import { useForm, useWatch } from 'react-hook-form';
 import { StatusBanner } from '@/components/ui/status-banner';
@@ -71,6 +72,7 @@ export function LogGameWizard({
   preludeOptions,
   styleOptions,
 }: LogGameWizardProps) {
+  const router = useRouter();
   const form = useForm<LogGameDraftInput>({
     resolver: zodResolver(logGameDraftSchema) as Resolver<LogGameDraftInput>,
     defaultValues: initialValues,
@@ -82,7 +84,16 @@ export function LogGameWizard({
   const [submitMode, setSubmitMode] = useState<'draft' | 'finalize'>(
     initialStatus === 'finalized' ? 'finalize' : 'draft',
   );
+  // The submit event can fire before the onClick state update re-renders the
+  // form, so the handler reads the clicked mode from this ref instead of the
+  // (possibly stale) submitMode closure.
+  const submitModeRef = useRef(submitMode);
   const isFinalizedEdit = initialStatus === 'finalized';
+
+  function selectSubmitMode(mode: 'draft' | 'finalize') {
+    submitModeRef.current = mode;
+    setSubmitMode(mode);
+  }
   const selectedPlayerIds =
     useWatch({
       control: form.control,
@@ -186,12 +197,14 @@ export function LogGameWizard({
     <form
       className="flex flex-col gap-8"
       onSubmit={form.handleSubmit((values) => {
+        const activeSubmitMode = submitModeRef.current;
+
         setIsPending(true);
         setResult(null);
         startTransition(async () => {
           try {
             const action =
-              submitMode === 'finalize' ? onFinalizeGame : onSaveDraft;
+              activeSubmitMode === 'finalize' ? onFinalizeGame : onSaveDraft;
             const nextResult = await action(values);
 
             if (nextResult.gameId) {
@@ -199,13 +212,21 @@ export function LogGameWizard({
             }
 
             setResult(nextResult);
+
+            if (
+              nextResult.status === 'success' &&
+              activeSubmitMode === 'finalize' &&
+              !isFinalizedEdit
+            ) {
+              router.push('/profile');
+            }
           } catch (error) {
             setResult({
               status: 'error',
               message:
                 error instanceof Error
                   ? error.message
-                  : submitMode === 'finalize'
+                  : activeSubmitMode === 'finalize'
                     ? 'Unable to finalize this game right now.'
                     : 'Unable to save this draft right now.',
             });
@@ -257,7 +278,7 @@ export function LogGameWizard({
         <button
           className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isPending || hasBlockingIssues}
-          onClick={() => setSubmitMode('finalize')}
+          onClick={() => selectSubmitMode('finalize')}
           type="submit"
         >
           {isPending ? 'Saving...' : 'Save Finalized Changes'}
@@ -267,7 +288,7 @@ export function LogGameWizard({
           <button
             className="tm-button-primary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isPending}
-            onClick={() => setSubmitMode('draft')}
+            onClick={() => selectSubmitMode('draft')}
             type="submit"
           >
             {isPending && submitMode === 'draft' ? 'Saving...' : 'Save Draft Setup'}
@@ -275,7 +296,7 @@ export function LogGameWizard({
           <button
             className="tm-button-secondary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isPending || hasBlockingIssues}
-            onClick={() => setSubmitMode('finalize')}
+            onClick={() => selectSubmitMode('finalize')}
             type="submit"
           >
             {isPending && submitMode === 'finalize'

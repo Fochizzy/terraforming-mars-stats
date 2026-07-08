@@ -1,13 +1,25 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   readImportReviewJumpState,
   saveImportReviewJumpState,
 } from '@/lib/imports/import-review-jump-state';
 import { LogGameWizard } from './log-game-wizard';
 
+const routerMocks = vi.hoisted(() => ({
+  push: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: routerMocks.push }),
+}));
+
 describe('LogGameWizard', () => {
+  beforeEach(() => {
+    routerMocks.push.mockClear();
+  });
+
   it('hides draft-save actions when editing a finalized game', async () => {
     const user = userEvent.setup();
     const onFinalizeGame = vi.fn().mockResolvedValue({
@@ -81,6 +93,136 @@ describe('LogGameWizard', () => {
 
     await waitFor(() => expect(onFinalizeGame).toHaveBeenCalledTimes(1));
     expect(onSaveDraft).not.toHaveBeenCalled();
+    expect(routerMocks.push).not.toHaveBeenCalled();
+  });
+
+  it('navigates to the profile page after a draft game is finalized', async () => {
+    const user = userEvent.setup();
+    const onFinalizeGame = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      gameId: 'game-new',
+      message: 'Game finalized.',
+    });
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[]}
+        initialValues={{
+          awardClaims: {},
+          gameId: 'game-new',
+          generationCount: 10,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          mapId: 'tharsis',
+          milestoneClaims: {},
+          notes: '',
+          playedOn: '2026-07-03',
+          playerCount: 1,
+          playerScores: {
+            p1: {
+              awardPoints: 0,
+              cardPointsTotal: 0,
+              citiesPoints: 0,
+              finalMegacredits: 0,
+              greeneryPoints: 0,
+              milestonePoints: 0,
+              totalPoints: 0,
+              trPoints: 0,
+            },
+          },
+          playerSelections: {
+            p1: {
+              corporationId: 'corp1',
+              preludeIds: [],
+            },
+          },
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: ['p1'],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={onFinalizeGame}
+        onSaveDraft={vi.fn()}
+        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+        preludeOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /finalize game/i }));
+
+    await waitFor(() => expect(onFinalizeGame).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(routerMocks.push).toHaveBeenCalledWith('/profile'),
+    );
+  });
+
+  it('stays on the review page when finalizing fails', async () => {
+    const user = userEvent.setup();
+    const onFinalizeGame = vi.fn().mockResolvedValue({
+      status: 'error' as const,
+      gameId: 'game-new',
+      message: 'Unable to finalize this game right now.',
+    });
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[]}
+        initialValues={{
+          awardClaims: {},
+          gameId: 'game-new',
+          generationCount: 10,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          mapId: 'tharsis',
+          milestoneClaims: {},
+          notes: '',
+          playedOn: '2026-07-03',
+          playerCount: 1,
+          playerScores: {
+            p1: {
+              awardPoints: 0,
+              cardPointsTotal: 0,
+              citiesPoints: 0,
+              finalMegacredits: 0,
+              greeneryPoints: 0,
+              milestonePoints: 0,
+              totalPoints: 0,
+              trPoints: 0,
+            },
+          },
+          playerSelections: {
+            p1: {
+              corporationId: 'corp1',
+              preludeIds: [],
+            },
+          },
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: ['p1'],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={onFinalizeGame}
+        onSaveDraft={vi.fn()}
+        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+        preludeOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /finalize game/i }));
+
+    await waitFor(() => expect(onFinalizeGame).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByText(/unable to finalize this game right now/i),
+    ).toBeInTheDocument();
+    expect(routerMocks.push).not.toHaveBeenCalled();
   });
 
   it('shows first name and username in the player picker list and lets the user choose a first-name-plus-initial match', async () => {
@@ -389,6 +531,7 @@ describe('LogGameWizard', () => {
       }),
     );
     expect(onFinalizeGame).not.toHaveBeenCalled();
+    expect(routerMocks.push).not.toHaveBeenCalled();
   });
 
   it('offers every corporation, prelude, and key card regardless of the stored expansion and promo selections', () => {
