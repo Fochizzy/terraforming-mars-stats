@@ -3,15 +3,22 @@ import { ChartFrame } from '@/components/charts/chart-frame';
 import type {
   CoverageRow,
   LeaderboardRow,
+  PlayerEfficiencySummary,
   ProfileHeadToHeadRow,
+  PlayerMapMetricRow,
   ScoreSourceAverages,
   StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
+import { AwardMilestoneSummary } from './award-milestone-summary';
+import { EfficiencySummary } from './efficiency-summary';
+import { MapPerformanceList } from './map-performance-list';
 import { ScoreSourceList } from './score-source-list';
 
 type ProfileDashboardProps = {
   coverage?: CoverageRow | null;
+  efficiencySummary?: PlayerEfficiencySummary | null;
   headToHeadRows?: ProfileHeadToHeadRow[];
+  mapMetricRows?: PlayerMapMetricRow[];
   performance?: LeaderboardRow | null;
   playerName: string | null;
   scoreAverages?: ScoreSourceAverages | null;
@@ -38,7 +45,9 @@ function formatAverage(value: number | null) {
 
 export function ProfileDashboard({
   coverage = null,
+  efficiencySummary = null,
   headToHeadRows = [],
+  mapMetricRows = [],
   performance = null,
   playerName,
   scoreAverages = null,
@@ -109,6 +118,9 @@ export function ProfileDashboard({
           </p>
         )}
       </ChartFrame>
+      <EfficiencySummary efficiencySummary={efficiencySummary} />
+      <MapPerformanceList mapMetricRows={mapMetricRows} />
+      <AwardMilestoneSummary efficiencySummary={efficiencySummary} />
       <ChartFrame title="Score Source Averages">
         <ScoreSourceList scoreAverages={scoreAverages} />
       </ChartFrame>
