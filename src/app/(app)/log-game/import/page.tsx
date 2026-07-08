@@ -40,7 +40,7 @@ import {
 } from '@/lib/errors/describe-unknown-error';
 import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildImportDraft } from '@/lib/imports/build-import-draft';
-import { inferSupportedBoardMapId } from '@/lib/imports/infer-supported-board-map';
+import { inferBoardMapFromImportEvidence } from '@/lib/imports/infer-supported-board-map';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { derivePlayerTagSummaries } from '@/lib/imports/derive-player-tag-summaries';
@@ -200,18 +200,27 @@ function findSelectedMapOption(input: {
   );
 }
 
-function buildMapEvidenceLines(values: ParsedCreateImportDraftFormData) {
-  return [
-    ...values.exportedGameLog.split(/\r?\n/),
-    ...(values.screenshotOcr?.endgameLines ?? []),
-    ...(values.screenshotOcr?.scoreDetailsColumns.flatMap(
-      (column) => column.textLines,
-    ) ?? []),
-  ];
+function buildMapEvidenceSources(values: ParsedCreateImportDraftFormData) {
+  return {
+    logLines: values.exportedGameLog.split(/\r?\n/),
+    screenshotLines: [
+      ...(values.screenshotOcr?.endgameLines ?? []),
+      ...(values.screenshotOcr?.scoreDetailsColumns.flatMap(
+        (column) => column.textLines,
+      ) ?? []),
+    ],
+  };
+}
+
+function describeBoardMapName(mapOptions: MapOption[], mapCode: string) {
+  return (
+    findSelectedMapOption({ mapOptions, submittedMapId: mapCode })?.name ??
+    mapCode
+  );
 }
 
 function resolveImportMapSelection(input: {
-  evidenceLines: string[];
+  evidenceSources: ReturnType<typeof buildMapEvidenceSources>;
   fallbackMapId: string | null;
   mapOptions: MapOption[];
   submittedMapId: string;
@@ -234,13 +243,27 @@ function resolveImportMapSelection(input: {
     };
   }
 
-  const inferredMapCode = inferSupportedBoardMapId(input.evidenceLines);
-  const inferredMapOption = inferredMapCode
-    ? findSelectedMapOption({
-        mapOptions: input.mapOptions,
-        submittedMapId: inferredMapCode,
-      })
-    : null;
+  const inference = inferBoardMapFromImportEvidence(input.evidenceSources);
+
+  if (inference.kind === 'conflict') {
+    throw new Error(
+      `The exported log looks like a ${describeBoardMapName(
+        input.mapOptions,
+        inference.logMapId,
+      )} game, but the game result screenshot looks like ${describeBoardMapName(
+        input.mapOptions,
+        inference.screenshotMapId,
+      )}. Double-check that the log and screenshot come from the same game.`,
+    );
+  }
+
+  const inferredMapOption =
+    inference.kind === 'detected'
+      ? findSelectedMapOption({
+          mapOptions: input.mapOptions,
+          submittedMapId: inference.mapId,
+        })
+      : null;
 
   if (inferredMapOption) {
     return {
@@ -512,7 +535,7 @@ export default async function LogGameImportPage() {
           ? values.participantNames
           : extractGameLogParticipantNames(parsedGameLog);
       const analyzeMapSelection = resolveImportMapSelection({
-        evidenceLines: buildMapEvidenceLines(values),
+        evidenceSources: buildMapEvidenceSources(values),
         fallbackMapId: groupSettings?.defaultMapId ?? null,
         mapOptions,
         submittedMapId: values.mapId,
@@ -645,7 +668,7 @@ export default async function LogGameImportPage() {
       }
 
       const resolvedMapSelection = resolveImportMapSelection({
-        evidenceLines: buildMapEvidenceLines(values),
+        evidenceSources: buildMapEvidenceSources(values),
         fallbackMapId: groupSettings?.defaultMapId ?? null,
         mapOptions,
         submittedMapId: values.mapId,

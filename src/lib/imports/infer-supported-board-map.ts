@@ -21,6 +21,34 @@ function normalizeEvidenceText(text: string) {
   return ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()} `;
 }
 
+export type BoardMapEvidenceInference =
+  | { kind: 'detected'; mapId: SupportedBoardMapId }
+  | {
+      kind: 'conflict';
+      logMapId: SupportedBoardMapId;
+      screenshotMapId: SupportedBoardMapId;
+    }
+  | { kind: 'unknown' };
+
+// The log and the screenshot are inferred separately: pooling them lets
+// evidence pasted from one game and a screenshot from another cancel each
+// other out into a silent "no detection" tie instead of a visible mismatch.
+export function inferBoardMapFromImportEvidence(input: {
+  logLines: string[];
+  screenshotLines: string[];
+}): BoardMapEvidenceInference {
+  const logMapId = inferSupportedBoardMapId(input.logLines);
+  const screenshotMapId = inferSupportedBoardMapId(input.screenshotLines);
+
+  if (logMapId && screenshotMapId && logMapId !== screenshotMapId) {
+    return { kind: 'conflict', logMapId, screenshotMapId };
+  }
+
+  const mapId = logMapId ?? screenshotMapId;
+
+  return mapId ? { kind: 'detected', mapId } : { kind: 'unknown' };
+}
+
 export function inferSupportedBoardMapId(
   evidenceLines: string[],
 ): SupportedBoardMapId | null {

@@ -528,6 +528,53 @@ describe('LogGameImportPage', () => {
     );
   });
 
+  it('reports mismatched log and screenshot map evidence instead of a detection failure', async () => {
+    mockState.listMaps.mockResolvedValue([
+      { code: 'elysium', id: 'map-elysium', name: 'Elysium' },
+      { code: 'hellas', id: 'map-hellas', name: 'Hellas' },
+      { code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' },
+    ]);
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: [
+        'Friday Mars played Steel Works',
+        'Friday Mars claimed Diversifier milestone',
+        'Friday Mars claimed Tactician milestone',
+        'Friday Mars claimed Energizer milestone',
+      ].join('\n'),
+      generationCount: 10,
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+      screenshotOcr: {
+        endgameLines: ['Victory points breakdown after 12 generations'],
+        scoreDetailsColumns: [
+          {
+            textLines: [
+              'Claimed Generalist milestone 5',
+              'Claimed Tycoon milestone 5',
+              '1st place for Estate Dealer award (funded by Izzy)',
+              '1st place for Celebrity award',
+              'Claimed Legend milestone 5',
+              '1st place for Benefactor award (funded by James)',
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message:
+        'The exported log looks like a Hellas game, but the game result screenshot looks like Elysium. Double-check that the log and screenshot come from the same game.',
+      status: 'error',
+    });
+  });
+
   it('falls back to the group default map when the log has no map evidence', async () => {
     const shellProps = await renderPageAndCaptureShellProps();
     const analyzeFormData = buildCreateImportDraftFormData({
