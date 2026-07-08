@@ -139,9 +139,71 @@ export type ImportCoverageRow = {
   unparsedLineCount: number;
 };
 
+export type PlayerEfficiencySummary = {
+  averageAwardRoi: number;
+  averageExpectedScore: number | null;
+  averageLossGap: number | null;
+  averageNormalizedEfficiency: number | null;
+  averagePlacement: number;
+  averagePointsPerGeneration: number;
+  averageScore: number;
+  averageScoreDeltaVsExpected: number | null;
+  averageWinMargin: number | null;
+  awardScoreShare: number;
+  bestScoreSource: string | null;
+  bestTagLane: string | null;
+  cardScoreShare: number;
+  citiesScoreShare: number;
+  closeGameCount: number;
+  closeGameWins: number;
+  closeGameWinRate: number;
+  gamesPlayed: number;
+  greeneryScoreShare: number;
+  groupId: string;
+  milestoneScoreShare: number;
+  playerId: string;
+  tagEvidenceCoverage: number;
+  trScoreShare: number;
+  winRate: number;
+  wins: number;
+};
+
+export type PlayerMapMetricRow = {
+  averageGenerations: number;
+  averageNormalizedEfficiency: number | null;
+  averagePoints: number;
+  averagePointsPerGeneration: number;
+  averageScoreDeltaVsExpected: number | null;
+  bestScoreSourceOnMap: string | null;
+  bestTagLaneOnMap: string | null;
+  gamesPlayed: number;
+  groupId: string;
+  mapId: string;
+  mapRankForPlayer: number | null;
+  playerId: string;
+  winRate: number;
+  wins: number;
+};
+
+export type GlobalMapMetricRow = {
+  averageGenerations: number;
+  averageNormalizedEfficiency: number | null;
+  averagePoints: number;
+  averagePointsPerGeneration: number;
+  bestTagLane: string | null;
+  expectedScoreBaseline: number | null;
+  gamesPlayed: number;
+  highestEfficiencyStyleCode: string | null;
+  highestWinRateCorporationId: string | null;
+  mapId: string;
+  playerCount: number;
+};
+
 export type ProfileAnalytics = {
   coverage: CoverageRow | null;
+  efficiencySummary: PlayerEfficiencySummary | null;
   headToHeadRows: ProfileHeadToHeadRow[];
+  mapMetricRows: PlayerMapMetricRow[];
   performance: LeaderboardRow | null;
   playerId: string;
   playerName: string;
@@ -151,6 +213,7 @@ export type ProfileAnalytics = {
 
 export type GroupAnalytics = {
   coverage: CoverageRow | null;
+  globalMapMetricRows: GlobalMapMetricRow[];
   groupStylePerformanceRows: GroupStylePerformanceRow[];
   groupInteractionRows: GroupInteractionRow[];
   headToHeadRows: GroupHeadToHeadRow[];
@@ -158,7 +221,9 @@ export type GroupAnalytics = {
   leaderboardRows: LeaderboardRow[];
   lineupEffectRows: LineupEffectRow[];
   playerCoverages: CoverageRow[];
+  playerEfficiencySummaries: PlayerEfficiencySummary[];
   playerInteractionRows: PlayerInteractionRow[];
+  playerMapMetricRows: PlayerMapMetricRow[];
   playerScoreAverages: PlayerScoreSourceAverages[];
   playerStylePerformanceRows: PlayerStylePerformanceRow[];
   playerTrendRows: TrendRow[];
@@ -308,6 +373,66 @@ type RawImportCoverageRow = {
   line_count: number | string;
   screenshot_count: number | string;
   unparsed_line_count: number | string;
+};
+
+type RawPlayerEfficiencySummaryRow = {
+  average_award_roi: number | string;
+  average_expected_score: number | string | null;
+  average_loss_gap: number | string | null;
+  average_normalized_efficiency: number | string | null;
+  average_placement: number | string;
+  average_points_per_generation: number | string;
+  average_score: number | string;
+  average_score_delta_vs_expected: number | string | null;
+  average_win_margin: number | string | null;
+  award_score_share: number | string;
+  best_score_source: string | null;
+  best_tag_lane: string | null;
+  card_score_share: number | string;
+  cities_score_share: number | string;
+  close_game_count: number | string;
+  close_game_wins: number | string;
+  close_game_win_rate: number | string;
+  games_played: number | string;
+  greenery_score_share: number | string;
+  group_id: string;
+  milestone_score_share: number | string;
+  player_id: string;
+  tag_evidence_coverage: number | string;
+  tr_score_share: number | string;
+  win_rate: number | string;
+  wins: number | string;
+};
+
+type RawPlayerMapMetricRow = {
+  average_generations: number | string;
+  average_normalized_efficiency: number | string | null;
+  average_points: number | string;
+  average_points_per_generation: number | string;
+  average_score_delta_vs_expected: number | string | null;
+  best_score_source_on_map: string | null;
+  best_tag_lane_on_map: string | null;
+  games_played: number | string;
+  group_id: string;
+  map_id: string;
+  map_rank_for_player: number | string | null;
+  player_id: string;
+  win_rate: number | string;
+  wins: number | string;
+};
+
+type RawGlobalMapMetricRow = {
+  average_generations: number | string;
+  average_normalized_efficiency: number | string | null;
+  average_points: number | string;
+  average_points_per_generation: number | string;
+  best_tag_lane: string | null;
+  expected_score_baseline: number | string | null;
+  games_played: number | string;
+  highest_efficiency_style_code: string | null;
+  highest_win_rate_corporation_id: string | null;
+  map_id: string;
+  player_count: number | string;
 };
 
 type RawTrendRow = {
@@ -607,6 +732,74 @@ function mapImportCoverageRow(row: RawImportCoverageRow): ImportCoverageRow {
   };
 }
 
+function mapPlayerEfficiencySummary(
+  row: RawPlayerEfficiencySummaryRow,
+): PlayerEfficiencySummary {
+  return {
+    groupId: row.group_id,
+    playerId: row.player_id,
+    gamesPlayed: toNumber(row.games_played),
+    wins: toNumber(row.wins),
+    winRate: toNumber(row.win_rate),
+    averageScore: toNumber(row.average_score),
+    averagePlacement: toNumber(row.average_placement),
+    averagePointsPerGeneration: toNumber(row.average_points_per_generation),
+    averageNormalizedEfficiency: toNullableNumber(row.average_normalized_efficiency),
+    averageExpectedScore: toNullableNumber(row.average_expected_score),
+    averageScoreDeltaVsExpected: toNullableNumber(row.average_score_delta_vs_expected),
+    averageWinMargin: toNullableNumber(row.average_win_margin),
+    averageLossGap: toNullableNumber(row.average_loss_gap),
+    closeGameCount: toNumber(row.close_game_count),
+    closeGameWins: toNumber(row.close_game_wins),
+    closeGameWinRate: toNumber(row.close_game_win_rate),
+    bestScoreSource: row.best_score_source,
+    trScoreShare: toNumber(row.tr_score_share),
+    cardScoreShare: toNumber(row.card_score_share),
+    citiesScoreShare: toNumber(row.cities_score_share),
+    greeneryScoreShare: toNumber(row.greenery_score_share),
+    milestoneScoreShare: toNumber(row.milestone_score_share),
+    awardScoreShare: toNumber(row.award_score_share),
+    bestTagLane: row.best_tag_lane,
+    tagEvidenceCoverage: toNumber(row.tag_evidence_coverage),
+    averageAwardRoi: toNumber(row.average_award_roi),
+  };
+}
+
+function mapPlayerMapMetricRow(row: RawPlayerMapMetricRow): PlayerMapMetricRow {
+  return {
+    groupId: row.group_id,
+    playerId: row.player_id,
+    mapId: row.map_id,
+    gamesPlayed: toNumber(row.games_played),
+    wins: toNumber(row.wins),
+    winRate: toNumber(row.win_rate),
+    averagePoints: toNumber(row.average_points),
+    averageGenerations: toNumber(row.average_generations),
+    averagePointsPerGeneration: toNumber(row.average_points_per_generation),
+    averageNormalizedEfficiency: toNullableNumber(row.average_normalized_efficiency),
+    averageScoreDeltaVsExpected: toNullableNumber(row.average_score_delta_vs_expected),
+    bestScoreSourceOnMap: row.best_score_source_on_map,
+    bestTagLaneOnMap: row.best_tag_lane_on_map,
+    mapRankForPlayer: toNullableNumber(row.map_rank_for_player),
+  };
+}
+
+function mapGlobalMapMetricRow(row: RawGlobalMapMetricRow): GlobalMapMetricRow {
+  return {
+    mapId: row.map_id,
+    playerCount: toNumber(row.player_count),
+    gamesPlayed: toNumber(row.games_played),
+    averagePoints: toNumber(row.average_points),
+    averageGenerations: toNumber(row.average_generations),
+    averagePointsPerGeneration: toNumber(row.average_points_per_generation),
+    averageNormalizedEfficiency: toNullableNumber(row.average_normalized_efficiency),
+    expectedScoreBaseline: toNullableNumber(row.expected_score_baseline),
+    highestWinRateCorporationId: row.highest_win_rate_corporation_id,
+    highestEfficiencyStyleCode: row.highest_efficiency_style_code,
+    bestTagLane: row.best_tag_lane,
+  };
+}
+
 function mapTrendRow(row: RawTrendRow): TrendRow {
   return {
     groupId: row.group_id,
@@ -690,7 +883,9 @@ function resolveProfileLabel(
 }
 
 function buildProfileAnalyticsFromRows(input: {
+  efficiencySummary: PlayerEfficiencySummary | null;
   linkedPlayers: Array<{ id: string; display_name: string }>;
+  mapMetricRows: PlayerMapMetricRow[];
   ownRows: ProfileGameResultRow[];
   sharedRows: ProfileGameResultRow[];
 }) {
@@ -714,6 +909,8 @@ function buildProfileAnalyticsFromRows(input: {
       styleAgreement: null,
       coverage: null,
       headToHeadRows: [],
+      efficiencySummary: input.efficiencySummary,
+      mapMetricRows: input.mapMetricRows,
     } satisfies ProfileAnalytics;
   }
 
@@ -979,6 +1176,8 @@ function buildProfileAnalyticsFromRows(input: {
     styleAgreement,
     coverage,
     headToHeadRows,
+    efficiencySummary: input.efficiencySummary,
+    mapMetricRows: input.mapMetricRows,
   } satisfies ProfileAnalytics;
 }
 
@@ -1060,6 +1259,55 @@ export function sortTrendRows<T extends { playedOn: string; playerName: string }
     (left, right) =>
       left.playedOn.localeCompare(right.playedOn) ||
       left.playerName.localeCompare(right.playerName),
+  );
+}
+
+export function sortPlayerEfficiencySummaries<T extends {
+  averagePointsPerGeneration: number;
+  gamesPlayed: number;
+  playerId: string;
+}>(rows: T[]) {
+  return [...rows].sort(
+    (left, right) =>
+      right.gamesPlayed - left.gamesPlayed ||
+      right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+      left.playerId.localeCompare(right.playerId),
+  );
+}
+
+export function sortPlayerMapMetricRows<T extends {
+  averagePointsPerGeneration: number;
+  gamesPlayed: number;
+  mapId: string;
+  mapRankForPlayer: number | null;
+  playerId: string;
+}>(rows: T[]) {
+  return [...rows].sort((left, right) => {
+    const leftRank = left.mapRankForPlayer ?? Number.POSITIVE_INFINITY;
+    const rightRank = right.mapRankForPlayer ?? Number.POSITIVE_INFINITY;
+
+    return (
+      leftRank - rightRank ||
+      right.gamesPlayed - left.gamesPlayed ||
+      right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+      left.playerId.localeCompare(right.playerId) ||
+      left.mapId.localeCompare(right.mapId)
+    );
+  });
+}
+
+export function sortGlobalMapMetricRows<T extends {
+  averagePointsPerGeneration: number;
+  gamesPlayed: number;
+  mapId: string;
+  playerCount: number;
+}>(rows: T[]) {
+  return [...rows].sort(
+    (left, right) =>
+      right.gamesPlayed - left.gamesPlayed ||
+      right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+      left.mapId.localeCompare(right.mapId) ||
+      left.playerCount - right.playerCount,
   );
 }
 
@@ -1328,6 +1576,114 @@ export async function listImportCoverage(groupId: string) {
   return (data as RawImportCoverageRow[]).map(mapImportCoverageRow);
 }
 
+const playerEfficiencySummarySelect =
+  'average_award_roi, average_expected_score, average_loss_gap, average_normalized_efficiency, average_placement, average_points_per_generation, average_score, average_score_delta_vs_expected, average_win_margin, award_score_share, best_score_source, best_tag_lane, card_score_share, cities_score_share, close_game_count, close_game_wins, close_game_win_rate, games_played, greenery_score_share, group_id, milestone_score_share, player_id, tag_evidence_coverage, tr_score_share, win_rate, wins';
+
+const playerMapMetricSelect =
+  'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, average_score_delta_vs_expected, best_score_source_on_map, best_tag_lane_on_map, games_played, group_id, map_id, map_rank_for_player, player_id, win_rate, wins';
+
+const globalMapMetricSelect =
+  'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, best_tag_lane, expected_score_baseline, games_played, highest_efficiency_style_code, highest_win_rate_corporation_id, map_id, player_count';
+
+export async function listPlayerEfficiencySummariesByPlayerIds(playerIds: string[]) {
+  if (playerIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('player_metric_summaries')
+    .select(playerEfficiencySummarySelect)
+    .in('player_id', playerIds)
+    .order('games_played', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortPlayerEfficiencySummaries(
+    ((data as RawPlayerEfficiencySummaryRow[] | null) ?? []).map(
+      mapPlayerEfficiencySummary,
+    ),
+  );
+}
+
+export async function listGroupPlayerEfficiencySummaries(groupId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('player_metric_summaries')
+    .select(playerEfficiencySummarySelect)
+    .eq('group_id', groupId)
+    .order('games_played', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortPlayerEfficiencySummaries(
+    ((data as RawPlayerEfficiencySummaryRow[] | null) ?? []).map(
+      mapPlayerEfficiencySummary,
+    ),
+  );
+}
+
+export async function listPlayerMapMetricsByPlayerIds(playerIds: string[]) {
+  if (playerIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('player_map_metric_summaries')
+    .select(playerMapMetricSelect)
+    .in('player_id', playerIds)
+    .order('map_rank_for_player', { ascending: true })
+    .order('games_played', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortPlayerMapMetricRows(
+    ((data as RawPlayerMapMetricRow[] | null) ?? []).map(mapPlayerMapMetricRow),
+  );
+}
+
+export async function listGroupPlayerMapMetrics(groupId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('player_map_metric_summaries')
+    .select(playerMapMetricSelect)
+    .eq('group_id', groupId)
+    .order('map_rank_for_player', { ascending: true })
+    .order('games_played', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortPlayerMapMetricRows(
+    ((data as RawPlayerMapMetricRow[] | null) ?? []).map(mapPlayerMapMetricRow),
+  );
+}
+
+export async function listGlobalMapMetrics() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('global_map_metric_summaries')
+    .select(globalMapMetricSelect)
+    .order('games_played', { ascending: false })
+    .order('average_points_per_generation', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortGlobalMapMetricRows(
+    ((data as RawGlobalMapMetricRow[] | null) ?? []).map(mapGlobalMapMetricRow),
+  );
+}
+
 export async function getProfileAnalytics(userId: string) {
   const linkedPlayers = await getLinkedPlayers(userId);
 
@@ -1337,6 +1693,10 @@ export async function getProfileAnalytics(userId: string) {
 
   const supabase = await createSupabaseServerClient();
   const linkedPlayerIds = linkedPlayers.map((player) => player.id);
+  const [efficiencyRows, mapMetricRows] = await Promise.all([
+    listPlayerEfficiencySummariesByPlayerIds(linkedPlayerIds),
+    listPlayerMapMetricsByPlayerIds(linkedPlayerIds),
+  ]);
   const { data: ownRows, error: ownRowsError } = await getAnalyticsClient(supabase)
     .from('player_game_results')
     .select(
@@ -1375,7 +1735,9 @@ export async function getProfileAnalytics(userId: string) {
   }
 
   return buildProfileAnalyticsFromRows({
+    efficiencySummary: efficiencyRows[0] ?? null,
     linkedPlayers,
+    mapMetricRows,
     ownRows: normalizedOwnRows,
     sharedRows: normalizedSharedRows,
   });
@@ -1397,6 +1759,9 @@ export async function getGroupAnalytics(groupId: string) {
     coverage,
     playerCoverages,
     importCoverageRows,
+    playerEfficiencySummaries,
+    playerMapMetricRows,
+    globalMapMetricRows,
   ] = await Promise.all([
     listGroupLeaderboard(groupId),
     getGroupScoreSourceAverages(groupId),
@@ -1412,6 +1777,9 @@ export async function getGroupAnalytics(groupId: string) {
     getGroupCoverage(groupId),
     listGroupPlayerCoverage(groupId),
     listImportCoverage(groupId),
+    listGroupPlayerEfficiencySummaries(groupId),
+    listGroupPlayerMapMetrics(groupId),
+    listGlobalMapMetrics(),
   ]);
 
   return {
@@ -1429,5 +1797,8 @@ export async function getGroupAnalytics(groupId: string) {
     coverage,
     playerCoverages,
     importCoverageRows,
+    playerEfficiencySummaries,
+    playerMapMetricRows,
+    globalMapMetricRows,
   } satisfies GroupAnalytics;
 }
