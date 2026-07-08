@@ -26,7 +26,6 @@ describe('LogGameWizard', () => {
         awardOptions={[]}
         cardOptions={[]}
         corporationOptions={[]}
-        expansionOptions={[{ id: 'e1', code: 'base', name: 'Base Game' }]}
         initialStatus="finalized"
         initialValues={{
           awardClaims: {},
@@ -67,7 +66,6 @@ describe('LogGameWizard', () => {
         onSaveDraft={onSaveDraft}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        promoSetOptions={[]}
         styleOptions={[]}
       />,
     );
@@ -107,9 +105,6 @@ describe('LogGameWizard', () => {
         awardOptions={[]}
         cardOptions={[]}
         corporationOptions={[]}
-        expansionOptions={[
-          { id: 'e1', code: 'base', name: 'Base Game' },
-        ]}
         initialValues={{
           awardClaims: {},
           gameId: undefined,
@@ -141,7 +136,6 @@ describe('LogGameWizard', () => {
         })}
         playerOptions={playerOptions}
         preludeOptions={[]}
-        promoSetOptions={[]}
         styleOptions={[]}
       />,
     );
@@ -173,9 +167,6 @@ describe('LogGameWizard', () => {
         awardOptions={[]}
         cardOptions={[]}
         corporationOptions={[]}
-        expansionOptions={[
-          { id: 'e1', code: 'base', name: 'Base Game' },
-        ]}
         initialValues={{
           awardClaims: {},
           gameId: undefined,
@@ -207,7 +198,6 @@ describe('LogGameWizard', () => {
         })}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        promoSetOptions={[]}
         styleOptions={[]}
       />,
     );
@@ -260,11 +250,6 @@ describe('LogGameWizard', () => {
             requiredExpansionCodes: ['base'],
           },
         ]}
-        expansionOptions={[
-          { id: 'e1', code: 'base', name: 'Base Game' },
-          { id: 'e2', code: 'prelude', name: 'Prelude' },
-          { id: 'e3', code: 'colonies', name: 'Colonies' },
-        ]}
         initialValues={{
           awardClaims: {},
           gameId: undefined,
@@ -278,8 +263,8 @@ describe('LogGameWizard', () => {
           playerSelections: {},
           generationCount: 10,
           playerStyles: {},
-          expansionCodes: ['base', 'prelude'],
-          promoSetSlugs: [],
+          expansionCodes: ['base', 'prelude', 'colonies'],
+          promoSetSlugs: ['2022-seasonal-promos'],
           selectedPlayerIds: ['p1', 'p2'],
         }}
         mapOptions={[
@@ -303,15 +288,6 @@ describe('LogGameWizard', () => {
             name: 'Allied Bank',
             promoSetSlug: null,
             requiredExpansionCodes: ['prelude'],
-          },
-        ]}
-        promoSetOptions={[
-          {
-            id: 'promo-2022',
-            slug: '2022-seasonal-promos',
-            displayName: 'Seasonal Promos',
-            editionLabel: 'Seasonal promo',
-            promoYear: 2022,
           },
         ]}
         styleOptions={[
@@ -354,8 +330,6 @@ describe('LogGameWizard', () => {
     await user.selectOptions(screen.getByLabelText(/friday mars key card 1/i), 'card1');
     await user.clear(screen.getByLabelText(/generation count/i));
     await user.type(screen.getByLabelText(/generation count/i), '11');
-    await user.click(screen.getByLabelText(/colonies/i));
-    await user.click(screen.getByLabelText(/seasonal promos \(2022\)/i));
     await user.click(screen.getByRole('button', { name: /save draft setup/i }));
 
     await waitFor(() =>
@@ -417,131 +391,109 @@ describe('LogGameWizard', () => {
     expect(onFinalizeGame).not.toHaveBeenCalled();
   });
 
-  it('filters corporation, prelude, and key-card choices to the selected expansions and promo releases', async () => {
-    const user = userEvent.setup();
+  it('filters corporation, prelude, and key-card choices to the selected expansions and promo releases', () => {
+    const renderWizardWithSelections = (selections: {
+      expansionCodes: string[];
+      promoSetSlugs: string[];
+    }) =>
+      render(
+        <LogGameWizard
+          awardOptions={[]}
+          cardOptions={[
+            {
+              cardName: 'Colonizer Training Camp',
+              cardNumber: '001',
+              expansionCode: 'base',
+              id: 'card-base',
+              promoSetSlug: null,
+              requiredExpansionCodes: ['base'],
+            },
+            {
+              cardName: 'Political Alliance',
+              cardNumber: 'X09',
+              expansionCode: 'promo',
+              id: 'card-promo',
+              promoSetSlug: '2019-turmoil-promos',
+              requiredExpansionCodes: ['turmoil'],
+            },
+          ]}
+          corporationOptions={[
+            {
+              expansionCode: 'base',
+              id: 'corp-base',
+              name: 'Tharsis Republic',
+              promoSetSlug: null,
+              requiredExpansionCodes: ['base'],
+            },
+            {
+              expansionCode: 'colonies',
+              id: 'corp-colonies',
+              name: 'Poseidon',
+              promoSetSlug: null,
+              requiredExpansionCodes: ['colonies'],
+            },
+            {
+              expansionCode: 'promo',
+              id: 'corp-promo',
+              name: 'Arcadian Communities',
+              promoSetSlug: '2018-boardgamegeek-promos',
+              requiredExpansionCodes: [],
+            },
+          ]}
+          initialValues={{
+            awardClaims: {},
+            gameId: undefined,
+            groupId: '11111111-1111-4111-8111-111111111111',
+            milestoneClaims: {},
+            playedOn: '2026-07-03',
+            mapId: 'tharsis',
+            notes: '',
+            playerCount: 1,
+            playerScores: {},
+            playerSelections: {},
+            generationCount: 10,
+            playerStyles: {},
+            expansionCodes: selections.expansionCodes,
+            promoSetSlugs: selections.promoSetSlugs,
+            selectedPlayerIds: ['p1'],
+          }}
+          mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+          milestoneOptions={[]}
+          onFinalizeGame={vi.fn().mockResolvedValue({
+            status: 'success' as const,
+            gameId: 'game-2',
+            message: 'Game finalized.',
+          })}
+          onSaveDraft={vi.fn().mockResolvedValue({
+            status: 'success' as const,
+            gameId: 'game-2',
+            message: 'Draft saved.',
+          })}
+          playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+          preludeOptions={[
+            {
+              expansionCode: 'prelude',
+              id: 'prelude-base',
+              name: 'Allied Bank',
+              promoSetSlug: null,
+              requiredExpansionCodes: ['prelude'],
+            },
+            {
+              expansionCode: 'prelude',
+              id: 'prelude-promo',
+              name: 'Corporate Archives',
+              promoSetSlug: '2022-seasonal-promos',
+              requiredExpansionCodes: ['prelude'],
+            },
+          ]}
+          styleOptions={[{ code: 'balanced', id: 'style1', name: 'Balanced' }]}
+        />,
+      );
 
-    render(
-      <LogGameWizard
-        awardOptions={[]}
-        cardOptions={[
-          {
-            cardName: 'Colonizer Training Camp',
-            cardNumber: '001',
-            expansionCode: 'base',
-            id: 'card-base',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['base'],
-          },
-          {
-            cardName: 'Political Alliance',
-            cardNumber: 'X09',
-            expansionCode: 'promo',
-            id: 'card-promo',
-            promoSetSlug: '2019-turmoil-promos',
-            requiredExpansionCodes: ['turmoil'],
-          },
-        ]}
-        corporationOptions={[
-          {
-            expansionCode: 'base',
-            id: 'corp-base',
-            name: 'Tharsis Republic',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['base'],
-          },
-          {
-            expansionCode: 'colonies',
-            id: 'corp-colonies',
-            name: 'Poseidon',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['colonies'],
-          },
-          {
-            expansionCode: 'promo',
-            id: 'corp-promo',
-            name: 'Arcadian Communities',
-            promoSetSlug: '2018-boardgamegeek-promos',
-            requiredExpansionCodes: [],
-          },
-        ]}
-        expansionOptions={[
-          { id: 'e1', code: 'base', name: 'Base Game' },
-          { id: 'e2', code: 'prelude', name: 'Prelude' },
-          { id: 'e3', code: 'colonies', name: 'Colonies' },
-          { id: 'e4', code: 'turmoil', name: 'Turmoil' },
-        ]}
-        initialValues={{
-          awardClaims: {},
-          gameId: undefined,
-          groupId: '11111111-1111-4111-8111-111111111111',
-          milestoneClaims: {},
-          playedOn: '2026-07-03',
-          mapId: 'tharsis',
-          notes: '',
-          playerCount: 1,
-          playerScores: {},
-          playerSelections: {},
-          generationCount: 10,
-          playerStyles: {},
-          expansionCodes: ['base', 'prelude'],
-          promoSetSlugs: [],
-          selectedPlayerIds: ['p1'],
-        }}
-        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
-        milestoneOptions={[]}
-        onFinalizeGame={vi.fn().mockResolvedValue({
-          status: 'success' as const,
-          gameId: 'game-2',
-          message: 'Game finalized.',
-        })}
-        onSaveDraft={vi.fn().mockResolvedValue({
-          status: 'success' as const,
-          gameId: 'game-2',
-          message: 'Draft saved.',
-        })}
-        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
-        preludeOptions={[
-          {
-            expansionCode: 'prelude',
-            id: 'prelude-base',
-            name: 'Allied Bank',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['prelude'],
-          },
-          {
-            expansionCode: 'prelude',
-            id: 'prelude-promo',
-            name: 'Corporate Archives',
-            promoSetSlug: '2022-seasonal-promos',
-            requiredExpansionCodes: ['prelude'],
-          },
-        ]}
-        promoSetOptions={[
-          {
-            id: 'promo-x',
-            slug: '2019-turmoil-promos',
-            displayName: 'Turmoil Promos',
-            editionLabel: 'Turmoil',
-            promoYear: 2019,
-          },
-          {
-            id: 'promo-seasonal-2022',
-            slug: '2022-seasonal-promos',
-            displayName: 'Seasonal Promos',
-            editionLabel: 'Seasonal promo',
-            promoYear: 2022,
-          },
-          {
-            id: 'promo-corp',
-            slug: '2018-boardgamegeek-promos',
-            displayName: 'BoardGameGeek Promos',
-            editionLabel: 'BoardGameGeek promo',
-            promoYear: 2018,
-          },
-        ]}
-        styleOptions={[{ code: 'balanced', id: 'style1', name: 'Balanced' }]}
-      />,
-    );
+    const restricted = renderWizardWithSelections({
+      expansionCodes: ['base', 'prelude'],
+      promoSetSlugs: [],
+    });
 
     expect(screen.getByRole('option', { name: /tharsis republic/i })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /poseidon/i })).not.toBeInTheDocument();
@@ -559,11 +511,15 @@ describe('LogGameWizard', () => {
       screen.queryByRole('option', { name: /x09 - political alliance/i }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByLabelText(/colonies/i));
-    await user.click(screen.getByLabelText(/turmoil promos \(2019\)/i));
-    await user.click(screen.getByLabelText(/^turmoil$/i));
-    await user.click(screen.getByLabelText(/seasonal promos \(2022\)/i));
-    await user.click(screen.getByLabelText(/boardgamegeek promos \(2018\)/i));
+    restricted.unmount();
+    renderWizardWithSelections({
+      expansionCodes: ['base', 'prelude', 'colonies', 'turmoil'],
+      promoSetSlugs: [
+        '2019-turmoil-promos',
+        '2022-seasonal-promos',
+        '2018-boardgamegeek-promos',
+      ],
+    });
 
     expect(screen.getByRole('option', { name: /poseidon/i })).toBeInTheDocument();
     expect(
@@ -594,7 +550,6 @@ describe('LogGameWizard', () => {
         awardOptions={[]}
         cardOptions={[]}
         corporationOptions={[]}
-        expansionOptions={[{ id: 'e1', code: 'base', name: 'Base Game' }]}
         initialValues={{
           awardClaims: {},
           gameId: 'game-jump',
@@ -626,7 +581,6 @@ describe('LogGameWizard', () => {
         })}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        promoSetOptions={[]}
         styleOptions={[]}
       />,
     );
@@ -671,7 +625,6 @@ describe('LogGameWizard', () => {
         awardOptions={[]}
         cardOptions={[]}
         corporationOptions={[]}
-        expansionOptions={[{ id: 'e1', code: 'base', name: 'Base Game' }]}
         initialValues={{
           awardClaims: {},
           gameId: 'game-alias',
@@ -703,7 +656,6 @@ describe('LogGameWizard', () => {
         })}
         playerOptions={[{ id: 'player-roster', display_name: 'Roster Name' }]}
         preludeOptions={[]}
-        promoSetOptions={[]}
         styleOptions={[]}
       />,
     );

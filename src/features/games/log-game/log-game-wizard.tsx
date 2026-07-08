@@ -14,12 +14,10 @@ import {
 import type {
   CardOption,
   CorporationOption,
-  ExpansionOption,
   MapAwardOption,
   MapMilestoneOption,
   MapOption,
   PreludeOption,
-  PromoSetOption,
   StyleOption,
 } from '@/lib/db/reference-repo';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
@@ -54,7 +52,6 @@ type LogGameWizardProps = {
   awardOptions: MapAwardOption[];
   cardOptions: CardOption[];
   corporationOptions: CorporationOption[];
-  expansionOptions: ExpansionOption[];
   initialStatus?: 'draft' | 'finalized';
   initialValues: LogGameDraftInput;
   mapOptions: MapOption[];
@@ -63,7 +60,6 @@ type LogGameWizardProps = {
   onSaveDraft: (values: LogGameDraftInput) => Promise<GameSubmitResult>;
   playerOptions: LogGamePlayerOption[];
   preludeOptions: PreludeOption[];
-  promoSetOptions: PromoSetOption[];
   styleOptions: StyleOption[];
 };
 
@@ -71,7 +67,6 @@ export function LogGameWizard({
   awardOptions,
   cardOptions,
   corporationOptions,
-  expansionOptions,
   initialStatus = 'draft',
   initialValues,
   mapOptions,
@@ -80,7 +75,6 @@ export function LogGameWizard({
   onSaveDraft,
   playerOptions,
   preludeOptions,
-  promoSetOptions,
   styleOptions,
 }: LogGameWizardProps) {
   const form = useForm<LogGameDraftInput>({
@@ -248,12 +242,7 @@ export function LogGameWizard({
         });
       })}
     >
-      <SetupStep
-        expansionOptions={expansionOptions}
-        mapOptions={mapOptions}
-        promoSetOptions={promoSetOptions}
-        register={form.register}
-      />
+      <SetupStep mapOptions={mapOptions} register={form.register} />
       <PlayersStep
         corporationOptions={visibleCorporations}
         playerCount={playerCount}

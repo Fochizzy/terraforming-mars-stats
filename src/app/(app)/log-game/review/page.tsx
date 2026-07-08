@@ -22,12 +22,10 @@ import {
   getLatestCatalogSnapshotId,
   listCards,
   listCorporations,
-  listExpansions,
   listMapAwards,
   listMapMilestones,
   listMaps,
   listPreludes,
-  listPromoSets,
   listStyles,
 } from '@/lib/db/reference-repo';
 import {
@@ -99,14 +97,12 @@ export default async function LogGameReviewPage({
     );
   }
 
-  const [savedGame, expansionOptions, promoSetOptions, corporationOptions, preludeOptions, milestoneOptions, awardOptions, styleOptions, cardOptions, latestCatalogSnapshotId] =
+  const [savedGame, corporationOptions, preludeOptions, milestoneOptions, awardOptions, styleOptions, cardOptions, latestCatalogSnapshotId] =
     await Promise.all([
       getSavedGameForm({
         gameId: draftGameId,
         groupId: context.groupId,
       }),
-      listExpansions(),
-      listPromoSets(),
       listCorporations(),
       listPreludes(),
       listMapMilestones(),
@@ -248,7 +244,6 @@ export default async function LogGameReviewPage({
         awardOptions={awardOptions}
         cardOptions={cardOptions}
         corporationOptions={corporationOptions}
-        expansionOptions={expansionOptions}
         initialStatus={savedGame?.status ?? 'draft'}
         initialValues={initialValues}
         mapOptions={mapOptions}
@@ -262,7 +257,6 @@ export default async function LogGameReviewPage({
           linked_username: player.linkedUsername,
         }))}
         preludeOptions={preludeOptions}
-        promoSetOptions={promoSetOptions}
         styleOptions={styleOptions}
       />
     </AppShell>
