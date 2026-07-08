@@ -40,6 +40,45 @@ create table public.game_player_metric_snapshots (
   unique (game_player_id)
 );
 
+create table public.game_log_tag_summaries (
+  id uuid primary key default gen_random_uuid(),
+  game_log_import_id uuid not null references public.game_log_imports(id) on delete cascade,
+  game_player_id uuid references public.game_players(id) on delete set null,
+  player_name text not null,
+  normalized_player_name text not null,
+  tag_code text not null,
+  tag_count integer not null default 0,
+  played_card_count integer not null default 0,
+  matched_card_count integer not null default 0,
+  unresolved_card_count integer not null default 0,
+  total_tag_count integer not null default 0,
+  tag_evidence_coverage numeric(12, 4) not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (game_log_import_id, normalized_player_name, tag_code),
+  check (
+    tag_code in (
+      'building',
+      'space',
+      'power',
+      'science',
+      'jovian',
+      'earth',
+      'plant',
+      'microbe',
+      'animal',
+      'city',
+      'event'
+    )
+  ),
+  check (tag_count >= 0),
+  check (played_card_count >= 0),
+  check (matched_card_count >= 0),
+  check (unresolved_card_count >= 0),
+  check (total_tag_count >= 0),
+  check (tag_evidence_coverage >= 0 and tag_evidence_coverage <= 1)
+);
+
 create table public.game_player_tag_metric_snapshots (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete cascade,
@@ -338,6 +377,15 @@ on public.game_player_metric_snapshots (map_id, player_count, generation_count);
 create index game_player_metric_snapshots_corporation_idx
 on public.game_player_metric_snapshots (corporation_id);
 
+create index game_log_tag_summaries_import_player_idx
+on public.game_log_tag_summaries (
+  game_log_import_id,
+  normalized_player_name
+);
+
+create index game_log_tag_summaries_game_player_idx
+on public.game_log_tag_summaries (game_player_id);
+
 create index game_player_tag_metric_snapshots_group_tag_idx
 on public.game_player_tag_metric_snapshots (group_id, tag_code);
 
@@ -360,6 +408,7 @@ create index player_map_metric_summaries_group_player_idx
 on public.player_map_metric_summaries (group_id, player_id);
 
 alter table public.game_player_metric_snapshots enable row level security;
+alter table public.game_log_tag_summaries enable row level security;
 alter table public.game_player_tag_metric_snapshots enable row level security;
 alter table public.game_milestone_metric_snapshots enable row level security;
 alter table public.game_award_metric_snapshots enable row level security;
@@ -377,6 +426,36 @@ alter table public.global_generation_metric_summaries enable row level security;
 create policy "members read game player metric snapshots"
 on public.game_player_metric_snapshots for select
 using (public.can_read_game(game_id));
+
+create policy "members read game log tag summaries"
+on public.game_log_tag_summaries for select
+using (
+  exists (
+    select 1
+    from public.game_log_imports gli
+    where gli.id = game_log_tag_summaries.game_log_import_id
+      and public.can_read_game(gli.game_id)
+  )
+);
+
+create policy "editors manage game log tag summaries"
+on public.game_log_tag_summaries for all
+using (
+  exists (
+    select 1
+    from public.game_log_imports gli
+    where gli.id = game_log_tag_summaries.game_log_import_id
+      and public.can_edit_game(gli.game_id)
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.game_log_imports gli
+    where gli.id = game_log_tag_summaries.game_log_import_id
+      and public.can_edit_game(gli.game_id)
+  )
+);
 
 create policy "members read tag metric snapshots"
 on public.game_player_tag_metric_snapshots for select
@@ -852,17 +931,19 @@ begin
     from (
       select
         tags.map_id,
-        tags.player_count,
+        gps.player_count,
         tags.tag_code,
         row_number() over (
-          partition by tags.map_id, tags.player_count
+          partition by tags.map_id, gps.player_count
           order by avg(tags.tag_count::numeric) desc, count(*) desc, tags.tag_code
         ) as tag_rank
       from public.game_player_tag_metric_snapshots tags
       join public.group_settings gs on gs.group_id = tags.group_id
+      join public.game_player_metric_snapshots gps
+        on gps.game_player_id = tags.game_player_id
       where gs.global_analytics_enabled = true
         and tags.map_id is not null
-      group by tags.map_id, tags.player_count, tags.tag_code
+      group by tags.map_id, gps.player_count, tags.tag_code
     ) ranked_tags
     where tag_rank = 1
   )
@@ -990,7 +1071,7 @@ begin
   select
     tags.tag_code,
     tags.map_id,
-    tags.player_count,
+    gps.player_count,
     count(*)::integer,
     count(*) filter (where tags.is_winner)::integer,
     round(count(*) filter (where tags.is_winner)::numeric / count(*), 4),
@@ -1005,7 +1086,7 @@ begin
    and gs.global_analytics_enabled = true
   join public.game_player_metric_snapshots gps
     on gps.game_player_id = tags.game_player_id
-  group by tags.tag_code, tags.map_id, tags.player_count;
+  group by tags.tag_code, tags.map_id, gps.player_count;
 
   insert into public.global_milestone_metric_summaries (
     milestone_id,
@@ -1224,74 +1305,58 @@ begin
     where g.id = p_game_id
       and g.status = 'finalized'
   ),
-  event_links as (
+  tag_summary_matches as (
+    -- Canonical tag summaries are created by the import pipeline from played-card
+    -- events and card source tags; refresh reads them instead of re-parsing raw events.
     select
-      gle.event_type,
-      gle.card_id,
-      resolved_player.game_player_id
+      coalesce(glts.game_player_id, resolved_player.game_player_id) as game_player_id,
+      glts.game_log_import_id,
+      glts.played_card_count,
+      glts.matched_card_count,
+      glts.unresolved_card_count,
+      glts.total_tag_count
     from public.game_log_imports gli
-    join public.game_log_events gle
-      on gle.game_log_import_id = gli.id
+    join public.game_log_tag_summaries glts
+      on glts.game_log_import_id = gli.id
     left join lateral (
       select gp_resolved.id as game_player_id
       from public.game_players gp_resolved
       join public.players p_resolved on p_resolved.id = gp_resolved.player_id
       where gp_resolved.game_id = gli.game_id
-        and (
-          gp_resolved.id = gle.game_player_id
-          or (
-            gle.game_player_id is null
-            and public.metric_normalized_label(p_resolved.display_name)
-              = public.metric_normalized_label(coalesce(gle.payload ->> 'actor', gle.payload ->> 'playerName'))
-          )
-        )
-      order by
-        case when gp_resolved.id = gle.game_player_id then 0 else 1 end,
-        gp_resolved.id
+        and public.metric_normalized_label(p_resolved.display_name) = glts.normalized_player_name
+      order by gp_resolved.id
       limit 1
-    ) resolved_player on true
+    ) resolved_player on glts.game_player_id is null
     where gli.game_id = p_game_id
   ),
-  card_evidence as (
+  player_tag_rollups as (
     select
-      event_links.game_player_id,
-      count(*) filter (where event_links.event_type = 'card_played')::integer as played_card_count,
-      count(*) filter (
-        where event_links.event_type = 'card_played'
-          and event_links.card_id is not null
-      )::integer as matched_played_card_count,
-      count(*) filter (
-        where event_links.event_type = 'card_played'
-          and event_links.card_id is null
-      )::integer as unresolved_played_card_count
-    from event_links
-    where event_links.game_player_id is not null
-    group by event_links.game_player_id
-  ),
-  tag_counts as (
-    select
-      event_links.game_player_id,
-      count(*)::integer as total_tag_count
-    from event_links
-    join public.cards c on c.id = event_links.card_id
-    cross join lateral jsonb_array_elements_text(
-      case
-        when jsonb_typeof(c.sync_metadata -> 'sourceTags') = 'array'
-        then c.sync_metadata -> 'sourceTags'
-        else '[]'::jsonb
-      end
-    ) source_tags(tag_code)
-    where event_links.event_type = 'card_played'
-      and event_links.game_player_id is not null
-    group by event_links.game_player_id
+      import_rollups.game_player_id,
+      sum(import_rollups.played_card_count)::integer as played_card_count,
+      sum(import_rollups.matched_card_count)::integer as matched_played_card_count,
+      sum(import_rollups.unresolved_card_count)::integer as unresolved_played_card_count,
+      sum(import_rollups.total_tag_count)::integer as total_tag_count
+    from (
+      select
+        tag_summary_matches.game_player_id,
+        tag_summary_matches.game_log_import_id,
+        max(tag_summary_matches.played_card_count) as played_card_count,
+        max(tag_summary_matches.matched_card_count) as matched_card_count,
+        max(tag_summary_matches.unresolved_card_count) as unresolved_card_count,
+        max(tag_summary_matches.total_tag_count) as total_tag_count
+      from tag_summary_matches
+      where tag_summary_matches.game_player_id is not null
+      group by tag_summary_matches.game_player_id, tag_summary_matches.game_log_import_id
+    ) import_rollups
+    group by import_rollups.game_player_id
   ),
   score_rows as (
     select
       tp.*,
-      coalesce(card_evidence.played_card_count, 0) as played_card_count,
-      coalesce(card_evidence.matched_played_card_count, 0) as matched_played_card_count,
-      coalesce(card_evidence.unresolved_played_card_count, 0) as unresolved_played_card_count,
-      coalesce(tag_counts.total_tag_count, 0) as total_tag_count,
+      coalesce(player_tag_rollups.played_card_count, 0) as played_card_count,
+      coalesce(player_tag_rollups.matched_played_card_count, 0) as matched_played_card_count,
+      coalesce(player_tag_rollups.unresolved_played_card_count, 0) as unresolved_played_card_count,
+      coalesce(player_tag_rollups.total_tag_count, 0) as total_tag_count,
       expected.expected_score,
       case
         when tp.is_winner then (
@@ -1312,8 +1377,7 @@ begin
         else null
       end as loss_gap_points
     from target_players tp
-    left join card_evidence on card_evidence.game_player_id = tp.game_player_id
-    left join tag_counts on tag_counts.game_player_id = tp.game_player_id
+    left join player_tag_rollups on player_tag_rollups.game_player_id = tp.game_player_id
     left join lateral (
       select coalesce(
         (
@@ -1411,72 +1475,66 @@ begin
     total_points,
     points_per_generation
   )
-  with event_links as (
+  with tag_summary_matches as (
+    -- Canonical tag summaries are created by the import pipeline from played-card
+    -- events and card source tags; refresh reads them instead of re-parsing raw events.
     select
-      gle.event_type,
-      gle.card_id,
-      resolved_player.game_player_id
+      coalesce(glts.game_player_id, resolved_player.game_player_id) as game_player_id,
+      glts.game_log_import_id,
+      glts.tag_code,
+      glts.tag_count,
+      glts.played_card_count,
+      glts.matched_card_count,
+      glts.unresolved_card_count,
+      glts.total_tag_count,
+      glts.tag_evidence_coverage
     from public.game_log_imports gli
-    join public.game_log_events gle
-      on gle.game_log_import_id = gli.id
+    join public.game_log_tag_summaries glts
+      on glts.game_log_import_id = gli.id
     left join lateral (
       select gp_resolved.id as game_player_id
       from public.game_players gp_resolved
       join public.players p_resolved on p_resolved.id = gp_resolved.player_id
       where gp_resolved.game_id = gli.game_id
-        and (
-          gp_resolved.id = gle.game_player_id
-          or (
-            gle.game_player_id is null
-            and public.metric_normalized_label(p_resolved.display_name)
-              = public.metric_normalized_label(coalesce(gle.payload ->> 'actor', gle.payload ->> 'playerName'))
-          )
-        )
-      order by
-        case when gp_resolved.id = gle.game_player_id then 0 else 1 end,
-        gp_resolved.id
+        and public.metric_normalized_label(p_resolved.display_name) = glts.normalized_player_name
+      order by gp_resolved.id
       limit 1
-    ) resolved_player on true
+    ) resolved_player on glts.game_player_id is null
     where gli.game_id = p_game_id
-  ),
-  card_evidence as (
-    select
-      event_links.game_player_id,
-      count(*) filter (where event_links.event_type = 'card_played')::integer as played_card_count,
-      count(*) filter (
-        where event_links.event_type = 'card_played'
-          and event_links.card_id is not null
-      )::integer as matched_card_count,
-      count(*) filter (
-        where event_links.event_type = 'card_played'
-          and event_links.card_id is null
-      )::integer as unresolved_card_count
-    from event_links
-    where event_links.game_player_id is not null
-    group by event_links.game_player_id
   ),
   tag_counts as (
     select
-      event_links.game_player_id,
-      public.metric_normalized_label(source_tags.tag_code) as tag_code,
-      count(*)::integer as tag_count
-    from event_links
-    join public.cards c on c.id = event_links.card_id
-    cross join lateral jsonb_array_elements_text(
-      case
-        when jsonb_typeof(c.sync_metadata -> 'sourceTags') = 'array'
-        then c.sync_metadata -> 'sourceTags'
-        else '[]'::jsonb
-      end
-    ) source_tags(tag_code)
-    where event_links.event_type = 'card_played'
-      and event_links.game_player_id is not null
-    group by event_links.game_player_id, public.metric_normalized_label(source_tags.tag_code)
+      tag_summary_matches.game_player_id,
+      tag_summary_matches.tag_code,
+      sum(tag_summary_matches.tag_count)::integer as tag_count
+    from tag_summary_matches
+    where tag_summary_matches.game_player_id is not null
+    group by tag_summary_matches.game_player_id, tag_summary_matches.tag_code
   ),
-  tag_totals as (
-    select tag_counts.game_player_id, sum(tag_counts.tag_count)::integer as total_tag_count
-    from tag_counts
-    group by tag_counts.game_player_id
+  player_tag_rollups as (
+    select
+      import_rollups.game_player_id,
+      sum(import_rollups.played_card_count)::integer as played_card_count,
+      sum(import_rollups.matched_card_count)::integer as matched_card_count,
+      sum(import_rollups.unresolved_card_count)::integer as unresolved_card_count,
+      sum(import_rollups.total_tag_count)::integer as total_tag_count,
+      case
+        when sum(import_rollups.played_card_count) = 0 then 0
+        else round(sum(import_rollups.matched_card_count)::numeric / sum(import_rollups.played_card_count), 4)
+      end as tag_evidence_coverage
+    from (
+      select
+        tag_summary_matches.game_player_id,
+        tag_summary_matches.game_log_import_id,
+        max(tag_summary_matches.played_card_count) as played_card_count,
+        max(tag_summary_matches.matched_card_count) as matched_card_count,
+        max(tag_summary_matches.unresolved_card_count) as unresolved_card_count,
+        max(tag_summary_matches.total_tag_count) as total_tag_count
+      from tag_summary_matches
+      where tag_summary_matches.game_player_id is not null
+      group by tag_summary_matches.game_player_id, tag_summary_matches.game_log_import_id
+    ) import_rollups
+    group by import_rollups.game_player_id
   )
   select
     gps.game_id,
@@ -1486,23 +1544,19 @@ begin
     gps.map_id,
     tag_counts.tag_code,
     tag_counts.tag_count,
-    round(tag_counts.tag_count::numeric / nullif(tag_totals.total_tag_count, 0), 4),
-    tag_totals.total_tag_count,
-    coalesce(card_evidence.played_card_count, 0),
-    coalesce(card_evidence.matched_card_count, 0),
-    coalesce(card_evidence.unresolved_card_count, 0),
-    case
-      when coalesce(card_evidence.played_card_count, 0) = 0 then 0
-      else round(card_evidence.matched_card_count::numeric / card_evidence.played_card_count, 4)
-    end,
+    round(tag_counts.tag_count::numeric / nullif(player_tag_rollups.total_tag_count, 0), 4),
+    player_tag_rollups.total_tag_count,
+    coalesce(player_tag_rollups.played_card_count, 0),
+    coalesce(player_tag_rollups.matched_card_count, 0),
+    coalesce(player_tag_rollups.unresolved_card_count, 0),
+    coalesce(player_tag_rollups.tag_evidence_coverage, 0),
     gps.is_winner,
     gps.total_points,
     gps.points_per_generation
   from tag_counts
-  join tag_totals on tag_totals.game_player_id = tag_counts.game_player_id
   join public.game_player_metric_snapshots gps
     on gps.game_player_id = tag_counts.game_player_id
-  left join card_evidence on card_evidence.game_player_id = tag_counts.game_player_id
+  join player_tag_rollups on player_tag_rollups.game_player_id = tag_counts.game_player_id
   where gps.game_id = p_game_id
     and tag_counts.tag_code is not null;
 

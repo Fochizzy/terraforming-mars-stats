@@ -1,6 +1,7 @@
 with expected_tables(table_name) as (
   values
     ('game_player_metric_snapshots'),
+    ('game_log_tag_summaries'),
     ('game_player_tag_metric_snapshots'),
     ('game_milestone_metric_snapshots'),
     ('game_award_metric_snapshots'),
@@ -31,6 +32,17 @@ expected_columns(table_name, column_name) as (
     ('game_player_metric_snapshots', 'card_score_share'),
     ('game_player_metric_snapshots', 'win_margin_points'),
     ('game_player_metric_snapshots', 'loss_gap_points'),
+    ('game_log_tag_summaries', 'game_log_import_id'),
+    ('game_log_tag_summaries', 'game_player_id'),
+    ('game_log_tag_summaries', 'player_name'),
+    ('game_log_tag_summaries', 'normalized_player_name'),
+    ('game_log_tag_summaries', 'tag_code'),
+    ('game_log_tag_summaries', 'tag_count'),
+    ('game_log_tag_summaries', 'played_card_count'),
+    ('game_log_tag_summaries', 'matched_card_count'),
+    ('game_log_tag_summaries', 'unresolved_card_count'),
+    ('game_log_tag_summaries', 'total_tag_count'),
+    ('game_log_tag_summaries', 'tag_evidence_coverage'),
     ('game_player_tag_metric_snapshots', 'game_id'),
     ('game_player_tag_metric_snapshots', 'game_player_id'),
     ('game_player_tag_metric_snapshots', 'group_id'),
@@ -113,6 +125,7 @@ expected_columns(table_name, column_name) as (
 ),
 expected_numeric_columns(table_name, column_name) as (
   values
+    ('game_log_tag_summaries', 'tag_evidence_coverage'),
     ('game_player_metric_snapshots', 'points_per_generation'),
     ('game_player_metric_snapshots', 'normalized_efficiency'),
     ('game_player_metric_snapshots', 'expected_score'),
@@ -147,6 +160,8 @@ expected_numeric_columns(table_name, column_name) as (
 ),
 expected_indexes(index_name, table_name, required_fragment) as (
   values
+    ('game_log_tag_summaries_import_player_idx', 'game_log_tag_summaries', '(game_log_import_id, normalized_player_name)'),
+    ('game_log_tag_summaries_game_player_idx', 'game_log_tag_summaries', '(game_player_id)'),
     ('game_player_metric_snapshots_group_player_idx', 'game_player_metric_snapshots', '(group_id, player_id)'),
     ('game_player_metric_snapshots_map_idx', 'game_player_metric_snapshots', '(map_id, player_count, generation_count)'),
     ('game_player_tag_metric_snapshots_group_tag_idx', 'game_player_tag_metric_snapshots', '(group_id, tag_code)'),
@@ -159,6 +174,7 @@ expected_indexes(index_name, table_name, required_fragment) as (
 ),
 expected_policies(table_name, policy_name) as (
   values
+    ('game_log_tag_summaries', 'members read game log tag summaries'),
     ('game_player_metric_snapshots', 'members read game player metric snapshots'),
     ('game_player_tag_metric_snapshots', 'members read tag metric snapshots'),
     ('game_milestone_metric_snapshots', 'members read milestone metric snapshots'),
@@ -223,7 +239,7 @@ expected_functions(
       false,
       false,
       false,
-      'public.can_edit_game(p_game_id)'
+      'public.game_log_tag_summaries'
     ),
     (
       'refresh_game_metric_snapshots',
@@ -263,6 +279,19 @@ actual_functions as (
       'refresh_game_metric_snapshots_internal',
       'refresh_game_metric_snapshots',
       'refresh_all_metric_snapshots'
+    )
+),
+forbidden_function_fragments(function_name, identity_arguments, forbidden_fragment) as (
+  values
+    (
+      'refresh_game_metric_snapshots_internal',
+      'p_game_id uuid, p_require_editor boolean',
+      'sourceTags'
+    ),
+    (
+      'rebuild_metric_summaries',
+      '',
+      'tags.player_count'
     )
 )
 select 'missing_table' as check_name, expected_tables.table_name as object_name
@@ -341,6 +370,7 @@ from pg_policies
 join expected_tables on expected_tables.table_name = pg_policies.tablename
 where pg_policies.schemaname = 'public'
   and pg_policies.cmd <> 'SELECT'
+  and pg_policies.tablename <> 'game_log_tag_summaries'
 
 union all
 
@@ -368,6 +398,15 @@ join actual_functions
   on actual_functions.function_name = expected_functions.function_name
  and actual_functions.identity_arguments = expected_functions.identity_arguments
 where actual_functions.security_definer <> expected_functions.security_definer
+
+union all
+
+select 'forbidden_function_fragment' as check_name, forbidden_function_fragments.function_name || ':' || forbidden_function_fragments.forbidden_fragment as object_name
+from forbidden_function_fragments
+join actual_functions
+  on actual_functions.function_name = forbidden_function_fragments.function_name
+ and actual_functions.identity_arguments = forbidden_function_fragments.identity_arguments
+where actual_functions.function_definition like '%' || forbidden_function_fragments.forbidden_fragment || '%'
 
 union all
 
