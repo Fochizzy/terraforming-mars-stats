@@ -91,16 +91,6 @@ function readTextField(formData: FormData, key: string) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function readIntegerField(formData: FormData, key: string) {
-  const value = Number(readTextField(formData, key));
-
-  if (!Number.isFinite(value)) {
-    throw new Error(`Expected ${key} to be a number.`);
-  }
-
-  return value;
-}
-
 function readOptionalIntegerField(formData: FormData, key: string) {
   const rawValue = readTextField(formData, key);
 
