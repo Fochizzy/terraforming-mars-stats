@@ -30,6 +30,52 @@ describe('ProfileDashboard', () => {
           wins: 3,
         },
       ],
+      efficiencySummary: {
+        averageAwardRoi: 1.4,
+        averageExpectedScore: 80.2,
+        averageLossGap: 2.5,
+        averageNormalizedEfficiency: 1.08,
+        averagePlacement: 1.25,
+        averagePointsPerGeneration: 8.4,
+        averageScore: 84.5,
+        averageScoreDeltaVsExpected: 4.3,
+        averageWinMargin: 6.2,
+        awardScoreShare: 0.08,
+        bestScoreSource: 'cards',
+        bestTagLane: 'science',
+        cardScoreShare: 0.32,
+        citiesScoreShare: 0.1,
+        closeGameCount: 2,
+        closeGameWins: 1,
+        closeGameWinRate: 0.5,
+        gamesPlayed: 4,
+        greeneryScoreShare: 0.14,
+        groupId: 'group-1',
+        milestoneScoreShare: 0.07,
+        playerId: 'p1',
+        tagEvidenceCoverage: 0.75,
+        trScoreShare: 0.29,
+        winRate: 0.75,
+        wins: 3,
+      },
+      mapMetricRows: [
+        {
+          averageGenerations: 10,
+          averageNormalizedEfficiency: 1.12,
+          averagePoints: 84.5,
+          averagePointsPerGeneration: 8.4,
+          averageScoreDeltaVsExpected: 4.3,
+          bestScoreSourceOnMap: 'cards',
+          bestTagLaneOnMap: 'science',
+          gamesPlayed: 3,
+          groupId: 'group-1',
+          mapId: 'tharsis',
+          mapRankForPlayer: 1,
+          playerId: 'p1',
+          winRate: 0.67,
+          wins: 2,
+        },
+      ],
       performance: {
         averageLossGap: 2.5,
         averagePlacement: 1.25,
@@ -77,6 +123,11 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
     expect(screen.getByText(/declared vs inferred style/i)).toBeInTheDocument();
     expect(screen.getByText(/based on 4 finalized games/i)).toBeInTheDocument();
+    expect(screen.getByText(/efficiency summary/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/8\.4 pts\/gen/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/84\.5 avg points/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/science/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/awards\/milestones\/coverage/i)).toBeInTheDocument();
   });
 
   it('renders an onboarding empty state when no linked player is available', () => {
