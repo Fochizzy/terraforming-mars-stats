@@ -13,8 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --pass-with-no-tests",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:build": "opennextjs-cloudflare build && node scripts/patch-opennext-cloudflare-handler.mjs",
+    "preview": "npm run cf:build && opennextjs-cloudflare preview",
+    "deploy": "npm run cf:build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "catalog:fetch": "tsx scripts/catalog/fetch-hadronikle.ts",
     "catalog:publish": "tsx scripts/catalog/publish-reference-data.ts"

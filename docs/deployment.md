@@ -26,4 +26,4 @@ The authenticated web import flow now requires `SUPABASE_SERVICE_ROLE_KEY` in th
 5. Add the remaining corporation, prelude, promo-set, milestone, award, and card imports before inviting the first group.
 6. Set the Cloudflare runtime env vars and deploy the Worker.
 7. Set Supabase Auth Site URL to the live `workers.dev` domain and add the `/auth/callback` redirect.
-8. Run `npm.cmd run test`, `npm.cmd run build`, and `npx.cmd opennextjs-cloudflare build` before calling the deployment path ready.
+8. Run `npm.cmd run test`, `npm.cmd run build`, and `npm.cmd run cf:build` before calling the deployment path ready.

@@ -17,11 +17,14 @@ describe('Cloudflare deployment config', () => {
     expect(packageJson.dependencies?.['@opennextjs/cloudflare']).toBeTruthy();
     expect(packageJson.devDependencies?.wrangler).toBeTruthy();
     expect(packageJson.devDependencies?.tsx).toBeTruthy();
+    expect(packageJson.scripts?.['cf:build']).toBe(
+      'opennextjs-cloudflare build && node scripts/patch-opennext-cloudflare-handler.mjs',
+    );
     expect(packageJson.scripts?.preview).toBe(
-      'opennextjs-cloudflare build && opennextjs-cloudflare preview',
+      'npm run cf:build && opennextjs-cloudflare preview',
     );
     expect(packageJson.scripts?.deploy).toBe(
-      'opennextjs-cloudflare build && opennextjs-cloudflare deploy',
+      'npm run cf:build && opennextjs-cloudflare deploy',
     );
     expect(packageJson.scripts?.['cf-typegen']).toBe(
       'wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts',
