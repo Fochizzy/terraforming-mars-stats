@@ -20,8 +20,8 @@ export default async function InsightsPage() {
       headerActions={
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/insights" />
       }
-      icon
       title="Insights"
+      wide
     >
       <InsightsDashboard
         analytics={analytics}

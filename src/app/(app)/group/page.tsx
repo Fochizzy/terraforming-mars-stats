@@ -13,7 +13,6 @@ export default async function GroupPage() {
       headerActions={
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/group" />
       }
-      icon
       title="Group"
       wide
     >

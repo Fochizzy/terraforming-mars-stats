@@ -1,11 +1,12 @@
 const fs = require('fs');
 const http = require('http');
+const net = require('net');
 const path = require('path');
 const { execFileSync, spawn } = require('child_process');
 
 const projectRoot = path.resolve(__dirname, '..');
-const metroUrl = 'http://127.0.0.1:8081';
-const metroStatusUrl = `${metroUrl}/status`;
+const defaultMetroPort = 8081;
+const metroHost = '127.0.0.1';
 const localAppData = process.env.LOCALAPPDATA;
 const androidHome =
   process.env.ANDROID_HOME ||
@@ -61,24 +62,65 @@ function httpGet(url, timeoutMs) {
   });
 }
 
-async function isMetroReady() {
+function buildMetroUrl(port) {
+  return `http://${metroHost}:${port}`;
+}
+
+function buildMetroStatusUrl(port) {
+  return `${buildMetroUrl(port)}/status`;
+}
+
+async function isMetroReady(port) {
   try {
-    const body = await httpGet(metroStatusUrl, 2000);
+    const body = await httpGet(buildMetroStatusUrl(port), 2000);
     return body.trim() === 'packager-status:running';
   } catch {
     return false;
   }
 }
 
-async function waitForMetro(timeoutMs) {
+async function waitForMetro(port, timeoutMs) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
-    if (await isMetroReady()) {
+    if (await isMetroReady(port)) {
       return true;
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   return false;
+}
+
+function canListenOnPort(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.unref();
+    server.on('error', () => resolve(false));
+    server.listen(port, metroHost, () => {
+      server.close(() => resolve(true));
+    });
+  });
+}
+
+async function resolveMetroPort() {
+  if (await isMetroReady(defaultMetroPort)) {
+    return {
+      port: defaultMetroPort,
+      reuseExisting: true,
+    };
+  }
+
+  for (let candidate = defaultMetroPort; candidate < defaultMetroPort + 10; candidate += 1) {
+    if (await canListenOnPort(candidate)) {
+      return {
+        port: candidate,
+        reuseExisting: false,
+      };
+    }
+  }
+
+  fail(
+    `Could not find an available Metro port between ${defaultMetroPort} and ${defaultMetroPort + 9}.`
+  );
 }
 
 function runAdb(args, options = {}) {
@@ -89,10 +131,12 @@ function runAdb(args, options = {}) {
   });
 }
 
-function launchAndroidDevClient(appPackage, scheme) {
+function launchAndroidDevClient(appPackage, scheme, port) {
+  const metroUrl = buildMetroUrl(port);
   const devClientUrl = `${scheme}://expo-development-client/?url=${encodeURIComponent(metroUrl)}`;
 
-  runAdb(['reverse', 'tcp:8081', 'tcp:8081']);
+  runAdb(['reverse', '--remove-all']);
+  runAdb(['reverse', `tcp:${port}`, `tcp:${port}`]);
   runAdb(['shell', 'am', 'force-stop', appPackage], { stdio: 'ignore' });
   runAdb([
     'shell',
@@ -117,10 +161,11 @@ async function main() {
   }
 
   const scheme = readDevClientScheme();
+  const { port, reuseExisting } = await resolveMetroPort();
 
-  if (await isMetroReady()) {
-    console.log(`Reusing existing Metro server at ${metroUrl}`);
-    launchAndroidDevClient(appPackage, scheme);
+  if (reuseExisting) {
+    console.log(`Reusing existing Metro server at ${buildMetroUrl(port)}`);
+    launchAndroidDevClient(appPackage, scheme, port);
     return;
   }
 
@@ -141,7 +186,7 @@ async function main() {
       '--host',
       'localhost',
       '--port',
-      '8081',
+      String(port),
     ],
     {
       cwd: projectRoot,
@@ -159,13 +204,14 @@ async function main() {
   process.on('SIGINT', stopChild);
   process.on('SIGTERM', stopChild);
 
-  const ready = await waitForMetro(120000);
+  const ready = await waitForMetro(port, 120000);
   if (!ready) {
     stopChild();
-    fail(`Metro did not become ready at ${metroUrl}`);
+    fail(`Metro did not become ready at ${buildMetroUrl(port)}`);
   }
 
-  launchAndroidDevClient(appPackage, scheme);
+  console.log(`Started Metro server at ${buildMetroUrl(port)}`);
+  launchAndroidDevClient(appPackage, scheme, port);
 
   child.on('exit', (code) => {
     process.exit(code ?? 0);
