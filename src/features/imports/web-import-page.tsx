@@ -9,11 +9,9 @@ import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-p
 import { parseGameLog } from '@/lib/imports/parse-game-log';
 import { parseImportParticipants } from '@/lib/imports/parse-import-participants';
 import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
-import { SelectChevron } from '@/components/ui/select-chevron';
 import { StatusBanner } from '@/components/ui/status-banner';
 import { StepHeading } from '@/components/ui/step-heading';
 import { applyCreatedImportPlayerToReview } from '@/lib/imports/apply-created-import-player-to-review';
-import type { MapOption } from '@/lib/db/reference-repo';
 import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
 import { ImportReviewPanel } from './import-review-panel';
@@ -22,10 +20,8 @@ export type WebImportDraftValues = {
   endgameScreenshot: File | null;
   exportedGameLog: string;
   generationCount: number | null;
-  mapId: string;
   participantNames: string[];
   playedOn: string;
-  playerCount: number;
 };
 
 export type WebImportActionResult = {
@@ -127,7 +123,7 @@ function clampPlayerCount(playerCount: number) {
   return Math.min(5, Math.max(1, playerCount));
 }
 
-function inferDetectedPlayerCount(review: ImportReviewModel | undefined) {
+function inferDetectedPlayerCount(review: ImportReviewModel | null | undefined) {
   if (!review) {
     return null;
   }
@@ -182,13 +178,7 @@ function resolveManualReviewJumpTargetWithPlayerSelection(input: {
 }
 
 type WebImportPageProps = {
-  initialValues: Omit<
-    WebImportDraftValues,
-    | 'endgameScreenshot'
-    | 'exportedGameLog'
-    | 'participantNames'
-  >;
-  mapOptions: MapOption[];
+  initialValues: Pick<WebImportDraftValues, 'playedOn'>;
   onAnalyzeImportEvidence: (
     formData: FormData,
   ) => Promise<WebImportActionResult>;
@@ -203,16 +193,13 @@ type WebImportPageProps = {
 
 export function WebImportPage({
   initialValues,
-  mapOptions,
   onAnalyzeImportEvidence,
   onCreateImportPlayer,
   onConfirmImportReview,
 }: WebImportPageProps) {
   const exportedGameLogRef = useRef<HTMLTextAreaElement | null>(null);
   const screenshotPasteTargetRef = useRef<HTMLDivElement | null>(null);
-  const [mapId, setMapId] = useState(initialValues.mapId);
   const [playedOn, setPlayedOn] = useState(initialValues.playedOn);
-  const [playerCount, setPlayerCount] = useState(initialValues.playerCount);
   const [exportedGameLog, setExportedGameLog] = useState('');
   const [participantsText, setParticipantsText] = useState('');
   const [endgameScreenshot, setEndgameScreenshot] = useState<File | null>(null);
@@ -349,26 +336,6 @@ export function WebImportPage({
     setExportedGameLog(droppedGameLog);
   }
 
-  function buildCurrentFormData(screenshotOcr: ScreenshotOcrPayload | null) {
-    return buildCreateImportDraftFormData({
-      boardScreenshots: [],
-      confirmedPlayerLinks: review
-        ? review.playerLinks.flatMap((link) => {
-            const playerId = playerSelections[link.importedName]?.trim() ?? '';
-            return playerId ? [{ importedName: link.importedName, playerId }] : [];
-          })
-        : [],
-      endgameScreenshot,
-      exportedGameLog: exportedGameLog.trim(),
-      generationCount,
-      mapId,
-      participants: participantsText,
-      playedOn,
-      playerCount,
-      screenshotOcr,
-    });
-  }
-
   function buildExpectedScreenshotPlayerNames() {
     const participantNames = parseImportParticipants(participantsText);
 
@@ -381,6 +348,38 @@ export function WebImportPage({
     } catch {
       return [];
     }
+  }
+
+  // The map and player count are no longer asked for in this form; the server
+  // infers the map from the log evidence, and the player count travels as the
+  // best count derivable from participant names and analyzed evidence.
+  function deriveSubmittedPlayerCount() {
+    return clampPlayerCount(
+      Math.max(
+        1,
+        buildExpectedScreenshotPlayerNames().length,
+        inferDetectedPlayerCount(review) ?? 0,
+      ),
+    );
+  }
+
+  function buildCurrentFormData(screenshotOcr: ScreenshotOcrPayload | null) {
+    return buildCreateImportDraftFormData({
+      boardScreenshots: [],
+      confirmedPlayerLinks: review
+        ? review.playerLinks.flatMap((link) => {
+            const playerId = playerSelections[link.importedName]?.trim() ?? '';
+            return playerId ? [{ importedName: link.importedName, playerId }] : [];
+          })
+        : [],
+      endgameScreenshot,
+      exportedGameLog: exportedGameLog.trim(),
+      generationCount,
+      participants: participantsText,
+      playedOn,
+      playerCount: deriveSubmittedPlayerCount(),
+      screenshotOcr,
+    });
   }
 
   // The deployed server runtime cannot run OCR, so the screenshot is read in
@@ -405,7 +404,7 @@ export function WebImportPage({
       const payload = await readGameResultScreenshotInBrowser(
         endgameScreenshot,
         {
-          expectedPlayerCount: Math.max(playerCount, expectedPlayerNames.length),
+          expectedPlayerCount: Math.max(1, expectedPlayerNames.length),
           expectedPlayerNames,
         },
       );
@@ -456,17 +455,12 @@ export function WebImportPage({
       const result = await onAnalyzeImportEvidence(
         buildCurrentFormData(screenshotOcr),
       );
-      const inferredPlayerCount = inferDetectedPlayerCount(result.review);
 
       if (
         !participantsText.trim() &&
         result.review?.detectedParticipantNames?.length
       ) {
         setParticipantsText(result.review.detectedParticipantNames.join('\n'));
-      }
-
-      if (inferredPlayerCount !== null) {
-        setPlayerCount(inferredPlayerCount);
       }
 
       setFeedback(result);
@@ -584,23 +578,6 @@ export function WebImportPage({
         <div className="flex flex-col gap-4">
           <StepHeading step="01" title="Match Setup" />
           <div className="grid gap-4 sm:grid-cols-3">
-            <label className="relative flex flex-col gap-2 text-sm">
-              <span className="tm-data-label">Map</span>
-              <select
-                aria-label="Map"
-                className="tm-input appearance-none pr-9"
-                onChange={(event) => setMapId(event.target.value)}
-                value={mapId}
-              >
-                {mapOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-              <SelectChevron />
-            </label>
-
             <label className="flex flex-col gap-2 text-sm">
               <span className="tm-data-label">Played On</span>
               <input
@@ -611,28 +588,11 @@ export function WebImportPage({
                 value={playedOn}
               />
             </label>
-
-            <label className="relative flex flex-col gap-2 text-sm">
-              <span className="tm-data-label">Player Count</span>
-              <select
-                aria-label="Player Count"
-                className="tm-input appearance-none pr-9"
-                onChange={(event) => setPlayerCount(Number(event.target.value))}
-                value={playerCount}
-              >
-                {[1, 2, 3, 4, 5].map((count) => (
-                  <option key={count} value={count}>
-                    {count}
-                  </option>
-                ))}
-              </select>
-              <SelectChevron />
-            </label>
           </div>
           <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-            Confirm the map here when OCR or log evidence is incomplete.
-            Generations are still inferred from the uploaded victory point
-            breakdown when possible.
+            The map and player count are detected automatically from the
+            pasted log evidence, and generations are inferred from the
+            uploaded victory point breakdown when possible.
           </p>
         </div>
 

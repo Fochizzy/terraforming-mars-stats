@@ -88,15 +88,8 @@ describe('LogGameImportShell', () => {
     render(
       <LogGameImportShell
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportDraft={onCreateImportDraft}
       />,
@@ -104,8 +97,6 @@ describe('LogGameImportShell', () => {
 
     await user.clear(screen.getByLabelText(/played on/i));
     await user.type(screen.getByLabelText(/played on/i), '2026-07-04');
-    await user.selectOptions(screen.getByLabelText(/^map$/i), 'elysium');
-    await user.selectOptions(screen.getByLabelText(/player count/i), '3');
     await user.type(
       screen.getByLabelText(/exported game log/i),
       'Friday Mars won by 6 points.',
@@ -130,7 +121,7 @@ describe('LogGameImportShell', () => {
     expect(submittedFormData).toBeInstanceOf(FormData);
     expect(submittedFormData.get('playedOn')).toBe('2026-07-04');
     expect(submittedFormData.get('playerCount')).toBe('3');
-    expect(submittedFormData.get('mapId')).toBe('elysium');
+    expect(submittedFormData.get('mapId')).toBeNull();
     expect(submittedFormData.get('generationCount')).toBeNull();
     expect(submittedFormData.get('exportedGameLog')).toBe(
       'Friday Mars won by 6 points.',
@@ -211,15 +202,8 @@ describe('LogGameImportShell', () => {
     render(
       <LogGameImportShell
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportDraft={onCreateImportDraft}
       />,
@@ -304,15 +288,8 @@ describe('LogGameImportShell', () => {
     render(
       <LogGameImportShell
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportDraft={onCreateImportDraft}
       />,

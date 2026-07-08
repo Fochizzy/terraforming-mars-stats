@@ -39,12 +39,14 @@ import {
 } from '@/lib/errors/describe-unknown-error';
 import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildImportDraft } from '@/lib/imports/build-import-draft';
+import { inferSupportedBoardMapId } from '@/lib/imports/infer-supported-board-map';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { derivePlayerTagSummaries } from '@/lib/imports/derive-player-tag-summaries';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
 import {
   parseCreateImportDraftFormData,
+  type ParsedCreateImportDraftFormData,
   type ScreenshotOcrPayload,
 } from '@/lib/imports/import-draft-form-data';
 import {
@@ -197,7 +199,19 @@ function findSelectedMapOption(input: {
   );
 }
 
+function buildMapEvidenceLines(values: ParsedCreateImportDraftFormData) {
+  return [
+    ...values.exportedGameLog.split(/\r?\n/),
+    ...(values.screenshotOcr?.endgameLines ?? []),
+    ...(values.screenshotOcr?.scoreDetailsColumns.flatMap(
+      (column) => column.textLines,
+    ) ?? []),
+  ];
+}
+
 function resolveImportMapSelection(input: {
+  evidenceLines: string[];
+  fallbackMapId: string | null;
   mapOptions: MapOption[];
   submittedMapId: string;
 }) {
@@ -206,16 +220,67 @@ function resolveImportMapSelection(input: {
   if (selectedMapOption) {
     return {
       draftMapId: selectedMapOption.id,
+      mapName: selectedMapOption.name,
+      source: 'submitted' as const,
     };
   }
 
   if (input.submittedMapId.trim()) {
     return {
       draftMapId: input.submittedMapId.trim(),
+      mapName: null,
+      source: 'submitted' as const,
     };
   }
 
-  throw new Error('Choose the map at the top before continuing.');
+  const inferredMapCode = inferSupportedBoardMapId(input.evidenceLines);
+  const inferredMapOption = inferredMapCode
+    ? findSelectedMapOption({
+        mapOptions: input.mapOptions,
+        submittedMapId: inferredMapCode,
+      })
+    : null;
+
+  if (inferredMapOption) {
+    return {
+      draftMapId: inferredMapOption.id,
+      mapName: inferredMapOption.name,
+      source: 'detected' as const,
+    };
+  }
+
+  const fallbackMapOption = input.fallbackMapId
+    ? findSelectedMapOption({
+        mapOptions: input.mapOptions,
+        submittedMapId: input.fallbackMapId,
+      })
+    : null;
+
+  if (fallbackMapOption) {
+    return {
+      draftMapId: fallbackMapOption.id,
+      mapName: fallbackMapOption.name,
+      source: 'group_default' as const,
+    };
+  }
+
+  throw new Error(
+    'We could not detect the map from this log yet. Include the milestone and award lines in the exported log, or set a default map in your group settings.',
+  );
+}
+
+function describeResolvedMapMessage(
+  selection: ReturnType<typeof resolveImportMapSelection>,
+) {
+  if (selection.source === 'detected' && selection.mapName) {
+    return `Detected the ${selection.mapName} map from the import evidence.`;
+  }
+
+  if (selection.source === 'group_default' && selection.mapName) {
+    return `We could not detect the map from the log, so your group default (${selection.mapName}) was used.`;
+  }
+
+  return '';
 }
 
 function buildMapScoreReferences(input: {
@@ -446,6 +511,8 @@ export default async function LogGameImportPage() {
           ? values.participantNames
           : extractGameLogParticipantNames(parsedGameLog);
       const analyzeMapSelection = resolveImportMapSelection({
+        evidenceLines: buildMapEvidenceLines(values),
+        fallbackMapId: groupSettings?.defaultMapId ?? null,
         mapOptions,
         submittedMapId: values.mapId,
       });
@@ -500,12 +567,17 @@ export default async function LogGameImportPage() {
 
       return {
         status: 'success' as const,
-        message: buildImportSuccessMessage({
-          logEventCount: parsedGameLog.events.length,
-          logScoreRowCount: screenshotEvidence.logScoreCandidates.length,
-          screenshotScoreRowCount:
-            screenshotEvidence.parsedScreenshot.playerRows.length,
-        }),
+        message: [
+          describeResolvedMapMessage(analyzeMapSelection),
+          buildImportSuccessMessage({
+            logEventCount: parsedGameLog.events.length,
+            logScoreRowCount: screenshotEvidence.logScoreCandidates.length,
+            screenshotScoreRowCount:
+              screenshotEvidence.parsedScreenshot.playerRows.length,
+          }),
+        ]
+          .filter(Boolean)
+          .join(' '),
         review: buildImportReviewModel({
           cardScoring: screenshotEvidence.parsedScoreDetails.cardScoring,
           logScoreCandidates: screenshotEvidence.logScoreCandidates,
@@ -560,6 +632,8 @@ export default async function LogGameImportPage() {
       }
 
       const resolvedMapSelection = resolveImportMapSelection({
+        evidenceLines: buildMapEvidenceLines(values),
+        fallbackMapId: groupSettings?.defaultMapId ?? null,
         mapOptions,
         submittedMapId: values.mapId,
       });
@@ -879,12 +953,8 @@ export default async function LogGameImportPage() {
     >
       <LogGameImportShell
         initialValues={{
-          generationCount: 10,
-          mapId: groupSettings?.defaultMapId ?? mapOptions[0]?.id ?? '',
           playedOn: new Date().toISOString().slice(0, 10),
-          playerCount: 4,
         }}
-        mapOptions={mapOptions}
         onAnalyzeImportEvidence={handleAnalyzeImportEvidence}
         onCreateImportDraft={handleCreateImportDraft}
         onCreateImportPlayer={handleCreateImportPlayer}

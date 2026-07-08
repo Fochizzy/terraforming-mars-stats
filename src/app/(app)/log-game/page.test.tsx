@@ -5,12 +5,8 @@ import LogGamePage from './page';
 
 type CapturedLogGameImportShellProps = {
   initialValues: {
-    generationCount: number;
-    mapId: string;
     playedOn: string;
-    playerCount: number;
   };
-  mapOptions: Array<{ code: string; id: string; name: string }>;
   onAnalyzeImportEvidence: (formData: FormData) => Promise<unknown>;
   onCreateImportDraft: (formData: FormData) => Promise<unknown>;
   onCreateImportPlayer: (importedName: string) => Promise<unknown>;

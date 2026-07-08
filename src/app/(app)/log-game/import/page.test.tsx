@@ -5,12 +5,8 @@ import { buildCreateImportDraftFormData } from '@/lib/imports/import-draft-form-
 
 type CapturedLogGameImportShellProps = {
   initialValues: {
-    generationCount: number;
-    mapId: string;
     playedOn: string;
-    playerCount: number;
   };
-  mapOptions: Array<{ code: string; id: string; name: string }>;
   onAnalyzeImportEvidence: (formData: FormData) => Promise<unknown>;
   onCreateImportDraft: (formData: FormData) => Promise<unknown>;
   onCreateImportPlayer: (importedName: string) => Promise<unknown>;
@@ -452,6 +448,91 @@ describe('LogGameImportPage', () => {
     const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
 
     expect(result).toMatchObject({
+      status: 'success',
+    });
+  });
+
+  it('infers the board map from milestone and award lines when no map is submitted', async () => {
+    mockState.getGroupSettings.mockResolvedValue({
+      defaultExpansionCodes: ['base'],
+      defaultMapId: 'map-tharsis',
+      defaultPromoSetSlugs: [],
+    });
+    mockState.listMaps.mockResolvedValue([
+      { code: 'elysium', id: 'map-elysium', name: 'Elysium' },
+      { code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' },
+    ]);
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const exportedGameLog = [
+      'Friday Mars played Steel Works',
+      'Friday Mars claimed Ecologist milestone',
+      'Friday Mars won first place on Estate Dealer award',
+    ].join('\n');
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog,
+      generationCount: 10,
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const analyzeResult = await shellProps.onAnalyzeImportEvidence(
+      analyzeFormData,
+    );
+
+    expect(analyzeResult).toMatchObject({
+      message: expect.stringContaining('Detected the Elysium map'),
+      status: 'success',
+    });
+
+    const createDraftFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [
+        { importedName: 'Friday Mars', playerId: 'player-1' },
+      ],
+      endgameScreenshot: null,
+      exportedGameLog,
+      generationCount: 10,
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const draftResult = await shellProps.onCreateImportDraft(
+      createDraftFormData,
+    );
+
+    expect(draftResult).toMatchObject({
+      gameId: 'game-1',
+      status: 'success',
+    });
+    expect(mockState.saveDraftGame).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form: expect.objectContaining({
+          mapId: 'map-elysium',
+        }),
+      }),
+    );
+  });
+
+  it('falls back to the group default map when the log has no map evidence', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: 'Friday Mars played Steel Works',
+      generationCount: 10,
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message: expect.stringContaining('group default (Tharsis)'),
       status: 'success',
     });
   });

@@ -101,15 +101,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={vi.fn()}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
@@ -135,7 +128,8 @@ describe('WebImportPage', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/^board screenshots$/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/^map$/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^map$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/player count/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/generation count/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /save import draft/i }),
@@ -149,15 +143,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={vi.fn()}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
@@ -188,15 +175,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={vi.fn()}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
@@ -229,15 +209,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
@@ -283,15 +256,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={vi.fn()}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
@@ -337,15 +303,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
@@ -391,15 +350,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={onConfirmImportReview}
@@ -408,8 +360,6 @@ describe('WebImportPage', () => {
 
     await user.clear(screen.getByLabelText(/played on/i));
     await user.type(screen.getByLabelText(/played on/i), '2026-07-04');
-    await user.selectOptions(screen.getByLabelText(/^map$/i), 'elysium');
-    await user.selectOptions(screen.getByLabelText(/player count/i), '3');
     await user.type(
       screen.getByLabelText(/exported game log/i),
       'Friday Mars won by 6 points.',
@@ -438,7 +388,7 @@ describe('WebImportPage', () => {
     expect(submittedFormData).toBeInstanceOf(FormData);
     expect(submittedFormData.get('playedOn')).toBe('2026-07-04');
     expect(submittedFormData.get('playerCount')).toBe('3');
-    expect(submittedFormData.get('mapId')).toBe('elysium');
+    expect(submittedFormData.get('mapId')).toBeNull();
     expect(submittedFormData.get('generationCount')).toBeNull();
     expect(submittedFormData.get('exportedGameLog')).toBe(
       'Friday Mars won by 6 points.',
@@ -478,15 +428,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={onConfirmImportReview}
@@ -556,15 +499,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={onCreateImportPlayer}
         onConfirmImportReview={onConfirmImportReview}
@@ -638,15 +574,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={onConfirmImportReview}
@@ -727,15 +656,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={onConfirmImportReview}
@@ -774,62 +696,7 @@ describe('WebImportPage', () => {
     );
   });
 
-  it('auto-fills player count from the larger of detected log names and screenshot rows after analysis', async () => {
-    const user = userEvent.setup();
-    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
-      status: 'success' as const,
-      message: 'Import evidence analyzed.',
-      review: {
-        ...review,
-        detectedParticipantNames: ['Friday Mars', 'Second Seat'],
-        playerLinks: [review.playerLinks[0]],
-        requiresPlayerConfirmation: false,
-        scoreCandidates: [
-          { playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 },
-          { playerName: 'Second Seat', totalPoints: 58, trPoints: 20 },
-          { playerName: 'Third Seat', totalPoints: 55, trPoints: 19 },
-        ],
-      },
-    });
-
-    render(
-      <WebImportPage
-        initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
-          playedOn: '2026-07-03',
-          playerCount: 4,
-        }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
-        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
-        onCreateImportPlayer={vi.fn()}
-        onConfirmImportReview={vi.fn()}
-      />,
-    );
-
-    await user.type(
-      screen.getByLabelText(/exported game log/i),
-      'Friday Mars played Earth Catapult.',
-    );
-    await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
-      new File(['board'], 'board.png', { type: 'image/png' }),
-    );
-    await user.click(
-      screen.getByRole('button', { name: /analyze import evidence/i }),
-    );
-
-    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
-
-    await waitFor(() =>
-      expect(screen.getByLabelText(/player count/i)).toHaveValue('3'),
-    );
-  });
-
-  it('lets the user override the auto-filled player count before confirming the import draft', async () => {
+  it('submits a player count derived from the larger of detected log names and screenshot rows', async () => {
     const user = userEvent.setup();
     const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
       status: 'success' as const,
@@ -854,15 +721,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={onConfirmImportReview}
@@ -881,23 +741,19 @@ describe('WebImportPage', () => {
       screen.getByRole('button', { name: /analyze import evidence/i }),
     );
 
-    const confirmButton = await screen.findByRole('button', {
-      name: /confirm import draft/i,
-    });
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
 
-    await waitFor(() =>
-      expect(screen.getByLabelText(/player count/i)).toHaveValue('3'),
+    const analyzedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0] as FormData;
+    expect(analyzedFormData.get('playerCount')).toBe('1');
+
+    await user.click(
+      await screen.findByRole('button', { name: /confirm import draft/i }),
     );
-
-    await user.selectOptions(screen.getByLabelText(/player count/i), '2');
-    expect(screen.getByLabelText(/player count/i)).toHaveValue('2');
-
-    await user.click(confirmButton);
 
     await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
 
     const submittedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
-    expect(submittedFormData.get('playerCount')).toBe('2');
+    expect(submittedFormData.get('playerCount')).toBe('3');
   });
 
   it('attaches a pasted screenshot from the clipboard', async () => {
@@ -914,15 +770,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
@@ -979,15 +828,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
@@ -1029,15 +871,8 @@ describe('WebImportPage', () => {
     render(
       <WebImportPage
         initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
           playedOn: '2026-07-03',
-          playerCount: 4,
         }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
         onAnalyzeImportEvidence={onAnalyzeImportEvidence}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}

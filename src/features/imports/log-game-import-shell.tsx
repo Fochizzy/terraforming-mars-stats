@@ -6,7 +6,6 @@ import {
   saveImportReviewJumpState,
   type ImportReviewJumpTarget,
 } from '@/lib/imports/import-review-jump-state';
-import type { MapOption } from '@/lib/db/reference-repo';
 import {
   WebImportPage,
   type WebImportActionResult,
@@ -15,12 +14,8 @@ import {
 
 type LogGameImportShellProps = {
   initialValues: {
-    generationCount: number;
-    mapId: string;
     playedOn: string;
-    playerCount: number;
   };
-  mapOptions: MapOption[];
   onAnalyzeImportEvidence: (
     formData: FormData,
   ) => Promise<WebImportActionResult>;
@@ -32,7 +27,6 @@ type LogGameImportShellProps = {
 
 export function LogGameImportShell({
   initialValues,
-  mapOptions,
   onAnalyzeImportEvidence,
   onCreateImportPlayer,
   onCreateImportDraft,
@@ -124,7 +118,6 @@ export function LogGameImportShell({
   return (
     <WebImportPage
       initialValues={initialValues}
-      mapOptions={mapOptions}
       onAnalyzeImportEvidence={handleAnalyzeImport}
       onCreateImportPlayer={onCreateImportPlayer ? handleCreateImportPlayer : undefined}
       onConfirmImportReview={handleStartImport}
