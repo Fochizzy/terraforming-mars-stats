@@ -422,22 +422,33 @@ on public.global_player_count_metric_summaries for select to authenticated using
 create policy "authenticated users read global generation metrics"
 on public.global_generation_metric_summaries for select to authenticated using (true);
 
+-- This project currently exposes client RPCs in the public schema. This
+-- SECURITY DEFINER function is intentionally kept public so later refresh logic
+-- can rebuild derived metric rows without broad table mutation policies. Keep
+-- the internal can_edit_game gate before any future writes.
 create or replace function public.refresh_game_metric_snapshots(p_game_id uuid)
 returns void
 language plpgsql
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 begin
-  perform p_game_id;
+  if p_game_id is null or not public.can_edit_game(p_game_id) then
+    raise exception 'not authorized to refresh metric snapshots for game %', p_game_id
+      using errcode = '42501';
+  end if;
+
+  return;
 end;
 $$;
 
+-- Full rebuilds can touch cross-group and global aggregates, so this RPC is
+-- service/admin-only until a narrower application gate is designed.
 create or replace function public.refresh_all_metric_snapshots()
 returns void
 language plpgsql
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 begin
   return;
@@ -446,7 +457,10 @@ $$;
 
 revoke execute on function public.refresh_game_metric_snapshots(uuid) from public;
 revoke execute on function public.refresh_game_metric_snapshots(uuid) from anon;
+revoke execute on function public.refresh_game_metric_snapshots(uuid) from authenticated;
 revoke execute on function public.refresh_all_metric_snapshots() from public;
 revoke execute on function public.refresh_all_metric_snapshots() from anon;
+revoke execute on function public.refresh_all_metric_snapshots() from authenticated;
 grant execute on function public.refresh_game_metric_snapshots(uuid) to authenticated;
-grant execute on function public.refresh_all_metric_snapshots() to authenticated;
+grant execute on function public.refresh_game_metric_snapshots(uuid) to service_role;
+grant execute on function public.refresh_all_metric_snapshots() to service_role;
