@@ -518,180 +518,181 @@ describe('buildImportDraft', () => {
     });
   });
 
-  it('prefills corporation, preludes, log scores, milestones, awards, and style evidence from the import log', () => {
-    expect(
-      buildImportDraft({
-        awardOptions: [{ awardId: 'award-1', awardName: 'Landlord', mapId: 'tharsis' }],
-        cardOptions: [
-          {
-            cardName: 'Earth Catapult',
-            cardNumber: '001',
-            expansionCode: 'base',
-            id: 'card-1',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['base'],
-          },
-          {
-            cardName: 'Tardigrades',
-            cardNumber: '002',
-            expansionCode: 'base',
-            id: 'card-2',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['base'],
-          },
-          {
-            cardName: 'Media Group',
-            cardNumber: '003',
-            expansionCode: 'base',
-            id: 'card-3',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['base'],
-          },
-        ],
-        corporationOptions: [
-          {
-            expansionCode: 'base',
-            id: 'corp-1',
-            name: 'Tharsis Republic',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['base'],
-          },
-        ],
-        defaultExpansionCodes: ['base', 'prelude'],
-        defaultPromoSetSlugs: [],
-        groupId: '11111111-1111-4111-8111-111111111111',
-        importValues: {
-          endgameScreenshotName: 'endgame.png',
-          exportedGameLog: [
-            'Friday Mars chose corporation Tharsis Republic',
-            'Friday Mars kept preludes Allied Bank, Corporate Archives',
-            'Friday Mars claimed Builder milestone',
-            'Friday Mars funded Landlord award',
-            'Friday Mars played Earth Catapult',
-            'Friday Mars played Tardigrades',
-            'Friday Mars played Media Group',
-            'Friday Mars added 2 microbes to Tardigrades',
-            'Friday Mars: Cities 4, Greenery 9, Cards 18, TR 36, Total 87, MC 11',
-          ].join('\n'),
-          generationCount: 11,
-          mapId: 'tharsis',
-          participantNames: ['Friday Mars'],
-          playedOn: '2026-07-04',
-          playerCount: 1,
+  it('prefills corporation, preludes, and style evidence while blanking conflicting log-versus-screenshot score fields', () => {
+    const draft = buildImportDraft({
+      awardOptions: [{ awardId: 'award-1', awardName: 'Landlord', mapId: 'tharsis' }],
+      cardOptions: [
+        {
+          cardName: 'Earth Catapult',
+          cardNumber: '001',
+          expansionCode: 'base',
+          id: 'card-1',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
         },
-        milestoneOptions: [
-          { mapId: 'tharsis', milestoneId: 'milestone-1', milestoneName: 'Builder' },
-        ],
-        parsedGameLog: {
-          cardPointBreakdowns: [
-            {
-              cardPointsAnimals: 3,
-              cardPointsJovian: 4,
-              cardPointsMicrobes: 2,
-              eventType: 'card_points_breakdown',
-              lineNumber: 10,
-              playerName: 'Friday Mars',
-              rawLine: 'Friday Mars Microbes 2 Animals 3 Jovian 4',
-            },
-          ],
-          events: [
-            {
-              actor: 'Friday Mars',
-              eventType: 'milestone_claimed',
-              lineNumber: 3,
-              milestone: 'Builder',
-              rawLine: 'Friday Mars claimed Builder milestone',
-            },
-            {
-              actor: 'Friday Mars',
-              award: 'Landlord',
-              eventType: 'award_funded',
-              lineNumber: 4,
-              rawLine: 'Friday Mars funded Landlord award',
-            },
-            {
-              actor: 'Friday Mars',
-              card: 'Earth Catapult',
-              eventType: 'card_played',
-              lineNumber: 5,
-              rawLine: 'Friday Mars played Earth Catapult',
-            },
-            {
-              actor: 'Friday Mars',
-              card: 'Tardigrades',
-              eventType: 'card_played',
-              lineNumber: 6,
-              rawLine: 'Friday Mars played Tardigrades',
-            },
-            {
-              actor: 'Friday Mars',
-              card: 'Media Group',
-              eventType: 'card_played',
-              lineNumber: 7,
-              rawLine: 'Friday Mars played Media Group',
-            },
-            {
-              actor: 'Friday Mars',
-              card: 'Tardigrades',
-              eventType: 'resource_changed',
-              lineNumber: 8,
-              operation: 'added',
-              rawLine: 'Friday Mars added 2 microbes to Tardigrades',
-              resourceAmount: 2,
-              resourceType: 'microbe',
-            },
-            {
-              actor: 'Friday Mars',
-              award: 'Landlord',
-              eventType: 'award_result',
-              lineNumber: 9,
-              placement: 'first',
-              rawLine: 'Friday Mars won first place on Landlord award',
-            },
-          ],
+        {
+          cardName: 'Tardigrades',
+          cardNumber: '002',
+          expansionCode: 'base',
+          id: 'card-2',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
         },
-        playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
-        preludeOptions: [
+        {
+          cardName: 'Media Group',
+          cardNumber: '003',
+          expansionCode: 'base',
+          id: 'card-3',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+        },
+      ],
+      corporationOptions: [
+        {
+          expansionCode: 'base',
+          id: 'corp-1',
+          name: 'Tharsis Republic',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+        },
+      ],
+      defaultExpansionCodes: ['base', 'prelude'],
+      defaultPromoSetSlugs: [],
+      groupId: '11111111-1111-4111-8111-111111111111',
+      importValues: {
+        endgameScreenshotName: 'endgame.png',
+        exportedGameLog: [
+          'Friday Mars chose corporation Tharsis Republic',
+          'Friday Mars kept preludes Allied Bank, Corporate Archives',
+          'Friday Mars claimed Builder milestone',
+          'Friday Mars funded Landlord award',
+          'Friday Mars played Earth Catapult',
+          'Friday Mars played Tardigrades',
+          'Friday Mars played Media Group',
+          'Friday Mars added 2 microbes to Tardigrades',
+          'Friday Mars: Cities 4, Greenery 9, Cards 18, TR 36, Total 87, MC 11',
+        ].join('\n'),
+        generationCount: 11,
+        mapId: 'tharsis',
+        participantNames: ['Friday Mars'],
+        playedOn: '2026-07-04',
+        playerCount: 1,
+      },
+      milestoneOptions: [
+        { mapId: 'tharsis', milestoneId: 'milestone-1', milestoneName: 'Builder' },
+      ],
+      parsedGameLog: {
+        cardPointBreakdowns: [
           {
-            expansionCode: 'prelude',
-            id: 'prelude-1',
-            name: 'Allied Bank',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['prelude'],
-          },
-          {
-            expansionCode: 'prelude',
-            id: 'prelude-2',
-            name: 'Corporate Archives',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['prelude'],
-          },
-        ],
-        scoreCandidates: [
-          {
-            awardPoints: 5,
-            finalMegacredits: 10,
-            milestonePoints: 5,
+            cardPointsAnimals: 3,
+            cardPointsJovian: 4,
+            cardPointsMicrobes: 2,
+            eventType: 'card_points_breakdown',
+            lineNumber: 10,
             playerName: 'Friday Mars',
-            totalPoints: 88,
-            trPoints: 38,
+            rawLine: 'Friday Mars Microbes 2 Animals 3 Jovian 4',
           },
         ],
-        selectedPlayerIds: ['player-1'],
-        styleOptions: [
+        events: [
           {
-            code: 'milestone_aggression',
-            id: 'style-1',
-            name: 'Milestone Aggression',
+            actor: 'Friday Mars',
+            eventType: 'milestone_claimed',
+            lineNumber: 3,
+            milestone: 'Builder',
+            rawLine: 'Friday Mars claimed Builder milestone',
           },
           {
-            code: 'award_pressure',
-            id: 'style-2',
-            name: 'Award Pressure',
+            actor: 'Friday Mars',
+            award: 'Landlord',
+            eventType: 'award_funded',
+            lineNumber: 4,
+            rawLine: 'Friday Mars funded Landlord award',
+          },
+          {
+            actor: 'Friday Mars',
+            card: 'Earth Catapult',
+            eventType: 'card_played',
+            lineNumber: 5,
+            rawLine: 'Friday Mars played Earth Catapult',
+          },
+          {
+            actor: 'Friday Mars',
+            card: 'Tardigrades',
+            eventType: 'card_played',
+            lineNumber: 6,
+            rawLine: 'Friday Mars played Tardigrades',
+          },
+          {
+            actor: 'Friday Mars',
+            card: 'Media Group',
+            eventType: 'card_played',
+            lineNumber: 7,
+            rawLine: 'Friday Mars played Media Group',
+          },
+          {
+            actor: 'Friday Mars',
+            card: 'Tardigrades',
+            eventType: 'resource_changed',
+            lineNumber: 8,
+            operation: 'added',
+            rawLine: 'Friday Mars added 2 microbes to Tardigrades',
+            resourceAmount: 2,
+            resourceType: 'microbe',
+          },
+          {
+            actor: 'Friday Mars',
+            award: 'Landlord',
+            eventType: 'award_result',
+            lineNumber: 9,
+            placement: 'first',
+            rawLine: 'Friday Mars won first place on Landlord award',
           },
         ],
-      }),
-    ).toMatchObject({
+      },
+      playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
+      preludeOptions: [
+        {
+          expansionCode: 'prelude',
+          id: 'prelude-1',
+          name: 'Allied Bank',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['prelude'],
+        },
+        {
+          expansionCode: 'prelude',
+          id: 'prelude-2',
+          name: 'Corporate Archives',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['prelude'],
+        },
+      ],
+      scoreCandidates: [
+        {
+          awardPoints: 5,
+          cardPointsTotal: 20,
+          finalMegacredits: 10,
+          milestonePoints: 5,
+          playerName: 'Friday Mars',
+          totalPoints: 88,
+          trPoints: 38,
+        },
+      ],
+      selectedPlayerIds: ['player-1'],
+      styleOptions: [
+        {
+          code: 'milestone_aggression',
+          id: 'style-1',
+          name: 'Milestone Aggression',
+        },
+        {
+          code: 'award_pressure',
+          id: 'style-2',
+          name: 'Award Pressure',
+        },
+      ],
+    });
+
+    expect(draft).toMatchObject({
       awardClaims: {
         'award-1': {
           firstPlaceWinnerPlayerIds: ['player-1'],
@@ -712,13 +713,9 @@ describe('buildImportDraft', () => {
           cardPointsAnimals: 3,
           cardPointsJovian: 4,
           cardPointsMicrobes: 2,
-          cardPointsTotal: 18,
           citiesPoints: 4,
-          finalMegacredits: 11,
           greeneryPoints: 9,
           milestonePoints: 5,
-          totalPoints: 87,
-          trPoints: 36,
         },
       },
       playerSelections: {
@@ -735,5 +732,9 @@ describe('buildImportDraft', () => {
         },
       },
     });
+    expect(draft.playerScores['player-1']?.cardPointsTotal).toBeUndefined();
+    expect(draft.playerScores['player-1']?.finalMegacredits).toBeUndefined();
+    expect(draft.playerScores['player-1']?.totalPoints).toBeUndefined();
+    expect(draft.playerScores['player-1']?.trPoints).toBeUndefined();
   });
 });

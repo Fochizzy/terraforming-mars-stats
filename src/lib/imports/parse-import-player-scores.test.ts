@@ -91,6 +91,42 @@ describe('parseImportPlayerScores', () => {
     });
   });
 
+  it('parses exported final score rows that use colon-delimited labels', () => {
+    const result = parseImportPlayerScores({
+      players: [
+        { id: 'p1', name: 'James' },
+        { id: 'p2', name: 'Izzy' },
+      ],
+      evidence: [
+        'Player: James, Total: 145, TR: 59, Milestones: 5, Awards: 15, Greenery: 6, City: 8, VP: 52, Mâ‚¬: 105, Time: 24.95 mins, Actions: 161',
+        'Player: Izzy, Total: 82, TR: 39, Milestones: 10, Awards: 0, Greenery: 4, City: 6, VP: 23, Mâ‚¬: 82, Time: 18.88 mins, Actions: 98',
+      ].join('\n'),
+    });
+
+    expect(result).toEqual({
+      p1: {
+        awardPoints: 15,
+        cardPointsTotal: 52,
+        citiesPoints: 8,
+        finalMegacredits: 105,
+        greeneryPoints: 6,
+        milestonePoints: 5,
+        totalPoints: 145,
+        trPoints: 59,
+      },
+      p2: {
+        awardPoints: 0,
+        cardPointsTotal: 23,
+        citiesPoints: 6,
+        finalMegacredits: 82,
+        greeneryPoints: 4,
+        milestonePoints: 10,
+        totalPoints: 82,
+        trPoints: 39,
+      },
+    });
+  });
+
   it('keeps zero scores instead of treating them as blank', () => {
     const result = parseImportPlayerScores({
       players,

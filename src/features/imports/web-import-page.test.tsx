@@ -126,9 +126,8 @@ describe('WebImportPage', () => {
       screen.getByLabelText(/participants/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText(/victory point breakdown/i),
+      screen.getByLabelText(/^game result screenshot$/i),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/board screenshots/i)).toBeRequired();
     expect(screen.getByLabelText(/^map$/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/generation count/i)).not.toBeInTheDocument();
     expect(
@@ -168,6 +167,111 @@ describe('WebImportPage', () => {
     await user.click(screen.getByText(/exported game log feed/i));
 
     expect(exportedGameLog).toHaveFocus();
+  });
+
+  it('focuses the game result screenshot panel and attaches a pasted screenshot there', async () => {
+    const user = userEvent.setup();
+    const pastedScreenshot = new File(['clipboard-image'], 'pasted-scoreboard.png', {
+      type: 'image/png',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={vi.fn()}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    const pasteTarget = screen.getByLabelText(/paste target for game result screenshot/i);
+
+    await user.click(pasteTarget);
+    expect(pasteTarget).toHaveFocus();
+
+    fireEvent.paste(pasteTarget, {
+      clipboardData: {
+        files: [pastedScreenshot],
+        items: [
+          {
+            getAsFile: () => pastedScreenshot,
+            kind: 'file',
+            type: 'image/png',
+          },
+        ],
+      },
+    });
+
+    expect(
+      screen.getByText(
+        /attached game result screenshot: pasted-scoreboard\.png/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('accepts a dragged game result screenshot and submits it as the only image evidence', async () => {
+    const user = userEvent.setup();
+    const draggedScreenshot = new File(['clipboard-image'], 'pasted-board.png', {
+      type: 'image/png',
+    });
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    const pasteTarget = screen.getByLabelText(/paste target for game result screenshot/i);
+
+    await user.click(pasteTarget);
+    expect(pasteTarget).toHaveFocus();
+
+    fireEvent.drop(pasteTarget, {
+      dataTransfer: {
+        files: [draggedScreenshot],
+      },
+    });
+
+    expect(
+      screen.getByText(/attached game result screenshot: pasted-board\.png/i),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0];
+
+    expect(submittedFormData.get('endgameScreenshot')).toBe(draggedScreenshot);
+    expect(submittedFormData.getAll('boardScreenshots')).toEqual([]);
   });
 
   it('analyzes the structured import payload and shows the review before confirmation', async () => {
@@ -210,24 +314,14 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Second Seat{enter}Third Seat',
     );
 
-    const screenshot = new File(['evidence'], 'endgame.png', {
-      type: 'image/png',
-    });
-    const boardOne = new File(['board-one'], 'board-1.png', {
-      type: 'image/png',
-    });
-    const boardTwo = new File(['board-two'], 'board-2.png', {
+    const screenshot = new File(['evidence'], 'game-result.png', {
       type: 'image/png',
     });
 
     await user.upload(
-      screen.getByLabelText(/victory point breakdown/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       screenshot,
     );
-    await user.upload(screen.getByLabelText(/board screenshots/i), [
-      boardOne,
-      boardTwo,
-    ]);
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     );
@@ -248,10 +342,7 @@ describe('WebImportPage', () => {
       ['Friday Mars', 'Second Seat', 'Third Seat'].join('\n'),
     );
     expect(submittedFormData.get('endgameScreenshot')).toBe(screenshot);
-    expect(submittedFormData.getAll('boardScreenshots')).toEqual([
-      boardOne,
-      boardTwo,
-    ]);
+    expect(submittedFormData.getAll('boardScreenshots')).toEqual([]);
 
     expect(screen.getByText(/import evidence analyzed/i)).toBeInTheDocument();
     expect(
@@ -306,7 +397,7 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Unknown Friend',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -384,7 +475,7 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Unknown Friend',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -462,7 +553,7 @@ describe('WebImportPage', () => {
       'Friday Mars played Commercial District.',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -551,7 +642,7 @@ describe('WebImportPage', () => {
       'Friday Mars played Earth Catapult.',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -619,7 +710,7 @@ describe('WebImportPage', () => {
       'Friday Mars played Earth Catapult.',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -678,7 +769,7 @@ describe('WebImportPage', () => {
       'Friday Mars played Earth Catapult.',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -757,14 +848,9 @@ describe('WebImportPage', () => {
 
     expect(
       screen.getByText(
-        /attached victory point breakdown: pasted-scoreboard\.png/i,
+        /attached game result screenshot: pasted-scoreboard\.png/i,
       ),
     ).toBeInTheDocument();
-
-    await user.upload(
-      screen.getByLabelText(/board screenshots/i),
-      new File(['board'], 'board.png', { type: 'image/png' }),
-    );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     );
@@ -812,7 +898,7 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Second Seat',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -862,7 +948,7 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Second Seat',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(

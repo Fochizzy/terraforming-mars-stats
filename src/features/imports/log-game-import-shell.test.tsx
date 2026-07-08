@@ -115,12 +115,8 @@ describe('LogGameImportShell', () => {
       'Friday Mars{enter}Second Seat{enter}Third Seat',
     );
     await user.upload(
-      screen.getByLabelText(/victory point breakdown/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       screenshotFile,
-    );
-    await user.upload(
-      screen.getByLabelText(/board screenshots/i),
-      new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
@@ -238,7 +234,7 @@ describe('LogGameImportShell', () => {
       'Friday Mars{enter}Second Seat',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -327,7 +323,7 @@ describe('LogGameImportShell', () => {
       'Imported Alias played Commercial District.',
     );
     await user.upload(
-      screen.getByLabelText(/board screenshots/i),
+      screen.getByLabelText(/^game result screenshot$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(

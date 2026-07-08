@@ -13,7 +13,6 @@ import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-st
 import { ImportReviewPanel } from './import-review-panel';
 
 export type WebImportDraftValues = {
-  boardScreenshots: File[];
   endgameScreenshot: File | null;
   exportedGameLog: string;
   generationCount: number | null;
@@ -135,7 +134,6 @@ function resolveManualReviewJumpTargetWithPlayerSelection(input: {
 type WebImportPageProps = {
   initialValues: Omit<
     WebImportDraftValues,
-    | 'boardScreenshots'
     | 'endgameScreenshot'
     | 'exportedGameLog'
     | 'participantNames'
@@ -161,13 +159,13 @@ export function WebImportPage({
   onConfirmImportReview,
 }: WebImportPageProps) {
   const exportedGameLogRef = useRef<HTMLTextAreaElement | null>(null);
+  const screenshotPasteTargetRef = useRef<HTMLDivElement | null>(null);
   const [mapId, setMapId] = useState(initialValues.mapId);
   const [playedOn, setPlayedOn] = useState(initialValues.playedOn);
   const [playerCount, setPlayerCount] = useState(initialValues.playerCount);
   const [exportedGameLog, setExportedGameLog] = useState('');
   const [participantsText, setParticipantsText] = useState('');
   const [endgameScreenshot, setEndgameScreenshot] = useState<File | null>(null);
-  const [boardScreenshots, setBoardScreenshots] = useState<File[]>([]);
   const [feedback, setFeedback] = useState<WebImportActionResult>({
     status: 'idle',
   });
@@ -185,9 +183,6 @@ export function WebImportPage({
   const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
     string | null
   >(null);
-  const [boardScreenshotPreviewUrls, setBoardScreenshotPreviewUrls] = useState<
-    string[]
-  >([]);
   const generationCount = null;
 
   useEffect(() => {
@@ -201,20 +196,6 @@ export function WebImportPage({
 
     return () => URL.revokeObjectURL(objectUrl);
   }, [endgameScreenshot]);
-
-  useEffect(() => {
-    if (boardScreenshots.length === 0) {
-      setBoardScreenshotPreviewUrls([]);
-      return;
-    }
-
-    const objectUrls = boardScreenshots.map((file) => URL.createObjectURL(file));
-    setBoardScreenshotPreviewUrls(objectUrls);
-
-    return () => {
-      objectUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [boardScreenshots]);
 
   useEffect(() => {
     if (!review) {
@@ -240,6 +221,17 @@ export function WebImportPage({
     );
   }, [review]);
 
+  function resetFeedback() {
+    setFeedback({
+      status: 'idle',
+    });
+  }
+
+  function attachEndgameScreenshot(file: File | null) {
+    setEndgameScreenshot(file);
+    resetFeedback();
+  }
+
   function handlePaste(event: React.ClipboardEvent<HTMLFormElement>) {
     const pastedScreenshot = getClipboardImageFile(event.clipboardData);
 
@@ -248,10 +240,35 @@ export function WebImportPage({
     }
 
     event.preventDefault();
-    setEndgameScreenshot(pastedScreenshot);
-    setFeedback({
-      status: 'idle',
-    });
+    attachEndgameScreenshot(pastedScreenshot);
+  }
+
+  function handleScreenshotPaste(
+    event: React.ClipboardEvent<HTMLDivElement>,
+  ) {
+    const pastedScreenshot = getClipboardImageFile(event.clipboardData);
+
+    if (!pastedScreenshot) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    attachEndgameScreenshot(pastedScreenshot);
+  }
+
+  function focusPasteTarget(
+    event: React.MouseEvent<HTMLDivElement>,
+    targetRef: React.RefObject<HTMLDivElement | null>,
+  ) {
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.closest('input')
+    ) {
+      return;
+    }
+
+    targetRef.current?.focus();
   }
 
   function handleScreenshotDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -261,36 +278,13 @@ export function WebImportPage({
     );
 
     if (droppedFile) {
-      setEndgameScreenshot(droppedFile);
+      attachEndgameScreenshot(droppedFile);
     }
-  }
-
-  function handleBoardScreenshotDrop(event: React.DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    const droppedFiles = Array.from(event.dataTransfer.files ?? []).filter(
-      (file) => file.type.startsWith('image/'),
-    );
-
-    if (droppedFiles.length > 0) {
-      setBoardScreenshots((current) => [...current, ...droppedFiles]);
-      setFeedback({
-        status: 'idle',
-      });
-    }
-  }
-
-  function handleBoardScreenshotChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
-    setBoardScreenshots(Array.from(event.target.files ?? []));
-    setFeedback({
-      status: 'idle',
-    });
   }
 
   function buildCurrentFormData() {
     return buildCreateImportDraftFormData({
-      boardScreenshots,
+      boardScreenshots: [],
       confirmedPlayerLinks: review
         ? review.playerLinks.flatMap((link) => {
             const playerId = playerSelections[link.importedName]?.trim() ?? '';
@@ -442,9 +436,8 @@ export function WebImportPage({
           <span className="tm-coverage-badge shrink-0">Unlogged</span>
         </div>
         <p className="tm-body-copy text-sm">
-          Paste an exported game log, attach the victory point breakdown and
-          board screenshots, and prepare a guided handoff into the shared
-          scoring flow.
+          Paste an exported game log, attach one combined game-result image,
+          and prepare a guided handoff into the shared scoring flow.
         </p>
       </section>
 
@@ -558,92 +551,51 @@ export function WebImportPage({
         </div>
 
         <div className="flex flex-col gap-3">
-          <StepHeading step="04" title="Victory Point Breakdown" />
+          <StepHeading step="04" title="Game Result Screenshot" />
           <div
-            className="relative rounded-2xl border border-dashed px-4 py-6 text-center transition-colors"
+            aria-label="Paste Target for Game Result Screenshot"
+            className="relative rounded-2xl border border-dashed px-4 py-6 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[rgba(214,135,66,0.45)]"
+            onClick={(event) =>
+              focusPasteTarget(event, screenshotPasteTargetRef)
+            }
             onDragOver={(event) => event.preventDefault()}
             onDrop={handleScreenshotDrop}
+            onPaste={handleScreenshotPaste}
+            ref={screenshotPasteTargetRef}
             style={{ borderColor: 'rgba(192, 162, 127, 0.4)' }}
+            tabIndex={0}
           >
             {screenshotPreviewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                alt="Victory point breakdown preview"
+                alt="Game result screenshot preview"
                 className="mx-auto max-h-40 rounded-xl border"
                 src={screenshotPreviewUrl}
                 style={{ borderColor: 'var(--tm-panel-border)' }}
               />
             ) : (
               <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
-                Drop the victory point breakdown screenshot here, or choose a
+                Click here and paste a copied image, drop it here, or choose a
                 file below.
               </p>
             )}
             <input
-              aria-label="Victory Point Breakdown"
+              aria-label="Game Result Screenshot"
               accept="image/*"
               className="mx-auto mt-4 block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
               onChange={(event) =>
-                setEndgameScreenshot(event.target.files?.[0] ?? null)
+                attachEndgameScreenshot(event.target.files?.[0] ?? null)
               }
               type="file"
             />
             <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
-              Paste a copied screenshot anywhere in this form to attach it and
-              import the generations played when possible.
+              Use the combined result image that includes the final victory
+              point breakdown and score details. Click this panel to paste, or
+              paste anywhere else in the form to attach it here automatically.
             </p>
             {endgameScreenshot ? (
               <p className="mt-1 text-xs tm-accent-copy">
-                Attached victory point breakdown: {endgameScreenshot.name}
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <StepHeading step="05" title="Board Screenshots" />
-          <div
-            className="relative rounded-2xl border border-dashed px-4 py-6 text-center transition-colors"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={handleBoardScreenshotDrop}
-            style={{ borderColor: 'rgba(192, 162, 127, 0.4)' }}
-          >
-            {boardScreenshotPreviewUrls.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-3">
-                {boardScreenshotPreviewUrls.map((url, index) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    alt={`Board screenshot preview ${index + 1}`}
-                    className="max-h-40 rounded-xl border"
-                    key={url}
-                    src={url}
-                    style={{ borderColor: 'var(--tm-panel-border)' }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
-                Drop the board screenshots here, or choose files below.
-              </p>
-            )}
-            <input
-              aria-label="Board Screenshots"
-              aria-required="true"
-              accept="image/*"
-              className="mx-auto mt-4 block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
-              multiple
-              onChange={handleBoardScreenshotChange}
-              type="file"
-            />
-            <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
-              At least one board-state screenshot is required to verify tile,
-              tag, and resource context. If OCR misses the map, use the
-              selector above.
-            </p>
-            {boardScreenshots.length ? (
-              <p className="mt-1 text-xs tm-accent-copy">
-                Attached board screenshots:{' '}
-                {boardScreenshots.map((file) => file.name).join(', ')}
+                Attached game result screenshot: {endgameScreenshot.name}
               </p>
             ) : null}
           </div>
@@ -655,7 +607,7 @@ export function WebImportPage({
 
         <button
           className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isSubmitting || boardScreenshots.length === 0}
+          disabled={isSubmitting}
           type="submit"
         >
           {isSubmitting ? 'Analyzing Import Evidence...' : 'Analyze Import Evidence'}

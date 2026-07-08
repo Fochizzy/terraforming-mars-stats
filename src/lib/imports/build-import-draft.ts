@@ -34,7 +34,37 @@ export type CreateImportDraftInput = Omit<ImportDraftValues, 'generationCount'> 
   }>;
   endgameScreenshot: File | null;
   generationCount: number | null;
+  scoreDetailsScreenshot?: File | null;
 };
+
+function hasFiniteScoreValue(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function mergeCrossCheckedScoreValue(input: {
+  fallbackValue?: number;
+  logValue?: number;
+  screenshotValue?: number;
+}) {
+  if (
+    hasFiniteScoreValue(input.logValue) &&
+    hasFiniteScoreValue(input.screenshotValue)
+  ) {
+    return input.logValue === input.screenshotValue ? input.logValue : undefined;
+  }
+
+  if (hasFiniteScoreValue(input.logValue)) {
+    return input.logValue;
+  }
+
+  if (hasFiniteScoreValue(input.screenshotValue)) {
+    return input.screenshotValue;
+  }
+
+  return hasFiniteScoreValue(input.fallbackValue)
+    ? input.fallbackValue
+    : undefined;
+}
 
 export function buildImportDraft(input: {
   awardOptions?: MapAwardOption[];
@@ -391,26 +421,35 @@ export function buildImportDraft(input: {
           ? cardScoringSummary.totals.total
           : undefined;
       const cardPointsAnimals =
-        logScore.cardPointsAnimals ??
-        cardPointBreakdown?.cardPointsAnimals ??
-        scoreCandidate?.cardPointsAnimals ??
-        (hasCalculatedCategory('animals')
-          ? cardScoringSummary?.totals.animals
-          : undefined);
+        mergeCrossCheckedScoreValue({
+          fallbackValue:
+            cardPointBreakdown?.cardPointsAnimals ??
+            (hasCalculatedCategory('animals')
+              ? cardScoringSummary?.totals.animals
+              : undefined),
+          logValue: logScore.cardPointsAnimals,
+          screenshotValue: scoreCandidate?.cardPointsAnimals,
+        });
       const cardPointsJovian =
-        logScore.cardPointsJovian ??
-        cardPointBreakdown?.cardPointsJovian ??
-        scoreCandidate?.cardPointsJovian ??
-        (hasCalculatedCategory('jovian')
-          ? cardScoringSummary?.totals.jovian
-          : undefined);
+        mergeCrossCheckedScoreValue({
+          fallbackValue:
+            cardPointBreakdown?.cardPointsJovian ??
+            (hasCalculatedCategory('jovian')
+              ? cardScoringSummary?.totals.jovian
+              : undefined),
+          logValue: logScore.cardPointsJovian,
+          screenshotValue: scoreCandidate?.cardPointsJovian,
+        });
       const cardPointsMicrobes =
-        logScore.cardPointsMicrobes ??
-        cardPointBreakdown?.cardPointsMicrobes ??
-        scoreCandidate?.cardPointsMicrobes ??
-        (hasCalculatedCategory('microbes')
-          ? cardScoringSummary?.totals.microbes
-          : undefined);
+        mergeCrossCheckedScoreValue({
+          fallbackValue:
+            cardPointBreakdown?.cardPointsMicrobes ??
+            (hasCalculatedCategory('microbes')
+              ? cardScoringSummary?.totals.microbes
+              : undefined),
+          logValue: logScore.cardPointsMicrobes,
+          screenshotValue: scoreCandidate?.cardPointsMicrobes,
+        });
       const hasPartialCardCategoryBreakdown =
         typeof cardPointsAnimals === 'number' ||
         typeof cardPointsJovian === 'number' ||
@@ -419,30 +458,48 @@ export function buildImportDraft(input: {
         cardScoringSummary == null &&
         !hasPartialCardCategoryBreakdown;
       const mergedScore = {
-        awardPoints:
-          logScore.awardPoints ??
-          scoreCandidate?.awardPoints ??
-          expectedAwardPointsByPlayerId.get(playerId),
+        awardPoints: mergeCrossCheckedScoreValue({
+          fallbackValue: expectedAwardPointsByPlayerId.get(playerId),
+          logValue: logScore.awardPoints,
+          screenshotValue: scoreCandidate?.awardPoints,
+        }),
         cardPointsAnimals,
         cardPointsJovian,
         cardPointsMicrobes,
-        cardPointsTotal:
-          logScore.cardPointsTotal ??
-          scoreCandidate?.cardPointsTotal ??
-          completeCalculatedCardPointsTotal ??
-          (allowBoardOnlyCardPointsTotalFallback
-            ? provedCuratedBoardCardPoints
-            : undefined),
-        citiesPoints: logScore.citiesPoints ?? scoreCandidate?.citiesPoints,
-        finalMegacredits:
-          logScore.finalMegacredits ?? scoreCandidate?.finalMegacredits,
-        greeneryPoints: logScore.greeneryPoints ?? scoreCandidate?.greeneryPoints,
-        milestonePoints:
-          logScore.milestonePoints ??
-          scoreCandidate?.milestonePoints ??
-          expectedMilestonePointsByPlayerId.get(playerId),
-        totalPoints: logScore.totalPoints ?? scoreCandidate?.totalPoints,
-        trPoints: logScore.trPoints ?? scoreCandidate?.trPoints,
+        cardPointsTotal: mergeCrossCheckedScoreValue({
+          fallbackValue:
+            completeCalculatedCardPointsTotal ??
+            (allowBoardOnlyCardPointsTotalFallback
+              ? provedCuratedBoardCardPoints
+              : undefined),
+          logValue: logScore.cardPointsTotal,
+          screenshotValue: scoreCandidate?.cardPointsTotal,
+        }),
+        citiesPoints: mergeCrossCheckedScoreValue({
+          logValue: logScore.citiesPoints,
+          screenshotValue: scoreCandidate?.citiesPoints,
+        }),
+        finalMegacredits: mergeCrossCheckedScoreValue({
+          logValue: logScore.finalMegacredits,
+          screenshotValue: scoreCandidate?.finalMegacredits,
+        }),
+        greeneryPoints: mergeCrossCheckedScoreValue({
+          logValue: logScore.greeneryPoints,
+          screenshotValue: scoreCandidate?.greeneryPoints,
+        }),
+        milestonePoints: mergeCrossCheckedScoreValue({
+          fallbackValue: expectedMilestonePointsByPlayerId.get(playerId),
+          logValue: logScore.milestonePoints,
+          screenshotValue: scoreCandidate?.milestonePoints,
+        }),
+        totalPoints: mergeCrossCheckedScoreValue({
+          logValue: logScore.totalPoints,
+          screenshotValue: scoreCandidate?.totalPoints,
+        }),
+        trPoints: mergeCrossCheckedScoreValue({
+          logValue: logScore.trPoints,
+          screenshotValue: scoreCandidate?.trPoints,
+        }),
       };
 
       if (

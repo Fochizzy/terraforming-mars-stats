@@ -180,4 +180,39 @@ describe('ImportReviewPanel', () => {
       screen.getByRole('heading', { name: /log score breakdown/i }),
     ).toBeInTheDocument();
   });
+
+  it('warns that conflicting score fields will be left blank for manual entry before save', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          detectedParticipantNames: ['Friday Mars'],
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [{ playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 }],
+          scoreCrossChecks: [
+            {
+              conflictingFields: ['totalPoints'],
+              matchingFields: ['trPoints'],
+              playerName: 'Friday Mars',
+              status: 'conflict',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        /conflicting score fields will be left blank in the draft and must be entered manually before the game can be saved/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/friday mars: log and screenshot disagree on total/i),
+    ).toBeInTheDocument();
+  });
 });

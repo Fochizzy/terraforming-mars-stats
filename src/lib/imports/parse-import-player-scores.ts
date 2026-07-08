@@ -68,6 +68,7 @@ const fieldPatterns: Record<ImportScoreField, { aliases: string[] }> = {
   cardPointsMicrobes: { aliases: ['microbe points', 'microbes points', 'microbes'] },
   cardPointsTotal: {
     aliases: [
+      'vp',
       'total card points',
       'card points total',
       'card points',
@@ -77,7 +78,14 @@ const fieldPatterns: Record<ImportScoreField, { aliases: string[] }> = {
   },
   citiesPoints: { aliases: ['cities points', 'city points', 'cities', 'city'] },
   finalMegacredits: {
-    aliases: ['final megacredits', 'megacredits', 'final mc', 'mc'],
+    aliases: [
+      'final megacredits',
+      'megacredits',
+      'final mc',
+      'mc',
+      'm€',
+      'mã¢â€šâ¬',
+    ],
   },
   greeneryPoints: { aliases: ['greenery points', 'greenery'] },
   milestonePoints: { aliases: ['milestone points', 'milestones', 'milestone'] },
@@ -228,10 +236,22 @@ function buildFieldMatchers(field: ImportScoreField) {
     .sort((left, right) => right.length - left.length)
     .map((alias) => escapeRegExp(alias));
 
-  return escaped.flatMap((alias) => [
-    new RegExp(`\\b(${alias})\\s+([0-9]{1,3})\\b`, 'gi'),
-    new RegExp(`\\b([0-9]{1,3})\\s+(${alias})\\b`, 'gi'),
+  const matchers = escaped.flatMap((alias) => [
+    new RegExp(`\\b(${alias})\\s*:?\\s*([0-9]{1,3})\\b`, 'gi'),
+    new RegExp(`\\b([0-9]{1,3})\\s*:?\\s*(${alias})\\b`, 'gi'),
   ]);
+
+  if (field !== 'finalMegacredits') {
+    return matchers;
+  }
+
+  return [
+    ...matchers,
+    /(?:^|[\s(])((?:m(?:c|Ã¢â€šÂ¬|â€šÂ¬|€)))\s*:?\s*([0-9]{1,3})(?:$|[\s)])/gi,
+    /(?:^|[\s(])([0-9]{1,3})\s*:?\s*((?:m(?:c|Ã¢â€šÂ¬|â€šÂ¬|€)))(?:$|[\s)])/gi,
+    /(?:^|[\s(])(m[^0-9a-z]{2,})\s*:?\s*([0-9]{1,3})(?:$|[\s)])/gi,
+    /(?:^|[\s(])([0-9]{1,3})\s*:?\s*(m[^0-9a-z]{2,})(?:$|[\s)])/gi,
+  ];
 }
 
 const fieldMatchers: Record<ImportScoreField, RegExp[]> = Object.fromEntries(

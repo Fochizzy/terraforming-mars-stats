@@ -345,7 +345,7 @@ export function parseEndgameScoreScreenshot(
     }
 
     const generationCountMatch =
-      /^victory point breakdown after\s+(\d+)\s+generations?$/i.exec(
+      /^victory points?\s+breakdown after\s+(\d+)\s+generations?$/i.exec(
         trimmedLine,
       );
 

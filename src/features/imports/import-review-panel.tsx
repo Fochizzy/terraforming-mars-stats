@@ -146,6 +146,9 @@ export function ImportReviewPanel({
     return jumpTarget ? [jumpTarget] : [];
   });
   const scoreCrossChecks = review.scoreCrossChecks ?? [];
+  const hasScoreConflicts = scoreCrossChecks.some(
+    (check) => check.status === 'conflict',
+  );
   const shouldExplainLogScoreFallback =
     logScoreCandidates.length > 0 && review.scoreCandidates.length === 0;
 
@@ -199,6 +202,12 @@ export function ImportReviewPanel({
       {scoreCrossChecks.length > 0 ? (
         <div className="rounded-2xl border border-cyan-400/25 bg-cyan-500/10 p-4">
           <h3 className="tm-data-label text-xs">Evidence Cross-Check</h3>
+          {hasScoreConflicts ? (
+            <p className="mt-3 text-sm text-cyan-50">
+              Conflicting score fields will be left blank in the draft and must
+              be entered manually before the game can be saved.
+            </p>
+          ) : null}
           <ul className="mt-3 flex flex-col gap-2 text-sm text-cyan-50">
             {scoreCrossChecks.map((check) => (
               <li key={`${check.playerName}-${check.status}`}>

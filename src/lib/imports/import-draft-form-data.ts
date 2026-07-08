@@ -14,10 +14,12 @@ export type CreateImportDraftFormValues = {
   participants: string;
   playedOn: string;
   playerCount: number;
+  scoreDetailsScreenshot?: File | null;
 };
 
 export type ParsedCreateImportDraftFormData = CreateImportDraftInput & {
   boardScreenshots: File[];
+  scoreDetailsScreenshot: File | null;
 };
 
 function readConfirmedPlayerLinks(formData: FormData) {
@@ -140,6 +142,10 @@ export function buildCreateImportDraftFormData(
     formData.set('endgameScreenshot', values.endgameScreenshot);
   }
 
+  if (values.scoreDetailsScreenshot) {
+    formData.set('scoreDetailsScreenshot', values.scoreDetailsScreenshot);
+  }
+
   for (const boardScreenshot of values.boardScreenshots ?? []) {
     formData.append('boardScreenshots', boardScreenshot);
   }
@@ -154,6 +160,10 @@ export function parseCreateImportDraftFormData(
     formData,
     'endgameScreenshot',
   );
+  const scoreDetailsScreenshot = readOptionalFileField(
+    formData,
+    'scoreDetailsScreenshot',
+  );
 
   return {
     boardScreenshots: readOptionalFileListField(formData, 'boardScreenshots'),
@@ -166,5 +176,6 @@ export function parseCreateImportDraftFormData(
     participantNames: parseImportParticipants(readTextField(formData, 'participants')),
     playedOn: readTextField(formData, 'playedOn'),
     playerCount: readIntegerField(formData, 'playerCount'),
+    scoreDetailsScreenshot,
   };
 }

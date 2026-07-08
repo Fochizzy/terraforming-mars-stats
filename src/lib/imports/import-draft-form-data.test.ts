@@ -33,6 +33,7 @@ describe('parseCreateImportDraftFormData', () => {
       participantNames: ['Friday Mars', 'Second Seat', 'Third Seat'],
       playedOn: '2026-07-04',
       playerCount: 3,
+      scoreDetailsScreenshot: null,
     });
   });
 
@@ -62,6 +63,32 @@ describe('parseCreateImportDraftFormData', () => {
       boardScreenshots: [boardOne, boardTwo],
       endgameScreenshot,
       endgameScreenshotName: 'endgame.png',
+      scoreDetailsScreenshot: null,
+    });
+  });
+
+  it('round-trips an optional score details screenshot alongside the endgame screenshot', () => {
+    const formData = new FormData();
+    const endgameScreenshot = new File(['endgame'], 'endgame.png', {
+      type: 'image/png',
+    });
+    const scoreDetailsScreenshot = new File(['details'], 'score-details.png', {
+      type: 'image/png',
+    });
+
+    formData.set('playedOn', '2026-07-04');
+    formData.set('mapId', 'elysium');
+    formData.set('playerCount', '2');
+    formData.set('generationCount', '12');
+    formData.set('exportedGameLog', 'Friday Mars won by 6 points.');
+    formData.set('participants', 'Friday Mars\nSecond Seat');
+    formData.set('endgameScreenshot', endgameScreenshot);
+    formData.set('scoreDetailsScreenshot', scoreDetailsScreenshot);
+
+    expect(parseCreateImportDraftFormData(formData)).toMatchObject({
+      endgameScreenshot,
+      endgameScreenshotName: 'endgame.png',
+      scoreDetailsScreenshot,
     });
   });
 
@@ -80,6 +107,7 @@ describe('parseCreateImportDraftFormData', () => {
       endgameScreenshot: null,
       endgameScreenshotName: null,
       participantNames: ['Friday Mars', 'Second Seat'],
+      scoreDetailsScreenshot: null,
     });
   });
 
@@ -131,12 +159,14 @@ describe('parseCreateImportDraftFormData', () => {
       participants: 'Friday Mars\nSecond Seat',
       playedOn: '2026-07-04',
       playerCount: 2,
+      scoreDetailsScreenshot: null,
     });
 
     expect(formData.getAll('boardScreenshots')).toEqual([boardOne, boardTwo]);
     expect(parseCreateImportDraftFormData(formData)).toMatchObject({
       boardScreenshots: [boardOne, boardTwo],
       endgameScreenshot: null,
+      scoreDetailsScreenshot: null,
     });
   });
 
@@ -154,6 +184,7 @@ describe('parseCreateImportDraftFormData', () => {
       participants: 'James\nFriday Mars',
       playedOn: '2026-07-04',
       playerCount: 2,
+      scoreDetailsScreenshot: null,
     });
 
     expect(parseCreateImportDraftFormData(formData)).toMatchObject({
