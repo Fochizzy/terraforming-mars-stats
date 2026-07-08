@@ -15,8 +15,74 @@ export type ReadGameResultScreenshotResult = {
   }>;
 };
 
+type TopCropConfig = {
+  heightRatio: number;
+  leftRatio: number;
+  topRatio: number;
+  widthRatio: number;
+};
+
+const ENDGAME_HEADING_PATTERN =
+  /^victory points?\s+breakdown after\s+\d+\s+generations?$/i;
+const FOCUSED_ENDGAME_CROP: TopCropConfig = {
+  heightRatio: 0.1,
+  leftRatio: 0.024,
+  topRatio: 0.009,
+  widthRatio: 0.56,
+};
+const EXPANDED_ENDGAME_CROP: TopCropConfig = {
+  heightRatio: 0.18,
+  leftRatio: 0.016,
+  topRatio: 0.006,
+  widthRatio: 0.62,
+};
+
 function buildUniqueLines(lines: string[]) {
   return [...new Set(lines)];
+}
+
+function extractTopCropBuffer(input: {
+  config: TopCropConfig;
+  height: number;
+  imageBuffer: Buffer;
+  width: number;
+}) {
+  return sharp(input.imageBuffer)
+    .extract({
+      height: Math.max(1, Math.floor(input.height * input.config.heightRatio)),
+      left: Math.floor(input.width * input.config.leftRatio),
+      top: Math.floor(input.height * input.config.topRatio),
+      width: Math.max(1, Math.floor(input.width * input.config.widthRatio)),
+    })
+    .png()
+    .toBuffer();
+}
+
+function countLikelyScoreRows(lines: string[]) {
+  return lines.filter((line) => {
+    if (ENDGAME_HEADING_PATTERN.test(line)) {
+      return false;
+    }
+
+    return (line.match(/\b\d+\b/g)?.length ?? 0) >= 7;
+  }).length;
+}
+
+function shouldRetryWithExpandedCrop(input: {
+  endgameLines: string[];
+  options?: ReadGameResultScreenshotOptions;
+}) {
+  const likelyScoreRowCount = countLikelyScoreRows(input.endgameLines);
+  const expectedPlayerCount = Math.max(
+    input.options?.expectedPlayerCount ?? 0,
+    input.options?.expectedPlayerNames?.length ?? 0,
+  );
+
+  if (likelyScoreRowCount === 0) {
+    return true;
+  }
+
+  return expectedPlayerCount > 1 && likelyScoreRowCount === 1;
 }
 
 export async function readGameResultScreenshot(
@@ -33,15 +99,18 @@ export async function readGameResultScreenshot(
     };
   }
 
-  const endgameCropBuffer = await sharp(imageBuffer)
-    .extract({
-      height: Math.max(1, Math.floor(metadata.height * 0.1)),
-      left: Math.floor(metadata.width * 0.024),
-      top: Math.floor(metadata.height * 0.009),
-      width: Math.max(1, Math.floor(metadata.width * 0.56)),
-    })
-    .png()
-    .toBuffer();
+  const focusedEndgameCropBuffer = await extractTopCropBuffer({
+    config: FOCUSED_ENDGAME_CROP,
+    height: metadata.height,
+    imageBuffer,
+    width: metadata.width,
+  });
+  const expandedEndgameCropBuffer = await extractTopCropBuffer({
+    config: EXPANDED_ENDGAME_CROP,
+    height: metadata.height,
+    imageBuffer,
+    width: metadata.width,
+  });
   const scoreDetailsCropBuffer = await sharp(imageBuffer)
     .extract({
       height: metadata.height - Math.floor(metadata.height * 0.6),
@@ -51,26 +120,46 @@ export async function readGameResultScreenshot(
     })
     .png()
     .toBuffer();
-  const [endgameLines, endgameGlobalLines, scoreDetailsRead] = await Promise.all([
-    readEndgameScreenshot(
-      new File([endgameCropBuffer], 'game-result-endgame.png', {
-        type: 'image/png',
-      }),
-      options,
-    ),
-    readOcrTextLinesFromBuffer(endgameCropBuffer),
-    readScoreDetailsScreenshot(
-      new File([scoreDetailsCropBuffer], 'game-result-details.png', {
-        type: 'image/png',
-      }),
-    ),
-  ]);
+  const [focusedEndgameLines, endgameGlobalLines, scoreDetailsRead] =
+    await Promise.all([
+      readEndgameScreenshot(
+        new File([focusedEndgameCropBuffer], 'game-result-endgame-focused.png', {
+          type: 'image/png',
+        }),
+        options,
+      ),
+      readOcrTextLinesFromBuffer(expandedEndgameCropBuffer),
+      readScoreDetailsScreenshot(
+        new File([scoreDetailsCropBuffer], 'game-result-details.png', {
+          type: 'image/png',
+        }),
+      ),
+    ]);
+  const expandedEndgameLines = shouldRetryWithExpandedCrop({
+    endgameLines: focusedEndgameLines,
+    options,
+  })
+    ? await readEndgameScreenshot(
+        new File(
+          [expandedEndgameCropBuffer],
+          'game-result-endgame-expanded.png',
+          {
+            type: 'image/png',
+          },
+        ),
+        options,
+      )
+    : [];
   const headingLines = endgameGlobalLines.filter((line) =>
-    /^victory points?\s+breakdown after\s+\d+\s+generations?$/i.test(line),
+    ENDGAME_HEADING_PATTERN.test(line),
   );
 
   return {
-    endgameLines: buildUniqueLines([...headingLines, ...endgameLines]),
+    endgameLines: buildUniqueLines([
+      ...headingLines,
+      ...focusedEndgameLines,
+      ...expandedEndgameLines,
+    ]),
     scoreDetailsColumns: scoreDetailsRead.columns,
   };
 }
