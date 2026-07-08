@@ -2,13 +2,8 @@ import Link from 'next/link';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { AppShell } from '@/components/layout/app-shell';
 import { ProfileDashboard } from '@/features/analytics/profile-dashboard';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { getProfileAnalytics } from '@/lib/db/analytics-repo';
-import {
-  getCurrentGroupContext,
-  listCurrentUserGroups,
-  type CurrentUserGroup,
-} from '@/lib/db/group-context-repo';
+import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 
 const noGroupNavItems = [
   { href: '/profile', label: 'My Profile' },
@@ -21,14 +16,7 @@ type ProfilePageProps = {
   }>;
 };
 
-async function readSelectedGroupId(searchParams: ProfilePageProps['searchParams']) {
-  const params = searchParams ? await searchParams : {};
-  const groupId = params.groupId;
-
-  return typeof groupId === 'string' ? groupId : null;
-}
-
-export default async function ProfilePage({ searchParams }: ProfilePageProps) {
+export default async function ProfilePage(_props: ProfilePageProps = {}) {
   const context = await getCurrentGroupContext();
 
   if (!context) {
@@ -47,41 +35,18 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     );
   }
 
-  let overallProfileAnalytics = null;
   let profileAnalytics = null;
   let profileAnalyticsUnavailable = false;
-  let groupOptions: CurrentUserGroup[] = [];
-  let selectedGroupId = context.groupId;
-  let selectedGroupName = context.groupName;
 
   try {
-    groupOptions = await listCurrentUserGroups();
-    const requestedGroupId = await readSelectedGroupId(searchParams);
-    const selectedGroup =
-      groupOptions.find((group) => group.groupId === requestedGroupId) ??
-      groupOptions.find((group) => group.groupId === context.groupId) ??
-      null;
-
-    selectedGroupId = selectedGroup?.groupId ?? context.groupId;
-    selectedGroupName = selectedGroup?.groupName ?? context.groupName;
-
-    [profileAnalytics, overallProfileAnalytics] = await Promise.all([
-      getProfileAnalytics(context.userId, { groupId: selectedGroupId }),
-      getProfileAnalytics(context.userId),
-    ]);
+    profileAnalytics = await getProfileAnalytics(context.userId);
   } catch (error) {
     profileAnalyticsUnavailable = true;
     console.error('Profile analytics load failed', error);
   }
 
   return (
-    <AppShell
-      headerActions={
-        <GroupSwitcher currentGroupId={context.groupId} returnPath="/profile" />
-      }
-      title="My Profile"
-      wide
-    >
+    <AppShell title="My Profile" wide>
       {profileAnalyticsUnavailable ? (
         <ChartFrame title="Profile Analytics Unavailable">
           <p className="text-sm text-stone-300">
@@ -95,17 +60,11 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       ) : (
         <ProfileDashboard
           coverage={profileAnalytics?.coverage ?? null}
-          groupOptions={groupOptions}
           headToHeadRows={profileAnalytics?.headToHeadRows ?? []}
           linkHref="/group/players"
-          overallPerformance={overallProfileAnalytics?.performance ?? null}
           performance={profileAnalytics?.performance ?? null}
-          playerName={
-            profileAnalytics?.playerName ?? overallProfileAnalytics?.playerName ?? null
-          }
+          playerName={profileAnalytics?.playerName ?? null}
           scoreAverages={profileAnalytics?.scoreAverages ?? null}
-          selectedGroupId={selectedGroupId}
-          selectedGroupName={selectedGroupName}
           styleAgreement={profileAnalytics?.styleAgreement ?? null}
         />
       )}

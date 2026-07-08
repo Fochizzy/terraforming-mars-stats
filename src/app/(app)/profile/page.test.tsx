@@ -2,10 +2,7 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProfilePage from './page';
-import {
-  getCurrentGroupContext,
-  listCurrentUserGroups,
-} from '@/lib/db/group-context-repo';
+import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { getProfileAnalytics } from '@/lib/db/analytics-repo';
 
 const navigationMocks = vi.hoisted(() => ({
@@ -61,8 +58,6 @@ describe('ProfilePage', () => {
     vi.clearAllMocks();
     vi.mocked(getCurrentGroupContext).mockReset();
     vi.mocked(getProfileAnalytics).mockReset();
-    vi.mocked(listCurrentUserGroups).mockReset();
-    vi.mocked(listCurrentUserGroups).mockResolvedValue([]);
   });
 
   it('renders a claim prompt when the signed-in user has no group yet', async () => {
@@ -90,39 +85,39 @@ describe('ProfilePage', () => {
     ).not.toBeInTheDocument();
     expect(navigationMocks.redirect).not.toHaveBeenCalled();
     expect(getProfileAnalytics).not.toHaveBeenCalled();
-    expect(listCurrentUserGroups).not.toHaveBeenCalled();
   });
 
-  it('loads selected-group and overall profile analytics for comparison', async () => {
+  it('loads overall profile analytics without a profile group picker', async () => {
     vi.mocked(getCurrentGroupContext).mockResolvedValue({
       groupId: 'group-1',
       groupName: 'Mars Club',
       role: 'owner',
       userId: 'user-1',
     });
-    vi.mocked(listCurrentUserGroups).mockResolvedValue([
-      { groupId: 'group-1', groupName: 'Mars Club', role: 'owner' },
-      { groupId: 'group-2', groupName: 'Weeknight Mars', role: 'editor' },
-    ]);
-    vi.mocked(getProfileAnalytics)
-      .mockResolvedValueOnce({
-        coverage: null,
-        headToHeadRows: [],
-        performance: null,
+    vi.mocked(getProfileAnalytics).mockResolvedValue({
+      coverage: null,
+      headToHeadRows: [],
+      performance: {
+        averageLossGap: 2,
+        averagePlacement: 1.5,
+        averageScore: 84,
+        averageWinMargin: 5,
+        differentialComponent: 0.02,
+        gamesPlayed: 10,
+        groupId: 'linked-profile',
+        placementComponent: 0.25,
         playerId: 'player-1',
         playerName: 'Friday Mars',
-        scoreAverages: null,
-        styleAgreement: null,
-      })
-      .mockResolvedValueOnce({
-        coverage: null,
-        headToHeadRows: [],
-        performance: null,
-        playerId: 'player-1',
-        playerName: 'Friday Mars',
-        scoreAverages: null,
-        styleAgreement: null,
-      });
+        weightedScore: 0.67,
+        winRate: 0.6,
+        winRateComponent: 0.4,
+        wins: 6,
+      },
+      playerId: 'player-1',
+      playerName: 'Friday Mars',
+      scoreAverages: null,
+      styleAgreement: null,
+    });
 
     render(
       await ProfilePage({
@@ -130,11 +125,12 @@ describe('ProfilePage', () => {
       }),
     );
 
-    expect(getProfileAnalytics).toHaveBeenNthCalledWith(1, 'user-1', {
-      groupId: 'group-2',
-    });
-    expect(getProfileAnalytics).toHaveBeenNthCalledWith(2, 'user-1');
-    expect(screen.getByText(/group switcher/i)).toBeInTheDocument();
+    expect(getProfileAnalytics).toHaveBeenCalledTimes(1);
+    expect(getProfileAnalytics).toHaveBeenCalledWith('user-1');
+    expect(screen.queryByText(/group switcher/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/profile group/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/view group stats/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/10 finalized games overall/i)).toBeInTheDocument();
   });
 
   it('renders a safe fallback when loading analytics throws', async () => {
