@@ -1,6 +1,10 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type SelectionStatRow = {
+  avg_placement: number;
+  first_place_finishes: number;
+  second_place_finishes: number;
+  third_plus_finishes: number;
   avg_animal_points: number;
   avg_award_points: number;
   avg_awards_won: number;
@@ -39,11 +43,56 @@ export type CorporationTagStat = {
   tag_code: string;
 };
 
+export type AwardFundingStat = {
+  award_name: string;
+  funded_count: number;
+  funder_won_count: number;
+};
+
+export type CardWinStat = {
+  card_name: string;
+  plays: number;
+  win_rate_when_played: number;
+};
+
+export type TagWinStat = {
+  avg_tags_in_losses: number | null;
+  avg_tags_in_wins: number | null;
+  samples: number;
+  tag_code: string;
+};
+
 export type SelectionStats = {
+  awardFunding: AwardFundingStat[];
+  baselineWinRate: number;
+  cards: CardWinStat[];
   corporations: CorporationSelectionStat[];
   corporationTags: CorporationTagStat[];
   pairs: SelectionPairStat[];
   preludes: PreludeSelectionStat[];
+  tagWins: TagWinStat[];
+};
+
+export type HeadToHeadPair = {
+  avg_margin: number;
+  games: number;
+  player_a: string;
+  player_a_wins: number;
+  player_b: string;
+  player_b_wins: number;
+};
+
+export type CorporationMatchup = {
+  corporation_a: string;
+  corporation_a_wins: number;
+  corporation_b: string;
+  corporation_b_wins: number;
+  games: number;
+};
+
+export type HeadToHeadStats = {
+  corporationMatchups: CorporationMatchup[];
+  pairs: HeadToHeadPair[];
 };
 
 export type SelectionStatsScope = 'global' | 'personal';
@@ -67,9 +116,34 @@ export async function getSelectionStats(
   const payload = (data ?? {}) as Record<string, unknown>;
 
   return {
+    awardFunding: readArray(payload.awardFunding),
+    baselineWinRate:
+      typeof payload.baselineWinRate === 'number' ? payload.baselineWinRate : 0,
+    cards: readArray(payload.cards),
     corporations: readArray(payload.corporations),
     corporationTags: readArray(payload.corporationTags),
     pairs: readArray(payload.pairs),
     preludes: readArray(payload.preludes),
+    tagWins: readArray(payload.tagWins),
+  };
+}
+
+export async function getHeadToHeadStats(
+  groupId: string,
+): Promise<HeadToHeadStats> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('get_head_to_head_stats', {
+    target_group_id: groupId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const payload = (data ?? {}) as Record<string, unknown>;
+
+  return {
+    corporationMatchups: readArray(payload.corporationMatchups),
+    pairs: readArray(payload.pairs),
   };
 }

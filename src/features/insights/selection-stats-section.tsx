@@ -1,11 +1,14 @@
 import type {
   CorporationSelectionStat,
+  HeadToHeadStats,
   PreludeSelectionStat,
   SelectionStats,
 } from '@/lib/db/selection-stats-repo';
+import { SelectionOriginChart } from './selection-origin-chart';
 
 type SelectionStatsSectionProps = {
   global: SelectionStats;
+  headToHead: HeadToHeadStats;
   personal: SelectionStats;
 };
 
@@ -26,6 +29,8 @@ function SelectionStatRows(props: {
             <th className="py-1 pr-3">Name</th>
             <th className="py-1 pr-3">Plays</th>
             <th className="py-1 pr-3">Win rate</th>
+            <th className="py-1 pr-3">Avg place</th>
+            <th className="py-1 pr-3">1st/2nd/3rd+</th>
             <th className="py-1 pr-3">Avg VP</th>
             <th className="py-1 pr-3">TR</th>
             <th className="py-1 pr-3">Cards</th>
@@ -45,6 +50,11 @@ function SelectionStatRows(props: {
               </td>
               <td className="py-1 pr-3">{row.plays}</td>
               <td className="py-1 pr-3">{formatWinRate(row.win_rate)}</td>
+              <td className="py-1 pr-3">{row.avg_placement}</td>
+              <td className="py-1 pr-3">
+                {row.first_place_finishes}/{row.second_place_finishes}/
+                {row.third_plus_finishes}
+              </td>
               <td className="py-1 pr-3">{row.avg_points}</td>
               <td className="py-1 pr-3">{row.avg_tr_points}</td>
               <td className="py-1 pr-3">{row.avg_card_points}</td>
@@ -82,6 +92,32 @@ function SelectionStatsScope(props: {
         </p>
       ) : (
         <>
+          {props.stats.corporations.length > 0 ? (
+            <div>
+              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+                Where Points Come From (share of VP by corporation)
+              </h4>
+              <SelectionOriginChart
+                rows={props.stats.corporations.map((row) => ({
+                  ...row,
+                  name: row.corporation_name,
+                }))}
+              />
+            </div>
+          ) : null}
+          {props.stats.preludes.length > 0 ? (
+            <div>
+              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+                Where Points Come From (share of VP by prelude)
+              </h4>
+              <SelectionOriginChart
+                rows={props.stats.preludes.map((row) => ({
+                  ...row,
+                  name: row.prelude_name,
+                }))}
+              />
+            </div>
+          ) : null}
           {props.stats.corporations.length > 0 ? (
             <div>
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
@@ -124,6 +160,67 @@ function SelectionStatsScope(props: {
               </ul>
             </div>
           ) : null}
+          {props.stats.awardFunding.length > 0 ? (
+            <div>
+              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+                Award Funding ROI
+              </h4>
+              <ul className="flex flex-col gap-1 text-xs">
+                {props.stats.awardFunding.map((funding) => (
+                  <li key={funding.award_name}>
+                    {funding.award_name}: funded {funding.funded_count}×, funder
+                    took 1st {funding.funder_won_count}× (
+                    {funding.funded_count > 0
+                      ? Math.round(
+                          (funding.funder_won_count / funding.funded_count) * 100,
+                        )
+                      : 0}
+                    % ROI)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {props.stats.cards.length > 0 ? (
+            <div>
+              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+                Card Win Correlation (baseline win rate{' '}
+                {formatWinRate(props.stats.baselineWinRate)})
+              </h4>
+              <ul className="flex flex-col gap-1 text-xs">
+                {props.stats.cards.slice(0, 20).map((card) => (
+                  <li key={card.card_name}>
+                    {card.card_name}: {card.plays} plays,{' '}
+                    {formatWinRate(card.win_rate_when_played)} wins when played (
+                    {card.win_rate_when_played - props.stats.baselineWinRate >= 0
+                      ? '+'
+                      : ''}
+                    {Math.round(
+                      (card.win_rate_when_played - props.stats.baselineWinRate) *
+                        100,
+                    )}
+                    % vs baseline)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {props.stats.tagWins.length > 0 ? (
+            <div>
+              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+                Tags in Wins vs Losses
+              </h4>
+              <ul className="flex flex-col gap-1 text-xs">
+                {props.stats.tagWins.map((tagWin) => (
+                  <li key={tagWin.tag_code}>
+                    {tagWin.tag_code}: {tagWin.avg_tags_in_wins ?? '—'} per win
+                    vs {tagWin.avg_tags_in_losses ?? '—'} per loss (
+                    {tagWin.samples} samples)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {props.stats.corporationTags.length > 0 ? (
             <div>
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
@@ -145,13 +242,53 @@ function SelectionStatsScope(props: {
   );
 }
 
+function HeadToHeadBlock(props: { headToHead: HeadToHeadStats }) {
+  if (props.headToHead.pairs.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="tm-data-label text-xs">Head-to-Head (This Group)</h3>
+      <ul className="flex flex-col gap-1 text-xs">
+        {props.headToHead.pairs.map((pair) => (
+          <li key={`${pair.player_a}-${pair.player_b}`}>
+            {pair.player_a} vs {pair.player_b}: {pair.player_a_wins}–
+            {pair.player_b_wins} over {pair.games} games, avg margin{' '}
+            {pair.avg_margin > 0 ? '+' : ''}
+            {pair.avg_margin} VP for {pair.player_a}
+          </li>
+        ))}
+      </ul>
+      {props.headToHead.corporationMatchups.length > 0 ? (
+        <div>
+          <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+            Corporation Matchups
+          </h4>
+          <ul className="flex flex-col gap-1 text-xs">
+            {props.headToHead.corporationMatchups.slice(0, 15).map((matchup) => (
+              <li key={`${matchup.corporation_a}-${matchup.corporation_b}`}>
+                {matchup.corporation_a} vs {matchup.corporation_b}:{' '}
+                {matchup.corporation_a_wins}–{matchup.corporation_b_wins} over{' '}
+                {matchup.games} games
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function SelectionStatsSection({
   global,
+  headToHead,
   personal,
 }: SelectionStatsSectionProps) {
   return (
     <section className="tm-panel flex flex-col gap-5">
       <h2 className="tm-panel-title text-lg">Corporation &amp; Prelude Stats</h2>
+      <HeadToHeadBlock headToHead={headToHead} />
       <SelectionStatsScope heading="Your Games" stats={personal} />
       <SelectionStatsScope heading="All Recorded Games" stats={global} />
     </section>

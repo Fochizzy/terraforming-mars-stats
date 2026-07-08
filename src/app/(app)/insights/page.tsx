@@ -4,7 +4,10 @@ import { requireGroupContextOrRedirect } from '@/features/groups/require-group-c
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
 import { SelectionStatsSection } from '@/features/insights/selection-stats-section';
 import { getGroupAnalytics } from '@/lib/db/analytics-repo';
-import { getSelectionStats } from '@/lib/db/selection-stats-repo';
+import {
+  getHeadToHeadStats,
+  getSelectionStats,
+} from '@/lib/db/selection-stats-repo';
 import { listPlayers } from '@/lib/db/player-repo';
 import { listPromoCards, listPromoSets } from '@/lib/db/reference-repo';
 
@@ -17,6 +20,7 @@ export default async function InsightsPage() {
     promoCards,
     personalSelectionStats,
     globalSelectionStats,
+    headToHeadStats,
   ] = await Promise.all([
     getGroupAnalytics(context.groupId),
     listPlayers(context.groupId),
@@ -24,6 +28,7 @@ export default async function InsightsPage() {
     listPromoCards(),
     getSelectionStats('personal'),
     getSelectionStats('global'),
+    getHeadToHeadStats(context.groupId),
   ]);
 
   return (
@@ -45,6 +50,7 @@ export default async function InsightsPage() {
       />
       <SelectionStatsSection
         global={globalSelectionStats}
+        headToHead={headToHeadStats}
         personal={personalSelectionStats}
       />
     </AppShell>
