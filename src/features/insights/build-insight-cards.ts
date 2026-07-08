@@ -372,8 +372,8 @@ export function buildInsightCards({
       const globalMapRow =
         [...globalMapMetricRows].sort(
           (left, right) =>
-            right.gamesPlayed - left.gamesPlayed ||
             right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+            right.gamesPlayed - left.gamesPlayed ||
             left.mapId.localeCompare(right.mapId),
         )[0] ?? null;
 

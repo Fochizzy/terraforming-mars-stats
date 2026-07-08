@@ -197,6 +197,7 @@ export type GlobalMapMetricRow = {
   highestEfficiencyStyleCode: string | null;
   highestWinRateCorporationId: string | null;
   mapId: string;
+  mapName: string | null;
   playerCount: number;
 };
 
@@ -433,6 +434,7 @@ export type RawGlobalMapMetricRow = {
   highest_efficiency_style_code: string | null;
   highest_win_rate_corporation_id: string | null;
   map_id: string;
+  maps?: { name: string | null } | { name: string | null }[] | null;
   player_count: number | string;
 };
 
@@ -704,8 +706,11 @@ export function mapPlayerMapMetricRow(
 }
 
 export function mapGlobalMapMetricRow(row: RawGlobalMapMetricRow): GlobalMapMetricRow {
+  const mapRelation = Array.isArray(row.maps) ? row.maps[0] : row.maps;
+
   return {
     mapId: row.map_id,
+    mapName: mapRelation?.name ?? null,
     playerCount: toNumber(row.player_count),
     gamesPlayed: toNumber(row.games_played),
     averagePoints: toNumber(row.average_points),
@@ -1505,7 +1510,7 @@ const playerMapMetricSelect =
   'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, average_score_delta_vs_expected, best_score_source_on_map, best_tag_lane_on_map, games_played, group_id, map_id, map_rank_for_player, maps(name), player_id, win_rate, wins';
 
 const globalMapMetricSelect =
-  'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, best_tag_lane, expected_score_baseline, games_played, highest_efficiency_style_code, highest_win_rate_corporation_id, map_id, player_count';
+  'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, best_tag_lane, expected_score_baseline, games_played, highest_efficiency_style_code, highest_win_rate_corporation_id, map_id, maps(name), player_count';
 
 export async function listPlayerEfficiencySummariesByPlayerIds(playerIds: string[]) {
   if (playerIds.length === 0) {
