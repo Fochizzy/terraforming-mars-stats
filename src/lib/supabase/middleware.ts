@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getPublicEnv } from '@/lib/env';
+import { isUnauthenticatedAuthError } from './auth-errors';
 
 export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -29,7 +30,17 @@ export async function updateSupabaseSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  try {
+    const { error } = await supabase.auth.getUser();
+
+    if (error && !isUnauthenticatedAuthError(error)) {
+      throw error;
+    }
+  } catch (error) {
+    if (!isUnauthenticatedAuthError(error)) {
+      throw error;
+    }
+  }
 
   return response;
 }
