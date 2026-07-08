@@ -32,4 +32,23 @@ describe('Cloudflare deployment config', () => {
     expect(existsSync(path.join(repoRoot, 'wrangler.jsonc'))).toBe(true);
     expect(existsSync(path.join(repoRoot, 'open-next.config.ts'))).toBe(true);
   });
+
+  it('keeps the Cloudflare Next.js dev init hook and static asset headers', () => {
+    const nextConfig = readFileSync(
+      path.join(repoRoot, 'next.config.ts'),
+      'utf8',
+    );
+
+    expect(nextConfig).toContain('initOpenNextCloudflareForDev');
+
+    const headersFile = readFileSync(
+      path.join(repoRoot, 'public', '_headers'),
+      'utf8',
+    );
+
+    expect(headersFile).toContain('/_next/static/*');
+    expect(headersFile).toContain(
+      'Cache-Control: public,max-age=31536000,immutable',
+    );
+  });
 });

@@ -1,3 +1,7 @@
+import('@opennextjs/cloudflare').then((module) =>
+  module.initOpenNextCloudflareForDev(),
+);
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
