@@ -36,8 +36,10 @@ const nativeHarness = vi.hoisted(() => {
     },
     reset() {
       scrollHandler = null;
+      this.openURLMock.mockReset();
       this.scrollToMock.mockReset();
     },
+    openURLMock: vi.fn(),
     scrollToMock: vi.fn(),
   };
 });
@@ -48,6 +50,9 @@ vi.mock('react-native', async () => {
   return {
     Image: () => <div>banner image</div>,
     ImageBackground: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    Linking: {
+      openURL: nativeHarness.openURLMock,
+    },
     Pressable: ({
       children,
       onPress,
@@ -255,5 +260,98 @@ describe('NativeDashboardScreen', () => {
 
     expect(personalButton).toHaveAttribute('data-active', 'false');
     expect(globalButton).toHaveAttribute('data-active', 'true');
+  });
+
+  it('opens the full web Insights stats page from the hero action', async () => {
+    const user = userEvent.setup();
+
+    render(<NativeDashboardScreen dashboard={dashboardFixture} onSignOut={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /open insights/i }));
+
+    expect(nativeHarness.openURLMock).toHaveBeenCalledWith(
+      'https://terraforming-mars-stats.izzy-hodnett.workers.dev/insights',
+    );
+  });
+
+  it('switches between all groups and a specific group scope', async () => {
+    const user = userEvent.setup();
+    const scopedDashboardFixture = {
+      ...dashboardFixture,
+      scopes: [
+        {
+          global: dashboardFixture.global,
+          group: {
+            ...dashboardFixture.group,
+            summary: 'Across all groups, Izzy Hodnett has 8 finalized games.',
+          },
+          groupName: 'All Groups',
+          id: 'all',
+          individualProfiles: [
+            {
+              groupId: 'group-1',
+              groupName: 'Friday Night Mars',
+              profile: dashboardFixture.profile,
+            },
+            {
+              groupId: 'group-2',
+              groupName: 'Mars Club',
+              profile: {
+                ...dashboardFixture.profile,
+                headline: 'Izzy Hodnett',
+                subtitle: '3 finalized games in Mars Club',
+              },
+            },
+          ],
+          label: 'All Groups',
+          profile: {
+            ...dashboardFixture.profile,
+            headline: 'All Groups',
+            subtitle: '8 finalized games across 2 groups',
+          },
+        },
+        {
+          global: dashboardFixture.global,
+          group: dashboardFixture.group,
+          groupName: 'Friday Night Mars',
+          id: 'group-1',
+          label: 'Friday Night Mars',
+          profile: dashboardFixture.profile,
+        },
+        {
+          global: dashboardFixture.global,
+          group: {
+            ...dashboardFixture.group,
+            summary: 'Mars Club has the current form table.',
+          },
+          groupName: 'Mars Club',
+          id: 'group-2',
+          label: 'Mars Club',
+          profile: {
+            ...dashboardFixture.profile,
+            headline: 'Izzy Hodnett',
+            subtitle: '3 finalized games in Mars Club',
+          },
+        },
+      ],
+      selectedScopeId: 'all',
+    } as NativeDashboardData;
+
+    render(<NativeDashboardScreen dashboard={scopedDashboardFixture} onSignOut={vi.fn()} />);
+
+    const allGroupsButton = screen.getByRole('button', { name: /all groups/i });
+    const marsClubButton = screen.getByRole('button', { name: /mars club/i });
+
+    expect(allGroupsButton).toHaveAttribute('data-active', 'true');
+    expect(screen.getByText('8 finalized games across 2 groups')).toBeInTheDocument();
+    expect(screen.getAllByText('Friday Night Mars').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Mars Club').length).toBeGreaterThan(0);
+
+    await user.click(marsClubButton);
+
+    expect(allGroupsButton).toHaveAttribute('data-active', 'false');
+    expect(marsClubButton).toHaveAttribute('data-active', 'true');
+    expect(screen.queryByText('8 finalized games across 2 groups')).not.toBeInTheDocument();
+    expect(screen.getByText('3 finalized games in Mars Club')).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import {
   Image,
   ImageBackground,
+  Linking,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -19,6 +20,7 @@ import type {
   NativeDashboardData,
   NativeDashboardRecordRow,
   NativeDashboardSection,
+  NativeDashboardScope,
   NativeDashboardTrendRow,
 } from './load-native-dashboard';
 
@@ -36,6 +38,8 @@ type HeroMetric = {
 type DashboardSectionKey = 'global' | 'group' | 'profile';
 
 const sectionOrder: DashboardSectionKey[] = ['profile', 'group', 'global'];
+const webInsightsUrl =
+  'https://terraforming-mars-stats.izzy-hodnett.workers.dev/insights';
 
 const accentColors: Record<NativeDashboardAccent, string> = {
   copper: '#d97706',
@@ -314,6 +318,19 @@ function buildFallbackGlobalSection(): NativeDashboardSection {
   };
 }
 
+function buildLegacyScope(dashboard: NativeDashboardData): NativeDashboardScope {
+  const groupName = dashboard.groupName ?? 'No active group selected';
+
+  return {
+    global: dashboard.global,
+    group: dashboard.group,
+    groupName,
+    id: 'current',
+    label: groupName,
+    profile: dashboard.profile,
+  };
+}
+
 export function NativeDashboardScreen({
   dashboard,
   onSignOut,
@@ -325,11 +342,22 @@ export function NativeDashboardScreen({
     profile: 0,
   });
   const [activeSection, setActiveSection] = useState<DashboardSectionKey>('profile');
-  const profileSection = dashboard.profile ?? buildFallbackProfileSection();
-  const groupSection = dashboard.group ?? buildFallbackGroupSection();
-  const globalSection = dashboard.global ?? buildFallbackGlobalSection();
+  const availableScopes =
+    dashboard.scopes && dashboard.scopes.length > 0
+      ? dashboard.scopes
+      : [buildLegacyScope(dashboard)];
+  const [selectedScopeId, setSelectedScopeId] = useState(
+    dashboard.selectedScopeId ?? availableScopes[0]?.id ?? 'current',
+  );
+  const selectedScope =
+    availableScopes.find((scope) => scope.id === selectedScopeId) ??
+    availableScopes[0] ??
+    buildLegacyScope(dashboard);
+  const profileSection = selectedScope.profile ?? buildFallbackProfileSection();
+  const groupSection = selectedScope.group ?? buildFallbackGroupSection();
+  const globalSection = selectedScope.global ?? buildFallbackGlobalSection();
   const heroTitle = 'Command Board';
-  const heroTableName = dashboard.groupName ?? 'No active group selected';
+  const heroTableName = selectedScope.groupName;
   const heroMetrics = buildHeroMetrics(profileSection.metrics ?? []);
   const heroSummary =
     dashboard.emptyState?.body ??
@@ -377,6 +405,10 @@ export function NativeDashboardScreen({
     });
   }
 
+  function openWebInsights() {
+    void Linking.openURL(webInsightsUrl);
+  }
+
   return (
     <ImageBackground
       imageStyle={styles.pageBackgroundImage}
@@ -405,6 +437,34 @@ export function NativeDashboardScreen({
           <Text style={styles.heroTableName}>{heroTableName}</Text>
           <Text style={styles.heroTitle}>{heroTitle}</Text>
           <Text style={styles.heroSummary}>{heroSummary}</Text>
+
+          {availableScopes.length > 1 ? (
+            <View style={styles.scopeButtonRow}>
+              {availableScopes.map((scope) => {
+                const isSelected = scope.id === selectedScope.id;
+
+                return (
+                  <Pressable
+                    key={scope.id}
+                    onPress={() => setSelectedScopeId(scope.id)}
+                    style={[
+                      styles.scopeButton,
+                      isSelected ? styles.heroNavButtonActive : null,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.scopeButtonText,
+                        isSelected ? styles.heroNavButtonTextActive : null,
+                      ]}
+                    >
+                      {scope.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
 
           <View style={styles.heroMetricRow}>
             {heroMetrics.map((metric) => (
@@ -457,7 +517,7 @@ export function NativeDashboardScreen({
               style={[
                 styles.heroNavButton,
                 activeSection === 'global' ? styles.heroNavButtonActive : null,
-                !dashboard.global && activeSection !== 'global'
+                !selectedScope.global && activeSection !== 'global'
                   ? styles.heroNavButtonMuted
                   : null,
               ]}
@@ -474,6 +534,10 @@ export function NativeDashboardScreen({
               </Text>
             </Pressable>
           </View>
+
+          <Pressable onPress={openWebInsights} style={styles.insightsButton}>
+            <Text style={styles.insightsButtonText}>Open Insights</Text>
+          </Pressable>
         </View>
 
         {dashboard.emptyState ? (
@@ -507,6 +571,34 @@ export function NativeDashboardScreen({
             />
             <CoverageBadgeList badges={profileSection.coverageBadges ?? []} />
           </SectionCard>
+          {selectedScope.individualProfiles?.length ? (
+            <SectionCard title="Individual Stats">
+              {selectedScope.individualProfiles.map((profileScope, index) => (
+                <View
+                  key={profileScope.groupId}
+                  style={[
+                    styles.individualProfileBlock,
+                    index === 0 ? styles.individualProfileBlockFirst : null,
+                  ]}
+                >
+                  <Text style={styles.individualProfileGroup}>
+                    {profileScope.groupName}
+                  </Text>
+                  {profileScope.profile?.headline ? (
+                    <Text style={styles.individualProfileHeadline}>
+                      {profileScope.profile.headline}
+                    </Text>
+                  ) : null}
+                  {profileScope.profile?.subtitle ? (
+                    <Text style={styles.sectionSubtitle}>
+                      {profileScope.profile.subtitle}
+                    </Text>
+                  ) : null}
+                  <MetricGrid metrics={profileScope.profile?.metrics ?? []} />
+                </View>
+              ))}
+            </SectionCard>
+          ) : null}
         </View>
 
         <View
@@ -741,6 +833,48 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     lineHeight: 30,
   },
+  insightsButton: {
+    alignItems: 'center',
+    backgroundColor: '#fff7ed',
+    borderColor: '#fbbf24',
+    borderRadius: 18,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 52,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  insightsButtonText: {
+    color: '#27150e',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  individualProfileBlock: {
+    borderColor: 'rgba(78, 98, 122, 0.52)',
+    borderTopWidth: 1,
+    gap: 10,
+    paddingTop: 16,
+  },
+  individualProfileBlockFirst: {
+    borderTopWidth: 0,
+    paddingTop: 0,
+  },
+  individualProfileGroup: {
+    color: '#fbbf24',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  individualProfileHeadline: {
+    color: '#fff7ed',
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 26,
+  },
   metricCard: {
     backgroundColor: 'rgba(8, 15, 24, 0.88)',
     borderColor: 'rgba(77, 97, 121, 0.78)',
@@ -846,6 +980,32 @@ const styles = StyleSheet.create({
     color: '#d6dde8',
     fontSize: 15,
     lineHeight: 22,
+  },
+  scopeButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(8, 15, 24, 0.86)',
+    borderColor: 'rgba(77, 97, 121, 0.78)',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexGrow: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: '46%',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  scopeButtonRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  scopeButtonText: {
+    color: '#f8fafc',
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 15,
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
   signOutButton: {
     alignItems: 'center',

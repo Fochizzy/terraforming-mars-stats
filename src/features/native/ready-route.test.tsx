@@ -22,6 +22,9 @@ vi.mock('react-native', () => ({
   ActivityIndicator: () => <div>loading spinner</div>,
   Image: () => <div>banner image</div>,
   ImageBackground: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Linking: {
+    openURL: vi.fn(),
+  },
   Pressable: ({
     children,
     onPress,
