@@ -16,7 +16,9 @@ type ProfilePageProps = {
   }>;
 };
 
-export default async function ProfilePage(_props: ProfilePageProps = {}) {
+export default async function ProfilePage(props: ProfilePageProps) {
+  void props;
+
   const context = await getCurrentGroupContext();
 
   if (!context) {
