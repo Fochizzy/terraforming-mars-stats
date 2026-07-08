@@ -435,7 +435,13 @@ describe('WebImportPage', () => {
     expect(submittedFormData.getAll('boardScreenshots')).toEqual([]);
     expect(
       browserOcrMocks.readGameResultEndgameLinesInBrowser,
-    ).toHaveBeenCalledWith(screenshot);
+    ).toHaveBeenCalledWith(
+      screenshot,
+      expect.objectContaining({
+        expectedPlayerCount: 3,
+        expectedPlayerNames: ['Friday Mars', 'Second Seat', 'Third Seat'],
+      }),
+    );
     expect(JSON.parse(String(submittedFormData.get('clientEndgameLines')))).toEqual(
       clientEndgameLines,
     );

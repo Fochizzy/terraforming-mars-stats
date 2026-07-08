@@ -125,6 +125,13 @@ function clampPlayerCount(playerCount: number) {
   return Math.min(5, Math.max(1, playerCount));
 }
 
+function parseManualParticipantNames(participantsText: string) {
+  return participantsText
+    .split(/\r?\n/g)
+    .map((participant) => participant.trim())
+    .filter(Boolean);
+}
+
 function inferDetectedPlayerCount(review: ImportReviewModel | undefined) {
   if (!review) {
     return null;
@@ -351,7 +358,10 @@ export function WebImportPage({
       const { readGameResultEndgameLinesInBrowser } = await import(
         '@/lib/imports/read-endgame-screenshot-browser'
       );
-      const lines = await readGameResultEndgameLinesInBrowser(endgameScreenshot);
+      const lines = await readGameResultEndgameLinesInBrowser(endgameScreenshot, {
+        expectedPlayerCount: playerCount,
+        expectedPlayerNames: parseManualParticipantNames(participantsText),
+      });
 
       clientEndgameLinesCacheRef.current = {
         fileKey,
