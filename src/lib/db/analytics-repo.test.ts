@@ -178,6 +178,7 @@ describe('persisted metric mappers', () => {
       group_id: 'group-1',
       map_id: 'map-a',
       map_rank_for_player: '1',
+      maps: { name: 'Tharsis' },
       player_id: 'player-1',
       win_rate: '0.6667',
       wins: '4',
@@ -206,6 +207,7 @@ describe('persisted metric mappers', () => {
     expect(mapPlayerMapMetricRow(mapRow)).toMatchObject({
       averagePointsPerGeneration: 7.8333,
       gamesPlayed: 6,
+      mapName: 'Tharsis',
       mapRankForPlayer: 1,
     });
     expect(mapGlobalMapMetricRow(globalRow)).toMatchObject({
@@ -320,6 +322,7 @@ describe('getProfileAnalytics', () => {
           group_id: 'group-1',
           map_id: 'map-a',
           map_rank_for_player: '2',
+          maps: { name: 'Tharsis' },
           player_id: 'player-1',
           win_rate: '0.6667',
           wins: 2,
@@ -336,6 +339,7 @@ describe('getProfileAnalytics', () => {
           group_id: 'group-1',
           map_id: 'map-b',
           map_rank_for_player: '1',
+          maps: null,
           player_id: 'player-1',
           win_rate: '0.5000',
           wins: 2,
@@ -387,6 +391,7 @@ describe('getProfileAnalytics', () => {
         gamesPlayed: 4,
         groupId: 'group-1',
         mapId: 'map-b',
+        mapName: null,
         mapRankForPlayer: 1,
         playerId: 'player-1',
         winRate: 0.5,
@@ -403,6 +408,7 @@ describe('getProfileAnalytics', () => {
         gamesPlayed: 3,
         groupId: 'group-1',
         mapId: 'map-a',
+        mapName: 'Tharsis',
         mapRankForPlayer: 2,
         playerId: 'player-1',
         winRate: 0.6667,
@@ -523,6 +529,7 @@ describe('getGroupAnalytics', () => {
           group_id: 'group-1',
           map_id: 'map-a',
           map_rank_for_player: '1',
+          maps: { name: 'Tharsis' },
           player_id: 'player-1',
           win_rate: '0.6667',
           wins: '2',
@@ -603,6 +610,7 @@ describe('getGroupAnalytics', () => {
           gamesPlayed: 3,
           groupId: 'group-1',
           mapId: 'map-a',
+          mapName: 'Tharsis',
           mapRankForPlayer: 1,
           playerId: 'player-1',
           winRate: 0.6667,
@@ -628,7 +636,7 @@ describe('getGroupAnalytics', () => {
       ascending: true,
     });
     expect(playerMapQuery?.select).toHaveBeenCalledWith(
-      expect.stringContaining('map_rank_for_player'),
+      expect.stringContaining('maps(name)'),
     );
     expect(playerMapQuery?.eq).toHaveBeenCalledWith('group_id', 'group-1');
     expect(playerMapQuery?.order).toHaveBeenNthCalledWith(

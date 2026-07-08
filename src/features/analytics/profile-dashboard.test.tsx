@@ -70,6 +70,7 @@ describe('ProfileDashboard', () => {
           gamesPlayed: 3,
           groupId: 'group-1',
           mapId: 'tharsis',
+          mapName: 'Tharsis',
           mapRankForPlayer: 1,
           playerId: 'p1',
           winRate: 0.67,
@@ -128,6 +129,13 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/84\.5 avg points/i)).toBeInTheDocument();
     expect(screen.getAllByText(/science/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/awards\/milestones\/coverage/i)).toBeInTheDocument();
+    expect(screen.getByText(/award roi/i)).toBeInTheDocument();
+    expect(screen.getByText(/1\.4x/i)).toBeInTheDocument();
+    expect(screen.getByText(/tag evidence coverage/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/75%/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/milestone \/ award share/i)).toBeInTheDocument();
+    expect(screen.getByText(/7% \/ 8%/i)).toBeInTheDocument();
+    expect(screen.getByText(/1\/2 close games/i)).toBeInTheDocument();
   });
 
   it('renders an onboarding empty state when no linked player is available', () => {
