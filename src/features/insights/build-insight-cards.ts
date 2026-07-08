@@ -1,10 +1,13 @@
 import type {
   CoverageRow,
+  GlobalMapMetricRow,
   GroupHeadToHeadRow,
   GroupInteractionRow,
   GroupStylePerformanceRow,
   LeaderboardRow,
   LineupEffectRow,
+  PlayerEfficiencySummary,
+  PlayerMapMetricRow,
   StyleAgreementRow,
   TrendRow,
 } from '@/lib/db/analytics-repo';
@@ -41,6 +44,7 @@ type BuildInsightCardsInput = {
   focusPlayerId?: string | null;
   focusPlayerName?: string | null;
   headToHeadRows?: GroupHeadToHeadRow[];
+  globalMapMetricRows?: GlobalMapMetricRow[];
   interactionRows?: Array<
     GroupInteractionRow & {
       playerId?: string;
@@ -49,6 +53,8 @@ type BuildInsightCardsInput = {
   >;
   leaderboardRows?: LeaderboardRow[];
   lineupEffectRows?: LineupEffectRow[];
+  playerEfficiencySummaries?: PlayerEfficiencySummary[];
+  playerMapMetricRows?: PlayerMapMetricRow[];
   stylePerformanceRows?: Array<
     GroupStylePerformanceRow & {
       playerId?: string;
@@ -103,6 +109,22 @@ function humanizeInteractionType(interactionType: GroupInteractionRow['interacti
   }
 
   return 'map and expansion mix';
+}
+
+function getPlayerLabel(
+  playerId: string,
+  focusPlayerName: string | null,
+  leaderboardRows: LeaderboardRow[],
+) {
+  return (
+    focusPlayerName ??
+    leaderboardRows.find((row) => row.playerId === playerId)?.playerName ??
+    playerId
+  );
+}
+
+function getMapLabel(row: PlayerMapMetricRow | GlobalMapMetricRow) {
+  return 'mapName' in row && row.mapName ? row.mapName : row.mapId;
 }
 
 function getMostCommonStyle(rows: TrendRow[]) {
@@ -165,10 +187,13 @@ export function buildInsightCards({
   coverage = null,
   focusPlayerId = null,
   focusPlayerName = null,
+  globalMapMetricRows = [],
   headToHeadRows = [],
   interactionRows = [],
   leaderboardRows = [],
   lineupEffectRows = [],
+  playerEfficiencySummaries = [],
+  playerMapMetricRows = [],
   stylePerformanceRows = [],
   styleAgreementRows = [],
   trendRows = [],
@@ -296,6 +321,72 @@ export function buildInsightCards({
         ? `${focusPlayerName}'s strongest current inferred lane is ${styleLabel}, with a ${formatPercent(bestStyleRow.winRate)} win rate across ${bestStyleRow.gamesPlayed} finalized games and ${formatAverage(bestStyleRow.averageScore)} average points.`
         : `${styleLabel} is the group's strongest current inferred style, winning ${formatPercent(bestStyleRow.winRate)} of ${bestStyleRow.gamesPlayed} finalized results with ${formatAverage(bestStyleRow.averageScore)} average points.`,
     });
+  }
+
+  const efficiencyRows = focusPlayerId
+    ? playerEfficiencySummaries.filter((row) => row.playerId === focusPlayerId)
+    : playerEfficiencySummaries;
+  const efficiencyRow =
+    [...efficiencyRows].sort(
+      (left, right) =>
+        right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+        right.gamesPlayed - left.gamesPlayed ||
+        left.playerId.localeCompare(right.playerId),
+    )[0] ?? null;
+
+  if (efficiencyRow) {
+    const playerLabel = getPlayerLabel(
+      efficiencyRow.playerId,
+      focusPlayerId === efficiencyRow.playerId ? focusPlayerName : null,
+      leaderboardRows,
+    );
+
+    cards.push({
+      title: 'Efficiency Signal',
+      tone: 'performance',
+      sampleSize: efficiencyRow.gamesPlayed,
+      confidence: getConfidence(efficiencyRow.gamesPlayed),
+      body: `${playerLabel} has the strongest persisted efficiency profile at ${formatAverage(efficiencyRow.averagePointsPerGeneration)} pts/gen across ${efficiencyRow.gamesPlayed} Supabase summary games${efficiencyRow.averageExpectedScore !== null ? `, with expected baseline ${formatAverage(efficiencyRow.averageExpectedScore)}` : ''}.`,
+    });
+  } else {
+    const mapRows = focusPlayerId
+      ? playerMapMetricRows.filter((row) => row.playerId === focusPlayerId)
+      : playerMapMetricRows;
+    const mapRow =
+      [...mapRows].sort(
+        (left, right) =>
+          right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+          right.gamesPlayed - left.gamesPlayed ||
+          left.mapId.localeCompare(right.mapId),
+      )[0] ?? null;
+
+    if (mapRow) {
+      cards.push({
+        title: 'Persisted Map Edge',
+        tone: 'performance',
+        sampleSize: mapRow.gamesPlayed,
+        confidence: getConfidence(mapRow.gamesPlayed),
+        body: `${getMapLabel(mapRow)} is the strongest persisted map row at ${formatAverage(mapRow.averagePointsPerGeneration)} pts/gen across ${mapRow.gamesPlayed} Supabase summary games.`,
+      });
+    } else {
+      const globalMapRow =
+        [...globalMapMetricRows].sort(
+          (left, right) =>
+            right.gamesPlayed - left.gamesPlayed ||
+            right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+            left.mapId.localeCompare(right.mapId),
+        )[0] ?? null;
+
+      if (globalMapRow) {
+        cards.push({
+          title: 'Global Map Baseline',
+          tone: 'performance',
+          sampleSize: globalMapRow.gamesPlayed,
+          confidence: getConfidence(globalMapRow.gamesPlayed),
+          body: `${getMapLabel(globalMapRow)} leads the opted-in global map summaries at ${formatAverage(globalMapRow.averagePointsPerGeneration)} pts/gen across ${globalMapRow.gamesPlayed} games and ${globalMapRow.playerCount} players${globalMapRow.expectedScoreBaseline !== null ? `, baseline ${formatAverage(globalMapRow.expectedScoreBaseline)}` : ''}.`,
+        });
+      }
+    }
   }
 
   const relevantTrendRows = sortTrendRowsForInsights(

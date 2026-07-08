@@ -17,9 +17,12 @@ export default async function GroupPage() {
     >
       <GroupDashboard
         coverage={groupAnalytics.coverage}
+        globalMapMetricRows={groupAnalytics.globalMapMetricRows}
         headToHeadRows={groupAnalytics.headToHeadRows}
         leaderboardRows={groupAnalytics.leaderboardRows}
         lineupEffectRows={groupAnalytics.lineupEffectRows}
+        playerEfficiencySummaries={groupAnalytics.playerEfficiencySummaries}
+        playerMapMetricRows={groupAnalytics.playerMapMetricRows}
         scoreAverages={groupAnalytics.scoreAverages}
         styleAgreementRows={groupAnalytics.styleAgreementRows}
       />

@@ -70,6 +70,70 @@ describe('InsightsDashboard', () => {
               wins: 1,
             },
           ],
+          playerEfficiencySummaries: [
+            {
+              averageAwardRoi: 1.2,
+              averageExpectedScore: 82.1,
+              averageLossGap: 2.5,
+              averageNormalizedEfficiency: 1.08,
+              averagePlacement: 1.25,
+              averagePointsPerGeneration: 8.45,
+              averageScore: 84.5,
+              averageScoreDeltaVsExpected: 2.4,
+              averageWinMargin: 6.2,
+              awardScoreShare: 0.05,
+              bestScoreSource: 'Card Points',
+              bestTagLane: 'science',
+              cardScoreShare: 0.3,
+              citiesScoreShare: 0.08,
+              closeGameCount: 2,
+              closeGameWins: 1,
+              closeGameWinRate: 0.5,
+              gamesPlayed: 4,
+              greeneryScoreShare: 0.12,
+              groupId: 'group-1',
+              milestoneScoreShare: 0.04,
+              playerId: 'p1',
+              tagEvidenceCoverage: 0.75,
+              trScoreShare: 0.35,
+              winRate: 0.75,
+              wins: 3,
+            },
+          ],
+          playerMapMetricRows: [
+            {
+              averageGenerations: 10,
+              averageNormalizedEfficiency: 1.12,
+              averagePoints: 84.5,
+              averagePointsPerGeneration: 8.45,
+              averageScoreDeltaVsExpected: 3.2,
+              bestScoreSourceOnMap: 'Card Points',
+              bestTagLaneOnMap: 'science',
+              gamesPlayed: 4,
+              groupId: 'group-1',
+              mapId: 'tharsis',
+              mapName: 'Tharsis',
+              mapRankForPlayer: 1,
+              playerId: 'p1',
+              winRate: 0.75,
+              wins: 3,
+            },
+          ],
+          globalMapMetricRows: [
+            {
+              averageGenerations: 10.4,
+              averageNormalizedEfficiency: 1.02,
+              averagePoints: 82.6,
+              averagePointsPerGeneration: 7.94,
+              bestTagLane: 'building',
+              expectedScoreBaseline: 81.5,
+              gamesPlayed: 12,
+              highestEfficiencyStyleCode: 'engine_builder',
+              highestWinRateCorporationId: 'credicor',
+              mapId: 'hellas',
+              playerCount: 7,
+            },
+          ],
           lineupEffectRows: [
             {
               averageGenerationCount: 10.7,
@@ -274,6 +338,11 @@ describe('InsightsDashboard', () => {
     expect(screen.getByRole('heading', { name: /Group Score Profile/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Best Style Snapshot/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Trend Over Time/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Persisted Efficiency/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/8.45 pts\/gen/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: /Global Map Meta/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/hellas/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/persisted efficiency/i).length).toBeGreaterThan(0);
     expect(
       screen.getByRole('heading', { name: /Interaction Insights/i }),
     ).toBeInTheDocument();

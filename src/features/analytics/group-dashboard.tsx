@@ -2,12 +2,18 @@ import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import type {
   CoverageRow,
+  GlobalMapMetricRow,
   GroupHeadToHeadRow,
   LeaderboardRow,
   LineupEffectRow,
+  PlayerEfficiencySummary,
+  PlayerMapMetricRow,
   ScoreSourceAverages,
   StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
+import { EfficiencySummary } from './efficiency-summary';
+import { GlobalMetricBoard } from './global-metric-board';
+import { MapPerformanceList } from './map-performance-list';
 import { ScoreSourceList } from './score-source-list';
 
 type GroupDashboardProps = {
@@ -15,6 +21,9 @@ type GroupDashboardProps = {
   headToHeadRows?: GroupHeadToHeadRow[];
   leaderboardRows?: LeaderboardRow[];
   lineupEffectRows?: LineupEffectRow[];
+  globalMapMetricRows?: GlobalMapMetricRow[];
+  playerEfficiencySummaries?: PlayerEfficiencySummary[];
+  playerMapMetricRows?: PlayerMapMetricRow[];
   scoreAverages?: ScoreSourceAverages | null;
   styleAgreementRows?: Array<
     Pick<
@@ -39,19 +48,43 @@ function formatAverage(value: number | null) {
   }).format(value);
 }
 
+function formatPersistedMetric(value: number | null) {
+  if (value === null) {
+    return '-';
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
+function getPlayerName(playerId: string, leaderboardRows: LeaderboardRow[]) {
+  return (
+    leaderboardRows.find((row) => row.playerId === playerId)?.playerName ?? playerId
+  );
+}
+
 export function GroupDashboard({
   coverage = null,
+  globalMapMetricRows = [],
   headToHeadRows = [],
   leaderboardRows = [],
   lineupEffectRows = [],
+  playerEfficiencySummaries = [],
+  playerMapMetricRows = [],
   scoreAverages = null,
   styleAgreementRows = [],
 }: GroupDashboardProps) {
+  const topEfficiencySummary = playerEfficiencySummaries[0] ?? null;
   const hasFinalizedAnalytics =
     leaderboardRows.length > 0 ||
     headToHeadRows.length > 0 ||
     lineupEffectRows.length > 0 ||
     styleAgreementRows.length > 0 ||
+    playerEfficiencySummaries.length > 0 ||
+    playerMapMetricRows.length > 0 ||
+    globalMapMetricRows.length > 0 ||
     coverage !== null ||
     scoreAverages !== null;
 
@@ -94,6 +127,41 @@ export function GroupDashboard({
           </div>
         )}
       </ChartFrame>
+      {topEfficiencySummary ? (
+        <ChartFrame title="Persisted Efficiency">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="tm-stat-card">
+              <p className="tm-data-label">Top Player</p>
+              <p className="mt-2 text-lg font-semibold text-stone-100">
+                {getPlayerName(topEfficiencySummary.playerId, leaderboardRows)}
+              </p>
+            </div>
+            <div className="tm-stat-card">
+              <p className="tm-data-label">Points per Generation</p>
+              <p className="mt-2 text-lg font-semibold text-stone-100">
+                {formatPersistedMetric(topEfficiencySummary.averagePointsPerGeneration)} pts/gen
+              </p>
+            </div>
+            <div className="tm-stat-card">
+              <p className="tm-data-label">Expected Delta</p>
+              <p className="mt-2 text-lg font-semibold text-stone-100">
+                {formatPersistedMetric(topEfficiencySummary.averageScoreDeltaVsExpected)}
+              </p>
+            </div>
+            <div className="tm-stat-card">
+              <p className="tm-data-label">Best Lane / Source</p>
+              <p className="mt-2 text-lg font-semibold text-stone-100">
+                {topEfficiencySummary.bestTagLane ??
+                  topEfficiencySummary.bestScoreSource ??
+                  '-'}
+              </p>
+            </div>
+          </div>
+        </ChartFrame>
+      ) : null}
+      <EfficiencySummary efficiencySummary={topEfficiencySummary} />
+      <MapPerformanceList mapMetricRows={playerMapMetricRows} />
+      <GlobalMetricBoard globalMapMetricRows={globalMapMetricRows} />
       <ChartFrame title="Score Source Averages">
         <ScoreSourceList scoreAverages={scoreAverages} />
       </ChartFrame>
