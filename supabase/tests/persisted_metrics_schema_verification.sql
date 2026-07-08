@@ -281,6 +281,14 @@ actual_functions as (
       'refresh_all_metric_snapshots'
     )
 ),
+required_function_fragments(function_name, identity_arguments, required_fragment) as (
+  values
+    (
+      'refresh_game_metric_snapshots_internal',
+      'p_game_id uuid, p_require_editor boolean',
+      'coalesce(round(tag_counts.tag_count::numeric / nullif(player_tag_rollups.total_tag_count, 0), 4), 0)'
+    )
+),
 forbidden_function_fragments(function_name, identity_arguments, forbidden_fragment) as (
   values
     (
@@ -417,6 +425,15 @@ join actual_functions
  and actual_functions.identity_arguments = expected_functions.identity_arguments
 where expected_functions.required_body_fragment is not null
   and actual_functions.function_definition not like '%' || expected_functions.required_body_fragment || '%'
+
+union all
+
+select 'missing_required_function_fragment' as check_name, required_function_fragments.function_name || ':' || required_function_fragments.required_fragment as object_name
+from required_function_fragments
+join actual_functions
+  on actual_functions.function_name = required_function_fragments.function_name
+ and actual_functions.identity_arguments = required_function_fragments.identity_arguments
+where actual_functions.function_definition not like '%' || required_function_fragments.required_fragment || '%'
 
 union all
 
