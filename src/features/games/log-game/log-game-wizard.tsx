@@ -35,6 +35,7 @@ import {
   filterPreludeOptions,
   normalizeSelectedExpansionCodes,
 } from './reference-filters';
+import type { LogGamePlayerOption } from './player-picker';
 
 type GameSubmitResult = {
   status: 'success' | 'error';
@@ -56,10 +57,7 @@ type LogGameWizardProps = {
   milestoneOptions: MapMilestoneOption[];
   onFinalizeGame: (values: LogGameDraftInput) => Promise<GameSubmitResult>;
   onSaveDraft: (values: LogGameDraftInput) => Promise<GameSubmitResult>;
-  playerOptions: Array<{
-    id: string;
-    display_name: string;
-  }>;
+  playerOptions: LogGamePlayerOption[];
   preludeOptions: PreludeOption[];
   promoSetOptions: PromoSetOption[];
   styleOptions: StyleOption[];
