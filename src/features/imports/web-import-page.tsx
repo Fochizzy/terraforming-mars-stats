@@ -62,6 +62,50 @@ function getClipboardImageFile(
   return null;
 }
 
+function getDroppedGameLogFile(dataTransfer: DataTransfer | null): File | null {
+  if (!dataTransfer) {
+    return null;
+  }
+
+  for (const file of Array.from(dataTransfer.files ?? [])) {
+    if (file.type.startsWith('text/') || /\.(log|txt)$/i.test(file.name)) {
+      return file;
+    }
+  }
+
+  for (const item of Array.from(dataTransfer.items ?? [])) {
+    if (item.kind !== 'file') {
+      continue;
+    }
+
+    if (!item.type.startsWith('text/')) {
+      continue;
+    }
+
+    return item.getAsFile();
+  }
+
+  return null;
+}
+
+async function readDroppedGameLog(
+  dataTransfer: DataTransfer | null,
+): Promise<string | null> {
+  if (!dataTransfer) {
+    return null;
+  }
+
+  const droppedGameLogFile = getDroppedGameLogFile(dataTransfer);
+
+  if (droppedGameLogFile) {
+    return (await droppedGameLogFile.text()).replace(/\r\n/g, '\n');
+  }
+
+  const droppedText = dataTransfer.getData('text/plain').trim();
+
+  return droppedText ? droppedText : null;
+}
+
 function getImportErrorMessage(error: unknown) {
   if (
     error instanceof Error &&
@@ -280,6 +324,18 @@ export function WebImportPage({
     if (droppedFile) {
       attachEndgameScreenshot(droppedFile);
     }
+  }
+
+  async function handleGameLogDrop(event: React.DragEvent<HTMLElement>) {
+    event.preventDefault();
+
+    const droppedGameLog = await readDroppedGameLog(event.dataTransfer);
+
+    if (!droppedGameLog) {
+      return;
+    }
+
+    setExportedGameLog(droppedGameLog);
   }
 
   function buildCurrentFormData() {
@@ -513,8 +569,11 @@ export function WebImportPage({
         <div className="flex flex-col gap-3">
           <StepHeading step="02" title="Game Log" />
           <div
+            aria-label="Import Log File Dropzone"
             className="overflow-hidden rounded-2xl border"
             onClick={() => exportedGameLogRef.current?.focus()}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleGameLogDrop}
             style={{ borderColor: 'var(--tm-panel-border)' }}
           >
             <div
@@ -538,6 +597,10 @@ export function WebImportPage({
               value={exportedGameLog}
             />
           </div>
+          <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+            Paste the exported log text directly, or drop a `.txt` or `.log`
+            file into this panel.
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">

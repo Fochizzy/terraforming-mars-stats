@@ -176,6 +176,67 @@ describe('WebImportPage', () => {
     expect(exportedGameLog).toHaveFocus();
   });
 
+  it('loads a dropped game log file into the game log dropzone', async () => {
+    const user = userEvent.setup();
+    const droppedLog = new File(
+      ['Friday Mars played Steel Works.\nFriday Mars funded Benefactor.'],
+      'terraforming-mars-log.txt',
+      { type: 'text/plain' },
+    );
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    const exportedGameLogDropzone = screen.getByLabelText(
+      /import log file dropzone/i,
+    );
+    const exportedGameLog = screen.getByLabelText(/exported game log/i);
+
+    fireEvent.drop(exportedGameLogDropzone, {
+      dataTransfer: {
+        files: [droppedLog],
+      },
+    });
+
+    await waitFor(() =>
+      expect(exportedGameLog).toHaveValue(
+        'Friday Mars played Steel Works.\nFriday Mars funded Benefactor.',
+      ),
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0];
+
+    expect(submittedFormData.get('exportedGameLog')).toBe(
+      'Friday Mars played Steel Works.\nFriday Mars funded Benefactor.',
+    );
+  });
+
   it('focuses the game result screenshot panel and attaches a pasted screenshot there', async () => {
     const user = userEvent.setup();
     const pastedScreenshot = new File(['clipboard-image'], 'pasted-scoreboard.png', {
