@@ -365,7 +365,6 @@ export function WebImportPage({
     }
   }
 
-  async function buildCurrentFormData() {
   async function handleGameLogDrop(event: React.DragEvent<HTMLElement>) {
     event.preventDefault();
 
