@@ -36,6 +36,12 @@ const EXPANDED_ENDGAME_CROP: TopCropConfig = {
   topRatio: 0.006,
   widthRatio: 0.62,
 };
+const HEADING_ENDGAME_CROP: TopCropConfig = {
+  heightRatio: 0.08,
+  leftRatio: 0,
+  topRatio: 0,
+  widthRatio: 0.72,
+};
 
 function buildUniqueLines(lines: string[]) {
   return [...new Set(lines)];
@@ -111,6 +117,12 @@ export async function readGameResultScreenshot(
     imageBuffer,
     width: metadata.width,
   });
+  const headingEndgameCropBuffer = await extractTopCropBuffer({
+    config: HEADING_ENDGAME_CROP,
+    height: metadata.height,
+    imageBuffer,
+    width: metadata.width,
+  });
   const scoreDetailsCropBuffer = await sharp(imageBuffer)
     .extract({
       height: metadata.height - Math.floor(metadata.height * 0.6),
@@ -120,7 +132,12 @@ export async function readGameResultScreenshot(
     })
     .png()
     .toBuffer();
-  const [focusedEndgameLines, endgameGlobalLines, scoreDetailsRead] =
+  const [
+    focusedEndgameLines,
+    endgameGlobalLines,
+    endgameHeadingLines,
+    scoreDetailsRead,
+  ] =
     await Promise.all([
       readEndgameScreenshot(
         new File([focusedEndgameCropBuffer], 'game-result-endgame-focused.png', {
@@ -129,6 +146,7 @@ export async function readGameResultScreenshot(
         options,
       ),
       readOcrTextLinesFromBuffer(expandedEndgameCropBuffer),
+      readOcrTextLinesFromBuffer(headingEndgameCropBuffer),
       readScoreDetailsScreenshot(
         new File([scoreDetailsCropBuffer], 'game-result-details.png', {
           type: 'image/png',
@@ -150,8 +168,8 @@ export async function readGameResultScreenshot(
         options,
       )
     : [];
-  const headingLines = endgameGlobalLines.filter((line) =>
-    ENDGAME_HEADING_PATTERN.test(line),
+  const headingLines = [...endgameGlobalLines, ...endgameHeadingLines].filter(
+    (line) => ENDGAME_HEADING_PATTERN.test(line),
   );
 
   return {

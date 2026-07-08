@@ -146,4 +146,52 @@ describe('readGameResultScreenshot', () => {
       ]),
     );
   });
+
+  it('keeps a dedicated heading OCR pass when the expanded crop garbles the generation text', async () => {
+    mocks.cropMetadata.length = 0;
+    mocks.readEndgameScreenshot.mockReset();
+    mocks.readOcrTextLinesFromBuffer.mockReset();
+    mocks.readScoreDetailsScreenshot.mockReset();
+
+    mocks.readEndgameScreenshot.mockResolvedValue([
+      'James 59 5 15 6 8 52 145 105',
+      'Izzy 39 10 0 4 6 23 82 82',
+    ]);
+    mocks.readOcrTextLinesFromBuffer
+      .mockResolvedValueOnce([
+        "VICLOI'Y POINtS DIreakdowrl alter 1£ generauons",
+      ])
+      .mockResolvedValueOnce([
+        'Victory points breakdown after 12 generations',
+      ]);
+    mocks.readScoreDetailsScreenshot.mockResolvedValue({
+      columns: [],
+    });
+
+    const pngBuffer = await sharp({
+      create: {
+        width: 1500,
+        height: 2300,
+        channels: 3,
+        background: { r: 255, g: 255, b: 255 },
+      },
+    })
+      .png()
+      .toBuffer();
+    const file = new File([pngBuffer], 'game-result.png', { type: 'image/png' });
+
+    const result = await readGameResultScreenshot(file, {
+      expectedPlayerCount: 2,
+      expectedPlayerNames: ['James', 'Izzy'],
+    });
+
+    expect(mocks.readOcrTextLinesFromBuffer).toHaveBeenCalledTimes(2);
+    expect(result.endgameLines).toEqual(
+      expect.arrayContaining([
+        'Victory points breakdown after 12 generations',
+        'James 59 5 15 6 8 52 145 105',
+        'Izzy 39 10 0 4 6 23 82 82',
+      ]),
+    );
+  });
 });
