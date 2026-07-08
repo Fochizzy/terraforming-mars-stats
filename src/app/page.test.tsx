@@ -24,7 +24,7 @@ describe('HomePage', () => {
     });
 
     expect(heading).toBeInTheDocument();
-    expect(heading).toHaveClass('tm-display-title');
+    expect(heading).toHaveClass('sr-only');
     expect(signInLink).toBeInTheDocument();
     expect(signInLink).toHaveAttribute('href', '/login');
 
