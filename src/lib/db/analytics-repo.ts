@@ -374,7 +374,7 @@ type RawImportCoverageRow = {
   unparsed_line_count: number | string;
 };
 
-type RawPlayerEfficiencySummaryRow = {
+export type RawPlayerEfficiencySummaryRow = {
   average_award_roi: number | string;
   average_expected_score: number | string | null;
   average_loss_gap: number | string | null;
@@ -403,7 +403,7 @@ type RawPlayerEfficiencySummaryRow = {
   wins: number | string;
 };
 
-type RawPlayerMapMetricRow = {
+export type RawPlayerMapMetricRow = {
   average_generations: number | string;
   average_normalized_efficiency: number | string | null;
   average_points: number | string;
@@ -420,7 +420,7 @@ type RawPlayerMapMetricRow = {
   wins: number | string;
 };
 
-type RawGlobalMapMetricRow = {
+export type RawGlobalMapMetricRow = {
   average_generations: number | string;
   average_normalized_efficiency: number | string | null;
   average_points: number | string;
@@ -644,7 +644,7 @@ function mapImportCoverageRow(row: RawImportCoverageRow): ImportCoverageRow {
   };
 }
 
-function mapPlayerEfficiencySummary(
+export function mapPlayerEfficiencySummary(
   row: RawPlayerEfficiencySummaryRow,
 ): PlayerEfficiencySummary {
   return {
@@ -677,7 +677,9 @@ function mapPlayerEfficiencySummary(
   };
 }
 
-function mapPlayerMapMetricRow(row: RawPlayerMapMetricRow): PlayerMapMetricRow {
+export function mapPlayerMapMetricRow(
+  row: RawPlayerMapMetricRow,
+): PlayerMapMetricRow {
   return {
     groupId: row.group_id,
     playerId: row.player_id,
@@ -696,7 +698,7 @@ function mapPlayerMapMetricRow(row: RawPlayerMapMetricRow): PlayerMapMetricRow {
   };
 }
 
-function mapGlobalMapMetricRow(row: RawGlobalMapMetricRow): GlobalMapMetricRow {
+export function mapGlobalMapMetricRow(row: RawGlobalMapMetricRow): GlobalMapMetricRow {
   return {
     mapId: row.map_id,
     playerCount: toNumber(row.player_count),
@@ -1178,13 +1180,15 @@ export function sortTrendRows<T extends { playedOn: string; playerName: string }
 export function sortPlayerEfficiencySummaries<T extends {
   averagePointsPerGeneration: number;
   gamesPlayed: number;
+  groupId: string;
   playerId: string;
 }>(rows: T[]) {
   return [...rows].sort(
     (left, right) =>
       right.gamesPlayed - left.gamesPlayed ||
       right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
-      left.playerId.localeCompare(right.playerId),
+      left.playerId.localeCompare(right.playerId) ||
+      left.groupId.localeCompare(right.groupId),
   );
 }
 
@@ -1508,7 +1512,10 @@ export async function listPlayerEfficiencySummariesByPlayerIds(playerIds: string
     .from('player_metric_summaries')
     .select(playerEfficiencySummarySelect)
     .in('player_id', playerIds)
-    .order('games_played', { ascending: false });
+    .order('games_played', { ascending: false })
+    .order('average_points_per_generation', { ascending: false })
+    .order('player_id', { ascending: true })
+    .order('group_id', { ascending: true });
 
   if (error) {
     throw error;
@@ -1527,7 +1534,10 @@ export async function listGroupPlayerEfficiencySummaries(groupId: string) {
     .from('player_metric_summaries')
     .select(playerEfficiencySummarySelect)
     .eq('group_id', groupId)
-    .order('games_played', { ascending: false });
+    .order('games_played', { ascending: false })
+    .order('average_points_per_generation', { ascending: false })
+    .order('player_id', { ascending: true })
+    .order('group_id', { ascending: true });
 
   if (error) {
     throw error;
@@ -1597,6 +1607,25 @@ export async function listGlobalMapMetrics() {
   );
 }
 
+async function getProfilePersistedMetrics(playerIds: string[]) {
+  const [efficiencyResult, mapResult] = await Promise.allSettled([
+    listPlayerEfficiencySummariesByPlayerIds(playerIds),
+    listPlayerMapMetricsByPlayerIds(playerIds),
+  ]);
+
+  if (efficiencyResult.status === 'rejected' || mapResult.status === 'rejected') {
+    return {
+      efficiencyRows: [],
+      mapMetricRows: [],
+    };
+  }
+
+  return {
+    efficiencyRows: efficiencyResult.value,
+    mapMetricRows: mapResult.value,
+  };
+}
+
 export async function getProfileAnalytics(groupId: string, userId: string) {
   const linkedPlayer = await getLinkedPlayer(groupId, userId);
 
@@ -1607,10 +1636,8 @@ export async function getProfileAnalytics(groupId: string, userId: string) {
   const linkedPlayers = [linkedPlayer];
   const supabase = await createSupabaseServerClient();
   const linkedPlayerIds = linkedPlayers.map((player) => player.id);
-  const [efficiencyRows, mapMetricRows] = await Promise.all([
-    listPlayerEfficiencySummariesByPlayerIds(linkedPlayerIds),
-    listPlayerMapMetricsByPlayerIds(linkedPlayerIds),
-  ]);
+  const { efficiencyRows, mapMetricRows } =
+    await getProfilePersistedMetrics(linkedPlayerIds);
   const { data: ownRows, error: ownRowsError } = await getAnalyticsClient(supabase)
     .from('player_game_results')
     .select(
