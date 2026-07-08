@@ -186,6 +186,46 @@ expected_functions(
 ) as (
   values
     (
+      'metric_timing_bucket',
+      'p_generation_number integer, p_generation_count integer',
+      false,
+      true,
+      true,
+      true,
+      true,
+      'then ''early'''
+    ),
+    (
+      'metric_normalized_label',
+      'p_label text',
+      false,
+      true,
+      true,
+      true,
+      true,
+      'regexp_replace'
+    ),
+    (
+      'rebuild_metric_summaries',
+      '',
+      true,
+      false,
+      false,
+      false,
+      false,
+      'global_analytics_enabled = true'
+    ),
+    (
+      'refresh_game_metric_snapshots_internal',
+      'p_game_id uuid, p_require_editor boolean',
+      true,
+      false,
+      false,
+      false,
+      false,
+      'public.can_edit_game(p_game_id)'
+    ),
+    (
       'refresh_game_metric_snapshots',
       'p_game_id uuid',
       true,
@@ -217,6 +257,10 @@ actual_functions as (
   join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public'
     and p.proname in (
+      'metric_timing_bucket',
+      'metric_normalized_label',
+      'rebuild_metric_summaries',
+      'refresh_game_metric_snapshots_internal',
       'refresh_game_metric_snapshots',
       'refresh_all_metric_snapshots'
     )
