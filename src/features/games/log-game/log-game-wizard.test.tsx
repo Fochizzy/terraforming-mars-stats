@@ -8,6 +8,82 @@ import {
 import { LogGameWizard } from './log-game-wizard';
 
 describe('LogGameWizard', () => {
+  it('hides draft-save actions when editing a finalized game', async () => {
+    const user = userEvent.setup();
+    const onFinalizeGame = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      gameId: 'game-final',
+      message: 'Game updated.',
+    });
+    const onSaveDraft = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      gameId: 'game-final',
+      message: 'Draft saved.',
+    });
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[]}
+        expansionOptions={[{ id: 'e1', code: 'base', name: 'Base Game' }]}
+        initialStatus="finalized"
+        initialValues={{
+          awardClaims: {},
+          gameId: 'game-final',
+          generationCount: 10,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          mapId: 'tharsis',
+          milestoneClaims: {},
+          notes: '',
+          playedOn: '2026-07-03',
+          playerCount: 1,
+          playerScores: {
+            p1: {
+              awardPoints: 0,
+              cardPointsTotal: 0,
+              citiesPoints: 0,
+              finalMegacredits: 0,
+              greeneryPoints: 0,
+              milestonePoints: 0,
+              totalPoints: 0,
+              trPoints: 0,
+            },
+          },
+          playerSelections: {
+            p1: {
+              corporationId: 'corp1',
+              preludeIds: [],
+            },
+          },
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: ['p1'],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={onFinalizeGame}
+        onSaveDraft={onSaveDraft}
+        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+        preludeOptions={[]}
+        promoSetOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /save draft setup/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /save finalized changes/i }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /save finalized changes/i }));
+
+    await waitFor(() => expect(onFinalizeGame).toHaveBeenCalledTimes(1));
+    expect(onSaveDraft).not.toHaveBeenCalled();
+  });
   it('shows first name and username in the player picker list and lets the user choose a first-name-plus-initial match', async () => {
     const user = userEvent.setup();
     const playerOptions = [

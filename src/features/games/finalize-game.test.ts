@@ -104,6 +104,55 @@ describe('buildGameReview', () => {
     );
     expect(review.coverage.playersWithCardBreakdown).toBe(1);
   });
+
+  it('flags milestone and award references that no longer point at selected players', () => {
+    const review = buildGameReview({
+      awardClaims: {
+        award1: {
+          firstPlaceWinnerPlayerIds: ['removed-player'],
+          funded: true,
+          fundedByPlayerId: 'removed-player',
+          secondPlaceWinnerPlayerIds: ['removed-player'],
+        },
+      },
+      mapAwardIds: ['award1'],
+      mapMilestoneIds: ['milestone1'],
+      milestoneClaims: {
+        milestone1: {
+          claimed: true,
+          winnerPlayerId: 'removed-player',
+        },
+      },
+      playerCount: 1,
+      playerScores: {
+        kept: {
+          awardPoints: 0,
+          cardPointsTotal: 0,
+          citiesPoints: 0,
+          finalMegacredits: 0,
+          greeneryPoints: 0,
+          milestonePoints: 0,
+          totalPoints: 0,
+          trPoints: 0,
+        },
+      },
+      playerSelections: {
+        kept: {
+          corporationId: 'corp-1',
+          preludeIds: [],
+        },
+      },
+      selectedPlayerIds: ['kept'],
+    });
+
+    expect(review.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        'missing_milestone_winner',
+        'missing_award_funder',
+        'missing_award_first_place',
+      ]),
+    );
+  });
 });
 
 describe('buildFinalizedGamePayload', () => {

@@ -2,6 +2,56 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { FinalizedGamePayload } from '@/features/games/finalize-game';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
 
+type SavedGameStatus = 'draft' | 'finalized';
+
+type SavedGameRow = {
+  id: string;
+  player_count: number;
+  played_on: string;
+  status: SavedGameStatus;
+  updated_at: string;
+};
+
+type GameRevisionRow = {
+  created_at: string;
+  game_id: string;
+  snapshot: unknown;
+};
+
+type PlayerNameRow = {
+  display_name: string;
+  id: string;
+};
+
+function extractSelectedPlayerIds(snapshot: unknown) {
+  if (
+    snapshot &&
+    typeof snapshot === 'object' &&
+    'selectedPlayerIds' in snapshot &&
+    Array.isArray(snapshot.selectedPlayerIds)
+  ) {
+    return snapshot.selectedPlayerIds.filter(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    );
+  }
+
+  return [];
+}
+
+export type SavedGameFormResult = {
+  form: LogGameDraftInput;
+  status: SavedGameStatus;
+};
+
+export type SavedGameListItem = {
+  gameId: string;
+  status: SavedGameStatus;
+  playedOn: string;
+  updatedAt: string;
+  playerCount: number;
+  playerNames: string[];
+};
+
 async function resolveExpansionIds(codes: string[]) {
   if (codes.length === 0) {
     return [];
@@ -230,20 +280,32 @@ export async function getDraftGameForm(payload: {
   gameId: string;
   groupId: string;
 }): Promise<LogGameDraftInput | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data: draftGame, error: draftGameError } = await supabase
-    .from('games')
-    .select('id')
-    .eq('id', payload.gameId)
-    .eq('group_id', payload.groupId)
-    .eq('status', 'draft')
-    .maybeSingle();
+  const savedGame = await getSavedGameForm(payload);
 
-  if (draftGameError) {
-    throw draftGameError;
+  if (!savedGame || savedGame.status !== 'draft') {
+    return null;
   }
 
-  if (!draftGame) {
+  return savedGame.form;
+}
+
+export async function getSavedGameForm(payload: {
+  gameId: string;
+  groupId: string;
+}): Promise<SavedGameFormResult | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data: savedGame, error: savedGameError } = await supabase
+    .from('games')
+    .select('id, status')
+    .eq('id', payload.gameId)
+    .eq('group_id', payload.groupId)
+    .maybeSingle();
+
+  if (savedGameError) {
+    throw savedGameError;
+  }
+
+  if (!savedGame) {
     return null;
   }
 
@@ -263,7 +325,83 @@ export async function getDraftGameForm(payload: {
     return null;
   }
 
-  return logGameDraftSchema.parse(latestRevision.snapshot);
+  return {
+    form: logGameDraftSchema.parse(latestRevision.snapshot),
+    status: savedGame.status as SavedGameStatus,
+  };
+}
+
+export async function listSavedGames(payload: {
+  groupId: string;
+  limit?: number;
+}): Promise<SavedGameListItem[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data: games, error: gamesError } = await supabase
+    .from('games')
+    .select('id, player_count, played_on, status, updated_at')
+    .eq('group_id', payload.groupId)
+    .order('updated_at', { ascending: false })
+    .limit(payload.limit ?? 12);
+
+  if (gamesError) {
+    throw gamesError;
+  }
+
+  const savedGames = (games ?? []) as SavedGameRow[];
+
+  if (savedGames.length === 0) {
+    return [];
+  }
+
+  const gameIds = savedGames.map((game) => game.id);
+  const { data: revisions, error: revisionsError } = await supabase
+    .from('game_revisions')
+    .select('created_at, game_id, snapshot')
+    .in('game_id', gameIds)
+    .order('created_at', { ascending: false });
+
+  if (revisionsError) {
+    throw revisionsError;
+  }
+
+  const { data: players, error: playersError } = await supabase
+    .from('players')
+    .select('id, display_name')
+    .eq('group_id', payload.groupId);
+
+  if (playersError) {
+    throw playersError;
+  }
+
+  const latestRevisionByGameId = new Map<string, GameRevisionRow>();
+
+  for (const revision of ((revisions ?? []) as GameRevisionRow[])) {
+    if (!latestRevisionByGameId.has(revision.game_id)) {
+      latestRevisionByGameId.set(revision.game_id, revision);
+    }
+  }
+
+  const playerNameById = new Map(
+    ((players ?? []) as PlayerNameRow[]).map((player) => [player.id, player.display_name]),
+  );
+
+  return savedGames.map((game) => {
+    const revision = latestRevisionByGameId.get(game.id);
+    const selectedPlayerIds = revision
+      ? extractSelectedPlayerIds(revision.snapshot)
+      : [];
+
+    return {
+      gameId: game.id,
+      playerCount: game.player_count,
+      playerNames: selectedPlayerIds.map(
+        (playerId) => playerNameById.get(playerId) ?? playerId,
+      ),
+      playedOn: game.played_on,
+      status: game.status,
+      updatedAt: game.updated_at,
+    };
+  });
 }
 
 export async function finalizeGameLog(payload: {
