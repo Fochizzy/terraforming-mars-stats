@@ -1,4 +1,4 @@
-create table public.game_player_metric_snapshots (
+create table if not exists public.game_player_metric_snapshots (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete cascade,
   game_player_id uuid not null references public.game_players(id) on delete cascade,
@@ -40,7 +40,7 @@ create table public.game_player_metric_snapshots (
   unique (game_player_id)
 );
 
-create table public.game_log_tag_summaries (
+create table if not exists public.game_log_tag_summaries (
   id uuid primary key default gen_random_uuid(),
   game_log_import_id uuid not null references public.game_log_imports(id) on delete cascade,
   game_player_id uuid references public.game_players(id) on delete set null,
@@ -68,7 +68,10 @@ create table public.game_log_tag_summaries (
       'microbe',
       'animal',
       'city',
-      'event'
+      'event',
+      'venus',
+      'wild',
+      'moon'
     )
   ),
   check (tag_count >= 0),
@@ -79,7 +82,50 @@ create table public.game_log_tag_summaries (
   check (tag_evidence_coverage >= 0 and tag_evidence_coverage <= 1)
 );
 
-create table public.game_player_tag_metric_snapshots (
+alter table public.game_log_tag_summaries
+  add column if not exists game_player_id uuid references public.game_players(id) on delete set null;
+
+alter table public.game_log_tag_summaries
+  add column if not exists tag_evidence_coverage numeric(12, 4) not null default 0;
+
+alter table public.game_log_tag_summaries
+  drop constraint if exists game_log_tag_summaries_tag_code_check;
+
+alter table public.game_log_tag_summaries
+  add constraint game_log_tag_summaries_tag_code_check check (
+    tag_code in (
+      'building',
+      'space',
+      'power',
+      'science',
+      'jovian',
+      'earth',
+      'plant',
+      'microbe',
+      'animal',
+      'city',
+      'event',
+      'venus',
+      'wild',
+      'moon'
+    )
+  );
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'game_log_tag_summaries_tag_evidence_coverage_check'
+      and conrelid = 'public.game_log_tag_summaries'::regclass
+  ) then
+    alter table public.game_log_tag_summaries
+      add constraint game_log_tag_summaries_tag_evidence_coverage_check
+      check (tag_evidence_coverage >= 0 and tag_evidence_coverage <= 1);
+  end if;
+end $$;
+
+create table if not exists public.game_player_tag_metric_snapshots (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete cascade,
   game_player_id uuid not null references public.game_players(id) on delete cascade,
@@ -102,7 +148,7 @@ create table public.game_player_tag_metric_snapshots (
   unique (game_player_id, tag_code)
 );
 
-create table public.game_milestone_metric_snapshots (
+create table if not exists public.game_milestone_metric_snapshots (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete cascade,
   game_milestone_id uuid not null references public.game_milestones(id) on delete cascade,
@@ -124,7 +170,7 @@ create table public.game_milestone_metric_snapshots (
   unique (game_milestone_id)
 );
 
-create table public.game_award_metric_snapshots (
+create table if not exists public.game_award_metric_snapshots (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete cascade,
   game_award_id uuid not null references public.game_awards(id) on delete cascade,
@@ -156,7 +202,7 @@ create table public.game_award_metric_snapshots (
   unique (game_award_id)
 );
 
-create table public.player_metric_summaries (
+create table if not exists public.player_metric_summaries (
   group_id uuid not null references public.groups(id) on delete cascade,
   player_id uuid not null references public.players(id) on delete cascade,
   games_played integer not null default 0,
@@ -195,7 +241,7 @@ create table public.player_metric_summaries (
   primary key (group_id, player_id)
 );
 
-create table public.player_map_metric_summaries (
+create table if not exists public.player_map_metric_summaries (
   group_id uuid not null references public.groups(id) on delete cascade,
   player_id uuid not null references public.players(id) on delete cascade,
   map_id uuid not null references public.maps(id) on delete cascade,
@@ -215,7 +261,7 @@ create table public.player_map_metric_summaries (
   primary key (group_id, player_id, map_id)
 );
 
-create table public.global_map_metric_summaries (
+create table if not exists public.global_map_metric_summaries (
   map_id uuid not null references public.maps(id) on delete cascade,
   player_count integer not null default 0 check (player_count between 0 and 5),
   games_played integer not null default 0,
@@ -232,7 +278,7 @@ create table public.global_map_metric_summaries (
   primary key (map_id, player_count)
 );
 
-create table public.global_corporation_metric_summaries (
+create table if not exists public.global_corporation_metric_summaries (
   id uuid primary key default gen_random_uuid(),
   corporation_id uuid not null references public.corporations(id) on delete cascade,
   map_id uuid references public.maps(id) on delete cascade,
@@ -247,7 +293,7 @@ create table public.global_corporation_metric_summaries (
   updated_at timestamptz not null default now()
 );
 
-create table public.global_style_metric_summaries (
+create table if not exists public.global_style_metric_summaries (
   id uuid primary key default gen_random_uuid(),
   style_code text not null,
   map_id uuid references public.maps(id) on delete cascade,
@@ -262,7 +308,7 @@ create table public.global_style_metric_summaries (
   updated_at timestamptz not null default now()
 );
 
-create table public.global_tag_metric_summaries (
+create table if not exists public.global_tag_metric_summaries (
   id uuid primary key default gen_random_uuid(),
   tag_code text not null,
   map_id uuid references public.maps(id) on delete cascade,
@@ -278,7 +324,7 @@ create table public.global_tag_metric_summaries (
   updated_at timestamptz not null default now()
 );
 
-create table public.global_milestone_metric_summaries (
+create table if not exists public.global_milestone_metric_summaries (
   id uuid primary key default gen_random_uuid(),
   milestone_id uuid not null references public.milestones(id) on delete cascade,
   map_id uuid references public.maps(id) on delete cascade,
@@ -292,7 +338,7 @@ create table public.global_milestone_metric_summaries (
   updated_at timestamptz not null default now()
 );
 
-create table public.global_award_metric_summaries (
+create table if not exists public.global_award_metric_summaries (
   id uuid primary key default gen_random_uuid(),
   award_id uuid not null references public.awards(id) on delete cascade,
   map_id uuid references public.maps(id) on delete cascade,
@@ -309,42 +355,42 @@ create table public.global_award_metric_summaries (
   updated_at timestamptz not null default now()
 );
 
-create unique index global_corporation_metric_summaries_unique
+create unique index if not exists global_corporation_metric_summaries_unique
 on public.global_corporation_metric_summaries (
   corporation_id,
   coalesce(map_id, '00000000-0000-0000-0000-000000000000'::uuid),
   player_count
 );
 
-create unique index global_style_metric_summaries_unique
+create unique index if not exists global_style_metric_summaries_unique
 on public.global_style_metric_summaries (
   style_code,
   coalesce(map_id, '00000000-0000-0000-0000-000000000000'::uuid),
   player_count
 );
 
-create unique index global_tag_metric_summaries_unique
+create unique index if not exists global_tag_metric_summaries_unique
 on public.global_tag_metric_summaries (
   tag_code,
   coalesce(map_id, '00000000-0000-0000-0000-000000000000'::uuid),
   player_count
 );
 
-create unique index global_milestone_metric_summaries_unique
+create unique index if not exists global_milestone_metric_summaries_unique
 on public.global_milestone_metric_summaries (
   milestone_id,
   coalesce(map_id, '00000000-0000-0000-0000-000000000000'::uuid),
   player_count
 );
 
-create unique index global_award_metric_summaries_unique
+create unique index if not exists global_award_metric_summaries_unique
 on public.global_award_metric_summaries (
   award_id,
   coalesce(map_id, '00000000-0000-0000-0000-000000000000'::uuid),
   player_count
 );
 
-create table public.global_player_count_metric_summaries (
+create table if not exists public.global_player_count_metric_summaries (
   player_count integer primary key check (player_count between 1 and 5),
   games_played integer not null default 0,
   average_points numeric(12, 4) not null default 0,
@@ -355,7 +401,7 @@ create table public.global_player_count_metric_summaries (
   updated_at timestamptz not null default now()
 );
 
-create table public.global_generation_metric_summaries (
+create table if not exists public.global_generation_metric_summaries (
   generation_count integer primary key check (generation_count > 0),
   games_played integer not null default 0,
   average_points numeric(12, 4) not null default 0,
@@ -365,46 +411,46 @@ create table public.global_generation_metric_summaries (
   updated_at timestamptz not null default now()
 );
 
-create index game_player_metric_snapshots_group_player_idx
+create index if not exists game_player_metric_snapshots_group_player_idx
 on public.game_player_metric_snapshots (group_id, player_id);
 
-create index game_player_metric_snapshots_game_idx
+create index if not exists game_player_metric_snapshots_game_idx
 on public.game_player_metric_snapshots (game_id);
 
-create index game_player_metric_snapshots_map_idx
+create index if not exists game_player_metric_snapshots_map_idx
 on public.game_player_metric_snapshots (map_id, player_count, generation_count);
 
-create index game_player_metric_snapshots_corporation_idx
+create index if not exists game_player_metric_snapshots_corporation_idx
 on public.game_player_metric_snapshots (corporation_id);
 
-create index game_log_tag_summaries_import_player_idx
+create index if not exists game_log_tag_summaries_import_player_idx
 on public.game_log_tag_summaries (
   game_log_import_id,
   normalized_player_name
 );
 
-create index game_log_tag_summaries_game_player_idx
+create index if not exists game_log_tag_summaries_game_player_idx
 on public.game_log_tag_summaries (game_player_id);
 
-create index game_player_tag_metric_snapshots_group_tag_idx
+create index if not exists game_player_tag_metric_snapshots_group_tag_idx
 on public.game_player_tag_metric_snapshots (group_id, tag_code);
 
-create index game_player_tag_metric_snapshots_game_idx
+create index if not exists game_player_tag_metric_snapshots_game_idx
 on public.game_player_tag_metric_snapshots (game_id);
 
-create index game_milestone_metric_snapshots_group_milestone_idx
+create index if not exists game_milestone_metric_snapshots_group_milestone_idx
 on public.game_milestone_metric_snapshots (group_id, milestone_id);
 
-create index game_milestone_metric_snapshots_game_idx
+create index if not exists game_milestone_metric_snapshots_game_idx
 on public.game_milestone_metric_snapshots (game_id);
 
-create index game_award_metric_snapshots_group_award_idx
+create index if not exists game_award_metric_snapshots_group_award_idx
 on public.game_award_metric_snapshots (group_id, award_id);
 
-create index game_award_metric_snapshots_game_idx
+create index if not exists game_award_metric_snapshots_game_idx
 on public.game_award_metric_snapshots (game_id);
 
-create index player_map_metric_summaries_group_player_idx
+create index if not exists player_map_metric_summaries_group_player_idx
 on public.player_map_metric_summaries (group_id, player_id);
 
 alter table public.game_player_metric_snapshots enable row level security;
@@ -422,6 +468,23 @@ alter table public.global_milestone_metric_summaries enable row level security;
 alter table public.global_award_metric_summaries enable row level security;
 alter table public.global_player_count_metric_summaries enable row level security;
 alter table public.global_generation_metric_summaries enable row level security;
+
+drop policy if exists "members read game player metric snapshots" on public.game_player_metric_snapshots;
+drop policy if exists "members read game log tag summaries" on public.game_log_tag_summaries;
+drop policy if exists "editors manage game log tag summaries" on public.game_log_tag_summaries;
+drop policy if exists "members read tag metric snapshots" on public.game_player_tag_metric_snapshots;
+drop policy if exists "members read milestone metric snapshots" on public.game_milestone_metric_snapshots;
+drop policy if exists "members read award metric snapshots" on public.game_award_metric_snapshots;
+drop policy if exists "members read player metric summaries" on public.player_metric_summaries;
+drop policy if exists "members read player map metric summaries" on public.player_map_metric_summaries;
+drop policy if exists "authenticated users read global corporation metrics" on public.global_corporation_metric_summaries;
+drop policy if exists "authenticated users read global style metrics" on public.global_style_metric_summaries;
+drop policy if exists "authenticated users read global tag metrics" on public.global_tag_metric_summaries;
+drop policy if exists "authenticated users read global map metrics" on public.global_map_metric_summaries;
+drop policy if exists "authenticated users read global milestone metrics" on public.global_milestone_metric_summaries;
+drop policy if exists "authenticated users read global award metrics" on public.global_award_metric_summaries;
+drop policy if exists "authenticated users read global player count metrics" on public.global_player_count_metric_summaries;
+drop policy if exists "authenticated users read global generation metrics" on public.global_generation_metric_summaries;
 
 create policy "members read game player metric snapshots"
 on public.game_player_metric_snapshots for select

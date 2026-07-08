@@ -27,6 +27,7 @@ cloudflare-env.d.ts
 .DS_Store
 *.pem
 .npm-cache/
+supabase/.temp/
 
 # debug
 npm-debug.log*
