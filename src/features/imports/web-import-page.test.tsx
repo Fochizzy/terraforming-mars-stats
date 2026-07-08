@@ -145,6 +145,43 @@ describe('WebImportPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('places the player list below both import upload sections', () => {
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={vi.fn()}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    const gameLogHeading = screen.getByRole('heading', { name: /game log/i });
+    const screenshotHeading = screen.getByRole('heading', {
+      name: /game result screenshot/i,
+    });
+    const participantsHeading = screen.getByRole('heading', {
+      name: /participants/i,
+    });
+
+    expect(
+      gameLogHeading.compareDocumentPosition(participantsHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screenshotHeading.compareDocumentPosition(participantsHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('focuses the exported game log textarea when the game log panel is clicked', async () => {
     const user = userEvent.setup();
 

@@ -673,27 +673,8 @@ export function WebImportPage({
           </p>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <StepHeading step="03" title="Participants (Optional)" />
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="sr-only">Participants</span>
-            <textarea
-              aria-label="Participants"
-              className="tm-input min-h-24"
-              onChange={(event) => setParticipantsText(event.target.value)}
-              placeholder="Leave blank to detect names from the pasted log, or enter one name per line."
-              value={participantsText}
-            />
-            <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-              Leave this blank to auto-detect names from the pasted log when
-              possible, or enter one participant name per line to override the
-              detected list.
-            </p>
-          </label>
-        </div>
-
         <div className="flex flex-col gap-3">
-          <StepHeading step="04" title="Game Result Screenshot" />
+          <StepHeading step="03" title="Game Result Screenshot" />
           <div
             aria-label="Paste Target for Game Result Screenshot"
             className="relative rounded-2xl border border-dashed px-4 py-6 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[rgba(214,135,66,0.45)]"
@@ -747,6 +728,25 @@ export function WebImportPage({
               </p>
             ) : null}
           </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <StepHeading step="04" title="Participants (Optional)" />
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="sr-only">Participants</span>
+            <textarea
+              aria-label="Participants"
+              className="tm-input min-h-24"
+              onChange={(event) => setParticipantsText(event.target.value)}
+              placeholder="Leave blank to detect names from the pasted log, or enter one name per line."
+              value={participantsText}
+            />
+            <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+              Leave this blank to auto-detect names from the pasted log when
+              possible, or enter one participant name per line to override the
+              detected list.
+            </p>
+          </label>
         </div>
 
         {feedback.message ? (
