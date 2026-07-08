@@ -12,7 +12,11 @@ import { submitUsernameAuth } from './submit-username-auth';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
-export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string }) {
+export function LoginForm({
+  nextPath = '/log-game/import-single',
+}: {
+  nextPath?: string;
+}) {
   const [email, setEmail] = useState('');
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [fullName, setFullName] = useState('');
