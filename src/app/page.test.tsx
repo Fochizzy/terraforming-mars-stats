@@ -2,8 +2,18 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import HomePage from './page';
 
+const sectionNames = [
+  'Overview',
+  'Corporations',
+  'Cards',
+  'Projects',
+  'Milestones',
+  'Stats',
+  'Tools',
+] as const;
+
 describe('HomePage', () => {
-  it('renders the Terraforming Mars stats CTA', () => {
+  it('renders the hero CTA and homepage anchor navigation', () => {
     render(<HomePage />);
 
     const heading = screen.getByRole('heading', {
@@ -16,6 +26,19 @@ describe('HomePage', () => {
     expect(heading).toBeInTheDocument();
     expect(heading).toHaveClass('tm-display-title');
     expect(signInLink).toBeInTheDocument();
-    expect(signInLink).toHaveClass('tm-button-primary');
+    expect(signInLink).toHaveAttribute('href', '/login');
+
+    for (const sectionName of sectionNames) {
+      const anchor = screen.getByRole('link', { name: sectionName });
+      const sectionHeading = screen.getByRole('heading', {
+        name: sectionName,
+      });
+
+      expect(anchor).toHaveAttribute(
+        'href',
+        `#${sectionName.toLowerCase()}`,
+      );
+      expect(sectionHeading).toBeInTheDocument();
+    }
   });
 });
