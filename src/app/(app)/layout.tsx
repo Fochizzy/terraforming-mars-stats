@@ -1,15 +1,21 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { isUnauthenticatedAuthError } from '@/lib/supabase/auth-errors';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export default async function ProtectedLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const cookieStore = await cookies();
-  const hasSupabaseAuthCookie = cookieStore
-    .getAll()
-    .some((cookie) => cookie.name.startsWith('sb-'));
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  if (!hasSupabaseAuthCookie) {
+  if (error && !isUnauthenticatedAuthError(error)) {
+    throw error;
+  }
+
+  if (!user) {
     redirect('/login');
   }
 

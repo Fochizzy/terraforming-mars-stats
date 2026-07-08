@@ -6,7 +6,7 @@ const homepageSections = [
     id: 'overview',
     title: 'Overview',
     description:
-      "Track finished games, expansion mixes, maps, winners, and your group's shifting meta in one place.",
+      "Track finished games, maps, winners, and your group's shifting meta in one place.",
     highlights: ['Finished games', 'Player rosters', 'Meta snapshots'],
   },
   {

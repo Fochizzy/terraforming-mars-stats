@@ -15,17 +15,11 @@ export type CurrentUserGroup = {
   role: 'owner' | 'editor' | 'viewer';
 };
 
-function getJoinedGroupName(value: unknown) {
-  if (!value || typeof value !== 'object') {
-    return '';
-  }
-
-  if ('name' in value && typeof value.name === 'string') {
-    return value.name;
-  }
-
-  return '';
-}
+type CurrentUserGroupRow = {
+  group_id: string;
+  group_name: string;
+  role: CurrentUserGroup['role'];
+};
 
 export async function listCurrentUserGroups(): Promise<CurrentUserGroup[]> {
   const supabase = await createSupabaseServerClient();
@@ -42,19 +36,17 @@ export async function listCurrentUserGroups(): Promise<CurrentUserGroup[]> {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from('group_members')
-    .select('group_id, role, groups(name)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true });
+  const { data, error } = await supabase.rpc(
+    'sync_current_user_played_group_memberships',
+  );
 
   if (error) {
     throw error;
   }
 
-  return (data ?? []).map((membership) => ({
+  return ((data ?? []) as CurrentUserGroupRow[]).map((membership) => ({
     groupId: membership.group_id,
-    groupName: getJoinedGroupName(membership.groups),
+    groupName: membership.group_name,
     role: membership.role,
   }));
 }

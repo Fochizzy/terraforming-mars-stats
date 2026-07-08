@@ -11,6 +11,51 @@ describe('getCurrentGroupContext', () => {
     vi.clearAllMocks();
   });
 
+  it('syncs groups with linked played profiles before listing memberships', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        {
+          group_id: 'group-1',
+          group_name: 'Mars Club',
+          role: 'editor',
+        },
+        {
+          group_id: 'group-2',
+          group_name: 'Second Table',
+          role: 'viewer',
+        },
+      ],
+      error: null,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1' } },
+          error: null,
+        }),
+      },
+      rpc,
+    } as never);
+
+    await expect(listCurrentUserGroups()).resolves.toEqual([
+      {
+        groupId: 'group-1',
+        groupName: 'Mars Club',
+        role: 'editor',
+      },
+      {
+        groupId: 'group-2',
+        groupName: 'Second Table',
+        role: 'viewer',
+      },
+    ]);
+
+    expect(rpc).toHaveBeenCalledWith(
+      'sync_current_user_played_group_memberships',
+    );
+  });
+
   it('prefers the user profile last active group when it matches a membership', async () => {
     const profileQuery = {
       select: vi.fn().mockReturnThis(),
@@ -20,22 +65,16 @@ describe('getCurrentGroupContext', () => {
         error: null,
       }),
     };
-    const membershipQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      then: undefined,
-    };
-    membershipQuery.order.mockResolvedValue({
+    const rpc = vi.fn().mockResolvedValue({
       data: [
         {
           group_id: 'group-1',
-          groups: { name: 'First Group' },
+          group_name: 'First Group',
           role: 'viewer',
         },
         {
           group_id: 'group-2',
-          groups: { name: 'Second Group' },
+          group_name: 'Second Group',
           role: 'editor',
         },
       ],
@@ -54,12 +93,9 @@ describe('getCurrentGroupContext', () => {
           return profileQuery;
         }
 
-        if (table === 'group_members') {
-          return membershipQuery;
-        }
-
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc,
     } as never);
 
     await expect(getCurrentGroupContext()).resolves.toEqual({
@@ -79,22 +115,16 @@ describe('getCurrentGroupContext', () => {
         error: null,
       }),
     };
-    const membershipQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      then: undefined,
-    };
-    membershipQuery.order.mockResolvedValue({
+    const rpc = vi.fn().mockResolvedValue({
       data: [
         {
           group_id: 'group-1',
-          groups: { name: 'First Group' },
+          group_name: 'First Group',
           role: 'owner',
         },
         {
           group_id: 'group-2',
-          groups: { name: 'Second Group' },
+          group_name: 'Second Group',
           role: 'editor',
         },
       ],
@@ -113,12 +143,9 @@ describe('getCurrentGroupContext', () => {
           return profileQuery;
         }
 
-        if (table === 'group_members') {
-          return membershipQuery;
-        }
-
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc,
     } as never);
 
     await expect(getCurrentGroupContext()).resolves.toEqual({

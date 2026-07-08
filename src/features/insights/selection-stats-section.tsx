@@ -181,30 +181,6 @@ function SelectionStatsScope(props: {
               </ul>
             </div>
           ) : null}
-          {props.stats.cards.length > 0 ? (
-            <div>
-              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                Card Win Correlation (baseline win rate{' '}
-                {formatWinRate(props.stats.baselineWinRate)})
-              </h4>
-              <ul className="flex flex-col gap-1 text-xs">
-                {props.stats.cards.slice(0, 20).map((card) => (
-                  <li key={card.card_name}>
-                    {card.card_name}: {card.plays} plays,{' '}
-                    {formatWinRate(card.win_rate_when_played)} wins when played (
-                    {card.win_rate_when_played - props.stats.baselineWinRate >= 0
-                      ? '+'
-                      : ''}
-                    {Math.round(
-                      (card.win_rate_when_played - props.stats.baselineWinRate) *
-                        100,
-                    )}
-                    % vs baseline)
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
           {props.stats.tagWins.length > 0 ? (
             <div>
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
