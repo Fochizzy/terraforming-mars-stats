@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCatalogCardPatch,
+  buildMissingSelectionReferenceRows,
   mapTfmRecordToCatalogSource,
   type CatalogCardRow,
 } from './sync-card-tags';
@@ -78,6 +79,98 @@ describe('mapTfmRecordToCatalogSource', () => {
       expansionCode: 'ares',
       victoryPointsKind: 'dynamic',
     });
+  });
+});
+
+describe('buildMissingSelectionReferenceRows', () => {
+  const sources = [
+    mapTfmRecordToCatalogSource(
+      sourceRecord({
+        category: 'corporationCards',
+        module: 'Community',
+        name: 'Project Workshop',
+        cardNumber: 'R45',
+        victoryPoints: { kind: 'none' },
+      }),
+    )!,
+    mapTfmRecordToCatalogSource(
+      sourceRecord({
+        category: 'corporationCards',
+        module: 'Base',
+        name: 'Tharsis Republic',
+        victoryPoints: { kind: 'none' },
+      }),
+    )!,
+    mapTfmRecordToCatalogSource(
+      sourceRecord({
+        category: 'corporationCards',
+        module: 'Automa',
+        name: 'Tharsis Bot',
+        victoryPoints: { kind: 'none' },
+      }),
+    )!,
+    mapTfmRecordToCatalogSource(
+      sourceRecord({
+        category: 'preludeCards',
+        module: 'Prelude',
+        name: 'Allied Banks',
+        cardNumber: 'P01',
+        victoryPoints: { kind: 'none' },
+      }),
+    )!,
+    mapTfmRecordToCatalogSource(
+      sourceRecord({
+        category: 'preludeCards',
+        module: 'Moon',
+        name: 'First Lunar Settlement',
+        cardNumber: 'MP1',
+        victoryPoints: { kind: 'none' },
+      }),
+    )!,
+  ];
+
+  it('seeds corporations that are missing from the reference table', () => {
+    expect(
+      buildMissingSelectionReferenceRows({
+        existingNames: ['Tharsis Republic'],
+        kind: 'Corporation',
+        sources,
+      }),
+    ).toEqual([
+      {
+        code: 'community:project-workshop',
+        expansion_code: 'community',
+        name: 'Project Workshop',
+        required_expansion_codes: ['community'],
+      },
+    ]);
+  });
+
+  it('skips automa bot corporations', () => {
+    const rows = buildMissingSelectionReferenceRows({
+      existingNames: [],
+      kind: 'Corporation',
+      sources,
+    });
+
+    expect(rows.map((row) => row.name)).not.toContain('Tharsis Bot');
+  });
+
+  it('treats aliased catalog names as already present', () => {
+    expect(
+      buildMissingSelectionReferenceRows({
+        existingNames: ['Allied Bank'],
+        kind: 'Prelude',
+        sources,
+      }),
+    ).toEqual([
+      {
+        code: 'moon:first-lunar-settlement',
+        expansion_code: 'moon',
+        name: 'First Lunar Settlement',
+        required_expansion_codes: ['moon'],
+      },
+    ]);
   });
 });
 

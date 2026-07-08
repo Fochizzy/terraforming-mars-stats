@@ -148,6 +148,45 @@ export function buildCatalogCardPatch(
   return Object.keys(patch).length > 0 ? patch : null;
 }
 
+export type SelectionReferenceRow = {
+  code: string;
+  expansion_code: string;
+  name: string;
+  required_expansion_codes: string[];
+};
+
+export function buildMissingSelectionReferenceRows(input: {
+  existingNames: string[];
+  kind: 'Corporation' | 'Prelude';
+  sources: TfmCatalogSource[];
+}): SelectionReferenceRow[] {
+  // Existing rows may use catalog spellings that differ from the source
+  // bundle (e.g. "Allied Bank" vs "Allied Banks"), so compare through the
+  // same alias map the card sync uses to avoid seeding duplicates.
+  const existingNames = new Set(
+    input.existingNames.map((name) => {
+      const normalizedName = normalizeCardName(name);
+      return CATALOG_NAME_ALIASES[normalizedName] ?? normalizedName;
+    }),
+  );
+
+  return input.sources
+    .filter(
+      (source) =>
+        source.cardType === input.kind &&
+        // Automa bot mats are not selectable player corporations.
+        source.expansionCode !== 'automa' &&
+        !existingNames.has(normalizeCardName(source.cardName)),
+    )
+    .map((source) => ({
+      code: `${source.expansionCode}:${slugifyName(source.cardName)}`,
+      expansion_code: source.expansionCode,
+      name: source.cardName,
+      required_expansion_codes:
+        source.expansionCode === 'promo' ? [] : [source.expansionCode],
+    }));
+}
+
 async function loadBundleSource(useCachedSnapshot: boolean) {
   const snapshotPath = path.resolve(TFM_CARD_TAGS_SNAPSHOT_PATH);
 
@@ -226,6 +265,38 @@ async function main() {
   if (error) {
     throw error;
   }
+
+  const [
+    { data: corporationNameRows, error: corporationNamesError },
+    { data: preludeNameRows, error: preludeNamesError },
+  ] = await Promise.all([
+    supabase.from('corporations').select('name'),
+    supabase.from('preludes').select('name'),
+  ]);
+
+  if (corporationNamesError) {
+    throw corporationNamesError;
+  }
+
+  if (preludeNamesError) {
+    throw preludeNamesError;
+  }
+
+  const bundleSources = [...sourceByKey.values()];
+  const corporationReferenceInserts = buildMissingSelectionReferenceRows({
+    existingNames: ((corporationNameRows ?? []) as Array<{ name: string }>).map(
+      (row) => row.name,
+    ),
+    kind: 'Corporation',
+    sources: bundleSources,
+  });
+  const preludeReferenceInserts = buildMissingSelectionReferenceRows({
+    existingNames: ((preludeNameRows ?? []) as Array<{ name: string }>).map(
+      (row) => row.name,
+    ),
+    kind: 'Prelude',
+    sources: bundleSources,
+  });
 
   const catalogRows = (data ?? []) as unknown as CatalogCardRow[];
   const matchedSourceKeys = new Set<string>();
@@ -313,6 +384,26 @@ async function main() {
         throw insertError;
       }
     }
+
+    if (corporationReferenceInserts.length > 0) {
+      const { error: corporationInsertError } = await supabase
+        .from('corporations')
+        .upsert(corporationReferenceInserts, { onConflict: 'code' });
+
+      if (corporationInsertError) {
+        throw corporationInsertError;
+      }
+    }
+
+    if (preludeReferenceInserts.length > 0) {
+      const { error: preludeInsertError } = await supabase
+        .from('preludes')
+        .upsert(preludeReferenceInserts, { onConflict: 'code' });
+
+      if (preludeInsertError) {
+        throw preludeInsertError;
+      }
+    }
   }
 
   console.log(
@@ -328,6 +419,14 @@ async function main() {
         })),
         newCardsInserted: inserts.length,
         insertedCards: inserts.map((insert) => insert.card_name),
+        newCorporationOptionsInserted: corporationReferenceInserts.length,
+        insertedCorporationOptions: corporationReferenceInserts.map(
+          (insert) => insert.name,
+        ),
+        newPreludeOptionsInserted: preludeReferenceInserts.length,
+        insertedPreludeOptions: preludeReferenceInserts.map(
+          (insert) => insert.name,
+        ),
         unsupportedSourceCardsSkipped: skippedUnsupportedSourceCards,
         ambiguousCatalogCards,
         catalogCardsWithoutSourceMatch: unmatchedCatalogCards,
