@@ -97,12 +97,17 @@ function average(values: number[]) {
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
-function humanizeInteractionType(interactionType: GroupInteractionRow['interactionType']) {
-  if (interactionType === 'corporation_prelude_pair') {
-    return 'corporation and prelude pairing';
-  }
+function humanizeInteractionType() {
+  return 'corporation and prelude pairing';
+}
 
-  return 'map and expansion mix';
+function isSupportedInteractionRow(
+  row: GroupInteractionRow & {
+    playerId?: string;
+    playerName?: string;
+  },
+) {
+  return row.interactionType === 'corporation_prelude_pair';
 }
 
 function getMostCommonStyle(rows: TrendRow[]) {
@@ -242,7 +247,7 @@ export function buildInsightCards({
     });
   }
 
-  const interactionRow = [...interactionRows].sort(
+  const interactionRow = interactionRows.filter(isSupportedInteractionRow).sort(
     (left, right) =>
       right.winRate - left.winRate ||
       right.gamesPlayed - left.gamesPlayed ||
@@ -251,7 +256,7 @@ export function buildInsightCards({
   )[0];
 
   if (interactionRow) {
-    const interactionLabel = humanizeInteractionType(interactionRow.interactionType);
+    const interactionLabel = humanizeInteractionType();
     cards.push({
       title: 'Interaction Edge',
       tone: 'interaction',

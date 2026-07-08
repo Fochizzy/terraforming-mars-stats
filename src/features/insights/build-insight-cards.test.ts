@@ -2,6 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { buildInsightCards } from './build-insight-cards';
 
 describe('buildInsightCards', () => {
+  it('does not create insight cards from map and expansion mix interactions', () => {
+    const cards = buildInsightCards({
+      interactionRows: [
+        {
+          averagePlacement: 1.5,
+          averageScore: 88.2,
+          gamesPlayed: 4,
+          groupId: 'group-1',
+          interactionType: 'map_expansion_mix',
+          label: 'Hellas | Prelude',
+          winRate: 0.75,
+        },
+      ],
+    } as never);
+
+    expect(cards).toEqual([]);
+  });
+
   it('builds focused player insights from finalized analytics', () => {
     const cards = buildInsightCards({
       coverage: {
@@ -71,8 +89,8 @@ describe('buildInsightCards', () => {
           averageScore: 88.2,
           gamesPlayed: 4,
           groupId: 'group-1',
-          interactionType: 'map_expansion_mix',
-          label: 'Hellas | Prelude',
+          interactionType: 'corporation_prelude_pair',
+          label: 'Tharsis Republic | Allied Bank',
           winRate: 0.75,
         },
       ],
@@ -159,7 +177,7 @@ describe('buildInsightCards', () => {
     expect(cards[0].body).toMatch(/75%/);
     expect(cards[1].body).toMatch(/Second Seat/);
     expect(cards[2].body).toMatch(/Second Seat, Third Seat/);
-    expect(cards[3].body).toMatch(/Hellas \| Prelude/);
+    expect(cards[3].body).toMatch(/Tharsis Republic \| Allied Bank/);
     expect(cards[4].body).toMatch(/50%/);
     expect(cards[5].body).toMatch(/Jovian payoff/i);
     expect(cards[6].body).toMatch(/recent/i);

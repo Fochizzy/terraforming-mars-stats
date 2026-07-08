@@ -52,12 +52,14 @@ export type PlayerStylePerformanceRow = GroupStylePerformanceRow & {
   playerName: string;
 };
 
+type AnalyticsInteractionType = 'corporation_prelude_pair';
+
 export type GroupInteractionRow = {
   averagePlacement: number;
   averageScore: number;
   gamesPlayed: number;
   groupId: string;
-  interactionType: 'corporation_prelude_pair' | 'map_expansion_mix';
+  interactionType: AnalyticsInteractionType;
   label: string;
   winRate: number;
   wins: number;
@@ -252,7 +254,7 @@ type RawGroupInteractionRow = {
   average_score: number | string;
   games_played: number;
   group_id: string;
-  interaction_type: 'corporation_prelude_pair' | 'map_expansion_mix';
+  interaction_type: AnalyticsInteractionType | 'map_expansion_mix';
   label: string;
   win_rate: number | string;
   wins: number;
@@ -529,7 +531,19 @@ function mapPlayerStylePerformanceRow(
   };
 }
 
-function mapGroupInteractionRow(row: RawGroupInteractionRow): GroupInteractionRow {
+function isAnalyticsInteractionType(
+  interactionType: RawGroupInteractionRow['interaction_type'],
+): interactionType is AnalyticsInteractionType {
+  return interactionType === 'corporation_prelude_pair';
+}
+
+function mapGroupInteractionRow(
+  row: RawGroupInteractionRow,
+): GroupInteractionRow | null {
+  if (!isAnalyticsInteractionType(row.interaction_type)) {
+    return null;
+  }
+
   return {
     groupId: row.group_id,
     interactionType: row.interaction_type,
@@ -544,12 +558,22 @@ function mapGroupInteractionRow(row: RawGroupInteractionRow): GroupInteractionRo
 
 function mapPlayerInteractionRow(
   row: RawPlayerInteractionRow,
-): PlayerInteractionRow {
+): PlayerInteractionRow | null {
+  const groupInteraction = mapGroupInteractionRow(row);
+
+  if (!groupInteraction) {
+    return null;
+  }
+
   return {
-    ...mapGroupInteractionRow(row),
+    ...groupInteraction,
     playerId: row.player_id,
     playerName: row.player_name,
   };
+}
+
+function compactRows<T>(rows: Array<T | null>) {
+  return rows.filter((row): row is T => row !== null);
 }
 
 function mapLineupEffectRow(row: RawLineupEffectRow): LineupEffectRow {
@@ -1197,7 +1221,7 @@ export async function listGroupInteractions(groupId: string) {
   }
 
   return sortInteractionRows(
-    (data as RawGroupInteractionRow[]).map(mapGroupInteractionRow),
+    compactRows((data as RawGroupInteractionRow[]).map(mapGroupInteractionRow)),
   );
 }
 
@@ -1213,7 +1237,7 @@ export async function listPlayerInteractions(groupId: string) {
   }
 
   return sortInteractionRows(
-    (data as RawPlayerInteractionRow[]).map(mapPlayerInteractionRow),
+    compactRows((data as RawPlayerInteractionRow[]).map(mapPlayerInteractionRow)),
   );
 }
 

@@ -22,7 +22,6 @@ import {
   chartTooltipStyle,
 } from '@/components/charts/chart-theme';
 import { SelectChevron } from '@/components/ui/select-chevron';
-import { PromoSetBrowser } from '@/features/catalog/promo-set-browser';
 import type {
   GroupAnalytics,
   GroupHeadToHeadRow,
@@ -30,7 +29,6 @@ import type {
   GroupStylePerformanceRow,
   TrendRow,
 } from '@/lib/db/analytics-repo';
-import type { PromoCardOption, PromoSetOption } from '@/lib/db/reference-repo';
 import { buildInsightCards } from './build-insight-cards';
 
 type PlayerOption = {
@@ -41,8 +39,6 @@ type PlayerOption = {
 type InsightsDashboardProps = {
   analytics: GroupAnalytics;
   players: PlayerOption[];
-  promoCards: PromoCardOption[];
-  promoSets: PromoSetOption[];
 };
 
 type FocusedHeadToHeadRow = {
@@ -114,14 +110,12 @@ function humanizeStyleCode(styleCode: string | null) {
     .join(' ');
 }
 
-function humanizeInteractionType(
-  interactionType: GroupInteractionRow['interactionType'],
-) {
-  if (interactionType === 'corporation_prelude_pair') {
-    return 'Corporation + Prelude';
-  }
+function humanizeInteractionType() {
+  return 'Corporation + Prelude';
+}
 
-  return 'Map + Expansions';
+function isSupportedDashboardInteractionRow(row: DashboardInteractionRow) {
+  return row.interactionType === 'corporation_prelude_pair';
 }
 
 function buildScoreSourceEntries(scoreAverages: ScoreSourceShape) {
@@ -268,8 +262,6 @@ function normalizeHeadToHeadRows(
 export function InsightsDashboard({
   analytics,
   players,
-  promoCards,
-  promoSets,
 }: InsightsDashboardProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('all');
 
@@ -299,9 +291,13 @@ export function InsightsDashboard({
   const selectedLineupRows = selectedPlayer
     ? analytics.lineupEffectRows.filter((row) => row.playerId === selectedPlayer.id)
     : analytics.lineupEffectRows.slice(0, 6);
-  const selectedInteractionRows: DashboardInteractionRow[] = selectedPlayer
-    ? analytics.playerInteractionRows.filter((row) => row.playerId === selectedPlayer.id)
-    : analytics.groupInteractionRows.slice(0, 6);
+  const selectedInteractionRows: DashboardInteractionRow[] = (
+    selectedPlayer
+      ? analytics.playerInteractionRows.filter((row) => row.playerId === selectedPlayer.id)
+      : analytics.groupInteractionRows
+  )
+    .filter(isSupportedDashboardInteractionRow)
+    .slice(0, 6);
   const focusedHeadToHeadRows = useMemo(
     () =>
       normalizeHeadToHeadRows(
@@ -382,8 +378,7 @@ export function InsightsDashboard({
   const hasAnalytics =
     analytics.leaderboardRows.length > 0 ||
     analytics.headToHeadRows.length > 0 ||
-    analytics.groupInteractionRows.length > 0 ||
-    analytics.playerInteractionRows.length > 0 ||
+    selectedInteractionRows.length > 0 ||
     analytics.lineupEffectRows.length > 0 ||
     analytics.styleAgreementRows.length > 0 ||
     analytics.scoreAverages !== null ||
@@ -425,7 +420,7 @@ export function InsightsDashboard({
           <p className="tm-body-copy text-sm">
             Compare weighted leaderboard form, score-source patterns, style
             agreement, head-to-head edges, lineup effects, interaction pairings,
-            and promo catalog references from finalized games only.
+            and coverage signals from finalized games only.
           </p>
         </div>
       </ChartFrame>
@@ -717,13 +712,8 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
-          <ChartFrame title="Interaction Insights">
-            {selectedInteractionRows.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Interaction comparisons will appear after enough finalized games
-                link maps, expansions, corporations, and preludes.
-              </p>
-            ) : (
+          {selectedInteractionRows.length > 0 ? (
+            <ChartFrame title="Interaction Insights">
               <div className="grid gap-3">
                 {selectedInteractionRows.map((row) => (
                   <article
@@ -737,15 +727,15 @@ export function InsightsDashboard({
                       </p>
                     </div>
                     <p className="tm-muted-copy mt-2 text-sm">
-                      {humanizeInteractionType(row.interactionType)} | {row.gamesPlayed}{' '}
-                      results | avg {formatAverage(row.averageScore)} points | avg place{' '}
+                      {humanizeInteractionType()} | {row.gamesPlayed} results | avg{' '}
+                      {formatAverage(row.averageScore)} points | avg place{' '}
                       {formatAverage(row.averagePlacement)}
                     </p>
                   </article>
                 ))}
               </div>
-            )}
-          </ChartFrame>
+            </ChartFrame>
+          ) : null}
 
           <ChartFrame
             title={
@@ -816,12 +806,10 @@ export function InsightsDashboard({
         <ChartFrame title="Insights Waiting on Finalized Games">
           <p className="tm-body-copy text-sm">
             Finalize a few games to unlock leaderboard, style, lineup, and
-            coverage insights. The promo catalog is ready below either way.
+            coverage insights.
           </p>
         </ChartFrame>
       )}
-
-      <PromoSetBrowser cards={promoCards} promoSets={promoSets} />
     </div>
   );
 }

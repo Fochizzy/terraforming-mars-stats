@@ -4,6 +4,46 @@ import { describe, expect, it } from 'vitest';
 import { InsightsDashboard } from './insights-dashboard';
 
 describe('InsightsDashboard', () => {
+  it('does not surface promo catalog or map expansion interactions as stats', () => {
+    render(
+      <InsightsDashboard
+        analytics={{
+          coverage: null,
+          groupInteractionRows: [
+            {
+              averagePlacement: 1.4,
+              averageScore: 89.4,
+              gamesPlayed: 5,
+              groupId: 'group-1',
+              interactionType: 'map_expansion_mix',
+              label: 'Hellas | Prelude',
+              winRate: 0.8,
+            },
+          ],
+          groupStylePerformanceRows: [],
+          headToHeadRows: [],
+          importCoverageRows: [],
+          leaderboardRows: [],
+          lineupEffectRows: [],
+          playerCoverages: [],
+          playerInteractionRows: [],
+          playerScoreAverages: [],
+          playerStylePerformanceRows: [],
+          playerTrendRows: [],
+          scoreAverages: null,
+          styleAgreementRows: [],
+        } as never}
+        players={[]}
+      />,
+    );
+
+    expect(screen.queryByText(/promo catalog/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /Interaction Insights/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Hellas \| Prelude/i)).not.toBeInTheDocument();
+  });
+
   it('lets the user focus comparisons on a selected player', async () => {
     const user = userEvent.setup();
 
@@ -100,8 +140,8 @@ describe('InsightsDashboard', () => {
               averageScore: 89.4,
               gamesPlayed: 5,
               groupId: 'group-1',
-              interactionType: 'map_expansion_mix',
-              label: 'Hellas | Prelude',
+              interactionType: 'corporation_prelude_pair',
+              label: 'Tharsis Republic | Allied Bank',
               winRate: 0.8,
             },
           ],
@@ -265,8 +305,6 @@ describe('InsightsDashboard', () => {
           { displayName: 'Friday Mars', id: 'p1' },
           { displayName: 'Second Seat', id: 'p2' },
         ]}
-        promoCards={[]}
-        promoSets={[]}
       />,
     );
 
@@ -277,7 +315,9 @@ describe('InsightsDashboard', () => {
     expect(
       screen.getByRole('heading', { name: /Interaction Insights/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Hellas \| Prelude/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Tharsis Republic \| Allied Bank/i }),
+    ).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/player focus/i), 'p2');
 

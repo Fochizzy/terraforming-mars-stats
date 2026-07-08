@@ -171,6 +171,8 @@ describe('InsightsPage', () => {
       { displayName: 'Friday Mars', id: 'player-self' },
       { displayName: 'Second Seat', id: 'player-rival' },
     ]);
+    expect(mockState.listPromoCards).not.toHaveBeenCalled();
+    expect(mockState.listPromoSets).not.toHaveBeenCalled();
     expect(screen.queryByText('Third Seat')).not.toBeInTheDocument();
     expect(screen.queryByText('Fourth Seat')).not.toBeInTheDocument();
   });

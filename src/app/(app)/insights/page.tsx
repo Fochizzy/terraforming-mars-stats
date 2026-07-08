@@ -10,7 +10,6 @@ import {
   getSelectionStats,
 } from '@/lib/db/selection-stats-repo';
 import { listPlayers } from '@/lib/db/player-repo';
-import { listPromoCards, listPromoSets } from '@/lib/db/reference-repo';
 
 type InsightPlayerOption = {
   displayName: string;
@@ -63,16 +62,12 @@ export default async function InsightsPage() {
   const [
     analytics,
     players,
-    promoSets,
-    promoCards,
     personalSelectionStats,
     globalSelectionStats,
     headToHeadStats,
   ] = await Promise.all([
     getGroupAnalytics(context.groupId),
     listPlayers(context.groupId),
-    listPromoSets(),
-    listPromoCards(),
     getSelectionStats('personal'),
     getSelectionStats('global'),
     getHeadToHeadStats(context.groupId),
@@ -94,8 +89,6 @@ export default async function InsightsPage() {
       <InsightsDashboard
         analytics={analytics}
         players={selectablePlayers}
-        promoCards={promoCards}
-        promoSets={promoSets}
       />
       <SelectionStatsSection
         global={globalSelectionStats}
