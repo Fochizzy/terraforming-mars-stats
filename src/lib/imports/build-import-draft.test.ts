@@ -235,6 +235,41 @@ describe('buildImportDraft', () => {
     });
   });
 
+  it('drops negative screenshot score readings as OCR noise instead of failing draft validation', () => {
+    const playerScores = buildImportDraft({
+      defaultExpansionCodes: ['base'],
+      defaultPromoSetSlugs: [],
+      groupId: '11111111-1111-4111-8111-111111111111',
+      importValues: {
+        endgameScreenshotName: 'endgame.png',
+        exportedGameLog: 'Izzy played Earth Catapult',
+        generationCount: 11,
+        mapId: 'tharsis',
+        participantNames: ['Izzy'],
+        playedOn: '2026-07-04',
+        playerCount: 1,
+      },
+      playerSelections: [{ importedName: 'Izzy', playerId: 'player-1' }],
+      scoreCandidates: [
+        {
+          cardPointsAnimals: 2,
+          cardPointsMicrobes: -4,
+          playerName: 'Izzy',
+          totalPoints: 62,
+          trPoints: 18,
+        },
+      ],
+      selectedPlayerIds: ['player-1'],
+    }).playerScores;
+
+    expect(playerScores['player-1']).toMatchObject({
+      cardPointsAnimals: 2,
+      totalPoints: 62,
+      trPoints: 18,
+    });
+    expect(playerScores['player-1']?.cardPointsMicrobes).toBeUndefined();
+  });
+
   it('uses complete calculated card scoring when imported evidence can justify final card totals', () => {
     expect(
       buildImportDraft({

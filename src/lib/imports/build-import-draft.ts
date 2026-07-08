@@ -42,7 +42,10 @@ export type CreateImportDraftInput = Omit<ImportDraftValues, 'generationCount'> 
 };
 
 function hasFiniteScoreValue(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
+  // Every merged score field (VP categories, TR, milestones, awards, final
+  // megacredits) is physically non-negative, so a negative reading is OCR or
+  // parse noise: drop it so the merge falls back to better evidence.
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
 function mergeCrossCheckedScoreValue(input: {

@@ -13,6 +13,9 @@ describe('referenceDimensions', () => {
       'turmoil',
       'promo',
       'automa',
+      'ares',
+      'community',
+      'moon',
     ]);
 
     expect(referenceDimensions.maps.map((entry) => entry.code)).toEqual([
