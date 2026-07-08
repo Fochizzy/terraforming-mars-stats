@@ -10,39 +10,142 @@ import {
   type TfmCardTagRecord,
 } from './extract-tfm-card-tags';
 
-const CATEGORY_TO_CARD_TYPE: Record<string, string> = {
+export const CATEGORY_TO_CARD_TYPE: Record<string, string> = {
   corporationCards: 'Corporation',
   preludeCards: 'Prelude',
   projectCards: 'Project',
 };
 
-const MODULE_TO_EXPANSION: Record<string, { code: string; name: string }> = {
-  base: { code: 'base', name: 'Base' },
+export const MODULE_TO_EXPANSION: Record<string, { code: string; name: string }> = {
+  ares: { code: 'ares', name: 'Ares' },
+  automa: { code: 'automa', name: 'Automa' },
+  base: { code: 'base', name: 'Base Game' },
+  community: { code: 'community', name: 'Community' },
   'corp era': { code: 'corporate_era', name: 'Corporate Era' },
   colonies: { code: 'colonies', name: 'Colonies' },
+  moon: { code: 'moon', name: 'Moon' },
   prelude: { code: 'prelude', name: 'Prelude' },
   'prelude 2': { code: 'prelude_2', name: 'Prelude 2' },
-  promo: { code: 'promo', name: 'Promo' },
+  promo: { code: 'promo', name: 'Promo Cards' },
   turmoil: { code: 'turmoil', name: 'Turmoil' },
   venus: { code: 'venus_next', name: 'Venus Next' },
 };
 
-type CatalogCardRow = {
+export type CatalogCardRow = {
   card_name: string;
+  card_number: string;
   card_type: string;
+  expansion_code: string;
+  expansion_name: string;
   gameplay_tags: string[] | null;
   id: string;
+  printed_victory_points: number | null;
+  victory_points_kind: string | null;
+};
+
+export type TfmCatalogSource = {
+  cardName: string;
+  cardNumber: string;
+  cardType: string;
+  expansionCode: string;
+  expansionName: string;
+  gameplayTags: string[];
+  printedVictoryPoints: number | null;
+  record: TfmCardTagRecord;
+  sourceCardId: string;
+  sourceKey: string;
+  victoryPointsKind: 'none' | 'static' | 'dynamic';
 };
 
 function slugifyName(name: string) {
   return normalizeCardName(name).replace(/\s+/g, '-');
 }
 
-function tagsEqual(left: string[], right: string[]) {
+export function tagsEqual(left: string[], right: string[]) {
   return (
     left.length === right.length &&
     [...left].sort().join('|') === [...right].sort().join('|')
   );
+}
+
+function resolveCardType(record: TfmCardTagRecord) {
+  return record.category
+    ? CATEGORY_TO_CARD_TYPE[record.category]
+    : record.category === null && record.cardType === 'corporation'
+      ? 'Corporation'
+      : null;
+}
+
+function resolveExpansion(record: TfmCardTagRecord) {
+  return record.module
+    ? MODULE_TO_EXPANSION[record.module.toLowerCase()]
+    : undefined;
+}
+
+function readPrintedVictoryPoints(record: TfmCardTagRecord) {
+  return record.victoryPoints.kind === 'static'
+    ? record.victoryPoints.points
+    : null;
+}
+
+export function mapTfmRecordToCatalogSource(
+  record: TfmCardTagRecord,
+): TfmCatalogSource | null {
+  const cardType = resolveCardType(record);
+  const expansion = resolveExpansion(record);
+
+  if (!cardType || !expansion) {
+    return null;
+  }
+
+  return {
+    cardName: record.name,
+    cardNumber: record.cardNumber ?? '',
+    cardType,
+    expansionCode: expansion.code,
+    expansionName: expansion.name,
+    gameplayTags: record.tags,
+    printedVictoryPoints: readPrintedVictoryPoints(record),
+    record,
+    sourceCardId: `tfm:${cardType.toLowerCase()}:${slugifyName(record.name)}`,
+    sourceKey: `${normalizeCardName(record.name)}|${cardType}`,
+    victoryPointsKind: record.victoryPoints.kind,
+  };
+}
+
+export function buildCatalogCardPatch(
+  row: CatalogCardRow,
+  source: TfmCatalogSource | null,
+) {
+  if (!source) {
+    return null;
+  }
+
+  const patch: Record<string, unknown> = {};
+
+  if (row.card_number !== source.cardNumber) {
+    patch.card_number = source.cardNumber;
+  }
+  if (row.card_type !== source.cardType) {
+    patch.card_type = source.cardType;
+  }
+  if (row.expansion_code !== source.expansionCode) {
+    patch.expansion_code = source.expansionCode;
+  }
+  if (row.expansion_name !== source.expansionName) {
+    patch.expansion_name = source.expansionName;
+  }
+  if (!tagsEqual(row.gameplay_tags ?? [], source.gameplayTags)) {
+    patch.gameplay_tags = source.gameplayTags;
+  }
+  if (row.printed_victory_points !== source.printedVictoryPoints) {
+    patch.printed_victory_points = source.printedVictoryPoints;
+  }
+  if ((row.victory_points_kind ?? 'none') !== source.victoryPointsKind) {
+    patch.victory_points_kind = source.victoryPointsKind;
+  }
+
+  return Object.keys(patch).length > 0 ? patch : null;
 }
 
 async function loadBundleSource(useCachedSnapshot: boolean) {
@@ -82,83 +185,110 @@ async function main() {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
   const { records, fetched } = await loadBundleSource(useCachedSnapshot);
 
-  const sourceByKey = new Map<string, TfmCardTagRecord>();
+  const sourceByKey = new Map<string, TfmCatalogSource>();
+  const sourceByName = new Map<string, TfmCatalogSource[]>();
+  const skippedUnsupportedSourceCards: string[] = [];
+
   for (const record of records) {
-    const cardType = record.category
-      ? CATEGORY_TO_CARD_TYPE[record.category]
-      : record.category === null && record.cardType === 'corporation'
-        ? 'Corporation'
-        : null;
-    if (!cardType) {
+    const source = mapTfmRecordToCatalogSource(record);
+
+    if (!source) {
+      if (record.category) {
+        skippedUnsupportedSourceCards.push(
+          `${record.name} (${record.module ?? 'unknown module'} / ${record.category})`,
+        );
+      }
       continue;
     }
-    sourceByKey.set(`${normalizeCardName(record.name)}|${cardType}`, record);
+
+    sourceByKey.set(source.sourceKey, source);
+    const sourceName = normalizeCardName(record.name);
+    sourceByName.set(sourceName, [...(sourceByName.get(sourceName) ?? []), source]);
   }
 
   const { data, error } = await supabase
     .from('cards')
-    .select('id, card_name, card_type, gameplay_tags')
+    .select(
+      [
+        'id',
+        'card_name',
+        'card_number',
+        'card_type',
+        'expansion_code',
+        'expansion_name',
+        'gameplay_tags',
+        'printed_victory_points',
+        'victory_points_kind',
+      ].join(', '),
+    )
     .in('card_type', ['Project', 'Corporation', 'Prelude']);
 
   if (error) {
     throw error;
   }
 
-  const catalogRows = (data ?? []) as CatalogCardRow[];
+  const catalogRows = (data ?? []) as unknown as CatalogCardRow[];
   const matchedSourceKeys = new Set<string>();
-  const updates: Array<{ id: string; cardName: string; tags: string[] }> = [];
+  const updates: Array<{
+    cardName: string;
+    id: string;
+    patch: Record<string, unknown>;
+  }> = [];
   const unmatchedCatalogCards: string[] = [];
+  const ambiguousCatalogCards: string[] = [];
 
   for (const row of catalogRows) {
     const normalizedName = normalizeCardName(row.card_name);
     const sourceName = CATALOG_NAME_ALIASES[normalizedName] ?? normalizedName;
-    const source = sourceByKey.get(`${sourceName}|${row.card_type}`);
+    const source =
+      sourceByKey.get(`${sourceName}|${row.card_type}`) ??
+      (sourceByName.get(sourceName)?.length === 1
+        ? sourceByName.get(sourceName)?.[0]
+        : null);
 
     if (!source) {
-      unmatchedCatalogCards.push(`${row.card_name} (${row.card_type})`);
+      if ((sourceByName.get(sourceName)?.length ?? 0) > 1) {
+        ambiguousCatalogCards.push(`${row.card_name} (${row.card_type})`);
+      } else {
+        unmatchedCatalogCards.push(`${row.card_name} (${row.card_type})`);
+      }
       continue;
     }
 
-    matchedSourceKeys.add(`${sourceName}|${row.card_type}`);
+    matchedSourceKeys.add(source.sourceKey);
+    const patch = buildCatalogCardPatch(row, source);
 
-    if (!tagsEqual(row.gameplay_tags ?? [], source.tags)) {
-      updates.push({ id: row.id, cardName: row.card_name, tags: source.tags });
+    if (patch) {
+      updates.push({ id: row.id, cardName: row.card_name, patch });
     }
   }
 
   const inserts: Array<Record<string, unknown>> = [];
-  const skippedNewCards: string[] = [];
 
-  for (const [key, record] of sourceByKey) {
+  for (const [key, source] of sourceByKey) {
     if (matchedSourceKeys.has(key)) {
       continue;
     }
 
-    const cardType = key.split('|')[1]!;
-    const expansion = record.module
-      ? MODULE_TO_EXPANSION[record.module.toLowerCase()]
-      : undefined;
-
-    if (!expansion) {
-      skippedNewCards.push(`${record.name} (${record.module ?? 'unknown module'})`);
-      continue;
-    }
-
     inserts.push({
-      card_name: record.name,
-      card_number: '',
-      card_type: cardType,
-      expansion_code: expansion.code,
-      expansion_name: expansion.name,
-      gameplay_tags: record.tags,
-      image_url: '',
+      card_name: source.cardName,
+      card_number: source.cardNumber,
+      card_type: source.cardType,
+      expansion_code: source.expansionCode,
+      expansion_name: source.expansionName,
+      gameplay_tags: source.gameplayTags,
+      image_url: '/file.svg',
+      printed_victory_points: source.printedVictoryPoints,
       source_attribution: TFM_CARDS_SOURCE_URL,
-      source_card_id: `tfm:${cardType.toLowerCase()}:${slugifyName(record.name)}`,
+      source_card_id: source.sourceCardId,
       sync_metadata: {
-        tfmCategory: record.category,
-        tfmModule: record.module,
-        tfmNameKey: record.nameKey,
+        tfmCategory: source.record.category,
+        tfmModule: source.record.module,
+        tfmNameKey: source.record.nameKey,
+        tfmVictoryPointsKind: source.victoryPointsKind,
       },
+      thumbnail_path: '/file.svg',
+      victory_points_kind: source.victoryPointsKind,
     });
   }
 
@@ -166,7 +296,7 @@ async function main() {
     for (const update of updates) {
       const { error: updateError } = await supabase
         .from('cards')
-        .update({ gameplay_tags: update.tags })
+        .update(update.patch)
         .eq('id', update.id);
 
       if (updateError) {
@@ -191,11 +321,15 @@ async function main() {
         dryRun,
         sourceRecords: records.length,
         sourceLoadedFrom: fetched ? 'network' : 'snapshot',
-        tagUpdates: updates.length,
-        updatedCards: updates.map((update) => update.cardName),
+        catalogFieldUpdates: updates.length,
+        updatedCards: updates.map((update) => ({
+          cardName: update.cardName,
+          fields: Object.keys(update.patch),
+        })),
         newCardsInserted: inserts.length,
         insertedCards: inserts.map((insert) => insert.card_name),
-        newCardsSkipped: skippedNewCards,
+        unsupportedSourceCardsSkipped: skippedUnsupportedSourceCards,
+        ambiguousCatalogCards,
         catalogCardsWithoutSourceMatch: unmatchedCatalogCards,
       },
       null,
@@ -204,9 +338,11 @@ async function main() {
   );
 }
 
-void main().catch((error) => {
-  console.error(
-    error instanceof Error ? error.message : JSON.stringify(error, null, 2),
-  );
-  process.exit(1);
-});
+if (process.argv[1]?.endsWith('sync-card-tags.ts')) {
+  void main().catch((error) => {
+    console.error(
+      error instanceof Error ? error.message : JSON.stringify(error, null, 2),
+    );
+    process.exit(1);
+  });
+}

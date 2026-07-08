@@ -16,9 +16,11 @@ const cards: CardLookupEntry[] = [
     fullImageUrl: 'https://example.com/asteroid.png',
     id: 'card-1',
     promoSetSlug: null,
+    printedVictoryPoints: null,
     requiredExpansionCodes: [],
     sourceTags: ['space', 'event'],
     thumbnailUrl: 'https://example.com/asteroid-thumb.png',
+    victoryPointsKind: 'none',
   },
   {
     cardName: 'Ecoline',
@@ -28,9 +30,11 @@ const cards: CardLookupEntry[] = [
     fullImageUrl: 'https://example.com/ecoline.png',
     id: 'card-2',
     promoSetSlug: null,
+    printedVictoryPoints: null,
     requiredExpansionCodes: [],
     sourceTags: ['plant'],
     thumbnailUrl: 'https://example.com/ecoline-thumb.png',
+    victoryPointsKind: 'none',
   },
   {
     cardName: 'Merger',
@@ -40,9 +44,11 @@ const cards: CardLookupEntry[] = [
     fullImageUrl: 'https://example.com/merger.png',
     id: 'card-3',
     promoSetSlug: 'big-box-promos',
+    printedVictoryPoints: 2,
     requiredExpansionCodes: ['prelude'],
     sourceTags: ['wild'],
     thumbnailUrl: 'https://example.com/merger-thumb.png',
+    victoryPointsKind: 'static',
   },
 ];
 
@@ -61,6 +67,15 @@ describe('filterCardLookupEntries', () => {
       filterCardLookupEntries(cards, {
         expansionCode: 'all',
         query: 'P39',
+        tag: 'all',
+        type: 'all',
+      }).map((card) => card.cardName),
+    ).toEqual(['Merger']);
+
+    expect(
+      filterCardLookupEntries(cards, {
+        expansionCode: 'all',
+        query: '2 vp',
         tag: 'all',
         type: 'all',
       }).map((card) => card.cardName),
@@ -119,6 +134,7 @@ describe('CardLookupBrowser', () => {
     expect(
       screen.getByRole('link', { name: /open full image for asteroid/i }),
     ).toHaveAttribute('href', 'https://example.com/asteroid.png');
+    expect(screen.getByText(/2 VP/i)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/search card database/i), 'space');
 

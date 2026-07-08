@@ -13,9 +13,11 @@ export type CardLookupEntry = {
   fullImageUrl: string;
   id: string;
   promoSetSlug: string | null;
+  printedVictoryPoints: number | null;
   requiredExpansionCodes: string[];
   sourceTags: string[];
   thumbnailUrl: string;
+  victoryPointsKind: 'none' | 'static' | 'dynamic';
 };
 
 export type CardLookupFilters = {
@@ -48,6 +50,16 @@ function humanizeCode(value: string) {
     .join(' ');
 }
 
+function formatVictoryPoints(card: CardLookupEntry) {
+  if (card.victoryPointsKind === 'static') {
+    return typeof card.printedVictoryPoints === 'number'
+      ? `${card.printedVictoryPoints} VP`
+      : 'Fixed VP';
+  }
+
+  return card.victoryPointsKind === 'dynamic' ? 'Dynamic VP' : 'No VP';
+}
+
 function buildSearchText(card: CardLookupEntry) {
   return normalizeSearchText(
     [
@@ -56,6 +68,7 @@ function buildSearchText(card: CardLookupEntry) {
       card.cardType,
       card.expansionCode,
       card.promoSetSlug ?? '',
+      formatVictoryPoints(card),
       ...card.requiredExpansionCodes,
       ...card.sourceTags,
     ].join(' '),
@@ -253,6 +266,11 @@ export function CardLookupBrowser({ cards }: { cards: CardLookupEntry[] }) {
                     {card.cardType} | {humanizeCode(card.expansionCode)}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1">
+                    {card.victoryPointsKind !== 'none' ? (
+                      <span className="tm-coverage-badge px-2 py-0.5">
+                        {formatVictoryPoints(card)}
+                      </span>
+                    ) : null}
                     {card.sourceTags.slice(0, 4).map((tagName) => (
                       <span className="tm-coverage-badge px-2 py-0.5" key={tagName}>
                         {humanizeCode(tagName)}

@@ -6,13 +6,20 @@ export const TFM_CARD_TAGS_SNAPSHOT_PATH =
   'scripts/catalog/source/tfm-card-tags.json';
 
 export type TfmCardTagRecord = {
+  cardNumber: string | null;
   name: string;
   nameKey: string;
   cardType: string | null;
   tags: string[];
   module: string | null;
   category: string | null;
+  victoryPoints: TfmCardVictoryPoints;
 };
+
+export type TfmCardVictoryPoints =
+  | { kind: 'none' }
+  | { kind: 'static'; points: number }
+  | { kind: 'dynamic' };
 
 type AnyNode = acorn.Node & Record<string, any>;
 
@@ -143,6 +150,63 @@ function memberEnumKey(node: AnyNode | null | undefined, enumName: string) {
     : null;
 }
 
+function readLiteralString(node: AnyNode | null | undefined) {
+  return node?.type === 'Literal' && typeof node.value === 'string'
+    ? node.value
+    : null;
+}
+
+function readStaticNumber(node: AnyNode | null | undefined): number | null {
+  if (node?.type === 'Literal' && typeof node.value === 'number') {
+    return node.value;
+  }
+
+  if (
+    node?.type === 'UnaryExpression' &&
+    node.operator === '-' &&
+    node.argument.type === 'Literal' &&
+    typeof node.argument.value === 'number'
+  ) {
+    return -node.argument.value;
+  }
+
+  return null;
+}
+
+function readVictoryPoints(node: AnyNode | null | undefined): TfmCardVictoryPoints {
+  if (!node) {
+    return { kind: 'none' };
+  }
+
+  const staticPoints = readStaticNumber(node);
+  if (staticPoints !== null) {
+    return { kind: 'static', points: staticPoints };
+  }
+
+  return { kind: 'dynamic' };
+}
+
+function readMetadataProperty(
+  metadataNode: AnyNode | null | undefined,
+  propertyName: string,
+) {
+  if (!metadataNode || metadataNode.type !== 'ObjectExpression') {
+    return null;
+  }
+
+  for (const property of metadataNode.properties) {
+    if (
+      property.type === 'Property' &&
+      property.key.type === 'Identifier' &&
+      property.key.name === propertyName
+    ) {
+      return property.value as AnyNode;
+    }
+  }
+
+  return null;
+}
+
 function resolveNameKeyFromDefaultParam(
   identifier: string,
   ancestors: AnyNode[],
@@ -186,14 +250,21 @@ export function extractTfmCardTags(bundleSource: string): TfmCardTagRecord[] {
   //   constructor(e = X.CardName.KEY) { super({name: e, ...}) }
   const definitions = new Map<
     string,
-    { tags: string[] | null; cardType: string | null }
+    {
+      cardNumber: string | null;
+      cardType: string | null;
+      tags: string[] | null;
+      victoryPoints: TfmCardVictoryPoints | null;
+    }
   >();
 
   walk.ancestor(ast, {
     ObjectExpression(node: AnyNode, _state: unknown, ancestors: AnyNode[]) {
       let nameKey: string | null = null;
+      let cardNumber: string | null = null;
       let tags: string[] | null = null;
       let cardType: string | null = null;
+      let victoryPoints: TfmCardVictoryPoints | null = null;
 
       for (const property of node.properties) {
         if (property.type !== 'Property' || property.key.type !== 'Identifier') {
@@ -210,6 +281,15 @@ export function extractTfmCardTags(bundleSource: string): TfmCardTagRecord[] {
           }
         } else if (property.key.name === 'cardType') {
           cardType = memberEnumKey(property.value, 'CardType');
+        } else if (property.key.name === 'metadata') {
+          cardNumber = readLiteralString(
+            readMetadataProperty(property.value, 'cardNumber'),
+          );
+          victoryPoints = readVictoryPoints(
+            readMetadataProperty(property.value, 'victoryPoints'),
+          );
+        } else if (property.key.name === 'victoryPoints') {
+          victoryPoints = readVictoryPoints(property.value);
         } else if (
           property.key.name === 'tags' &&
           property.value.type === 'ArrayExpression'
@@ -226,8 +306,10 @@ export function extractTfmCardTags(bundleSource: string): TfmCardTagRecord[] {
       if (nameKey && (tags !== null || cardType !== null)) {
         const existing = definitions.get(nameKey);
         definitions.set(nameKey, {
+          cardNumber: cardNumber ?? existing?.cardNumber ?? null,
           tags: tags ?? existing?.tags ?? null,
           cardType: cardType ?? existing?.cardType ?? null,
+          victoryPoints: victoryPoints ?? existing?.victoryPoints ?? null,
         });
       }
     },
@@ -301,6 +383,7 @@ export function extractTfmCardTags(bundleSource: string): TfmCardTagRecord[] {
     const fixupTags = KNOWN_TAG_FIXUPS[displayName];
 
     records.push({
+      cardNumber: definition.cardNumber,
       name: displayName,
       nameKey,
       cardType: definition.cardType
@@ -309,18 +392,21 @@ export function extractTfmCardTags(bundleSource: string): TfmCardTagRecord[] {
       tags: tags.length === 0 && fixupTags ? [...fixupTags] : tags,
       module: info ? moduleValues[info.module] ?? info.module : null,
       category: info?.category ?? null,
+      victoryPoints: definition.victoryPoints ?? { kind: 'none' },
     });
   }
 
   for (const [displayName, fixupTags] of Object.entries(KNOWN_TAG_FIXUPS)) {
     if (!records.some((record) => record.name === displayName)) {
       records.push({
+        cardNumber: null,
         name: displayName,
         nameKey: displayName.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
         cardType: null,
         tags: [...fixupTags],
         module: null,
         category: 'projectCards',
+        victoryPoints: { kind: 'none' },
       });
     }
   }

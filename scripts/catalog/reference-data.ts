@@ -65,6 +65,9 @@ export const referenceDimensions: {
     { code: 'turmoil', name: 'Turmoil' },
     { code: 'promo', name: 'Promo Cards' },
     { code: 'automa', name: 'Automa' },
+    { code: 'ares', name: 'Ares' },
+    { code: 'community', name: 'Community' },
+    { code: 'moon', name: 'Moon' },
   ],
   maps: [
     { code: 'tharsis', name: 'Tharsis' },

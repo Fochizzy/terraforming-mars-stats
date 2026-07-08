@@ -96,10 +96,12 @@ export type CardLookupRecord = {
   cardType: string;
   expansionCode: string;
   promoSetSlug: string | null;
+  printedVictoryPoints: number | null;
   requiredExpansionCodes: string[];
   thumbnailUrl: string;
   fullImageUrl: string;
   sourceTags: string[];
+  victoryPointsKind: 'none' | 'static' | 'dynamic';
 };
 
 type JoinedName = {
@@ -464,6 +466,10 @@ function normalizeGameplayTagList(value: unknown) {
     : [];
 }
 
+function normalizeVictoryPointsKind(value: unknown): 'none' | 'static' | 'dynamic' {
+  return value === 'static' || value === 'dynamic' ? value : 'none';
+}
+
 export async function listCardLookupRecords(): Promise<CardLookupRecord[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -481,6 +487,8 @@ export async function listCardLookupRecords(): Promise<CardLookupRecord[]> {
         'thumbnail_path',
         'full_image_path',
         'gameplay_tags',
+        'printed_victory_points',
+        'victory_points_kind',
       ].join(', '),
     )
     .order('card_name');
@@ -499,8 +507,10 @@ export async function listCardLookupRecords(): Promise<CardLookupRecord[]> {
     id: string;
     image_url: string;
     promo_set_id: string | null;
+    printed_victory_points: number | null;
     required_expansion_codes: unknown;
     thumbnail_path: string | null;
+    victory_points_kind: unknown;
   }>;
 
   const promoSetSlugById = await resolvePromoSetSlugByIdMap(
@@ -523,7 +533,9 @@ export async function listCardLookupRecords(): Promise<CardLookupRecord[]> {
     ),
     thumbnailUrl: card.thumbnail_path ?? card.full_image_path ?? card.image_url,
     fullImageUrl: card.full_image_path ?? card.image_url,
+    printedVictoryPoints: card.printed_victory_points,
     sourceTags: normalizeGameplayTagList(card.gameplay_tags),
+    victoryPointsKind: normalizeVictoryPointsKind(card.victory_points_kind),
   }));
 }
 

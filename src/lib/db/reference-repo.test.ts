@@ -98,8 +98,10 @@ describe('listCardLookupRecords', () => {
           id: 'card-1',
           image_url: 'https://example.com/merger-source.png',
           promo_set_id: 'promo-1',
+          printed_victory_points: 2,
           required_expansion_codes: ['prelude'],
           thumbnail_path: 'https://example.com/merger-thumb.png',
+          victory_points_kind: 'static',
         },
       ],
       error: null,
@@ -127,9 +129,11 @@ describe('listCardLookupRecords', () => {
         fullImageUrl: 'https://example.com/merger.png',
         id: 'card-1',
         promoSetSlug: 'big-box-promos',
+        printedVictoryPoints: 2,
         requiredExpansionCodes: ['prelude'],
         sourceTags: ['wild'],
         thumbnailUrl: 'https://example.com/merger-thumb.png',
+        victoryPointsKind: 'static',
       },
     ]);
 

@@ -5,7 +5,7 @@ const SYNTHETIC_BUNDLE = `
 (() => {
   const t = {};
   !function (e) {
-    e.RESEARCH = "Research", e.BIRDS = "Birds", e.ECOLOGICAL_ZONE = "Ecological Zone", e.DEIMOS_DOWN = "Deimos Down";
+    e.RESEARCH = "Research", e.BIRDS = "Birds", e.ECOLOGICAL_ZONE = "Ecological Zone", e.DEIMOS_DOWN = "Deimos Down", e.MINUS_TWO = "Minus Two";
   }(t.CardName || (t.CardName = {}));
   let a;
   (a = t.Tags || (t.Tags = {})).BUILDING = "building", a.SCIENCE = "science", a.ANIMAL = "animal", a.PLANT = "plant", a.SPACE = "space", a.EVENT = "event";
@@ -18,12 +18,12 @@ const SYNTHETIC_BUNDLE = `
 
   class Research {
     constructor() {
-      this.def = { cardType: t.CardType.AUTOMATED, name: t.CardName.RESEARCH, tags: [t.Tags.SCIENCE, t.Tags.SCIENCE], cost: 11 };
+      this.def = { cardType: t.CardType.AUTOMATED, name: t.CardName.RESEARCH, tags: [t.Tags.SCIENCE, t.Tags.SCIENCE], cost: 11, metadata: { cardNumber: "001", victoryPoints: 1 } };
     }
   }
   class Birds {
     constructor() {
-      this.def = { cardType: t.CardType.ACTIVE, name: t.CardName.BIRDS, tags: [t.Tags.ANIMAL], cost: 10 };
+      this.def = { cardType: t.CardType.ACTIVE, name: t.CardName.BIRDS, tags: [t.Tags.ANIMAL], cost: 10, metadata: { cardNumber: "002", victoryPoints: d.CardRenderDynamicVictoryPoints.animals(1, 1) } };
     }
   }
   class EcologicalZone {
@@ -33,7 +33,12 @@ const SYNTHETIC_BUNDLE = `
   }
   class DeimosDown {
     constructor() {
-      this.def = { cardType: t.CardType.EVENT, name: t.CardName.DEIMOS_DOWN, tags: [t.Tags.SPACE], cost: 31 };
+      this.def = { cardType: t.CardType.EVENT, name: t.CardName.DEIMOS_DOWN, tags: [t.Tags.SPACE], cost: 31, metadata: { cardNumber: "009" } };
+    }
+  }
+  class MinusTwo {
+    constructor() {
+      this.def = { cardType: t.CardType.AUTOMATED, name: t.CardName.MINUS_TWO, tags: [], cost: 5, metadata: { victoryPoints: -2 } };
     }
   }
   const manifest = {
@@ -43,6 +48,7 @@ const SYNTHETIC_BUNDLE = `
       { cardName: t.CardName.BIRDS, Factory: Birds },
       { cardName: t.CardName.ECOLOGICAL_ZONE, Factory: EcologicalZone },
       { cardName: t.CardName.DEIMOS_DOWN, Factory: DeimosDown },
+      { cardName: t.CardName.MINUS_TWO, Factory: MinusTwo },
     ],
   };
   return manifest;
@@ -57,18 +63,30 @@ describe('extractTfmCardTags', () => {
     expect(byName.get('Research')).toMatchObject({
       cardType: 'automated',
       category: 'projectCards',
+      cardNumber: '001',
       module: 'Base',
       tags: ['science', 'science'],
+      victoryPoints: { kind: 'static', points: 1 },
     });
-    expect(byName.get('Birds')).toMatchObject({ tags: ['animal'] });
+    expect(byName.get('Birds')).toMatchObject({
+      cardNumber: '002',
+      tags: ['animal'],
+      victoryPoints: { kind: 'dynamic' },
+    });
     // Name resolved through the constructor default parameter.
     expect(byName.get('Ecological Zone')).toMatchObject({
       tags: ['animal', 'plant'],
     });
     // Event cards regain their printed event tag.
     expect(byName.get('Deimos Down')).toMatchObject({
+      cardNumber: '009',
       cardType: 'event',
       tags: ['space', 'event'],
+      victoryPoints: { kind: 'none' },
+    });
+    expect(byName.get('Minus Two')).toMatchObject({
+      tags: [],
+      victoryPoints: { kind: 'static', points: -2 },
     });
     // Cards unreachable by the parser are supplied as fixups.
     expect(byName.get('Mining Area')).toMatchObject({ tags: ['building'] });
