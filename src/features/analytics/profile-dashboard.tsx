@@ -10,8 +10,15 @@ import type {
 } from '@/lib/db/analytics-repo';
 import { ScoreSourceList } from './score-source-list';
 
+export type ProfileGroupComparison = {
+  groupId: string;
+  groupName: string;
+  performance: LeaderboardRow;
+};
+
 type ProfileDashboardProps = {
   coverage?: CoverageRow | null;
+  groupComparisons?: ProfileGroupComparison[];
   headToHeadRows?: ProfileHeadToHeadRow[];
   performance?: LeaderboardRow | null;
   playerName: string | null;
@@ -38,8 +45,84 @@ function formatAverage(value: number | null) {
   }).format(value);
 }
 
+function formatSignedAverage(value: number) {
+  const formatted = formatAverage(Math.abs(value));
+
+  if (value > 0) {
+    return `+${formatted}`;
+  }
+
+  if (value < 0) {
+    return `-${formatted}`;
+  }
+
+  return formatted;
+}
+
+function formatPercentagePointDelta(value: number) {
+  const percentagePoints = Math.round(value * 100);
+
+  if (percentagePoints > 0) {
+    return `+${percentagePoints} pp`;
+  }
+
+  if (percentagePoints < 0) {
+    return `${percentagePoints} pp`;
+  }
+
+  return '0 pp';
+}
+
+function buildGroupStatEntries({
+  overallPerformance,
+  performance,
+}: {
+  overallPerformance: LeaderboardRow | null;
+  performance: LeaderboardRow;
+}) {
+  return [
+    {
+      label: 'Weighted Score',
+      value: formatAverage(performance.weightedScore),
+      delta: overallPerformance
+        ? formatSignedAverage(
+            performance.weightedScore - overallPerformance.weightedScore,
+          )
+        : null,
+    },
+    {
+      label: 'Win Rate',
+      value: formatPercent(performance.winRate),
+      delta: overallPerformance
+        ? formatPercentagePointDelta(
+            performance.winRate - overallPerformance.winRate,
+          )
+        : null,
+    },
+    {
+      label: 'Average Placement',
+      value: formatAverage(performance.averagePlacement),
+      delta: overallPerformance
+        ? formatSignedAverage(
+            performance.averagePlacement - overallPerformance.averagePlacement,
+          )
+        : null,
+    },
+    {
+      label: 'Average Score',
+      value: formatAverage(performance.averageScore),
+      delta: overallPerformance
+        ? formatSignedAverage(
+            performance.averageScore - overallPerformance.averageScore,
+          )
+        : null,
+    },
+  ];
+}
+
 export function ProfileDashboard({
   coverage = null,
+  groupComparisons = [],
   headToHeadRows = [],
   linkHref,
   performance = null,
@@ -115,6 +198,48 @@ export function ProfileDashboard({
           <p className="text-sm text-stone-400">
             No finalized games are linked to {playerName} yet.
           </p>
+        )}
+      </ChartFrame>
+      <ChartFrame title="Group Comparisons">
+        {groupComparisons.length === 0 ? (
+          <p className="text-sm text-stone-400">
+            Groups you have played in appear here automatically once your
+            linked player has finalized games in them.
+          </p>
+        ) : (
+          <div className="grid gap-3">
+            {groupComparisons.map((comparison) => (
+              <article className="tm-stat-card grid gap-3" key={comparison.groupId}>
+                <div>
+                  <p className="font-semibold text-stone-100">
+                    {comparison.groupName}
+                  </p>
+                  <p className="tm-muted-copy mt-1 text-sm">
+                    {comparison.performance.gamesPlayed} finalized games in this
+                    group
+                  </p>
+                </div>
+                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {buildGroupStatEntries({
+                    overallPerformance: performance,
+                    performance: comparison.performance,
+                  }).map((entry) => (
+                    <div className="tm-stat-card" key={entry.label}>
+                      <dt className="tm-data-label">{entry.label}</dt>
+                      <dd className="mt-2 text-lg font-semibold text-stone-100">
+                        {entry.value}
+                      </dd>
+                      {entry.delta !== null ? (
+                        <dd className="tm-muted-copy mt-1 text-xs">
+                          {entry.delta} vs overall
+                        </dd>
+                      ) : null}
+                    </div>
+                  ))}
+                </dl>
+              </article>
+            ))}
+          </div>
         )}
       </ChartFrame>
       <ChartFrame title="Score Source Averages">

@@ -2,7 +2,10 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProfilePage from './page';
-import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
+import {
+  getCurrentGroupContext,
+  listCurrentUserGroups,
+} from '@/lib/db/group-context-repo';
 import { getProfileAnalytics } from '@/lib/db/analytics-repo';
 
 const navigationMocks = vi.hoisted(() => ({
@@ -57,6 +60,8 @@ describe('ProfilePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getCurrentGroupContext).mockReset();
+    vi.mocked(listCurrentUserGroups).mockReset();
+    vi.mocked(listCurrentUserGroups).mockResolvedValue([]);
     vi.mocked(getProfileAnalytics).mockReset();
   });
 
@@ -131,6 +136,93 @@ describe('ProfilePage', () => {
     expect(screen.queryByLabelText(/profile group/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/view group stats/i)).not.toBeInTheDocument();
     expect(screen.getByText(/10 finalized games overall/i)).toBeInTheDocument();
+  });
+
+  it('autopopulates played groups and shows per-group deltas vs overall', async () => {
+    vi.mocked(getCurrentGroupContext).mockResolvedValue({
+      groupId: 'group-1',
+      groupName: 'Mars Club',
+      role: 'owner',
+      userId: 'user-1',
+    });
+    vi.mocked(listCurrentUserGroups).mockResolvedValue([
+      { groupId: 'group-1', groupName: 'Mars Club', role: 'owner' },
+      { groupId: 'group-2', groupName: 'Luna League', role: 'editor' },
+    ]);
+
+    const basePerformance = {
+      averageLossGap: 2,
+      averagePlacement: 1.5,
+      averageScore: 84,
+      averageWinMargin: 5,
+      differentialComponent: 0.02,
+      gamesPlayed: 10,
+      groupId: 'linked-profile',
+      placementComponent: 0.25,
+      playerId: 'player-1',
+      playerName: 'Friday Mars',
+      weightedScore: 0.67,
+      winRate: 0.6,
+      winRateComponent: 0.4,
+      wins: 6,
+    };
+    const baseAnalytics = {
+      coverage: null,
+      headToHeadRows: [],
+      performance: basePerformance,
+      playerId: 'player-1',
+      playerName: 'Friday Mars',
+      scoreAverages: null,
+      styleAgreement: null,
+    };
+
+    vi.mocked(getProfileAnalytics).mockImplementation(
+      async (_userId, options?: { groupId?: string | null }) => {
+        if (options?.groupId === 'group-1') {
+          return {
+            ...baseAnalytics,
+            performance: {
+              ...basePerformance,
+              averageScore: 90,
+              gamesPlayed: 6,
+              winRate: 0.8,
+            },
+          };
+        }
+
+        if (options?.groupId === 'group-2') {
+          return {
+            ...baseAnalytics,
+            performance: {
+              ...basePerformance,
+              averageScore: 78,
+              gamesPlayed: 4,
+              winRate: 0.4,
+            },
+          };
+        }
+
+        return baseAnalytics;
+      },
+    );
+
+    render(await ProfilePage({}));
+
+    expect(getProfileAnalytics).toHaveBeenCalledWith('user-1');
+    expect(getProfileAnalytics).toHaveBeenCalledWith('user-1', {
+      groupId: 'group-1',
+    });
+    expect(getProfileAnalytics).toHaveBeenCalledWith('user-1', {
+      groupId: 'group-2',
+    });
+    expect(screen.getByText(/mars club/i)).toBeInTheDocument();
+    expect(screen.getByText(/luna league/i)).toBeInTheDocument();
+    expect(screen.getByText(/6 finalized games in this group/i)).toBeInTheDocument();
+    expect(screen.getByText(/4 finalized games in this group/i)).toBeInTheDocument();
+    expect(screen.getByText(/\+20 pp vs overall/i)).toBeInTheDocument();
+    expect(screen.getByText(/-20 pp vs overall/i)).toBeInTheDocument();
+    expect(screen.getByText(/\+6 vs overall/i)).toBeInTheDocument();
+    expect(screen.getByText(/-6 vs overall/i)).toBeInTheDocument();
   });
 
   it('renders a safe fallback when loading analytics throws', async () => {
