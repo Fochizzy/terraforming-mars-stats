@@ -461,7 +461,7 @@ describe('getGroupAnalytics', () => {
     vi.clearAllMocks();
   });
 
-  it('includes global map metric rows from persisted public metrics', async () => {
+  it('includes group persisted metric rows from public metrics', async () => {
     const { publicQueries } = mockSupabase({
       'analytics.group_leaderboard': [],
       'analytics.group_score_source_averages': [],
@@ -477,8 +477,54 @@ describe('getGroupAnalytics', () => {
       'analytics.data_coverage': [],
       'analytics.player_data_coverage': [],
       'analytics.import_coverage': [],
-      player_metric_summaries: [],
-      player_map_metric_summaries: [],
+      player_metric_summaries: [
+        {
+          average_award_roi: '1.2500',
+          average_expected_score: '72.5000',
+          average_loss_gap: '3.2500',
+          average_normalized_efficiency: '1.1000',
+          average_placement: '1.5000',
+          average_points_per_generation: '8.2500',
+          average_score: '82.5000',
+          average_score_delta_vs_expected: '6.5000',
+          average_win_margin: '4.5000',
+          award_score_share: '0.1200',
+          best_score_source: 'cards',
+          best_tag_lane: 'science',
+          card_score_share: '0.4200',
+          cities_score_share: '0.1000',
+          close_game_count: '2',
+          close_game_wins: '1',
+          close_game_win_rate: '0.5000',
+          games_played: '4',
+          greenery_score_share: '0.1500',
+          group_id: 'group-1',
+          milestone_score_share: '0.1100',
+          player_id: 'player-1',
+          tag_evidence_coverage: '0.8750',
+          tr_score_share: '0.2100',
+          win_rate: '0.7500',
+          wins: '3',
+        },
+      ],
+      player_map_metric_summaries: [
+        {
+          average_generations: '10.2500',
+          average_normalized_efficiency: '1.0800',
+          average_points: '84.5000',
+          average_points_per_generation: '8.4500',
+          average_score_delta_vs_expected: '5.7500',
+          best_score_source_on_map: 'cards',
+          best_tag_lane_on_map: 'science',
+          games_played: '3',
+          group_id: 'group-1',
+          map_id: 'map-a',
+          map_rank_for_player: '1',
+          player_id: 'player-1',
+          win_rate: '0.6667',
+          wins: '2',
+        },
+      ],
       global_map_metric_summaries: [
         {
           average_generations: '10.5000',
@@ -512,10 +558,62 @@ describe('getGroupAnalytics', () => {
           playerCount: 4,
         },
       ],
+      playerEfficiencySummaries: [
+        {
+          averageAwardRoi: 1.25,
+          averageExpectedScore: 72.5,
+          averageLossGap: 3.25,
+          averageNormalizedEfficiency: 1.1,
+          averagePlacement: 1.5,
+          averagePointsPerGeneration: 8.25,
+          averageScore: 82.5,
+          averageScoreDeltaVsExpected: 6.5,
+          averageWinMargin: 4.5,
+          awardScoreShare: 0.12,
+          bestScoreSource: 'cards',
+          bestTagLane: 'science',
+          cardScoreShare: 0.42,
+          citiesScoreShare: 0.1,
+          closeGameCount: 2,
+          closeGameWins: 1,
+          closeGameWinRate: 0.5,
+          gamesPlayed: 4,
+          greeneryScoreShare: 0.15,
+          groupId: 'group-1',
+          milestoneScoreShare: 0.11,
+          playerId: 'player-1',
+          tagEvidenceCoverage: 0.875,
+          trScoreShare: 0.21,
+          winRate: 0.75,
+          wins: 3,
+        },
+      ],
+      playerMapMetricRows: [
+        {
+          averageGenerations: 10.25,
+          averageNormalizedEfficiency: 1.08,
+          averagePoints: 84.5,
+          averagePointsPerGeneration: 8.45,
+          averageScoreDeltaVsExpected: 5.75,
+          bestScoreSourceOnMap: 'cards',
+          bestTagLaneOnMap: 'science',
+          gamesPlayed: 3,
+          groupId: 'group-1',
+          mapId: 'map-a',
+          mapRankForPlayer: 1,
+          playerId: 'player-1',
+          winRate: 0.6667,
+          wins: 2,
+        },
+      ],
     });
     const globalQuery = publicQueries.get('global_map_metric_summaries');
     const playerSummaryQuery = publicQueries.get('player_metric_summaries');
+    const playerMapQuery = publicQueries.get('player_map_metric_summaries');
 
+    expect(publicQueries.has('global_map_metric_summaries')).toBe(true);
+    expect(publicQueries.has('player_metric_summaries')).toBe(true);
+    expect(publicQueries.has('player_map_metric_summaries')).toBe(true);
     expect(globalQuery?.select).toHaveBeenCalledWith(
       expect.stringContaining('expected_score_baseline'),
     );
@@ -525,6 +623,18 @@ describe('getGroupAnalytics', () => {
     expect(playerSummaryQuery?.eq).toHaveBeenCalledWith('group_id', 'group-1');
     expect(playerSummaryQuery?.order).toHaveBeenNthCalledWith(4, 'group_id', {
       ascending: true,
+    });
+    expect(playerMapQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('map_rank_for_player'),
+    );
+    expect(playerMapQuery?.eq).toHaveBeenCalledWith('group_id', 'group-1');
+    expect(playerMapQuery?.order).toHaveBeenNthCalledWith(
+      1,
+      'map_rank_for_player',
+      { ascending: true },
+    );
+    expect(playerMapQuery?.order).toHaveBeenNthCalledWith(2, 'games_played', {
+      ascending: false,
     });
   });
 
