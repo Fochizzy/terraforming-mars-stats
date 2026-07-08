@@ -1065,6 +1065,7 @@ export default async function LogGameImportPage() {
           ? undefined
           : [{ href: '/log-game', label: 'Web Import' }]
       }
+      icon
       title="Web Import"
       wide
     >

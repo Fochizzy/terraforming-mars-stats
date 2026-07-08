@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { BottomNav, type BottomNavItem } from '@/components/navigation/bottom-nav';
 import { signOut } from '@/features/auth/sign-out';
 
@@ -7,12 +8,14 @@ export function AppShell({
   headerActions,
   navItems,
   wide = false,
+  icon = false,
 }: {
   title: string;
   children: React.ReactNode;
   headerActions?: React.ReactNode;
   navItems?: BottomNavItem[];
   wide?: boolean;
+  icon?: boolean;
 }) {
   return (
     <main className="tm-app-shell">
@@ -21,13 +24,29 @@ export function AppShell({
       >
         <header className="tm-app-header">
           <div className="flex items-start justify-between gap-3 lg:justify-start lg:gap-8">
-            <div>
-              <p className="tm-display-eyebrow text-[11px]">
-                Terraforming Mars Stats
-              </p>
-              <h1 className="tm-display-title mt-2 text-2xl font-bold lg:text-3xl">
-                {title}
-              </h1>
+            <div className="flex items-center gap-3">
+              {icon ? (
+                <Image
+                  alt="Terraforming Mars Statistics"
+                  className="h-10 w-10 shrink-0 rounded-lg lg:h-12 lg:w-12"
+                  height={128}
+                  src="/logo-wordmark.png"
+                  unoptimized
+                  width={128}
+                />
+              ) : null}
+              <div>
+                {icon ? null : (
+                  <p className="tm-display-eyebrow text-[11px]">
+                    Terraforming Mars Stats
+                  </p>
+                )}
+                <h1
+                  className={`tm-display-title text-2xl font-bold lg:text-3xl ${icon ? '' : 'mt-2'}`}
+                >
+                  {title}
+                </h1>
+              </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               {headerActions}

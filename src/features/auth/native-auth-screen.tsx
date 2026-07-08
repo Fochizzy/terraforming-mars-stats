@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  Image,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,12 +13,15 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { nativeSupabase } from '@/lib/supabase/native';
 import {
   submitUsernameAuth,
   type UsernameAuthMode,
   type UsernameAuthStatus,
 } from './submit-username-auth';
+
+const REMEMBERED_EMAIL_KEY = 'tm-stats/remembered-email';
 
 export function NativeAuthScreen() {
   const router = useRouter();
@@ -27,6 +32,16 @@ export function NativeAuthScreen() {
   const [status, setStatus] = useState<UsernameAuthStatus | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [username, setUsername] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(REMEMBERED_EMAIL_KEY).then((storedEmail) => {
+      if (storedEmail) {
+        setEmail(storedEmail);
+        setRememberMe(true);
+      }
+    });
+  }, []);
 
   async function onSubmit() {
     setSubmitting(true);
@@ -52,6 +67,12 @@ export function NativeAuthScreen() {
       return;
     }
 
+    if (rememberMe) {
+      await AsyncStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+    } else {
+      await AsyncStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    }
+
     if (result.action === 'awaiting-email') {
       setStatus(result.status);
       return;
@@ -69,144 +90,165 @@ export function NativeAuthScreen() {
       : 'Create Account';
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardShell}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.card}>
-            <Text style={styles.title}>Terraforming Mars Stats</Text>
-            <Text style={styles.body}>
-              Sign in with the same email and 6-digit PIN flow the current web
-              app uses while the native-first rebuild takes shape.
-            </Text>
-            <View style={styles.toggleRow}>
-              <Pressable
-                onPress={() => setMode('sign-in')}
-                style={[
-                  styles.toggleButton,
-                  mode === 'sign-in'
-                    ? styles.toggleButtonMuted
-                    : styles.toggleButtonAccent,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.toggleButtonText,
-                    mode === 'sign-in'
-                      ? styles.toggleButtonTextLight
-                      : styles.toggleButtonTextDark,
-                  ]}
-                >
-                  Sign In
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setMode('sign-up')}
-                style={[
-                  styles.toggleButton,
-                  mode === 'sign-up'
-                    ? styles.toggleButtonAccent
-                    : styles.toggleButtonMuted,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.toggleButtonText,
-                    mode === 'sign-up'
-                      ? styles.toggleButtonTextDark
-                      : styles.toggleButtonTextLight,
-                  ]}
-                >
-                  Create Account
-                </Text>
-              </Pressable>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                onChangeText={setEmail}
-                placeholder="you@example.com"
-                placeholderTextColor="#64748b"
-                style={styles.input}
-                value={email}
+    <ImageBackground
+      resizeMode="cover"
+      source={require('../../../assets/mars.png')}
+      style={styles.background}
+    >
+      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardShell}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.card}>
+              <Image
+                resizeMode="contain"
+                source={require('../../../assets/text.png')}
+                style={styles.logo}
               />
-            </View>
-            {mode === 'sign-up' ? (
-              <View style={styles.field}>
-                <Text style={styles.label}>Full Name</Text>
-                <TextInput
-                  onChangeText={setFullName}
-                  placeholder="First Name Last Name"
-                  placeholderTextColor="#64748b"
-                  style={styles.input}
-                  value={fullName}
-                />
+              <View style={styles.toggleRow}>
+                <Pressable
+                  onPress={() => setMode('sign-in')}
+                  style={[
+                    styles.toggleButton,
+                    mode === 'sign-in'
+                      ? styles.toggleButtonMuted
+                      : styles.toggleButtonAccent,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.toggleButtonText,
+                      mode === 'sign-in'
+                        ? styles.toggleButtonTextLight
+                        : styles.toggleButtonTextDark,
+                    ]}
+                  >
+                    Sign In
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setMode('sign-up')}
+                  style={[
+                    styles.toggleButton,
+                    mode === 'sign-up'
+                      ? styles.toggleButtonAccent
+                      : styles.toggleButtonMuted,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.toggleButtonText,
+                      mode === 'sign-up'
+                        ? styles.toggleButtonTextDark
+                        : styles.toggleButtonTextLight,
+                    ]}
+                  >
+                    Create Account
+                  </Text>
+                </Pressable>
               </View>
-            ) : null}
-            {mode === 'sign-up' ? (
               <View style={styles.field}>
-                <Text style={styles.label}>Username</Text>
+                <Text style={styles.label}>Email</Text>
                 <TextInput
                   autoCapitalize="none"
                   autoCorrect={false}
-                  onChangeText={setUsername}
-                  placeholder="friday-mars"
+                  keyboardType="email-address"
+                  onChangeText={setEmail}
+                  placeholder="you@example.com"
                   placeholderTextColor="#64748b"
                   style={styles.input}
-                  value={username}
+                  value={email}
                 />
               </View>
-            ) : null}
-            <View style={styles.field}>
-              <Text style={styles.label}>6-Digit PIN</Text>
-              <TextInput
-                keyboardType="number-pad"
-                maxLength={6}
-                onChangeText={setPin}
-                placeholder="123456"
-                placeholderTextColor="#64748b"
-                secureTextEntry
-                style={styles.input}
-                value={pin}
-              />
-            </View>
-            <Pressable
-              disabled={submitting}
-              onPress={onSubmit}
-              style={[
-                styles.submitButton,
-                submitting ? styles.submitButtonDisabled : null,
-              ]}
-            >
-              <Text style={styles.submitButtonText}>{submitLabel}</Text>
-            </Pressable>
-            {status ? (
-              <Text
+              {mode === 'sign-up' ? (
+                <View style={styles.field}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <TextInput
+                    onChangeText={setFullName}
+                    placeholder="First Name Last Name"
+                    placeholderTextColor="#64748b"
+                    style={styles.input}
+                    value={fullName}
+                  />
+                </View>
+              ) : null}
+              {mode === 'sign-up' ? (
+                <View style={styles.field}>
+                  <Text style={styles.label}>Username</Text>
+                  <TextInput
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    onChangeText={setUsername}
+                    placeholder="friday-mars"
+                    placeholderTextColor="#64748b"
+                    style={styles.input}
+                    value={username}
+                  />
+                </View>
+              ) : null}
+              <View style={styles.field}>
+                <Text style={styles.label}>6-Digit PIN</Text>
+                <TextInput
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  onChangeText={setPin}
+                  placeholder="123456"
+                  placeholderTextColor="#64748b"
+                  secureTextEntry
+                  style={styles.input}
+                  value={pin}
+                />
+              </View>
+              <Pressable
+                onPress={() => setRememberMe((current) => !current)}
+                style={styles.rememberRow}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    rememberMe ? styles.checkboxChecked : null,
+                  ]}
+                />
+                <Text style={styles.rememberLabel}>Remember Me</Text>
+              </Pressable>
+              <Pressable
+                disabled={submitting}
+                onPress={onSubmit}
                 style={[
-                  styles.status,
-                  status.state === 'error'
-                    ? styles.statusError
-                    : styles.statusSuccess,
+                  styles.submitButton,
+                  submitting ? styles.submitButtonDisabled : null,
                 ]}
               >
-                {status.message}
-              </Text>
-            ) : null}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+                <Text style={styles.submitButtonText}>{submitLabel}</Text>
+              </Pressable>
+              {status ? (
+                <Text
+                  style={[
+                    styles.status,
+                    status.state === 'error'
+                      ? styles.statusError
+                      : styles.statusSuccess,
+                  ]}
+                >
+                  {status.message}
+                </Text>
+              ) : null}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  background: {
     backgroundColor: '#08101d',
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   keyboardShell: {
@@ -219,7 +261,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   card: {
-    backgroundColor: '#162334',
+    backgroundColor: 'rgba(22, 35, 52, 0.88)',
     borderColor: '#27364d',
     borderRadius: 28,
     borderWidth: 1,
@@ -227,16 +269,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 28,
   },
-  title: {
-    color: '#f8fafc',
-    fontSize: 34,
-    fontWeight: '800',
-    lineHeight: 40,
-  },
-  body: {
-    color: '#cbd5e1',
-    fontSize: 18,
-    lineHeight: 28,
+  logo: {
+    alignSelf: 'center',
+    aspectRatio: 1536 / 1024,
+    height: undefined,
+    width: '85%',
   },
   toggleRow: {
     flexDirection: 'row',
@@ -283,6 +320,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     minHeight: 64,
     paddingHorizontal: 18,
+  },
+  rememberRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  checkbox: {
+    backgroundColor: '#08101d',
+    borderColor: '#3a475d',
+    borderRadius: 6,
+    borderWidth: 2,
+    height: 24,
+    width: 24,
+  },
+  checkboxChecked: {
+    backgroundColor: '#f59e0b',
+    borderColor: '#f59e0b',
+  },
+  rememberLabel: {
+    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: '600',
   },
   submitButton: {
     alignItems: 'center',
