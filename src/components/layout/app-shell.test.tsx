@@ -45,4 +45,18 @@ describe('AppShell', () => {
     expect(screen.getByText(/group switcher/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
   });
+
+  it('renders the shared header with the login-style cropped banner', () => {
+    const { container } = render(<AppShell title="My Profile">content</AppShell>);
+
+    const bannerFrame = container.querySelector(
+      '.tm-app-header-banner .tm-landing-banner-frame--cropped',
+    );
+    const bannerImage = screen.getByAltText(/terraforming mars statistics/i);
+
+    expect(bannerFrame).toBeInTheDocument();
+    expect(bannerImage).toHaveClass('tm-landing-banner-image');
+    expect(bannerImage).not.toHaveClass('h-8');
+    expect(screen.getByText(/mission control/i)).toHaveClass('tm-display-eyebrow');
+  });
 });

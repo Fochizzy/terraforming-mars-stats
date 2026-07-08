@@ -21,27 +21,34 @@ export function AppShell({
         className={`mx-auto flex min-h-screen flex-col ${wide ? 'max-w-6xl' : 'max-w-md'}`}
       >
         <header className="tm-app-header">
-          <div className="flex items-start justify-between gap-3 lg:justify-start lg:gap-8">
-            <div className="flex flex-col items-start gap-2">
-              <Image
-                alt="Terraforming Mars Statistics"
-                className="h-8 w-auto shrink-0 rounded-md lg:h-10"
-                height={793}
-                src="/banner.png"
-                unoptimized
-                width={1983}
-              />
-              <h1 className="tm-display-title text-2xl font-bold lg:text-3xl">
-                {title}
-              </h1>
+          <div className="tm-app-header__inner">
+            <div className="tm-app-header-banner tm-landing-hero-module">
+              <div className="tm-landing-banner-frame tm-landing-banner-frame--cropped">
+                <Image
+                  alt="Terraforming Mars Statistics"
+                  className="tm-landing-banner-image"
+                  height={793}
+                  src="/banner.png"
+                  unoptimized
+                  width={1983}
+                />
+              </div>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {headerActions}
-              <form action={signOut}>
-                <button className="tm-button-secondary px-4 py-2 text-xs" type="submit">
-                  Log Out
-                </button>
-              </form>
+            <div className="tm-app-header__content">
+              <div className="tm-app-header__title-group">
+                <p className="tm-display-eyebrow">Mission Control</p>
+                <h1 className="tm-display-title text-2xl font-bold lg:text-3xl">
+                  {title}
+                </h1>
+              </div>
+              <div className="tm-app-header__actions">
+                {headerActions}
+                <form action={signOut}>
+                  <button className="tm-button-secondary px-4 py-2 text-xs" type="submit">
+                    Log Out
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         </header>
