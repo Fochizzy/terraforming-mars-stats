@@ -278,8 +278,30 @@ function buildUniquePlayerNames(names: string[]) {
   return [...new Set(names.map((name) => name.trim()).filter(Boolean))];
 }
 
+function mergeParsedScreenshotEvidence(input: {
+  clientParsedScreenshot: ParsedEndgameScoreScreenshot;
+  serverParsedScreenshot: ParsedEndgameScoreScreenshot;
+}) {
+  const serverPlayerRows = input.serverParsedScreenshot.playerRows;
+  const clientPlayerRows = input.clientParsedScreenshot.playerRows;
+
+  return {
+    generationCount:
+      input.serverParsedScreenshot.generationCount ??
+      input.clientParsedScreenshot.generationCount ??
+      null,
+    playerRows:
+      clientPlayerRows.length > serverPlayerRows.length
+        ? clientPlayerRows
+        : serverPlayerRows.length > 0
+          ? serverPlayerRows
+          : clientPlayerRows,
+  };
+}
+
 async function parseGameResultEvidence(input: {
   cardReferences: Awaited<ReturnType<typeof listCardScoringReferences>>;
+  clientEndgameLines: string[];
   expectedPlayerCount: number;
   expectedPlayerNames: string[];
   file: File | null;
@@ -336,6 +358,19 @@ async function parseGameResultEvidence(input: {
     }
   }
 
+  const clientParsedScreenshot =
+    input.clientEndgameLines.length > 0
+      ? parseEndgameScoreScreenshot(input.clientEndgameLines)
+      : {
+          generationCount: null,
+          playerRows: [],
+        };
+
+  parsedScreenshot = mergeParsedScreenshotEvidence({
+    clientParsedScreenshot,
+    serverParsedScreenshot: parsedScreenshot,
+  });
+
   const importedNames = buildUniquePlayerNames([
     ...input.expectedPlayerNames,
     ...parsedScreenshot.playerRows.map((row) => row.playerName),
@@ -389,6 +424,7 @@ export default async function LogGameImportPage() {
       const cardReferences = await listCardScoringReferences();
       const screenshotEvidence = await parseGameResultEvidence({
         cardReferences,
+        clientEndgameLines: values.clientEndgameLines,
         expectedPlayerCount: Math.max(
           values.playerCount,
           detectedParticipantNames.length,
@@ -480,6 +516,7 @@ export default async function LogGameImportPage() {
       const cardScoringReferences = await listCardScoringReferences();
       const screenshotEvidence = await parseGameResultEvidence({
         cardReferences: cardScoringReferences,
+        clientEndgameLines: values.clientEndgameLines,
         expectedPlayerCount: Math.max(
           values.playerCount,
           detectedParticipantNames.length,

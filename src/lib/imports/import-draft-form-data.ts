@@ -3,6 +3,7 @@ import { parseImportParticipants } from './parse-import-participants';
 
 export type CreateImportDraftFormValues = {
   boardScreenshots?: File[];
+  clientEndgameLines?: string[];
   confirmedPlayerLinks?: Array<{
     importedName: string;
     playerId: string;
@@ -19,6 +20,7 @@ export type CreateImportDraftFormValues = {
 
 export type ParsedCreateImportDraftFormData = CreateImportDraftInput & {
   boardScreenshots: File[];
+  clientEndgameLines: string[];
   scoreDetailsScreenshot: File | null;
 };
 
@@ -54,6 +56,29 @@ function readConfirmedPlayerLinks(formData: FormData) {
     }
 
     return [{ importedName, playerId }];
+  });
+}
+
+function readClientEndgameLines(formData: FormData) {
+  const rawValue = readTextField(formData, 'clientEndgameLines');
+
+  if (!rawValue) {
+    return [] as string[];
+  }
+
+  const parsedValue = JSON.parse(rawValue);
+
+  if (!Array.isArray(parsedValue)) {
+    throw new Error('Expected clientEndgameLines to be an array.');
+  }
+
+  return parsedValue.flatMap((entry) => {
+    if (typeof entry !== 'string') {
+      return [];
+    }
+
+    const line = entry.trim();
+    return line ? [line] : [];
   });
 }
 
@@ -130,6 +155,13 @@ export function buildCreateImportDraftFormData(
     JSON.stringify(values.confirmedPlayerLinks ?? []),
   );
 
+  if ((values.clientEndgameLines?.length ?? 0) > 0) {
+    formData.set(
+      'clientEndgameLines',
+      JSON.stringify(values.clientEndgameLines),
+    );
+  }
+
   if (values.mapId?.trim()) {
     formData.set('mapId', values.mapId);
   }
@@ -167,6 +199,7 @@ export function parseCreateImportDraftFormData(
 
   return {
     boardScreenshots: readOptionalFileListField(formData, 'boardScreenshots'),
+    clientEndgameLines: readClientEndgameLines(formData),
     confirmedPlayerLinks: readConfirmedPlayerLinks(formData),
     endgameScreenshot,
     endgameScreenshotName: endgameScreenshot?.name ?? null,

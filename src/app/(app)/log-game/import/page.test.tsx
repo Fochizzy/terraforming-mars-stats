@@ -412,6 +412,42 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('uses browser-provided endgame lines when server screenshot OCR finds no score rows', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      clientEndgameLines: [
+        'Victory points breakdown after 12 generations',
+        'Friday Mars 18 5 2 0 0 1 26 8',
+      ],
+      confirmedPlayerLinks: [],
+      endgameScreenshot: new File(['screenshot'], 'game-result.png', {
+        type: 'image/png',
+      }),
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: null,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message: 'Parsed 2 log events and 1 screenshot score row.',
+      review: {
+        scoreCandidates: [
+          expect.objectContaining({
+            playerName: 'Friday Mars',
+            totalPoints: 26,
+            trPoints: 18,
+          }),
+        ],
+      },
+      status: 'success',
+    });
+  });
+
   it('uses the selected map option id as a manual map fallback when OCR cannot infer the board map', async () => {
     mockState.getGroupSettings.mockResolvedValue({
       defaultExpansionCodes: ['base'],
@@ -622,6 +658,45 @@ describe('LogGameImportPage', () => {
         form: expect.objectContaining({
           generationCount: 11,
           mapId: 'tharsis',
+        }),
+      }),
+    );
+  });
+
+  it('uses browser-provided endgame lines to infer generation count before saving the draft', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const createDraftFormData = buildCreateImportDraftFormData({
+      clientEndgameLines: [
+        'Victory points breakdown after 11 generations',
+        'Friday Mars 18 5 2 0 0 1 26 8',
+      ],
+      confirmedPlayerLinks: [
+        {
+          importedName: 'Friday Mars',
+          playerId: 'player-1',
+        },
+      ],
+      endgameScreenshot: new File(['screenshot'], 'game-result.png', {
+        type: 'image/png',
+      }),
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: null,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onCreateImportDraft(createDraftFormData);
+
+    expect(result).toMatchObject({
+      gameId: 'game-1',
+      status: 'success',
+    });
+    expect(mockState.saveDraftGame).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form: expect.objectContaining({
+          generationCount: 11,
         }),
       }),
     );

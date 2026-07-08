@@ -24,6 +24,7 @@ describe('parseCreateImportDraftFormData', () => {
 
     expect(parseCreateImportDraftFormData(formData)).toEqual({
       boardScreenshots: [],
+      clientEndgameLines: [],
       confirmedPlayerLinks: [],
       endgameScreenshot: screenshot,
       endgameScreenshotName: 'endgame.png',
@@ -173,6 +174,7 @@ describe('parseCreateImportDraftFormData', () => {
   it('round-trips confirmed player links from the import review step', () => {
     const formData = buildCreateImportDraftFormData({
       boardScreenshots: [],
+      clientEndgameLines: [],
       confirmedPlayerLinks: [
         { importedName: 'James', playerId: 'player-jh' },
         { importedName: 'Friday Mars', playerId: 'player-friday' },
@@ -193,6 +195,34 @@ describe('parseCreateImportDraftFormData', () => {
         { importedName: 'Friday Mars', playerId: 'player-friday' },
       ],
       participantNames: ['James', 'Friday Mars'],
+    });
+  });
+
+  it('round-trips client endgame OCR lines from the browser fallback', () => {
+    const clientEndgameLines = [
+      'Victory points breakdown after 12 generations',
+      'Friday Mars 18 5 2 0 0 1 26 8',
+    ];
+
+    const formData = buildCreateImportDraftFormData({
+      boardScreenshots: [],
+      clientEndgameLines,
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: 'Friday Mars won by 6 points.',
+      generationCount: 12,
+      mapId: 'elysium',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-04',
+      playerCount: 1,
+      scoreDetailsScreenshot: null,
+    });
+
+    expect(JSON.parse(String(formData.get('clientEndgameLines')))).toEqual(
+      clientEndgameLines,
+    );
+    expect(parseCreateImportDraftFormData(formData)).toMatchObject({
+      clientEndgameLines,
     });
   });
 });

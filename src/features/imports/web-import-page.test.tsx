@@ -1,7 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WebImportPage } from './web-import-page';
+
+const browserOcrMocks = vi.hoisted(() => ({
+  readGameResultEndgameLinesInBrowser: vi.fn(),
+}));
+
+vi.mock('@/lib/imports/read-endgame-screenshot-browser', () => ({
+  readGameResultEndgameLinesInBrowser:
+    browserOcrMocks.readGameResultEndgameLinesInBrowser,
+}));
 
 const review = {
   boardReviewItems: [
@@ -97,6 +106,11 @@ const review = {
 };
 
 describe('WebImportPage', () => {
+  beforeEach(() => {
+    browserOcrMocks.readGameResultEndgameLinesInBrowser.mockReset();
+    browserOcrMocks.readGameResultEndgameLinesInBrowser.mockResolvedValue([]);
+  });
+
   it('renders the protected import workflow fields', () => {
     render(
       <WebImportPage
@@ -324,6 +338,14 @@ describe('WebImportPage', () => {
     const screenshot = new File(['evidence'], 'game-result.png', {
       type: 'image/png',
     });
+    const clientEndgameLines = [
+      'Victory points breakdown after 12 generations',
+      'Friday Mars 18 5 2 0 0 1 26 8',
+    ];
+
+    browserOcrMocks.readGameResultEndgameLinesInBrowser.mockResolvedValue(
+      clientEndgameLines,
+    );
 
     await user.upload(
       screen.getByLabelText(/^game result screenshot$/i),
@@ -350,6 +372,12 @@ describe('WebImportPage', () => {
     );
     expect(submittedFormData.get('endgameScreenshot')).toBe(screenshot);
     expect(submittedFormData.getAll('boardScreenshots')).toEqual([]);
+    expect(
+      browserOcrMocks.readGameResultEndgameLinesInBrowser,
+    ).toHaveBeenCalledWith(screenshot);
+    expect(JSON.parse(String(submittedFormData.get('clientEndgameLines')))).toEqual(
+      clientEndgameLines,
+    );
 
     expect(screen.getByText(/import evidence analyzed/i)).toBeInTheDocument();
     expect(

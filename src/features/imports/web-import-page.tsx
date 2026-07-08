@@ -62,6 +62,10 @@ function getClipboardImageFile(
   return null;
 }
 
+function buildScreenshotCacheKey(file: File) {
+  return [file.name, file.size, file.lastModified].join(':');
+}
+
 function getImportErrorMessage(error: unknown) {
   if (
     error instanceof Error &&
@@ -160,6 +164,10 @@ export function WebImportPage({
 }: WebImportPageProps) {
   const exportedGameLogRef = useRef<HTMLTextAreaElement | null>(null);
   const screenshotPasteTargetRef = useRef<HTMLDivElement | null>(null);
+  const clientEndgameLinesCacheRef = useRef<{
+    fileKey: string;
+    lines: string[];
+  } | null>(null);
   const [mapId, setMapId] = useState(initialValues.mapId);
   const [playedOn, setPlayedOn] = useState(initialValues.playedOn);
   const [playerCount, setPlayerCount] = useState(initialValues.playerCount);
@@ -228,6 +236,7 @@ export function WebImportPage({
   }
 
   function attachEndgameScreenshot(file: File | null) {
+    clientEndgameLinesCacheRef.current = null;
     setEndgameScreenshot(file);
     resetFeedback();
   }
@@ -282,9 +291,40 @@ export function WebImportPage({
     }
   }
 
-  function buildCurrentFormData() {
+  async function resolveClientEndgameLines() {
+    if (!endgameScreenshot) {
+      return [];
+    }
+
+    const fileKey = buildScreenshotCacheKey(endgameScreenshot);
+    const cachedLines = clientEndgameLinesCacheRef.current;
+
+    if (cachedLines?.fileKey === fileKey) {
+      return cachedLines.lines;
+    }
+
+    try {
+      const { readGameResultEndgameLinesInBrowser } = await import(
+        '@/lib/imports/read-endgame-screenshot-browser'
+      );
+      const lines = await readGameResultEndgameLinesInBrowser(endgameScreenshot);
+
+      clientEndgameLinesCacheRef.current = {
+        fileKey,
+        lines,
+      };
+
+      return lines;
+    } catch (error) {
+      console.warn('Browser screenshot OCR fallback failed', error);
+      return [];
+    }
+  }
+
+  async function buildCurrentFormData() {
     return buildCreateImportDraftFormData({
       boardScreenshots: [],
+      clientEndgameLines: await resolveClientEndgameLines(),
       confirmedPlayerLinks: review
         ? review.playerLinks.flatMap((link) => {
             const playerId = playerSelections[link.importedName]?.trim() ?? '';
@@ -330,7 +370,7 @@ export function WebImportPage({
     setManualReviewJumpTarget(null);
 
     try {
-      const result = await onAnalyzeImportEvidence(buildCurrentFormData());
+      const result = await onAnalyzeImportEvidence(await buildCurrentFormData());
       const inferredPlayerCount = inferDetectedPlayerCount(result.review);
 
       if (
@@ -361,7 +401,7 @@ export function WebImportPage({
 
     try {
       const result = await onConfirmImportReview(
-        buildCurrentFormData(),
+        await buildCurrentFormData(),
         resolveManualReviewJumpTargetWithPlayerSelection({
           playerSelections,
           target: manualReviewJumpTarget,
