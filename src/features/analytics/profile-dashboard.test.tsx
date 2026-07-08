@@ -46,6 +46,26 @@ describe('ProfileDashboard', () => {
         winRateComponent: 0.375,
         wins: 3,
       },
+      groupOptions: [
+        { groupId: 'group-1', groupName: 'Friday Mars', role: 'owner' },
+        { groupId: 'group-2', groupName: 'Tuesday Terraformers', role: 'editor' },
+      ],
+      overallPerformance: {
+        averageLossGap: 3.5,
+        averagePlacement: 1.5,
+        averageScore: 80,
+        averageWinMargin: 5.5,
+        differentialComponent: 0.04,
+        gamesPlayed: 10,
+        groupId: 'linked-profile',
+        placementComponent: 0.24,
+        playerId: 'p1',
+        playerName: 'Friday Mars',
+        weightedScore: 0.68,
+        winRate: 0.6,
+        winRateComponent: 0.3,
+        wins: 6,
+      },
       playerName: 'Friday Mars',
       scoreAverages: {
         averageAnimalPoints: 2.1,
@@ -65,6 +85,8 @@ describe('ProfileDashboard', () => {
         mismatchRate: 0.25,
         partialMatchRate: 0.25,
       },
+      selectedGroupId: 'group-1',
+      selectedGroupName: 'Friday Mars',
     };
 
     render(
@@ -72,7 +94,11 @@ describe('ProfileDashboard', () => {
     );
 
     expect(screen.getByText(/my performance/i)).toBeInTheDocument();
-    expect(screen.getByText(/friday mars/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/profile group/i)).toHaveValue('group-1');
+    expect(screen.getByText(/delta vs overall/i)).toBeInTheDocument();
+    expect(screen.getByText(/\+4\.50/)).toBeInTheDocument();
+    expect(screen.getByText(/\+15 pp/)).toBeInTheDocument();
+    expect(screen.getAllByText(/friday mars/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/second seat/i)).toBeInTheDocument();
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
     expect(screen.getByText(/declared vs inferred style/i)).toBeInTheDocument();

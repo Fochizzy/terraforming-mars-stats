@@ -205,3 +205,22 @@ export async function saveGroupSettings(input: {
 
   return data;
 }
+
+export async function renameGroup(input: {
+  group_id: string;
+  group_name: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('groups')
+    .update({ name: input.group_name })
+    .eq('id', input.group_id)
+    .select('id, name')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}

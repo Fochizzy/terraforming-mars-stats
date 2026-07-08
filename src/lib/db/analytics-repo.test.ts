@@ -74,6 +74,72 @@ describe('getProfileAnalytics', () => {
     });
   });
 
+  it('filters linked player analytics to the selected group', async () => {
+    const playersOrderByDisplayName = vi.fn().mockResolvedValue({
+      data: [
+        { display_name: 'Friday Mars', group_id: 'group-1', id: 'player-1' },
+        { display_name: 'Weeknight Mars', group_id: 'group-2', id: 'player-2' },
+      ],
+      error: null,
+    });
+    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
+      order: playersOrderByDisplayName,
+    });
+    const playersEqLinkedUserId = vi.fn().mockReturnValue({
+      order: playersOrderByCreatedAt,
+    });
+    const playersSelect = vi.fn().mockReturnValue({
+      eq: playersEqLinkedUserId,
+    });
+
+    const analyticsIn = vi.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const analyticsSelect = vi.fn().mockReturnValue({
+      in: analyticsIn,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return {
+            select: playersSelect,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      schema: vi.fn((schemaName: string) => {
+        if (schemaName !== 'analytics') {
+          throw new Error(`Unexpected schema ${schemaName}`);
+        }
+
+        return {
+          from: vi.fn((table: string) => {
+            if (table === 'player_game_results') {
+              return {
+                select: analyticsSelect,
+              };
+            }
+
+            throw new Error(`Unexpected analytics table ${table}`);
+          }),
+        };
+      }),
+    } as never);
+
+    await expect(
+      getProfileAnalytics('user-1', { groupId: 'group-2' }),
+    ).resolves.toMatchObject({
+      playerId: 'player-2',
+      playerName: 'Weeknight Mars',
+    });
+
+    expect(playersSelect).toHaveBeenCalledWith('id, display_name, group_id');
+    expect(analyticsIn).toHaveBeenCalledWith('player_id', ['player-2']);
+  });
+
   it('filters expansion mix interactions out of group analytics rows', async () => {
     const eq = vi.fn().mockResolvedValue({
       data: [

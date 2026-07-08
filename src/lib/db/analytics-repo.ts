@@ -385,6 +385,12 @@ type ProfileGameResultRow = {
   winDifferentialPoints: null | number;
 };
 
+type LinkedPlayerRow = {
+  display_name: string;
+  group_id?: string | null;
+  id: string;
+};
+
 function toNumber(value: number | string | null | undefined) {
   if (typeof value === 'number') {
     return value;
@@ -682,7 +688,7 @@ async function getLinkedPlayers(userId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('players')
-    .select('id, display_name')
+    .select('id, display_name, group_id')
     .eq('linked_user_id', userId)
     .order('created_at', { ascending: true })
     .order('display_name', { ascending: true });
@@ -691,7 +697,7 @@ async function getLinkedPlayers(userId: string) {
     throw error;
   }
 
-  return data;
+  return (data ?? []) as LinkedPlayerRow[];
 }
 
 function resolveProfileLabel(
@@ -714,7 +720,7 @@ function resolveProfileLabel(
 }
 
 function buildProfileAnalyticsFromRows(input: {
-  linkedPlayers: Array<{ id: string; display_name: string }>;
+  linkedPlayers: LinkedPlayerRow[];
   ownRows: ProfileGameResultRow[];
   sharedRows: ProfileGameResultRow[];
 }) {
@@ -1352,8 +1358,14 @@ export async function listImportCoverage(groupId: string) {
   return (data as RawImportCoverageRow[]).map(mapImportCoverageRow);
 }
 
-export async function getProfileAnalytics(userId: string) {
-  const linkedPlayers = await getLinkedPlayers(userId);
+export async function getProfileAnalytics(
+  userId: string,
+  options: { groupId?: string | null } = {},
+) {
+  const allLinkedPlayers = await getLinkedPlayers(userId);
+  const linkedPlayers = options.groupId
+    ? allLinkedPlayers.filter((player) => player.group_id === options.groupId)
+    : allLinkedPlayers;
 
   if (!linkedPlayers || linkedPlayers.length === 0) {
     return null;
