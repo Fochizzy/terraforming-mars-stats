@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { FinalizedGamePayload } from '@/features/games/finalize-game';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
+import { refreshGameMetricSnapshots } from './metric-refresh-repo';
 
 async function resolveExpansionIds(codes: string[]) {
   if (codes.length === 0) {
@@ -444,6 +445,8 @@ export async function finalizeGameLog(payload: {
     payload.finalizedPayload.revision.snapshot,
     payload.finalizedPayload.revision.note,
   );
+
+  await refreshGameMetricSnapshots(gameId);
 
   return { gameId };
 }
