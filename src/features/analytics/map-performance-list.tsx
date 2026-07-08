@@ -31,10 +31,15 @@ export function MapPerformanceList({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {mapMetricRows.slice(0, 6).map((row) => (
-            <article className="tm-stat-card" key={row.mapId}>
+            <article
+              className="tm-stat-card"
+              key={`${row.groupId}-${row.playerId}-${row.mapId}`}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-stone-100">{row.mapId}</p>
+                  <p className="font-semibold text-stone-100">
+                    {row.mapName ?? row.mapId}
+                  </p>
                   <p className="tm-muted-copy mt-1 text-sm">
                     {row.mapRankForPlayer ? `Rank #${row.mapRankForPlayer}` : 'Unranked'}
                   </p>

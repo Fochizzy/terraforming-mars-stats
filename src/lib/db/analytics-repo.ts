@@ -179,6 +179,7 @@ export type PlayerMapMetricRow = {
   gamesPlayed: number;
   groupId: string;
   mapId: string;
+  mapName: string | null;
   mapRankForPlayer: number | null;
   playerId: string;
   winRate: number;
@@ -415,6 +416,7 @@ export type RawPlayerMapMetricRow = {
   group_id: string;
   map_id: string;
   map_rank_for_player: number | string | null;
+  maps: { name: string | null } | { name: string | null }[] | null;
   player_id: string;
   win_rate: number | string;
   wins: number | string;
@@ -680,10 +682,13 @@ export function mapPlayerEfficiencySummary(
 export function mapPlayerMapMetricRow(
   row: RawPlayerMapMetricRow,
 ): PlayerMapMetricRow {
+  const mapRelation = Array.isArray(row.maps) ? row.maps[0] : row.maps;
+
   return {
     groupId: row.group_id,
     playerId: row.player_id,
     mapId: row.map_id,
+    mapName: mapRelation?.name ?? null,
     gamesPlayed: toNumber(row.games_played),
     wins: toNumber(row.wins),
     winRate: toNumber(row.win_rate),
@@ -1497,7 +1502,7 @@ const playerEfficiencySummarySelect =
   'average_award_roi, average_expected_score, average_loss_gap, average_normalized_efficiency, average_placement, average_points_per_generation, average_score, average_score_delta_vs_expected, average_win_margin, award_score_share, best_score_source, best_tag_lane, card_score_share, cities_score_share, close_game_count, close_game_wins, close_game_win_rate, games_played, greenery_score_share, group_id, milestone_score_share, player_id, tag_evidence_coverage, tr_score_share, win_rate, wins';
 
 const playerMapMetricSelect =
-  'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, average_score_delta_vs_expected, best_score_source_on_map, best_tag_lane_on_map, games_played, group_id, map_id, map_rank_for_player, player_id, win_rate, wins';
+  'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, average_score_delta_vs_expected, best_score_source_on_map, best_tag_lane_on_map, games_played, group_id, map_id, map_rank_for_player, maps(name), player_id, win_rate, wins';
 
 const globalMapMetricSelect =
   'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, best_tag_lane, expected_score_baseline, games_played, highest_efficiency_style_code, highest_win_rate_corporation_id, map_id, player_count';
