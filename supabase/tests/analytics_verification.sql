@@ -4,6 +4,27 @@ where table_schema = 'analytics'
 order by table_name;
 
 select table_schema, table_name
+from information_schema.tables
+where table_schema = 'public'
+  and table_name in (
+    'game_player_metric_snapshots',
+    'game_player_tag_metric_snapshots',
+    'game_milestone_metric_snapshots',
+    'game_award_metric_snapshots',
+    'player_metric_summaries',
+    'player_map_metric_summaries',
+    'global_corporation_metric_summaries',
+    'global_style_metric_summaries',
+    'global_tag_metric_summaries',
+    'global_map_metric_summaries',
+    'global_milestone_metric_summaries',
+    'global_award_metric_summaries',
+    'global_player_count_metric_summaries',
+    'global_generation_metric_summaries'
+  )
+order by table_name;
+
+select table_schema, table_name
 from information_schema.views
 where table_schema = 'analytics'
   and table_name like '%import%'
