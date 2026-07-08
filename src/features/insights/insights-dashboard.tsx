@@ -23,6 +23,7 @@ import {
 } from '@/components/charts/chart-theme';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { PromoSetBrowser } from '@/features/catalog/promo-set-browser';
+import { GlobalMetricBoard } from '@/features/analytics/global-metric-board';
 import type {
   GroupAnalytics,
   GroupHeadToHeadRow,
@@ -95,6 +96,17 @@ function formatAverage(value: number | null) {
   }).format(value);
 }
 
+function formatPersistedMetric(value: number | null) {
+  if (value === null) {
+    return '-';
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
 function truncateLabel(value: string, length = 18) {
   if (value.length <= length) {
     return value;
@@ -112,6 +124,10 @@ function humanizeStyleCode(styleCode: string | null) {
     .split('_')
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ');
+}
+
+function getMapLabel(row: { mapId: string; mapName?: string | null }) {
+  return row.mapName ?? row.mapId;
 }
 
 function humanizeInteractionType(
@@ -302,6 +318,14 @@ export function InsightsDashboard({
   const selectedInteractionRows: DashboardInteractionRow[] = selectedPlayer
     ? analytics.playerInteractionRows.filter((row) => row.playerId === selectedPlayer.id)
     : analytics.groupInteractionRows.slice(0, 6);
+  const selectedEfficiencyRows = selectedPlayer
+    ? analytics.playerEfficiencySummaries.filter(
+        (row) => row.playerId === selectedPlayer.id,
+      )
+    : analytics.playerEfficiencySummaries;
+  const selectedMapMetricRows = selectedPlayer
+    ? analytics.playerMapMetricRows.filter((row) => row.playerId === selectedPlayer.id)
+    : analytics.playerMapMetricRows;
   const focusedHeadToHeadRows = useMemo(
     () =>
       normalizeHeadToHeadRows(
@@ -319,21 +343,27 @@ export function InsightsDashboard({
         focusPlayerId: selectedPlayer?.id ?? null,
         focusPlayerName: selectedPlayer?.displayName ?? null,
         headToHeadRows: analytics.headToHeadRows,
+        globalMapMetricRows: analytics.globalMapMetricRows,
         interactionRows: selectedInteractionRows,
         leaderboardRows: analytics.leaderboardRows,
         lineupEffectRows: analytics.lineupEffectRows,
+        playerEfficiencySummaries: selectedEfficiencyRows,
+        playerMapMetricRows: selectedMapMetricRows,
         stylePerformanceRows: selectedStylePerformanceRows,
         styleAgreementRows: analytics.styleAgreementRows,
         trendRows: analytics.playerTrendRows,
       }),
     [
       analytics.headToHeadRows,
+      analytics.globalMapMetricRows,
       analytics.leaderboardRows,
       analytics.lineupEffectRows,
       analytics.playerTrendRows,
       analytics.styleAgreementRows,
       selectedCoverage,
+      selectedEfficiencyRows,
       selectedInteractionRows,
+      selectedMapMetricRows,
       selectedPlayer,
       selectedStylePerformanceRows,
     ],
@@ -383,7 +413,10 @@ export function InsightsDashboard({
     analytics.leaderboardRows.length > 0 ||
     analytics.headToHeadRows.length > 0 ||
     analytics.groupInteractionRows.length > 0 ||
+    analytics.globalMapMetricRows.length > 0 ||
     analytics.playerInteractionRows.length > 0 ||
+    analytics.playerEfficiencySummaries.length > 0 ||
+    analytics.playerMapMetricRows.length > 0 ||
     analytics.lineupEffectRows.length > 0 ||
     analytics.styleAgreementRows.length > 0 ||
     analytics.scoreAverages !== null ||
@@ -488,6 +521,72 @@ export function InsightsDashboard({
               </ResponsiveContainer>
             )}
           </ChartFrame>
+
+          <ChartFrame
+            title={
+              selectedPlayer
+                ? `Persisted Efficiency for ${selectedPlayer.displayName}`
+                : 'Persisted Efficiency'
+            }
+          >
+            {selectedEfficiencyRows.length === 0 && selectedMapMetricRows.length === 0 ? (
+              <p className="tm-muted-copy text-sm">
+                Persisted efficiency and map rows will appear after Supabase summaries
+                refresh.
+              </p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {selectedEfficiencyRows.slice(0, 3).map((row) => (
+                  <article
+                    className="tm-stat-card"
+                    key={`${row.groupId}-${row.playerId}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-semibold text-stone-100">
+                        {selectedPlayer?.displayName ??
+                          analytics.leaderboardRows.find(
+                            (leader) => leader.playerId === row.playerId,
+                          )?.playerName ??
+                          row.playerId}
+                      </h3>
+                      <p className="tm-accent-copy text-sm">
+                        {formatPersistedMetric(row.averagePointsPerGeneration)} pts/gen
+                      </p>
+                    </div>
+                    <p className="tm-muted-copy mt-2 text-sm">
+                      {row.gamesPlayed} games | avg{' '}
+                      {formatPersistedMetric(row.averageScore)} points
+                      {row.averageExpectedScore !== null
+                        ? ` | expected ${formatPersistedMetric(row.averageExpectedScore)}`
+                        : ''}
+                    </p>
+                  </article>
+                ))}
+                {selectedMapMetricRows.slice(0, 3).map((row) => (
+                  <article
+                    className="tm-stat-card"
+                    key={`${row.groupId}-${row.playerId}-${row.mapId}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-semibold text-stone-100">
+                        {getMapLabel(row)}
+                      </h3>
+                      <p className="tm-accent-copy text-sm">
+                        {formatPersistedMetric(row.averagePointsPerGeneration)} pts/gen
+                      </p>
+                    </div>
+                    <p className="tm-muted-copy mt-2 text-sm">
+                      {row.gamesPlayed} games | avg{' '}
+                      {formatPersistedMetric(row.averagePoints)} points |{' '}
+                      {formatPersistedMetric(row.averageGenerations)} gens
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </ChartFrame>
+
+          <GlobalMetricBoard globalMapMetricRows={analytics.globalMapMetricRows} />
 
           <ChartFrame
             title={
