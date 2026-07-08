@@ -76,6 +76,7 @@ const mockState = vi.hoisted(() => ({
   getGroupSettings: vi.fn(),
   getUser: vi.fn(),
   listCardScoringReferences: vi.fn(),
+  listCardTagReferences: vi.fn(),
   listCards: vi.fn(),
   listCorporations: vi.fn(),
   listImportResolutionPlayers: vi.fn(),
@@ -164,6 +165,7 @@ vi.mock('@/lib/db/player-repo', () => ({
 
 vi.mock('@/lib/db/reference-repo', () => ({
   listCardScoringReferences: mockState.listCardScoringReferences,
+  listCardTagReferences: mockState.listCardTagReferences,
   listCards: mockState.listCards,
   listCorporations: mockState.listCorporations,
   listMapAwards: mockState.listMapAwards,
@@ -232,6 +234,15 @@ describe('LogGameImportPage', () => {
     ]);
     mockState.listCardScoringReferences.mockResolvedValue(
       CARD_SCORING_REFERENCES,
+    );
+    mockState.listCardTagReferences.mockResolvedValue(
+      CARD_SCORING_REFERENCES.map((card) => ({
+        cardName: card.cardName,
+        cardType: card.cardType,
+        fullImageUrl: card.fullImageUrl,
+        id: card.id,
+        sourceTags: card.sourceTags,
+      })),
     );
     mockState.listCards.mockResolvedValue(CARD_OPTIONS);
     mockState.listCorporations.mockResolvedValue([]);

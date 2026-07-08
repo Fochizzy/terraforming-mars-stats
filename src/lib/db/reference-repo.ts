@@ -89,6 +89,19 @@ export type CardScoringReference = {
   sourceTags: string[];
 };
 
+export type CardLookupRecord = {
+  id: string;
+  cardNumber: string;
+  cardName: string;
+  cardType: string;
+  expansionCode: string;
+  promoSetSlug: string | null;
+  requiredExpansionCodes: string[];
+  thumbnailUrl: string;
+  fullImageUrl: string;
+  sourceTags: string[];
+};
+
 type JoinedName = {
   name: string;
 };
@@ -394,7 +407,7 @@ export async function listCardScoringReferences(): Promise<CardScoringReference[
         'image_url',
         'thumbnail_path',
         'full_image_path',
-        'sync_metadata',
+        'gameplay_tags',
       ].join(', '),
     )
     .eq('card_type', 'Project')
@@ -410,12 +423,12 @@ export async function listCardScoringReferences(): Promise<CardScoringReference[
     card_type: string;
     expansion_code: string;
     full_image_path: string | null;
+    gameplay_tags: unknown;
     id: string;
     image_url: string;
     promo_set_id: string | null;
     required_expansion_codes: unknown;
     source_card_id: string;
-    sync_metadata: Record<string, unknown> | null;
     thumbnail_path: string | null;
   }>;
 
@@ -441,11 +454,112 @@ export async function listCardScoringReferences(): Promise<CardScoringReference[
     imageUrl: card.image_url,
     thumbnailUrl: card.thumbnail_path ?? card.full_image_path ?? card.image_url,
     fullImageUrl: card.full_image_path ?? card.image_url,
-    sourceTags: Array.isArray(card.sync_metadata?.sourceTags)
-      ? card.sync_metadata.sourceTags.filter(
-          (tag): tag is string => typeof tag === 'string',
-        )
-      : [],
+    sourceTags: normalizeGameplayTagList(card.gameplay_tags),
+  }));
+}
+
+function normalizeGameplayTagList(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((tag): tag is string => typeof tag === 'string')
+    : [];
+}
+
+export async function listCardLookupRecords(): Promise<CardLookupRecord[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('cards')
+    .select(
+      [
+        'id',
+        'card_number',
+        'card_name',
+        'card_type',
+        'expansion_code',
+        'promo_set_id',
+        'required_expansion_codes',
+        'image_url',
+        'thumbnail_path',
+        'full_image_path',
+        'gameplay_tags',
+      ].join(', '),
+    )
+    .order('card_name');
+
+  if (error) {
+    throw error;
+  }
+
+  const cardRows = data as unknown as Array<{
+    card_name: string;
+    card_number: string;
+    card_type: string;
+    expansion_code: string;
+    full_image_path: string | null;
+    gameplay_tags: unknown;
+    id: string;
+    image_url: string;
+    promo_set_id: string | null;
+    required_expansion_codes: unknown;
+    thumbnail_path: string | null;
+  }>;
+
+  const promoSetSlugById = await resolvePromoSetSlugByIdMap(
+    cardRows
+      .map((card) => card.promo_set_id)
+      .filter((promoSetId): promoSetId is string => Boolean(promoSetId)),
+  );
+
+  return cardRows.map((card) => ({
+    id: card.id,
+    cardNumber: card.card_number,
+    cardName: card.card_name,
+    cardType: card.card_type,
+    expansionCode: card.expansion_code,
+    promoSetSlug: card.promo_set_id
+      ? promoSetSlugById.get(card.promo_set_id) ?? null
+      : null,
+    requiredExpansionCodes: normalizeExpansionCodeList(
+      card.required_expansion_codes,
+    ),
+    thumbnailUrl: card.thumbnail_path ?? card.full_image_path ?? card.image_url,
+    fullImageUrl: card.full_image_path ?? card.image_url,
+    sourceTags: normalizeGameplayTagList(card.gameplay_tags),
+  }));
+}
+
+export type CardTagReference = {
+  id: string;
+  cardName: string;
+  cardType: string;
+  sourceTags: string[];
+  fullImageUrl: string;
+};
+
+export async function listCardTagReferences(): Promise<CardTagReference[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('cards')
+    .select('id, card_name, card_type, gameplay_tags, image_url, full_image_path')
+    .in('card_type', ['Project', 'Corporation', 'Prelude'])
+    .order('card_name');
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as unknown as Array<{
+    card_name: string;
+    card_type: string;
+    full_image_path: string | null;
+    gameplay_tags: unknown;
+    id: string;
+    image_url: string;
+  }>).map((card) => ({
+    id: card.id,
+    cardName: card.card_name,
+    cardType: card.card_type,
+    sourceTags: normalizeGameplayTagList(card.gameplay_tags),
+    fullImageUrl: card.full_image_path ?? card.image_url,
   }));
 }
 

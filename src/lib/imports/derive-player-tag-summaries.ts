@@ -9,10 +9,13 @@ export const PLAYER_TAG_CODES = [
   'science',
   'jovian',
   'earth',
+  'venus',
   'plant',
   'microbe',
   'animal',
   'city',
+  'wild',
+  'moon',
   'event',
 ] as const;
 
@@ -162,7 +165,13 @@ export function derivePlayerTagSummaries(input: {
       continue;
     }
 
-    if (candidateCards.length > 1) {
+    const distinctTagSignatures = new Set(
+      candidateCards.map((card) =>
+        [...normalizeSourceTags(card.sourceTags)].sort().join('|'),
+      ),
+    );
+
+    if (candidateCards.length > 1 && distinctTagSignatures.size > 1) {
       playerSummary.unresolvedCards.push({
         candidateCardIds: candidateCards.map((card) => card.id),
         candidateCards: candidateCards.flatMap((card) =>

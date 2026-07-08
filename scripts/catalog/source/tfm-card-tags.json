@@ -1,0 +1,8028 @@
+[
+ {
+  "name": "16 Psyche",
+  "nameKey": "SIXTEEN_PSYCHE",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Accumulated Knowledge",
+  "nameKey": "ACCUMULATED_KNOWLEDGE",
+  "cardType": null,
+  "tags": [
+   "science"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Acquired Company",
+  "nameKey": "ACQUIRED_COMPANY",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Adaptation Technology",
+  "nameKey": "ADAPTATION_TECHNOLOGY",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Adapted Lichen",
+  "nameKey": "ADAPTED_LICHEN",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Advanced Alloys",
+  "nameKey": "ADVANCED_ALLOYS",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Advanced Ecosystems",
+  "nameKey": "ADVANCED_ECOSYSTEMS",
+  "cardType": "automated",
+  "tags": [
+   "plant",
+   "microbe",
+   "animal"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Advertising",
+  "nameKey": "ADVERTISING",
+  "cardType": "active",
+  "tags": [
+   "earth"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aerial Lenses",
+  "nameKey": "AERIAL_LENSES",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aerial Mappers",
+  "nameKey": "AERIAL_MAPPERS",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aerobraked Ammonia Asteroid",
+  "nameKey": "AEROBRAKED_AMMONIA_ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aerospace Mission",
+  "nameKey": "AEROSPACE_MISSION",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Aerosport Tournament",
+  "nameKey": "AEROSPORT_TOURNAMENT",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aerotech",
+  "nameKey": "AEROTECH",
+  "cardType": "corporation",
+  "tags": [
+   "space"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Agricola Inc",
+  "nameKey": "AGRICOLA_INC",
+  "cardType": "corporation",
+  "tags": [
+   "plant"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "AI Central",
+  "nameKey": "AI_CENTRAL",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "AI Controlled Mine Network",
+  "nameKey": "AI_CONTROLLED_MINE_NETWORK",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Air Raid",
+  "nameKey": "AIR_RAID",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Air-Scrapping Expedition",
+  "nameKey": "AIR_SCRAPPING_EXPEDITION",
+  "cardType": "event",
+  "tags": [
+   "venus",
+   "event"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Airliners",
+  "nameKey": "AIRLINERS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Albedo Plants",
+  "nameKey": "ALBEDO_PLANTS",
+  "cardType": null,
+  "tags": [
+   "plant"
+  ],
+  "module": "Promo",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Algae",
+  "nameKey": "ALGAE",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Algae Bioreactors",
+  "nameKey": "ALGAE_BIOREACTORS",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Allied Banks",
+  "nameKey": "ALLIED_BANKS",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Allied Research",
+  "nameKey": "ALLIED_RESEARCH",
+  "cardType": null,
+  "tags": [
+   "earth",
+   "science"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "An Offer You Can't Refuse",
+  "nameKey": "AN_OFFER_YOU_CANT_REFUSE",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ancient Shipyards",
+  "nameKey": "ANCIENT_SHIPYARDS",
+  "cardType": "active",
+  "tags": [
+   "moon",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Anti-Desertification Techniques",
+  "nameKey": "ANTI_DESERTIFICATION_TECHNIQUES",
+  "cardType": null,
+  "tags": [
+   "microbe",
+   "plant"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Anti-Gravity Technology",
+  "nameKey": "ANTI_GRAVITY_TECHNOLOGY",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ants",
+  "nameKey": "ANTS",
+  "cardType": "active",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aphrodite",
+  "nameKey": "APHRODITE",
+  "cardType": "corporation",
+  "tags": [
+   "plant",
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Aphrodite Bot",
+  "nameKey": "APHRODITE_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Apollo",
+  "nameKey": "APOLLO",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Applied Science",
+  "nameKey": "APPLIED_SCIENCE",
+  "cardType": null,
+  "tags": [
+   "wild"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Aqueduct Systems",
+  "nameKey": "AQUEDUCT_SYSTEMS",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aquifer Pumping",
+  "nameKey": "AQUIFER_PUMPING",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aquifer Turbines",
+  "nameKey": "AQUIFER_TURBINES",
+  "cardType": null,
+  "tags": [
+   "power"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Arcadian Communities",
+  "nameKey": "ARCADIAN_COMMUNITIES",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Promo",
+  "category": "corporationCards"
+ },
+ {
+  "name": "ArchaeBacteria",
+  "nameKey": "ARCHAEBACTERIA",
+  "cardType": "automated",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Archimedes Hydroponics Station",
+  "nameKey": "ARCHIMEDES_HYDROPONICS_STATION",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Arctic Algae",
+  "nameKey": "ARCTIC_ALGAE",
+  "cardType": "active",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Aridor",
+  "nameKey": "ARIDOR",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Colonies",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Aristarchus",
+  "nameKey": "ARISTARCHUS",
+  "cardType": "corporation",
+  "tags": [
+   "venus",
+   "earth",
+   "jovian"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Aristarchus Road Network",
+  "nameKey": "ARISTARCHUS_ROAD_NETWORK",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Arklight",
+  "nameKey": "ARKLIGHT",
+  "cardType": "corporation",
+  "tags": [
+   "animal"
+  ],
+  "module": "Colonies",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Artificial Lake",
+  "nameKey": "ARTIFICIAL_LAKE",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Artificial Photosynthesis",
+  "nameKey": "ARTIFICIAL_PHOTOSYNTHESIS",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Asimov",
+  "nameKey": "ASIMOV",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Asteroid",
+  "nameKey": "ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Asteroid Deflection System",
+  "nameKey": "ASTEROID_DEFLECTION_SYSTEM",
+  "cardType": "active",
+  "tags": [
+   "space",
+   "earth",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Asteroid Hollowing",
+  "nameKey": "ASTEROID_HOLLOWING",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Asteroid Mining",
+  "nameKey": "ASTEROID_MINING",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Asteroid Mining Consortium",
+  "nameKey": "ASTEROID_MINING_CONSORTIUM",
+  "cardType": "automated",
+  "tags": [
+   "jovian"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Asteroid Rights",
+  "nameKey": "ASTEROID_RIGHTS",
+  "cardType": "active",
+  "tags": [
+   "earth",
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Astra Mechanica",
+  "nameKey": "ASTRA_MECHANICA",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Astrodrill",
+  "nameKey": "ASTRODRILL",
+  "cardType": "corporation",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Atalanta Planitia Lab",
+  "nameKey": "ATALANTA_PLANITIA_LAB",
+  "cardType": "automated",
+  "tags": [
+   "venus",
+   "science"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Athena",
+  "nameKey": "ATHENA",
+  "cardType": "corporation",
+  "tags": [
+   "earth"
+  ],
+  "module": "Ares",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Atmo Collectors",
+  "nameKey": "ATMO_COLLECTORS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Atmoscoop",
+  "nameKey": "ATMOSCOOP",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Atmospheric Enhancers",
+  "nameKey": "ATMOSPHERIC_ENHANCERS",
+  "cardType": null,
+  "tags": [
+   "venus"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Bactoviral Research",
+  "nameKey": "BACTOVIRAL_RESEARCH",
+  "cardType": "automated",
+  "tags": [
+   "microbe",
+   "science"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Banned Delegate",
+  "nameKey": "BANNED_DELEGATE",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Basic Infrastructure",
+  "nameKey": "BASIC_INFRASTRUCTURE",
+  "cardType": null,
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Beam From A Thorium Asteroid",
+  "nameKey": "BEAM_FROM_A_THORIUM_ASTEROID",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space",
+   "power"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Beginner Corporation",
+  "nameKey": "BEGINNER_CORPORATION",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Bentenmaru",
+  "nameKey": "BENTENMARU",
+  "cardType": "corporation",
+  "tags": [
+   "space"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Big Asteroid",
+  "nameKey": "BIG_ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Bio Printing Facility",
+  "nameKey": "BIO_PRINTING_FACILITY",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Bio-Fertilizer Facility",
+  "nameKey": "BIOFERTILIZER_FACILITY",
+  "cardType": "automated",
+  "tags": [
+   "microbe",
+   "building"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Bioengineering Enclosure",
+  "nameKey": "BIOENGINEERING_ENCLOSURE",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Biofuels",
+  "nameKey": "BIOFUELS",
+  "cardType": null,
+  "tags": [
+   "microbe"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Biolab",
+  "nameKey": "BIOLAB",
+  "cardType": null,
+  "tags": [
+   "science"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Biomass Combustors",
+  "nameKey": "BIOMASS_COMBUSTORS",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Biosphere Support",
+  "nameKey": "BIOSPHERE_SUPPORT",
+  "cardType": null,
+  "tags": [
+   "plant"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Birds",
+  "nameKey": "BIRDS",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Bjorn",
+  "nameKey": "BJORN",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Black Polar Dust",
+  "nameKey": "BLACK_POLAR_DUST",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Board of Directors",
+  "nameKey": "BOARD_OF_DIRECTORS",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Botanical Harvest",
+  "nameKey": "BOTANICAL_HARVEST",
+  "cardType": null,
+  "tags": [
+   "plant"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Breathing Filters",
+  "nameKey": "BREATHING_FILTERS",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Bribed Committee",
+  "nameKey": "BRIBED_COMMITTEE",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Buck",
+  "nameKey": "BUCK",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Building Industries",
+  "nameKey": "BUILDING_INDUSTRIES",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Bushes",
+  "nameKey": "BUSHES",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Business Contacts",
+  "nameKey": "BUSINESS_CONTACTS",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Business Empire",
+  "nameKey": "BUSINESS_EMPIRE",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Business Network",
+  "nameKey": "BUSINESS_NETWORK",
+  "cardType": "active",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Butterfly Effect",
+  "nameKey": "BUTTERFLY_EFFECT",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "By-Election",
+  "nameKey": "BY_ELECTION",
+  "cardType": null,
+  "tags": [
+   "wild"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Caesar",
+  "nameKey": "CAESAR",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Callisto Penal Mines",
+  "nameKey": "CALLISTO_PENAL_MINES",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Capital",
+  "nameKey": "CAPITAL",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Carbon Nanosystems",
+  "nameKey": "CARBON_NANOSYSTEMS",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Carbonate Processing",
+  "nameKey": "CARBONATE_PROCESSING",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Caretaker Contract",
+  "nameKey": "CARETAKER_CONTRACT",
+  "cardType": "active",
+  "tags": [],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Cartel",
+  "nameKey": "CARTEL",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Casinos",
+  "nameKey": "CASINOS",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Celestic",
+  "nameKey": "CELESTIC",
+  "cardType": "corporation",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "corporationCards"
+ },
+ {
+  "name": "CEO's Favorite Project",
+  "nameKey": "CEOS_FAVORITE_PROJECT",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ceres Tech Market",
+  "nameKey": "CERES_TECH_MARKET",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Cheung Shing MARS",
+  "nameKey": "CHEUNG_SHING_MARS",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "corporationCards"
+ },
+ {
+  "name": "City Parks",
+  "nameKey": "CITY_PARK",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Clarke",
+  "nameKey": "CLARKE",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Cloud Seeding",
+  "nameKey": "CLOUD_SEEDING",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Cloud Tourism",
+  "nameKey": "CLOUD_TOURISM",
+  "cardType": "active",
+  "tags": [
+   "jovian",
+   "venus"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Colonial Envoys",
+  "nameKey": "COLONIAL_ENVOYS",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Colonial One",
+  "nameKey": "COLONIAL_ONE",
+  "cardType": "corporation",
+  "tags": [
+   "space",
+   "space"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Colonial Representation",
+  "nameKey": "COLONIAL_REPRESENTATION",
+  "cardType": "active",
+  "tags": [],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Colonist Shuttles",
+  "nameKey": "COLONIST_SHUTTLES",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Colonizer Training Camp",
+  "nameKey": "COLONIZER_TRAINING_CAMP",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Colony Trade Hub",
+  "nameKey": "COLONY_TRADE_HUB",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Comet",
+  "nameKey": "COMET",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Comet Aiming",
+  "nameKey": "COMET_AIMING",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Comet for Venus",
+  "nameKey": "COMET_FOR_VENUS",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Commercial District",
+  "nameKey": "COMMERCIAL_DISTRICT",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Community Services",
+  "nameKey": "COMMUNITY_SERVICES",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Conscription",
+  "nameKey": "CONSCRIPTION",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "event"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Convoy From Europa",
+  "nameKey": "CONVOY_FROM_EUROPA",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Copernicus Solar Arrays",
+  "nameKey": "COPERNICUS_SOLAR_ARRAYS",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Copernicus Tower",
+  "nameKey": "COPERNICUS_TOWER",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Core Mine",
+  "nameKey": "CORE_MINE",
+  "cardType": null,
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Corona Extractor",
+  "nameKey": "CORONA_EXTRACTOR",
+  "cardType": "automated",
+  "tags": [
+   "space",
+   "power"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Corporate Alliance",
+  "nameKey": "CORPORATE_ALLIANCE",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Corporate Archives",
+  "nameKey": "CORPORATE_ARCHIVES",
+  "cardType": null,
+  "tags": [
+   "science"
+  ],
+  "module": "Promo",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Corporate Stronghold",
+  "nameKey": "CORPORATE_STRONGHOLD",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Corridors of Power",
+  "nameKey": "CORRIDORS_OF_POWER",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Corroder Suits",
+  "nameKey": "CORRODER_SUITS",
+  "cardType": "automated",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Cosmic Radiation",
+  "nameKey": "COSMIC_RADIATION",
+  "cardType": "event",
+  "tags": [
+   "moon",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Crash Site Cleanup",
+  "nameKey": "CRASH_SITE_CLEANUP",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "CrediCor",
+  "nameKey": "CREDICOR",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Credicor Bot",
+  "nameKey": "CREDICOR_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Crescent Research Association",
+  "nameKey": "CRESCENT_RESEARCH_ASSOCIATION",
+  "cardType": "corporation",
+  "tags": [
+   "science",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Cryo Sleep",
+  "nameKey": "CRYO_SLEEP",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Cultural Metropolis",
+  "nameKey": "CULTURAL_METROPOLIS",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Cupola City",
+  "nameKey": "CUPOLA_CITY",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Curiosity II",
+  "nameKey": "CURIOSITY_II",
+  "cardType": "corporation",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Cutting Edge Technology",
+  "nameKey": "CUTTING_EDGE_TECHNOLOGY",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Cyanobacteria Pods",
+  "nameKey": "CYANOBACTERIA_PODS",
+  "cardType": null,
+  "tags": [
+   "microbe"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Cyberia Systems",
+  "nameKey": "CYBERIA_SYSTEMS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Darkside Incubation Plant",
+  "nameKey": "DARKSIDE_INCUBATION_PLANT",
+  "cardType": "active",
+  "tags": [
+   "microbe",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Darkside Meteor Bombardment",
+  "nameKey": "DARKSIDE_METEOR_BOMBARDMENT",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Darkside Mining Syndicate",
+  "nameKey": "DARKSIDE_MINING_SYNDICATE",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Darkside Observatory",
+  "nameKey": "DARKSIDE_OBSERVATORY",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Darkside Smugglers' Union",
+  "nameKey": "DARKSIDE_SMUGGLERS_UNION",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Darwin",
+  "nameKey": "DARWIN",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Dawn City",
+  "nameKey": "DAWN_CITY",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "space"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Decomposers",
+  "nameKey": "DECOMPOSERS",
+  "cardType": "active",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Deep Lunar Mining",
+  "nameKey": "DEEP_LUNAR_MINING",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Deep Well Heating",
+  "nameKey": "DEEP_WELL_HEATING",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Deimos Down",
+  "nameKey": "DEIMOS_DOWN",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Deimos Down:promo",
+  "nameKey": "DEIMOS_DOWN_PROMO",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Designed Micro-organisms",
+  "nameKey": "DESIGNED_MICRO_ORGANISMS",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Desperate Measures",
+  "nameKey": "DESPERATE_MEASURES",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Deuterium Export",
+  "nameKey": "DEUTERIUM_EXPORT",
+  "cardType": "active",
+  "tags": [
+   "space",
+   "venus",
+   "power"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Development Center",
+  "nameKey": "DEVELOPMENT_CENTER",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Diaspora Movement",
+  "nameKey": "DIASPORA_MOVEMENT",
+  "cardType": "automated",
+  "tags": [
+   "jovian"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Directed Heat Usage",
+  "nameKey": "DIRECTED_HEAT_USAGE",
+  "cardType": "active",
+  "tags": [],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Directed Impactors",
+  "nameKey": "DIRECTED_IMPACTORS",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Dirigibles",
+  "nameKey": "DIRIGIBLES",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Diversity Support",
+  "nameKey": "DIVERSITY_SUPPORT",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Dome Farming",
+  "nameKey": "DOME_FARMING",
+  "cardType": null,
+  "tags": [
+   "plant",
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Domed Crater",
+  "nameKey": "DOMED_CRATER",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Duncan",
+  "nameKey": "DUNCAN",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Dusk Laser Mining",
+  "nameKey": "DUSK_LASER_MINING",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Dust Seals",
+  "nameKey": "DUST_SEALS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Early Colonization",
+  "nameKey": "EARLY_COLONIZATION",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Early Settlement",
+  "nameKey": "EARLY_SETTLEMENT",
+  "cardType": null,
+  "tags": [
+   "building",
+   "city"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Earth Catapult",
+  "nameKey": "EARTH_CATAPULT",
+  "cardType": "active",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Earth Elevator",
+  "nameKey": "EARTH_ELEVATOR",
+  "cardType": "automated",
+  "tags": [
+   "space",
+   "earth"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Earth Embassy",
+  "nameKey": "EARTH_EMBASSY",
+  "cardType": "active",
+  "tags": [
+   "moon",
+   "earth"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Earth Office",
+  "nameKey": "EARTH_OFFICE",
+  "cardType": "active",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "EcoLine",
+  "nameKey": "ECOLINE",
+  "cardType": "corporation",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Ecoline Bot",
+  "nameKey": "ECOLINE_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Ecological Survey",
+  "nameKey": "ECOLOGICAL_SURVEY",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ecological Zone",
+  "nameKey": "ECOLOGICAL_ZONE",
+  "cardType": "active",
+  "tags": [
+   "animal",
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ecology Experts",
+  "nameKey": "ECOLOGY_EXPERTS",
+  "cardType": null,
+  "tags": [
+   "plant",
+   "microbe"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Ecology Lake",
+  "nameKey": "ECOLOGY_LAKE",
+  "cardType": null,
+  "tags": [
+   "plant"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Ecology Research",
+  "nameKey": "ECOLOGY_RESEARCH",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "plant",
+   "animal",
+   "microbe"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ecotec",
+  "nameKey": "ECOTEC",
+  "cardType": "corporation",
+  "tags": [
+   "microbe",
+   "plant"
+  ],
+  "module": "Prelude 2",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Electro Catapult",
+  "nameKey": "ELECTRO_CATAPULT",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ender",
+  "nameKey": "ENDER",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Energy Beam",
+  "nameKey": "ENERGY_BEAM",
+  "cardType": null,
+  "tags": [
+   "power"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Energy Market",
+  "nameKey": "ENERGY_MARKET",
+  "cardType": "active",
+  "tags": [
+   "power"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Energy Saving",
+  "nameKey": "ENERGY_SAVING",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Energy Tapping",
+  "nameKey": "ENERGY_TAPPING",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Envoys from Venus",
+  "nameKey": "ENVOYS_FROM_VENUS",
+  "cardType": "event",
+  "tags": [
+   "venus",
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Eos Chasma National Park",
+  "nameKey": "EOS_CHASMA_NATIONAL_PARK",
+  "cardType": "automated",
+  "tags": [
+   "plant",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Equatorial Magnetizer",
+  "nameKey": "EQUATORIAL_MAGNETIZER",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Eris",
+  "nameKey": "ERIS",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Ares",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Eunice",
+  "nameKey": "EUNICE",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Event Analysts",
+  "nameKey": "EVENT_ANALYSTS",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Experienced Martians",
+  "nameKey": "EXPERIENCED_MARTIANS",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Experimental Forest",
+  "nameKey": "EXPERIMENTAL_FOREST",
+  "cardType": null,
+  "tags": [
+   "plant"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Extractor Balloons",
+  "nameKey": "EXTRACTOR_BALLOONS",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Extreme-Cold Fungus",
+  "nameKey": "EXTREME_COLD_FUNGUS",
+  "cardType": "active",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Extremophiles",
+  "nameKey": "EXTREMOPHILES",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "microbe"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Factorum",
+  "nameKey": "FACTORUM",
+  "cardType": "corporation",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Faraday",
+  "nameKey": "FARADAY",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Farming",
+  "nameKey": "FARMING",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Faux News",
+  "nameKey": "FAUX_NEWS",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Field-Capped City",
+  "nameKey": "FIELD_CAPPED_CITY",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building",
+   "power"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "First Lunar Settlement",
+  "nameKey": "FIRST_LUNAR_SETTLEMENT",
+  "cardType": null,
+  "tags": [
+   "city",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Fish",
+  "nameKey": "FISH",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Floater Leasing",
+  "nameKey": "FLOATER_LEASING",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Floater Prototypes",
+  "nameKey": "FLOATER_PROTOTYPES",
+  "cardType": "event",
+  "tags": [
+   "science",
+   "event"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Floater Technology",
+  "nameKey": "FLOATER_TECHNOLOGY",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Floating Habs",
+  "nameKey": "FLOATING_HABS",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Floating Refinery",
+  "nameKey": "FLOATING_REFINERY",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Floating Trade Hub",
+  "nameKey": "FLOATING_TRADE_HUB",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Flooding",
+  "nameKey": "FLOODING",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Floyd",
+  "nameKey": "FLOYD",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Floyd Continuum",
+  "nameKey": "FLOYD_CONTINUUM",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Food Factory",
+  "nameKey": "FOOD_FACTORY",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Forced Precipitation",
+  "nameKey": "FORCED_PRECIPITATION",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Fortified Outpost",
+  "nameKey": "FORTIFIED_OUTPOST",
+  "cardType": null,
+  "tags": [
+   "city"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Freyja Biodomes",
+  "nameKey": "FREYJA_BIODOMES",
+  "cardType": "automated",
+  "tags": [
+   "plant",
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Frontier Town",
+  "nameKey": "FRONTIER_TOWN",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Fuel Factory",
+  "nameKey": "FUEL_FACTORY",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Fueled Generators",
+  "nameKey": "FUELED_GENERATORS",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Fusion Power",
+  "nameKey": "FUSION_POWER",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Gaia",
+  "nameKey": "GAIA",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Galilean Mining",
+  "nameKey": "GALILEAN_MINING",
+  "cardType": null,
+  "tags": [
+   "jovian"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Galilean Waystation",
+  "nameKey": "GALILEAN_WAYSTATION",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ganymede Colony",
+  "nameKey": "GANYMEDE_COLONY",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space",
+   "city"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Gene Repair",
+  "nameKey": "GENE_REPAIR",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Geodesic Tents",
+  "nameKey": "GEODESIC_TENTS",
+  "cardType": "automated",
+  "tags": [
+   "plant",
+   "city",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Geological Survey",
+  "nameKey": "GEOLOGICAL_SURVEY",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Geothermal Power",
+  "nameKey": "GEOTHERMAL_POWER",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "GHG Factories",
+  "nameKey": "GHG_FACTORIES",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "GHG Import From Venus",
+  "nameKey": "GHG_IMPORT_FROM_VENUS",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "venus",
+   "event"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "GHG Producing Bacteria",
+  "nameKey": "GHG_PRODUCING_BACTERIA",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "GHG Shipment",
+  "nameKey": "GHG_SHIPMENT",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Giant Ice Asteroid",
+  "nameKey": "GIANT_ICE_ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Giant Solar Collector",
+  "nameKey": "GIANT_SOLAR_COLLECTOR",
+  "cardType": null,
+  "tags": [
+   "power",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Giant Solar Shade",
+  "nameKey": "GIANT_SOLAR_SHADE",
+  "cardType": "automated",
+  "tags": [
+   "space",
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Giant Space Mirror",
+  "nameKey": "GIANT_SPACE_MIRROR",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "GMO Contract",
+  "nameKey": "GMO_CONTRACT",
+  "cardType": "active",
+  "tags": [
+   "microbe",
+   "science"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Gordon",
+  "nameKey": "GORDON",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Grand Luna Academy",
+  "nameKey": "GRAND_LUNA_ACADEMY",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Grass",
+  "nameKey": "GRASS",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Great Dam",
+  "nameKey": "GREAT_DAM",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Great Dam:promo",
+  "nameKey": "GREAT_DAM_PROMO",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Great Escarpment Consortium",
+  "nameKey": "GREAT_ESCARPMENT_CONSORTIUM",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Green Mars Initiative",
+  "nameKey": "GREEN_MARS_INITIATIVE",
+  "cardType": null,
+  "tags": [
+   "plant"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Greenhouses",
+  "nameKey": "GREENHOUSES",
+  "cardType": "automated",
+  "tags": [
+   "plant",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Greta",
+  "nameKey": "GRETA",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Groundwater Mohole",
+  "nameKey": "GROUNDWATER_MOHOLE",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Gyropolis",
+  "nameKey": "GYROPOLIS",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Habitat 14",
+  "nameKey": "HABITAT_14",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Hackers",
+  "nameKey": "HACKERS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "HAL 9000",
+  "nameKey": "HAL9000",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Harvest",
+  "nameKey": "HARVEST",
+  "cardType": "event",
+  "tags": [
+   "plant",
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "HE3 Fusion Plant",
+  "nameKey": "HE3_FUSION_PLANT",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "power",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "HE3 Lobbyists",
+  "nameKey": "HE3_LOBBYISTS",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "HE3 Production Quotas",
+  "nameKey": "HE3_PRODUCTION_QUOTAS",
+  "cardType": "event",
+  "tags": [
+   "moon",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "HE3 Refinery",
+  "nameKey": "HE3_REFINERY",
+  "cardType": "active",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Heat Trappers",
+  "nameKey": "HEAT_TRAPPERS",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Heather",
+  "nameKey": "HEATHER",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Heavy Duty Rovers",
+  "nameKey": "HEAVY_DUTY_ROVERS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Heavy Taxation",
+  "nameKey": "HEAVY_TAXATION",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Helion",
+  "nameKey": "HELION",
+  "cardType": "corporation",
+  "tags": [
+   "space"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Helion Bot",
+  "nameKey": "HELION_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Heliostat Mirror Array",
+  "nameKey": "HELIOSTAT_MIRROR_ARRAY",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Herbivores",
+  "nameKey": "HERBIVORES",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Hermetic Order of Mars",
+  "nameKey": "HERMETIC_ORDER_OF_MARS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Hi-Tech Lab",
+  "nameKey": "HI_TECH_LAB",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "High Circles",
+  "nameKey": "HIGH_CIRCLES",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Hired Raiders",
+  "nameKey": "HIRED_RAIDERS",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Homeostasis Bureau",
+  "nameKey": "HOMEOSTASIS_BUREAU",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Hospitals",
+  "nameKey": "HOSPITALS",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Hotsprings",
+  "nameKey": "HOTSPRINGS",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "House Printing",
+  "nameKey": "HOUSE_PRINTING",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "projectCards"
+ },
+ {
+  "name": "Huan",
+  "nameKey": "HUAN",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Hydrogen Bombardment",
+  "nameKey": "HYDROGEN_BOMBARDMENT",
+  "cardType": null,
+  "tags": [
+   "venus",
+   "space"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Hydrogen to Venus",
+  "nameKey": "HYDROGEN_TO_VENUS",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Hypersensitive Silicon Chip Factory",
+  "nameKey": "HYPERSENSITIVE_SILICON_CHIP_FACTORY",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ice Asteroid",
+  "nameKey": "ICE_ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ice Cap Melting",
+  "nameKey": "ICE_CAP_MELTING",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ice Moon Colony",
+  "nameKey": "ICE_MOON_COLONY",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Icy Impactors",
+  "nameKey": "ICY_IMPACTORS",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Immigrant City",
+  "nameKey": "IMMIGRANT_CITY",
+  "cardType": "active",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Immigration Shuttles",
+  "nameKey": "IMMIGRATION_SHUTTLES",
+  "cardType": "automated",
+  "tags": [
+   "earth",
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Impactor Swarm",
+  "nameKey": "IMPACTOR_SWARM",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Import of Advanced GHG",
+  "nameKey": "IMPORT_OF_ADVANCED_GHG",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Imported GHG",
+  "nameKey": "IMPORTED_GHG",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Imported Hydrogen",
+  "nameKey": "IMPORTED_HYDROGEN",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Imported Nitrogen",
+  "nameKey": "IMPORTED_NITROGEN",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Imported Nutrients",
+  "nameKey": "IMPORTED_NUTRIENTS",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "space",
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Improved Moon Concrete",
+  "nameKey": "IMPROVED_MOON_CONCRETE",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Incite",
+  "nameKey": "INCITE",
+  "cardType": "corporation",
+  "tags": [
+   "science"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Indentured Workers",
+  "nameKey": "INDENTURED_WORKERS",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Industrial Center",
+  "nameKey": "INDUSTRIAL_CENTER",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Industrial Complex",
+  "nameKey": "INDUSTRIAL_COMPLEX",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Industrial Microbes",
+  "nameKey": "INDUSTRIAL_MICROBES",
+  "cardType": "automated",
+  "tags": [
+   "microbe",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ingrid",
+  "nameKey": "INGRID",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Insects",
+  "nameKey": "INSECTS",
+  "cardType": "automated",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Insulation",
+  "nameKey": "INSULATION",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Intellectualist Movement",
+  "nameKey": "INTELLECTUALIST_MOVEMENT",
+  "cardType": null,
+  "tags": [
+   "science"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Interplanetary Cinematics",
+  "nameKey": "INTERPLANETARY_CINEMATICS",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Interplanetary Cinematics Bot",
+  "nameKey": "INTERPLANETARY_CINEMATICS_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Interplanetary Colony Ship",
+  "nameKey": "INTERPLANETARY_COLONY_SHIP",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "earth",
+   "event"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Interplanetary Trade",
+  "nameKey": "INTERPLANETARY_TRADE",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Interstellar Colony Ship",
+  "nameKey": "INTERSTELLAR_COLONY_SHIP",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "space",
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Intragen Sanctuary Headquarters",
+  "nameKey": "INTRAGEN_SANCTUARY_HEADQUARTERS",
+  "cardType": "corporation",
+  "tags": [
+   "animal",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Invention Contest",
+  "nameKey": "INVENTION_CONTEST",
+  "cardType": "event",
+  "tags": [
+   "science",
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Inventors Guild",
+  "nameKey": "INVENTORS_GUILD",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Inventrix",
+  "nameKey": "INVENTRIX",
+  "cardType": "corporation",
+  "tags": [
+   "science"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Investment Loan",
+  "nameKey": "INVESTMENT_LOAN",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Io Mining Industries",
+  "nameKey": "IO_MINING_INDUSTRIES",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Io Research Outpost",
+  "nameKey": "IO_RESEARCH_OUTPOST",
+  "cardType": null,
+  "tags": [
+   "jovian",
+   "science"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Io Sulphur Research",
+  "nameKey": "IO_SULPHUR_RESEARCH",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "jovian"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Iron Extraction Center",
+  "nameKey": "IRON_EXTRACTION_CENTER",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ironworks",
+  "nameKey": "IRONWORKS",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ishtar Expedition",
+  "nameKey": "ISHTAR_EXPEDITION",
+  "cardType": "event",
+  "tags": [
+   "venus",
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ishtar Mining",
+  "nameKey": "ISHTAR_MINING",
+  "cardType": "automated",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Jane",
+  "nameKey": "JANE",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Jansson",
+  "nameKey": "JANSSON",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Jet Stream Microscrappers",
+  "nameKey": "JET_STREAM_MICROSCRAPPERS",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Jovian Embassy",
+  "nameKey": "JOVIAN_EMBASSY",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Jovian Envoys",
+  "nameKey": "JOVIAN_ENVOYS",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Jovian Lanterns",
+  "nameKey": "JOVIAN_LANTERNS",
+  "cardType": "active",
+  "tags": [
+   "jovian"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Junk Ventures",
+  "nameKey": "JUNK_VENTURES",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Jupiter Floating Station",
+  "nameKey": "JUPITER_FLOATING_STATION",
+  "cardType": "active",
+  "tags": [
+   "jovian"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Kaguya Tech",
+  "nameKey": "KAGUYA_TECH",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "plant"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Karen",
+  "nameKey": "KAREN",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Kelp Farming",
+  "nameKey": "KELP_FARMING",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Kuiper Cooperative",
+  "nameKey": "KUIPER_COOPERATIVE",
+  "cardType": "corporation",
+  "tags": [
+   "space",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "corporationCards"
+ },
+ {
+  "name": "L.T.F. Headquarters",
+  "nameKey": "LTF_HEADQUARTERS",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "L.T.F. Privileges",
+  "nameKey": "LTF_PRIVILEGES",
+  "cardType": "active",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "L1 Trade Terminal",
+  "nameKey": "L1_TRADE_TERMINAL",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Labour Union",
+  "nameKey": "LABOUR_UNION",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Lagrange Observatory",
+  "nameKey": "LAGRANGE_OBSERVATORY",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lake Marineris",
+  "nameKey": "LAKE_MARINERIS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lakefront Resorts",
+  "nameKey": "LAKEFRONT_RESORTS",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Turmoil",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Land Claim",
+  "nameKey": "LAND_CLAIM",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Large Convoy",
+  "nameKey": "LARGE_CONVOY",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Laser Factory",
+  "nameKey": "LASER_FACTORY",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Lava Flows",
+  "nameKey": "LAVA_FLOWS",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lava Tube Settlement",
+  "nameKey": "LAVA_TUBE_SETTLEMENT",
+  "cardType": "automated",
+  "tags": [
+   "building",
+   "city"
+  ],
+  "module": "Prelude",
+  "category": "projectCards"
+ },
+ {
+  "name": "Law Suit",
+  "nameKey": "LAW_SUIT",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lichen",
+  "nameKey": "LICHEN",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lightning Harvest",
+  "nameKey": "LIGHTNING_HARVEST",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Livestock",
+  "nameKey": "LIVESTOCK",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Local Heat Trapping",
+  "nameKey": "LOCAL_HEAT_TRAPPING",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Local Shading",
+  "nameKey": "LOCAL_SHADING",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lowell",
+  "nameKey": "LOWELL",
+  "cardType": "leader",
+  "tags": [
+   "wild"
+  ],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Luna Archives",
+  "nameKey": "LUNA_ARCHIVES",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Conference",
+  "nameKey": "LUNA_CONFERENCE",
+  "cardType": "event",
+  "tags": [
+   "science",
+   "moon",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Ecumenopolis",
+  "nameKey": "LUNA_ECUMENOPOLIS",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "city",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna First Incorporated",
+  "nameKey": "LUNA_FIRST_INCORPORATED",
+  "cardType": "corporation",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Luna Governor",
+  "nameKey": "LUNA_GOVERNOR",
+  "cardType": "automated",
+  "tags": [
+   "earth",
+   "earth"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Hyperloop Corporation",
+  "nameKey": "LUNA_HYPERLOOP_CORPORATION",
+  "cardType": "corporation",
+  "tags": [
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Luna Metropolis",
+  "nameKey": "LUNA_METROPOLIS",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "space",
+   "earth"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Mining Hub",
+  "nameKey": "LUNA_MINING_HUB",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Political Institute",
+  "nameKey": "LUNA_POLITICAL_INSTITUTE",
+  "cardType": "active",
+  "tags": [
+   "moon",
+   "earth"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Project Office",
+  "nameKey": "LUNA_PROJECT_OFFICE",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Resort",
+  "nameKey": "LUNA_RESORT",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Senate",
+  "nameKey": "LUNA_SENATE",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Staging Station",
+  "nameKey": "LUNA_STAGING_STATION",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Trade Station",
+  "nameKey": "LUNA_TRADE_STATION",
+  "cardType": "active",
+  "tags": [
+   "moon",
+   "moon",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luna Train Station",
+  "nameKey": "LUNA_TRAIN_STATION",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Beam",
+  "nameKey": "LUNAR_BEAM",
+  "cardType": "automated",
+  "tags": [
+   "earth",
+   "power"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Dust Processing Plant",
+  "nameKey": "LUNAR_DUST_PROCESSING_PLANT",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Exports",
+  "nameKey": "LUNAR_EXPORTS",
+  "cardType": "automated",
+  "tags": [
+   "earth",
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Industry Complex",
+  "nameKey": "LUNAR_INDUSTRY_COMPLEX",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Mine Urbanization",
+  "nameKey": "LUNAR_MINE_URBANIZATION",
+  "cardType": "event",
+  "tags": [
+   "moon",
+   "building",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Mining",
+  "nameKey": "LUNAR_MINING",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Observation Post",
+  "nameKey": "LUNAR_OBSERVATION_POST",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "science"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Planning Office",
+  "nameKey": "LUNAR_PlANNING_OFFICE",
+  "cardType": null,
+  "tags": [
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Lunar Security Stations",
+  "nameKey": "LUNAR_SECURITY_STATIONS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Steel",
+  "nameKey": "LUNAR_STEEL",
+  "cardType": "active",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Lunar Trade Fleet",
+  "nameKey": "LUNAR_TRADE_FLEET",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Luxury Foods",
+  "nameKey": "LUXURY_FOODS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Magnetic Field Dome",
+  "nameKey": "MAGNETIC_FIELD_DOME",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Magnetic Field Generators",
+  "nameKey": "MAGNETIC_FIELD_GENERATORS",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Magnetic Field Generators:promo",
+  "nameKey": "MAGNETIC_FIELD_GENERATORS_PROMO",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Magnetic Shield",
+  "nameKey": "MAGNETIC_SHIELD",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Main Belt Asteroids",
+  "nameKey": "MAIN_BELT_ASTEROIDS",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Mangrove",
+  "nameKey": "MANGROVE",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Manutech",
+  "nameKey": "MANUTECH",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Venus",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Marabout Shiritori",
+  "nameKey": "MARABOUT_SHIRITORI",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Mare Imbrium Mine",
+  "nameKey": "MARE_IMBRIUM_MINE",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mare Nectaris Mine",
+  "nameKey": "MARE_NECTARIS_MINE",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mare Nubium Mine",
+  "nameKey": "MARE_NUBIUM_MINE",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mare Serenitatis Mine",
+  "nameKey": "MARE_SERENITATIS_MINE",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Maria",
+  "nameKey": "MARIA",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Market Manipulation",
+  "nameKey": "MARKET_MANIPULATION",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "event"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Marketing Experts",
+  "nameKey": "MARKETING_EXPERTS",
+  "cardType": "active",
+  "tags": [
+   "earth"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mars Coalition",
+  "nameKey": "MARS_COALITION",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Mars Nomads",
+  "nameKey": "MARS_NOMADS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mars University",
+  "nameKey": "MARS_UNIVERSITY",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Martian Industries",
+  "nameKey": "MARTIAN_INDUSTRIES",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Martian Lumber Corp",
+  "nameKey": "MARTIAN_LUMBER_CORP",
+  "cardType": "active",
+  "tags": [
+   "building",
+   "plant"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Martian Lumber Yard",
+  "nameKey": "MARTIAN_LUMBER_YARD",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Martian Media Center",
+  "nameKey": "MARTIAN_MEDIA_CENTER",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Martian Rails",
+  "nameKey": "MARTIAN_RAILS",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Martian Republic",
+  "nameKey": "MARTIAN_REPUBLIC",
+  "cardType": null,
+  "tags": [
+   "building",
+   "city"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Martian Survey",
+  "nameKey": "MARTIAN_SURVEY",
+  "cardType": "event",
+  "tags": [
+   "science",
+   "event"
+  ],
+  "module": "Prelude",
+  "category": "projectCards"
+ },
+ {
+  "name": "Martian Zoo",
+  "nameKey": "MARTIAN_ZOO",
+  "cardType": "active",
+  "tags": [
+   "animal",
+   "building"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mass Converter",
+  "nameKey": "MASS_CONVERTER",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "power"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Maxwell Base",
+  "nameKey": "MAXWELL_BASE",
+  "cardType": "active",
+  "tags": [
+   "city",
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Meat Industry",
+  "nameKey": "MEAT_INDUSTRY",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Media Archives",
+  "nameKey": "MEDIA_ARCHIVES",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Media Group",
+  "nameKey": "MEDIA_GROUP",
+  "cardType": "active",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Medical Lab",
+  "nameKey": "MEDICAL_LAB",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Meltworks",
+  "nameKey": "MELTWORKS",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mercurian Alloys",
+  "nameKey": "MERCURIAN_ALLOYS",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Metallic Asteroid",
+  "nameKey": "METALLIC_ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Methane From Titan",
+  "nameKey": "METHANE_FROM_TITAN",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Micro-Mills",
+  "nameKey": "MICRO_MILLS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Microalgae",
+  "nameKey": "MICROALGAE",
+  "cardType": null,
+  "tags": [
+   "microbe"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Microgravity Nutrition",
+  "nameKey": "MICROGRAVITY_NUTRITION",
+  "cardType": "automated",
+  "tags": [
+   "microbe",
+   "plant"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Microsingularity Plant",
+  "nameKey": "MICROSINGULARITY_PLANT",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Midas",
+  "nameKey": "MIDAS",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Mine",
+  "nameKey": "MINE",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mineral Deposit",
+  "nameKey": "MINERAL_DEPOSIT",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mining Area",
+  "nameKey": "MINING_AREA",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": null,
+  "category": "projectCards"
+ },
+ {
+  "name": "Mining Colony",
+  "nameKey": "MINING_COLONY",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mining Complex",
+  "nameKey": "MINING_COMPLEX",
+  "cardType": null,
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Mining Expedition",
+  "nameKey": "MINING_EXPEDITION",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mining Guild",
+  "nameKey": "MINING_GUILD",
+  "cardType": "corporation",
+  "tags": [
+   "building",
+   "building"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Mining Improvements",
+  "nameKey": "MINING_IMPROVEMENTS",
+  "cardType": null,
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Mining Operations",
+  "nameKey": "MINING_OPERATIONS",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Mining Quota",
+  "nameKey": "MINING_QUOTA",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mining Rights",
+  "nameKey": "MINING_RIGHTS",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": null,
+  "category": "projectCards"
+ },
+ {
+  "name": "Mining Robots Manuf. Center",
+  "nameKey": "MINING_ROBOTS_MANUF_CENTER",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Minority Refuge",
+  "nameKey": "MINORITY_REFUGE",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Miranda Resort",
+  "nameKey": "MIRANDA_RESORT",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:1",
+  "nameKey": "MISINFORMATION_1",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:10",
+  "nameKey": "MISINFORMATION_10",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:11",
+  "nameKey": "MISINFORMATION_11",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:12",
+  "nameKey": "MISINFORMATION_12",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:13",
+  "nameKey": "MISINFORMATION_13",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:14",
+  "nameKey": "MISINFORMATION_14",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:15",
+  "nameKey": "MISINFORMATION_15",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:16",
+  "nameKey": "MISINFORMATION_16",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:17",
+  "nameKey": "MISINFORMATION_17",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:18",
+  "nameKey": "MISINFORMATION_18",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:19",
+  "nameKey": "MISINFORMATION_19",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:2",
+  "nameKey": "MISINFORMATION_2",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:20",
+  "nameKey": "MISINFORMATION_20",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:21",
+  "nameKey": "MISINFORMATION_21",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:22",
+  "nameKey": "MISINFORMATION_22",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:23",
+  "nameKey": "MISINFORMATION_23",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:24",
+  "nameKey": "MISINFORMATION_24",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:25",
+  "nameKey": "MISINFORMATION_25",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:26",
+  "nameKey": "MISINFORMATION_26",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:27",
+  "nameKey": "MISINFORMATION_27",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:28",
+  "nameKey": "MISINFORMATION_28",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:29",
+  "nameKey": "MISINFORMATION_29",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:3",
+  "nameKey": "MISINFORMATION_3",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:30",
+  "nameKey": "MISINFORMATION_30",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:31",
+  "nameKey": "MISINFORMATION_31",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:32",
+  "nameKey": "MISINFORMATION_32",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:33",
+  "nameKey": "MISINFORMATION_33",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:34",
+  "nameKey": "MISINFORMATION_34",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:35",
+  "nameKey": "MISINFORMATION_35",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:36",
+  "nameKey": "MISINFORMATION_36",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:37",
+  "nameKey": "MISINFORMATION_37",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:38",
+  "nameKey": "MISINFORMATION_38",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:39",
+  "nameKey": "MISINFORMATION_39",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:4",
+  "nameKey": "MISINFORMATION_4",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:40",
+  "nameKey": "MISINFORMATION_40",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:41",
+  "nameKey": "MISINFORMATION_41",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:42",
+  "nameKey": "MISINFORMATION_42",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:43",
+  "nameKey": "MISINFORMATION_43",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:44",
+  "nameKey": "MISINFORMATION_44",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:45",
+  "nameKey": "MISINFORMATION_45",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:46",
+  "nameKey": "MISINFORMATION_46",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:47",
+  "nameKey": "MISINFORMATION_47",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:48",
+  "nameKey": "MISINFORMATION_48",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:49",
+  "nameKey": "MISINFORMATION_49",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:5",
+  "nameKey": "MISINFORMATION_5",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:50",
+  "nameKey": "MISINFORMATION_50",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:51",
+  "nameKey": "MISINFORMATION_51",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:52",
+  "nameKey": "MISINFORMATION_52",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:53",
+  "nameKey": "MISINFORMATION_53",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:54",
+  "nameKey": "MISINFORMATION_54",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:55",
+  "nameKey": "MISINFORMATION_55",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:56",
+  "nameKey": "MISINFORMATION_56",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:57",
+  "nameKey": "MISINFORMATION_57",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:58",
+  "nameKey": "MISINFORMATION_58",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:59",
+  "nameKey": "MISINFORMATION_59",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:6",
+  "nameKey": "MISINFORMATION_6",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:60",
+  "nameKey": "MISINFORMATION_60",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:7",
+  "nameKey": "MISINFORMATION_7",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:8",
+  "nameKey": "MISINFORMATION_8",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Misinformation:9",
+  "nameKey": "MISINFORMATION_9",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mohole",
+  "nameKey": "MOHOLE",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Mohole Area",
+  "nameKey": "MOHOLE_AREA",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mohole Excavation",
+  "nameKey": "MOHOLE_EXCAVATION",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Mohole Lake",
+  "nameKey": "MOHOLE_LAKE",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Molecular Printing",
+  "nameKey": "MOLECULAR_PRINTING",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Momentum Virium Habitat",
+  "nameKey": "MOMENTUM_VIRUM_HABITAT",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mons Insurance",
+  "nameKey": "MONS_INSURANCE",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Promo",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Mons Insurance Bot",
+  "nameKey": "MONS_INSURANCE_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Moon Tether",
+  "nameKey": "MOON_TETHER",
+  "cardType": "active",
+  "tags": [
+   "moon",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mooncrate Block Factory",
+  "nameKey": "MOONCRATE_BLOCK_FACTORY",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Mooncrate Convoys To Mars",
+  "nameKey": "MOONCRATE_CONVOYS_TO_MARS",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Morning Star Inc.",
+  "nameKey": "MORNING_STAR_INC",
+  "cardType": "corporation",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Moss",
+  "nameKey": "MOSS",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Musk",
+  "nameKey": "MUSK",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Nanotech Industries",
+  "nameKey": "NANOTECH_INDUSTRIES",
+  "cardType": "corporation",
+  "tags": [
+   "science",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Naomi",
+  "nameKey": "NAOMI",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Natural Preserve",
+  "nameKey": "NATURAL_PRESERVE",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Neil",
+  "nameKey": "NEIL",
+  "cardType": "leader",
+  "tags": [
+   "moon"
+  ],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Neptunian Power Consultants",
+  "nameKey": "NEPTUNIAN_POWER_CONSULTANTS",
+  "cardType": "active",
+  "tags": [
+   "power"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Neutralizer Factory",
+  "nameKey": "NEUTRALIZER_FACTORY",
+  "cardType": "automated",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "New Colony Planning Initiatives",
+  "nameKey": "NEW_COLONY_PLANNING_INITIAITIVES",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "New Holland",
+  "nameKey": "NEW_HOLLAND",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Nirgal Bot",
+  "nameKey": "NIRGAL_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Nirgal Enterprises",
+  "nameKey": "NIRGAL_ENTERPRISES",
+  "cardType": "corporation",
+  "tags": [
+   "power",
+   "plant",
+   "building"
+  ],
+  "module": "Prelude 2",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Nitrate Reducers",
+  "nameKey": "NITRATE_REDUCERS",
+  "cardType": null,
+  "tags": [
+   "venus",
+   "microbe"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Nitrite Reducing Bacteria",
+  "nameKey": "NITRITE_REDUCING_BACTERIA",
+  "cardType": "active",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Nitrogen from Titan",
+  "nameKey": "NITROGEN_FROM_TITAN",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Nitrogen-Rich Asteroid",
+  "nameKey": "NITROGEN_RICH_ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Nitrophilic Moss",
+  "nameKey": "NITROPHILIC_MOSS",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Nobel Prize",
+  "nameKey": "NOBEL_PRIZE",
+  "cardType": null,
+  "tags": [
+   "wild"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Noctis City",
+  "nameKey": "NOCTIS_CITY",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Noctis Farming",
+  "nameKey": "NOCTIS_FARMING",
+  "cardType": "automated",
+  "tags": [
+   "plant",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Nuclear Power",
+  "nameKey": "NUCLEAR_POWER",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Nuclear Zone",
+  "nameKey": "NUCLEAR_ZONE",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ocean City",
+  "nameKey": "OCEAN_CITY",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ocean Farm",
+  "nameKey": "OCEAN_FARM",
+  "cardType": "automated",
+  "tags": [
+   "plant",
+   "building"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ocean Sanctuary",
+  "nameKey": "OCEAN_SANCTUARY",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Off-World City Living",
+  "nameKey": "OFF_WORLD_CITY_LIVING",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Old Mining Colony",
+  "nameKey": "OLD_MINING_COLONY",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Olympus Conference",
+  "nameKey": "OLYMPUS_CONFERENCE",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "earth",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Omnicourt",
+  "nameKey": "OMNICOURT",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Open City",
+  "nameKey": "OPEN_CITY",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Optimal Aerobraking",
+  "nameKey": "OPTIMAL_AEROBRAKING",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Orbital Cleanup",
+  "nameKey": "ORBITAL_CLEANUP",
+  "cardType": "active",
+  "tags": [
+   "earth",
+   "space"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Orbital Construction Yard",
+  "nameKey": "ORBITAL_CONSTRUCTION_YARD",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Orbital Power Grid",
+  "nameKey": "ORBITAL_POWER_GRID",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Orbital Reflectors",
+  "nameKey": "ORBITAL_REFLECTORS",
+  "cardType": "automated",
+  "tags": [
+   "venus",
+   "space"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ore Processor",
+  "nameKey": "ORE_PROCESSOR",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Oscar",
+  "nameKey": "OSCAR",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Outdoor Sports",
+  "nameKey": "OUTDOOR_SPORTS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Palladin Shipping",
+  "nameKey": "PALLADIN_SHIPPING",
+  "cardType": "corporation",
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Parliament Hall",
+  "nameKey": "PARLIAMENT_HALL",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Penguins",
+  "nameKey": "PENGUINS",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Permafrost Extraction",
+  "nameKey": "PERMAFROST_EXTRACTION",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Peroxide Power",
+  "nameKey": "PEROXIDE_POWER",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Perseverance Landing",
+  "nameKey": "PERSEVERANCE_LANDING",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Community",
+  "category": "projectCards"
+ },
+ {
+  "name": "Petra",
+  "nameKey": "PETRA",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Pets",
+  "nameKey": "PETS",
+  "cardType": "active",
+  "tags": [
+   "earth",
+   "animal"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Pharmacy Union",
+  "nameKey": "PHARMACY_UNION",
+  "cardType": "corporation",
+  "tags": [
+   "microbe",
+   "microbe"
+  ],
+  "module": "Promo",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Philares",
+  "nameKey": "PHILARES",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "corporationCards"
+ },
+ {
+  "name": "PhoboLog",
+  "nameKey": "PHOBOLOG",
+  "cardType": "corporation",
+  "tags": [
+   "space"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Phobolog Bot",
+  "nameKey": "PHOBOLOG_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Phobos Space Haven",
+  "nameKey": "PHOBOS_SPACE_HAVEN",
+  "cardType": "automated",
+  "tags": [
+   "space",
+   "city"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Physics Complex",
+  "nameKey": "PHYSICS_COMPLEX",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Pioneer Settlement",
+  "nameKey": "PIONEER_SETTLEMENT",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Planetary Alliance",
+  "nameKey": "PLANETARY_ALLIANCE",
+  "cardType": null,
+  "tags": [
+   "earth",
+   "jovian",
+   "venus"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Plantation",
+  "nameKey": "PLANTATION",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Playwrights",
+  "nameKey": "PLAYWRIGHTS",
+  "cardType": "corporation",
+  "tags": [
+   "power"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Point Luna",
+  "nameKey": "POINT_LUNA",
+  "cardType": "corporation",
+  "tags": [
+   "space",
+   "earth"
+  ],
+  "module": "Prelude",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Polar Industries",
+  "nameKey": "POLAR_INDUSTRIES",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Political Alliance",
+  "nameKey": "POLITICAL_ALLIANCE",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Polyphemos",
+  "nameKey": "POLYPHEMOS",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Colonies",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Polyphemos Bot",
+  "nameKey": "POLYPHEMOS_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Poseidon",
+  "nameKey": "POSEIDON",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Colonies",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Potatoes",
+  "nameKey": "POTATOES",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Power Generation",
+  "nameKey": "POWER_GENERATION",
+  "cardType": null,
+  "tags": [
+   "power"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Power Grid",
+  "nameKey": "POWER_GRID",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Power Infrastructure",
+  "nameKey": "POWER_INFRASTRUCTURE",
+  "cardType": "active",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Power Plant",
+  "nameKey": "POWER_PLANT",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Power Supply Consortium",
+  "nameKey": "POWER_SUPPLY_CONSORTIUM",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "PR Office",
+  "nameKey": "PR_OFFICE",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Predators",
+  "nameKey": "PREDATORS",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Preliminary Darkside",
+  "nameKey": "PRELIMINARY_DARKSIDE",
+  "cardType": "event",
+  "tags": [
+   "moon",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Pride of the Earth Arkship",
+  "nameKey": "PRIDE_OF_THE_EARTH_ARKSHIP",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "science",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Pristar",
+  "nameKey": "PRISTAR",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Turmoil",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Processor Factory",
+  "nameKey": "PROCESSOR_FACTORY",
+  "cardType": "active",
+  "tags": [
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Productive Outpost",
+  "nameKey": "PRODUCTIVE_OUTPOST",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Project 10",
+  "nameKey": "PROJECT_TEN",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Project Eden",
+  "nameKey": "PROJECT_EDEN",
+  "cardType": null,
+  "tags": [
+   "city",
+   "plant"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Project Inspection",
+  "nameKey": "PROJECT_INSPECTION",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Project Workshop",
+  "nameKey": "PROJECT_WORKSHOP",
+  "cardType": "corporation",
+  "tags": [
+   "earth"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Protected Growth",
+  "nameKey": "PROTECTED_GROWTH",
+  "cardType": "event",
+  "tags": [
+   "plant",
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Protected Habitats",
+  "nameKey": "PROTECTED_HABITATS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Protected Valley",
+  "nameKey": "PROTECTED_VALLEY",
+  "cardType": "automated",
+  "tags": [
+   "plant",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Psychrophiles",
+  "nameKey": "PSYCHROPHILES",
+  "cardType": "active",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Prelude",
+  "category": "projectCards"
+ },
+ {
+  "name": "Public Baths",
+  "nameKey": "PUBLIC_BATHS",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Public Celebrations",
+  "nameKey": "PUBLIC_CELEBRATIONS",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Public Grants",
+  "nameKey": "PUBLIC_GRANTS",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Quantum Communications",
+  "nameKey": "QUANTUM_COMMUNICATIONS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Quantum Extractor",
+  "nameKey": "QUANTUM_EXTRACTOR",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "power"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Quill",
+  "nameKey": "QUILL",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Rad-Chem Factory",
+  "nameKey": "RAD_CHEM_FACTORY",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Rad-Suits",
+  "nameKey": "RAD_SUITS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Recruitment",
+  "nameKey": "RECRUITMENT",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Recyclon",
+  "nameKey": "RECYCLON",
+  "cardType": "corporation",
+  "tags": [
+   "microbe",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Red Appeasement",
+  "nameKey": "RED_APPEASEMENT",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Red Ships",
+  "nameKey": "RED_SHIPS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Red Spot Observatory",
+  "nameKey": "RED_SPOT_OBSERVATORY",
+  "cardType": "active",
+  "tags": [
+   "jovian",
+   "science"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Red Tourism Wave",
+  "nameKey": "RED_TOURISM_WAVE",
+  "cardType": "event",
+  "tags": [
+   "earth",
+   "event"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Refugee Camp",
+  "nameKey": "REFUGEE_CAMP",
+  "cardType": "active",
+  "tags": [
+   "earth"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Rego Plastics",
+  "nameKey": "REGO_PLASTICS",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Regolith Eaters",
+  "nameKey": "REGOLITH_EATERS",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Release of Inert Gases",
+  "nameKey": "RELEASE_OF_INERT_GASES",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Research",
+  "nameKey": "RESEARCH",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "science"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Research Colony",
+  "nameKey": "RESEARCH_COLONY",
+  "cardType": "automated",
+  "tags": [
+   "space",
+   "science"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Research Coordination",
+  "nameKey": "RESEARCH_COORDINATION",
+  "cardType": "automated",
+  "tags": [
+   "wild"
+  ],
+  "module": "Prelude",
+  "category": "projectCards"
+ },
+ {
+  "name": "Research Grant",
+  "nameKey": "RESEARCH_GRANT",
+  "cardType": null,
+  "tags": [
+   "science",
+   "science"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Research Network",
+  "nameKey": "RESEARCH_NETWORK",
+  "cardType": null,
+  "tags": [
+   "wild"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Research Outpost",
+  "nameKey": "RESEARCH_OUTPOST",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Restricted Area",
+  "nameKey": "RESTRICTED_AREA",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Revolting Colonists",
+  "nameKey": "REVOLTING_COLONISTS",
+  "cardType": "event",
+  "tags": [
+   "moon",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Rim Freighters",
+  "nameKey": "RIM_FREIGHTERS",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Road Piracy",
+  "nameKey": "ROAD_PIRACY",
+  "cardType": "event",
+  "tags": [
+   "moon",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Robinson Industries",
+  "nameKey": "ROBINSON_INDUSTRIES",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Prelude",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Robot Pollinators",
+  "nameKey": "ROBOT_POLLINATORS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Robotic Workforce",
+  "nameKey": "ROBOTIC_WORKFORCE",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Rogers",
+  "nameKey": "ROGERS",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Rotator Impacts",
+  "nameKey": "ROTATOR_IMPACTS",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Rover Construction",
+  "nameKey": "ROVER_CONSTRUCTION",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Rover Drivers Union",
+  "nameKey": "ROVER_DRIVERS_UNION",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Rust Eating Bacteria",
+  "nameKey": "RUST_EATING_BACTERIA",
+  "cardType": "active",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ryu",
+  "nameKey": "RYU",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Sabotage",
+  "nameKey": "SABOTAGE",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sagitta Frontier Services",
+  "nameKey": "SAGITTA_FRONTIER_SERVICES",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Prelude 2",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Satellites",
+  "nameKey": "SATELLITES",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Saturn Surfing",
+  "nameKey": "SATURN_SURFING",
+  "cardType": "active",
+  "tags": [
+   "jovian",
+   "earth"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Saturn Systems",
+  "nameKey": "SATURN_SYSTEMS",
+  "cardType": "corporation",
+  "tags": [
+   "jovian"
+  ],
+  "module": "Corp Era",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Search For Life",
+  "nameKey": "SEARCH_FOR_LIFE",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Secret Santa Society",
+  "nameKey": "SECRET_SANTA_SOCIETY",
+  "cardType": "corporation",
+  "tags": [
+   "wild"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Security Fleet",
+  "nameKey": "SECURITY_FLEET",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Self-replicating Robots",
+  "nameKey": "SELF_REPLICATING_ROBOTS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Self-Sufficient Settlement",
+  "nameKey": "SELF_SUFFICIENT_SETTLEMENT",
+  "cardType": null,
+  "tags": [
+   "building",
+   "city"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Septem Tribus",
+  "nameKey": "SEPTUM_TRIBUS",
+  "cardType": "corporation",
+  "tags": [
+   "wild"
+  ],
+  "module": "Turmoil",
+  "category": "corporationCards"
+ },
+ {
+  "name": "SF Memorial",
+  "nameKey": "SF_MEMORIAL",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "projectCards"
+ },
+ {
+  "name": "Shuttles",
+  "nameKey": "SHUTTLES",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sinus Iridium Road Network",
+  "nameKey": "SINUS_IRIDIUM_ROAD_NETWORK",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sister Planet Support",
+  "nameKey": "SISTER_PLANET_SUPPORT",
+  "cardType": "automated",
+  "tags": [
+   "venus",
+   "earth"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sky Docks",
+  "nameKey": "SKY_DOCKS",
+  "cardType": "active",
+  "tags": [
+   "space",
+   "earth"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Small Animals",
+  "nameKey": "SMALL_ANIMALS",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Small Asteroid",
+  "nameKey": "SMALL_ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Small Duty Rovers",
+  "nameKey": "SMALL_DUTY_ROVERS",
+  "cardType": "automated",
+  "tags": [
+   "moon",
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Smelting Plant",
+  "nameKey": "SMELTING_PLANT",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Snow Algae",
+  "nameKey": "SNOW_ALGAE",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Soil Bacteria",
+  "nameKey": "SOIL_BACTERIA",
+  "cardType": null,
+  "tags": [
+   "microbe"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Soil Enrichment",
+  "nameKey": "SOIL_ENRICHMENT",
+  "cardType": "event",
+  "tags": [
+   "microbe",
+   "plant",
+   "event"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Soil Factory",
+  "nameKey": "SOIL_FACTORY",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Soil Studies",
+  "nameKey": "SOIL_STUDIES",
+  "cardType": "event",
+  "tags": [
+   "microbe",
+   "plant",
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Solar Batteries",
+  "nameKey": "SOLAR_BATTERIES",
+  "cardType": null,
+  "tags": [
+   "power"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Solar Farm",
+  "nameKey": "SOLAR_FARM",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Ares",
+  "category": "projectCards"
+ },
+ {
+  "name": "Solar Logistics",
+  "nameKey": "SOLAR_LOGISTICS",
+  "cardType": "active",
+  "tags": [
+   "earth",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Solar Panel Foundry",
+  "nameKey": "SOLAR_PANEL_FOUNDRY",
+  "cardType": "active",
+  "tags": [
+   "power",
+   "moon",
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Solar Power",
+  "nameKey": "SOLAR_POWER",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Solar Probe",
+  "nameKey": "SOLAR_PROBE",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "science",
+   "event"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Solar Reflectors",
+  "nameKey": "SOLAR_REFLECTORS",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Solar Wind Power",
+  "nameKey": "SOLAR_WIND_POWER",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "space",
+   "power"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Solarnet",
+  "nameKey": "SOLARNET",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Soletta",
+  "nameKey": "SOLETTA",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Space Elevator",
+  "nameKey": "SPACE_ELEVATOR",
+  "cardType": "active",
+  "tags": [
+   "space",
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Space Hotels",
+  "nameKey": "SPACE_HOTELS",
+  "cardType": "automated",
+  "tags": [
+   "space",
+   "earth"
+  ],
+  "module": "Prelude",
+  "category": "projectCards"
+ },
+ {
+  "name": "Space Lanes",
+  "nameKey": "SPACE_LANES",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Space Mirrors",
+  "nameKey": "SPACE_MIRRORS",
+  "cardType": "active",
+  "tags": [
+   "power",
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Space Port",
+  "nameKey": "SPACE_PORT",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Space Port Colony",
+  "nameKey": "SPACE_PORT_COLONY",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Space Station",
+  "nameKey": "SPACE_STATION",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Spaceways",
+  "nameKey": "SPACEWAYS",
+  "cardType": "corporation",
+  "tags": [
+   "space"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Special Design",
+  "nameKey": "SPECIAL_DESIGN",
+  "cardType": "event",
+  "tags": [
+   "science",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Special Permit",
+  "nameKey": "SPECIAL_PERMIT",
+  "cardType": "event",
+  "tags": [
+   "plant",
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sphere Habitats",
+  "nameKey": "SPHERE_HABITATS",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Spin-Inducing Asteroid",
+  "nameKey": "SPIN_INDUCING_ASTEROID",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Spin-off Department",
+  "nameKey": "SPINOFF_DEPARTMENT",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Spire",
+  "nameKey": "SPIRE",
+  "cardType": "corporation",
+  "tags": [
+   "city",
+   "earth"
+  ],
+  "module": "Prelude 2",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Splice",
+  "nameKey": "SPLICE",
+  "cardType": "corporation",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Promo",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Sponsored Academies",
+  "nameKey": "SPONSORED_ACADEMIES",
+  "cardType": "automated",
+  "tags": [
+   "earth",
+   "science"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sponsored Mohole",
+  "nameKey": "SPONSORED_MOHOLE",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sponsoring Nation",
+  "nameKey": "SPONSORING_NATION",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sponsors",
+  "nameKey": "SPONSORS",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "St. Joseph of Cupertino Mission",
+  "nameKey": "ST_JOSEPH_OF_CUPERTINO_MISSION",
+  "cardType": "active",
+  "tags": [],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Staging Station \"Behemoth\"",
+  "nameKey": "STAGING_STATION_BEHEMOTH",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Standard Technology",
+  "nameKey": "STANDARD_TECHNOLOGY",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Stanford Torus",
+  "nameKey": "STANFORD_TORUS",
+  "cardType": "automated",
+  "tags": [
+   "space",
+   "city"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Static Harvesting",
+  "nameKey": "STATIC_HARVESTING",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Steel Market Monopolists",
+  "nameKey": "STEEL_MARKET_MONOPOLISTS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Steelworks",
+  "nameKey": "STEELWORKS",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Stefan",
+  "nameKey": "STEFAN",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Sterling Vents",
+  "nameKey": "STERLING_VENTS",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Stormcraft Incorporated",
+  "nameKey": "STORMCRAFT_INCORPORATED",
+  "cardType": "corporation",
+  "tags": [
+   "jovian"
+  ],
+  "module": "Colonies",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Strategic Base Planning",
+  "nameKey": "STRATEGIC_BASE_PLANNING",
+  "cardType": null,
+  "tags": [
+   "city",
+   "building",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Stratopolis",
+  "nameKey": "STRATOPOLIS",
+  "cardType": "active",
+  "tags": [
+   "city",
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Stratospheric Birds",
+  "nameKey": "STRATOSPHERIC_BIRDS",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "animal"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Stratospheric Expedition",
+  "nameKey": "STRATOSPHERIC_EXPEDITION",
+  "cardType": "event",
+  "tags": [
+   "venus",
+   "space",
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Strip Mine",
+  "nameKey": "STRIP_MINE",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sub-Crust Measurements",
+  "nameKey": "SUB_CRUST_MEASUREMENTS",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "building",
+   "earth"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sub-zero Salt Fish",
+  "nameKey": "SUBZERO_SALT_FISH",
+  "cardType": "active",
+  "tags": [
+   "animal"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Subterranean Habitats",
+  "nameKey": "SUBTERRANEAN_HABITATS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Subterranean Reservoir",
+  "nameKey": "SUBTERRANEAN_RESERVOIR",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Suitable Infrastructure",
+  "nameKey": "SUITABLE_INFRASTRUCTURE",
+  "cardType": null,
+  "tags": [
+   "building"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Sulphur Exports",
+  "nameKey": "SULPHUR_EXPORTS",
+  "cardType": "automated",
+  "tags": [
+   "venus",
+   "space"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Sulphur-Eating Bacteria",
+  "nameKey": "SULPHUR_EATING_BACTERIA",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "microbe"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Summit Logistics",
+  "nameKey": "SUMMIT_LOGISTICS",
+  "cardType": "automated",
+  "tags": [
+   "building",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Supercapacitors",
+  "nameKey": "SUPERCAPACITORS",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Supermarkets",
+  "nameKey": "SUPERMARKETS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Supplier",
+  "nameKey": "SUPPLIER",
+  "cardType": null,
+  "tags": [
+   "power"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Supported Research",
+  "nameKey": "SUPPORTED_RESEARCH",
+  "cardType": "automated",
+  "tags": [
+   "science"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Symbiotic Fungus",
+  "nameKey": "SYMBIOTIC_FUNGUS",
+  "cardType": "active",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Syndicate Pirate Raids",
+  "nameKey": "SYNDICATE_PIRATE_RAIDS",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Tardigrades",
+  "nameKey": "TARDIGRADES",
+  "cardType": "active",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Tate",
+  "nameKey": "TATE",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Technology Demonstration",
+  "nameKey": "TECHNOLOGY_DEMONSTRATION",
+  "cardType": "event",
+  "tags": [
+   "science",
+   "space",
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Tectonic Stress Power",
+  "nameKey": "TECTONIC_STRESS_POWER",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Tempest Consultancy",
+  "nameKey": "TEMPEST_CONSULTANCY",
+  "cardType": "corporation",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Tempest Inc",
+  "nameKey": "TEMPEST_INC",
+  "cardType": "corporation",
+  "tags": [
+   "science"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Teractor",
+  "nameKey": "TERACTOR",
+  "cardType": "corporation",
+  "tags": [
+   "earth"
+  ],
+  "module": "Corp Era",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Terraforming Contract",
+  "nameKey": "TERRAFORMING_CONTRACT",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Terraforming Deal",
+  "nameKey": "TERRAFORMING_DEAL",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Terraforming Ganymede",
+  "nameKey": "TERRAFORMING_GANYMEDE",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Terralabs Research",
+  "nameKey": "TERRALABS_RESEARCH",
+  "cardType": "corporation",
+  "tags": [
+   "science",
+   "earth"
+  ],
+  "module": "Turmoil",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Teslaract",
+  "nameKey": "TESLARACT",
+  "cardType": "active",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Tharsis Bot",
+  "nameKey": "THARSIS_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Tharsis Prototype City",
+  "nameKey": "THARSIS_PROTOTYPE_CITY",
+  "cardType": null,
+  "tags": [
+   "power",
+   "building",
+   "city"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Tharsis Republic",
+  "nameKey": "THARSIS_REPUBLIC",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "The Archaic Foundation Institute",
+  "nameKey": "THE_ARCHAIC_FOUNDATION_INSTITUTE",
+  "cardType": "corporation",
+  "tags": [
+   "moon",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "The Darkside of The Moon Syndicate",
+  "nameKey": "THE_DARKSIDE_OF_THE_MOON_SYNDICATE",
+  "cardType": "corporation",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "The Grand Luna Capital Group",
+  "nameKey": "THE_GRAND_LUNA_CAPITAL_GROUP",
+  "cardType": "corporation",
+  "tags": [
+   "city",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "corporationCards"
+ },
+ {
+  "name": "The Womb",
+  "nameKey": "THE_WOMB",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Thermophiles",
+  "nameKey": "THERMOPHILES",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "microbe"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Thorgate",
+  "nameKey": "THORGATE",
+  "cardType": "corporation",
+  "tags": [
+   "power"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Thorgate Bot",
+  "nameKey": "THORGATE_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Thorium Rush",
+  "nameKey": "THORIUM_RUSH",
+  "cardType": "event",
+  "tags": [
+   "moon",
+   "building",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Titan Air-scrapping",
+  "nameKey": "TITAN_AIRSCRAPPING",
+  "cardType": "active",
+  "tags": [
+   "jovian"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Titan Floating Launch-pad",
+  "nameKey": "TITAN_FLOATING_LAUNCHPAD",
+  "cardType": "active",
+  "tags": [
+   "jovian"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Titan Shuttles",
+  "nameKey": "TITAN_SHUTTLES",
+  "cardType": "active",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Titanium Extraction Center",
+  "nameKey": "TITANIUM_EXTRACTION_CENTER",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Titanium Market Monopolists",
+  "nameKey": "TITANIUM_MARKET_MONOPOLISTS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Titanium Mine",
+  "nameKey": "TITANIUM_MINE",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Toll Station",
+  "nameKey": "TOLL_STATION",
+  "cardType": "automated",
+  "tags": [
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Topsoil Contract",
+  "nameKey": "TOPSOIL_CONTRACT",
+  "cardType": "active",
+  "tags": [
+   "microbe",
+   "earth"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Towing A Comet",
+  "nameKey": "TOWING_A_COMET",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Trade Advance",
+  "nameKey": "TRADE_ADVANCE",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Trade Envoys",
+  "nameKey": "TRADE_ENVOYS",
+  "cardType": "active",
+  "tags": [],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Trade Infrastructure",
+  "nameKey": "TRADE_INFRASTRUCTURE",
+  "cardType": null,
+  "tags": [
+   "power"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Trading Colony",
+  "nameKey": "TRADING_COLONY",
+  "cardType": "active",
+  "tags": [
+   "space"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Trans-Neptune Probe",
+  "nameKey": "TRANS_NEPTUNE_PROBE",
+  "cardType": "automated",
+  "tags": [
+   "science",
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Trees",
+  "nameKey": "TREES",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Tropical Resort",
+  "nameKey": "TROPICAL_RESORT",
+  "cardType": "automated",
+  "tags": [
+   "building"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Tundra Farming",
+  "nameKey": "TUNDRA_FARMING",
+  "cardType": "automated",
+  "tags": [
+   "plant"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Tycho Magnetics",
+  "nameKey": "TYCHO_MAGNETICS",
+  "cardType": "corporation",
+  "tags": [
+   "power",
+   "science"
+  ],
+  "module": "Prelude 2",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Tycho Road Network",
+  "nameKey": "TYCHO_ROAD_NETWORK",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Ulrich",
+  "nameKey": "ULRICH",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Underground City",
+  "nameKey": "UNDERGROUND_CITY",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Underground Detonations",
+  "nameKey": "UNDERGROUND_DETONATIONS",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Underground Detonators",
+  "nameKey": "UNDERGROUND_DETONATORS",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Undermoon Drug Lords Network",
+  "nameKey": "UNDERMOON_DRUG_LORDS_NETWORK",
+  "cardType": "automated",
+  "tags": [
+   "moon"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Unexpected Application",
+  "nameKey": "UNEXPECTED_APPLICATION",
+  "cardType": "event",
+  "tags": [
+   "venus",
+   "event"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "United Nations Bot",
+  "nameKey": "UNMI_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "United Nations Mars Initiative",
+  "nameKey": "UNITED_NATIONS_MARS_INITIATIVE",
+  "cardType": "corporation",
+  "tags": [
+   "earth"
+  ],
+  "module": "Base",
+  "category": "corporationCards"
+ },
+ {
+  "name": "United Nations Mission One",
+  "nameKey": "UNITED_NATIONS_MISSION_ONE",
+  "cardType": "corporation",
+  "tags": [
+   "earth"
+  ],
+  "module": "Community",
+  "category": "corporationCards"
+ },
+ {
+  "name": "UNMI Contractor",
+  "nameKey": "UNMI_CONTRACTOR",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Urban Decomposers",
+  "nameKey": "URBAN_DECOMPOSERS",
+  "cardType": "automated",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Urbanized Area",
+  "nameKey": "URBANIZED_AREA",
+  "cardType": "automated",
+  "tags": [
+   "city",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Utopia Invest",
+  "nameKey": "UTOPIA_INVEST",
+  "cardType": "corporation",
+  "tags": [
+   "building"
+  ],
+  "module": "Turmoil",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Valley Trust",
+  "nameKey": "VALLEY_TRUST",
+  "cardType": "corporation",
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Valuable Gases",
+  "nameKey": "VALUABLE_GASES",
+  "cardType": null,
+  "tags": [
+   "jovian",
+   "venus"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Van Allen",
+  "nameKey": "VAN_ALLEN",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Venus Allies",
+  "nameKey": "VENUS_ALLIES",
+  "cardType": "automated",
+  "tags": [
+   "venus",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venus Contract",
+  "nameKey": "VENUS_CONTRACT",
+  "cardType": null,
+  "tags": [
+   "venus"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Venus First",
+  "nameKey": "VENUS_FIRST",
+  "cardType": null,
+  "tags": [
+   "venus"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Venus Governor",
+  "nameKey": "VENUS_GOVERNOR",
+  "cardType": "automated",
+  "tags": [
+   "venus",
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venus L1 Shade",
+  "nameKey": "VENUS_L1_SHADE",
+  "cardType": null,
+  "tags": [
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Venus Magnetizer",
+  "nameKey": "VENUS_MAGNETIZER",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venus Orbital Survey",
+  "nameKey": "VENUS_ORBITAL_SURVEY",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venus Shuttles",
+  "nameKey": "VENUS_SHUTTLES",
+  "cardType": "active",
+  "tags": [
+   "venus"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venus Soils",
+  "nameKey": "VENUS_SOILS",
+  "cardType": "automated",
+  "tags": [
+   "venus",
+   "plant"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venus Trade Hub",
+  "nameKey": "VENUS_TRADE_HUB",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "space"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venus Waystation",
+  "nameKey": "VENUS_WAYSTATION",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "space"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venusian Animals",
+  "nameKey": "VENUSIAN_ANIMALS",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "animal",
+   "science"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venusian Insects",
+  "nameKey": "VENUSIAN_INSECTS",
+  "cardType": "active",
+  "tags": [
+   "venus",
+   "microbe"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Venusian Plants",
+  "nameKey": "VENUSIAN_PLANTS",
+  "cardType": "automated",
+  "tags": [
+   "venus",
+   "plant"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Vermin",
+  "nameKey": "VERMIN",
+  "cardType": "active",
+  "tags": [
+   "microbe",
+   "animal"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "Vesta Shipyard",
+  "nameKey": "VESTA_SHIPYARD",
+  "cardType": "automated",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Viral Enhancers",
+  "nameKey": "VIRAL_ENHANCERS",
+  "cardType": "active",
+  "tags": [
+   "science",
+   "microbe"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Viron",
+  "nameKey": "VIRON",
+  "cardType": "corporation",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Venus",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Virus",
+  "nameKey": "VIRUS",
+  "cardType": "event",
+  "tags": [
+   "microbe",
+   "event"
+  ],
+  "module": "Corp Era",
+  "category": "projectCards"
+ },
+ {
+  "name": "Vitor",
+  "nameKey": "VITOR",
+  "cardType": "corporation",
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Vitor Bot",
+  "nameKey": "VITOR_BOT",
+  "cardType": "corporation",
+  "tags": [],
+  "module": "Automa",
+  "category": "corporationCards"
+ },
+ {
+  "name": "Vote Of No Confidence",
+  "nameKey": "VOTE_OF_NO_CONFIDENCE",
+  "cardType": "event",
+  "tags": [
+   "event"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Warp Drive",
+  "nameKey": "WARP_DRIVE",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Colonies",
+  "category": "projectCards"
+ },
+ {
+  "name": "Water Import From Europa",
+  "nameKey": "WATER_IMPORT_FROM_EUROPA",
+  "cardType": "active",
+  "tags": [
+   "jovian",
+   "space"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Water Splitting Plant",
+  "nameKey": "WATER_SPLITTING_PLANT",
+  "cardType": "active",
+  "tags": [
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Water to Venus",
+  "nameKey": "WATER_TO_VENUS",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Venus",
+  "category": "projectCards"
+ },
+ {
+  "name": "Water Treatment Complex",
+  "nameKey": "WATER_TREATMENT_COMPLEX",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Wave Power",
+  "nameKey": "WAVE_POWER",
+  "cardType": "automated",
+  "tags": [
+   "power"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "We Grow As One",
+  "nameKey": "WE_GROW_AS_ONE",
+  "cardType": "event",
+  "tags": [
+   "space",
+   "event"
+  ],
+  "module": "Moon",
+  "category": "projectCards"
+ },
+ {
+  "name": "Weather Balloons",
+  "nameKey": "WEATHER_BALLOONS",
+  "cardType": "active",
+  "tags": [
+   "science"
+  ],
+  "module": "Promo",
+  "category": "projectCards"
+ },
+ {
+  "name": "WG Project",
+  "nameKey": "WG_PROJECT",
+  "cardType": "automated",
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude 2",
+  "category": "projectCards"
+ },
+ {
+  "name": "Wildlife Dome",
+  "nameKey": "WILDLIFE_DOME",
+  "cardType": "automated",
+  "tags": [
+   "animal",
+   "plant",
+   "building"
+  ],
+  "module": "Turmoil",
+  "category": "projectCards"
+ },
+ {
+  "name": "Wildlife Sponsors",
+  "nameKey": "WILDLIFE_SPONSORS",
+  "cardType": null,
+  "tags": [
+   "animal"
+  ],
+  "module": "Community",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Will",
+  "nameKey": "WILL",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Windmills",
+  "nameKey": "WINDMILLS",
+  "cardType": "automated",
+  "tags": [
+   "power",
+   "building"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "World Government Advisor",
+  "nameKey": "WORLD_GOVERNMENT_ADVISOR",
+  "cardType": null,
+  "tags": [
+   "earth"
+  ],
+  "module": "Prelude 2",
+  "category": "preludeCards"
+ },
+ {
+  "name": "Worms",
+  "nameKey": "WORMS",
+  "cardType": "automated",
+  "tags": [
+   "microbe"
+  ],
+  "module": "Base",
+  "category": "projectCards"
+ },
+ {
+  "name": "Xavier",
+  "nameKey": "XAVIER",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Xu",
+  "nameKey": "XU",
+  "cardType": "leader",
+  "tags": [
+   "venus"
+  ],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Yvonne",
+  "nameKey": "YVONNE",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Zan",
+  "nameKey": "ZAN",
+  "cardType": "leader",
+  "tags": [],
+  "module": null,
+  "category": null
+ },
+ {
+  "name": "Zeppelins",
+  "nameKey": "ZEPPELINS",
+  "cardType": "automated",
+  "tags": [],
+  "module": "Base",
+  "category": "projectCards"
+ }
+]

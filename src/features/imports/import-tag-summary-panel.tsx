@@ -12,10 +12,13 @@ const tagLabels: Record<PlayerTagCode, string> = {
   event: 'Event',
   jovian: 'Jovian',
   microbe: 'Microbe',
+  moon: 'Moon',
   plant: 'Plant',
   power: 'Power',
   science: 'Science',
   space: 'Space',
+  venus: 'Venus',
+  wild: 'Wild',
 };
 
 function formatCountLabel(count: number, singular: string, plural = `${singular}s`) {

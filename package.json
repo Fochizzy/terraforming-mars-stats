@@ -17,7 +17,8 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "catalog:fetch": "tsx scripts/catalog/fetch-hadronikle.ts",
-    "catalog:publish": "tsx scripts/catalog/publish-reference-data.ts"
+    "catalog:publish": "tsx scripts/catalog/publish-reference-data.ts",
+    "catalog:sync-tags": "tsx scripts/catalog/sync-card-tags.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -61,6 +62,8 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.9",
+    "acorn": "^8.17.0",
+    "acorn-walk": "^8.3.5",
     "autoprefixer": "^10.4.20",
     "eslint": "^9",
     "eslint-config-next": "^15.0.0",

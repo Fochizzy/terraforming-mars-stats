@@ -832,10 +832,13 @@ describe('saveGameLogTagSummaries', () => {
             event: 0,
             jovian: 0,
             microbe: 0,
+            moon: 0,
             plant: 0,
             power: 1,
             science: 1,
             space: 0,
+            venus: 0,
+            wild: 0,
           },
           totalTags: 4,
           unresolvedCardCount: 1,
@@ -850,7 +853,7 @@ describe('saveGameLogTagSummaries', () => {
 
     const rows = insert.mock.calls[0]?.[0] ?? [];
 
-    expect(rows).toHaveLength(11);
+    expect(rows).toHaveLength(14);
     expect(rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

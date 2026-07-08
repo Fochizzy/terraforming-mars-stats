@@ -102,10 +102,13 @@ describe('derivePlayerTagSummaries', () => {
       'science',
       'jovian',
       'earth',
+      'venus',
       'plant',
       'microbe',
       'animal',
       'city',
+      'wild',
+      'moon',
       'event',
     ]);
     expect(summaries).toEqual([
@@ -161,6 +164,83 @@ describe('derivePlayerTagSummaries', () => {
             reason: 'ambiguous_match',
           }),
         ],
+      }),
+    ]);
+  });
+
+  it('counts repeated tags on a single card once per printed occurrence', () => {
+    const summaries = derivePlayerTagSummaries({
+      cardReferences: [
+        {
+          cardName: 'Luna Trade Station',
+          id: 'card-luna-trade-station',
+          sourceTags: ['Moon', 'Moon', 'Space'],
+        },
+        {
+          cardName: 'Research',
+          id: 'card-research',
+          sourceTags: ['Science', 'Science'],
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Luna Trade Station',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Luna Trade Station',
+        },
+        {
+          actor: 'Friday Mars',
+          card: 'Research',
+          eventType: 'card_played',
+          lineNumber: 2,
+          rawLine: 'Friday Mars played Research',
+        },
+      ],
+    });
+
+    expect(summaries).toEqual([
+      expect.objectContaining({
+        matchedCardCount: 2,
+        tagCounts: expect.objectContaining({ moon: 2, science: 2, space: 1 }),
+        totalTags: 5,
+      }),
+    ]);
+  });
+
+  it('auto-resolves duplicate card names whose printings share identical tags', () => {
+    const summaries = derivePlayerTagSummaries({
+      cardReferences: [
+        {
+          cardName: 'Deimos Down',
+          id: 'card-deimos-down-base',
+          sourceTags: ['Space', 'Event'],
+        },
+        {
+          cardName: 'Deimos Down',
+          id: 'card-deimos-down-promo',
+          sourceTags: ['Event', 'Space'],
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Deimos Down',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Deimos Down',
+        },
+      ],
+    });
+
+    expect(summaries).toEqual([
+      expect.objectContaining({
+        matchedCardCount: 1,
+        playedCardCount: 1,
+        tagCounts: expect.objectContaining({ event: 1, space: 1 }),
+        totalTags: 2,
+        unresolvedCardCount: 0,
       }),
     ]);
   });

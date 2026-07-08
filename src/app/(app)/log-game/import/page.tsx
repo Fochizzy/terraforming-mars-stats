@@ -24,6 +24,7 @@ import {
 import { createPlayerIfMissing } from '@/lib/db/player-repo';
 import {
   listCardScoringReferences,
+  listCardTagReferences,
   listCards,
   listCorporations,
   listMapAwards,
@@ -516,14 +517,26 @@ export default async function LogGameImportPage() {
         mapOptions,
         submittedMapId: values.mapId,
       });
-      const [cardReferences, analyzeAwardOptions, analyzeMilestoneOptions] =
-        await Promise.all([
-          listCardScoringReferences(),
-          listMapAwards(),
-          listMapMilestones(),
-        ]);
-      const tagSummaries = derivePlayerTagSummaries({
+      const [
         cardReferences,
+        cardTagReferences,
+        analyzeAwardOptions,
+        analyzeMilestoneOptions,
+      ] = await Promise.all([
+        listCardScoringReferences(),
+        listCardTagReferences(),
+        listMapAwards(),
+        listMapMilestones(),
+      ]);
+
+      if (cardTagReferences.length === 0) {
+        throw new Error(
+          'The card catalog could not be loaded, so played cards cannot be matched. Sign in again or reload before retrying this import.',
+        );
+      }
+
+      const tagSummaries = derivePlayerTagSummaries({
+        cardReferences: cardTagReferences,
         events: parsedGameLog.events,
       });
       const screenshotEvidence = await parseGameResultEvidence({
@@ -639,6 +652,7 @@ export default async function LogGameImportPage() {
       });
       const [
         cardScoringReferences,
+        cardTagReferences,
         awardOptions,
         cards,
         corporationOptions,
@@ -647,6 +661,7 @@ export default async function LogGameImportPage() {
         styleOptions,
       ] = await Promise.all([
         listCardScoringReferences(),
+        listCardTagReferences(),
         listMapAwards(),
         listCards(),
         listCorporations(),
@@ -654,8 +669,15 @@ export default async function LogGameImportPage() {
         listPreludes(),
         listStyles(),
       ]);
+
+      if (cardTagReferences.length === 0) {
+        throw new Error(
+          'The card catalog could not be loaded, so played cards cannot be matched. Sign in again or reload before retrying this import.',
+        );
+      }
+
       const tagSummaries = derivePlayerTagSummaries({
-        cardReferences: cardScoringReferences,
+        cardReferences: cardTagReferences,
         events: parsedGameLog.events,
       });
       const screenshotEvidence = await parseGameResultEvidence({
