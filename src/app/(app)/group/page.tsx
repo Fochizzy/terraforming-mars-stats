@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { AppShell } from '@/components/layout/app-shell';
 import { GroupDashboard } from '@/features/analytics/group-dashboard';
 import { GroupSwitcher } from '@/features/groups/group-switcher';
@@ -11,7 +12,12 @@ export default async function GroupPage() {
   return (
     <AppShell
       headerActions={
-        <GroupSwitcher currentGroupId={context.groupId} returnPath="/group" />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <GroupSwitcher currentGroupId={context.groupId} returnPath="/group" />
+          <Link className="tm-button-secondary px-4 py-2 text-xs" href="/group/settings">
+            Group Settings
+          </Link>
+        </div>
       }
       title="Group"
       wide
