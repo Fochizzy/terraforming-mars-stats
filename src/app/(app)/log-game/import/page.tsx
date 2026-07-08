@@ -235,6 +235,26 @@ function resolveImportMapSelection(input: {
   throw new Error('Choose the map at the top before continuing.');
 }
 
+function resolveImportPlayerCount(input: {
+  detectedParticipantNames: string[];
+  screenshotPlayerRows: ParsedEndgameScoreScreenshot['playerRows'];
+  submittedPlayerCount: number | null;
+}) {
+  const resolvedPlayerCount = Math.max(
+    input.submittedPlayerCount ?? 0,
+    input.detectedParticipantNames.length,
+    input.screenshotPlayerRows.length,
+  );
+
+  if (resolvedPlayerCount > 0) {
+    return resolvedPlayerCount;
+  }
+
+  throw new Error(
+    'Choose the player count before continuing when the log or screenshot cannot infer it.',
+  );
+}
+
 function resolveImportGenerationCount(input: {
   parsedGameLog: ReturnType<typeof parseGameLog>;
   parsedScreenshot: ParsedEndgameScoreScreenshot;
@@ -441,9 +461,6 @@ export default async function LogGameImportPage() {
     getCurrentGroupContext(),
     listMaps(),
   ]);
-  const groupSettings = context
-    ? await getGroupSettings(context.groupId)
-    : null;
 
   async function handleAnalyzeImportEvidence(formData: FormData) {
     'use server';
@@ -470,7 +487,7 @@ export default async function LogGameImportPage() {
         cardReferences,
         clientEndgameLines: values.clientEndgameLines,
         expectedPlayerCount: Math.max(
-          values.playerCount,
+          values.playerCount ?? 0,
           detectedParticipantNames.length,
         ),
         expectedPlayerNames: detectedParticipantNames,
@@ -479,12 +496,6 @@ export default async function LogGameImportPage() {
         rawLogText: values.exportedGameLog,
       });
 
-      resolveImportMapSelection({
-        inferredMapId: inferredMap?.mapId,
-        mapOptions,
-        preferInferredMap: true,
-        submittedMapId: values.mapId,
-      });
       resolveImportGenerationCount({
         parsedGameLog,
         parsedScreenshot: screenshotEvidence.parsedScreenshot,
@@ -565,7 +576,7 @@ export default async function LogGameImportPage() {
         cardReferences: cardScoringReferences,
         clientEndgameLines: values.clientEndgameLines,
         expectedPlayerCount: Math.max(
-          values.playerCount,
+          values.playerCount ?? 0,
           detectedParticipantNames.length,
         ),
         expectedPlayerNames: detectedParticipantNames,
@@ -670,6 +681,11 @@ export default async function LogGameImportPage() {
         parsedScreenshot: screenshotEvidence.parsedScreenshot,
         submittedGenerationCount: values.generationCount,
       });
+      const resolvedPlayerCount = resolveImportPlayerCount({
+        detectedParticipantNames: resolvedParticipantNames,
+        screenshotPlayerRows: screenshotEvidence.parsedScreenshot.playerRows,
+        submittedPlayerCount: values.playerCount,
+      });
       const draftForm = buildImportDraft({
         awardOptions,
         cardScoring: screenshotEvidence.parsedScoreDetails.cardScoring,
@@ -684,6 +700,7 @@ export default async function LogGameImportPage() {
           generationCount: resolvedGenerationCount,
           mapId: resolvedMapSelection.draftMapId,
           participantNames: resolvedParticipantNames,
+          playerCount: resolvedPlayerCount,
         },
         milestoneOptions,
         parsedGameLog,
@@ -870,9 +887,9 @@ export default async function LogGameImportPage() {
       <LogGameImportShell
         initialValues={{
           generationCount: 10,
-          mapId: groupSettings?.defaultMapId ?? mapOptions[0]?.id ?? '',
+          mapId: '',
           playedOn: new Date().toISOString().slice(0, 10),
-          playerCount: 4,
+          playerCount: null,
         }}
         mapOptions={mapOptions}
         onAnalyzeImportEvidence={handleAnalyzeImportEvidence}

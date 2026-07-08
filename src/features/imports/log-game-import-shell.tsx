@@ -18,7 +18,7 @@ type LogGameImportShellProps = {
     generationCount: number;
     mapId: string;
     playedOn: string;
-    playerCount: number;
+    playerCount: number | null;
   };
   mapOptions: MapOption[];
   onAnalyzeImportEvidence: (

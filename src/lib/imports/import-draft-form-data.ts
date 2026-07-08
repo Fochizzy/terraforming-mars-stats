@@ -14,13 +14,17 @@ export type CreateImportDraftFormValues = {
   mapId?: string | null;
   participants: string;
   playedOn: string;
-  playerCount: number;
+  playerCount?: number | null;
   scoreDetailsScreenshot?: File | null;
 };
 
-export type ParsedCreateImportDraftFormData = CreateImportDraftInput & {
+export type ParsedCreateImportDraftFormData = Omit<
+  CreateImportDraftInput,
+  'playerCount'
+> & {
   boardScreenshots: File[];
   clientEndgameLines: string[];
+  playerCount: number | null;
   scoreDetailsScreenshot: File | null;
 };
 
@@ -147,7 +151,6 @@ export function buildCreateImportDraftFormData(
   const formData = new FormData();
 
   formData.set('playedOn', values.playedOn);
-  formData.set('playerCount', String(values.playerCount));
   formData.set('exportedGameLog', values.exportedGameLog.trim());
   formData.set('participants', values.participants);
   formData.set(
@@ -164,6 +167,10 @@ export function buildCreateImportDraftFormData(
 
   if (values.mapId?.trim()) {
     formData.set('mapId', values.mapId);
+  }
+
+  if (typeof values.playerCount === 'number') {
+    formData.set('playerCount', String(values.playerCount));
   }
 
   if (typeof values.generationCount === 'number') {
@@ -208,7 +215,7 @@ export function parseCreateImportDraftFormData(
     mapId: readTextField(formData, 'mapId'),
     participantNames: parseImportParticipants(readTextField(formData, 'participants')),
     playedOn: readTextField(formData, 'playedOn'),
-    playerCount: readIntegerField(formData, 'playerCount'),
+    playerCount: readOptionalIntegerField(formData, 'playerCount'),
     scoreDetailsScreenshot,
   };
 }

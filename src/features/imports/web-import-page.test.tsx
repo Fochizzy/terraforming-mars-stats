@@ -116,9 +116,9 @@ describe('WebImportPage', () => {
       <WebImportPage
         initialValues={{
           generationCount: 10,
-          mapId: 'tharsis',
+          mapId: '',
           playedOn: '2026-07-03',
-          playerCount: 4,
+          playerCount: null,
         }}
         mapOptions={[
           { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
@@ -157,6 +157,53 @@ describe('WebImportPage', () => {
     expect(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText(/^map$/i)).toHaveValue('');
+    expect(screen.getByLabelText(/player count/i)).toHaveValue('');
+  });
+
+  it('omits map and player count from analysis when left on auto-detect', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        ...review,
+        playerLinks: [review.playerLinks[0]],
+        requiresPlayerConfirmation: false,
+      },
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: '',
+          playedOn: '2026-07-03',
+          playerCount: null,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars played Earth Catapult.',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0] as FormData;
+    expect(submittedFormData.get('mapId')).toBeNull();
+    expect(submittedFormData.get('playerCount')).toBeNull();
   });
 
   it('focuses the exported game log textarea when the game log panel is clicked', async () => {

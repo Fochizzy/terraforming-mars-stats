@@ -21,7 +21,7 @@ export type WebImportDraftValues = {
   mapId: string;
   participantNames: string[];
   playedOn: string;
-  playerCount: number;
+  playerCount: number | null;
 };
 
 export type WebImportActionResult = {
@@ -176,6 +176,10 @@ function inferDetectedPlayerCount(review: ImportReviewModel | undefined) {
   return detectedPlayerCount > 0
     ? clampPlayerCount(detectedPlayerCount)
     : null;
+}
+
+function formatPlayerCountValue(playerCount: number | null) {
+  return playerCount === null ? '' : String(playerCount);
 }
 
 function formatManualReviewScoreFieldLabel(
@@ -378,7 +382,9 @@ export function WebImportPage({
         ? manualParticipantNames
         : extractClientLogParticipantNames(exportedGameLog);
     const expectedPlayerCount =
-      expectedPlayerNames.length > 0 ? expectedPlayerNames.length : playerCount;
+      expectedPlayerNames.length > 0
+        ? expectedPlayerNames.length
+        : playerCount ?? 0;
     const fileKey = buildScreenshotCacheKey(endgameScreenshot, {
       expectedPlayerCount,
       expectedPlayerNames,
@@ -614,6 +620,7 @@ export function WebImportPage({
                 onChange={(event) => setMapId(event.target.value)}
                 value={mapId}
               >
+                <option value="">Auto-detect</option>
                 {mapOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.name}
@@ -639,9 +646,14 @@ export function WebImportPage({
               <select
                 aria-label="Player Count"
                 className="tm-input appearance-none pr-9"
-                onChange={(event) => setPlayerCount(Number(event.target.value))}
-                value={playerCount}
+                onChange={(event) =>
+                  setPlayerCount(
+                    event.target.value ? Number(event.target.value) : null,
+                  )
+                }
+                value={formatPlayerCountValue(playerCount)}
               >
+                <option value="">Auto-detect</option>
                 {[1, 2, 3, 4, 5].map((count) => (
                   <option key={count} value={count}>
                     {count}
@@ -652,9 +664,10 @@ export function WebImportPage({
             </label>
           </div>
           <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-            Confirm the map here when OCR or log evidence is incomplete.
-            Generations are still inferred from the uploaded victory point
-            breakdown when possible.
+            Leave map and player count on auto-detect when the log or result
+            screenshot is enough to infer them. Set an override here only when
+            the import evidence is incomplete. Generations are still inferred
+            from the uploaded victory point breakdown when possible.
           </p>
         </div>
 

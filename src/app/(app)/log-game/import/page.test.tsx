@@ -8,7 +8,7 @@ type CapturedLogGameImportShellProps = {
     generationCount: number;
     mapId: string;
     playedOn: string;
-    playerCount: number;
+    playerCount: number | null;
   };
   mapOptions: Array<{ code: string; id: string; name: string }>;
   onAnalyzeImportEvidence: (formData: FormData) => Promise<unknown>;
@@ -275,6 +275,15 @@ describe('LogGameImportPage', () => {
     await import('./page');
 
     expect(importTracker.readGameResultScreenshot).toBe(0);
+  });
+
+  it('passes auto-detect defaults to the import shell', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+
+    expect(shellProps.initialValues).toMatchObject({
+      mapId: '',
+      playerCount: null,
+    });
   });
 
   it('analyzes import evidence through the real page action and parses score details from the combined result screenshot', async () => {
@@ -638,6 +647,62 @@ describe('LogGameImportPage', () => {
       expect.objectContaining({
         form: expect.objectContaining({
           mapId: 'map-tharsis',
+        }),
+      }),
+    );
+  });
+
+  it('saves an inferred map and player count when both overrides are left on auto-detect', async () => {
+    mockState.listMaps.mockResolvedValue([
+      { code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' },
+      { code: 'hellas', id: 'map-hellas', name: 'Hellas' },
+    ]);
+    mockState.listMapMilestones.mockResolvedValue([
+      {
+        mapId: 'map-hellas',
+        milestoneId: 'milestone-diversifier',
+        milestoneName: 'Diversifier',
+      },
+    ]);
+    mockState.listMapAwards.mockResolvedValue([
+      {
+        awardId: 'award-space-baron',
+        awardName: 'Space Baron',
+        mapId: 'map-hellas',
+      },
+    ]);
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const createDraftFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [
+        {
+          importedName: 'Friday Mars',
+          playerId: 'player-1',
+        },
+      ],
+      endgameScreenshot: null,
+      exportedGameLog: [
+        'Friday Mars claimed Diversifier milestone',
+        'Friday Mars funded Space Baron award',
+      ].join('\n'),
+      generationCount: 10,
+      mapId: '',
+      participants: '',
+      playedOn: '2026-07-07',
+      playerCount: null,
+    });
+
+    const result = await shellProps.onCreateImportDraft(createDraftFormData);
+
+    expect(result).toMatchObject({
+      gameId: 'game-1',
+      status: 'success',
+    });
+    expect(mockState.saveDraftGame).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form: expect.objectContaining({
+          mapId: 'map-hellas',
+          playerCount: 1,
         }),
       }),
     );

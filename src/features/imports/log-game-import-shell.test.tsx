@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readImportReviewJumpState } from '@/lib/imports/import-review-jump-state';
 import { LogGameImportShell } from './log-game-import-shell';
 
+const browserOcrMocks = vi.hoisted(() => ({
+  readGameResultEndgameLinesInBrowser: vi.fn(),
+}));
+
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
 }));
@@ -14,8 +18,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('@/lib/imports/read-endgame-screenshot-browser', () => ({
+  readGameResultEndgameLinesInBrowser:
+    browserOcrMocks.readGameResultEndgameLinesInBrowser,
+}));
+
 describe('LogGameImportShell', () => {
   beforeEach(() => {
+    browserOcrMocks.readGameResultEndgameLinesInBrowser.mockReset();
+    browserOcrMocks.readGameResultEndgameLinesInBrowser.mockResolvedValue([]);
     navigationMocks.push.mockReset();
     window.sessionStorage.clear();
   });

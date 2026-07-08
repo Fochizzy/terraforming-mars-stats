@@ -131,14 +131,36 @@ describe('parseCreateImportDraftFormData', () => {
     const formData = new FormData();
 
     formData.set('playedOn', '2026-07-04');
-    formData.set('playerCount', '3');
     formData.set('exportedGameLog', 'Friday Mars played Earth Catapult.');
     formData.set('participants', '');
 
     expect(parseCreateImportDraftFormData(formData)).toMatchObject({
       generationCount: null,
       mapId: '',
+      playerCount: null,
       participantNames: [],
+    });
+  });
+
+  it('does not serialize map id or player count when they are left on auto-detect', () => {
+    const formData = buildCreateImportDraftFormData({
+      boardScreenshots: [],
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: 'Friday Mars played Earth Catapult.',
+      generationCount: null,
+      mapId: '',
+      participants: '',
+      playedOn: '2026-07-04',
+      playerCount: null,
+      scoreDetailsScreenshot: null,
+    });
+
+    expect(formData.get('mapId')).toBeNull();
+    expect(formData.get('playerCount')).toBeNull();
+    expect(parseCreateImportDraftFormData(formData)).toMatchObject({
+      mapId: '',
+      playerCount: null,
     });
   });
 
