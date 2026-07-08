@@ -50,6 +50,7 @@ import { parseGameLog } from '@/lib/imports/parse-game-log';
 import {
   parseImportPlayerScores,
 } from '@/lib/imports/parse-import-player-scores';
+import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 import {
   parseScoreDetailsScreenshot,
   type ParsedScoreDetailsScreenshot,
@@ -281,10 +282,19 @@ function buildUniquePlayerNames(names: string[]) {
 
 function mergeParsedScreenshotEvidence(input: {
   clientParsedScreenshot: ParsedEndgameScoreScreenshot;
+  expectedPlayerNames: string[];
   serverParsedScreenshot: ParsedEndgameScoreScreenshot;
 }) {
   const serverPlayerRows = input.serverParsedScreenshot.playerRows;
-  const clientPlayerRows = input.clientParsedScreenshot.playerRows;
+  const expectedPlayerKeys = new Set(
+    input.expectedPlayerNames.map(normalizePlayerAlias).filter(Boolean),
+  );
+  const clientPlayerRows =
+    expectedPlayerKeys.size > 0
+      ? input.clientParsedScreenshot.playerRows.filter((row) =>
+          expectedPlayerKeys.has(normalizePlayerAlias(row.playerName)),
+        )
+      : input.clientParsedScreenshot.playerRows;
 
   return {
     generationCount:
@@ -369,6 +379,7 @@ async function parseGameResultEvidence(input: {
 
   parsedScreenshot = mergeParsedScreenshotEvidence({
     clientParsedScreenshot,
+    expectedPlayerNames: input.expectedPlayerNames,
     serverParsedScreenshot: parsedScreenshot,
   });
 

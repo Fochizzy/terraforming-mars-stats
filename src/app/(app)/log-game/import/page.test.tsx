@@ -448,6 +448,80 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('does not let browser fallback OCR add extra imported players when server OCR already found the log players', async () => {
+    mockState.listImportResolutionPlayers.mockResolvedValue([
+      {
+        displayName: 'James Hodnett',
+        gamesPlayed: 11,
+        id: 'player-james',
+        linkedFullName: 'James Hodnett',
+        linkedUsername: 'james',
+      },
+      {
+        displayName: 'Izzy Hodnett',
+        gamesPlayed: 9,
+        id: 'player-izzy',
+        linkedFullName: 'Izzy Hodnett',
+        linkedUsername: 'izzy',
+      },
+    ]);
+    ocrMocks.readGameResultScreenshot.mockResolvedValue({
+      endgameLines: [
+        'Victory points breakdown after 12 generations',
+        'James 59 5 15 6 8 52 145 105',
+        'Izzy 39 10 0 4 6 23 82 82',
+      ],
+      scoreDetailsColumns: [],
+    });
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      clientEndgameLines: [
+        'Victory points breakdown after 12 generations',
+        'James 59 5 15 6 8 52 145 105',
+        'Izzy 39 10 0 4 6 23 82 82',
+        'Age 1 1 1 1 1 1 6 0',
+      ],
+      confirmedPlayerLinks: [],
+      endgameScreenshot: new File(['screenshot'], 'game-result.png', {
+        type: 'image/png',
+      }),
+      exportedGameLog: ['James played Viron', 'Izzy played Arklight'].join('\n'),
+      generationCount: null,
+      mapId: 'tharsis',
+      participants: '',
+      playedOn: '2026-07-07',
+      playerCount: 4,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message: 'Parsed 2 log events and 2 screenshot score rows.',
+      review: {
+        playerLinks: [
+          expect.objectContaining({ importedName: 'James' }),
+          expect.objectContaining({ importedName: 'Izzy' }),
+        ],
+        scoreCandidates: [
+          expect.objectContaining({
+            playerName: 'James',
+            totalPoints: 145,
+          }),
+          expect.objectContaining({
+            playerName: 'Izzy',
+            totalPoints: 82,
+          }),
+        ],
+      },
+      status: 'success',
+    });
+    expect(
+      (result as { review?: { playerLinks?: Array<{ importedName: string }> } })
+        .review?.playerLinks?.map((link) => link.importedName),
+    ).toEqual(['James', 'Izzy']);
+  });
+
   it('uses the selected map option id as a manual map fallback when OCR cannot infer the board map', async () => {
     mockState.getGroupSettings.mockResolvedValue({
       defaultExpansionCodes: ['base'],
