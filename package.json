@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:native": "expo start --dev-client --clear --host lan --port 8081",
+    "dev:native": "expo start --dev-client --clear --host localhost --port 8081",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

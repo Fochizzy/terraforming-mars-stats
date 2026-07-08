@@ -1,6 +1,7 @@
 {
   "expo": {
     "scheme": "terraforming-mars-stats",
+    "icon": "./assets/icons/app-icon.png",
     "extra": {
       "eas": {
         "projectId": "214e537c-c1fc-4349-b739-5040f6232a89"
@@ -10,10 +11,12 @@
       }
     },
     "android": {
+      "icon": "./assets/icons/app-icon.png",
       "package": "com.fochizzy.terraformingmarsstats"
     },
     "ios": {
       "bundleIdentifier": "com.fochizzy.terraformingmarsstats",
+      "icon": "./assets/icons/app-icon.png",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
