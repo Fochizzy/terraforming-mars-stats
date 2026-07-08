@@ -234,6 +234,45 @@ function getJoinedMapName(value: RawGlobalMapMetricSummaryRow['maps']) {
   return value?.name?.trim() ?? '';
 }
 
+function getGlobalMapLabel(row: RawGlobalMapMetricSummaryRow) {
+  const mapName = getJoinedMapName(row.maps) || 'Unknown Map';
+  const playerCount = toOptionalNumber(row.player_count);
+
+  return playerCount === null ? mapName : `${mapName} (${playerCount}p)`;
+}
+
+function getSortedUsableGlobalMapRows(rows: RawGlobalMapMetricSummaryRow[]) {
+  return [...rows]
+    .filter((row) => toOptionalNumber(row.average_points_per_generation) !== null)
+    .sort(
+      (left, right) =>
+        toNumber(right.average_points_per_generation) -
+          toNumber(left.average_points_per_generation) ||
+        toNumber(right.games_played) - toNumber(left.games_played) ||
+        getJoinedMapName(left.maps).localeCompare(getJoinedMapName(right.maps)) ||
+        toNumber(left.player_count) - toNumber(right.player_count),
+    );
+}
+
+function buildGlobalMapSummary(row: RawGlobalMapMetricSummaryRow) {
+  const pointsPerGeneration = toOptionalNumber(row.average_points_per_generation);
+
+  if (pointsPerGeneration === null) {
+    return null;
+  }
+
+  const mapName = getJoinedMapName(row.maps) || 'The top map';
+  const expectedBaseline = toOptionalNumber(row.expected_score_baseline);
+  const baselineCopy =
+    expectedBaseline === null
+      ? ''
+      : ` against ${formatAverage(expectedBaseline)} expected points`;
+
+  return `${mapName} is the top global map baseline at ${formatAverage(
+    pointsPerGeneration,
+  )} pts/gen${baselineCopy}.`;
+}
+
 function buildPersistedProfileMetrics(
   row: RawPlayerMetricSummaryRow | null,
 ): NativeDashboardMetric[] {
@@ -501,28 +540,22 @@ function buildGlobalLeaderboardRows(
 function buildGlobalMapRows(
   rows: RawGlobalMapMetricSummaryRow[],
 ): NativeDashboardBarRow[] {
-  return [...rows]
-    .filter((row) => toOptionalNumber(row.average_points_per_generation) !== null)
-    .sort(
-      (left, right) =>
-        toNumber(right.average_points_per_generation) -
-          toNumber(left.average_points_per_generation) ||
-        toNumber(right.games_played) - toNumber(left.games_played) ||
-        getJoinedMapName(left.maps).localeCompare(getJoinedMapName(right.maps)),
-    )
+  return getSortedUsableGlobalMapRows(rows)
     .slice(0, 5)
     .map((row, index) => {
       const averagePoints = toOptionalNumber(row.average_points);
       const averageGenerations = toOptionalNumber(row.average_generations);
       const gamesPlayed = toNumber(row.games_played);
-      const playerCount = toNumber(row.player_count);
+      const playerCount = toOptionalNumber(row.player_count);
 
       return {
         accent: index === 0 ? 'ocean' : 'greenery',
         detail: `${averagePoints === null ? '--' : formatAverage(averagePoints)} avg pts | ${
           averageGenerations === null ? '--' : formatAverage(averageGenerations)
-        } gens | ${gamesPlayed} games | ${playerCount} players`,
-        label: getJoinedMapName(row.maps) || 'Unknown Map',
+        } gens | ${gamesPlayed} games | ${
+          playerCount === null ? '--' : playerCount
+        } players`,
+        label: getGlobalMapLabel(row),
         value: toNumber(row.average_points_per_generation),
       };
     });
@@ -704,8 +737,6 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
     playerPerformanceResult,
     playerScoreResult,
     playerCoverageResult,
-    playerMetricSummaryResult,
-    globalMapMetricResult,
   ]) {
     if (result?.error) {
       throw result.error;
@@ -722,9 +753,13 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
   const playerScoreRow = playerScoreResult.data as RawPlayerScoreAveragesRow | null;
   const playerCoverageRow = playerCoverageResult.data as RawPlayerCoverageRow | null;
   const playerMetricSummary =
-    playerMetricSummaryResult.data as RawPlayerMetricSummaryRow | null;
+    playerMetricSummaryResult.error
+      ? null
+      : (playerMetricSummaryResult.data as RawPlayerMetricSummaryRow | null);
   const globalMapMetricRows =
-    (globalMapMetricResult.data ?? []) as RawGlobalMapMetricSummaryRow[];
+    globalMapMetricResult.error
+      ? []
+      : ((globalMapMetricResult.data ?? []) as RawGlobalMapMetricSummaryRow[]);
 
   const topGroupLeader = leaderboardRows[0] ?? null;
   const topGlobalCorporation = buildGlobalLeaderboardRows(globalRows)[0] ?? null;
@@ -807,18 +842,15 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
 
   const globalLeaderboardRows = buildGlobalLeaderboardRows(globalRows);
   const globalMapRows = buildGlobalMapRows(globalMapMetricRows);
-  const topGlobalMap = globalMapMetricRows[0] ?? null;
+  const topGlobalMap = getSortedUsableGlobalMapRows(globalMapMetricRows)[0] ?? null;
+  const globalMapSummary = topGlobalMap ? buildGlobalMapSummary(topGlobalMap) : null;
   const globalSection: NativeDashboardSection | null =
     globalLeaderboardRows.length > 0 || globalMapRows.length > 0
       ? {
           leaderboardRows: globalLeaderboardRows,
           mapRows: globalMapRows,
-          summary: topGlobalMap
-            ? `${getJoinedMapName(topGlobalMap.maps) || 'The top map'} is the top global map baseline at ${formatAverage(
-                toNumber(topGlobalMap.average_points_per_generation),
-              )} pts/gen against ${formatAverage(
-                toNumber(topGlobalMap.expected_score_baseline),
-              )} expected points.`
+          summary: globalMapSummary
+            ? globalMapSummary
             : topGlobalCorporation
               ? `${topGlobalCorporation.label} is setting the opted-in global pace right now.`
               : 'Opted-in global analytics are waiting on more finalized results.',

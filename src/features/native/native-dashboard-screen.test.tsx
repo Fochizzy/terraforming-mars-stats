@@ -42,6 +42,77 @@ const nativeHarness = vi.hoisted(() => {
   };
 });
 
+const supabaseHarness = vi.hoisted(() => {
+  type QueryResult = {
+    data: unknown;
+    error: null | Error;
+  };
+
+  const analyticsResults = new Map<string, QueryResult[]>();
+  const publicResults = new Map<string, QueryResult[]>();
+
+  function takeResult(
+    results: Map<string, QueryResult[]>,
+    tableName: string,
+  ): QueryResult {
+    const queue = results.get(tableName);
+
+    if (!queue || queue.length === 0) {
+      throw new Error(`Missing mock result for ${tableName}.`);
+    }
+
+    return queue.shift()!;
+  }
+
+  function buildQuery(result: QueryResult) {
+    const query = {
+      eq: vi.fn(() => query),
+      maybeSingle: vi.fn(() => Promise.resolve(result)),
+      order: vi.fn(() => query),
+      select: vi.fn(() => query),
+      then: (
+        resolve: (value: QueryResult) => unknown,
+        reject?: (reason: unknown) => unknown,
+      ) => Promise.resolve(result).then(resolve, reject),
+    };
+
+    return query;
+  }
+
+  return {
+    authGetSession: vi.fn(),
+    from: vi.fn((tableName: string) =>
+      buildQuery(takeResult(publicResults, tableName)),
+    ),
+    reset() {
+      analyticsResults.clear();
+      publicResults.clear();
+      this.authGetSession.mockReset();
+      this.from.mockClear();
+      this.schema.mockClear();
+      this.schemaFrom.mockClear();
+    },
+    schema: vi.fn(() => ({
+      from: supabaseHarness.schemaFrom,
+    })),
+    schemaFrom: vi.fn((tableName: string) =>
+      buildQuery(takeResult(analyticsResults, tableName)),
+    ),
+    setAnalyticsResult(tableName: string, result: QueryResult) {
+      analyticsResults.set(tableName, [
+        ...(analyticsResults.get(tableName) ?? []),
+        result,
+      ]);
+    },
+    setPublicResult(tableName: string, result: QueryResult) {
+      publicResults.set(tableName, [
+        ...(publicResults.get(tableName) ?? []),
+        result,
+      ]);
+    },
+  };
+});
+
 vi.mock('react-native', async () => {
   const React = await import('react');
 
@@ -119,6 +190,186 @@ vi.mock('react-native', async () => {
     },
   };
 });
+
+vi.mock('@/lib/supabase/native', () => ({
+  nativeSupabase: {
+    auth: {
+      getSession: supabaseHarness.authGetSession,
+    },
+    from: supabaseHarness.from,
+    schema: supabaseHarness.schema,
+  },
+}));
+
+function seedNativeDashboardLoaderResults({
+  globalMapResult = {
+    data: [
+      {
+        average_generations: 10,
+        average_points: 84,
+        average_points_per_generation: 8.4,
+        expected_score_baseline: null,
+        games_played: 6,
+        map_id: 'tharsis',
+        maps: { name: 'Tharsis' },
+        player_count: 4,
+      },
+      {
+        average_generations: 11,
+        average_points: 88,
+        average_points_per_generation: 8,
+        expected_score_baseline: 76,
+        games_played: 5,
+        map_id: 'tharsis',
+        maps: { name: 'Tharsis' },
+        player_count: 5,
+      },
+    ],
+    error: null,
+  },
+  playerMetricResult = {
+    data: {
+      average_award_roi: 1.25,
+      average_normalized_efficiency: 1.08,
+      average_points_per_generation: 8.4,
+      average_score_delta_vs_expected: 3.2,
+      best_score_source: 'Terraform Rating',
+      best_tag_lane: 'Science',
+      games_played: 5,
+      tag_evidence_coverage: 0.8,
+    },
+    error: null,
+  },
+}: {
+  globalMapResult?: { data: unknown; error: null | Error };
+  playerMetricResult?: { data: unknown; error: null | Error };
+} = {}) {
+  supabaseHarness.authGetSession.mockResolvedValue({
+    data: {
+      session: {
+        user: {
+          email: 'izzy.hodnett@gmail.com',
+          id: 'user-1',
+        },
+      },
+    },
+  });
+
+  supabaseHarness.setPublicResult('user_profiles', {
+    data: { last_active_group_id: 'group-1' },
+    error: null,
+  });
+  supabaseHarness.setPublicResult('group_members', {
+    data: [
+      {
+        group_id: 'group-1',
+        groups: { name: 'Friday Night Mars' },
+        role: 'owner',
+      },
+    ],
+    error: null,
+  });
+  supabaseHarness.setPublicResult('players', {
+    data: [
+      {
+        display_name: 'Friday Mars',
+        group_id: 'group-1',
+        id: 'player-1',
+      },
+    ],
+    error: null,
+  });
+  supabaseHarness.setPublicResult('player_metric_summaries', playerMetricResult);
+  supabaseHarness.setPublicResult('global_map_metric_summaries', globalMapResult);
+
+  supabaseHarness.setAnalyticsResult('group_leaderboard', {
+    data: [
+      {
+        average_score: 84.5,
+        games_played: 5,
+        player_id: 'player-1',
+        player_name: 'Friday Mars',
+        weighted_score: 91.4,
+        win_rate: 0.75,
+      },
+    ],
+    error: null,
+  });
+  supabaseHarness.setAnalyticsResult('head_to_head', {
+    data: [],
+    error: null,
+  });
+  supabaseHarness.setAnalyticsResult('lineup_effects', {
+    data: [],
+    error: null,
+  });
+  supabaseHarness.setAnalyticsResult('style_agreement', {
+    data: [
+      {
+        exact_match_rate: 0.6,
+        mismatch_rate: 0.1,
+        partial_match_rate: 0.3,
+        player_id: 'player-1',
+        player_name: 'Friday Mars',
+      },
+    ],
+    error: null,
+  });
+  supabaseHarness.setAnalyticsResult('player_trends', {
+    data: [],
+    error: null,
+  });
+  supabaseHarness.setAnalyticsResult('global_corporation_performance', {
+    data: [
+      {
+        average_score: 82.2,
+        corporation_id: 'helion',
+        corporation_name: 'Helion',
+        games_played: 9,
+        win_rate: 0.66,
+        wins: 6,
+      },
+    ],
+    error: null,
+  });
+  supabaseHarness.setAnalyticsResult('group_leaderboard', {
+    data: {
+      average_score: 84.5,
+      games_played: 5,
+      player_id: 'player-1',
+      player_name: 'Friday Mars',
+      weighted_score: 91.4,
+      win_rate: 0.75,
+    },
+    error: null,
+  });
+  supabaseHarness.setAnalyticsResult('player_score_source_averages', {
+    data: {
+      average_animal_points: 0,
+      average_award_points: 8,
+      average_card_points: 18,
+      average_cities_points: 5,
+      average_greenery_points: 12,
+      average_jovian_points: 0,
+      average_microbe_points: 0,
+      average_milestone_points: 10,
+      average_other_card_points: 0,
+      average_tr_points: 25,
+    },
+    error: null,
+  });
+  supabaseHarness.setAnalyticsResult('player_data_coverage', {
+    data: {
+      animal_coverage: 0.25,
+      card_breakdown_coverage: 0.75,
+      declared_style_coverage: 0.5,
+      jovian_coverage: 0.25,
+      key_card_coverage: 0.7,
+      microbe_coverage: 0.25,
+    },
+    error: null,
+  });
+}
 
 const dashboardFixture: NativeDashboardData = {
   global: {
@@ -231,6 +482,7 @@ const dashboardFixture: NativeDashboardData = {
 describe('NativeDashboardScreen', () => {
   beforeEach(() => {
     nativeHarness.reset();
+    supabaseHarness.reset();
   });
 
   it('scrolls to the tapped section and updates the active hero button', async () => {
@@ -281,5 +533,94 @@ describe('NativeDashboardScreen', () => {
     expect(screen.getByText(/normalized efficiency/i)).toBeInTheDocument();
     expect(screen.getByText(/global map meta/i)).toBeInTheDocument();
     expect(screen.getByText(/tharsis/i)).toBeInTheDocument();
+  });
+});
+
+describe('loadNativeDashboard', () => {
+  beforeEach(() => {
+    nativeHarness.reset();
+    supabaseHarness.reset();
+  });
+
+  it('keeps legacy native analytics when persisted public summaries fail', async () => {
+    seedNativeDashboardLoaderResults({
+      globalMapResult: {
+        data: null,
+        error: new Error('persisted map summary unavailable'),
+      },
+      playerMetricResult: {
+        data: null,
+        error: new Error('persisted player summary unavailable'),
+      },
+    });
+
+    const { loadNativeDashboard } = await import('./load-native-dashboard');
+    const dashboard = await loadNativeDashboard();
+
+    expect(dashboard?.profile?.metrics).toEqual(
+      expect.arrayContaining([
+        { label: 'Weighted Score', value: '91.4' },
+        { label: 'Win Rate', value: '75%' },
+        { label: 'Average Score', value: '84.5' },
+      ]),
+    );
+    expect(dashboard?.profile?.metrics).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Points Per Generation' }),
+      ]),
+    );
+    expect(dashboard?.global?.leaderboardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Helion' }),
+      ]),
+    );
+    expect(dashboard?.global?.mapRows).toEqual([]);
+    expect(dashboard?.global?.summary).toBe(
+      'Helion is setting the opted-in global pace right now.',
+    );
+  });
+
+  it('labels persisted global map rows by player count and omits null baseline copy', async () => {
+    seedNativeDashboardLoaderResults();
+
+    const { loadNativeDashboard } = await import('./load-native-dashboard');
+    const dashboard = await loadNativeDashboard();
+
+    expect(dashboard?.global?.mapRows?.map((row) => row.label)).toEqual([
+      'Tharsis (4p)',
+      'Tharsis (5p)',
+    ]);
+    expect(dashboard?.global?.summary).toBe(
+      'Tharsis is the top global map baseline at 8.4 pts/gen.',
+    );
+    expect(dashboard?.global?.summary).not.toContain('0 expected points');
+  });
+
+  it('uses corporation summary when persisted global map rows are unusable', async () => {
+    seedNativeDashboardLoaderResults({
+      globalMapResult: {
+        data: [
+          {
+            average_generations: 10,
+            average_points: 84,
+            average_points_per_generation: null,
+            expected_score_baseline: 72,
+            games_played: 6,
+            map_id: 'tharsis',
+            maps: { name: 'Tharsis' },
+            player_count: 4,
+          },
+        ],
+        error: null,
+      },
+    });
+
+    const { loadNativeDashboard } = await import('./load-native-dashboard');
+    const dashboard = await loadNativeDashboard();
+
+    expect(dashboard?.global?.mapRows).toEqual([]);
+    expect(dashboard?.global?.summary).toBe(
+      'Helion is setting the opted-in global pace right now.',
+    );
   });
 });
