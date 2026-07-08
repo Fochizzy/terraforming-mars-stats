@@ -448,6 +448,50 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('returns a detected map id when log milestones and awards uniquely match one map', async () => {
+    mockState.listMaps.mockResolvedValue([
+      { code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' },
+      { code: 'hellas', id: 'map-hellas', name: 'Hellas' },
+      { code: 'elysium', id: 'map-elysium', name: 'Elysium' },
+    ]);
+    mockState.listMapMilestones.mockResolvedValue([
+      {
+        mapId: 'map-hellas',
+        milestoneId: 'milestone-diversifier',
+        milestoneName: 'Diversifier',
+      },
+    ]);
+    mockState.listMapAwards.mockResolvedValue([
+      {
+        awardId: 'award-space-baron',
+        awardName: 'Space Baron',
+        mapId: 'map-hellas',
+      },
+    ]);
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: [
+        'Friday Mars claimed Diversifier milestone',
+        'Friday Mars funded Space Baron award',
+      ].join('\n'),
+      generationCount: 10,
+      mapId: 'map-tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      detectedMapId: 'map-hellas',
+      status: 'success',
+    });
+  });
+
   it('does not let browser fallback OCR add extra imported players when server OCR already found the log players', async () => {
     mockState.listImportResolutionPlayers.mockResolvedValue([
       {

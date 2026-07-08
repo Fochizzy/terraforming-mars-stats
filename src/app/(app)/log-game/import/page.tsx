@@ -41,6 +41,7 @@ import { buildImportDraft } from '@/lib/imports/build-import-draft';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
+import { inferImportMapFromLog } from '@/lib/imports/infer-import-map-from-log';
 import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
 import {
   parseEndgameScoreScreenshot,
@@ -193,14 +194,35 @@ function findSelectedMapOption(input: {
 }
 
 function resolveImportMapSelection(input: {
+  inferredMapId?: string | null;
   mapOptions: MapOption[];
+  preferInferredMap?: boolean;
   submittedMapId: string;
 }) {
+  const inferredMapOption = input.inferredMapId
+    ? findSelectedMapOption({
+        mapOptions: input.mapOptions,
+        submittedMapId: input.inferredMapId,
+      })
+    : null;
+
+  if (input.preferInferredMap && inferredMapOption) {
+    return {
+      draftMapId: inferredMapOption.id,
+    };
+  }
+
   const selectedMapOption = findSelectedMapOption(input);
 
   if (selectedMapOption) {
     return {
       draftMapId: selectedMapOption.id,
+    };
+  }
+
+  if (inferredMapOption) {
+    return {
+      draftMapId: inferredMapOption.id,
     };
   }
 
@@ -433,7 +455,17 @@ export default async function LogGameImportPage() {
         values.participantNames.length > 0
           ? values.participantNames
           : extractGameLogParticipantNames(parsedGameLog);
-      const cardReferences = await listCardScoringReferences();
+      const [awardOptions, cardReferences, milestoneOptions] = await Promise.all([
+        listMapAwards(),
+        listCardScoringReferences(),
+        listMapMilestones(),
+      ]);
+      const inferredMap = inferImportMapFromLog({
+        awardOptions,
+        mapOptions,
+        milestoneOptions,
+        parsedGameLog,
+      });
       const screenshotEvidence = await parseGameResultEvidence({
         cardReferences,
         clientEndgameLines: values.clientEndgameLines,
@@ -448,7 +480,9 @@ export default async function LogGameImportPage() {
       });
 
       resolveImportMapSelection({
+        inferredMapId: inferredMap?.mapId,
         mapOptions,
+        preferInferredMap: true,
         submittedMapId: values.mapId,
       });
       resolveImportGenerationCount({
@@ -473,6 +507,7 @@ export default async function LogGameImportPage() {
         : { matches: [], unresolvedCount: 0 };
 
       return {
+        detectedMapId: inferredMap?.mapId,
         status: 'success' as const,
         message: buildImportSuccessMessage({
           logEventCount: parsedGameLog.events.length,
@@ -619,7 +654,14 @@ export default async function LogGameImportPage() {
         listPreludes(),
         listStyles(),
       ]);
+      const inferredMap = inferImportMapFromLog({
+        awardOptions,
+        mapOptions,
+        milestoneOptions,
+        parsedGameLog,
+      });
       const resolvedMapSelection = resolveImportMapSelection({
+        inferredMapId: inferredMap?.mapId,
         mapOptions,
         submittedMapId: values.mapId,
       });

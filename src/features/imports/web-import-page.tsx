@@ -25,6 +25,7 @@ export type WebImportDraftValues = {
 };
 
 export type WebImportActionResult = {
+  detectedMapId?: string;
   gameId?: string;
   message?: string;
   review?: ImportReviewModel;
@@ -482,6 +483,13 @@ export function WebImportPage({
 
       if (inferredPlayerCount !== null) {
         setPlayerCount(inferredPlayerCount);
+      }
+
+      if (
+        result.detectedMapId &&
+        mapOptions.some((option) => option.id === result.detectedMapId)
+      ) {
+        setMapId(result.detectedMapId);
       }
 
       setFeedback(result);

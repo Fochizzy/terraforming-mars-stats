@@ -897,6 +897,66 @@ describe('WebImportPage', () => {
     );
   });
 
+  it('auto-selects an inferred map after import analysis', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      detectedMapId: 'elysium',
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        ...review,
+        playerLinks: [review.playerLinks[0]],
+        requiresPlayerConfirmation: false,
+      },
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'hellas', id: 'hellas', name: 'Hellas' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^map$/i)).toHaveValue('tharsis');
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars claimed Generalist milestone.',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/^map$/i)).toHaveValue('elysium'),
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: /confirm import draft/i }),
+    );
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
+    expect(submittedFormData.get('mapId')).toBe('elysium');
+  });
+
   it('lets the user override the auto-filled player count before confirming the import draft', async () => {
     const user = userEvent.setup();
     const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
