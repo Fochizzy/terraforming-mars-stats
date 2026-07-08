@@ -1,5 +1,5 @@
-import sharp from 'sharp';
-import { readOcrTextLinesFromBuffer } from './card-scoring/read-ocr-text-lines';
+import type { OcrImageBytes, OcrOps } from './ocr/ocr-ops';
+import { readOcrTextLinesWithOps } from './ocr/read-ocr-text-lines-with-ops';
 import { readEndgameScreenshot } from './read-endgame-screenshot';
 import { readScoreDetailsScreenshot } from './read-score-details-screenshot';
 
@@ -23,7 +23,7 @@ type TopCropConfig = {
 };
 
 const ENDGAME_HEADING_PATTERN =
-  /^victory points?\s+breakdown after\s+\d+\s+generations?$/i;
+  /victory points?\s+breakdown\s+after\s+\d+\s+generations?/i;
 const FOCUSED_ENDGAME_CROP: TopCropConfig = {
   heightRatio: 0.1,
   leftRatio: 0.024,
@@ -36,6 +36,14 @@ const EXPANDED_ENDGAME_CROP: TopCropConfig = {
   topRatio: 0.006,
   widthRatio: 0.62,
 };
+// The heading sits at the very top edge of combined-result captures, so this
+// strip must start at y=0 — starting lower slices the text and OCR misses it.
+const HEADING_STRIP_CROP: TopCropConfig = {
+  heightRatio: 0.05,
+  leftRatio: 0,
+  topRatio: 0,
+  widthRatio: 1,
+};
 
 function buildUniqueLines(lines: string[]) {
   return [...new Set(lines)];
@@ -44,18 +52,18 @@ function buildUniqueLines(lines: string[]) {
 function extractTopCropBuffer(input: {
   config: TopCropConfig;
   height: number;
-  imageBuffer: Buffer;
+  imageBuffer: OcrImageBytes;
+  ops: OcrOps;
   width: number;
 }) {
-  return sharp(input.imageBuffer)
-    .extract({
+  return input.ops.transformImage(input.imageBuffer, {
+    crop: {
       height: Math.max(1, Math.floor(input.height * input.config.heightRatio)),
       left: Math.floor(input.width * input.config.leftRatio),
       top: Math.floor(input.height * input.config.topRatio),
       width: Math.max(1, Math.floor(input.width * input.config.widthRatio)),
-    })
-    .png()
-    .toBuffer();
+    },
+  });
 }
 
 function countLikelyScoreRows(lines: string[]) {
@@ -87,54 +95,76 @@ function shouldRetryWithExpandedCrop(input: {
 
 export async function readGameResultScreenshot(
   file: File,
-  options?: ReadGameResultScreenshotOptions,
+  options: ReadGameResultScreenshotOptions | undefined,
+  ops: OcrOps,
 ): Promise<ReadGameResultScreenshotResult> {
-  const imageBuffer = Buffer.from(await file.arrayBuffer());
-  const metadata = await sharp(imageBuffer).metadata();
+  const imageBuffer = new Uint8Array(await file.arrayBuffer());
+  const size = await ops.getImageSize(imageBuffer);
 
-  if (!metadata.width || !metadata.height) {
+  if (!size) {
     return {
-      endgameLines: await readEndgameScreenshot(file, options),
+      endgameLines: await readEndgameScreenshot(file, options, ops),
       scoreDetailsColumns: [],
     };
   }
 
-  const focusedEndgameCropBuffer = await extractTopCropBuffer({
-    config: FOCUSED_ENDGAME_CROP,
-    height: metadata.height,
-    imageBuffer,
-    width: metadata.width,
-  });
-  const expandedEndgameCropBuffer = await extractTopCropBuffer({
-    config: EXPANDED_ENDGAME_CROP,
-    height: metadata.height,
-    imageBuffer,
-    width: metadata.width,
-  });
-  const scoreDetailsCropBuffer = await sharp(imageBuffer)
-    .extract({
-      height: metadata.height - Math.floor(metadata.height * 0.6),
+  const [
+    focusedEndgameCropBuffer,
+    expandedEndgameCropBuffer,
+    headingStripBuffer,
+  ] = await Promise.all([
+    extractTopCropBuffer({
+      config: FOCUSED_ENDGAME_CROP,
+      height: size.height,
+      imageBuffer,
+      ops,
+      width: size.width,
+    }),
+    extractTopCropBuffer({
+      config: EXPANDED_ENDGAME_CROP,
+      height: size.height,
+      imageBuffer,
+      ops,
+      width: size.width,
+    }),
+    extractTopCropBuffer({
+      config: HEADING_STRIP_CROP,
+      height: size.height,
+      imageBuffer,
+      ops,
+      width: size.width,
+    }),
+  ]);
+  const scoreDetailsCropBuffer = await ops.transformImage(imageBuffer, {
+    crop: {
+      height: size.height - Math.floor(size.height * 0.6),
       left: 0,
-      top: Math.floor(metadata.height * 0.6),
-      width: Math.max(1, Math.floor(metadata.width * 0.42)),
-    })
-    .png()
-    .toBuffer();
-  const [focusedEndgameLines, endgameGlobalLines, scoreDetailsRead] =
-    await Promise.all([
-      readEndgameScreenshot(
-        new File([focusedEndgameCropBuffer], 'game-result-endgame-focused.png', {
-          type: 'image/png',
-        }),
-        options,
-      ),
-      readOcrTextLinesFromBuffer(expandedEndgameCropBuffer),
-      readScoreDetailsScreenshot(
-        new File([scoreDetailsCropBuffer], 'game-result-details.png', {
-          type: 'image/png',
-        }),
-      ),
-    ]);
+      top: Math.floor(size.height * 0.6),
+      width: Math.max(1, Math.floor(size.width * 0.42)),
+    },
+  });
+  const [
+    focusedEndgameLines,
+    endgameGlobalLines,
+    headingStripLines,
+    scoreDetailsRead,
+  ] = await Promise.all([
+    readEndgameScreenshot(
+      new File([focusedEndgameCropBuffer], 'game-result-endgame-focused.png', {
+        type: 'image/png',
+      }),
+      options,
+      ops,
+    ),
+    readOcrTextLinesWithOps(expandedEndgameCropBuffer, ops),
+    readOcrTextLinesWithOps(headingStripBuffer, ops),
+    readScoreDetailsScreenshot(
+      new File([scoreDetailsCropBuffer], 'game-result-details.png', {
+        type: 'image/png',
+      }),
+      ops,
+    ),
+  ]);
   const expandedEndgameLines = shouldRetryWithExpandedCrop({
     endgameLines: focusedEndgameLines,
     options,
@@ -148,10 +178,11 @@ export async function readGameResultScreenshot(
           },
         ),
         options,
+        ops,
       )
     : [];
-  const headingLines = endgameGlobalLines.filter((line) =>
-    ENDGAME_HEADING_PATTERN.test(line),
+  const headingLines = [...headingStripLines, ...endgameGlobalLines].filter(
+    (line) => ENDGAME_HEADING_PATTERN.test(line),
   );
 
   return {

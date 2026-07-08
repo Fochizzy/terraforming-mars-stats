@@ -1,7 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
+import {
+  buildCreateImportDraftFormData,
+  type ScreenshotOcrPayload,
+} from '@/lib/imports/import-draft-form-data';
+import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
+import { parseGameLog } from '@/lib/imports/parse-game-log';
+import { parseImportParticipants } from '@/lib/imports/parse-import-participants';
 import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StatusBanner } from '@/components/ui/status-banner';
@@ -224,9 +230,14 @@ export function WebImportPage({
     useState<ImportReviewJumpTarget | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isReadingScreenshot, setIsReadingScreenshot] = useState(false);
   const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
     string | null
   >(null);
+  const screenshotOcrCacheRef = useRef<{
+    file: File;
+    payload: ScreenshotOcrPayload;
+  } | null>(null);
   const generationCount = null;
 
   useEffect(() => {
@@ -338,7 +349,7 @@ export function WebImportPage({
     setExportedGameLog(droppedGameLog);
   }
 
-  function buildCurrentFormData() {
+  function buildCurrentFormData(screenshotOcr: ScreenshotOcrPayload | null) {
     return buildCreateImportDraftFormData({
       boardScreenshots: [],
       confirmedPlayerLinks: review
@@ -354,7 +365,62 @@ export function WebImportPage({
       participants: participantsText,
       playedOn,
       playerCount,
+      screenshotOcr,
     });
+  }
+
+  function buildExpectedScreenshotPlayerNames() {
+    const participantNames = parseImportParticipants(participantsText);
+
+    if (participantNames.length > 0) {
+      return participantNames;
+    }
+
+    try {
+      return extractGameLogParticipantNames(parseGameLog(exportedGameLog));
+    } catch {
+      return [];
+    }
+  }
+
+  // The deployed server runtime cannot run OCR, so the screenshot is read in
+  // the browser before submitting and the extracted lines travel with the
+  // form. Falls back to server-side OCR when this fails.
+  async function resolveScreenshotOcr(): Promise<ScreenshotOcrPayload | null> {
+    if (!endgameScreenshot) {
+      return null;
+    }
+
+    if (screenshotOcrCacheRef.current?.file === endgameScreenshot) {
+      return screenshotOcrCacheRef.current.payload;
+    }
+
+    setIsReadingScreenshot(true);
+
+    try {
+      const { readGameResultScreenshotInBrowser } = await import(
+        '@/lib/imports/ocr/read-game-result-screenshot-in-browser'
+      );
+      const expectedPlayerNames = buildExpectedScreenshotPlayerNames();
+      const payload = await readGameResultScreenshotInBrowser(
+        endgameScreenshot,
+        {
+          expectedPlayerCount: Math.max(playerCount, expectedPlayerNames.length),
+          expectedPlayerNames,
+        },
+      );
+
+      screenshotOcrCacheRef.current = {
+        file: endgameScreenshot,
+        payload,
+      };
+
+      return payload;
+    } catch {
+      return null;
+    } finally {
+      setIsReadingScreenshot(false);
+    }
   }
 
   const hasDuplicateSelections = useMemo(() => {
@@ -386,7 +452,10 @@ export function WebImportPage({
     setManualReviewJumpTarget(null);
 
     try {
-      const result = await onAnalyzeImportEvidence(buildCurrentFormData());
+      const screenshotOcr = await resolveScreenshotOcr();
+      const result = await onAnalyzeImportEvidence(
+        buildCurrentFormData(screenshotOcr),
+      );
       const inferredPlayerCount = inferDetectedPlayerCount(result.review);
 
       if (
@@ -416,8 +485,9 @@ export function WebImportPage({
     setIsConfirming(true);
 
     try {
+      const screenshotOcr = await resolveScreenshotOcr();
       const result = await onConfirmImportReview(
-        buildCurrentFormData(),
+        buildCurrentFormData(screenshotOcr),
         resolveManualReviewJumpTargetWithPlayerSelection({
           playerSelections,
           target: manualReviewJumpTarget,
@@ -668,6 +738,12 @@ export function WebImportPage({
             {endgameScreenshot ? (
               <p className="mt-1 text-xs tm-accent-copy">
                 Attached game result screenshot: {endgameScreenshot.name}
+              </p>
+            ) : null}
+            {isReadingScreenshot ? (
+              <p className="mt-1 text-xs" style={{ color: 'var(--tm-muted)' }}>
+                Reading the screenshot in your browser… this can take a minute
+                on the first run.
               </p>
             ) : null}
           </div>

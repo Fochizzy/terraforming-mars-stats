@@ -34,6 +34,54 @@ describe('parseCreateImportDraftFormData', () => {
       playedOn: '2026-07-04',
       playerCount: 3,
       scoreDetailsScreenshot: null,
+      screenshotOcr: null,
+    });
+  });
+
+  it('round-trips the browser screenshot OCR payload', () => {
+    const formData = buildCreateImportDraftFormData({
+      boardScreenshots: [],
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: 'Friday Mars won by 6 points.',
+      generationCount: 12,
+      mapId: 'elysium',
+      participants: 'James\nIzzy',
+      playedOn: '2026-07-04',
+      playerCount: 2,
+      scoreDetailsScreenshot: null,
+      screenshotOcr: {
+        endgameLines: [
+          'Victory points breakdown after 12 generations',
+          'James 59 5 15 6 8 52 145 105',
+        ],
+        scoreDetailsColumns: [{ textLines: ['Earth Catapult 2'] }],
+      },
+    });
+
+    expect(parseCreateImportDraftFormData(formData)).toMatchObject({
+      screenshotOcr: {
+        endgameLines: [
+          'Victory points breakdown after 12 generations',
+          'James 59 5 15 6 8 52 145 105',
+        ],
+        scoreDetailsColumns: [{ textLines: ['Earth Catapult 2'] }],
+      },
+    });
+  });
+
+  it('ignores a malformed screenshot OCR payload instead of failing the import', () => {
+    const formData = new FormData();
+
+    formData.set('playedOn', '2026-07-04');
+    formData.set('mapId', 'elysium');
+    formData.set('playerCount', '2');
+    formData.set('exportedGameLog', 'Friday Mars won by 6 points.');
+    formData.set('participants', 'James\nIzzy');
+    formData.set('screenshotOcr', '{not valid json');
+
+    expect(parseCreateImportDraftFormData(formData)).toMatchObject({
+      screenshotOcr: null,
     });
   });
 

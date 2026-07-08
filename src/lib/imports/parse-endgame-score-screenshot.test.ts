@@ -270,4 +270,62 @@ describe('parseEndgameScoreScreenshot', () => {
       playerRows: [],
     });
   });
+
+  it('reconciles disagreeing OCR passes against the printed total when no single pass is fully correct', () => {
+    const parsed = parseEndgameScoreScreenshot([
+      'Victory points breakdown after 12 generations',
+      // One pass truncated the TR column (9 for 59); the other misread the
+      // awards column (45 for 15). Only 59+5+15+6+8+52 matches the total.
+      'James 9 5 15 6 8 52 145 105',
+      'James 59 5 45 6 8 52 145 105',
+      'Izzy 39 10 0 4 6 23 82 82',
+    ]);
+
+    expect(parsed.playerRows).toEqual([
+      {
+        awardPoints: 15,
+        cardPointsTotal: 52,
+        citiesPoints: 8,
+        finalMegacredits: 105,
+        greeneryPoints: 6,
+        milestonePoints: 5,
+        playerName: 'James',
+        totalPoints: 145,
+        trPoints: 59,
+      },
+      {
+        awardPoints: 0,
+        cardPointsTotal: 23,
+        citiesPoints: 6,
+        finalMegacredits: 82,
+        greeneryPoints: 4,
+        milestonePoints: 10,
+        playerName: 'Izzy',
+        totalPoints: 82,
+        trPoints: 39,
+      },
+    ]);
+  });
+
+  it('recognizes the breakdown heading despite surrounding OCR noise', () => {
+    const parsed = parseEndgameScoreScreenshot([
+      '| Victory points breakdown after 12 generations _',
+      'James 59 5 15 6 8 52 145 105',
+    ]);
+
+    expect(parsed.generationCount).toBe(12);
+    expect(parsed.playerRows).toEqual([
+      {
+        awardPoints: 15,
+        cardPointsTotal: 52,
+        citiesPoints: 8,
+        finalMegacredits: 105,
+        greeneryPoints: 6,
+        milestonePoints: 5,
+        playerName: 'James',
+        totalPoints: 145,
+        trPoints: 59,
+      },
+    ]);
+  });
 });

@@ -13,6 +13,7 @@ export default defineConfig({
       '.claude/**',
       '.expo/**',
       '.fresh-*/**',
+      '.codex-deploy-*/**',
       '.deploy-*/**',
       '.live-*/**',
       '.tmp-*/**',

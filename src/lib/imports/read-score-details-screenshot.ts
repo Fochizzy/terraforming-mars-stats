@@ -1,5 +1,5 @@
-import sharp from 'sharp';
-import { readOcrTextLinesFromBuffer } from './card-scoring/read-ocr-text-lines';
+import type { OcrOps } from './ocr/ocr-ops';
+import { readOcrTextLinesWithOps } from './ocr/read-ocr-text-lines-with-ops';
 
 export type ReadScoreDetailsScreenshotResult = {
   columns: Array<{
@@ -13,44 +13,43 @@ function buildUniqueLines(lines: string[]) {
 
 export async function readScoreDetailsScreenshot(
   file: File,
+  ops: OcrOps,
 ): Promise<ReadScoreDetailsScreenshotResult> {
-  const imageBuffer = Buffer.from(await file.arrayBuffer());
-  const metadata = await sharp(imageBuffer).metadata();
+  const imageBuffer = new Uint8Array(await file.arrayBuffer());
+  const size = await ops.getImageSize(imageBuffer);
 
-  if (!metadata.width || !metadata.height) {
+  if (!size) {
     return {
       columns: [
         {
-          textLines: await readOcrTextLinesFromBuffer(imageBuffer),
+          textLines: await readOcrTextLinesWithOps(imageBuffer, ops),
         },
       ],
     };
   }
 
-  const splitLeft = Math.floor(metadata.width / 2);
+  const splitLeft = Math.floor(size.width / 2);
   const columnBuffers = await Promise.all([
-    sharp(imageBuffer)
-      .extract({
-        height: metadata.height,
+    ops.transformImage(imageBuffer, {
+      crop: {
+        height: size.height,
         left: 0,
         top: 0,
         width: splitLeft,
-      })
-      .png()
-      .toBuffer(),
-    sharp(imageBuffer)
-      .extract({
-        height: metadata.height,
+      },
+    }),
+    ops.transformImage(imageBuffer, {
+      crop: {
+        height: size.height,
         left: splitLeft,
         top: 0,
-        width: metadata.width - splitLeft,
-      })
-      .png()
-      .toBuffer(),
+        width: size.width - splitLeft,
+      },
+    }),
   ]);
   const columns = await Promise.all(
     columnBuffers.map(async (buffer) => ({
-      textLines: buildUniqueLines(await readOcrTextLinesFromBuffer(buffer)),
+      textLines: buildUniqueLines(await readOcrTextLinesWithOps(buffer, ops)),
     })),
   );
 

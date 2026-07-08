@@ -1,14 +1,13 @@
-import sharp from 'sharp';
-import Tesseract from 'tesseract.js';
 import { normalizePlayerAlias } from './normalize-player-alias';
+import type { OcrImageBytes, OcrOps } from './ocr/ocr-ops';
 
 type OcrPass =
   | {
-      buffer: Buffer;
+      buffer: OcrImageBytes;
       kind: 'global';
     }
   | {
-      buffer: Buffer;
+      buffer: OcrImageBytes;
       kind:
         | 'row_full'
         | 'row_name'
@@ -36,7 +35,7 @@ type ScoreTokenGroup = {
   tokens: string[];
 };
 
-const SCORE_HEADER_PATTERN = /^victory point breakdown after\b/i;
+const SCORE_HEADER_PATTERN = /victory points?\s+breakdown\s+after\b/i;
 const OCR_INTEGER_PATTERN = /^\d+$/;
 const OCR_TIME_TOKEN_PATTERN = /^\d{1,2}:\d{2}(?::\d{2})?$/;
 const OCR_DIGIT_SUBSTITUTIONS: Record<string, string> = {
@@ -48,10 +47,6 @@ const OCR_DIGIT_SUBSTITUTIONS: Record<string, string> = {
   S: '5',
   l: '1',
 };
-const TESSERACT_SINGLE_LINE_PAGE_SEGMENTATION_MODE = 7;
-const SINGLE_LINE_OCR_OPTIONS = {
-  tessedit_pageseg_mode: TESSERACT_SINGLE_LINE_PAGE_SEGMENTATION_MODE,
-} as unknown as Parameters<typeof Tesseract.recognize>[2];
 
 function normalizeOcrTextLines(text: string) {
   return text
@@ -510,7 +505,8 @@ function buildHelpfulGlobalLines(input: {
 
 async function buildRowPasses(input: {
   height: number;
-  imageBuffer: Buffer;
+  imageBuffer: OcrImageBytes;
+  ops: OcrOps;
   rowCount: number;
   width: number;
 }) {
@@ -563,73 +559,68 @@ async function buildRowPasses(input: {
       input.width - totalsLeft,
     );
 
-    const fullBuffer = await sharp(input.imageBuffer)
-      .extract({
+    const fullBuffer = await input.ops.transformImage(input.imageBuffer, {
+      crop: {
         height: rowHeight,
         left,
         top,
         width: rowWidth,
-      })
-      .resize({ width: rowWidth * 4 })
-      .grayscale()
-      .normalize()
-      .sharpen()
-      .threshold(140)
-      .png()
-      .toBuffer();
-    const nameBuffer = await sharp(input.imageBuffer)
-      .extract({
+      },
+      grayscale: true,
+      normalize: true,
+      resizeWidth: rowWidth * 4,
+      sharpen: true,
+      threshold: 140,
+    });
+    const nameBuffer = await input.ops.transformImage(input.imageBuffer, {
+      crop: {
         height: rowHeight,
         left,
         top,
         width: nameWidth,
-      })
-      .resize({ width: nameWidth * 5 })
-      .grayscale()
-      .normalize()
-      .sharpen()
-      .png()
-      .toBuffer();
-    const statsBuffer = await sharp(input.imageBuffer)
-      .extract({
+      },
+      grayscale: true,
+      normalize: true,
+      resizeWidth: nameWidth * 5,
+      sharpen: true,
+    });
+    const statsBuffer = await input.ops.transformImage(input.imageBuffer, {
+      crop: {
         height: rowHeight,
         left: statsLeft,
         top,
         width: statsWidth,
-      })
-      .resize({ width: statsWidth * 5 })
-      .grayscale()
-      .normalize()
-      .sharpen()
-      .threshold(140)
-      .png()
-      .toBuffer();
-    const softStatsBuffer = await sharp(input.imageBuffer)
-      .extract({
+      },
+      grayscale: true,
+      normalize: true,
+      resizeWidth: statsWidth * 5,
+      sharpen: true,
+      threshold: 140,
+    });
+    const softStatsBuffer = await input.ops.transformImage(input.imageBuffer, {
+      crop: {
         height: rowHeight,
         left: statsLeft,
         top,
         width: statsWidth,
-      })
-      .resize({ width: statsWidth * 5 })
-      .grayscale()
-      .normalize()
-      .sharpen()
-      .png()
-      .toBuffer();
-    const totalsBuffer = await sharp(input.imageBuffer)
-      .extract({
+      },
+      grayscale: true,
+      normalize: true,
+      resizeWidth: statsWidth * 5,
+      sharpen: true,
+    });
+    const totalsBuffer = await input.ops.transformImage(input.imageBuffer, {
+      crop: {
         height: rowHeight,
         left: totalsLeft,
         top,
         width: totalsWidth,
-      })
-      .resize({ width: totalsWidth * 8 })
-      .grayscale()
-      .normalize()
-      .sharpen()
-      .png()
-      .toBuffer();
+      },
+      grayscale: true,
+      normalize: true,
+      resizeWidth: totalsWidth * 8,
+      sharpen: true,
+    });
 
     passes.push({
       buffer: fullBuffer,
@@ -662,13 +653,14 @@ async function buildRowPasses(input: {
 }
 
 async function buildOcrPasses(
-  imageBuffer: Buffer,
+  imageBuffer: OcrImageBytes,
+  ops: OcrOps,
   options?: ReadEndgameScreenshotOptions,
 ) {
   const passes: OcrPass[] = [{ buffer: imageBuffer, kind: 'global' }];
-  const metadata = await sharp(imageBuffer).metadata();
+  const size = await ops.getImageSize(imageBuffer);
 
-  if (!metadata.width || !metadata.height) {
+  if (!size) {
     return passes;
   }
 
@@ -679,10 +671,11 @@ async function buildOcrPasses(
   }
 
   const rowPasses = await buildRowPasses({
-    height: metadata.height,
+    height: size.height,
     imageBuffer,
+    ops,
     rowCount,
-    width: metadata.width,
+    width: size.width,
   });
 
   return [...passes, ...rowPasses];
@@ -690,10 +683,11 @@ async function buildOcrPasses(
 
 export async function readEndgameScreenshot(
   file: File,
-  options?: ReadEndgameScreenshotOptions,
+  options: ReadEndgameScreenshotOptions | undefined,
+  ops: OcrOps,
 ) {
-  const imageBuffer = Buffer.from(await file.arrayBuffer());
-  const ocrPasses = await buildOcrPasses(imageBuffer, options);
+  const imageBuffer = new Uint8Array(await file.arrayBuffer());
+  const ocrPasses = await buildOcrPasses(imageBuffer, ops, options);
   const expectedPlayerNames = options?.expectedPlayerNames ?? [];
   const globalLines: string[] = [];
   const rowLinesByIndex = new Map<number, RowOcrLines>();
@@ -701,15 +695,10 @@ export async function readEndgameScreenshot(
 
   for (const ocrPass of ocrPasses) {
     try {
-      const ocrResult =
-        ocrPass.kind === 'global' || ocrPass.kind === 'row_name'
-          ? await Tesseract.recognize(ocrPass.buffer, 'eng')
-          : await Tesseract.recognize(
-              ocrPass.buffer,
-              'eng',
-              SINGLE_LINE_OCR_OPTIONS,
-            );
-      const lines = normalizeOcrTextLines(ocrResult.data.text);
+      const ocrText = await ops.recognizeText(ocrPass.buffer, {
+        singleLine: ocrPass.kind !== 'global' && ocrPass.kind !== 'row_name',
+      });
+      const lines = normalizeOcrTextLines(ocrText);
 
       if (ocrPass.kind === 'global') {
         globalLines.push(...lines);

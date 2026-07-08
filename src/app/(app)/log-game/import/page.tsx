@@ -41,7 +41,10 @@ import { buildImportDraft } from '@/lib/imports/build-import-draft';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
-import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
+import {
+  parseCreateImportDraftFormData,
+  type ScreenshotOcrPayload,
+} from '@/lib/imports/import-draft-form-data';
 import {
   parseEndgameScoreScreenshot,
   type ParsedEndgameScoreScreenshot,
@@ -80,11 +83,12 @@ async function readGameResultScreenshotOnDemand(
     expectedPlayerNames?: string[];
   },
 ) {
-  const { readGameResultScreenshot } = await import(
-    '@/lib/imports/read-game-result-screenshot'
-  );
+  const [{ readGameResultScreenshot }, { sharpOcrOps }] = await Promise.all([
+    import('@/lib/imports/read-game-result-screenshot'),
+    import('@/lib/imports/ocr/sharp-ocr-ops'),
+  ]);
 
-  return readGameResultScreenshot(file, options);
+  return readGameResultScreenshot(file, options, sharpOcrOps);
 }
 
 function buildLogScoreCandidates(input: {
@@ -286,6 +290,7 @@ async function parseGameResultEvidence(input: {
   file: File | null;
   parsedGameLog: ReturnType<typeof parseGameLog>;
   rawLogText: string;
+  screenshotOcr: ScreenshotOcrPayload | null;
 }) {
   let parsedScreenshot: ParsedEndgameScoreScreenshot = {
     generationCount: null,
@@ -296,13 +301,17 @@ async function parseGameResultEvidence(input: {
     detectedPlayerNames: [],
   };
 
-  if (input.file) {
-    try {
-      const screenshotRead = await readGameResultScreenshotOnDemand(input.file, {
-        expectedPlayerCount: input.expectedPlayerCount,
-        expectedPlayerNames: input.expectedPlayerNames,
-      });
+  try {
+    const screenshotRead =
+      input.screenshotOcr ??
+      (input.file
+        ? await readGameResultScreenshotOnDemand(input.file, {
+            expectedPlayerCount: input.expectedPlayerCount,
+            expectedPlayerNames: input.expectedPlayerNames,
+          })
+        : null);
 
+    if (screenshotRead) {
       parsedScreenshot = parseEndgameScoreScreenshot(screenshotRead.endgameLines);
       const initialImportedNames = buildUniquePlayerNames([
         ...input.expectedPlayerNames,
@@ -329,12 +338,12 @@ async function parseGameResultEvidence(input: {
           ocrColumns: screenshotRead.scoreDetailsColumns,
         });
       }
-    } catch (error) {
-      console.warn(
-        'Game result screenshot OCR failed',
-        serializeUnknownError(error),
-      );
     }
+  } catch (error) {
+    console.warn(
+      'Game result screenshot OCR failed',
+      serializeUnknownError(error),
+    );
   }
 
   const importedNames = buildUniquePlayerNames([
@@ -398,6 +407,7 @@ export default async function LogGameImportPage() {
         file: values.endgameScreenshot,
         parsedGameLog,
         rawLogText: values.exportedGameLog,
+        screenshotOcr: values.screenshotOcr,
       });
 
       resolveImportMapSelection({
@@ -489,6 +499,7 @@ export default async function LogGameImportPage() {
         file: values.endgameScreenshot,
         parsedGameLog,
         rawLogText: values.exportedGameLog,
+        screenshotOcr: values.screenshotOcr,
       });
       const resolvedParticipantNames =
         detectedParticipantNames.length > 0

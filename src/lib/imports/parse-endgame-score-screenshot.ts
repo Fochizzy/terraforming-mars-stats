@@ -289,6 +289,116 @@ function buildVictoryBreakdownRow(
   return null;
 }
 
+const RECONCILABLE_COMPONENT_FIELDS = [
+  'awardPoints',
+  'cardPointsTotal',
+  'citiesPoints',
+  'greeneryPoints',
+  'milestonePoints',
+  'trPoints',
+] as const;
+const MAX_RECONCILE_COMBINATIONS = 256;
+
+function collectComponentOptions(
+  candidates: ParsedRowCandidate[],
+  field: (typeof RECONCILABLE_COMPONENT_FIELDS)[number],
+) {
+  return [
+    ...new Set(
+      candidates.flatMap((candidate) => {
+        const value = candidate.row[field];
+
+        return typeof value === 'number' ? [value] : [];
+      }),
+    ),
+  ];
+}
+
+/**
+ * OCR passes sometimes disagree per column (e.g. a leading digit truncated in
+ * one pass, a digit misread in another) so that no single pass sums to the
+ * printed total, while the correct value for every column exists in some
+ * pass. When exactly one cross-pass combination matches the total, use it.
+ */
+function reconcileRowCandidates(
+  candidates: ParsedRowCandidate[],
+  layout: ScoreLayout,
+): ParsedRowCandidate | null {
+  if (candidates.length < 2) {
+    return null;
+  }
+
+  const totalPoints = [
+    ...new Set(
+      candidates.flatMap((candidate) =>
+        typeof candidate.row.totalPoints === 'number'
+          ? [candidate.row.totalPoints]
+          : [],
+      ),
+    ),
+  ];
+  const componentOptions = RECONCILABLE_COMPONENT_FIELDS.map((field) =>
+    collectComponentOptions(candidates, field),
+  );
+
+  if (
+    totalPoints.length === 0 ||
+    componentOptions.some((options) => options.length === 0)
+  ) {
+    return null;
+  }
+
+  const combinationCount = componentOptions.reduce(
+    (count, options) => count * options.length,
+    1,
+  );
+
+  if (combinationCount > MAX_RECONCILE_COMBINATIONS) {
+    return null;
+  }
+
+  let combinations: number[][] = [[]];
+
+  for (const options of componentOptions) {
+    combinations = combinations.flatMap((combination) =>
+      options.map((value) => [...combination, value]),
+    );
+  }
+
+  for (const total of totalPoints) {
+    const matching = combinations.filter(
+      (combination) =>
+        combination.reduce((sum, value) => sum + value, 0) === total,
+    );
+
+    if (matching.length !== 1) {
+      continue;
+    }
+
+    const [combination] = matching;
+    const reconciledRow: ParsedScreenshotPlayerRow = {
+      playerName: candidates[0].row.playerName,
+      totalPoints: total,
+    };
+
+    RECONCILABLE_COMPONENT_FIELDS.forEach((field, fieldIndex) => {
+      reconciledRow[field] = combination[fieldIndex];
+    });
+
+    const mergedRow = candidates.reduce(
+      (row, candidate) => mergeRows(row, candidate.row),
+      reconciledRow,
+    );
+
+    return {
+      confidence: scoreRowConfidence(mergedRow, layout),
+      row: mergedRow,
+    };
+  }
+
+  return null;
+}
+
 function parseScoreRow(input: {
   line: string;
   pendingPlayerName: string | null;
@@ -325,6 +435,7 @@ export function parseEndgameScoreScreenshot(
   ocrLines: string[],
 ): ParsedEndgameScoreScreenshot {
   const playerRowsByKey = new Map<string, ParsedRowCandidate>();
+  const rowCandidatesByKey = new Map<string, ParsedRowCandidate[]>();
   const pendingBreakdowns = new Map<
     string,
     Pick<
@@ -345,7 +456,7 @@ export function parseEndgameScoreScreenshot(
     }
 
     const generationCountMatch =
-      /^victory points?\s+breakdown after\s+(\d+)\s+generations?$/i.exec(
+      /victory points?\s+breakdown\s+after\s+(\d+)\s+generations?/i.exec(
         trimmedLine,
       );
 
@@ -401,6 +512,11 @@ export function parseEndgameScoreScreenshot(
         });
       }
 
+      const rowCandidates = rowCandidatesByKey.get(playerKey) ?? [];
+
+      rowCandidates.push(parsedRow);
+      rowCandidatesByKey.set(playerKey, rowCandidates);
+
       const existingRow = playerRowsByKey.get(playerKey);
 
       if (!existingRow) {
@@ -430,7 +546,34 @@ export function parseEndgameScoreScreenshot(
   return {
     generationCount,
     playerRows: rowOrder
-      .map((playerKey) => playerRowsByKey.get(playerKey)?.row)
+      .map((playerKey) => {
+        const bestCandidate = playerRowsByKey.get(playerKey);
+
+        if (!bestCandidate) {
+          return undefined;
+        }
+
+        const expectedTotal = computeExpectedTotal(
+          bestCandidate.row,
+          scoreLayout,
+        );
+
+        if (
+          typeof bestCandidate.row.totalPoints === 'number' &&
+          expectedTotal === bestCandidate.row.totalPoints
+        ) {
+          return bestCandidate.row;
+        }
+
+        const reconciled = reconcileRowCandidates(
+          rowCandidatesByKey.get(playerKey) ?? [],
+          scoreLayout,
+        );
+
+        return reconciled && reconciled.confidence > bestCandidate.confidence
+          ? mergeRows(reconciled.row, bestCandidate.row)
+          : bestCandidate.row;
+      })
       .filter((row): row is ParsedScreenshotPlayerRow => Boolean(row)),
   };
 }

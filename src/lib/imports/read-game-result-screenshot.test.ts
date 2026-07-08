@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
+import { sharpOcrOps } from './ocr/sharp-ocr-ops';
 import { readGameResultScreenshot } from './read-game-result-screenshot';
 
 const mocks = vi.hoisted(() => ({
@@ -13,8 +14,8 @@ vi.mock('./read-endgame-screenshot', () => ({
   readEndgameScreenshot: mocks.readEndgameScreenshot,
 }));
 
-vi.mock('./card-scoring/read-ocr-text-lines', () => ({
-  readOcrTextLinesFromBuffer: mocks.readOcrTextLinesFromBuffer,
+vi.mock('./ocr/read-ocr-text-lines-with-ops', () => ({
+  readOcrTextLinesWithOps: mocks.readOcrTextLinesFromBuffer,
 }));
 
 vi.mock('./read-score-details-screenshot', () => ({
@@ -74,10 +75,14 @@ describe('readGameResultScreenshot', () => {
       .toBuffer();
     const file = new File([pngBuffer], 'game-result.png', { type: 'image/png' });
 
-    const result = await readGameResultScreenshot(file, {
-      expectedPlayerCount: 2,
-      expectedPlayerNames: ['James', 'Izzy'],
-    });
+    const result = await readGameResultScreenshot(
+      file,
+      {
+        expectedPlayerCount: 2,
+        expectedPlayerNames: ['James', 'Izzy'],
+      },
+      sharpOcrOps,
+    );
 
     expect(mocks.readEndgameScreenshot).toHaveBeenCalledTimes(2);
     expect(mocks.cropMetadata[1]?.height).toBeGreaterThan(
@@ -132,10 +137,14 @@ describe('readGameResultScreenshot', () => {
       .toBuffer();
     const file = new File([pngBuffer], 'game-result.png', { type: 'image/png' });
 
-    const result = await readGameResultScreenshot(file, {
-      expectedPlayerCount: 2,
-      expectedPlayerNames: ['James', 'Izzy'],
-    });
+    const result = await readGameResultScreenshot(
+      file,
+      {
+        expectedPlayerCount: 2,
+        expectedPlayerNames: ['James', 'Izzy'],
+      },
+      sharpOcrOps,
+    );
 
     expect(mocks.readEndgameScreenshot).toHaveBeenCalledTimes(1);
     expect(result.endgameLines).toEqual(
@@ -146,4 +155,5 @@ describe('readGameResultScreenshot', () => {
       ]),
     );
   });
+
 });

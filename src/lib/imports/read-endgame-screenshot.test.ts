@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
+import { sharpOcrOps } from './ocr/sharp-ocr-ops';
 import { readEndgameScreenshot } from './read-endgame-screenshot';
 
 const mocks = vi.hoisted(() => {
@@ -116,10 +117,14 @@ describe('readEndgameScreenshot', () => {
       .toBuffer();
     const file = new File([pngBuffer], 'endgame.png', { type: 'image/png' });
 
-    const ocrLines = await readEndgameScreenshot(file, {
-      expectedPlayerCount: 3,
-      expectedPlayerNames: ['Colette', 'Izzy', 'Corey'],
-    });
+    const ocrLines = await readEndgameScreenshot(
+      file,
+      {
+        expectedPlayerCount: 3,
+        expectedPlayerNames: ['Colette', 'Izzy', 'Corey'],
+      },
+      sharpOcrOps,
+    );
 
     expect(ocrLines).toEqual(
       expect.arrayContaining([
