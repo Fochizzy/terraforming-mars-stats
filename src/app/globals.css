@@ -367,7 +367,12 @@ a {
   }
 
   .tm-bottom-nav__links {
-    @apply flex flex-1 items-center justify-between;
+    @apply flex flex-1 items-center justify-start overflow-x-auto;
+    scrollbar-width: none;
+  }
+
+  .tm-bottom-nav__links::-webkit-scrollbar {
+    display: none;
   }
 
   .tm-bottom-nav__link {

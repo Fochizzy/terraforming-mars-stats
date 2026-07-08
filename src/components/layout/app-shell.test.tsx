@@ -11,6 +11,7 @@ describe('AppShell', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /log game/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /group/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /cards/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /insights/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');

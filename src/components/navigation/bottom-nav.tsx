@@ -9,6 +9,7 @@ export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/profile', label: 'My Profile' },
   { href: '/log-game', label: 'Log Game' },
   { href: '/group', label: 'Group' },
+  { href: '/cards', label: 'Cards' },
   { href: '/insights', label: 'Insights' },
 ];
 
