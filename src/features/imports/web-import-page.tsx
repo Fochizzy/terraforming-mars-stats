@@ -16,7 +16,7 @@ export type WebImportDraftValues = {
   boardScreenshots: File[];
   endgameScreenshot: File | null;
   exportedGameLog: string;
-  generationCount: number;
+  generationCount: number | null;
   mapId: string;
   participantNames: string[];
   playedOn: string;
@@ -72,6 +72,31 @@ function getImportErrorMessage(error: unknown) {
   }
 
   return describeUnknownError(error, 'Unable to save this import draft right now.');
+}
+
+function clampPlayerCount(playerCount: number) {
+  return Math.min(5, Math.max(1, playerCount));
+}
+
+function inferDetectedPlayerCount(review: ImportReviewModel | undefined) {
+  if (!review) {
+    return null;
+  }
+
+  const detectedParticipantNames = Array.isArray(review.detectedParticipantNames)
+    ? review.detectedParticipantNames
+    : [];
+  const screenshotRows = Array.isArray(review.scoreCandidates)
+    ? review.scoreCandidates
+    : [];
+  const detectedPlayerCount = Math.max(
+    detectedParticipantNames.length,
+    screenshotRows.length,
+  );
+
+  return detectedPlayerCount > 0
+    ? clampPlayerCount(detectedPlayerCount)
+    : null;
 }
 
 function formatManualReviewScoreFieldLabel(
@@ -136,12 +161,9 @@ export function WebImportPage({
   onConfirmImportReview,
 }: WebImportPageProps) {
   const exportedGameLogRef = useRef<HTMLTextAreaElement | null>(null);
-  const [playedOn, setPlayedOn] = useState(initialValues.playedOn);
   const [mapId, setMapId] = useState(initialValues.mapId);
+  const [playedOn, setPlayedOn] = useState(initialValues.playedOn);
   const [playerCount, setPlayerCount] = useState(initialValues.playerCount);
-  const [generationCount, setGenerationCount] = useState(
-    initialValues.generationCount,
-  );
   const [exportedGameLog, setExportedGameLog] = useState('');
   const [participantsText, setParticipantsText] = useState('');
   const [endgameScreenshot, setEndgameScreenshot] = useState<File | null>(null);
@@ -163,6 +185,10 @@ export function WebImportPage({
   const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
     string | null
   >(null);
+  const [boardScreenshotPreviewUrls, setBoardScreenshotPreviewUrls] = useState<
+    string[]
+  >([]);
+  const generationCount = null;
 
   useEffect(() => {
     if (!endgameScreenshot) {
@@ -175,6 +201,20 @@ export function WebImportPage({
 
     return () => URL.revokeObjectURL(objectUrl);
   }, [endgameScreenshot]);
+
+  useEffect(() => {
+    if (boardScreenshots.length === 0) {
+      setBoardScreenshotPreviewUrls([]);
+      return;
+    }
+
+    const objectUrls = boardScreenshots.map((file) => URL.createObjectURL(file));
+    setBoardScreenshotPreviewUrls(objectUrls);
+
+    return () => {
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [boardScreenshots]);
 
   useEffect(() => {
     if (!review) {
@@ -222,6 +262,20 @@ export function WebImportPage({
 
     if (droppedFile) {
       setEndgameScreenshot(droppedFile);
+    }
+  }
+
+  function handleBoardScreenshotDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const droppedFiles = Array.from(event.dataTransfer.files ?? []).filter(
+      (file) => file.type.startsWith('image/'),
+    );
+
+    if (droppedFiles.length > 0) {
+      setBoardScreenshots((current) => [...current, ...droppedFiles]);
+      setFeedback({
+        status: 'idle',
+      });
     }
   }
 
@@ -283,12 +337,17 @@ export function WebImportPage({
 
     try {
       const result = await onAnalyzeImportEvidence(buildCurrentFormData());
+      const inferredPlayerCount = inferDetectedPlayerCount(result.review);
 
       if (
         !participantsText.trim() &&
         result.review?.detectedParticipantNames?.length
       ) {
         setParticipantsText(result.review.detectedParticipantNames.join('\n'));
+      }
+
+      if (inferredPlayerCount !== null) {
+        setPlayerCount(inferredPlayerCount);
       }
 
       setFeedback(result);
@@ -383,8 +442,9 @@ export function WebImportPage({
           <span className="tm-coverage-badge shrink-0">Unlogged</span>
         </div>
         <p className="tm-body-copy text-sm">
-          Paste an exported game log, attach the endgame screenshot, and
-          prepare a guided handoff into the shared scoring flow.
+          Paste an exported game log, attach the victory point breakdown and
+          board screenshots, and prepare a guided handoff into the shared
+          scoring flow.
         </p>
       </section>
 
@@ -395,7 +455,24 @@ export function WebImportPage({
       >
         <div className="flex flex-col gap-4">
           <StepHeading step="01" title="Match Setup" />
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="relative flex flex-col gap-2 text-sm">
+              <span className="tm-data-label">Map</span>
+              <select
+                aria-label="Map"
+                className="tm-input appearance-none pr-9"
+                onChange={(event) => setMapId(event.target.value)}
+                value={mapId}
+              >
+                {mapOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </label>
+
             <label className="flex flex-col gap-2 text-sm">
               <span className="tm-data-label">Played On</span>
               <input
@@ -405,23 +482,6 @@ export function WebImportPage({
                 type="date"
                 value={playedOn}
               />
-            </label>
-
-            <label className="relative flex flex-col gap-2 text-sm">
-              <span className="tm-data-label">Map</span>
-              <select
-                aria-label="Map"
-                className="tm-input appearance-none pr-9"
-                onChange={(event) => setMapId(event.target.value)}
-                value={mapId}
-              >
-                {mapOptions.map((map) => (
-                  <option key={map.id} value={map.id}>
-                    {map.name}
-                  </option>
-                ))}
-              </select>
-              <SelectChevron />
             </label>
 
             <label className="relative flex flex-col gap-2 text-sm">
@@ -440,19 +500,12 @@ export function WebImportPage({
               </select>
               <SelectChevron />
             </label>
-
-            <label className="flex flex-col gap-2 text-sm">
-              <span className="tm-data-label">Generation Count</span>
-              <input
-                aria-label="Generation Count"
-                className="tm-input"
-                min={1}
-                onChange={(event) => setGenerationCount(Number(event.target.value))}
-                type="number"
-                value={generationCount}
-              />
-            </label>
           </div>
+          <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+            Confirm the map here when OCR or log evidence is incomplete.
+            Generations are still inferred from the uploaded victory point
+            breakdown when possible.
+          </p>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -505,7 +558,7 @@ export function WebImportPage({
         </div>
 
         <div className="flex flex-col gap-3">
-          <StepHeading step="04" title="Endgame Evidence" />
+          <StepHeading step="04" title="Victory Point Breakdown" />
           <div
             className="relative rounded-2xl border border-dashed px-4 py-6 text-center transition-colors"
             onDragOver={(event) => event.preventDefault()}
@@ -515,18 +568,19 @@ export function WebImportPage({
             {screenshotPreviewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                alt="Endgame screenshot preview"
+                alt="Victory point breakdown preview"
                 className="mx-auto max-h-40 rounded-xl border"
                 src={screenshotPreviewUrl}
                 style={{ borderColor: 'var(--tm-panel-border)' }}
               />
             ) : (
               <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
-                Drop the endgame screenshot here, or choose a file below.
+                Drop the victory point breakdown screenshot here, or choose a
+                file below.
               </p>
             )}
             <input
-              aria-label="Endgame Screenshot"
+              aria-label="Victory Point Breakdown"
               accept="image/*"
               className="mx-auto mt-4 block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
               onChange={(event) =>
@@ -535,35 +589,64 @@ export function WebImportPage({
               type="file"
             />
             <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
-              Paste a copied screenshot anywhere in this form to attach it.
+              Paste a copied screenshot anywhere in this form to attach it and
+              import the generations played when possible.
             </p>
             {endgameScreenshot ? (
               <p className="mt-1 text-xs tm-accent-copy">
-                Attached screenshot: {endgameScreenshot.name}
+                Attached victory point breakdown: {endgameScreenshot.name}
               </p>
             ) : null}
           </div>
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="tm-data-label">Board Screenshots (Optional)</span>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <StepHeading step="05" title="Board Screenshots" />
+          <div
+            className="relative rounded-2xl border border-dashed px-4 py-6 text-center transition-colors"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleBoardScreenshotDrop}
+            style={{ borderColor: 'rgba(192, 162, 127, 0.4)' }}
+          >
+            {boardScreenshotPreviewUrls.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-3">
+                {boardScreenshotPreviewUrls.map((url, index) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    alt={`Board screenshot preview ${index + 1}`}
+                    className="max-h-40 rounded-xl border"
+                    key={url}
+                    src={url}
+                    style={{ borderColor: 'var(--tm-panel-border)' }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
+                Drop the board screenshots here, or choose files below.
+              </p>
+            )}
             <input
               aria-label="Board Screenshots"
+              aria-required="true"
               accept="image/*"
-              className="block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
+              className="mx-auto mt-4 block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
               multiple
               onChange={handleBoardScreenshotChange}
               type="file"
             />
-            <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-              Add zero or more board-state screenshots when endgame card
-              scoring needs tile, tag, or resource context.
+            <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
+              At least one board-state screenshot is required to verify tile,
+              tag, and resource context. If OCR misses the map, use the
+              selector above.
             </p>
             {boardScreenshots.length ? (
-              <p className="text-xs tm-accent-copy">
+              <p className="mt-1 text-xs tm-accent-copy">
                 Attached board screenshots:{' '}
                 {boardScreenshots.map((file) => file.name).join(', ')}
               </p>
             ) : null}
-          </label>
+          </div>
         </div>
 
         {feedback.message ? (
@@ -572,7 +655,7 @@ export function WebImportPage({
 
         <button
           className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isSubmitting}
+          disabled={isSubmitting || boardScreenshots.length === 0}
           type="submit"
         >
           {isSubmitting ? 'Analyzing Import Evidence...' : 'Analyze Import Evidence'}

@@ -22,6 +22,18 @@
 /.open-next/
 /.worktrees/
 /.wrangler/
+/.wrangler-home/
+.claude/
+.expo/
+_r6/
+.deploy-*
+.fresh-*
+.live-*
+.tmp-*
+tmp-*
+test-results/
+supabase/supabase/
+eng.traineddata
 cloudflare-env.d.ts
 
 # misc

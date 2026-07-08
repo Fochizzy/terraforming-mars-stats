@@ -4,6 +4,10 @@ function collapseWhitespace(value: string) {
   return value.trim().replace(/\s+/g, ' ');
 }
 
+export function normalizeAuthEmail(input: string) {
+  return input.trim().toLowerCase();
+}
+
 export function normalizeUsername(input: string) {
   return collapseWhitespace(input)
     .toLowerCase()
@@ -11,9 +15,19 @@ export function normalizeUsername(input: string) {
     .replace(/^-+|-+$/g, '');
 }
 
+export const authEmailSchema = z
+  .string()
+  .transform(normalizeAuthEmail)
+  .refine(
+    (value) => z.email().safeParse(value).success,
+    'Enter a valid email address.',
+  );
+
 export const pinSchema = z
   .string()
-  .regex(/^\d{4}$/, 'PIN must be exactly 4 digits.');
+  .regex(/^\d{6}$/, 'PIN must be exactly 6 digits.');
+
+export const signInPinSchema = pinSchema;
 
 export const signupFullNameSchema = z
   .string()
@@ -21,7 +35,3 @@ export const signupFullNameSchema = z
   .refine((value) => value.split(' ').filter(Boolean).length >= 2, {
     message: 'Enter a full name in First Name Last Name format.',
   });
-
-export function buildSyntheticAuthEmail(username: string) {
-  return `${normalizeUsername(username)}@users.tmstats.local`;
-}

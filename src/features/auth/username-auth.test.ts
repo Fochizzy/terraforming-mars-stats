@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildSyntheticAuthEmail,
+  authEmailSchema,
+  normalizeAuthEmail,
   normalizeUsername,
   pinSchema,
   signupFullNameSchema,
@@ -11,14 +12,22 @@ describe('username auth helpers', () => {
     expect(normalizeUsername('  Friday.Mars  ')).toBe('friday-mars');
   });
 
-  it('builds deterministic synthetic auth emails', () => {
-    expect(buildSyntheticAuthEmail('Friday Mars')).toBe(
-      'friday-mars@users.tmstats.local',
+  it('normalizes auth emails to trimmed lowercase values', () => {
+    expect(normalizeAuthEmail('  Friday.Mars@Example.COM  ')).toBe(
+      'friday.mars@example.com',
     );
   });
 
-  it('rejects non four-digit PIN values', () => {
-    expect(() => pinSchema.parse('12a4')).toThrow(/4 digits/i);
+  it('validates real email addresses for auth', () => {
+    expect(authEmailSchema.parse('  Friday.Mars@Example.COM  ')).toBe(
+      'friday.mars@example.com',
+    );
+    expect(() => authEmailSchema.parse('friday-mars')).toThrow(/email/i);
+  });
+
+  it('rejects non six-digit PIN values', () => {
+    expect(() => pinSchema.parse('12a456')).toThrow(/6 digits/i);
+    expect(() => pinSchema.parse('1234')).toThrow(/6 digits/i);
   });
 
   it('requires first and last name for signup', () => {

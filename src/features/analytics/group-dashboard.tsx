@@ -74,7 +74,7 @@ export function GroupDashboard({
             No finalized leaderboard rows are available yet.
           </p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {leaderboardRows.slice(0, 6).map((row) => (
               <article
                 className="tm-stat-card"
@@ -103,7 +103,7 @@ export function GroupDashboard({
             No finalized head-to-head rows are available yet.
           </p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {headToHeadRows.slice(0, 5).map((row) => (
               <article
                 className="tm-stat-card"
@@ -126,7 +126,7 @@ export function GroupDashboard({
             No finalized lineup comparisons are available yet.
           </p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {lineupEffectRows.slice(0, 5).map((row) => (
               <article
                 className="tm-stat-card"
@@ -148,7 +148,7 @@ export function GroupDashboard({
             No declared-versus-inferred style comparisons are available yet.
           </p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {styleAgreementRows.slice(0, 5).map((row) => (
               <article
                 className="tm-stat-card"

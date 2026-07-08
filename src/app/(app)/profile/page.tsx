@@ -8,7 +8,7 @@ import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 
 const noGroupNavItems = [
   { href: '/profile', label: 'My Profile' },
-  { href: '/log-game/import', label: 'Log Game' },
+  { href: '/log-game', label: 'Log Game' },
 ] as const;
 
 export default async function ProfilePage() {
@@ -16,7 +16,7 @@ export default async function ProfilePage() {
 
   if (!context) {
     return (
-      <AppShell navItems={[...noGroupNavItems]} title="My Profile">
+      <AppShell navItems={[...noGroupNavItems]} title="My Profile" wide>
         <ChartFrame title="Claim Your Saved Player">
           <p className="text-sm text-stone-300">
             Claim a saved player profile to join the group that already has your
@@ -46,6 +46,7 @@ export default async function ProfilePage() {
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/profile" />
       }
       title="My Profile"
+      wide
     >
       {profileAnalyticsUnavailable ? (
         <ChartFrame title="Profile Analytics Unavailable">

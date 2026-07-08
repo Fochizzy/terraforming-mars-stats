@@ -8,12 +8,20 @@ import {
   Cell,
   Line,
   LineChart,
+  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
+import {
+  chartAxisTick,
+  chartGridStroke,
+  chartSeriesColors,
+  chartTooltipStyle,
+} from '@/components/charts/chart-theme';
+import { SelectChevron } from '@/components/ui/select-chevron';
 import { PromoSetBrowser } from '@/features/catalog/promo-set-browser';
 import type {
   GroupAnalytics,
@@ -70,17 +78,6 @@ type TrendChartPoint = {
 type DashboardInteractionRow = GroupInteractionRow & {
   playerId?: string;
   playerName?: string;
-};
-
-const leaderboardColors = {
-  default: '#f97316',
-  focused: '#22d3ee',
-};
-
-const styleColors = {
-  exact: '#22c55e',
-  mismatch: '#ef4444',
-  partial: '#f59e0b',
 };
 
 function formatPercent(value: number) {
@@ -397,16 +394,13 @@ export function InsightsDashboard({
       <ChartFrame title="Insights Lab">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-[220px] flex-1">
-              <label
-                className="text-xs uppercase tracking-[0.2em] text-orange-300"
-                htmlFor="player-focus-select"
-              >
+            <div className="relative min-w-[220px] flex-1">
+              <label className="tm-data-label" htmlFor="player-focus-select">
                 Player Focus
               </label>
               <select
                 aria-label="Player focus"
-                className="mt-2 w-full rounded-xl border border-stone-700 bg-stone-950 px-3 py-2 text-sm text-stone-100"
+                className="tm-input mt-2 w-full appearance-none pr-9"
                 id="player-focus-select"
                 onChange={(event) => setSelectedPlayerId(event.target.value)}
                 value={selectedPlayerId}
@@ -418,14 +412,17 @@ export function InsightsDashboard({
                   </option>
                 ))}
               </select>
+              <span className="mt-2 block">
+                <SelectChevron />
+              </span>
             </div>
-            <p className="rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1 text-xs text-orange-100">
+            <span className="tm-coverage-badge">
               {selectedPlayer
                 ? `Focused on ${selectedPlayer.displayName}`
                 : 'Focused on group-wide finalized results'}
-            </p>
+            </span>
           </div>
-          <p className="text-sm text-stone-300">
+          <p className="tm-body-copy text-sm">
             Compare weighted leaderboard form, score-source patterns, style
             agreement, head-to-head edges, lineup effects, interaction pairings,
             and promo catalog references from finalized games only.
@@ -438,18 +435,15 @@ export function InsightsDashboard({
           <ChartFrame title="Insight Cards">
             <div className="grid gap-3 md:grid-cols-2">
               {insightCards.map((card) => (
-                <article
-                  className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
-                  key={`${card.title}-${card.body}`}
-                >
+                <article className="tm-stat-card" key={`${card.title}-${card.body}`}>
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="font-semibold text-stone-100">{card.title}</h3>
-                    <p className="text-xs uppercase tracking-[0.2em] text-cyan-200">
+                    <p className="tm-accent-copy text-xs uppercase tracking-[0.2em]">
                       {card.confidence}
                     </p>
                   </div>
-                  <p className="mt-2 text-sm text-stone-300">{card.body}</p>
-                  <p className="mt-3 text-xs text-stone-500">
+                  <p className="tm-muted-copy mt-2 text-sm">{card.body}</p>
+                  <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
                     Sample size: {card.sampleSize}
                   </p>
                 </article>
@@ -459,48 +453,39 @@ export function InsightsDashboard({
 
           <ChartFrame title="Weighted Leaderboard Comparison">
             {leaderboardChartData.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Finalized leaderboard rows will appear here once games are logged.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <ResponsiveContainer height={260} width="100%">
                 <BarChart
                   data={leaderboardChartData}
-                  height={260}
                   margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  width={340}
                 >
-                  <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
+                  <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
                   <XAxis
                     angle={-20}
                     dataKey="name"
                     height={60}
                     textAnchor="end"
-                    tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                    tick={chartAxisTick}
                   />
-                  <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#1c1917',
-                      border: '1px solid #7c2d12',
-                      borderRadius: '12px',
-                      color: '#f5f5f4',
-                    }}
-                  />
+                  <YAxis tick={chartAxisTick} />
+                  <Tooltip contentStyle={chartTooltipStyle} />
                   <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
                     {leaderboardChartData.map((row) => (
                       <Cell
                         fill={
                           row.isFocused
-                            ? leaderboardColors.focused
-                            : leaderboardColors.default
+                            ? chartSeriesColors.accent
+                            : chartSeriesColors.default
                         }
                         key={row.name}
                       />
                     ))}
                   </Bar>
                 </BarChart>
-              </div>
+              </ResponsiveContainer>
             )}
           </ChartFrame>
 
@@ -512,37 +497,28 @@ export function InsightsDashboard({
             }
           >
             {scoreSourceData.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Score-source averages will appear here after finalized games exist.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <ResponsiveContainer height={340} width="100%">
                 <BarChart
                   data={scoreSourceData}
-                  height={340}
                   layout="vertical"
                   margin={{ bottom: 12, left: 48, right: 12, top: 12 }}
-                  width={340}
                 >
-                  <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
-                  <XAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} type="number" />
+                  <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
+                  <XAxis tick={chartAxisTick} type="number" />
                   <YAxis
                     dataKey="label"
-                    tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                    tick={chartAxisTick}
                     type="category"
                     width={88}
                   />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#1c1917',
-                      border: '1px solid #7c2d12',
-                      borderRadius: '12px',
-                      color: '#f5f5f4',
-                    }}
-                  />
-                  <Bar dataKey="value" fill="#38bdf8" radius={[0, 10, 10, 0]} />
+                  <Tooltip contentStyle={chartTooltipStyle} />
+                  <Bar dataKey="value" fill={chartSeriesColors.accent} radius={[0, 10, 10, 0]} />
                 </BarChart>
-              </div>
+              </ResponsiveContainer>
             )}
           </ChartFrame>
 
@@ -554,93 +530,75 @@ export function InsightsDashboard({
             }
           >
             {styleAgreementData.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Declared-versus-inferred style comparisons will appear once both
                 style inputs are recorded.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <ResponsiveContainer height={260} width="100%">
                 <BarChart
                   data={styleAgreementData}
-                  height={260}
                   margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  width={340}
                 >
-                  <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
+                  <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
                   <XAxis
                     angle={-20}
                     dataKey="playerName"
                     height={60}
                     textAnchor="end"
-                    tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                    tick={chartAxisTick}
                   />
-                  <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#1c1917',
-                      border: '1px solid #7c2d12',
-                      borderRadius: '12px',
-                      color: '#f5f5f4',
-                    }}
-                  />
-                  <Bar dataKey="exact" fill={styleColors.exact} stackId="style" />
-                  <Bar dataKey="partial" fill={styleColors.partial} stackId="style" />
-                  <Bar dataKey="mismatch" fill={styleColors.mismatch} stackId="style" />
+                  <YAxis tick={chartAxisTick} />
+                  <Tooltip contentStyle={chartTooltipStyle} />
+                  <Bar dataKey="exact" fill={chartSeriesColors.greenery} stackId="style" />
+                  <Bar dataKey="partial" fill={chartSeriesColors.partial} stackId="style" />
+                  <Bar dataKey="mismatch" fill={chartSeriesColors.danger} stackId="style" />
                 </BarChart>
-              </div>
+              </ResponsiveContainer>
             )}
           </ChartFrame>
 
           <ChartFrame title="Best Style Snapshot">
             {stylePerformanceData.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Best-style snapshots will appear once inferred styles have been
                 recorded on finalized games.
               </p>
             ) : (
               <div className="flex flex-col gap-4">
-                <div className="overflow-x-auto">
+                <ResponsiveContainer height={260} width="100%">
                   <BarChart
                     data={stylePerformanceData}
-                    height={260}
                     margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                    width={340}
                   >
-                    <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
+                    <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
                     <XAxis
                       angle={-20}
                       dataKey="styleLabel"
                       height={72}
                       textAnchor="end"
-                      tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                      tick={chartAxisTick}
                     />
-                    <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#1c1917',
-                        border: '1px solid #7c2d12',
-                        borderRadius: '12px',
-                        color: '#f5f5f4',
-                      }}
-                    />
-                    <Bar dataKey="winRate" fill="#fb923c" radius={[10, 10, 0, 0]} />
+                    <YAxis tick={chartAxisTick} />
+                    <Tooltip contentStyle={chartTooltipStyle} />
+                    <Bar dataKey="winRate" fill={chartSeriesColors.tr} radius={[10, 10, 0, 0]} />
                   </BarChart>
-                </div>
+                </ResponsiveContainer>
                 <div className="grid gap-3">
                   {selectedStylePerformanceRows.slice(0, 3).map((row) => (
                     <article
-                      className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
+                      className="tm-stat-card"
                       key={`${row.styleCode}-${row.gamesPlayed}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-semibold text-stone-100">
                           {humanizeStyleCode(row.styleCode)}
                         </h3>
-                        <p className="text-sm text-cyan-200">
+                        <p className="tm-accent-copy text-sm">
                           {formatPercent(row.winRate)}
                         </p>
                       </div>
-                      <p className="mt-2 text-sm text-stone-300">
+                      <p className="tm-muted-copy mt-2 text-sm">
                         {row.gamesPlayed} games | avg {formatAverage(row.averageScore)} points
                         | avg place {formatAverage(row.averagePlacement)}
                       </p>
@@ -653,57 +611,45 @@ export function InsightsDashboard({
 
           <ChartFrame title="Trend Over Time">
             {trendChartData.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Trend evidence will appear after finalized games are logged.
               </p>
             ) : (
               <div className="flex flex-col gap-4">
-                <div className="overflow-x-auto">
+                <ResponsiveContainer height={280} width="100%">
                   <LineChart
                     data={trendChartData}
-                    height={280}
                     margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                    width={340}
                   >
-                    <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
+                    <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
                     <XAxis
                       angle={-20}
                       dataKey="label"
                       height={72}
                       textAnchor="end"
-                      tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                      tick={chartAxisTick}
                     />
-                    <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#1c1917',
-                        border: '1px solid #7c2d12',
-                        borderRadius: '12px',
-                        color: '#f5f5f4',
-                      }}
-                    />
+                    <YAxis tick={chartAxisTick} />
+                    <Tooltip contentStyle={chartTooltipStyle} />
                     <Line
                       dataKey="score"
                       dot
-                      stroke="#38bdf8"
+                      stroke={chartSeriesColors.accent}
                       strokeWidth={3}
                       type="monotone"
                     />
                   </LineChart>
-                </div>
+                </ResponsiveContainer>
                 <div className="grid gap-3">
                   {trendChartData.slice(-4).reverse().map((row) => (
-                    <article
-                      className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
-                      key={`${row.label}-${row.styleLabel}`}
-                    >
+                    <article className="tm-stat-card" key={`${row.label}-${row.styleLabel}`}>
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-semibold text-stone-100">{row.label}</h3>
-                        <p className="text-sm text-cyan-200">
+                        <p className="tm-accent-copy text-sm">
                           {formatAverage(row.score)} pts
                         </p>
                       </div>
-                      <p className="mt-2 text-sm text-stone-300">
+                      <p className="tm-muted-copy mt-2 text-sm">
                         {row.styleLabel} | {row.winRate}% win rate
                         {row.count > 1 ? ` | ${row.count} results` : ''}
                       </p>
@@ -716,24 +662,21 @@ export function InsightsDashboard({
 
           <ChartFrame title="Head-to-Head Lens">
             {focusedHeadToHeadRows.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Head-to-head comparisons will appear after repeated finalized
                 matchups are logged.
               </p>
             ) : (
               <div className="grid gap-3">
                 {focusedHeadToHeadRows.map((row) => (
-                  <article
-                    className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
-                    key={row.label}
-                  >
+                  <article className="tm-stat-card" key={row.label}>
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="font-semibold text-stone-100">{row.label}</h3>
-                      <p className="text-sm text-cyan-200">
+                      <p className="tm-accent-copy text-sm">
                         {formatAverage(row.averageScoreDifferential)} pts
                       </p>
                     </div>
-                    <p className="mt-2 text-sm text-stone-300">
+                    <p className="tm-muted-copy mt-2 text-sm">
                       {row.wins}-{row.losses}-{row.ties} over {row.gamesPlayed} games
                     </p>
                   </article>
@@ -744,7 +687,7 @@ export function InsightsDashboard({
 
           <ChartFrame title="Lineup Effects">
             {selectedLineupRows.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Lineup effects will appear after repeated finalized group mixes are
                 logged.
               </p>
@@ -752,18 +695,18 @@ export function InsightsDashboard({
               <div className="grid gap-3">
                 {selectedLineupRows.map((row) => (
                   <article
-                    className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
+                    className="tm-stat-card"
                     key={`${row.playerId}-${row.lineupLabel}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="font-semibold text-stone-100">
                         {selectedPlayer ? row.lineupLabel : row.playerName}
                       </h3>
-                      <p className="text-sm text-cyan-200">
+                      <p className="tm-accent-copy text-sm">
                         {formatPercent(row.winRate)}
                       </p>
                     </div>
-                    <p className="mt-2 text-sm text-stone-300">
+                    <p className="tm-muted-copy mt-2 text-sm">
                       {selectedPlayer
                         ? `${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points | ${formatAverage(row.averageGenerationCount)} gens`
                         : `${truncateLabel(row.lineupLabel)} | ${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points`}
@@ -776,7 +719,7 @@ export function InsightsDashboard({
 
           <ChartFrame title="Interaction Insights">
             {selectedInteractionRows.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Interaction comparisons will appear after enough finalized games
                 link maps, expansions, corporations, and preludes.
               </p>
@@ -784,16 +727,16 @@ export function InsightsDashboard({
               <div className="grid gap-3">
                 {selectedInteractionRows.map((row) => (
                   <article
-                    className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
+                    className="tm-stat-card"
                     key={`${row.playerId ?? 'group'}-${row.interactionType}-${row.label}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="font-semibold text-stone-100">{row.label}</h3>
-                      <p className="text-sm text-cyan-200">
+                      <p className="tm-accent-copy text-sm">
                         {formatPercent(row.winRate)}
                       </p>
                     </div>
-                    <p className="mt-2 text-sm text-stone-300">
+                    <p className="tm-muted-copy mt-2 text-sm">
                       {humanizeInteractionType(row.interactionType)} | {row.gamesPlayed}{' '}
                       results | avg {formatAverage(row.averageScore)} points | avg place{' '}
                       {formatAverage(row.averagePlacement)}
@@ -812,38 +755,29 @@ export function InsightsDashboard({
             }
           >
             {coverageData.length === 0 ? (
-              <p className="text-sm text-stone-400">
+              <p className="tm-muted-copy text-sm">
                 Coverage metrics will appear after finalized games are logged.
               </p>
             ) : (
               <div className="flex flex-col gap-4">
-                <div className="overflow-x-auto">
+                <ResponsiveContainer height={260} width="100%">
                   <BarChart
                     data={coverageData}
-                    height={260}
                     margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                    width={340}
                   >
-                    <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
+                    <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
                     <XAxis
                       angle={-20}
                       dataKey="label"
                       height={60}
                       textAnchor="end"
-                      tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                      tick={chartAxisTick}
                     />
-                    <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#1c1917',
-                        border: '1px solid #7c2d12',
-                        borderRadius: '12px',
-                        color: '#f5f5f4',
-                      }}
-                    />
-                    <Bar dataKey="value" fill="#14b8a6" radius={[10, 10, 0, 0]} />
+                    <YAxis tick={chartAxisTick} />
+                    <Tooltip contentStyle={chartTooltipStyle} />
+                    <Bar dataKey="value" fill={chartSeriesColors.accent} radius={[10, 10, 0, 0]} />
                   </BarChart>
-                </div>
+                </ResponsiveContainer>
                 <div className="flex flex-wrap gap-2">
                   {selectedCoverage ? (
                     <>
@@ -880,7 +814,7 @@ export function InsightsDashboard({
         </>
       ) : (
         <ChartFrame title="Insights Waiting on Finalized Games">
-          <p className="text-sm text-stone-300">
+          <p className="tm-body-copy text-sm">
             Finalize a few games to unlock leaderboard, style, lineup, and
             coverage insights. The promo catalog is ready below either way.
           </p>

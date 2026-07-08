@@ -140,7 +140,7 @@ export function PlayersStep({
         </button>
       </div>
       {playerEntryError ? (
-        <p className="text-sm text-red-300">{playerEntryError}</p>
+        <p className="text-sm tm-text-danger">{playerEntryError}</p>
       ) : null}
       <div className="grid gap-3">
         {selectedPlayers.map((player) => (

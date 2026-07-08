@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   buildAuthCompletePath,
+  buildAuthResetPinPath,
   normalizeNextPath,
 } from '@/features/auth/build-auth-callback-url';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -9,15 +10,30 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const nextPath = normalizeNextPath(requestUrl.searchParams.get('next'));
+  const tokenHash = requestUrl.searchParams.get('token_hash');
+  const type = requestUrl.searchParams.get('type');
 
-  if (code) {
+  function buildSuccessPath() {
+    if (type === 'recovery') {
+      return buildAuthResetPinPath(nextPath);
+    }
+
+    return buildAuthCompletePath(nextPath);
+  }
+
+  if (code || (tokenHash && type === 'recovery')) {
     try {
       const supabase = await createSupabaseServerClient();
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const authResult = code
+        ? await supabase.auth.exchangeCodeForSession(code)
+        : await supabase.auth.verifyOtp({
+            token_hash: tokenHash!,
+            type: 'recovery',
+          });
 
-      if (!error) {
+      if (!authResult.error) {
         return NextResponse.redirect(
-          new URL(buildAuthCompletePath(nextPath), requestUrl.origin),
+          new URL(buildSuccessPath(), requestUrl.origin),
         );
       }
     } catch (error) {

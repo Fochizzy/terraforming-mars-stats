@@ -1,5 +1,6 @@
 'use client';
 
+import { StepHeading } from '@/components/ui/step-heading';
 import type { GameReview } from '@/features/games/finalize-game';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister } from 'react-hook-form';
@@ -24,74 +25,89 @@ export function ReviewStep({
   const warnings = review.issues.filter((issue) => issue.severity === 'warning');
 
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-orange-900/30 bg-black/25 p-4">
-      <h2 className="font-serif text-xl font-semibold">Review and Finalize</h2>
-      <p className="text-sm text-stone-300">
+    <section className="tm-panel flex flex-col gap-4">
+      <StepHeading step="06" title="Review and Finalize" />
+      <p className="tm-body-copy text-sm">
         Show validation warnings, optional-data coverage, and finalize or save
         the draft.
       </p>
       <label className="flex flex-col gap-2 text-sm">
-        <span className="font-semibold text-stone-200">Notes</span>
-        <textarea
-          aria-label="Notes"
-          className="min-h-28 rounded-2xl border border-stone-800 bg-stone-950/60 px-4 py-3"
-          {...register('notes')}
-        />
+        <span className="tm-data-label">Notes</span>
+        <textarea aria-label="Notes" className="tm-input min-h-28" {...register('notes')} />
       </label>
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="grid gap-3">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-orange-300">
-            Player Summary
-          </h3>
-          {selectedPlayers.map((player) => {
-            const score = playerScores[player.id] ?? {};
+          <h3 className="tm-data-label">Player Summary</h3>
+          <div className="grid gap-3 xl:grid-cols-2">
+            {selectedPlayers.map((player) => {
+              const score = playerScores[player.id] ?? {};
 
-            return (
-              <article
-                className="rounded-2xl border border-stone-800 bg-stone-950/60 p-4"
-                key={player.id}
-              >
-                <p className="font-semibold text-stone-100">{player.display_name}</p>
-                <p className="mt-2 text-sm text-stone-300">
-                  Total: {score.totalPoints ?? '-'} | MC: {score.finalMegacredits ?? '-'}
-                </p>
-              </article>
-            );
-          })}
+              return (
+                <article className="tm-stat-card" key={player.id}>
+                  <p className="font-semibold text-stone-100">{player.display_name}</p>
+                  <p className="mt-2 text-sm" style={{ color: 'var(--tm-muted)' }}>
+                    Total: {score.totalPoints ?? '-'} | MC: {score.finalMegacredits ?? '-'}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
         </div>
         <div className="grid gap-3">
-          <div className="rounded-2xl border border-stone-800 bg-stone-950/60 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-orange-300">
-              Review Issues
-            </h3>
+          <div className="tm-stat-card">
+            <h3 className="tm-data-label">Review Issues</h3>
             {review.issues.length === 0 ? (
-              <p className="mt-3 text-sm text-emerald-300">
-                No blocking issues detected.
-              </p>
+              <span className="tm-coverage-badge mt-3 inline-flex">
+                No blocking issues detected
+              </span>
             ) : (
-              <ul className="mt-3 grid gap-2 text-sm text-stone-200">
+              <ul className="mt-3 grid gap-2 text-sm">
                 {blockingIssues.map((issue) => (
-                  <li key={`${issue.code}-${issue.message}`} className="text-rose-300">
+                  <li
+                    className="tm-text-danger"
+                    key={`${issue.code}-${issue.message}`}
+                  >
                     {issue.message}
                   </li>
                 ))}
                 {warnings.map((issue) => (
-                  <li key={`${issue.code}-${issue.message}`} className="text-amber-300">
+                  <li
+                    className="tm-text-warning"
+                    key={`${issue.code}-${issue.message}`}
+                  >
                     {issue.message}
                   </li>
                 ))}
               </ul>
             )}
           </div>
-          <div className="rounded-2xl border border-stone-800 bg-stone-950/60 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-orange-300">
-              Optional Coverage
-            </h3>
-            <ul className="mt-3 grid gap-2 text-sm text-stone-200">
-              <li>Card breakdowns: {review.coverage.playersWithCardBreakdown}</li>
-              <li>Declared styles: {review.coverage.playersWithDeclaredStyle}</li>
-              <li>Key-card entries: {review.coverage.playersWithKeyCards}</li>
-              <li>Optional subscores: {review.coverage.playersWithOptionalSubscores}</li>
+          <div className="tm-stat-card">
+            <h3 className="tm-data-label">Optional Coverage</h3>
+            <ul className="mt-3 grid gap-2 text-sm">
+              <li className="flex items-center justify-between gap-3">
+                <span style={{ color: 'var(--tm-muted)' }}>Card breakdowns</span>
+                <span className="tm-accent-copy">
+                  {review.coverage.playersWithCardBreakdown}
+                </span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span style={{ color: 'var(--tm-muted)' }}>Declared styles</span>
+                <span className="tm-accent-copy">
+                  {review.coverage.playersWithDeclaredStyle}
+                </span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span style={{ color: 'var(--tm-muted)' }}>Key-card entries</span>
+                <span className="tm-accent-copy">
+                  {review.coverage.playersWithKeyCards}
+                </span>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span style={{ color: 'var(--tm-muted)' }}>Optional subscores</span>
+                <span className="tm-accent-copy">
+                  {review.coverage.playersWithOptionalSubscores}
+                </span>
+              </li>
             </ul>
           </div>
         </div>

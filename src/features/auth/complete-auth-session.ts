@@ -10,22 +10,6 @@ import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { resolveSavedPlayerAutoClaim } from '@/lib/db/player-claim-repo';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
-const SYNTHETIC_AUTH_EMAIL_DOMAIN = 'users.tmstats.local';
-
-function getUsernameFromSyntheticAuthEmail(email: string | null | undefined) {
-  if (!email) {
-    return '';
-  }
-
-  const [localPart, domain] = email.split('@');
-
-  if (!localPart || domain !== SYNTHETIC_AUTH_EMAIL_DOMAIN) {
-    return '';
-  }
-
-  return normalizeUsername(localPart);
-}
-
 export async function completeAuthSession(input: { nextPath: string }) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -39,10 +23,13 @@ export async function completeAuthSession(input: { nextPath: string }) {
     };
   }
 
-  const username = getUsernameFromSyntheticAuthEmail(user.email);
   const parsedFullName = signupFullNameSchema.safeParse(
     user.user_metadata?.full_name,
   );
+  const username =
+    typeof user.user_metadata?.username === 'string'
+      ? normalizeUsername(user.user_metadata.username)
+      : '';
 
   const { data: existingProfile, error: profileLookupError } = await supabase
     .from('user_profiles')
@@ -55,22 +42,50 @@ export async function completeAuthSession(input: { nextPath: string }) {
   }
 
   if (!existingProfile && parsedFullName.success && username) {
-    const { error: profileInsertError } = await supabase.from('user_profiles').insert({
+    const baseProfile = {
       full_name: parsedFullName.data,
       user_id: user.id,
       username,
+    };
+    const { error: profileInsertError } = await supabase.from('user_profiles').insert({
+      ...baseProfile,
+      email: user.email?.trim().toLowerCase() ?? null,
     });
 
-    if (profileInsertError) {
+    if (
+      profileInsertError &&
+      !(
+        profileInsertError.code === 'PGRST204' &&
+        profileInsertError.message?.includes("'email' column")
+      )
+    ) {
       throw profileInsertError;
     }
+
+    if (profileInsertError) {
+      const { error: fallbackProfileInsertError } = await supabase
+        .from('user_profiles')
+        .insert(baseProfile);
+
+      if (fallbackProfileInsertError) {
+        throw fallbackProfileInsertError;
+      }
+    }
+  }
+
+  const resolvedNextPath = normalizeNextPath(input.nextPath);
+
+  if (resolvedNextPath.startsWith('/auth/reset-pin')) {
+    return {
+      redirectPath: resolvedNextPath,
+    };
   }
 
   const existingContext = await getCurrentGroupContext();
 
   if (existingContext) {
     return {
-      redirectPath: normalizeNextPath(input.nextPath),
+      redirectPath: resolvedNextPath,
     };
   }
 
@@ -78,11 +93,11 @@ export async function completeAuthSession(input: { nextPath: string }) {
 
   if (claimResult.status === 'claimed-and-joined') {
     return {
-      redirectPath: normalizeNextPath(input.nextPath),
+      redirectPath: resolvedNextPath,
     };
   }
 
   return {
-    redirectPath: buildAuthCompleteClaimPath(input.nextPath),
+    redirectPath: buildAuthCompleteClaimPath(resolvedNextPath),
   };
 }

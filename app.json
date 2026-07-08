@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "scheme": "terraforming-mars-stats",
+    "extra": {
+      "eas": {
+        "projectId": "214e537c-c1fc-4349-b739-5040f6232a89"
+      },
+      "router": {
+        "root": "native-app"
+      }
+    },
+    "android": {
+      "package": "com.fochizzy.terraformingmarsstats"
+    },
+    "ios": {
+      "bundleIdentifier": "com.fochizzy.terraformingmarsstats",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar"
+    ]
+  }
+}

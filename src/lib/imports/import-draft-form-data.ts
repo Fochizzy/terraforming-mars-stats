@@ -9,8 +9,8 @@ export type CreateImportDraftFormValues = {
   }>;
   endgameScreenshot: File | null;
   exportedGameLog: string;
-  generationCount: number;
-  mapId: string;
+  generationCount?: number | null;
+  mapId?: string | null;
   participants: string;
   playedOn: string;
   playerCount: number;
@@ -70,6 +70,22 @@ function readIntegerField(formData: FormData, key: string) {
   return value;
 }
 
+function readOptionalIntegerField(formData: FormData, key: string) {
+  const rawValue = readTextField(formData, key);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  const value = Number(rawValue);
+
+  if (!Number.isFinite(value)) {
+    throw new Error(`Expected ${key} to be a number.`);
+  }
+
+  return value;
+}
+
 function readOptionalFileField(formData: FormData, key: string) {
   const value = formData.get(key);
 
@@ -104,15 +120,21 @@ export function buildCreateImportDraftFormData(
   const formData = new FormData();
 
   formData.set('playedOn', values.playedOn);
-  formData.set('mapId', values.mapId);
   formData.set('playerCount', String(values.playerCount));
-  formData.set('generationCount', String(values.generationCount));
   formData.set('exportedGameLog', values.exportedGameLog.trim());
   formData.set('participants', values.participants);
   formData.set(
     'confirmedPlayerLinks',
     JSON.stringify(values.confirmedPlayerLinks ?? []),
   );
+
+  if (values.mapId?.trim()) {
+    formData.set('mapId', values.mapId);
+  }
+
+  if (typeof values.generationCount === 'number') {
+    formData.set('generationCount', String(values.generationCount));
+  }
 
   if (values.endgameScreenshot) {
     formData.set('endgameScreenshot', values.endgameScreenshot);
@@ -139,7 +161,7 @@ export function parseCreateImportDraftFormData(
     endgameScreenshot,
     endgameScreenshotName: endgameScreenshot?.name ?? null,
     exportedGameLog: readTextField(formData, 'exportedGameLog'),
-    generationCount: readIntegerField(formData, 'generationCount'),
+    generationCount: readOptionalIntegerField(formData, 'generationCount'),
     mapId: readTextField(formData, 'mapId'),
     participantNames: parseImportParticipants(readTextField(formData, 'participants')),
     playedOn: readTextField(formData, 'playedOn'),

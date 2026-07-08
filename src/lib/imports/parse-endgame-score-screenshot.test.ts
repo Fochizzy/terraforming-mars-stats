@@ -39,6 +39,7 @@ describe('parseEndgameScoreScreenshot', () => {
         trPoints: 16,
       },
     ]);
+    expect(parsed.generationCount).toBeNull();
   });
 
   it('skips unsupported OCR lines without inventing player rows', () => {
@@ -48,6 +49,7 @@ describe('parseEndgameScoreScreenshot', () => {
         'This line is not a score row',
       ]),
     ).toEqual({
+      generationCount: null,
       playerRows: [],
     });
   });
@@ -74,6 +76,7 @@ describe('parseEndgameScoreScreenshot', () => {
         'Corey | 16 0 4 6 19 9 54 3',
       ]),
     ).toEqual({
+      generationCount: null,
       playerRows: [
         {
           awardPoints: 22,
@@ -113,6 +116,7 @@ describe('parseEndgameScoreScreenshot', () => {
         'Tycho Magnetics 43 10 2 6 10 10 81 64 22:56 120',
       ]),
     ).toEqual({
+      generationCount: 11,
       playerRows: [
         {
           awardPoints: 12,
@@ -159,6 +163,7 @@ describe('parseEndgameScoreScreenshot', () => {
         'Colette 45 0 12 9 10 47 123 82 1:02:21 168',
       ]),
     ).toEqual({
+      generationCount: 11,
       playerRows: [
         {
           awardPoints: 12,
@@ -183,6 +188,7 @@ describe('parseEndgameScoreScreenshot', () => {
         'Corey 43 10 2 6 10 10 Q1 64 22:56 120',
       ]),
     ).toEqual({
+      generationCount: null,
       playerRows: [
         {
           awardPoints: 10,
@@ -228,6 +234,7 @@ describe('parseEndgameScoreScreenshot', () => {
         'Corey 43 10 2 6 10 10 81',
       ]),
     ).toEqual({
+      generationCount: null,
       playerRows: [
         {
           awardPoints: 5,
@@ -250,6 +257,17 @@ describe('parseEndgameScoreScreenshot', () => {
           trPoints: 43,
         },
       ],
+    });
+  });
+
+  it('extracts the played generation count from a victory-point breakdown heading', () => {
+    expect(
+      parseEndgameScoreScreenshot([
+        'Victory point breakdown after 11 generations',
+      ]),
+    ).toEqual({
+      generationCount: 11,
+      playerRows: [],
     });
   });
 });

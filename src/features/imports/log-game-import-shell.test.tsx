@@ -104,10 +104,8 @@ describe('LogGameImportShell', () => {
 
     await user.clear(screen.getByLabelText(/played on/i));
     await user.type(screen.getByLabelText(/played on/i), '2026-07-04');
-    await user.selectOptions(screen.getByLabelText(/map/i), 'elysium');
+    await user.selectOptions(screen.getByLabelText(/^map$/i), 'elysium');
     await user.selectOptions(screen.getByLabelText(/player count/i), '3');
-    await user.clear(screen.getByLabelText(/generation count/i));
-    await user.type(screen.getByLabelText(/generation count/i), '12');
     await user.type(
       screen.getByLabelText(/exported game log/i),
       'Friday Mars won by 6 points.',
@@ -117,8 +115,12 @@ describe('LogGameImportShell', () => {
       'Friday Mars{enter}Second Seat{enter}Third Seat',
     );
     await user.upload(
-      screen.getByLabelText(/endgame screenshot/i),
+      screen.getByLabelText(/victory point breakdown/i),
       screenshotFile,
+    );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
@@ -131,9 +133,9 @@ describe('LogGameImportShell', () => {
 
     expect(submittedFormData).toBeInstanceOf(FormData);
     expect(submittedFormData.get('playedOn')).toBe('2026-07-04');
-    expect(submittedFormData.get('mapId')).toBe('elysium');
     expect(submittedFormData.get('playerCount')).toBe('3');
-    expect(submittedFormData.get('generationCount')).toBe('12');
+    expect(submittedFormData.get('mapId')).toBe('elysium');
+    expect(submittedFormData.get('generationCount')).toBeNull();
     expect(submittedFormData.get('exportedGameLog')).toBe(
       'Friday Mars won by 6 points.',
     );
@@ -169,7 +171,9 @@ describe('LogGameImportShell', () => {
     });
 
     await waitFor(() =>
-      expect(navigationMocks.push).toHaveBeenCalledWith('/log-game?gameId=game-1'),
+      expect(navigationMocks.push).toHaveBeenCalledWith(
+        '/log-game/review?gameId=game-1',
+      ),
     );
   });
 
@@ -232,6 +236,10 @@ describe('LogGameImportShell', () => {
     await user.type(
       screen.getByLabelText(/participants/i),
       'Friday Mars{enter}Second Seat',
+    );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
@@ -317,6 +325,10 @@ describe('LogGameImportShell', () => {
     await user.type(
       screen.getByLabelText(/exported game log/i),
       'Imported Alias played Commercial District.',
+    );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),

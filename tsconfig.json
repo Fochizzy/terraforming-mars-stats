@@ -37,6 +37,19 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules"
-  ]
+    "node_modules",
+    "_r6",
+    ".claude",
+    ".expo",
+    ".fresh-*",
+    ".deploy-*",
+    ".live-*",
+    ".tmp-*",
+    ".worktrees",
+    "test-results",
+    "tmp-*.ts",
+    "tmp-*.tsx",
+    "tmp-*.mts"
+  ],
+  "extends": "expo/tsconfig.base"
 }

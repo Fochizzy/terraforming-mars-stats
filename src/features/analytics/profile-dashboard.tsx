@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import type {
@@ -19,6 +20,7 @@ type ProfileDashboardProps = {
     StyleAgreementRow,
     'comparedGames' | 'exactMatchRate' | 'mismatchRate' | 'partialMatchRate'
   > | null;
+  linkHref?: string;
 };
 
 function formatPercent(value: number) {
@@ -39,6 +41,7 @@ function formatAverage(value: number | null) {
 export function ProfileDashboard({
   coverage = null,
   headToHeadRows = [],
+  linkHref,
   performance = null,
   playerName,
   scoreAverages = null,
@@ -51,6 +54,11 @@ export function ProfileDashboard({
           Link a saved player profile to your signed-in account so the app can
           show personal finalized-game analytics.
         </p>
+        {linkHref ? (
+          <Link className="tm-button-primary mt-4 inline-flex w-fit" href={linkHref}>
+            Link Saved Player
+          </Link>
+        ) : null}
       </ChartFrame>
     );
   }
@@ -61,14 +69,14 @@ export function ProfileDashboard({
         {performance ? (
           <div className="grid gap-4">
             <div>
-              <p className="font-serif text-xl font-semibold text-stone-100">
+              <p className="text-xl font-semibold text-stone-100">
                 {playerName}
               </p>
               <p className="tm-muted-copy mt-1 text-sm">
                 {performance.gamesPlayed} finalized games
               </p>
             </div>
-            <dl className="grid gap-3 sm:grid-cols-2">
+            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="tm-stat-card">
                 <dt className="tm-data-label">
                   Weighted Score
@@ -118,7 +126,7 @@ export function ProfileDashboard({
             No finalized head-to-head matchups are available yet.
           </p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {headToHeadRows.slice(0, 5).map((row) => (
               <article
                 className="tm-stat-card"

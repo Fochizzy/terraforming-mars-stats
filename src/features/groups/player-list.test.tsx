@@ -39,4 +39,31 @@ describe('PlayerList', () => {
     await user.type(input, 'Friday Mars');
     expect(button).toBeEnabled();
   });
+
+  it('lets the signed-in user link an unclaimed roster player to their profile', async () => {
+    const user = userEvent.setup();
+    const onLinkPlayer = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Player linked.',
+    });
+
+    render(
+      <PlayerList
+        currentUserId="user-1"
+        onAddPlayer={vi.fn()}
+        onLinkPlayer={onLinkPlayer}
+        players={[
+          { id: 'p1', display_name: 'Friday Mars', linked_user_id: null },
+          { id: 'p2', display_name: 'Second Seat', linked_user_id: 'user-1' },
+          { id: 'p3', display_name: 'Third Seat', linked_user_id: 'user-2' },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /link friday mars/i }));
+
+    await waitFor(() => expect(onLinkPlayer).toHaveBeenCalledWith('p1'));
+    expect(screen.getByText(/linked to you/i)).toBeInTheDocument();
+    expect(screen.getByText(/^linked$/i)).toBeInTheDocument();
+  });
 });

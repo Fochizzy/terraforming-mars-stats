@@ -126,11 +126,11 @@ describe('WebImportPage', () => {
       screen.getByLabelText(/participants/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText(/endgame screenshot/i),
+      screen.getByLabelText(/victory point breakdown/i),
     ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(/board screenshots/i),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/board screenshots/i)).toBeRequired();
+    expect(screen.getByLabelText(/^map$/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/generation count/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /save import draft/i }),
     ).not.toBeInTheDocument();
@@ -199,10 +199,8 @@ describe('WebImportPage', () => {
 
     await user.clear(screen.getByLabelText(/played on/i));
     await user.type(screen.getByLabelText(/played on/i), '2026-07-04');
-    await user.selectOptions(screen.getByLabelText(/map/i), 'elysium');
+    await user.selectOptions(screen.getByLabelText(/^map$/i), 'elysium');
     await user.selectOptions(screen.getByLabelText(/player count/i), '3');
-    await user.clear(screen.getByLabelText(/generation count/i));
-    await user.type(screen.getByLabelText(/generation count/i), '12');
     await user.type(
       screen.getByLabelText(/exported game log/i),
       'Friday Mars won by 6 points.',
@@ -222,7 +220,10 @@ describe('WebImportPage', () => {
       type: 'image/png',
     });
 
-    await user.upload(screen.getByLabelText(/endgame screenshot/i), screenshot);
+    await user.upload(
+      screen.getByLabelText(/victory point breakdown/i),
+      screenshot,
+    );
     await user.upload(screen.getByLabelText(/board screenshots/i), [
       boardOne,
       boardTwo,
@@ -237,9 +238,9 @@ describe('WebImportPage', () => {
 
     expect(submittedFormData).toBeInstanceOf(FormData);
     expect(submittedFormData.get('playedOn')).toBe('2026-07-04');
-    expect(submittedFormData.get('mapId')).toBe('elysium');
     expect(submittedFormData.get('playerCount')).toBe('3');
-    expect(submittedFormData.get('generationCount')).toBe('12');
+    expect(submittedFormData.get('mapId')).toBe('elysium');
+    expect(submittedFormData.get('generationCount')).toBeNull();
     expect(submittedFormData.get('exportedGameLog')).toBe(
       'Friday Mars won by 6 points.',
     );
@@ -303,6 +304,10 @@ describe('WebImportPage', () => {
     await user.type(
       screen.getByLabelText(/participants/i),
       'Friday Mars{enter}Unknown Friend',
+    );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
@@ -378,6 +383,10 @@ describe('WebImportPage', () => {
       screen.getByLabelText(/participants/i),
       'Friday Mars{enter}Unknown Friend',
     );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
+    );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     );
@@ -451,6 +460,10 @@ describe('WebImportPage', () => {
     await user.type(
       screen.getByLabelText(/exported game log/i),
       'Friday Mars played Commercial District.',
+    );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
@@ -537,6 +550,10 @@ describe('WebImportPage', () => {
       screen.getByLabelText(/exported game log/i),
       'Friday Mars played Earth Catapult.',
     );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
+    );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     );
@@ -559,6 +576,132 @@ describe('WebImportPage', () => {
     expect(submittedFormData.get('participants')).toBe(
       ['Friday Mars', 'Second Seat'].join('\n'),
     );
+  });
+
+  it('auto-fills player count from the larger of detected log names and screenshot rows after analysis', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        ...review,
+        detectedParticipantNames: ['Friday Mars', 'Second Seat'],
+        playerLinks: [review.playerLinks[0]],
+        requiresPlayerConfirmation: false,
+        scoreCandidates: [
+          { playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 },
+          { playerName: 'Second Seat', totalPoints: 58, trPoints: 20 },
+          { playerName: 'Third Seat', totalPoints: 55, trPoints: 19 },
+        ],
+      },
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars played Earth Catapult.',
+    );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/player count/i)).toHaveValue('3'),
+    );
+  });
+
+  it('lets the user override the auto-filled player count before confirming the import draft', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        ...review,
+        detectedParticipantNames: ['Friday Mars', 'Second Seat'],
+        playerLinks: [review.playerLinks[0]],
+        requiresPlayerConfirmation: false,
+        scoreCandidates: [
+          { playerName: 'Friday Mars', totalPoints: 62, trPoints: 18 },
+          { playerName: 'Second Seat', totalPoints: 58, trPoints: 20 },
+          { playerName: 'Third Seat', totalPoints: 55, trPoints: 19 },
+        ],
+      },
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars played Earth Catapult.',
+    );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    const confirmButton = await screen.findByRole('button', {
+      name: /confirm import draft/i,
+    });
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/player count/i)).toHaveValue('3'),
+    );
+
+    await user.selectOptions(screen.getByLabelText(/player count/i), '2');
+    expect(screen.getByLabelText(/player count/i)).toHaveValue('2');
+
+    await user.click(confirmButton);
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
+    expect(submittedFormData.get('playerCount')).toBe('2');
   });
 
   it('attaches a pasted screenshot from the clipboard', async () => {
@@ -613,9 +756,15 @@ describe('WebImportPage', () => {
     });
 
     expect(
-      screen.getByText(/attached screenshot: pasted-scoreboard\.png/i),
+      screen.getByText(
+        /attached victory point breakdown: pasted-scoreboard\.png/i,
+      ),
     ).toBeInTheDocument();
 
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
+    );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     );
@@ -662,6 +811,10 @@ describe('WebImportPage', () => {
       screen.getByLabelText(/participants/i),
       'Friday Mars{enter}Second Seat',
     );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
+    );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     );
@@ -707,6 +860,10 @@ describe('WebImportPage', () => {
     await user.type(
       screen.getByLabelText(/participants/i),
       'Friday Mars{enter}Second Seat',
+    );
+    await user.upload(
+      screen.getByLabelText(/board screenshots/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
       screen.getByRole('button', { name: /analyze import evidence/i }),

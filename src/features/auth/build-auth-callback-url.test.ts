@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildAuthCallbackUrl, buildAuthCompletePath } from './build-auth-callback-url';
+import {
+  buildAuthCallbackUrl,
+  buildAuthCompletePath,
+  buildAuthResetPinPath,
+} from './build-auth-callback-url';
 
 describe('buildAuthCallbackUrl', () => {
   it('builds an auth-complete path from the requested next path', () => {
@@ -20,5 +24,9 @@ describe('buildAuthCallbackUrl', () => {
     ).toBe(
       'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Flog-game%2Fimport',
     );
+  });
+
+  it('builds a reset-pin path from the requested next path', () => {
+    expect(buildAuthResetPinPath('/profile')).toBe('/auth/reset-pin?next=%2Fprofile');
   });
 });

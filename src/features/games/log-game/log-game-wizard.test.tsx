@@ -166,7 +166,7 @@ describe('LogGameWizard', () => {
 
     expect(
       screen.getByRole('link', { name: /open web import/i }),
-    ).toHaveAttribute('href', '/log-game/import');
+    ).toHaveAttribute('href', '/log-game');
 
     await user.selectOptions(screen.getByLabelText(/friday mars corporation/i), 'corp1');
     await user.selectOptions(screen.getByLabelText(/friday mars prelude 1/i), 'prelude1');

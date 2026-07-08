@@ -14,6 +14,7 @@ export default async function GroupPage() {
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/group" />
       }
       title="Group"
+      wide
     >
       <GroupDashboard
         coverage={groupAnalytics.coverage}

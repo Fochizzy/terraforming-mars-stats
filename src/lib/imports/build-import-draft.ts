@@ -27,12 +27,13 @@ export type ImportDraftValues = {
   playerCount: number;
 };
 
-export type CreateImportDraftInput = ImportDraftValues & {
+export type CreateImportDraftInput = Omit<ImportDraftValues, 'generationCount'> & {
   confirmedPlayerLinks?: Array<{
     importedName: string;
     playerId: string;
   }>;
   endgameScreenshot: File | null;
+  generationCount: number | null;
 };
 
 export function buildImportDraft(input: {

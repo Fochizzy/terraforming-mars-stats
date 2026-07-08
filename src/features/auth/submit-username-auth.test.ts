@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { submitUsernameAuth } from './submit-username-auth';
 
 const authMocks = vi.hoisted(() => ({
-  insert: vi.fn(),
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
 }));
@@ -13,9 +12,6 @@ function createClient() {
       signInWithPassword: authMocks.signInWithPassword,
       signUp: authMocks.signUp,
     },
-    from: vi.fn(() => ({
-      insert: authMocks.insert,
-    })),
   };
 }
 
@@ -30,19 +26,18 @@ describe('submitUsernameAuth', () => {
       },
       error: null,
     });
-    authMocks.insert.mockResolvedValue({ error: null });
   });
 
-  it('signs in with the normalized synthetic email and 6-digit pin', async () => {
+  it('signs in with the normalized real email and 6-digit pin', async () => {
     const result = await submitUsernameAuth({
       client: createClient(),
+      email: ' Friday.Mars@Example.com ',
       mode: 'sign-in',
       pin: '123456',
-      username: ' Friday Mars ',
     });
 
     expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
-      email: 'friday-mars@users.tmstats.local',
+      email: 'friday.mars@example.com',
       password: '123456',
     });
     expect(result).toEqual({
@@ -51,9 +46,10 @@ describe('submitUsernameAuth', () => {
     });
   });
 
-  it('creates an account, inserts the profile row, and succeeds without a redirect url', async () => {
+  it('creates an account with the real email and username metadata', async () => {
     const result = await submitUsernameAuth({
       client: createClient(),
+      email: ' Friday.Mars@Example.com ',
       fullName: 'Friday Mars',
       mode: 'sign-up',
       pin: '123456',
@@ -61,15 +57,15 @@ describe('submitUsernameAuth', () => {
     });
 
     expect(authMocks.signUp).toHaveBeenCalledWith({
-      email: 'friday-mars@users.tmstats.local',
+      email: 'friday.mars@example.com',
       options: {
         data: {
           full_name: 'Friday Mars',
+          username: 'friday-mars',
         },
       },
       password: '123456',
     });
-    expect(authMocks.insert).not.toHaveBeenCalled();
     expect(result).toEqual({
       action: 'signed-in',
       ok: true,
@@ -87,6 +83,7 @@ describe('submitUsernameAuth', () => {
 
     const result = await submitUsernameAuth({
       client: createClient(),
+      email: 'friday@example.com',
       emailRedirectTo: 'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Fprofile',
       fullName: 'Friday Mars',
       mode: 'sign-up',
@@ -99,14 +96,13 @@ describe('submitUsernameAuth', () => {
       ok: true,
       status: {
         message:
-          'Check your email for the Supabase sign-in link to finish creating this account.',
+          'Check your email for the sign-in link to finish creating this account.',
         state: 'success',
       },
     });
-    expect(authMocks.insert).not.toHaveBeenCalled();
   });
 
-  it('guides duplicate usernames back to sign in', async () => {
+  it('guides duplicate email signups back to sign in', async () => {
     authMocks.signUp.mockResolvedValueOnce({
       data: {
         session: null,
@@ -119,6 +115,7 @@ describe('submitUsernameAuth', () => {
 
     const result = await submitUsernameAuth({
       client: createClient(),
+      email: 'friday@example.com',
       fullName: 'Friday Mars',
       mode: 'sign-up',
       pin: '123456',
@@ -130,7 +127,7 @@ describe('submitUsernameAuth', () => {
       ok: false,
       status: {
         message:
-          'That username already has an account. Sign in with the existing 6-digit PIN.',
+          'That email already has an account. Sign in or reset your PIN.',
         state: 'error',
       },
     });
@@ -149,6 +146,7 @@ describe('submitUsernameAuth', () => {
 
     const result = await submitUsernameAuth({
       client: createClient(),
+      email: 'friday@example.com',
       fullName: 'Friday Mars',
       mode: 'sign-up',
       pin: '123456',
@@ -162,5 +160,41 @@ describe('submitUsernameAuth', () => {
         state: 'error',
       },
     });
+  });
+
+  it('returns a clean validation message for an invalid sign-in pin', async () => {
+    const result = await submitUsernameAuth({
+      client: createClient(),
+      email: 'friday@example.com',
+      mode: 'sign-in',
+      pin: '12345',
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: {
+        message: 'PIN must be exactly 6 digits.',
+        state: 'error',
+      },
+    });
+    expect(authMocks.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('returns a clean validation message for an invalid auth email', async () => {
+    const result = await submitUsernameAuth({
+      client: createClient(),
+      email: 'friday-mars',
+      mode: 'sign-in',
+      pin: '123456',
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: {
+        message: 'Enter a valid email address.',
+        state: 'error',
+      },
+    });
+    expect(authMocks.signInWithPassword).not.toHaveBeenCalled();
   });
 });

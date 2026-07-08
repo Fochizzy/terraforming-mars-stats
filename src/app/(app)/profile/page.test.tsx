@@ -69,7 +69,7 @@ describe('ProfilePage', () => {
     ).toHaveAttribute('href', '/claim-player');
     expect(screen.getByRole('link', { name: /log game/i })).toHaveAttribute(
       'href',
-      '/log-game/import',
+      '/log-game',
     );
     expect(
       screen.queryByRole('link', { name: /^group$/i }),

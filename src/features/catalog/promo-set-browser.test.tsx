@@ -63,4 +63,45 @@ describe('PromoSetBrowser', () => {
     expect(screen.getByText(/Community Services/i)).toBeInTheDocument();
     expect(screen.queryByText(/Merger/i)).not.toBeInTheDocument();
   });
+
+  it('renders inside a ChartFrame panel with the shared dashboard card grid', () => {
+    render(
+      <PromoSetBrowser
+        cards={[
+          {
+            cardName: 'Corporate Stronghold',
+            cardNumber: 'P01',
+            cardType: 'Automated',
+            expansionCode: 'PROMO',
+            fullImageUrl: 'https://example.com/corporate-stronghold.png',
+            id: 'card-1',
+            promoSetId: 'promo-1',
+            thumbnailUrl: 'https://example.com/corporate-stronghold-thumb.png',
+          },
+        ]}
+        promoSets={[
+          {
+            displayName: 'Seasonal Promos',
+            editionLabel: 'Seasonal promo',
+            id: 'promo-1',
+            promoYear: 2026,
+            slug: 'seasonal-promos',
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: /^Promo Sets$/i }),
+    ).toBeInTheDocument();
+
+    const cardGrid = screen.getByRole('link', {
+      name: /Corporate Stronghold full image/i,
+    }).parentElement;
+
+    expect(cardGrid).toHaveClass('grid', 'gap-3', 'md:grid-cols-2');
+    expect(
+      screen.getByRole('link', { name: /Corporate Stronghold full image/i }),
+    ).toHaveClass('min-w-0');
+  });
 });

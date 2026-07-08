@@ -16,6 +16,7 @@ export type ParsedScreenshotPlayerRow = {
 };
 
 export type ParsedEndgameScoreScreenshot = {
+  generationCount?: number | null;
   playerRows: ParsedScreenshotPlayerRow[];
 };
 
@@ -334,6 +335,7 @@ export function parseEndgameScoreScreenshot(
   const rowOrder: string[] = [];
   let pendingPlayerName: string | null = null;
   let scoreLayout: ScoreLayout = 'legacy';
+  let generationCount: number | null = null;
 
   for (const line of ocrLines) {
     const trimmedLine = normalizeOcrLine(line);
@@ -342,8 +344,14 @@ export function parseEndgameScoreScreenshot(
       continue;
     }
 
-    if (/^victory point breakdown after\b/i.test(trimmedLine)) {
+    const generationCountMatch =
+      /^victory point breakdown after\s+(\d+)\s+generations?$/i.exec(
+        trimmedLine,
+      );
+
+    if (generationCountMatch?.[1]) {
       scoreLayout = 'victory_breakdown';
+      generationCount = Number(generationCountMatch[1]);
       continue;
     }
 
@@ -420,6 +428,7 @@ export function parseEndgameScoreScreenshot(
   }
 
   return {
+    generationCount,
     playerRows: rowOrder
       .map((playerKey) => playerRowsByKey.get(playerKey)?.row)
       .filter((row): row is ParsedScreenshotPlayerRow => Boolean(row)),

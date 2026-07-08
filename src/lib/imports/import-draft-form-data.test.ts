@@ -98,6 +98,21 @@ describe('parseCreateImportDraftFormData', () => {
     });
   });
 
+  it('allows generation count and map id to be omitted when they will be inferred from evidence', () => {
+    const formData = new FormData();
+
+    formData.set('playedOn', '2026-07-04');
+    formData.set('playerCount', '3');
+    formData.set('exportedGameLog', 'Friday Mars played Earth Catapult.');
+    formData.set('participants', '');
+
+    expect(parseCreateImportDraftFormData(formData)).toMatchObject({
+      generationCount: null,
+      mapId: '',
+      participantNames: [],
+    });
+  });
+
   it('round-trips zero or more board screenshots through built form data', () => {
     const boardOne = new File(['board-one'], 'board-1.png', {
       type: 'image/png',

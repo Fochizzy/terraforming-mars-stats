@@ -32,6 +32,7 @@ import {
   type SupportedBoardMapId,
 } from '@/lib/imports/board-space-maps';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
+import { inferSupportedBoardMapId } from '@/lib/imports/infer-supported-board-map';
 import { parseCreateImportDraftFormData } from '@/lib/imports/import-draft-form-data';
 import {
   parseEndgameScoreScreenshot,
@@ -54,6 +55,7 @@ import {
   listMaps,
   listPreludes,
   listStyles,
+  type MapOption,
 } from '@/lib/db/reference-repo';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
@@ -121,6 +123,19 @@ async function calculateImportCardScoresOnDemand(
   return calculateImportCardScores(input);
 }
 
+async function calculateImportCardScoresSafely(
+  input: Parameters<
+    typeof import('@/lib/imports/card-scoring/calculate-import-card-scores').calculateImportCardScores
+  >[0],
+) {
+  try {
+    return await calculateImportCardScoresOnDemand(input);
+  } catch (error) {
+    console.warn('Card scoring import analysis failed', serializeUnknownError(error));
+    return [];
+  }
+}
+
 function buildLogScoreCandidates(input: {
   playerNames: string[];
   rawLogText: string;
@@ -160,6 +175,180 @@ function buildLogScoreCandidates(input: {
   });
 }
 
+function formatCountLabel(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function buildImportSuccessMessage(input: {
+  logEventCount: number;
+  logScoreRowCount: number;
+  screenshotScoreRowCount: number;
+}) {
+  const logEventLabel = formatCountLabel(input.logEventCount, 'log event');
+  const screenshotScoreRowLabel = formatCountLabel(
+    input.screenshotScoreRowCount,
+    'screenshot score row',
+  );
+
+  if (input.logScoreRowCount === 0) {
+    return `Parsed ${logEventLabel} and ${screenshotScoreRowLabel}.`;
+  }
+
+  const logScoreRowLabel = formatCountLabel(input.logScoreRowCount, 'log score row');
+  const fallbackMessage =
+    input.screenshotScoreRowCount === 0
+      ? " We'll use the log score breakdown where available."
+      : '';
+
+  return `Parsed ${logEventLabel}, ${logScoreRowLabel}, and ${screenshotScoreRowLabel}.${fallbackMessage}`;
+}
+
+function assertBoardScreenshotsProvided(boardScreenshots: File[]) {
+  if (boardScreenshots.length === 0) {
+    throw new Error(
+      'Add at least one board screenshot so we can infer the map and verify board scoring evidence.',
+    );
+  }
+}
+
+function getGenerationCountFromGameLog(
+  parsedGameLog: ReturnType<typeof parseGameLog>,
+) {
+  const detectedGenerations = parsedGameLog.events.flatMap((event) =>
+    event.eventType === 'generation_started' ? [event.generation] : [],
+  );
+
+  return detectedGenerations.length > 0
+    ? Math.max(...detectedGenerations)
+    : null;
+}
+
+function buildBoardMapEvidenceLines(parsedGameLog: ReturnType<typeof parseGameLog>) {
+  return parsedGameLog.events.flatMap((event) => {
+    switch (event.eventType) {
+      case 'award_funded':
+      case 'award_result':
+        return [event.award];
+      case 'milestone_claimed':
+        return [event.milestone];
+      default:
+        return [];
+    }
+  });
+}
+
+function findSelectedMapOption(input: {
+  mapOptions: MapOption[];
+  submittedMapId: string;
+}) {
+  const submittedMapId = input.submittedMapId.trim();
+
+  if (!submittedMapId) {
+    return null;
+  }
+
+  return (
+    input.mapOptions.find(
+      (option) =>
+        option.id === submittedMapId || option.code === submittedMapId,
+    ) ?? null
+  );
+}
+
+function resolveSubmittedBoardMapId(input: {
+  mapOptions: MapOption[];
+  submittedMapId: string;
+}) {
+  if (isSupportedBoardMapId(input.submittedMapId)) {
+    return input.submittedMapId;
+  }
+
+  const selectedMapOption = findSelectedMapOption(input);
+
+  if (selectedMapOption && isSupportedBoardMapId(selectedMapOption.code)) {
+    return selectedMapOption.code;
+  }
+
+  return null;
+}
+
+function resolveDraftMapId(input: {
+  boardMapId: SupportedBoardMapId;
+  mapOptions: MapOption[];
+  submittedMapId: string;
+}) {
+  const selectedMapOption = findSelectedMapOption(input);
+
+  if (selectedMapOption) {
+    return selectedMapOption.id;
+  }
+
+  return (
+    input.mapOptions.find((option) => option.code === input.boardMapId)?.id ??
+    input.boardMapId
+  );
+}
+
+function resolveImportMapSelection(input: {
+  boardStateTextLines: string[];
+  mapOptions: MapOption[];
+  parsedGameLog: ReturnType<typeof parseGameLog>;
+  submittedMapId: string;
+}) {
+  const inferredMapId = inferSupportedBoardMapId([
+    ...input.boardStateTextLines,
+    ...buildBoardMapEvidenceLines(input.parsedGameLog),
+  ]);
+
+  if (inferredMapId) {
+    return {
+      boardMapId: inferredMapId,
+      draftMapId: resolveDraftMapId({
+        boardMapId: inferredMapId,
+        mapOptions: input.mapOptions,
+        submittedMapId: input.submittedMapId,
+      }),
+    };
+  }
+
+  const submittedBoardMapId = resolveSubmittedBoardMapId({
+    mapOptions: input.mapOptions,
+    submittedMapId: input.submittedMapId,
+  });
+
+  if (submittedBoardMapId) {
+    return {
+      boardMapId: submittedBoardMapId,
+      draftMapId: resolveDraftMapId({
+        boardMapId: submittedBoardMapId,
+        mapOptions: input.mapOptions,
+        submittedMapId: input.submittedMapId,
+      }),
+    };
+  }
+
+  throw new Error(
+    'We could not infer the board map from this evidence yet. Choose the map at the top, or upload a board screenshot that includes the map awards or milestones.',
+  );
+}
+
+function resolveImportGenerationCount(input: {
+  parsedGameLog: ReturnType<typeof parseGameLog>;
+  parsedScreenshot: ParsedEndgameScoreScreenshot;
+  submittedGenerationCount: number | null;
+}) {
+  return (
+    input.parsedScreenshot.generationCount ??
+    getGenerationCountFromGameLog(input.parsedGameLog) ??
+    input.submittedGenerationCount ??
+    (() => {
+      throw new Error(
+        'We could not infer the generations played from this evidence yet. Upload a Victory Point Breakdown image or include generation markers in the exported log.',
+      );
+    })()
+  );
+}
+
 function isCuratedBoardCardItem(
   item: CuratedBoardImportItem,
 ): item is Extract<CuratedBoardImportItem, { itemType: 'card' }> {
@@ -174,6 +363,7 @@ function buildEndgameScreenshotParse(
       ? 'digital_endgame_results'
       : null,
     extractedFields: {
+      generationCount: parsedScreenshot.generationCount,
       playerRows: parsedScreenshot.playerRows,
     },
     ocrEngineVersion: OCR_ENGINE_VERSION,
@@ -249,18 +439,12 @@ export default async function LogGameImportPage() {
 
     try {
       const values = parseCreateImportDraftFormData(formData);
+      assertBoardScreenshotsProvided(values.boardScreenshots);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
       const detectedParticipantNames =
         values.participantNames.length > 0
           ? values.participantNames
           : extractGameLogParticipantNames(parsedGameLog);
-      const boardSnapshot =
-        isSupportedBoardMapId(values.mapId)
-          ? buildImportBoardSnapshot({
-              events: parsedGameLog.events,
-              mapId: values.mapId,
-            })
-          : null;
       const screenshotReadOptions = {
         expectedPlayerCount: Math.max(
           values.playerCount,
@@ -268,7 +452,10 @@ export default async function LogGameImportPage() {
         ),
         expectedPlayerNames: detectedParticipantNames,
       };
-      let parsedScreenshot: ParsedEndgameScoreScreenshot = { playerRows: [] };
+      let parsedScreenshot: ParsedEndgameScoreScreenshot = {
+        generationCount: null,
+        playerRows: [],
+      };
 
       if (values.endgameScreenshot) {
         try {
@@ -291,6 +478,21 @@ export default async function LogGameImportPage() {
       const boardStateTextLines = boardScreenshotEvidence.flatMap(
         (screenshot) => screenshot.textLines,
       );
+      const resolvedMapSelection = resolveImportMapSelection({
+        boardStateTextLines,
+        mapOptions,
+        parsedGameLog,
+        submittedMapId: values.mapId,
+      });
+      resolveImportGenerationCount({
+        parsedGameLog,
+        parsedScreenshot,
+        submittedGenerationCount: values.generationCount,
+      });
+      const boardSnapshot = buildImportBoardSnapshot({
+        events: parsedGameLog.events,
+        mapId: resolvedMapSelection.boardMapId,
+      });
 
       const activeContext = await getCurrentGroupContext();
       const importedNames = Array.from(
@@ -317,7 +519,7 @@ export default async function LogGameImportPage() {
           : buildBoardEvidenceContext({
               boardSnapshot,
             });
-      const initialCardScoring = await calculateImportCardScoresOnDemand({
+      const initialCardScoring = await calculateImportCardScoresSafely({
         boardEvidenceContext: initialBoardEvidenceContext,
         boardStateTextLines,
         cardReferences,
@@ -360,7 +562,7 @@ export default async function LogGameImportPage() {
       const cardScoring =
         finalBoardEvidenceContext == null
           ? initialCardScoring
-          : await calculateImportCardScoresOnDemand({
+          : await calculateImportCardScoresSafely({
               boardEvidenceContext: finalBoardEvidenceContext,
               boardStateTextLines,
               cardReferences,
@@ -396,7 +598,11 @@ export default async function LogGameImportPage() {
 
       return {
         status: 'success' as const,
-        message: `Parsed ${parsedGameLog.events.length} log events and ${parsedScreenshot.playerRows.length} screenshot score rows.`,
+        message: buildImportSuccessMessage({
+          logEventCount: parsedGameLog.events.length,
+          logScoreRowCount: logScoreCandidates.length,
+          screenshotScoreRowCount: parsedScreenshot.playerRows.length,
+        }),
         review: buildImportReviewModel({
           boardReviewItems: curatedBoardItems,
           cardScoring,
@@ -424,18 +630,12 @@ export default async function LogGameImportPage() {
 
     try {
       const values = parseCreateImportDraftFormData(formData);
+      assertBoardScreenshotsProvided(values.boardScreenshots);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
       const detectedParticipantNames =
         values.participantNames.length > 0
           ? values.participantNames
           : extractGameLogParticipantNames(parsedGameLog);
-      const boardSnapshot =
-        isSupportedBoardMapId(values.mapId)
-          ? buildImportBoardSnapshot({
-              events: parsedGameLog.events,
-              mapId: values.mapId,
-            })
-          : null;
       const screenshotReadOptions = {
         expectedPlayerCount: Math.max(
           values.playerCount,
@@ -540,7 +740,10 @@ export default async function LogGameImportPage() {
         listPreludes(),
         listStyles(),
       ]);
-      let parsedScreenshot: ParsedEndgameScoreScreenshot = { playerRows: [] };
+      let parsedScreenshot: ParsedEndgameScoreScreenshot = {
+        generationCount: null,
+        playerRows: [],
+      };
 
       if (values.endgameScreenshot) {
         try {
@@ -563,13 +766,38 @@ export default async function LogGameImportPage() {
       const boardStateTextLines = boardScreenshotEvidence.flatMap(
         (screenshot) => screenshot.textLines,
       );
+      const resolvedMapSelection = resolveImportMapSelection({
+        boardStateTextLines,
+        mapOptions,
+        parsedGameLog,
+        submittedMapId: values.mapId,
+      });
+      const resolvedGenerationCount = resolveImportGenerationCount({
+        parsedGameLog,
+        parsedScreenshot,
+        submittedGenerationCount: values.generationCount,
+      });
+      const boardSnapshot = buildImportBoardSnapshot({
+        events: parsedGameLog.events,
+        mapId: resolvedMapSelection.boardMapId,
+      });
+      const importedNames = Array.from(
+        new Set([
+          ...detectedParticipantNames,
+          ...parsedScreenshot.playerRows.map((row) => row.playerName),
+        ]),
+      );
+      const logScoreCandidates = buildLogScoreCandidates({
+        playerNames: importedNames,
+        rawLogText: values.exportedGameLog,
+      });
       const initialBoardEvidenceContext =
         boardSnapshot == null
           ? undefined
           : buildBoardEvidenceContext({
               boardSnapshot,
             });
-      const initialCardScoring = await calculateImportCardScoresOnDemand({
+      const initialCardScoring = await calculateImportCardScoresSafely({
         boardEvidenceContext: initialBoardEvidenceContext,
         boardStateTextLines,
         cardReferences: cardScoringReferences,
@@ -612,7 +840,7 @@ export default async function LogGameImportPage() {
       const cardScoring =
         finalBoardEvidenceContext == null
           ? initialCardScoring
-          : await calculateImportCardScoresOnDemand({
+          : await calculateImportCardScoresSafely({
               boardEvidenceContext: finalBoardEvidenceContext,
               boardStateTextLines,
               cardReferences: cardScoringReferences,
@@ -659,6 +887,8 @@ export default async function LogGameImportPage() {
         groupId: importGroup.groupId,
         importValues: {
           ...values,
+          generationCount: resolvedGenerationCount,
+          mapId: resolvedMapSelection.draftMapId,
           participantNames: detectedParticipantNames,
         },
         milestoneOptions,
@@ -752,8 +982,16 @@ export default async function LogGameImportPage() {
         status: 'success' as const,
         gameId: draft.gameId,
         message: importGroup.createdNewGroup
-          ? `Created ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. Parsed ${parsedGameLog.events.length} log events and ${parsedScreenshot.playerRows.length} screenshot score rows.`
-          : `Matched ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. Parsed ${parsedGameLog.events.length} log events and ${parsedScreenshot.playerRows.length} screenshot score rows.`,
+          ? `Created ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. ${buildImportSuccessMessage({
+              logEventCount: parsedGameLog.events.length,
+              logScoreRowCount: logScoreCandidates.length,
+              screenshotScoreRowCount: parsedScreenshot.playerRows.length,
+            })}`
+          : `Matched ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. ${buildImportSuccessMessage({
+              logEventCount: parsedGameLog.events.length,
+              logScoreRowCount: logScoreCandidates.length,
+              screenshotScoreRowCount: parsedScreenshot.playerRows.length,
+            })}`,
       };
     } catch (error) {
       console.error('Web import draft save failed', serializeUnknownError(error));
@@ -825,7 +1063,7 @@ export default async function LogGameImportPage() {
       navItems={
         context
           ? undefined
-          : [{ href: '/log-game/import', label: 'Web Import' }]
+          : [{ href: '/log-game', label: 'Web Import' }]
       }
       title="Web Import"
       wide

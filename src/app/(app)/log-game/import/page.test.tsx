@@ -71,6 +71,12 @@ const importTracker = vi.hoisted(() => ({
   readEndgameScreenshot: 0,
 }));
 
+const ocrMocks = vi.hoisted(() => ({
+  readBoardStateScreenshot: vi.fn(),
+  readBoardScreenshotSpaceConfirmations: vi.fn(),
+  readEndgameScreenshot: vi.fn(),
+}));
+
 const mockState = vi.hoisted(() => ({
   createPlayerIfMissing: vi.fn(),
   getCardScoringRuleCache: vi.fn(),
@@ -188,7 +194,7 @@ vi.mock('@/lib/imports/read-endgame-screenshot', () => {
   importTracker.readEndgameScreenshot += 1;
 
   return {
-    readEndgameScreenshot: vi.fn(),
+    readEndgameScreenshot: ocrMocks.readEndgameScreenshot,
   };
 });
 
@@ -196,7 +202,7 @@ vi.mock('@/lib/imports/card-scoring/read-board-state-screenshot', () => {
   importTracker.readBoardStateScreenshot += 1;
 
   return {
-    readBoardStateScreenshot: vi.fn(),
+    readBoardStateScreenshot: ocrMocks.readBoardStateScreenshot,
   };
 });
 
@@ -204,7 +210,8 @@ vi.mock('@/lib/imports/read-board-screenshot-space-confirmations', () => {
   importTracker.readBoardScreenshotSpaceConfirmations += 1;
 
   return {
-    readBoardScreenshotSpaceConfirmations: vi.fn(),
+    readBoardScreenshotSpaceConfirmations:
+      ocrMocks.readBoardScreenshotSpaceConfirmations,
   };
 });
 
@@ -220,9 +227,10 @@ async function renderPageAndCaptureShellProps() {
 }
 
 describe('LogGameImportPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.doUnmock('@/lib/imports/card-scoring/calculate-import-card-scores');
     captureState.logGameImportShellProps = null;
     importTracker.readBoardScreenshotSpaceConfirmations = 0;
     importTracker.readBoardStateScreenshot = 0;
@@ -280,6 +288,11 @@ describe('LogGameImportPage', () => {
 
       return ['Action: gain 2 steel.'];
     });
+    ocrMocks.readBoardStateScreenshot.mockReset();
+    ocrMocks.readBoardScreenshotSpaceConfirmations.mockReset();
+    ocrMocks.readEndgameScreenshot.mockReset();
+    ocrMocks.readBoardStateScreenshot.mockResolvedValue([]);
+    ocrMocks.readEndgameScreenshot.mockResolvedValue([]);
   });
 
   it('does not eagerly load screenshot OCR modules when the page module is imported', async () => {
@@ -293,7 +306,9 @@ describe('LogGameImportPage', () => {
   it('analyzes import evidence through the real page action and auto-scores Builder Hall from OCR fallback', async () => {
     const shellProps = await renderPageAndCaptureShellProps();
     const analyzeFormData = buildCreateImportDraftFormData({
-      boardScreenshots: [],
+      boardScreenshots: [
+        new File(['board'], 'board.png', { type: 'image/png' }),
+      ],
       confirmedPlayerLinks: [],
       endgameScreenshot: null,
       exportedGameLog: EXPORTED_GAME_LOG,
@@ -344,10 +359,160 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('keeps import analysis usable when card-scoring OCR crashes unexpectedly', async () => {
+    vi.doMock('@/lib/imports/card-scoring/calculate-import-card-scores', () => ({
+      calculateImportCardScores: vi.fn(async () => {
+        throw new TypeError(
+          "Cannot read properties of undefined (reading 'endsWith')",
+        );
+      }),
+    }));
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      boardScreenshots: [
+        new File(['board'], 'board.png', { type: 'image/png' }),
+      ],
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      status: 'success',
+    });
+    expect(result).toMatchObject({
+      review: {
+        cardScoring: [],
+        playerLinks: [
+          expect.objectContaining({
+            importedName: 'Friday Mars',
+            requiresConfirmation: false,
+            selectedPlayerId: 'player-1',
+            status: 'exact',
+          }),
+        ],
+      },
+    });
+  });
+
+  it('surfaces log score rows in the success message when screenshot parsing finds none', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      boardScreenshots: [
+        new File(['board'], 'board.png', { type: 'image/png' }),
+      ],
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog:
+        `${EXPORTED_GAME_LOG}\n` +
+        'Friday Mars: TR 18, Milestones 5, Awards 2, Total 61',
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message:
+        "Parsed 2 log events, 1 log score row, and 0 screenshot score rows. We'll use the log score breakdown where available.",
+      status: 'success',
+    });
+  });
+
+  it('uses the selected map option id as a manual map fallback when OCR cannot infer the board map', async () => {
+    mockState.getGroupSettings.mockResolvedValue({
+      defaultExpansionCodes: ['base'],
+      defaultMapId: 'map-tharsis',
+      defaultPromoSetSlugs: [],
+    });
+    mockState.listMaps.mockResolvedValue([
+      { code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' },
+    ]);
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      boardScreenshots: [
+        new File(['board'], 'board.png', { type: 'image/png' }),
+      ],
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'map-tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      status: 'success',
+    });
+  });
+
+  it('saves the selected map option id in the draft even when board parsing uses the map code', async () => {
+    mockState.getGroupSettings.mockResolvedValue({
+      defaultExpansionCodes: ['base'],
+      defaultMapId: 'map-tharsis',
+      defaultPromoSetSlugs: [],
+    });
+    mockState.listMaps.mockResolvedValue([
+      { code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' },
+    ]);
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const createDraftFormData = buildCreateImportDraftFormData({
+      boardScreenshots: [
+        new File(['board'], 'board.png', { type: 'image/png' }),
+      ],
+      confirmedPlayerLinks: [
+        {
+          importedName: 'Friday Mars',
+          playerId: 'player-1',
+        },
+      ],
+      endgameScreenshot: null,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'map-tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onCreateImportDraft(createDraftFormData);
+
+    expect(result).toMatchObject({
+      gameId: 'game-1',
+      status: 'success',
+    });
+    expect(mockState.saveDraftGame).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form: expect.objectContaining({
+          mapId: 'map-tharsis',
+        }),
+      }),
+    );
+  });
+
   it('creates an import draft through the real page action and persists the parsed output', async () => {
     const shellProps = await renderPageAndCaptureShellProps();
     const createDraftFormData = buildCreateImportDraftFormData({
-      boardScreenshots: [],
+      boardScreenshots: [
+        new File(['board'], 'board.png', { type: 'image/png' }),
+      ],
       confirmedPlayerLinks: [
         {
           importedName: 'Friday Mars',
@@ -392,7 +557,7 @@ describe('LogGameImportPage', () => {
           parsedEventCount: 2,
         },
         rawLogText: EXPORTED_GAME_LOG,
-        screenshots: [],
+        screenshots: [expect.objectContaining({ kind: 'board_state' })],
         userId: 'user-1',
       }),
     );
@@ -426,5 +591,58 @@ describe('LogGameImportPage', () => {
         rawLine: 'Friday Mars played Builder Hall',
       }),
     ]);
+  });
+
+  it('infers the map and generation count from uploaded evidence before saving the draft', async () => {
+    const { readEndgameScreenshot } = await import(
+      '@/lib/imports/read-endgame-screenshot'
+    );
+    const { readBoardStateScreenshot } = await import(
+      '@/lib/imports/card-scoring/read-board-state-screenshot'
+    );
+
+    vi.mocked(readEndgameScreenshot).mockResolvedValue([
+      'Victory point breakdown after 11 generations',
+      'Friday Mars 18 5 10 7 22 62 8',
+    ]);
+    vi.mocked(readBoardStateScreenshot).mockResolvedValue([
+      'Awards: Desert Settler, Celebrity',
+      'Milestones: Ecologist, Tycoon',
+    ]);
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const createDraftFormData = new FormData();
+    const endgameScreenshot = new File(['endgame'], 'vp-breakdown.png', {
+      type: 'image/png',
+    });
+    const boardScreenshot = new File(['board'], 'elysium-board.png', {
+      type: 'image/png',
+    });
+
+    createDraftFormData.set('playedOn', '2026-07-07');
+    createDraftFormData.set('playerCount', '1');
+    createDraftFormData.set('participants', 'Friday Mars');
+    createDraftFormData.set('exportedGameLog', EXPORTED_GAME_LOG);
+    createDraftFormData.set('endgameScreenshot', endgameScreenshot);
+    createDraftFormData.append('boardScreenshots', boardScreenshot);
+    createDraftFormData.set(
+      'confirmedPlayerLinks',
+      JSON.stringify([{ importedName: 'Friday Mars', playerId: 'player-1' }]),
+    );
+
+    const result = await shellProps.onCreateImportDraft(createDraftFormData);
+
+    expect(result).toMatchObject({
+      gameId: 'game-1',
+      status: 'success',
+    });
+    expect(mockState.saveDraftGame).toHaveBeenCalledWith(
+      expect.objectContaining({
+        form: expect.objectContaining({
+          generationCount: 11,
+          mapId: 'elysium',
+        }),
+      }),
+    );
   });
 });
