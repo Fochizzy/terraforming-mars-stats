@@ -93,7 +93,7 @@ describe('buildInsightCards', () => {
           bestTagLaneOnMap: 'science',
           gamesPlayed: 4,
           groupId: 'group-1',
-          mapId: 'tharsis',
+          mapId: '11111111-1111-4111-8111-111111111111',
           mapName: 'Tharsis',
           mapRankForPlayer: 1,
           playerId: 'p1',
@@ -112,7 +112,8 @@ describe('buildInsightCards', () => {
           gamesPlayed: 12,
           highestEfficiencyStyleCode: 'engine_builder',
           highestWinRateCorporationId: 'credicor',
-          mapId: 'hellas',
+          mapId: '22222222-2222-4222-8222-222222222222',
+          mapName: 'Hellas',
           playerCount: 7,
         },
       ],
@@ -237,14 +238,29 @@ describe('buildInsightCards', () => {
           averageGenerations: 10.4,
           averageNormalizedEfficiency: 1.02,
           averagePoints: 82.6,
-          averagePointsPerGeneration: 7.94,
+          averagePointsPerGeneration: 7.1,
           bestTagLane: 'building',
           expectedScoreBaseline: 81.5,
           gamesPlayed: 12,
           highestEfficiencyStyleCode: 'engine_builder',
           highestWinRateCorporationId: 'credicor',
-          mapId: 'hellas',
+          mapId: '22222222-2222-4222-8222-222222222222',
+          mapName: 'Hellas',
           playerCount: 7,
+        },
+        {
+          averageGenerations: 10.1,
+          averageNormalizedEfficiency: 1.08,
+          averagePoints: 84.6,
+          averagePointsPerGeneration: 8.38,
+          bestTagLane: 'science',
+          expectedScoreBaseline: 80.2,
+          gamesPlayed: 5,
+          highestEfficiencyStyleCode: 'science_engine',
+          highestWinRateCorporationId: 'teractor',
+          mapId: '33333333-3333-4333-8333-333333333333',
+          mapName: 'Elysium',
+          playerCount: 4,
         },
       ],
     } as never);
@@ -253,10 +269,10 @@ describe('buildInsightCards', () => {
     expect(cards[0]).toMatchObject({
       title: 'Global Map Baseline',
       tone: 'performance',
-      sampleSize: 12,
+      sampleSize: 5,
     });
-    expect(cards[0].body).toMatch(/hellas/i);
-    expect(cards[0].body).toMatch(/7.94 pts\/gen/i);
-    expect(cards[0].body).toMatch(/baseline 81.5/i);
+    expect(cards[0].body).toMatch(/elysium/i);
+    expect(cards[0].body).toMatch(/8.38 pts\/gen/i);
+    expect(cards[0].body).toMatch(/baseline 80.2/i);
   });
 });

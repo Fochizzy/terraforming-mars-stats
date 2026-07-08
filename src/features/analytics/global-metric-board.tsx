@@ -55,7 +55,7 @@ export function GlobalMetricBoard({
             const metaLine = buildMetaLine(row);
 
             return (
-              <article className="tm-stat-card" key={row.mapId}>
+              <article className="tm-stat-card" key={`${row.mapId}-${row.playerCount}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-stone-100">

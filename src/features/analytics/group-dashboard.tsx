@@ -11,7 +11,6 @@ import type {
   ScoreSourceAverages,
   StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
-import { EfficiencySummary } from './efficiency-summary';
 import { GlobalMetricBoard } from './global-metric-board';
 import { MapPerformanceList } from './map-performance-list';
 import { ScoreSourceList } from './score-source-list';
@@ -159,7 +158,6 @@ export function GroupDashboard({
           </div>
         </ChartFrame>
       ) : null}
-      <EfficiencySummary efficiencySummary={topEfficiencySummary} />
       <MapPerformanceList mapMetricRows={playerMapMetricRows} />
       <GlobalMetricBoard globalMapMetricRows={globalMapMetricRows} />
       <ChartFrame title="Score Source Averages">

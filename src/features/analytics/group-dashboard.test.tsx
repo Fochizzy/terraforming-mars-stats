@@ -91,7 +91,7 @@ describe('GroupDashboard', () => {
           bestTagLaneOnMap: 'science',
           gamesPlayed: 4,
           groupId: 'group-1',
-          mapId: 'tharsis',
+          mapId: '11111111-1111-4111-8111-111111111111',
           mapName: 'Tharsis',
           mapRankForPlayer: 1,
           playerId: 'p1',
@@ -110,7 +110,8 @@ describe('GroupDashboard', () => {
           gamesPlayed: 12,
           highestEfficiencyStyleCode: 'engine_builder',
           highestWinRateCorporationId: 'credicor',
-          mapId: 'hellas',
+          mapId: '22222222-2222-4222-8222-222222222222',
+          mapName: 'Hellas',
           playerCount: 7,
         },
       ],
@@ -160,7 +161,9 @@ describe('GroupDashboard', () => {
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
     expect(screen.getByText(/declared style coverage/i)).toBeInTheDocument();
     expect(screen.getByText(/3-1-0 over 4 games/i)).toBeInTheDocument();
-    expect(screen.getByText(/efficiency summary/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /persisted efficiency/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /efficiency summary/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/top player/i)).toBeInTheDocument();
     expect(screen.getAllByText(/8.45 pts\/gen/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/map performance/i)).toBeInTheDocument();
     expect(screen.getByText(/tharsis/i)).toBeInTheDocument();

@@ -193,7 +193,8 @@ describe('persisted metric mappers', () => {
       games_played: '10',
       highest_efficiency_style_code: 'engine',
       highest_win_rate_corporation_id: 'corp-1',
-      map_id: 'map-a',
+      map_id: '11111111-1111-4111-8111-111111111111',
+      maps: { name: 'Tharsis' },
       player_count: '4',
     } satisfies RawGlobalMapMetricRow;
 
@@ -213,6 +214,8 @@ describe('persisted metric mappers', () => {
     expect(mapGlobalMapMetricRow(globalRow)).toMatchObject({
       averagePointsPerGeneration: 8,
       expectedScoreBaseline: 79.5,
+      mapId: '11111111-1111-4111-8111-111111111111',
+      mapName: 'Tharsis',
       playerCount: 4,
     });
   });
@@ -546,7 +549,8 @@ describe('getGroupAnalytics', () => {
           games_played: 6,
           highest_efficiency_style_code: 'engine',
           highest_win_rate_corporation_id: 'corp-1',
-          map_id: 'map-a',
+          map_id: '11111111-1111-4111-8111-111111111111',
+          maps: { name: 'Tharsis' },
           player_count: 4,
         },
       ],
@@ -564,7 +568,8 @@ describe('getGroupAnalytics', () => {
           gamesPlayed: 6,
           highestEfficiencyStyleCode: 'engine',
           highestWinRateCorporationId: 'corp-1',
-          mapId: 'map-a',
+          mapId: '11111111-1111-4111-8111-111111111111',
+          mapName: 'Tharsis',
           playerCount: 4,
         },
       ],
@@ -627,6 +632,9 @@ describe('getGroupAnalytics', () => {
     expect(publicQueries.has('player_map_metric_summaries')).toBe(true);
     expect(globalQuery?.select).toHaveBeenCalledWith(
       expect.stringContaining('expected_score_baseline'),
+    );
+    expect(globalQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('maps(name)'),
     );
     expect(globalQuery?.order).toHaveBeenCalledWith('games_played', {
       ascending: false,
