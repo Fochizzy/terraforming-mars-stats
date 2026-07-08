@@ -216,6 +216,24 @@ function resolveImportMapSelection(input: {
   throw new Error('Choose the map at the top before continuing.');
 }
 
+function buildMapScoreReferences(input: {
+  awardOptions: Awaited<ReturnType<typeof listMapAwards>>;
+  mapId: string;
+  milestoneOptions: Awaited<ReturnType<typeof listMapMilestones>>;
+}) {
+  return {
+    awardReferences: input.awardOptions
+      .filter((option) => option.mapId === input.mapId)
+      .map((option) => ({ id: option.awardId, name: option.awardName })),
+    milestoneReferences: input.milestoneOptions
+      .filter((option) => option.mapId === input.mapId)
+      .map((option) => ({
+        id: option.milestoneId,
+        name: option.milestoneName,
+      })),
+  };
+}
+
 function resolveImportGenerationCount(input: {
   parsedGameLog: ReturnType<typeof parseGameLog>;
   parsedScreenshot: ParsedEndgameScoreScreenshot;
@@ -258,21 +276,30 @@ function buildGameResultScreenshotParse(input: {
   } as const;
 }
 
-function buildExpectedCardPointTotalsByPlayerName(input: {
-  logScoreCandidates: Array<{ cardPointsTotal?: number; playerName: string }>;
+function buildExpectedPointTotalsByPlayerName(input: {
+  field: 'awardPoints' | 'cardPointsTotal' | 'milestonePoints';
+  logScoreCandidates: Array<
+    { playerName: string } & Partial<
+      Record<'awardPoints' | 'cardPointsTotal' | 'milestonePoints', number>
+    >
+  >;
   screenshotScoreCandidates: ParsedEndgameScoreScreenshot['playerRows'];
 }) {
   const totalsByPlayerName: Record<string, number> = {};
 
   for (const candidate of input.logScoreCandidates) {
-    if (typeof candidate.cardPointsTotal === 'number') {
-      totalsByPlayerName[candidate.playerName] = candidate.cardPointsTotal;
+    const value = candidate[input.field];
+
+    if (typeof value === 'number') {
+      totalsByPlayerName[candidate.playerName] = value;
     }
   }
 
   for (const candidate of input.screenshotScoreCandidates) {
-    if (typeof candidate.cardPointsTotal === 'number') {
-      totalsByPlayerName[candidate.playerName] = candidate.cardPointsTotal;
+    const value = candidate[input.field];
+
+    if (typeof value === 'number') {
+      totalsByPlayerName[candidate.playerName] = value;
     }
   }
 
@@ -284,10 +311,12 @@ function buildUniquePlayerNames(names: string[]) {
 }
 
 async function parseGameResultEvidence(input: {
+  awardReferences: Array<{ id: string; name: string }>;
   cardReferences: Awaited<ReturnType<typeof listCardScoringReferences>>;
   expectedPlayerCount: number;
   expectedPlayerNames: string[];
   file: File | null;
+  milestoneReferences: Array<{ id: string; name: string }>;
   parsedGameLog: ReturnType<typeof parseGameLog>;
   rawLogText: string;
   screenshotOcr: ScreenshotOcrPayload | null;
@@ -297,8 +326,11 @@ async function parseGameResultEvidence(input: {
     playerRows: [],
   };
   let parsedScoreDetails: ParsedScoreDetailsScreenshot = {
+    awardPlacements: [],
     cardScoring: [],
     detectedPlayerNames: [],
+    efficiencies: [],
+    milestoneClaims: [],
   };
 
   try {
@@ -327,14 +359,29 @@ async function parseGameResultEvidence(input: {
         screenshotRead.scoreDetailsColumns.length > 0
       ) {
         parsedScoreDetails = parseScoreDetailsScreenshot({
+          awardReferences: input.awardReferences,
           cardReferences: input.cardReferences,
           events: input.parsedGameLog.events,
+          expectedAwardPointsByPlayerName:
+            buildExpectedPointTotalsByPlayerName({
+              field: 'awardPoints',
+              logScoreCandidates: initialLogScoreCandidates,
+              screenshotScoreCandidates: parsedScreenshot.playerRows,
+            }),
           expectedCardPointTotalsByPlayerName:
-            buildExpectedCardPointTotalsByPlayerName({
+            buildExpectedPointTotalsByPlayerName({
+              field: 'cardPointsTotal',
+              logScoreCandidates: initialLogScoreCandidates,
+              screenshotScoreCandidates: parsedScreenshot.playerRows,
+            }),
+          expectedMilestonePointsByPlayerName:
+            buildExpectedPointTotalsByPlayerName({
+              field: 'milestonePoints',
               logScoreCandidates: initialLogScoreCandidates,
               screenshotScoreCandidates: parsedScreenshot.playerRows,
             }),
           expectedPlayerNames: initialImportedNames,
+          milestoneReferences: input.milestoneReferences,
           ocrColumns: screenshotRead.scoreDetailsColumns,
         });
       }
@@ -396,8 +443,22 @@ export default async function LogGameImportPage() {
         values.participantNames.length > 0
           ? values.participantNames
           : extractGameLogParticipantNames(parsedGameLog);
-      const cardReferences = await listCardScoringReferences();
+      const analyzeMapSelection = resolveImportMapSelection({
+        mapOptions,
+        submittedMapId: values.mapId,
+      });
+      const [cardReferences, analyzeAwardOptions, analyzeMilestoneOptions] =
+        await Promise.all([
+          listCardScoringReferences(),
+          listMapAwards(),
+          listMapMilestones(),
+        ]);
       const screenshotEvidence = await parseGameResultEvidence({
+        ...buildMapScoreReferences({
+          awardOptions: analyzeAwardOptions,
+          mapId: analyzeMapSelection.draftMapId,
+          milestoneOptions: analyzeMilestoneOptions,
+        }),
         cardReferences,
         expectedPlayerCount: Math.max(
           values.playerCount,
@@ -410,10 +471,6 @@ export default async function LogGameImportPage() {
         screenshotOcr: values.screenshotOcr,
       });
 
-      resolveImportMapSelection({
-        mapOptions,
-        submittedMapId: values.mapId,
-      });
       resolveImportGenerationCount({
         parsedGameLog,
         parsedScreenshot: screenshotEvidence.parsedScreenshot,
@@ -449,6 +506,13 @@ export default async function LogGameImportPage() {
           logParse: parsedGameLog,
           playerLinks,
           screenshotParse: screenshotEvidence.parsedScreenshot,
+          screenshotScoreDetails: {
+            awardPlacements:
+              screenshotEvidence.parsedScoreDetails.awardPlacements,
+            efficiencies: screenshotEvidence.parsedScoreDetails.efficiencies,
+            milestoneClaims:
+              screenshotEvidence.parsedScoreDetails.milestoneClaims,
+          },
         }),
       };
     } catch (error) {
@@ -488,8 +552,33 @@ export default async function LogGameImportPage() {
         throw new Error('Sign in again before saving this import.');
       }
 
-      const cardScoringReferences = await listCardScoringReferences();
+      const resolvedMapSelection = resolveImportMapSelection({
+        mapOptions,
+        submittedMapId: values.mapId,
+      });
+      const [
+        cardScoringReferences,
+        awardOptions,
+        cards,
+        corporationOptions,
+        milestoneOptions,
+        preludeOptions,
+        styleOptions,
+      ] = await Promise.all([
+        listCardScoringReferences(),
+        listMapAwards(),
+        listCards(),
+        listCorporations(),
+        listMapMilestones(),
+        listPreludes(),
+        listStyles(),
+      ]);
       const screenshotEvidence = await parseGameResultEvidence({
+        ...buildMapScoreReferences({
+          awardOptions,
+          mapId: resolvedMapSelection.draftMapId,
+          milestoneOptions,
+        }),
         cardReferences: cardScoringReferences,
         expectedPlayerCount: Math.max(
           values.playerCount,
@@ -567,25 +656,6 @@ export default async function LogGameImportPage() {
       }
 
       const activeGroupSettings = await getGroupSettings(importGroup.groupId);
-      const [
-        awardOptions,
-        cards,
-        corporationOptions,
-        milestoneOptions,
-        preludeOptions,
-        styleOptions,
-      ] = await Promise.all([
-        listMapAwards(),
-        listCards(),
-        listCorporations(),
-        listMapMilestones(),
-        listPreludes(),
-        listStyles(),
-      ]);
-      const resolvedMapSelection = resolveImportMapSelection({
-        mapOptions,
-        submittedMapId: values.mapId,
-      });
       const resolvedGenerationCount = resolveImportGenerationCount({
         parsedGameLog,
         parsedScreenshot: screenshotEvidence.parsedScreenshot,
@@ -611,6 +681,10 @@ export default async function LogGameImportPage() {
         playerSelections: confirmedPlayerLinks,
         preludeOptions,
         scoreCandidates: screenshotEvidence.parsedScreenshot.playerRows,
+        screenshotScoreDetails: {
+          awardPlacements: screenshotEvidence.parsedScoreDetails.awardPlacements,
+          milestoneClaims: screenshotEvidence.parsedScoreDetails.milestoneClaims,
+        },
         selectedPlayerIds: importGroup.selectedPlayerIds,
         styleOptions,
       });

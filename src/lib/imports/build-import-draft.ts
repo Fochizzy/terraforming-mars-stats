@@ -3,6 +3,10 @@ import { buildImportDraftNotes } from './build-import-draft-notes';
 import type { ParsedCardPointBreakdown, ParsedGameLog } from './parse-game-log';
 import type { ParsedEndgameScoreScreenshot } from './parse-endgame-score-screenshot';
 import type {
+  ParsedScreenshotAwardPlacement,
+  ParsedScreenshotMilestoneClaim,
+} from './parse-score-details-screenshot';
+import type {
   CardOption,
   CorporationOption,
   MapAwardOption,
@@ -84,6 +88,10 @@ export function buildImportDraft(input: {
   playerSelections?: Array<{ importedName: string; playerId: string }>;
   preludeOptions?: PreludeOption[];
   scoreCandidates?: ParsedEndgameScoreScreenshot['playerRows'];
+  screenshotScoreDetails?: {
+    awardPlacements: ParsedScreenshotAwardPlacement[];
+    milestoneClaims: ParsedScreenshotMilestoneClaim[];
+  };
   selectedPlayerIds: string[];
   styleOptions?: StyleOption[];
 }): LogGameDraftInput {
@@ -326,6 +334,66 @@ export function buildImportDraft(input: {
         existingClaim.secondPlaceWinnerPlayerIds.length > 0
           ? existingClaim.secondPlaceWinnerPlayerIds
           : secondPlaceWinnerPlayerIds,
+    };
+  }
+
+  // Screenshot score-details evidence fills whatever the log did not already
+  // establish (award placements in particular are absent from exported logs).
+  for (const claim of input.screenshotScoreDetails?.milestoneClaims ?? []) {
+    const milestoneId =
+      claim.matchedMilestoneId ??
+      milestoneIdByName.get(normalizePlayerAlias(claim.milestoneName));
+    const playerId = playerIdByImportedName.get(
+      normalizePlayerAlias(claim.playerName),
+    );
+
+    if (!milestoneId || !playerId || milestoneClaims[milestoneId]) {
+      continue;
+    }
+
+    milestoneClaims[milestoneId] = {
+      claimed: true,
+      winnerPlayerId: playerId,
+    };
+  }
+
+  for (const placement of input.screenshotScoreDetails?.awardPlacements ?? []) {
+    const awardId =
+      placement.matchedAwardId ??
+      awardIdByName.get(normalizePlayerAlias(placement.awardName));
+    const playerId = playerIdByImportedName.get(
+      normalizePlayerAlias(placement.playerName),
+    );
+
+    if (!awardId || !playerId) {
+      continue;
+    }
+
+    const existingClaim = awardClaims[awardId] ?? {
+      firstPlaceWinnerPlayerIds: [],
+      funded: false,
+      fundedByPlayerId: '',
+      secondPlaceWinnerPlayerIds: [],
+    };
+    const fundedByPlayerId = placement.fundedByPlayerName
+      ? playerIdByImportedName.get(
+          normalizePlayerAlias(placement.fundedByPlayerName),
+        ) ?? ''
+      : '';
+
+    awardClaims[awardId] = {
+      firstPlaceWinnerPlayerIds:
+        placement.placement === 1 &&
+        !existingClaim.firstPlaceWinnerPlayerIds.includes(playerId)
+          ? [...existingClaim.firstPlaceWinnerPlayerIds, playerId]
+          : existingClaim.firstPlaceWinnerPlayerIds,
+      funded: existingClaim.funded || Boolean(fundedByPlayerId),
+      fundedByPlayerId: existingClaim.fundedByPlayerId || fundedByPlayerId,
+      secondPlaceWinnerPlayerIds:
+        placement.placement === 2 &&
+        !existingClaim.secondPlaceWinnerPlayerIds.includes(playerId)
+          ? [...existingClaim.secondPlaceWinnerPlayerIds, playerId]
+          : existingClaim.secondPlaceWinnerPlayerIds,
     };
   }
 

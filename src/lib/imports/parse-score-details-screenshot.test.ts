@@ -6,7 +6,7 @@ const cardReferences = [
   { cardName: 'Natural Preserve', id: 'card-natural-preserve' },
   { cardName: 'Space Station', id: 'card-space-station' },
   { cardName: 'Space Elevator', id: 'card-space-elevator' },
-  { cardName: 'Vermin', id: 'card-vermin' },
+  { cardName: 'Vermin', id: 'card-vermin', sourceTags: ['Microbe'] },
 ];
 
 describe('parseScoreDetailsScreenshot', () => {
@@ -53,6 +53,7 @@ describe('parseScoreDetailsScreenshot', () => {
         ],
       }),
     ).toEqual({
+      awardPlacements: [],
       cardScoring: [
         {
           autoScoredCards: [
@@ -68,7 +69,7 @@ describe('parseScoreDetailsScreenshot', () => {
             {
               cardId: 'card-vermin',
               cardName: 'Vermin',
-              category: 'other',
+              category: 'microbes',
               evidenceSummary: 'Direct score details screenshot: -2 VP.',
               humanSummary: 'Read from score details screenshot.',
               points: -2,
@@ -81,8 +82,8 @@ describe('parseScoreDetailsScreenshot', () => {
             animals: 0,
             complete: true,
             jovian: 0,
-            microbes: 0,
-            other: 0,
+            microbes: -2,
+            other: 2,
             total: 0,
           },
         },
@@ -120,6 +121,141 @@ describe('parseScoreDetailsScreenshot', () => {
         },
       ],
       detectedPlayerNames: ['James', 'Izzy'],
+      efficiencies: [
+        {
+          efficiency: 0.43,
+          playerName: 'James',
+        },
+        {
+          efficiency: -0.29,
+          playerName: 'Izzy',
+        },
+      ],
+      milestoneClaims: [
+        {
+          matchedMilestoneId: null,
+          milestoneName: 'Tactician',
+          playerName: 'James',
+          points: 5,
+        },
+        {
+          matchedMilestoneId: null,
+          milestoneName: 'Diversifier',
+          playerName: 'Izzy',
+          points: 5,
+        },
+      ],
     });
+  });
+
+  it('extracts milestones and award placements from noisy OCR lines and reconciles points against the table totals', () => {
+    const parsed = parseScoreDetailsScreenshot({
+      awardReferences: [
+        { id: 'award-space-baron', name: 'Space Baron' },
+        { id: 'award-excentric', name: 'Excentric' },
+        { id: 'award-contractor', name: 'Contractor' },
+      ],
+      cardReferences: [],
+      events: [],
+      expectedAwardPointsByPlayerName: { James: 15 },
+      expectedMilestonePointsByPlayerName: { James: 5 },
+      expectedPlayerNames: ['James', 'Izzy'],
+      milestoneReferences: [{ id: 'milestone-tactician', name: 'Tactician' }],
+      ocrColumns: [
+        {
+          // Real OCR variants captured from the combined-result fixture: the
+          // point values are misread ("9", "3)", "o") and the award names
+          // wrap onto "award (funded by ...)" continuation lines.
+          textLines: [
+            'James',
+            'Efficiency: +043',
+            'Efficiency: +0.43',
+            'Claimed Tactician 9',
+            'milestone',
+            '1st place for Space Baron 9',
+            'award (funded by James)',
+            '1st place for Excentnc o',
+            'award (funded by Izzy)',
+            '1st place for Contractor o',
+            'Claimed Tactician 3)',
+            '1st place for Space Baron §',
+            '1st place for Excentric d',
+            'Claimed Tactician o',
+            '1st place for Excentnic 4)',
+          ],
+        },
+      ],
+    });
+
+    expect(parsed.efficiencies).toEqual([
+      {
+        efficiency: 0.43,
+        playerName: 'James',
+      },
+    ]);
+    expect(parsed.milestoneClaims).toEqual([
+      {
+        matchedMilestoneId: 'milestone-tactician',
+        milestoneName: 'Tactician',
+        playerName: 'James',
+        points: 5,
+      },
+    ]);
+    expect(parsed.awardPlacements).toHaveLength(3);
+    expect(
+      parseScoreDetailsScreenshot({
+        awardReferences: [{ id: 'award-cultivator', name: 'Cultivator' }],
+        cardReferences: [],
+        events: [],
+        expectedAwardPointsByPlayerName: { Corey: 2 },
+        expectedPlayerNames: ['Corey'],
+        ocrColumns: [
+          {
+            textLines: [
+              'Corey',
+              '2nd place for Cultivator 2',
+              'award (funded by James)',
+            ],
+          },
+        ],
+      }).awardPlacements,
+    ).toEqual([
+      {
+        awardName: 'Cultivator',
+        fundedByPlayerName: 'James',
+        matchedAwardId: 'award-cultivator',
+        placement: 2,
+        playerName: 'Corey',
+        points: 2,
+      },
+    ]);
+    expect(parsed.awardPlacements).toEqual(
+      expect.arrayContaining([
+        {
+          awardName: 'Space Baron',
+          fundedByPlayerName: 'James',
+          matchedAwardId: 'award-space-baron',
+          placement: 1,
+          playerName: 'James',
+          points: 5,
+        },
+        {
+          awardName: 'Excentric',
+          fundedByPlayerName: 'Izzy',
+          matchedAwardId: 'award-excentric',
+          placement: 1,
+          playerName: 'James',
+          points: 5,
+        },
+        {
+          awardName: 'Contractor',
+          fundedByPlayerName: null,
+          matchedAwardId: 'award-contractor',
+          placement: 1,
+          playerName: 'James',
+          points: 5,
+        },
+      ]),
+    );
   });
 });

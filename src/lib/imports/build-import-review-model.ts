@@ -4,7 +4,18 @@ import type { ParsedGameLog } from './parse-game-log';
 import { extractGameLogParticipantNames } from './extract-game-log-participant-names';
 import { normalizePlayerAlias } from './normalize-player-alias';
 import type { ImportPlayerCardScoringSummary } from './card-scoring/card-scoring-types';
+import type {
+  ParsedScreenshotAwardPlacement,
+  ParsedScreenshotEfficiency,
+  ParsedScreenshotMilestoneClaim,
+} from './parse-score-details-screenshot';
 import type { CuratedBoardImportItem } from './score-curated-board-import-items';
+
+export type ImportScreenshotScoreDetails = {
+  awardPlacements: ParsedScreenshotAwardPlacement[];
+  efficiencies: ParsedScreenshotEfficiency[];
+  milestoneClaims: ParsedScreenshotMilestoneClaim[];
+};
 
 export type ImportScoreCrossCheck = {
   conflictingFields: string[];
@@ -25,6 +36,7 @@ export type ImportReviewModel = {
   requiresPlayerConfirmation: boolean;
   scoreCrossChecks?: ImportScoreCrossCheck[];
   scoreCandidates: ParsedEndgameScoreScreenshot['playerRows'];
+  screenshotScoreDetails?: ImportScreenshotScoreDetails;
 };
 
 const scoreCrossCheckFields = [
@@ -137,6 +149,7 @@ export function buildImportReviewModel(input: {
     unresolvedCount: number;
   };
   screenshotParse: ParsedEndgameScoreScreenshot;
+  screenshotScoreDetails?: ImportScreenshotScoreDetails;
 }): ImportReviewModel {
   const logScoreCandidates = input.logScoreCandidates ?? [];
 
@@ -155,5 +168,10 @@ export function buildImportReviewModel(input: {
       screenshotScoreCandidates: input.screenshotParse.playerRows,
     }),
     scoreCandidates: input.screenshotParse.playerRows,
+    screenshotScoreDetails: input.screenshotScoreDetails ?? {
+      awardPlacements: [],
+      efficiencies: [],
+      milestoneClaims: [],
+    },
   };
 }

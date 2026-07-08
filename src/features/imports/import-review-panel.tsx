@@ -149,6 +149,15 @@ export function ImportReviewPanel({
   const hasScoreConflicts = scoreCrossChecks.some(
     (check) => check.status === 'conflict',
   );
+  const screenshotScoreDetails = review.screenshotScoreDetails ?? {
+    awardPlacements: [],
+    efficiencies: [],
+    milestoneClaims: [],
+  };
+  const hasScreenshotScoreDetails =
+    screenshotScoreDetails.awardPlacements.length > 0 ||
+    screenshotScoreDetails.efficiencies.length > 0 ||
+    screenshotScoreDetails.milestoneClaims.length > 0;
   const shouldExplainLogScoreFallback =
     logScoreCandidates.length > 0 && review.scoreCandidates.length === 0;
 
@@ -273,6 +282,48 @@ export function ImportReviewPanel({
         suppressedManualReviewTargets={boardReviewJumpTargets}
         summaries={cardScoring}
       />
+      {hasScreenshotScoreDetails ? (
+        <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-4">
+          <h3 className="tm-data-label text-xs">
+            Milestones, Awards &amp; Efficiency (Screenshot)
+          </h3>
+          <ul className="mt-3 flex flex-col gap-2 text-sm text-emerald-50">
+            {screenshotScoreDetails.milestoneClaims.map((claim) => (
+              <li key={`milestone-${claim.playerName}-${claim.milestoneName}`}>
+                {claim.playerName} claimed the {claim.milestoneName} milestone
+                for {claim.points} VP
+                {claim.matchedMilestoneId
+                  ? ''
+                  : ' (milestone name not recognized for this map)'}
+                .
+              </li>
+            ))}
+            {screenshotScoreDetails.awardPlacements.map((placement) => (
+              <li
+                key={`award-${placement.playerName}-${placement.awardName}-${placement.placement}`}
+              >
+                {placement.playerName} took{' '}
+                {placement.placement === 1 ? '1st' : '2nd'} place for the{' '}
+                {placement.awardName} award for {placement.points} VP
+                {placement.fundedByPlayerName
+                  ? ` (funded by ${placement.fundedByPlayerName})`
+                  : ''}
+                {placement.matchedAwardId
+                  ? ''
+                  : ' (award name not recognized for this map)'}
+                .
+              </li>
+            ))}
+            {screenshotScoreDetails.efficiencies.map((entry) => (
+              <li key={`efficiency-${entry.playerName}`}>
+                {entry.playerName} efficiency:{' '}
+                {entry.efficiency > 0 ? '+' : ''}
+                {entry.efficiency}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <ImportPlayerResolutionPanel
         creatingImportedName={creatingImportedName}
         onCreatePlayer={onCreatePlayer}

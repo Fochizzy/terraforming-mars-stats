@@ -135,11 +135,14 @@ export async function readGameResultScreenshot(
       width: size.width,
     }),
   ]);
+  // Starts at 50% so the per-player column headers (name + efficiency line,
+  // around 53-55% on combined-result captures) are included, not just the
+  // card list below them.
   const scoreDetailsCropBuffer = await ops.transformImage(imageBuffer, {
     crop: {
-      height: size.height - Math.floor(size.height * 0.6),
+      height: size.height - Math.floor(size.height * 0.5),
       left: 0,
-      top: Math.floor(size.height * 0.6),
+      top: Math.floor(size.height * 0.5),
       width: Math.max(1, Math.floor(size.width * 0.42)),
     },
   });
