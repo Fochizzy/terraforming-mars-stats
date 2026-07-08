@@ -135,6 +135,100 @@ describe('InsightsDashboard', () => {
               playerCount: 7,
             },
           ],
+          globalCorporationMetricRows: [
+            {
+              averageNormalizedEfficiency: 1.11,
+              averagePoints: 86.2,
+              averagePointsPerGeneration: 8.62,
+              corporationId: 'corp-1',
+              corporationName: 'CrediCor',
+              gamesPlayed: 8,
+              mapId: '22222222-2222-4222-8222-222222222222',
+              mapName: 'Hellas',
+              playerCount: 4,
+              winRate: 0.625,
+              wins: 5,
+            },
+          ],
+          globalStyleMetricRows: [
+            {
+              averageNormalizedEfficiency: 1.09,
+              averagePoints: 84.1,
+              averagePointsPerGeneration: 8.41,
+              gamesPlayed: 7,
+              mapId: null,
+              mapName: null,
+              playerCount: 4,
+              styleCode: 'engine_builder',
+              winRate: 0.571,
+              wins: 4,
+            },
+          ],
+          globalTagMetricRows: [
+            {
+              averageNormalizedEfficiency: 1.14,
+              averagePoints: 88.3,
+              averagePointsPerGeneration: 8.83,
+              averageTagCount: 6.4,
+              gamesPlayed: 9,
+              mapId: null,
+              mapName: null,
+              playerCount: 4,
+              tagCode: 'science',
+              winRate: 0.667,
+              wins: 6,
+            },
+          ],
+          globalMilestoneMetricRows: [
+            {
+              averageClaimedGeneration: 6.5,
+              averageWinnerPointsPerGeneration: 8.9,
+              gamesPlayed: 6,
+              mapId: null,
+              mapName: null,
+              milestoneId: 'milestone-1',
+              milestoneName: 'Gardener',
+              milestoneWinnerWinRate: 0.5,
+              playerCount: 4,
+              winnerWins: 3,
+            },
+          ],
+          globalAwardMetricRows: [
+            {
+              averageAwardRoi: -1.25,
+              averageFundedGeneration: 7.25,
+              awardId: 'award-1',
+              awardName: 'Banker',
+              awardWinnerWinRate: 0.5,
+              funderSuccessRate: 0.75,
+              funderWins: 2,
+              gamesPlayed: 4,
+              mapId: null,
+              mapName: null,
+              playerCount: 4,
+              winnerFunderMismatchRate: 0.25,
+              winnerWins: 2,
+            },
+          ],
+          globalPlayerCountMetricRows: [
+            {
+              averageGenerations: 10.5,
+              averagePoints: 83.4,
+              averagePointsPerGeneration: 7.94,
+              expectedScoreBaseline: 82.1,
+              gamesPlayed: 11,
+              playerCount: 4,
+            },
+          ],
+          globalGenerationMetricRows: [
+            {
+              averagePoints: 85.7,
+              averagePointsPerGeneration: 8.57,
+              expectedScoreBaseline: 84.2,
+              gamesPlayed: 5,
+              generationCount: 10,
+            },
+          ],
           lineupEffectRows: [
             {
               averageGenerationCount: 10.7,
@@ -343,6 +437,9 @@ describe('InsightsDashboard', () => {
     expect(screen.getAllByText(/8.45 pts\/gen/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: /Global Map Meta/i })).toBeInTheDocument();
     expect(screen.getAllByText(/hellas/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: /Global Corporation Meta/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Global Award Meta/i })).toBeInTheDocument();
+    expect(screen.getByText(/4-player games/i)).toBeInTheDocument();
     expect(screen.getAllByText(/persisted efficiency/i).length).toBeGreaterThan(0);
     expect(
       screen.getByRole('heading', { name: /Interaction Insights/i }),

@@ -3,10 +3,24 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   getGroupAnalytics,
   getProfileAnalytics,
+  mapGlobalAwardMetricRow,
+  mapGlobalCorporationMetricRow,
+  mapGlobalGenerationMetricRow,
   mapGlobalMapMetricRow,
+  mapGlobalMilestoneMetricRow,
+  mapGlobalPlayerCountMetricRow,
+  mapGlobalStyleMetricRow,
+  mapGlobalTagMetricRow,
   mapPlayerEfficiencySummary,
   mapPlayerMapMetricRow,
+  type RawGlobalAwardMetricRow,
+  type RawGlobalCorporationMetricRow,
+  type RawGlobalGenerationMetricRow,
   type RawGlobalMapMetricRow,
+  type RawGlobalMilestoneMetricRow,
+  type RawGlobalPlayerCountMetricRow,
+  type RawGlobalStyleMetricRow,
+  type RawGlobalTagMetricRow,
   type RawPlayerEfficiencySummaryRow,
   type RawPlayerMapMetricRow,
 } from './analytics-repo';
@@ -198,6 +212,86 @@ describe('persisted metric mappers', () => {
       maps: { name: 'Tharsis' },
       player_count: '4',
     } satisfies RawGlobalMapMetricRow;
+    const corporationRow = {
+      average_normalized_efficiency: '1.1100',
+      average_points: '86.2000',
+      average_points_per_generation: '8.6200',
+      corporation_id: 'corp-1',
+      corporations: { name: 'CrediCor' },
+      games_played: '8',
+      map_id: 'map-b',
+      maps: { name: 'Hellas' },
+      player_count: '4',
+      win_rate: '0.6250',
+      wins: '5',
+    } satisfies RawGlobalCorporationMetricRow;
+    const styleRow = {
+      average_normalized_efficiency: '1.0900',
+      average_points: '84.1000',
+      average_points_per_generation: '8.4100',
+      games_played: '7',
+      map_id: null,
+      maps: null,
+      player_count: '4',
+      style_code: 'engine_builder',
+      win_rate: '0.5714',
+      wins: '4',
+    } satisfies RawGlobalStyleMetricRow;
+    const tagRow = {
+      average_normalized_efficiency: '1.1400',
+      average_points: '88.3000',
+      average_points_per_generation: '8.8300',
+      average_tag_count: '6.4000',
+      games_played: '9',
+      map_id: null,
+      maps: null,
+      player_count: '4',
+      tag_code: 'science',
+      win_rate: '0.6667',
+      wins: '6',
+    } satisfies RawGlobalTagMetricRow;
+    const milestoneRow = {
+      average_claimed_generation: '6.5000',
+      average_winner_points_per_generation: '8.9000',
+      games_played: '6',
+      map_id: null,
+      maps: null,
+      milestone_id: 'milestone-1',
+      milestones: [{ name: 'Gardener' }],
+      milestone_winner_win_rate: '0.5000',
+      player_count: '4',
+      winner_wins: '3',
+    } satisfies RawGlobalMilestoneMetricRow;
+    const awardRow = {
+      average_award_roi: '-1.2500',
+      average_funded_generation: '7.2500',
+      award_id: 'award-1',
+      awards: { name: 'Banker' },
+      award_winner_win_rate: '0.5000',
+      funder_success_rate: '0.7500',
+      funder_wins: '2',
+      games_played: '4',
+      map_id: null,
+      maps: null,
+      player_count: '4',
+      winner_funder_mismatch_rate: '0.2500',
+      winner_wins: '2',
+    } satisfies RawGlobalAwardMetricRow;
+    const playerCountRow = {
+      average_generations: '10.5000',
+      average_points: '83.4000',
+      average_points_per_generation: '7.9400',
+      expected_score_baseline: '82.1000',
+      games_played: '11',
+      player_count: '4',
+    } satisfies RawGlobalPlayerCountMetricRow;
+    const generationRow = {
+      average_points: '85.7000',
+      average_points_per_generation: '8.5700',
+      expected_score_baseline: '84.2000',
+      games_played: '5',
+      generation_count: '10',
+    } satisfies RawGlobalGenerationMetricRow;
 
     expect(mapPlayerEfficiencySummary(efficiencyRow)).toMatchObject({
       averageAwardRoi: 1.25,
@@ -218,6 +312,45 @@ describe('persisted metric mappers', () => {
       mapId: '11111111-1111-4111-8111-111111111111',
       mapName: 'Tharsis',
       playerCount: 4,
+    });
+    expect(mapGlobalCorporationMetricRow(corporationRow)).toMatchObject({
+      averagePointsPerGeneration: 8.62,
+      corporationName: 'CrediCor',
+      gamesPlayed: 8,
+      mapName: 'Hellas',
+      winRate: 0.625,
+    });
+    expect(mapGlobalStyleMetricRow(styleRow)).toMatchObject({
+      averagePointsPerGeneration: 8.41,
+      mapName: null,
+      styleCode: 'engine_builder',
+      winRate: 0.5714,
+    });
+    expect(mapGlobalTagMetricRow(tagRow)).toMatchObject({
+      averageTagCount: 6.4,
+      tagCode: 'science',
+      winRate: 0.6667,
+    });
+    expect(mapGlobalMilestoneMetricRow(milestoneRow)).toMatchObject({
+      averageClaimedGeneration: 6.5,
+      milestoneName: 'Gardener',
+      milestoneWinnerWinRate: 0.5,
+    });
+    expect(mapGlobalAwardMetricRow(awardRow)).toMatchObject({
+      averageAwardRoi: -1.25,
+      averageFundedGeneration: 7.25,
+      awardName: 'Banker',
+      funderSuccessRate: 0.75,
+    });
+    expect(mapGlobalPlayerCountMetricRow(playerCountRow)).toMatchObject({
+      averageGenerations: 10.5,
+      expectedScoreBaseline: 82.1,
+      playerCount: 4,
+    });
+    expect(mapGlobalGenerationMetricRow(generationRow)).toMatchObject({
+      averagePointsPerGeneration: 8.57,
+      expectedScoreBaseline: 84.2,
+      generationCount: 10,
     });
   });
 });
@@ -551,6 +684,100 @@ describe('getGroupAnalytics', () => {
           player_count: 4,
         },
       ],
+      global_corporation_metric_summaries: [
+        {
+          average_normalized_efficiency: '1.1100',
+          average_points: '86.2000',
+          average_points_per_generation: '8.6200',
+          corporation_id: 'corp-1',
+          corporations: { name: 'CrediCor' },
+          games_played: '8',
+          map_id: 'map-b',
+          maps: { name: 'Hellas' },
+          player_count: '4',
+          win_rate: '0.6250',
+          wins: '5',
+        },
+      ],
+      global_style_metric_summaries: [
+        {
+          average_normalized_efficiency: '1.0900',
+          average_points: '84.1000',
+          average_points_per_generation: '8.4100',
+          games_played: '7',
+          map_id: null,
+          maps: null,
+          player_count: '4',
+          style_code: 'engine_builder',
+          win_rate: '0.5714',
+          wins: '4',
+        },
+      ],
+      global_tag_metric_summaries: [
+        {
+          average_normalized_efficiency: '1.1400',
+          average_points: '88.3000',
+          average_points_per_generation: '8.8300',
+          average_tag_count: '6.4000',
+          games_played: '9',
+          map_id: null,
+          maps: null,
+          player_count: '4',
+          tag_code: 'science',
+          win_rate: '0.6667',
+          wins: '6',
+        },
+      ],
+      global_milestone_metric_summaries: [
+        {
+          average_claimed_generation: '6.5000',
+          average_winner_points_per_generation: '8.9000',
+          games_played: '6',
+          map_id: null,
+          maps: null,
+          milestone_id: 'milestone-1',
+          milestones: { name: 'Gardener' },
+          milestone_winner_win_rate: '0.5000',
+          player_count: '4',
+          winner_wins: '3',
+        },
+      ],
+      global_award_metric_summaries: [
+        {
+          average_award_roi: '-1.2500',
+          average_funded_generation: '7.2500',
+          award_id: 'award-1',
+          awards: { name: 'Banker' },
+          award_winner_win_rate: '0.5000',
+          funder_success_rate: '0.7500',
+          funder_wins: '2',
+          games_played: '4',
+          map_id: null,
+          maps: null,
+          player_count: '4',
+          winner_funder_mismatch_rate: '0.2500',
+          winner_wins: '2',
+        },
+      ],
+      global_player_count_metric_summaries: [
+        {
+          average_generations: '10.5000',
+          average_points: '83.4000',
+          average_points_per_generation: '7.9400',
+          expected_score_baseline: '82.1000',
+          games_played: '11',
+          player_count: '4',
+        },
+      ],
+      global_generation_metric_summaries: [
+        {
+          average_points: '85.7000',
+          average_points_per_generation: '8.5700',
+          expected_score_baseline: '84.2000',
+          games_played: '5',
+          generation_count: '10',
+        },
+      ],
     });
 
     await expect(getGroupAnalytics('group-1')).resolves.toMatchObject({
@@ -568,6 +795,100 @@ describe('getGroupAnalytics', () => {
           mapId: '11111111-1111-4111-8111-111111111111',
           mapName: 'Tharsis',
           playerCount: 4,
+        },
+      ],
+      globalCorporationMetricRows: [
+        {
+          averageNormalizedEfficiency: 1.11,
+          averagePoints: 86.2,
+          averagePointsPerGeneration: 8.62,
+          corporationId: 'corp-1',
+          corporationName: 'CrediCor',
+          gamesPlayed: 8,
+          mapId: 'map-b',
+          mapName: 'Hellas',
+          playerCount: 4,
+          winRate: 0.625,
+          wins: 5,
+        },
+      ],
+      globalStyleMetricRows: [
+        {
+          averageNormalizedEfficiency: 1.09,
+          averagePoints: 84.1,
+          averagePointsPerGeneration: 8.41,
+          gamesPlayed: 7,
+          mapId: null,
+          mapName: null,
+          playerCount: 4,
+          styleCode: 'engine_builder',
+          winRate: 0.5714,
+          wins: 4,
+        },
+      ],
+      globalTagMetricRows: [
+        {
+          averageNormalizedEfficiency: 1.14,
+          averagePoints: 88.3,
+          averagePointsPerGeneration: 8.83,
+          averageTagCount: 6.4,
+          gamesPlayed: 9,
+          mapId: null,
+          mapName: null,
+          playerCount: 4,
+          tagCode: 'science',
+          winRate: 0.6667,
+          wins: 6,
+        },
+      ],
+      globalMilestoneMetricRows: [
+        {
+          averageClaimedGeneration: 6.5,
+          averageWinnerPointsPerGeneration: 8.9,
+          gamesPlayed: 6,
+          mapId: null,
+          mapName: null,
+          milestoneId: 'milestone-1',
+          milestoneName: 'Gardener',
+          milestoneWinnerWinRate: 0.5,
+          playerCount: 4,
+          winnerWins: 3,
+        },
+      ],
+      globalAwardMetricRows: [
+        {
+          averageAwardRoi: -1.25,
+          averageFundedGeneration: 7.25,
+          awardId: 'award-1',
+          awardName: 'Banker',
+          awardWinnerWinRate: 0.5,
+          funderSuccessRate: 0.75,
+          funderWins: 2,
+          gamesPlayed: 4,
+          mapId: null,
+          mapName: null,
+          playerCount: 4,
+          winnerFunderMismatchRate: 0.25,
+          winnerWins: 2,
+        },
+      ],
+      globalPlayerCountMetricRows: [
+        {
+          averageGenerations: 10.5,
+          averagePoints: 83.4,
+          averagePointsPerGeneration: 7.94,
+          expectedScoreBaseline: 82.1,
+          gamesPlayed: 11,
+          playerCount: 4,
+        },
+      ],
+      globalGenerationMetricRows: [
+        {
+          averagePoints: 85.7,
+          averagePointsPerGeneration: 8.57,
+          expectedScoreBaseline: 84.2,
+          gamesPlayed: 5,
+          generationCount: 10,
         },
       ],
       playerEfficiencySummaries: [
@@ -621,10 +942,26 @@ describe('getGroupAnalytics', () => {
       ],
     });
     const globalQuery = publicQueries.get('global_map_metric_summaries');
+    const corporationQuery = publicQueries.get('global_corporation_metric_summaries');
+    const styleQuery = publicQueries.get('global_style_metric_summaries');
+    const tagQuery = publicQueries.get('global_tag_metric_summaries');
+    const milestoneQuery = publicQueries.get('global_milestone_metric_summaries');
+    const awardQuery = publicQueries.get('global_award_metric_summaries');
+    const playerCountQuery = publicQueries.get(
+      'global_player_count_metric_summaries',
+    );
+    const generationQuery = publicQueries.get('global_generation_metric_summaries');
     const playerSummaryQuery = publicQueries.get('player_metric_summaries');
     const playerMapQuery = publicQueries.get('player_map_metric_summaries');
 
     expect(publicQueries.has('global_map_metric_summaries')).toBe(true);
+    expect(publicQueries.has('global_corporation_metric_summaries')).toBe(true);
+    expect(publicQueries.has('global_style_metric_summaries')).toBe(true);
+    expect(publicQueries.has('global_tag_metric_summaries')).toBe(true);
+    expect(publicQueries.has('global_milestone_metric_summaries')).toBe(true);
+    expect(publicQueries.has('global_award_metric_summaries')).toBe(true);
+    expect(publicQueries.has('global_player_count_metric_summaries')).toBe(true);
+    expect(publicQueries.has('global_generation_metric_summaries')).toBe(true);
     expect(publicQueries.has('player_metric_summaries')).toBe(true);
     expect(publicQueries.has('player_map_metric_summaries')).toBe(true);
     expect(globalQuery?.select).toHaveBeenCalledWith(
@@ -635,6 +972,52 @@ describe('getGroupAnalytics', () => {
     );
     expect(globalQuery?.order).toHaveBeenCalledWith('games_played', {
       ascending: false,
+    });
+    expect(corporationQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('corporations(name)'),
+    );
+    expect(corporationQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('maps(name)'),
+    );
+    expect(corporationQuery?.order).toHaveBeenCalledWith('win_rate', {
+      ascending: false,
+    });
+    expect(styleQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('style_code'),
+    );
+    expect(styleQuery?.order).toHaveBeenCalledWith('average_points_per_generation', {
+      ascending: false,
+    });
+    expect(tagQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('tag_code'),
+    );
+    expect(tagQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('average_tag_count'),
+    );
+    expect(milestoneQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('milestones(name)'),
+    );
+    expect(milestoneQuery?.order).toHaveBeenCalledWith(
+      'milestone_winner_win_rate',
+      { ascending: false },
+    );
+    expect(awardQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('awards(name)'),
+    );
+    expect(awardQuery?.order).toHaveBeenCalledWith('funder_success_rate', {
+      ascending: false,
+    });
+    expect(playerCountQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('player_count'),
+    );
+    expect(playerCountQuery?.order).toHaveBeenCalledWith('player_count', {
+      ascending: true,
+    });
+    expect(generationQuery?.select).toHaveBeenCalledWith(
+      expect.stringContaining('generation_count'),
+    );
+    expect(generationQuery?.order).toHaveBeenCalledWith('generation_count', {
+      ascending: true,
     });
     expect(playerSummaryQuery?.eq).toHaveBeenCalledWith('group_id', 'group-1');
     expect(playerSummaryQuery?.order).toHaveBeenNthCalledWith(4, 'group_id', {

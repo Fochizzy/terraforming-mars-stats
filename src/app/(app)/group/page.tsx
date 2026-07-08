@@ -17,7 +17,14 @@ export default async function GroupPage() {
     >
       <GroupDashboard
         coverage={groupAnalytics.coverage}
+        globalAwardMetricRows={groupAnalytics.globalAwardMetricRows}
+        globalCorporationMetricRows={groupAnalytics.globalCorporationMetricRows}
+        globalGenerationMetricRows={groupAnalytics.globalGenerationMetricRows}
         globalMapMetricRows={groupAnalytics.globalMapMetricRows}
+        globalMilestoneMetricRows={groupAnalytics.globalMilestoneMetricRows}
+        globalPlayerCountMetricRows={groupAnalytics.globalPlayerCountMetricRows}
+        globalStyleMetricRows={groupAnalytics.globalStyleMetricRows}
+        globalTagMetricRows={groupAnalytics.globalTagMetricRows}
         headToHeadRows={groupAnalytics.headToHeadRows}
         leaderboardRows={groupAnalytics.leaderboardRows}
         lineupEffectRows={groupAnalytics.lineupEffectRows}

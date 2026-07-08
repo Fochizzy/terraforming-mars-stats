@@ -16,6 +16,7 @@ import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { PromoSetBrowser } from '@/features/catalog/promo-set-browser';
 import { GlobalMetricBoard } from '@/features/analytics/global-metric-board';
+import { GlobalSummaryBoard } from '@/features/analytics/global-summary-board';
 import type {
   GroupAnalytics,
   GroupHeadToHeadRow,
@@ -417,6 +418,13 @@ export function InsightsDashboard({
     analytics.headToHeadRows.length > 0 ||
     analytics.groupInteractionRows.length > 0 ||
     analytics.globalMapMetricRows.length > 0 ||
+    analytics.globalCorporationMetricRows.length > 0 ||
+    analytics.globalStyleMetricRows.length > 0 ||
+    analytics.globalTagMetricRows.length > 0 ||
+    analytics.globalMilestoneMetricRows.length > 0 ||
+    analytics.globalAwardMetricRows.length > 0 ||
+    analytics.globalPlayerCountMetricRows.length > 0 ||
+    analytics.globalGenerationMetricRows.length > 0 ||
     analytics.playerInteractionRows.length > 0 ||
     analytics.playerEfficiencySummaries.length > 0 ||
     analytics.playerMapMetricRows.length > 0 ||
@@ -602,6 +610,16 @@ export function InsightsDashboard({
           </ChartFrame>
 
           <GlobalMetricBoard globalMapMetricRows={analytics.globalMapMetricRows} />
+
+          <GlobalSummaryBoard
+            globalAwardMetricRows={analytics.globalAwardMetricRows}
+            globalCorporationMetricRows={analytics.globalCorporationMetricRows}
+            globalGenerationMetricRows={analytics.globalGenerationMetricRows}
+            globalMilestoneMetricRows={analytics.globalMilestoneMetricRows}
+            globalPlayerCountMetricRows={analytics.globalPlayerCountMetricRows}
+            globalStyleMetricRows={analytics.globalStyleMetricRows}
+            globalTagMetricRows={analytics.globalTagMetricRows}
+          />
 
           <ChartFrame
             title={

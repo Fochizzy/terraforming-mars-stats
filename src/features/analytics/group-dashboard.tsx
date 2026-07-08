@@ -2,7 +2,14 @@ import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import type {
   CoverageRow,
+  GlobalAwardMetricRow,
+  GlobalCorporationMetricRow,
+  GlobalGenerationMetricRow,
   GlobalMapMetricRow,
+  GlobalMilestoneMetricRow,
+  GlobalPlayerCountMetricRow,
+  GlobalStyleMetricRow,
+  GlobalTagMetricRow,
   GroupHeadToHeadRow,
   LeaderboardRow,
   LineupEffectRow,
@@ -12,15 +19,23 @@ import type {
   StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
 import { GlobalMetricBoard } from './global-metric-board';
+import { GlobalSummaryBoard } from './global-summary-board';
 import { MapPerformanceList } from './map-performance-list';
 import { ScoreSourceList } from './score-source-list';
 
 type GroupDashboardProps = {
   coverage?: CoverageRow | null;
+  globalAwardMetricRows?: GlobalAwardMetricRow[];
+  globalCorporationMetricRows?: GlobalCorporationMetricRow[];
+  globalGenerationMetricRows?: GlobalGenerationMetricRow[];
   headToHeadRows?: GroupHeadToHeadRow[];
   leaderboardRows?: LeaderboardRow[];
   lineupEffectRows?: LineupEffectRow[];
   globalMapMetricRows?: GlobalMapMetricRow[];
+  globalMilestoneMetricRows?: GlobalMilestoneMetricRow[];
+  globalPlayerCountMetricRows?: GlobalPlayerCountMetricRow[];
+  globalStyleMetricRows?: GlobalStyleMetricRow[];
+  globalTagMetricRows?: GlobalTagMetricRow[];
   playerEfficiencySummaries?: PlayerEfficiencySummary[];
   playerMapMetricRows?: PlayerMapMetricRow[];
   scoreAverages?: ScoreSourceAverages | null;
@@ -66,7 +81,14 @@ function getPlayerName(playerId: string, leaderboardRows: LeaderboardRow[]) {
 
 export function GroupDashboard({
   coverage = null,
+  globalAwardMetricRows = [],
+  globalCorporationMetricRows = [],
+  globalGenerationMetricRows = [],
   globalMapMetricRows = [],
+  globalMilestoneMetricRows = [],
+  globalPlayerCountMetricRows = [],
+  globalStyleMetricRows = [],
+  globalTagMetricRows = [],
   headToHeadRows = [],
   leaderboardRows = [],
   lineupEffectRows = [],
@@ -84,6 +106,13 @@ export function GroupDashboard({
     playerEfficiencySummaries.length > 0 ||
     playerMapMetricRows.length > 0 ||
     globalMapMetricRows.length > 0 ||
+    globalCorporationMetricRows.length > 0 ||
+    globalStyleMetricRows.length > 0 ||
+    globalTagMetricRows.length > 0 ||
+    globalMilestoneMetricRows.length > 0 ||
+    globalAwardMetricRows.length > 0 ||
+    globalPlayerCountMetricRows.length > 0 ||
+    globalGenerationMetricRows.length > 0 ||
     coverage !== null ||
     scoreAverages !== null;
 
@@ -160,6 +189,15 @@ export function GroupDashboard({
       ) : null}
       <MapPerformanceList mapMetricRows={playerMapMetricRows} />
       <GlobalMetricBoard globalMapMetricRows={globalMapMetricRows} />
+      <GlobalSummaryBoard
+        globalAwardMetricRows={globalAwardMetricRows}
+        globalCorporationMetricRows={globalCorporationMetricRows}
+        globalGenerationMetricRows={globalGenerationMetricRows}
+        globalMilestoneMetricRows={globalMilestoneMetricRows}
+        globalPlayerCountMetricRows={globalPlayerCountMetricRows}
+        globalStyleMetricRows={globalStyleMetricRows}
+        globalTagMetricRows={globalTagMetricRows}
+      />
       <ChartFrame title="Score Source Averages">
         <ScoreSourceList scoreAverages={scoreAverages} />
       </ChartFrame>

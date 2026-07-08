@@ -191,6 +191,93 @@ export type GlobalMapMetricRow = {
   playerCount: number;
 };
 
+export type GlobalCorporationMetricRow = {
+  averageNormalizedEfficiency: number | null;
+  averagePoints: number;
+  averagePointsPerGeneration: number;
+  corporationId: string;
+  corporationName: string | null;
+  gamesPlayed: number;
+  mapId: string | null;
+  mapName: string | null;
+  playerCount: number;
+  winRate: number;
+  wins: number;
+};
+
+export type GlobalStyleMetricRow = {
+  averageNormalizedEfficiency: number | null;
+  averagePoints: number;
+  averagePointsPerGeneration: number;
+  gamesPlayed: number;
+  mapId: string | null;
+  mapName: string | null;
+  playerCount: number;
+  styleCode: string;
+  winRate: number;
+  wins: number;
+};
+
+export type GlobalTagMetricRow = {
+  averageNormalizedEfficiency: number | null;
+  averagePoints: number;
+  averagePointsPerGeneration: number;
+  averageTagCount: number;
+  gamesPlayed: number;
+  mapId: string | null;
+  mapName: string | null;
+  playerCount: number;
+  tagCode: string;
+  winRate: number;
+  wins: number;
+};
+
+export type GlobalMilestoneMetricRow = {
+  averageClaimedGeneration: number | null;
+  averageWinnerPointsPerGeneration: number;
+  gamesPlayed: number;
+  mapId: string | null;
+  mapName: string | null;
+  milestoneId: string;
+  milestoneName: string | null;
+  milestoneWinnerWinRate: number;
+  playerCount: number;
+  winnerWins: number;
+};
+
+export type GlobalAwardMetricRow = {
+  averageAwardRoi: number;
+  averageFundedGeneration: number | null;
+  awardId: string;
+  awardName: string | null;
+  awardWinnerWinRate: number;
+  funderSuccessRate: number;
+  funderWins: number;
+  gamesPlayed: number;
+  mapId: string | null;
+  mapName: string | null;
+  playerCount: number;
+  winnerFunderMismatchRate: number;
+  winnerWins: number;
+};
+
+export type GlobalPlayerCountMetricRow = {
+  averageGenerations: number;
+  averagePoints: number;
+  averagePointsPerGeneration: number;
+  expectedScoreBaseline: number | null;
+  gamesPlayed: number;
+  playerCount: number;
+};
+
+export type GlobalGenerationMetricRow = {
+  averagePoints: number;
+  averagePointsPerGeneration: number;
+  expectedScoreBaseline: number | null;
+  gamesPlayed: number;
+  generationCount: number;
+};
+
 export type ProfileAnalytics = {
   coverage: CoverageRow | null;
   efficiencySummary: PlayerEfficiencySummary | null;
@@ -205,7 +292,14 @@ export type ProfileAnalytics = {
 
 export type GroupAnalytics = {
   coverage: CoverageRow | null;
+  globalAwardMetricRows: GlobalAwardMetricRow[];
+  globalCorporationMetricRows: GlobalCorporationMetricRow[];
+  globalGenerationMetricRows: GlobalGenerationMetricRow[];
   globalMapMetricRows: GlobalMapMetricRow[];
+  globalMilestoneMetricRows: GlobalMilestoneMetricRow[];
+  globalPlayerCountMetricRows: GlobalPlayerCountMetricRow[];
+  globalStyleMetricRows: GlobalStyleMetricRow[];
+  globalTagMetricRows: GlobalTagMetricRow[];
   groupStylePerformanceRows: GroupStylePerformanceRow[];
   groupInteractionRows: GroupInteractionRow[];
   headToHeadRows: GroupHeadToHeadRow[];
@@ -385,6 +479,8 @@ export type RawPlayerEfficiencySummaryRow = {
   wins: number | string;
 };
 
+type NameRelation = { name: string | null } | { name: string | null }[] | null | undefined;
+
 export type RawPlayerMapMetricRow = {
   average_generations: number | string;
   average_normalized_efficiency: number | string | null;
@@ -397,7 +493,7 @@ export type RawPlayerMapMetricRow = {
   group_id: string;
   map_id: string;
   map_rank_for_player: number | string | null;
-  maps: { name: string | null } | { name: string | null }[] | null;
+  maps: NameRelation;
   player_id: string;
   win_rate: number | string;
   wins: number | string;
@@ -414,8 +510,95 @@ export type RawGlobalMapMetricRow = {
   highest_efficiency_style_code: string | null;
   highest_win_rate_corporation_id: string | null;
   map_id: string;
-  maps?: { name: string | null } | { name: string | null }[] | null;
+  maps?: NameRelation;
   player_count: number | string;
+};
+
+export type RawGlobalCorporationMetricRow = {
+  average_normalized_efficiency: number | string | null;
+  average_points: number | string;
+  average_points_per_generation: number | string;
+  corporation_id: string;
+  corporations?: NameRelation;
+  games_played: number | string;
+  map_id: string | null;
+  maps?: NameRelation;
+  player_count: number | string;
+  win_rate: number | string;
+  wins: number | string;
+};
+
+export type RawGlobalStyleMetricRow = {
+  average_normalized_efficiency: number | string | null;
+  average_points: number | string;
+  average_points_per_generation: number | string;
+  games_played: number | string;
+  map_id: string | null;
+  maps?: NameRelation;
+  player_count: number | string;
+  style_code: string;
+  win_rate: number | string;
+  wins: number | string;
+};
+
+export type RawGlobalTagMetricRow = {
+  average_normalized_efficiency: number | string | null;
+  average_points: number | string;
+  average_points_per_generation: number | string;
+  average_tag_count: number | string;
+  games_played: number | string;
+  map_id: string | null;
+  maps?: NameRelation;
+  player_count: number | string;
+  tag_code: string;
+  win_rate: number | string;
+  wins: number | string;
+};
+
+export type RawGlobalMilestoneMetricRow = {
+  average_claimed_generation: number | string | null;
+  average_winner_points_per_generation: number | string;
+  games_played: number | string;
+  map_id: string | null;
+  maps?: NameRelation;
+  milestone_id: string;
+  milestones?: NameRelation;
+  milestone_winner_win_rate: number | string;
+  player_count: number | string;
+  winner_wins: number | string;
+};
+
+export type RawGlobalAwardMetricRow = {
+  average_award_roi: number | string;
+  average_funded_generation: number | string | null;
+  award_id: string;
+  awards?: NameRelation;
+  award_winner_win_rate: number | string;
+  funder_success_rate: number | string;
+  funder_wins: number | string;
+  games_played: number | string;
+  map_id: string | null;
+  maps?: NameRelation;
+  player_count: number | string;
+  winner_funder_mismatch_rate: number | string;
+  winner_wins: number | string;
+};
+
+export type RawGlobalPlayerCountMetricRow = {
+  average_generations: number | string;
+  average_points: number | string;
+  average_points_per_generation: number | string;
+  expected_score_baseline: number | string | null;
+  games_played: number | string;
+  player_count: number | string;
+};
+
+export type RawGlobalGenerationMetricRow = {
+  average_points: number | string;
+  average_points_per_generation: number | string;
+  expected_score_baseline: number | string | null;
+  games_played: number | string;
+  generation_count: number | string;
 };
 
 type RawTrendRow = {
@@ -549,6 +732,11 @@ function getWeightedScore(row: Record<string, unknown>) {
 
 function getAnalyticsClient(supabase: AnalyticsSupabaseClient) {
   return supabase.schema('analytics');
+}
+
+function getRelationName(relation: NameRelation) {
+  const row = Array.isArray(relation) ? relation[0] : relation;
+  return row?.name ?? null;
 }
 
 function mapLeaderboardRow(row: RawLeaderboardRow): LeaderboardRow {
@@ -739,13 +927,11 @@ export function mapPlayerEfficiencySummary(
 export function mapPlayerMapMetricRow(
   row: RawPlayerMapMetricRow,
 ): PlayerMapMetricRow {
-  const mapRelation = Array.isArray(row.maps) ? row.maps[0] : row.maps;
-
   return {
     groupId: row.group_id,
     playerId: row.player_id,
     mapId: row.map_id,
-    mapName: mapRelation?.name ?? null,
+    mapName: getRelationName(row.maps),
     gamesPlayed: toNumber(row.games_played),
     wins: toNumber(row.wins),
     winRate: toNumber(row.win_rate),
@@ -761,11 +947,9 @@ export function mapPlayerMapMetricRow(
 }
 
 export function mapGlobalMapMetricRow(row: RawGlobalMapMetricRow): GlobalMapMetricRow {
-  const mapRelation = Array.isArray(row.maps) ? row.maps[0] : row.maps;
-
   return {
     mapId: row.map_id,
-    mapName: mapRelation?.name ?? null,
+    mapName: getRelationName(row.maps),
     playerCount: toNumber(row.player_count),
     gamesPlayed: toNumber(row.games_played),
     averagePoints: toNumber(row.average_points),
@@ -776,6 +960,121 @@ export function mapGlobalMapMetricRow(row: RawGlobalMapMetricRow): GlobalMapMetr
     highestWinRateCorporationId: row.highest_win_rate_corporation_id,
     highestEfficiencyStyleCode: row.highest_efficiency_style_code,
     bestTagLane: row.best_tag_lane,
+  };
+}
+
+export function mapGlobalCorporationMetricRow(
+  row: RawGlobalCorporationMetricRow,
+): GlobalCorporationMetricRow {
+  return {
+    corporationId: row.corporation_id,
+    corporationName: getRelationName(row.corporations),
+    mapId: row.map_id,
+    mapName: getRelationName(row.maps),
+    playerCount: toNumber(row.player_count),
+    gamesPlayed: toNumber(row.games_played),
+    wins: toNumber(row.wins),
+    winRate: toNumber(row.win_rate),
+    averagePoints: toNumber(row.average_points),
+    averagePointsPerGeneration: toNumber(row.average_points_per_generation),
+    averageNormalizedEfficiency: toNullableNumber(row.average_normalized_efficiency),
+  };
+}
+
+export function mapGlobalStyleMetricRow(
+  row: RawGlobalStyleMetricRow,
+): GlobalStyleMetricRow {
+  return {
+    styleCode: row.style_code,
+    mapId: row.map_id,
+    mapName: getRelationName(row.maps),
+    playerCount: toNumber(row.player_count),
+    gamesPlayed: toNumber(row.games_played),
+    wins: toNumber(row.wins),
+    winRate: toNumber(row.win_rate),
+    averagePoints: toNumber(row.average_points),
+    averagePointsPerGeneration: toNumber(row.average_points_per_generation),
+    averageNormalizedEfficiency: toNullableNumber(row.average_normalized_efficiency),
+  };
+}
+
+export function mapGlobalTagMetricRow(row: RawGlobalTagMetricRow): GlobalTagMetricRow {
+  return {
+    tagCode: row.tag_code,
+    mapId: row.map_id,
+    mapName: getRelationName(row.maps),
+    playerCount: toNumber(row.player_count),
+    gamesPlayed: toNumber(row.games_played),
+    wins: toNumber(row.wins),
+    winRate: toNumber(row.win_rate),
+    averagePoints: toNumber(row.average_points),
+    averagePointsPerGeneration: toNumber(row.average_points_per_generation),
+    averageNormalizedEfficiency: toNullableNumber(row.average_normalized_efficiency),
+    averageTagCount: toNumber(row.average_tag_count),
+  };
+}
+
+export function mapGlobalMilestoneMetricRow(
+  row: RawGlobalMilestoneMetricRow,
+): GlobalMilestoneMetricRow {
+  return {
+    milestoneId: row.milestone_id,
+    milestoneName: getRelationName(row.milestones),
+    mapId: row.map_id,
+    mapName: getRelationName(row.maps),
+    playerCount: toNumber(row.player_count),
+    gamesPlayed: toNumber(row.games_played),
+    winnerWins: toNumber(row.winner_wins),
+    milestoneWinnerWinRate: toNumber(row.milestone_winner_win_rate),
+    averageWinnerPointsPerGeneration: toNumber(
+      row.average_winner_points_per_generation,
+    ),
+    averageClaimedGeneration: toNullableNumber(row.average_claimed_generation),
+  };
+}
+
+export function mapGlobalAwardMetricRow(
+  row: RawGlobalAwardMetricRow,
+): GlobalAwardMetricRow {
+  return {
+    awardId: row.award_id,
+    awardName: getRelationName(row.awards),
+    mapId: row.map_id,
+    mapName: getRelationName(row.maps),
+    playerCount: toNumber(row.player_count),
+    gamesPlayed: toNumber(row.games_played),
+    funderWins: toNumber(row.funder_wins),
+    funderSuccessRate: toNumber(row.funder_success_rate),
+    winnerWins: toNumber(row.winner_wins),
+    awardWinnerWinRate: toNumber(row.award_winner_win_rate),
+    averageAwardRoi: toNumber(row.average_award_roi),
+    winnerFunderMismatchRate: toNumber(row.winner_funder_mismatch_rate),
+    averageFundedGeneration: toNullableNumber(row.average_funded_generation),
+  };
+}
+
+export function mapGlobalPlayerCountMetricRow(
+  row: RawGlobalPlayerCountMetricRow,
+): GlobalPlayerCountMetricRow {
+  return {
+    playerCount: toNumber(row.player_count),
+    gamesPlayed: toNumber(row.games_played),
+    averagePoints: toNumber(row.average_points),
+    averageGenerations: toNumber(row.average_generations),
+    averagePointsPerGeneration: toNumber(row.average_points_per_generation),
+    expectedScoreBaseline: toNullableNumber(row.expected_score_baseline),
+  };
+}
+
+export function mapGlobalGenerationMetricRow(
+  row: RawGlobalGenerationMetricRow,
+): GlobalGenerationMetricRow {
+  return {
+    generationCount: toNumber(row.generation_count),
+    gamesPlayed: toNumber(row.games_played),
+    averagePoints: toNumber(row.average_points),
+    averagePointsPerGeneration: toNumber(row.average_points_per_generation),
+    expectedScoreBaseline: toNullableNumber(row.expected_score_baseline),
   };
 }
 
@@ -1325,6 +1624,66 @@ export function sortGlobalMapMetricRows<T extends {
   );
 }
 
+function sortGlobalWinRateMetricRows<T extends {
+  averagePointsPerGeneration: number;
+  gamesPlayed: number;
+  mapId: string | null;
+  playerCount: number;
+  winRate: number;
+}>(rows: T[], getKey: (row: T) => string) {
+  return [...rows].sort(
+    (left, right) =>
+      right.gamesPlayed - left.gamesPlayed ||
+      right.winRate - left.winRate ||
+      right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+      getKey(left).localeCompare(getKey(right)) ||
+      (left.mapId ?? '').localeCompare(right.mapId ?? '') ||
+      left.playerCount - right.playerCount,
+  );
+}
+
+function sortGlobalMilestoneMetricRows(rows: GlobalMilestoneMetricRow[]) {
+  return [...rows].sort(
+    (left, right) =>
+      right.gamesPlayed - left.gamesPlayed ||
+      right.milestoneWinnerWinRate - left.milestoneWinnerWinRate ||
+      right.averageWinnerPointsPerGeneration -
+        left.averageWinnerPointsPerGeneration ||
+      left.milestoneId.localeCompare(right.milestoneId) ||
+      (left.mapId ?? '').localeCompare(right.mapId ?? '') ||
+      left.playerCount - right.playerCount,
+  );
+}
+
+function sortGlobalAwardMetricRows(rows: GlobalAwardMetricRow[]) {
+  return [...rows].sort(
+    (left, right) =>
+      right.gamesPlayed - left.gamesPlayed ||
+      right.funderSuccessRate - left.funderSuccessRate ||
+      right.awardWinnerWinRate - left.awardWinnerWinRate ||
+      right.averageAwardRoi - left.averageAwardRoi ||
+      left.awardId.localeCompare(right.awardId) ||
+      (left.mapId ?? '').localeCompare(right.mapId ?? '') ||
+      left.playerCount - right.playerCount,
+  );
+}
+
+function sortGlobalPlayerCountMetricRows(rows: GlobalPlayerCountMetricRow[]) {
+  return [...rows].sort(
+    (left, right) =>
+      left.playerCount - right.playerCount ||
+      right.gamesPlayed - left.gamesPlayed,
+  );
+}
+
+function sortGlobalGenerationMetricRows(rows: GlobalGenerationMetricRow[]) {
+  return [...rows].sort(
+    (left, right) =>
+      left.generationCount - right.generationCount ||
+      right.gamesPlayed - left.gamesPlayed,
+  );
+}
+
 export function buildScoreSourceEntries(row: ScoreSourceAverages) {
   return [
     { label: 'Terraform Rating', value: row.averageTrPoints },
@@ -1585,6 +1944,27 @@ const playerMapMetricSelect =
 const globalMapMetricSelect =
   'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, best_tag_lane, expected_score_baseline, games_played, highest_efficiency_style_code, highest_win_rate_corporation_id, map_id, maps(name), player_count';
 
+const globalCorporationMetricSelect =
+  'average_normalized_efficiency, average_points, average_points_per_generation, corporation_id, corporations(name), games_played, map_id, maps(name), player_count, win_rate, wins';
+
+const globalStyleMetricSelect =
+  'average_normalized_efficiency, average_points, average_points_per_generation, games_played, map_id, maps(name), player_count, style_code, win_rate, wins';
+
+const globalTagMetricSelect =
+  'average_normalized_efficiency, average_points, average_points_per_generation, average_tag_count, games_played, map_id, maps(name), player_count, tag_code, win_rate, wins';
+
+const globalMilestoneMetricSelect =
+  'average_claimed_generation, average_winner_points_per_generation, games_played, map_id, maps(name), milestone_id, milestones(name), milestone_winner_win_rate, player_count, winner_wins';
+
+const globalAwardMetricSelect =
+  'average_award_roi, average_funded_generation, award_id, awards(name), award_winner_win_rate, funder_success_rate, funder_wins, games_played, map_id, maps(name), player_count, winner_funder_mismatch_rate, winner_wins';
+
+const globalPlayerCountMetricSelect =
+  'average_generations, average_points, average_points_per_generation, expected_score_baseline, games_played, player_count';
+
+const globalGenerationMetricSelect =
+  'average_points, average_points_per_generation, expected_score_baseline, games_played, generation_count';
+
 export async function listPlayerEfficiencySummariesByPlayerIds(playerIds: string[]) {
   if (playerIds.length === 0) {
     return [];
@@ -1690,6 +2070,143 @@ export async function listGlobalMapMetrics() {
   );
 }
 
+export async function listGlobalCorporationMetrics() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('global_corporation_metric_summaries')
+    .select(globalCorporationMetricSelect)
+    .order('games_played', { ascending: false })
+    .order('win_rate', { ascending: false })
+    .order('average_points_per_generation', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortGlobalWinRateMetricRows(
+    ((data as RawGlobalCorporationMetricRow[] | null) ?? []).map(
+      mapGlobalCorporationMetricRow,
+    ),
+    (row) => row.corporationId,
+  );
+}
+
+export async function listGlobalStyleMetrics() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('global_style_metric_summaries')
+    .select(globalStyleMetricSelect)
+    .order('games_played', { ascending: false })
+    .order('win_rate', { ascending: false })
+    .order('average_points_per_generation', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortGlobalWinRateMetricRows(
+    ((data as RawGlobalStyleMetricRow[] | null) ?? []).map(
+      mapGlobalStyleMetricRow,
+    ),
+    (row) => row.styleCode,
+  );
+}
+
+export async function listGlobalTagMetrics() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('global_tag_metric_summaries')
+    .select(globalTagMetricSelect)
+    .order('games_played', { ascending: false })
+    .order('win_rate', { ascending: false })
+    .order('average_points_per_generation', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortGlobalWinRateMetricRows(
+    ((data as RawGlobalTagMetricRow[] | null) ?? []).map(mapGlobalTagMetricRow),
+    (row) => row.tagCode,
+  );
+}
+
+export async function listGlobalMilestoneMetrics() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('global_milestone_metric_summaries')
+    .select(globalMilestoneMetricSelect)
+    .order('games_played', { ascending: false })
+    .order('milestone_winner_win_rate', { ascending: false })
+    .order('average_winner_points_per_generation', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortGlobalMilestoneMetricRows(
+    ((data as RawGlobalMilestoneMetricRow[] | null) ?? []).map(
+      mapGlobalMilestoneMetricRow,
+    ),
+  );
+}
+
+export async function listGlobalAwardMetrics() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('global_award_metric_summaries')
+    .select(globalAwardMetricSelect)
+    .order('games_played', { ascending: false })
+    .order('funder_success_rate', { ascending: false })
+    .order('award_winner_win_rate', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortGlobalAwardMetricRows(
+    ((data as RawGlobalAwardMetricRow[] | null) ?? []).map(
+      mapGlobalAwardMetricRow,
+    ),
+  );
+}
+
+export async function listGlobalPlayerCountMetrics() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('global_player_count_metric_summaries')
+    .select(globalPlayerCountMetricSelect)
+    .order('player_count', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortGlobalPlayerCountMetricRows(
+    ((data as RawGlobalPlayerCountMetricRow[] | null) ?? []).map(
+      mapGlobalPlayerCountMetricRow,
+    ),
+  );
+}
+
+export async function listGlobalGenerationMetrics() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('global_generation_metric_summaries')
+    .select(globalGenerationMetricSelect)
+    .order('generation_count', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return sortGlobalGenerationMetricRows(
+    ((data as RawGlobalGenerationMetricRow[] | null) ?? []).map(
+      mapGlobalGenerationMetricRow,
+    ),
+  );
+}
+
 async function getProfilePersistedMetrics(playerIds: string[]) {
   const [efficiencyResult, mapResult] = await Promise.allSettled([
     listPlayerEfficiencySummariesByPlayerIds(playerIds),
@@ -1787,6 +2304,13 @@ export async function getGroupAnalytics(groupId: string) {
     playerEfficiencySummaries,
     playerMapMetricRows,
     globalMapMetricRows,
+    globalCorporationMetricRows,
+    globalStyleMetricRows,
+    globalTagMetricRows,
+    globalMilestoneMetricRows,
+    globalAwardMetricRows,
+    globalPlayerCountMetricRows,
+    globalGenerationMetricRows,
   ] = await Promise.all([
     listGroupLeaderboard(groupId),
     getGroupScoreSourceAverages(groupId),
@@ -1804,6 +2328,13 @@ export async function getGroupAnalytics(groupId: string) {
     listGroupPlayerEfficiencySummaries(groupId),
     listGroupPlayerMapMetrics(groupId),
     listGlobalMapMetrics(),
+    listGlobalCorporationMetrics(),
+    listGlobalStyleMetrics(),
+    listGlobalTagMetrics(),
+    listGlobalMilestoneMetrics(),
+    listGlobalAwardMetrics(),
+    listGlobalPlayerCountMetrics(),
+    listGlobalGenerationMetrics(),
   ]);
 
   return {
@@ -1823,5 +2354,12 @@ export async function getGroupAnalytics(groupId: string) {
     playerEfficiencySummaries,
     playerMapMetricRows,
     globalMapMetricRows,
+    globalCorporationMetricRows,
+    globalStyleMetricRows,
+    globalTagMetricRows,
+    globalMilestoneMetricRows,
+    globalAwardMetricRows,
+    globalPlayerCountMetricRows,
+    globalGenerationMetricRows,
   } satisfies GroupAnalytics;
 }
