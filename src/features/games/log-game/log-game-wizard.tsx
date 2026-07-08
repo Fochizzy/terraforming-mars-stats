@@ -28,12 +28,6 @@ import { ScoresStep } from './scores-step';
 import { sanitizePlayerLinkedState } from './sanitize-player-linked-state';
 import { SetupStep } from './setup-step';
 import { StyleStep } from './style-step';
-import {
-  filterCardOptions,
-  filterCorporationOptions,
-  filterPreludeOptions,
-  normalizeSelectedExpansionCodes,
-} from './reference-filters';
 import type { LogGamePlayerOption } from './player-picker';
 
 type GameSubmitResult = {
@@ -97,10 +91,6 @@ export function LogGameWizard({
   const currentMapId = useWatch({ control: form.control, name: 'mapId' });
   const playerCount =
     useWatch({ control: form.control, name: 'playerCount' }) ?? 0;
-  const expansionCodes =
-    useWatch({ control: form.control, name: 'expansionCodes' }) ?? [];
-  const promoSetSlugs =
-    useWatch({ control: form.control, name: 'promoSetSlugs' }) ?? [];
   const milestoneClaims =
     useWatch({ control: form.control, name: 'milestoneClaims' }) ?? {};
   const awardClaims =
@@ -171,29 +161,12 @@ export function LogGameWizard({
       scoreField: storedJumpState.scoreField,
     });
   }, [initialValues.gameId, selectedPlayers]);
-  const normalizedExpansionCodes = normalizeSelectedExpansionCodes(expansionCodes);
-  const visibleCorporations = filterCorporationOptions(
-    corporationOptions,
-    normalizedExpansionCodes,
-    promoSetSlugs,
-  );
-  const visiblePreludes = filterPreludeOptions(
-    preludeOptions,
-    normalizedExpansionCodes,
-    promoSetSlugs,
-  );
-  const visibleCards = filterCardOptions(
-    cardOptions,
-    normalizedExpansionCodes,
-    promoSetSlugs,
-  );
   const visibleMilestones = milestoneOptions.filter(
     (milestone) => milestone.mapId === currentMapId,
   );
   const visibleAwards = awardOptions.filter((award) => award.mapId === currentMapId);
   const review = buildGameReview({
     awardClaims,
-    expansionCodes: normalizedExpansionCodes,
     gameId: form.getValues('gameId'),
     mapAwardIds: visibleAwards.map((award) => award.awardId),
     mapMilestoneIds: visibleMilestones.map((milestone) => milestone.milestoneId),
@@ -244,10 +217,10 @@ export function LogGameWizard({
     >
       <SetupStep mapOptions={mapOptions} register={form.register} />
       <PlayersStep
-        corporationOptions={visibleCorporations}
+        corporationOptions={corporationOptions}
         playerCount={playerCount}
         playerOptions={playerOptions}
-        preludeOptions={visiblePreludes}
+        preludeOptions={preludeOptions}
         register={form.register}
         selectedPlayerIds={selectedPlayerIds}
         setValue={form.setValue}
@@ -266,7 +239,7 @@ export function LogGameWizard({
         selectedPlayers={selectedPlayers}
       />
       <StyleStep
-        cardOptions={visibleCards}
+        cardOptions={cardOptions}
         register={form.register}
         selectedPlayers={selectedPlayers}
         styleOptions={styleOptions}

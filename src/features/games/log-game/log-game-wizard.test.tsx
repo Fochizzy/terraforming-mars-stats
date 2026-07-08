@@ -391,7 +391,7 @@ describe('LogGameWizard', () => {
     expect(onFinalizeGame).not.toHaveBeenCalled();
   });
 
-  it('filters corporation, prelude, and key-card choices to the selected expansions and promo releases', () => {
+  it('offers every corporation, prelude, and key card regardless of the stored expansion and promo selections', () => {
     const renderWizardWithSelections = (selections: {
       expansionCodes: string[];
       promoSetSlugs: string[];
@@ -490,42 +490,21 @@ describe('LogGameWizard', () => {
         />,
       );
 
-    const restricted = renderWizardWithSelections({
-      expansionCodes: ['base', 'prelude'],
+    renderWizardWithSelections({
+      expansionCodes: ['base'],
       promoSetSlugs: [],
     });
 
     expect(screen.getByRole('option', { name: /tharsis republic/i })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /poseidon/i })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', { name: /arcadian communities/i }),
-    ).not.toBeInTheDocument();
-    expect(screen.getAllByRole('option', { name: /allied bank/i })).toHaveLength(3);
-    expect(
-      screen.queryByRole('option', { name: /corporate archives/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getAllByRole('option', { name: /001 - colonizer training camp/i }),
-    ).toHaveLength(3);
-    expect(
-      screen.queryByRole('option', { name: /x09 - political alliance/i }),
-    ).not.toBeInTheDocument();
-
-    restricted.unmount();
-    renderWizardWithSelections({
-      expansionCodes: ['base', 'prelude', 'colonies', 'turmoil'],
-      promoSetSlugs: [
-        '2019-turmoil-promos',
-        '2022-seasonal-promos',
-        '2018-boardgamegeek-promos',
-      ],
-    });
-
     expect(screen.getByRole('option', { name: /poseidon/i })).toBeInTheDocument();
     expect(
       screen.getByRole('option', { name: /arcadian communities/i }),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('option', { name: /allied bank/i })).toHaveLength(3);
     expect(screen.getAllByRole('option', { name: /corporate archives/i })).toHaveLength(3);
+    expect(
+      screen.getAllByRole('option', { name: /001 - colonizer training camp/i }),
+    ).toHaveLength(3);
     expect(
       screen.getAllByRole('option', { name: /x09 - political alliance/i }),
     ).toHaveLength(3);

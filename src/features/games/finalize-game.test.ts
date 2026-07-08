@@ -105,6 +105,56 @@ describe('buildGameReview', () => {
     expect(review.coverage.playersWithCardBreakdown).toBe(1);
   });
 
+  it('requires preludes for everyone once any player has preludes entered', () => {
+    const review = buildGameReview({
+      mapAwardIds: [],
+      mapMilestoneIds: [],
+      playerCount: 2,
+      playerSelections: {
+        p1: {
+          corporationId: 'corp1',
+          preludeIds: ['prelude1', 'prelude2'],
+        },
+        p2: {
+          corporationId: 'corp2',
+          preludeIds: [],
+        },
+      },
+      selectedPlayerIds: ['p1', 'p2'],
+    });
+
+    expect(review.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'missing_preludes',
+          message: 'Choose at least one prelude for p2.',
+        }),
+      ]),
+    );
+    expect(
+      review.issues.filter((issue) => issue.code === 'missing_preludes'),
+    ).toHaveLength(1);
+  });
+
+  it('does not require preludes when no player has any entered', () => {
+    const review = buildGameReview({
+      mapAwardIds: [],
+      mapMilestoneIds: [],
+      playerCount: 1,
+      playerSelections: {
+        p1: {
+          corporationId: 'corp1',
+          preludeIds: [],
+        },
+      },
+      selectedPlayerIds: ['p1'],
+    });
+
+    expect(review.issues.map((issue) => issue.code)).not.toContain(
+      'missing_preludes',
+    );
+  });
+
   it('flags milestone and award references that no longer point at selected players', () => {
     const review = buildGameReview({
       awardClaims: {

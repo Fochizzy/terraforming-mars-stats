@@ -178,7 +178,6 @@ export default async function LogGameReviewPage({
       const finalizedPayload = buildFinalizedGamePayload({
         awardClaims: resolved.awardClaims,
         catalogSnapshotId: latestCatalogSnapshotId,
-        expansionCodes: resolved.expansionCodes,
         gameId: resolved.gameId,
         mapAwardIds: awardOptions
           .filter((award) => award.mapId === resolved.mapId)

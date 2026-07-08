@@ -34,7 +34,6 @@ type ReviewGameInput = Partial<
   Pick<
     LogGameDraftInput,
     | 'awardClaims'
-    | 'expansionCodes'
     | 'gameId'
     | 'milestoneClaims'
     | 'notes'
@@ -257,7 +256,14 @@ export function buildGameReview(input: ReviewGameInput): GameReview {
     });
   }
 
-  for (const { playerId, score, selection, style } of buildPlayerSelectionRows(input)) {
+  const playerSelectionRows = buildPlayerSelectionRows(input);
+  // Expansions are not tracked, so preludes count as in play whenever at
+  // least one player has some — then every player should have theirs entered.
+  const preludesInPlay = playerSelectionRows.some(
+    ({ selection }) => selection.preludeIds.length > 0,
+  );
+
+  for (const { playerId, score, selection, style } of playerSelectionRows) {
     if (!hasValue(selection.corporationId)) {
       issues.push({
         code: 'missing_corporation',
@@ -266,10 +272,7 @@ export function buildGameReview(input: ReviewGameInput): GameReview {
       });
     }
 
-    if (
-      (input.expansionCodes ?? []).includes('prelude') &&
-      selection.preludeIds.length === 0
-    ) {
+    if (preludesInPlay && selection.preludeIds.length === 0) {
       issues.push({
         code: 'missing_preludes',
         message: `Choose at least one prelude for ${playerId}.`,
