@@ -34,6 +34,16 @@ function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatSignedPercentagePoints(value: number) {
+  const percentagePoints = value * 100;
+  const formatted = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(percentagePoints);
+
+  return `${percentagePoints > 0 ? '+' : ''}${formatted} pts`;
+}
+
 function humanizeCode(value: string) {
   return value
     .split(/[_-]/)
@@ -103,6 +113,11 @@ export function GlobalSummaryBoard({
                   {formatDecimal(row.averagePoints)} avg points |{' '}
                   {formatDecimal(row.averagePointsPerGeneration)} pts/gen
                 </p>
+                <p className="tm-muted-copy mt-2 text-sm">
+                  conversion {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                  consistency {formatPercent(row.consistencyIndex)} | clutch{' '}
+                  {formatPercent(row.clutchCloseRate)}
+                </p>
                 {context ? (
                   <p className="tm-muted-copy mt-2 text-sm">{context}</p>
                 ) : null}
@@ -139,6 +154,11 @@ export function GlobalSummaryBoard({
                   {formatDecimal(row.averagePoints)} avg points |{' '}
                   {formatDecimal(row.averagePointsPerGeneration)} pts/gen
                 </p>
+                <p className="tm-muted-copy mt-2 text-sm">
+                  conversion {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                  consistency {formatPercent(row.consistencyIndex)} | clutch{' '}
+                  {formatPercent(row.clutchCloseRate)}
+                </p>
                 {context ? (
                   <p className="tm-muted-copy mt-2 text-sm">{context}</p>
                 ) : null}
@@ -174,6 +194,11 @@ export function GlobalSummaryBoard({
                 <p className="tm-muted-copy mt-3 text-sm">
                   {formatDecimal(row.averagePoints)} avg points |{' '}
                   {formatDecimal(row.averagePointsPerGeneration)} pts/gen
+                </p>
+                <p className="tm-muted-copy mt-2 text-sm">
+                  conversion {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                  consistency {formatPercent(row.consistencyIndex)} | clutch{' '}
+                  {formatPercent(row.clutchCloseRate)}
                 </p>
                 {context ? (
                   <p className="tm-muted-copy mt-2 text-sm">{context}</p>
@@ -212,6 +237,12 @@ export function GlobalSummaryBoard({
                   {row.averageClaimedGeneration !== null
                     ? ` | claimed gen ${formatDecimal(row.averageClaimedGeneration)}`
                     : ''}
+                </p>
+                <p className="tm-muted-copy mt-2 text-sm">
+                  winner conversion{' '}
+                  {formatSignedPercentagePoints(row.winnerWinConversionOverExpected)} |{' '}
+                  consistency {formatPercent(row.winnerConsistencyIndex)} | clutch{' '}
+                  {formatPercent(row.winnerClutchCloseRate)}
                 </p>
                 {context ? (
                   <p className="tm-muted-copy mt-2 text-sm">{context}</p>
@@ -256,6 +287,18 @@ export function GlobalSummaryBoard({
                   mismatch {formatPercent(row.winnerFunderMismatchRate)}
                   {context ? ` | ${context}` : ''}
                 </p>
+                <p className="tm-muted-copy mt-2 text-sm">
+                  winner conversion{' '}
+                  {formatSignedPercentagePoints(row.awardWinnerWinConversionOverExpected)} |{' '}
+                  consistency {formatPercent(row.awardWinnerConsistencyIndex)} | clutch{' '}
+                  {formatPercent(row.awardWinnerClutchCloseRate)}
+                </p>
+                <p className="tm-muted-copy mt-2 text-sm">
+                  funder conversion{' '}
+                  {formatSignedPercentagePoints(row.funderWinConversionOverExpected)} |{' '}
+                  consistency {formatPercent(row.funderConsistencyIndex)} | clutch{' '}
+                  {formatPercent(row.funderClutchCloseRate)}
+                </p>
               </article>
             );
           })}
@@ -285,6 +328,11 @@ export function GlobalSummaryBoard({
                   ? ` | baseline ${formatDecimal(row.expectedScoreBaseline)}`
                   : ''}
               </p>
+              <p className="tm-muted-copy mt-2 text-sm">
+                conversion {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                consistency {formatPercent(row.consistencyIndex)} | clutch{' '}
+                {formatPercent(row.clutchCloseRate)}
+              </p>
             </article>
           ))}
         </div>
@@ -312,6 +360,11 @@ export function GlobalSummaryBoard({
                 {row.expectedScoreBaseline !== null
                   ? ` | baseline ${formatDecimal(row.expectedScoreBaseline)}`
                   : ''}
+              </p>
+              <p className="tm-muted-copy mt-2 text-sm">
+                conversion {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                consistency {formatPercent(row.consistencyIndex)} | clutch{' '}
+                {formatPercent(row.clutchCloseRate)}
               </p>
             </article>
           ))}

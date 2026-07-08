@@ -31,9 +31,9 @@ export function AwardMilestoneSummary({
             </p>
           </div>
           <div className="tm-stat-card">
-            <p className="tm-data-label">Close-game Win Rate</p>
+            <p className="tm-data-label">Clutch Close Rate</p>
             <p className="mt-2 text-lg font-semibold text-stone-100">
-              {formatPercent(efficiencySummary.closeGameWinRate)}
+              {formatPercent(efficiencySummary.clutchCloseRate)}
             </p>
             <p className="tm-muted-copy mt-1 text-sm">
               {efficiencySummary.closeGameWins}/{efficiencySummary.closeGameCount} close games

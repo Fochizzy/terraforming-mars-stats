@@ -1,0 +1,2 @@
+-- Remote migration history placeholder. The linked project already has this
+-- version recorded; this no-op file keeps local migration history aligned.

@@ -111,6 +111,16 @@ function formatPersistedMetric(value: number | null) {
   }).format(value);
 }
 
+function formatSignedPercentagePoints(value: number) {
+  const percentagePoints = value * 100;
+  const formatted = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(percentagePoints);
+
+  return `${percentagePoints > 0 ? '+' : ''}${formatted} pts`;
+}
+
 function truncateLabel(value: string, length = 18) {
   if (value.length <= length) {
     return value;
@@ -583,6 +593,12 @@ export function InsightsDashboard({
                         ? ` | expected ${formatPersistedMetric(row.averageExpectedScore)}`
                         : ''}
                     </p>
+                    <p className="tm-muted-copy mt-2 text-sm">
+                      Win Conversion{' '}
+                      {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                      Consistency {formatPercent(row.consistencyIndex)} | Clutch{' '}
+                      {formatPercent(row.clutchCloseRate)}
+                    </p>
                   </article>
                 ))}
                 {selectedMapMetricRows.slice(0, 3).map((row) => (
@@ -602,6 +618,11 @@ export function InsightsDashboard({
                       {row.gamesPlayed} games | avg{' '}
                       {formatPersistedMetric(row.averagePoints)} points |{' '}
                       {formatPersistedMetric(row.averageGenerations)} gens
+                    </p>
+                    <p className="tm-muted-copy mt-2 text-sm">
+                      conversion {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                      consistency {formatPercent(row.consistencyIndex)} | clutch{' '}
+                      {formatPercent(row.clutchCloseRate)}
                     </p>
                   </article>
                 ))}

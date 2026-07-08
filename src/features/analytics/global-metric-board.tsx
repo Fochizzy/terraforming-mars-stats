@@ -19,6 +19,20 @@ function formatDecimal(value: number | null, maximumFractionDigits = 2) {
   }).format(value);
 }
 
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatSignedPercentagePoints(value: number) {
+  const percentagePoints = value * 100;
+  const formatted = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(percentagePoints);
+
+  return `${percentagePoints > 0 ? '+' : ''}${formatted} pts`;
+}
+
 function humanizeCode(value: string) {
   return value
     .split(/[_-]/)
@@ -75,6 +89,11 @@ export function GlobalMetricBoard({
                   {row.expectedScoreBaseline !== null
                     ? ` | baseline ${formatDecimal(row.expectedScoreBaseline)}`
                     : ''}
+                </p>
+                <p className="tm-muted-copy mt-2 text-sm">
+                  conversion {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                  consistency {formatPercent(row.consistencyIndex)} | clutch{' '}
+                  {formatPercent(row.clutchCloseRate)}
                 </p>
                 {metaLine ? (
                   <p className="tm-muted-copy mt-2 text-sm">

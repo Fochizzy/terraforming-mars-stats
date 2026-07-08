@@ -67,6 +67,8 @@ describe('GroupDashboard', () => {
           cardScoreShare: 0.3,
           citiesScoreShare: 0.08,
           closeGameCount: 2,
+          clutchCloseRate: 0.5,
+          consistencyIndex: 0.7143,
           closeGameWins: 1,
           closeGameWinRate: 0.5,
           gamesPlayed: 4,
@@ -76,6 +78,7 @@ describe('GroupDashboard', () => {
           playerId: 'p1',
           tagEvidenceCoverage: 0.75,
           trScoreShare: 0.35,
+          winConversionOverExpected: 0.1875,
           winRate: 0.75,
           wins: 3,
         },
@@ -87,6 +90,8 @@ describe('GroupDashboard', () => {
           averagePoints: 84.5,
           averagePointsPerGeneration: 8.45,
           averageScoreDeltaVsExpected: 3.2,
+          clutchCloseRate: 0.3333,
+          consistencyIndex: 0.8,
           bestScoreSourceOnMap: 'Card Points',
           bestTagLaneOnMap: 'science',
           gamesPlayed: 4,
@@ -95,6 +100,7 @@ describe('GroupDashboard', () => {
           mapName: 'Tharsis',
           mapRankForPlayer: 1,
           playerId: 'p1',
+          winConversionOverExpected: 0.125,
           winRate: 0.75,
           wins: 3,
         },
@@ -113,6 +119,9 @@ describe('GroupDashboard', () => {
           mapId: '22222222-2222-4222-8222-222222222222',
           mapName: 'Hellas',
           playerCount: 7,
+          winConversionOverExpected: 0.05,
+          consistencyIndex: 0.76,
+          clutchCloseRate: 0.4,
         },
       ],
       globalCorporationMetricRows: [
@@ -126,6 +135,9 @@ describe('GroupDashboard', () => {
           mapId: '22222222-2222-4222-8222-222222222222',
           mapName: 'Hellas',
           playerCount: 4,
+          winConversionOverExpected: 0.175,
+          consistencyIndex: 0.69,
+          clutchCloseRate: 0.6667,
           winRate: 0.625,
           wins: 5,
         },
@@ -140,6 +152,9 @@ describe('GroupDashboard', () => {
           mapName: null,
           playerCount: 4,
           styleCode: 'engine_builder',
+          winConversionOverExpected: 0.0714,
+          consistencyIndex: 0.72,
+          clutchCloseRate: 0.5,
           winRate: 0.571,
           wins: 4,
         },
@@ -155,6 +170,9 @@ describe('GroupDashboard', () => {
           mapName: null,
           playerCount: 4,
           tagCode: 'science',
+          winConversionOverExpected: 0.1667,
+          consistencyIndex: 0.81,
+          clutchCloseRate: 0.75,
           winRate: 0.667,
           wins: 6,
         },
@@ -170,6 +188,9 @@ describe('GroupDashboard', () => {
           milestoneName: 'Gardener',
           milestoneWinnerWinRate: 0.5,
           playerCount: 4,
+          winnerWinConversionOverExpected: 0.125,
+          winnerConsistencyIndex: 0.78,
+          winnerClutchCloseRate: 0.5,
           winnerWins: 3,
         },
       ],
@@ -187,6 +208,12 @@ describe('GroupDashboard', () => {
           mapName: null,
           playerCount: 4,
           winnerFunderMismatchRate: 0.25,
+          awardWinnerWinConversionOverExpected: 0.125,
+          awardWinnerConsistencyIndex: 0.74,
+          awardWinnerClutchCloseRate: 0.5,
+          funderWinConversionOverExpected: 0.25,
+          funderConsistencyIndex: 0.82,
+          funderClutchCloseRate: 0.75,
           winnerWins: 2,
         },
       ],
@@ -198,6 +225,9 @@ describe('GroupDashboard', () => {
           expectedScoreBaseline: 82.1,
           gamesPlayed: 11,
           playerCount: 4,
+          winConversionOverExpected: 0.0909,
+          consistencyIndex: 0.7,
+          clutchCloseRate: 0.5455,
         },
       ],
       globalGenerationMetricRows: [
@@ -207,6 +237,9 @@ describe('GroupDashboard', () => {
           expectedScoreBaseline: 84.2,
           gamesPlayed: 5,
           generationCount: 10,
+          winConversionOverExpected: 0.1,
+          consistencyIndex: 0.68,
+          clutchCloseRate: 0.6,
         },
       ],
       lineupEffectRows: [
@@ -259,6 +292,10 @@ describe('GroupDashboard', () => {
     expect(screen.queryByRole('heading', { name: /efficiency summary/i })).not.toBeInTheDocument();
     expect(screen.getByText(/top player/i)).toBeInTheDocument();
     expect(screen.getAllByText(/8.45 pts\/gen/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/win conversion/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/\+18\.8 pts/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/consistency index/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/clutch close rate/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/map performance/i)).toBeInTheDocument();
     expect(screen.getByText(/tharsis/i)).toBeInTheDocument();
     expect(screen.getByText(/global map meta/i)).toBeInTheDocument();
@@ -279,5 +316,6 @@ describe('GroupDashboard', () => {
     expect(screen.getByText(/4-player games/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Global Generation Baselines/i })).toBeInTheDocument();
     expect(screen.getByText(/10 generations/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/conversion \+9\.1 pts/i).length).toBeGreaterThan(0);
   });
 });

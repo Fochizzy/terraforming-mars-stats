@@ -46,6 +46,8 @@ describe('ProfileDashboard', () => {
         cardScoreShare: 0.32,
         citiesScoreShare: 0.1,
         closeGameCount: 2,
+        clutchCloseRate: 0.5,
+        consistencyIndex: 0.7143,
         closeGameWins: 1,
         closeGameWinRate: 0.5,
         gamesPlayed: 4,
@@ -55,6 +57,7 @@ describe('ProfileDashboard', () => {
         playerId: 'p1',
         tagEvidenceCoverage: 0.75,
         trScoreShare: 0.29,
+        winConversionOverExpected: 0.1875,
         winRate: 0.75,
         wins: 3,
       },
@@ -65,6 +68,8 @@ describe('ProfileDashboard', () => {
           averagePoints: 84.5,
           averagePointsPerGeneration: 8.4,
           averageScoreDeltaVsExpected: 4.3,
+          clutchCloseRate: 0.3333,
+          consistencyIndex: 0.8,
           bestScoreSourceOnMap: 'cards',
           bestTagLaneOnMap: 'science',
           gamesPlayed: 3,
@@ -73,6 +78,7 @@ describe('ProfileDashboard', () => {
           mapName: 'Tharsis',
           mapRankForPlayer: 1,
           playerId: 'p1',
+          winConversionOverExpected: 0.125,
           winRate: 0.67,
           wins: 2,
         },
@@ -136,6 +142,11 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/milestone \/ award share/i)).toBeInTheDocument();
     expect(screen.getByText(/7% \/ 8%/i)).toBeInTheDocument();
     expect(screen.getByText(/1\/2 close games/i)).toBeInTheDocument();
+    expect(screen.getByText(/win conversion/i)).toBeInTheDocument();
+    expect(screen.getByText(/\+18\.8 pts/i)).toBeInTheDocument();
+    expect(screen.getByText(/consistency index/i)).toBeInTheDocument();
+    expect(screen.getByText(/71%/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/clutch close rate/i).length).toBeGreaterThan(0);
   });
 
   it('renders an onboarding empty state when no linked player is available', () => {

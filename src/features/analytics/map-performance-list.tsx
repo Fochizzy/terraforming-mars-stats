@@ -19,6 +19,16 @@ function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatSignedPercentagePoints(value: number) {
+  const percentagePoints = value * 100;
+  const formatted = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(percentagePoints);
+
+  return `${percentagePoints > 0 ? '+' : ''}${formatted} pts`;
+}
+
 export function MapPerformanceList({
   mapMetricRows,
 }: {
@@ -52,6 +62,11 @@ export function MapPerformanceList({
                 {formatDecimal(row.averagePoints)} avg points |{' '}
                 {formatDecimal(row.averagePointsPerGeneration)} pts/gen |{' '}
                 {row.gamesPlayed} games
+              </p>
+              <p className="tm-muted-copy mt-2 text-sm">
+                conversion {formatSignedPercentagePoints(row.winConversionOverExpected)} |{' '}
+                consistency {formatPercent(row.consistencyIndex)} | clutch{' '}
+                {formatPercent(row.clutchCloseRate)}
               </p>
               {row.bestTagLaneOnMap || row.bestScoreSourceOnMap ? (
                 <p className="tm-muted-copy mt-2 text-sm">

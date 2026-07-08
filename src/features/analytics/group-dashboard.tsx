@@ -73,6 +73,16 @@ function formatPersistedMetric(value: number | null) {
   }).format(value);
 }
 
+function formatSignedPercentagePoints(value: number) {
+  const percentagePoints = value * 100;
+  const formatted = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(percentagePoints);
+
+  return `${percentagePoints > 0 ? '+' : ''}${formatted} pts`;
+}
+
 function getPlayerName(playerId: string, leaderboardRows: LeaderboardRow[]) {
   return (
     leaderboardRows.find((row) => row.playerId === playerId)?.playerName ?? playerId
@@ -174,6 +184,26 @@ export function GroupDashboard({
               <p className="tm-data-label">Expected Delta</p>
               <p className="mt-2 text-lg font-semibold text-stone-100">
                 {formatPersistedMetric(topEfficiencySummary.averageScoreDeltaVsExpected)}
+              </p>
+            </div>
+            <div className="tm-stat-card">
+              <p className="tm-data-label">Win Conversion</p>
+              <p className="mt-2 text-lg font-semibold text-stone-100">
+                {formatSignedPercentagePoints(
+                  topEfficiencySummary.winConversionOverExpected,
+                )}
+              </p>
+            </div>
+            <div className="tm-stat-card">
+              <p className="tm-data-label">Consistency Index</p>
+              <p className="mt-2 text-lg font-semibold text-stone-100">
+                {formatPercent(topEfficiencySummary.consistencyIndex)}
+              </p>
+            </div>
+            <div className="tm-stat-card">
+              <p className="tm-data-label">Clutch Close Rate</p>
+              <p className="mt-2 text-lg font-semibold text-stone-100">
+                {formatPercent(topEfficiencySummary.clutchCloseRate)}
               </p>
             </div>
             <div className="tm-stat-card">

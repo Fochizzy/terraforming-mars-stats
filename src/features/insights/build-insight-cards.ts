@@ -76,6 +76,16 @@ function formatAverage(value: number) {
   }).format(value);
 }
 
+function formatSignedPercentagePoints(value: number) {
+  const percentagePoints = value * 100;
+  const formatted = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(percentagePoints);
+
+  return `${percentagePoints > 0 ? '+' : ''}${formatted} pts`;
+}
+
 function getConfidence(sampleSize: number): InsightConfidence {
   if (sampleSize >= 6) {
     return 'high';
@@ -346,7 +356,7 @@ export function buildInsightCards({
       tone: 'performance',
       sampleSize: efficiencyRow.gamesPlayed,
       confidence: getConfidence(efficiencyRow.gamesPlayed),
-      body: `${playerLabel} has the strongest persisted efficiency profile at ${formatAverage(efficiencyRow.averagePointsPerGeneration)} pts/gen across ${efficiencyRow.gamesPlayed} Supabase summary games${efficiencyRow.averageExpectedScore !== null ? `, with expected baseline ${formatAverage(efficiencyRow.averageExpectedScore)}` : ''}.`,
+      body: `${playerLabel} has the strongest persisted efficiency profile at ${formatAverage(efficiencyRow.averagePointsPerGeneration)} pts/gen across ${efficiencyRow.gamesPlayed} Supabase summary games${efficiencyRow.averageExpectedScore !== null ? `, with expected baseline ${formatAverage(efficiencyRow.averageExpectedScore)}` : ''}. Win conversion is ${formatSignedPercentagePoints(efficiencyRow.winConversionOverExpected)}, consistency is ${formatPercent(efficiencyRow.consistencyIndex)}, and clutch close rate is ${formatPercent(efficiencyRow.clutchCloseRate)}.`,
     });
   } else {
     const mapRows = focusPlayerId

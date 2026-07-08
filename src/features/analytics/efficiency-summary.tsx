@@ -24,6 +24,20 @@ function formatDelta(value: number | null) {
   return value > 0 ? `+${formatted}` : formatted;
 }
 
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatSignedPercentagePoints(value: number) {
+  const percentagePoints = value * 100;
+  const formatted = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(percentagePoints);
+
+  return `${percentagePoints > 0 ? '+' : ''}${formatted} pts`;
+}
+
 export function EfficiencySummary({
   efficiencySummary,
 }: {
@@ -49,6 +63,26 @@ export function EfficiencySummary({
             <p className="tm-data-label">Expected Delta</p>
             <p className="mt-2 text-lg font-semibold text-stone-100">
               {formatDelta(efficiencySummary.averageScoreDeltaVsExpected)}
+            </p>
+          </div>
+          <div className="tm-stat-card">
+            <p className="tm-data-label">Win Conversion</p>
+            <p className="mt-2 text-lg font-semibold text-stone-100">
+              {formatSignedPercentagePoints(
+                efficiencySummary.winConversionOverExpected,
+              )}
+            </p>
+          </div>
+          <div className="tm-stat-card">
+            <p className="tm-data-label">Consistency Index</p>
+            <p className="mt-2 text-lg font-semibold text-stone-100">
+              {formatPercent(efficiencySummary.consistencyIndex)}
+            </p>
+          </div>
+          <div className="tm-stat-card">
+            <p className="tm-data-label">Clutch Close Rate</p>
+            <p className="mt-2 text-lg font-semibold text-stone-100">
+              {formatPercent(efficiencySummary.clutchCloseRate)}
             </p>
           </div>
           <div className="tm-stat-card">
