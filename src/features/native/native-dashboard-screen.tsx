@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { useRef, useState, type ReactNode } from 'react';
 import {
   Image,
@@ -392,6 +393,7 @@ export function NativeDashboardScreen({
         <View style={styles.heroBannerFrame}>
           <Image
             accessibilityLabel="Dashboard Banner"
+            alt="Terraforming Mars Statistics banner"
             resizeMode="cover"
             source={require('../../../assets/banner.png')}
             style={styles.heroBannerImage}
