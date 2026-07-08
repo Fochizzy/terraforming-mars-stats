@@ -1745,6 +1745,117 @@ begin
 end;
 $$;
 
+-- Replace tag summaries inside one database function so delete+insert is
+-- transactionally rolled back together when any row is invalid.
+create or replace function public.replace_game_log_tag_summaries(
+  p_game_log_import_id uuid,
+  p_summaries jsonb
+)
+returns table (
+  id uuid,
+  tag_code text
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  normalized_summaries jsonb := coalesce(p_summaries, '[]'::jsonb);
+  v_game_id uuid;
+begin
+  if p_game_log_import_id is null then
+    raise exception 'game log import id is required'
+      using errcode = '22004';
+  end if;
+
+  if jsonb_typeof(normalized_summaries) <> 'array' then
+    raise exception 'p_summaries must be a JSON array'
+      using errcode = '22023';
+  end if;
+
+  select gli.game_id
+  into v_game_id
+  from public.game_log_imports gli
+  where gli.id = p_game_log_import_id
+  for update;
+
+  if not found then
+    raise exception 'game log import % does not exist', p_game_log_import_id
+      using errcode = 'P0002';
+  end if;
+
+  if not public.can_edit_game(v_game_id) then
+    raise exception 'not authorized to replace tag summaries for import %', p_game_log_import_id
+      using errcode = '42501';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(normalized_summaries) as summary_item
+    where nullif(summary_item ->> 'game_player_id', '') is not null
+      and not exists (
+        select 1
+        from public.game_players gp
+        where gp.id = nullif(summary_item ->> 'game_player_id', '')::uuid
+          and gp.game_id = v_game_id
+      )
+  ) then
+    raise exception 'summary game_player_id must belong to import game %', v_game_id
+      using errcode = '23503';
+  end if;
+
+  delete from public.game_log_tag_summaries glts
+  where glts.game_log_import_id = p_game_log_import_id;
+
+  if jsonb_array_length(normalized_summaries) = 0 then
+    return;
+  end if;
+
+  insert into public.game_log_tag_summaries (
+    game_log_import_id,
+    game_player_id,
+    player_name,
+    normalized_player_name,
+    tag_code,
+    tag_count,
+    played_card_count,
+    matched_card_count,
+    unresolved_card_count,
+    total_tag_count,
+    tag_evidence_coverage
+  )
+  select
+    p_game_log_import_id,
+    nullif(summary_item ->> 'game_player_id', '')::uuid,
+    summary_item ->> 'player_name',
+    summary_item ->> 'normalized_player_name',
+    summary_item ->> 'tag_code',
+    coalesce(nullif(summary_item ->> 'tag_count', '')::integer, 0),
+    coalesce(nullif(summary_item ->> 'played_card_count', '')::integer, 0),
+    coalesce(nullif(summary_item ->> 'matched_card_count', '')::integer, 0),
+    coalesce(nullif(summary_item ->> 'unresolved_card_count', '')::integer, 0),
+    coalesce(nullif(summary_item ->> 'total_tag_count', '')::integer, 0),
+    coalesce(
+      nullif(summary_item ->> 'tag_evidence_coverage', '')::numeric,
+      case
+        when coalesce(nullif(summary_item ->> 'played_card_count', '')::integer, 0) = 0 then 0
+        else round(
+          coalesce(nullif(summary_item ->> 'matched_card_count', '')::numeric, 0)
+          / nullif(coalesce(nullif(summary_item ->> 'played_card_count', '')::numeric, 0), 0),
+          4
+        )
+      end
+    )
+  from jsonb_array_elements(normalized_summaries) as summary_item;
+
+  return query
+  select glts.id, glts.tag_code
+  from public.game_log_tag_summaries glts
+  where glts.game_log_import_id = p_game_log_import_id
+  order by glts.normalized_player_name, glts.tag_code;
+end;
+$$;
+
 -- This project currently exposes client RPCs in the public schema. This
 -- SECURITY DEFINER function is intentionally kept public so refresh logic can
 -- rebuild derived metric rows without broad table mutation policies.
@@ -1796,6 +1907,10 @@ $$;
 revoke execute on function public.refresh_game_metric_snapshots(uuid) from public;
 revoke execute on function public.refresh_game_metric_snapshots(uuid) from anon;
 revoke execute on function public.refresh_game_metric_snapshots(uuid) from authenticated;
+revoke execute on function public.replace_game_log_tag_summaries(uuid, jsonb) from public;
+revoke execute on function public.replace_game_log_tag_summaries(uuid, jsonb) from anon;
+revoke execute on function public.replace_game_log_tag_summaries(uuid, jsonb) from authenticated;
+revoke execute on function public.replace_game_log_tag_summaries(uuid, jsonb) from service_role;
 revoke execute on function public.rebuild_metric_summaries() from public;
 revoke execute on function public.rebuild_metric_summaries() from anon;
 revoke execute on function public.rebuild_metric_summaries() from authenticated;
@@ -1809,4 +1924,5 @@ revoke execute on function public.refresh_all_metric_snapshots() from anon;
 revoke execute on function public.refresh_all_metric_snapshots() from authenticated;
 grant execute on function public.refresh_game_metric_snapshots(uuid) to authenticated;
 grant execute on function public.refresh_game_metric_snapshots(uuid) to service_role;
+grant execute on function public.replace_game_log_tag_summaries(uuid, jsonb) to authenticated;
 grant execute on function public.refresh_all_metric_snapshots() to service_role;
