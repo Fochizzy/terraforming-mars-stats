@@ -460,6 +460,77 @@ describe('WebImportPage', () => {
     expect(onConfirmImportReview).not.toHaveBeenCalled();
   });
 
+  it('passes log-detected participant names to browser screenshot OCR when the manual field is blank', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
+    });
+    const screenshot = new File(['evidence'], 'game-result.png', {
+      type: 'image/png',
+    });
+    const clientEndgameLines = [
+      'Victory points breakdown after 12 generations',
+      'James 59 5 15 6 8 52 145',
+      'Izzy 39 10 0 4 6 23 82',
+    ];
+
+    browserOcrMocks.readGameResultEndgameLinesInBrowser.mockResolvedValue(
+      clientEndgameLines,
+    );
+
+    render(
+      <WebImportPage
+        initialValues={{
+          generationCount: 10,
+          mapId: 'tharsis',
+          playedOn: '2026-07-03',
+          playerCount: 4,
+        }}
+        mapOptions={[
+          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
+          { code: 'elysium', id: 'elysium', name: 'Elysium' },
+        ]}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/exported game log/i), {
+      target: {
+        value: ['James played Natural Preserve', 'Izzy played Earth Catapult'].join(
+          '\n',
+        ),
+      },
+    });
+    await user.upload(
+      screen.getByLabelText(/^game result screenshot$/i),
+      screenshot,
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    expect(
+      browserOcrMocks.readGameResultEndgameLinesInBrowser,
+    ).toHaveBeenCalledWith(
+      screenshot,
+      expect.objectContaining({
+        expectedPlayerCount: 2,
+        expectedPlayerNames: ['James', 'Izzy'],
+      }),
+    );
+    expect(
+      JSON.parse(
+        String(onAnalyzeImportEvidence.mock.calls[0]?.[0].get('clientEndgameLines')),
+      ),
+    ).toEqual(clientEndgameLines);
+  });
+
   it('requires every imported player to have a selected roster player before confirmation', async () => {
     const user = userEvent.setup();
     const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({

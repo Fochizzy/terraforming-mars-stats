@@ -7,9 +7,11 @@ import { SelectChevron } from '@/components/ui/select-chevron';
 import { StatusBanner } from '@/components/ui/status-banner';
 import { StepHeading } from '@/components/ui/step-heading';
 import { applyCreatedImportPlayerToReview } from '@/lib/imports/apply-created-import-player-to-review';
+import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
 import type { MapOption } from '@/lib/db/reference-repo';
 import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
+import { parseGameLog } from '@/lib/imports/parse-game-log';
 import { ImportReviewPanel } from './import-review-panel';
 
 export type WebImportDraftValues = {
@@ -62,8 +64,20 @@ function getClipboardImageFile(
   return null;
 }
 
-function buildScreenshotCacheKey(file: File) {
-  return [file.name, file.size, file.lastModified].join(':');
+function buildScreenshotCacheKey(
+  file: File,
+  ocrContext: {
+    expectedPlayerCount: number;
+    expectedPlayerNames: string[];
+  },
+) {
+  return JSON.stringify({
+    expectedPlayerCount: ocrContext.expectedPlayerCount,
+    expectedPlayerNames: ocrContext.expectedPlayerNames,
+    lastModified: file.lastModified,
+    name: file.name,
+    size: file.size,
+  });
 }
 
 function getDroppedGameLogFile(dataTransfer: DataTransfer | null): File | null {
@@ -130,6 +144,16 @@ function parseManualParticipantNames(participantsText: string) {
     .split(/\r?\n/g)
     .map((participant) => participant.trim())
     .filter(Boolean);
+}
+
+function extractClientLogParticipantNames(exportedGameLog: string) {
+  const trimmedGameLog = exportedGameLog.trim();
+
+  if (!trimmedGameLog) {
+    return [];
+  }
+
+  return extractGameLogParticipantNames(parseGameLog(trimmedGameLog));
 }
 
 function inferDetectedPlayerCount(review: ImportReviewModel | undefined) {
@@ -347,7 +371,17 @@ export function WebImportPage({
       return [];
     }
 
-    const fileKey = buildScreenshotCacheKey(endgameScreenshot);
+    const manualParticipantNames = parseManualParticipantNames(participantsText);
+    const expectedPlayerNames =
+      manualParticipantNames.length > 0
+        ? manualParticipantNames
+        : extractClientLogParticipantNames(exportedGameLog);
+    const expectedPlayerCount =
+      expectedPlayerNames.length > 0 ? expectedPlayerNames.length : playerCount;
+    const fileKey = buildScreenshotCacheKey(endgameScreenshot, {
+      expectedPlayerCount,
+      expectedPlayerNames,
+    });
     const cachedLines = clientEndgameLinesCacheRef.current;
 
     if (cachedLines?.fileKey === fileKey) {
@@ -359,8 +393,8 @@ export function WebImportPage({
         '@/lib/imports/read-endgame-screenshot-browser'
       );
       const lines = await readGameResultEndgameLinesInBrowser(endgameScreenshot, {
-        expectedPlayerCount: playerCount,
-        expectedPlayerNames: parseManualParticipantNames(participantsText),
+        expectedPlayerCount,
+        expectedPlayerNames,
       });
 
       clientEndgameLinesCacheRef.current = {
