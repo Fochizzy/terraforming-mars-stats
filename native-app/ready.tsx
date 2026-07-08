@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeDashboardScreen } from '@/features/native/native-dashboard-screen';
+import {
+  loadNativeDashboard,
+  type NativeDashboardData,
+} from '@/features/native/load-native-dashboard';
 import { nativeSupabase } from '@/lib/supabase/native';
 
 type ReadyState =
   | {
-      sessionEmail: string;
-      state: 'ready';
+      state: 'error';
+      message: string;
     }
   | {
       state: 'loading';
+    }
+  | {
+      state: 'ready';
+      dashboard: NativeDashboardData;
     };
 
 export default function ReadyRoute() {
@@ -22,27 +31,41 @@ export default function ReadyRoute() {
   useEffect(() => {
     let isActive = true;
 
-    async function loadSession() {
-      const {
-        data: { session },
-      } = await nativeSupabase.auth.getSession();
+    async function loadDashboard() {
+      try {
+        const dashboard = await loadNativeDashboard();
 
-      if (!isActive) {
-        return;
+        if (!isActive) {
+          return;
+        }
+
+        if (!dashboard) {
+          router.replace('/auth');
+          return;
+        }
+
+        setReadyState({
+          dashboard,
+          state: 'ready',
+        });
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'We could not load this native dashboard right now.';
+
+        setReadyState({
+          message,
+          state: 'error',
+        });
       }
-
-      if (!session?.user) {
-        router.replace('/auth');
-        return;
-      }
-
-      setReadyState({
-        sessionEmail: session.user.email ?? 'your account',
-        state: 'ready',
-      });
     }
 
-    loadSession();
+    loadDashboard();
 
     return () => {
       isActive = false;
@@ -54,74 +77,101 @@ export default function ReadyRoute() {
     router.replace('/auth');
   }
 
+  if (readyState.state === 'loading') {
+    return (
+      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
+        <View style={styles.loadingShell}>
+          <ActivityIndicator color="#f59e0b" size="large" />
+          <Text style={styles.loadingTitle}>Opening your Terraforming Mars command board...</Text>
+          <Text style={styles.loadingCopy}>
+            Pulling personal, comparative, and global dashboards onto this device.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (readyState.state === 'error') {
+    return (
+      <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
+        <View style={styles.errorShell}>
+          <Text style={styles.errorEyebrow}>Dashboard Offline</Text>
+          <Text style={styles.errorTitle}>Terraforming Mars native analytics hit a snag.</Text>
+          <Text style={styles.errorCopy}>{readyState.message}</Text>
+          <Text onPress={() => router.replace('/auth')} style={styles.errorLink}>
+            Return to sign in
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
-      <View style={styles.shell}>
-        <View style={styles.card}>
-          <Text style={styles.eyebrow}>Native Shell Ready</Text>
-          <Text style={styles.title}>Terraforming Mars Stats</Text>
-          <Text style={styles.body}>
-            {readyState.state === 'ready'
-              ? `Signed in on this device as ${readyState.sessionEmail}. Native feature routes can branch from here next.`
-              : 'Checking this device session...'}
-          </Text>
-          <Pressable onPress={onSignOut} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Sign Out</Text>
-          </Pressable>
-        </View>
-      </View>
+      <NativeDashboardScreen
+        dashboard={readyState.dashboard}
+        onSignOut={onSignOut}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: '#08101d',
-    flex: 1,
+  errorCopy: {
+    color: '#d6dde8',
+    fontSize: 16,
+    lineHeight: 24,
   },
-  shell: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
+  errorEyebrow: {
+    color: '#fb923c',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  card: {
-    backgroundColor: '#162334',
-    borderColor: '#27364d',
+  errorLink: {
+    color: '#f59e0b',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  errorShell: {
+    backgroundColor: '#152233',
+    borderColor: '#7c2d12',
     borderRadius: 28,
     borderWidth: 1,
-    gap: 18,
+    gap: 16,
+    marginHorizontal: 24,
+    marginTop: 48,
     paddingHorizontal: 24,
     paddingVertical: 28,
   },
-  eyebrow: {
-    color: '#f59e0b',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
+  errorTitle: {
+    color: '#fff7ed',
+    fontSize: 30,
+    fontWeight: '900',
+    lineHeight: 36,
   },
-  title: {
-    color: '#f8fafc',
-    fontSize: 34,
-    fontWeight: '800',
-    lineHeight: 40,
-  },
-  body: {
+  loadingCopy: {
     color: '#cbd5e1',
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
   },
-  secondaryButton: {
+  loadingShell: {
     alignItems: 'center',
-    backgroundColor: '#364255',
-    borderRadius: 22,
-    minHeight: 56,
+    flex: 1,
+    gap: 14,
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 28,
   },
-  secondaryButtonText: {
-    color: '#f8fafc',
-    fontSize: 18,
-    fontWeight: '700',
+  loadingTitle: {
+    color: '#fff7ed',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  safeArea: {
+    backgroundColor: '#070d17',
+    flex: 1,
   },
 });

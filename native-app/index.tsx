@@ -31,7 +31,7 @@ export default function IndexRoute() {
   return (
     <View style={styles.shell}>
       <ActivityIndicator color="#f59e0b" size="large" />
-      <Text style={styles.label}>Loading native route shell...</Text>
+      <Text style={styles.label}>Opening Terraforming Mars stats...</Text>
     </View>
   );
 }
