@@ -1,7 +1,29 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { InsightsDashboard } from './insights-dashboard';
+
+function buildExtendedFixture(
+  overrides: Partial<ExtendedGroupAnalytics> = {},
+): ExtendedGroupAnalytics {
+  return {
+    awardFunderWinnerRows: [],
+    awardOutcomeRows: [],
+    gameLengthPerformanceRows: [],
+    generationDistributionRows: [],
+    generationPaceRows: [],
+    groupMapPerformanceRows: [],
+    milestoneEconomicsRows: [],
+    placementDistributionRows: [],
+    playerCountPerformanceRows: [],
+    playerMapPerformanceRows: [],
+    playerMilestoneClaimRows: [],
+    tagOutcomeRows: [],
+    tilePlacementRows: [],
+    ...overrides,
+  };
+}
 
 describe('InsightsDashboard', () => {
   it('does not surface promo catalog or map expansion interactions as stats', () => {
@@ -33,6 +55,7 @@ describe('InsightsDashboard', () => {
           scoreAverages: null,
           styleAgreementRows: [],
         } as never}
+        extended={buildExtendedFixture()}
         players={[]}
       />,
     );
@@ -301,6 +324,53 @@ describe('InsightsDashboard', () => {
             },
           ],
         } as never}
+        extended={buildExtendedFixture({
+          generationDistributionRows: [
+            { gamesPlayed: 2, generationCount: 10, groupId: 'group-1' },
+            { gamesPlayed: 2, generationCount: 12, groupId: 'group-1' },
+          ],
+          milestoneEconomicsRows: [
+            {
+              averageClaimerPlacement: 1.3,
+              claimRate: 0.75,
+              claimerWinRate: 0.66,
+              claimerWins: 2,
+              claims: 3,
+              groupId: 'group-1',
+              milestoneId: 'm1',
+              milestoneName: 'Terraformer',
+            },
+          ],
+          placementDistributionRows: [
+            {
+              gamesPlayed: 3,
+              groupId: 'group-1',
+              placement: 1,
+              playerId: 'p1',
+              playerName: 'Friday Mars',
+            },
+            {
+              gamesPlayed: 1,
+              groupId: 'group-1',
+              placement: 2,
+              playerId: 'p1',
+              playerName: 'Friday Mars',
+            },
+          ],
+          playerCountPerformanceRows: [
+            {
+              averagePlacement: 1.5,
+              averageScore: 82.3,
+              gamesPlayed: 4,
+              groupId: 'group-1',
+              playerCount: 3,
+              playerId: 'p1',
+              playerName: 'Friday Mars',
+              winRate: 0.5,
+              wins: 2,
+            },
+          ],
+        })}
         players={[
           { displayName: 'Friday Mars', id: 'p1' },
           { displayName: 'Second Seat', id: 'p2' },
@@ -310,6 +380,17 @@ describe('InsightsDashboard', () => {
 
     expect(screen.getByText(/Friday Mars currently leads the group/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Group Score Profile/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Placement Spread/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Score Source Radar/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /^Table Size Performance$/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Game Length$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Milestone Economics/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Game Pace Replay/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Board Heatmap/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Best Style Snapshot/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Trend Over Time/i })).toBeInTheDocument();
     expect(

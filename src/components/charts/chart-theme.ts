@@ -17,3 +17,14 @@ export const chartSeriesColors = {
   partial: 'var(--tm-copper-400)',
   tr: 'var(--tm-tr)',
 };
+
+// Same CVD-validated hues as the selection-origin stack; indexed for
+// player-per-series charts (max 5 players + a group series).
+export const chartPlayerSeriesColors = [
+  '#3388bb',
+  '#5f8b2c',
+  '#c14e1e',
+  '#9a5fd0',
+  '#b08234',
+  '#c04a72',
+];

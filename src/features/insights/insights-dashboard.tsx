@@ -29,7 +29,20 @@ import type {
   GroupStylePerformanceRow,
   TrendRow,
 } from '@/lib/db/analytics-repo';
+import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { buildInsightCards } from './build-insight-cards';
+import { BoardHeatmapSection } from './board-heatmap-section';
+import { GameLengthSection } from './game-length-section';
+import { GamePaceSection } from './game-pace-section';
+import { MapPerformanceSection } from './map-performance-section';
+import {
+  AwardEconomicsSection,
+  MilestoneEconomicsSection,
+} from './milestone-award-section';
+import { PlacementDistributionChart } from './placement-distribution-chart';
+import { ScoreSourceRadar } from './score-source-radar';
+import { TableSizeChart } from './table-size-chart';
+import { TagOutcomesSection } from './tag-outcomes-section';
 
 type PlayerOption = {
   displayName: string;
@@ -38,6 +51,7 @@ type PlayerOption = {
 
 type InsightsDashboardProps = {
   analytics: GroupAnalytics;
+  extended: ExtendedGroupAnalytics;
   players: PlayerOption[];
 };
 
@@ -261,6 +275,7 @@ function normalizeHeadToHeadRows(
 
 export function InsightsDashboard({
   analytics,
+  extended,
   players,
 }: InsightsDashboardProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('all');
@@ -269,6 +284,11 @@ export function InsightsDashboard({
     selectedPlayerId === 'all'
       ? null
       : players.find((player) => player.id === selectedPlayerId) ?? null;
+  const focusedPlayerScoreAverages = selectedPlayer
+    ? analytics.playerScoreAverages.find(
+        (row) => row.playerId === selectedPlayer.id,
+      ) ?? null
+    : null;
   const selectedStylePerformanceRows: GroupStylePerformanceRow[] = selectedPlayer
     ? analytics.playerStylePerformanceRows.filter(
         (row) => row.playerId === selectedPlayer.id,
@@ -484,6 +504,10 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
+          <PlacementDistributionChart
+            rows={extended.placementDistributionRows}
+          />
+
           <ChartFrame
             title={
               selectedPlayer
@@ -516,6 +540,12 @@ export function InsightsDashboard({
               </ResponsiveContainer>
             )}
           </ChartFrame>
+
+          <ScoreSourceRadar
+            focusPlayerName={selectedPlayer?.displayName ?? null}
+            groupAverages={analytics.scoreAverages}
+            playerAverages={focusedPlayerScoreAverages}
+          />
 
           <ChartFrame
             title={
@@ -655,6 +685,26 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
+          <TableSizeChart
+            focusPlayerId={selectedPlayer?.id ?? null}
+            focusPlayerName={selectedPlayer?.displayName ?? null}
+            rows={extended.playerCountPerformanceRows}
+          />
+
+          <GameLengthSection
+            distributionRows={extended.generationDistributionRows}
+            focusPlayerId={selectedPlayer?.id ?? null}
+            focusPlayerName={selectedPlayer?.displayName ?? null}
+            performanceRows={extended.gameLengthPerformanceRows}
+          />
+
+          <MapPerformanceSection
+            focusPlayerId={selectedPlayer?.id ?? null}
+            focusPlayerName={selectedPlayer?.displayName ?? null}
+            groupRows={extended.groupMapPerformanceRows}
+            playerRows={extended.playerMapPerformanceRows}
+          />
+
           <ChartFrame title="Head-to-Head Lens">
             {focusedHeadToHeadRows.length === 0 ? (
               <p className="tm-muted-copy text-sm">
@@ -711,6 +761,30 @@ export function InsightsDashboard({
               </div>
             )}
           </ChartFrame>
+
+          <MilestoneEconomicsSection
+            focusPlayerId={selectedPlayer?.id ?? null}
+            focusPlayerName={selectedPlayer?.displayName ?? null}
+            groupRows={extended.milestoneEconomicsRows}
+            playerRows={extended.playerMilestoneClaimRows}
+          />
+
+          <AwardEconomicsSection
+            focusPlayerId={selectedPlayer?.id ?? null}
+            focusPlayerName={selectedPlayer?.displayName ?? null}
+            matrixRows={extended.awardFunderWinnerRows}
+            outcomeRows={extended.awardOutcomeRows}
+          />
+
+          <TagOutcomesSection
+            focusPlayerId={selectedPlayer?.id ?? null}
+            focusPlayerName={selectedPlayer?.displayName ?? null}
+            rows={extended.tagOutcomeRows}
+          />
+
+          <GamePaceSection rows={extended.generationPaceRows} />
+
+          <BoardHeatmapSection rows={extended.tilePlacementRows} />
 
           {selectedInteractionRows.length > 0 ? (
             <ChartFrame title="Interaction Insights">

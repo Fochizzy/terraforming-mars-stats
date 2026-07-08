@@ -5,6 +5,7 @@ import { InsightsDashboard } from '@/features/insights/insights-dashboard';
 import { SelectionStatsSection } from '@/features/insights/selection-stats-section';
 import type { GroupHeadToHeadRow } from '@/lib/db/analytics-repo';
 import { getGroupAnalytics } from '@/lib/db/analytics-repo';
+import { getExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import {
   getHeadToHeadStats,
   getSelectionStats,
@@ -61,12 +62,14 @@ export default async function InsightsPage() {
   const context = await requireGroupContextOrRedirect();
   const [
     analytics,
+    extendedAnalytics,
     players,
     personalSelectionStats,
     globalSelectionStats,
     headToHeadStats,
   ] = await Promise.all([
     getGroupAnalytics(context.groupId),
+    getExtendedGroupAnalytics(context.groupId),
     listPlayers(context.groupId),
     getSelectionStats('personal'),
     getSelectionStats('global'),
@@ -88,6 +91,7 @@ export default async function InsightsPage() {
     >
       <InsightsDashboard
         analytics={analytics}
+        extended={extendedAnalytics}
         players={selectablePlayers}
       />
       <SelectionStatsSection

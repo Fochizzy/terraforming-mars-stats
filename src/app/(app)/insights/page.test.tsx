@@ -12,6 +12,7 @@ const captureState = vi.hoisted(() => ({
 }));
 
 const mockState = vi.hoisted(() => ({
+  getExtendedGroupAnalytics: vi.fn(),
   getGroupAnalytics: vi.fn(),
   listPlayers: vi.fn(),
   listPromoCards: vi.fn(),
@@ -61,6 +62,10 @@ vi.mock('@/features/insights/insights-dashboard', () => ({
 
 vi.mock('@/lib/db/analytics-repo', () => ({
   getGroupAnalytics: mockState.getGroupAnalytics,
+}));
+
+vi.mock('@/lib/db/extended-analytics-repo', () => ({
+  getExtendedGroupAnalytics: mockState.getExtendedGroupAnalytics,
 }));
 
 vi.mock('@/lib/db/player-repo', () => ({
@@ -157,6 +162,21 @@ describe('InsightsPage', () => {
         linked_user_id: null,
       },
     ]);
+    mockState.getExtendedGroupAnalytics.mockResolvedValue({
+      awardFunderWinnerRows: [],
+      awardOutcomeRows: [],
+      gameLengthPerformanceRows: [],
+      generationDistributionRows: [],
+      generationPaceRows: [],
+      groupMapPerformanceRows: [],
+      milestoneEconomicsRows: [],
+      placementDistributionRows: [],
+      playerCountPerformanceRows: [],
+      playerMapPerformanceRows: [],
+      playerMilestoneClaimRows: [],
+      tagOutcomeRows: [],
+      tilePlacementRows: [],
+    });
     mockState.listPromoCards.mockResolvedValue([]);
     mockState.listPromoSets.mockResolvedValue([]);
   });
