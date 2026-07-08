@@ -130,6 +130,14 @@ const dashboardFixture: NativeDashboardData = {
         value: 0.611,
       },
     ],
+    mapRows: [
+      {
+        accent: 'ocean',
+        detail: '83.1 avg pts | 10.0 gens | 6 games | 4 players',
+        label: 'Tharsis',
+        value: 8.4,
+      },
+    ],
     summary: 'Opted-in groups globally are rewarding heat rush corps right now.',
     title: 'Global Stats',
   },
@@ -183,6 +191,14 @@ const dashboardFixture: NativeDashboardData = {
       {
         label: 'Average Score',
         value: '84.5',
+      },
+      {
+        label: 'Points Per Generation',
+        value: '8.4 pts/gen',
+      },
+      {
+        label: 'Normalized Efficiency',
+        value: '1.08',
       },
     ],
     rivalRows: [
@@ -255,5 +271,15 @@ describe('NativeDashboardScreen', () => {
 
     expect(personalButton).toHaveAttribute('data-active', 'false');
     expect(globalButton).toHaveAttribute('data-active', 'true');
+  });
+
+  it('renders persisted profile metrics and global map rows', () => {
+    render(<NativeDashboardScreen dashboard={dashboardFixture} onSignOut={vi.fn()} />);
+
+    expect(screen.getByText(/points per generation/i)).toBeInTheDocument();
+    expect(screen.getByText(/8\.4 pts\/gen/i)).toBeInTheDocument();
+    expect(screen.getByText(/normalized efficiency/i)).toBeInTheDocument();
+    expect(screen.getByText(/global map meta/i)).toBeInTheDocument();
+    expect(screen.getByText(/tharsis/i)).toBeInTheDocument();
   });
 });

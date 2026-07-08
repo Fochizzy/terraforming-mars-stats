@@ -308,6 +308,7 @@ function buildFallbackGroupSection(): NativeDashboardSection {
 function buildFallbackGlobalSection(): NativeDashboardSection {
   return {
     leaderboardRows: [],
+    mapRows: [],
     summary:
       'Opted-in global analytics will appear here once more finalized tables sync in.',
     title: 'Global Stats',
@@ -543,6 +544,11 @@ export function NativeDashboardScreen({
               emptyCopy="Global bars will appear once opted-in groups contribute enough finalized data."
               rows={globalSection.leaderboardRows ?? []}
               title="Global Corporation Board"
+            />
+            <BarList
+              emptyCopy="Global map baselines will appear once finalized games include persisted map metrics."
+              rows={globalSection.mapRows ?? []}
+              title="Global Map Meta"
             />
           </SectionCard>
         </View>

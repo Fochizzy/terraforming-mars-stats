@@ -103,6 +103,14 @@ describe('ReadyRoute', () => {
             value: 0.611,
           },
         ],
+        mapRows: [
+          {
+            accent: 'ocean',
+            detail: '83.1 avg pts | 10.0 gens | 6 games | 4 players',
+            label: 'Tharsis',
+            value: 8.4,
+          },
+        ],
         summary: 'Opted-in groups globally are rewarding heat rush corps right now.',
         title: 'Global Stats',
       },
@@ -123,6 +131,10 @@ describe('ReadyRoute', () => {
           {
             label: 'Average Score',
             value: '84.5',
+          },
+          {
+            label: 'Points Per Generation',
+            value: '8.4 pts/gen',
           },
         ],
         rivalRows: [
@@ -171,6 +183,9 @@ describe('ReadyRoute', () => {
     expect(screen.getAllByText(/banner image/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/score mix chart/i)).toBeInTheDocument();
     expect(screen.getByText(/trend chart/i)).toBeInTheDocument();
+    expect(screen.getByText(/points per generation/i)).toBeInTheDocument();
+    expect(screen.getByText(/8\.4 pts\/gen/i)).toBeInTheDocument();
+    expect(screen.getByText(/global map meta/i)).toBeInTheDocument();
     expect(screen.queryByText(/native shell ready/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/native analytics bridge/i)).not.toBeInTheDocument();
     expect(

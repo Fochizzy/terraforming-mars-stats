@@ -40,6 +40,7 @@ export type NativeDashboardSection = {
   headline?: string;
   headToHeadRows?: NativeDashboardRecordRow[];
   leaderboardRows?: NativeDashboardBarRow[];
+  mapRows?: NativeDashboardBarRow[];
   metrics?: NativeDashboardMetric[];
   rivalRows?: NativeDashboardRecordRow[];
   scoreSourceRows?: NativeDashboardBarRow[];
@@ -146,6 +147,28 @@ type RawGlobalCorporationRow = {
   wins: number;
 };
 
+type RawPlayerMetricSummaryRow = {
+  average_award_roi: number | string | null;
+  average_normalized_efficiency: number | string | null;
+  average_points_per_generation: number | string | null;
+  average_score_delta_vs_expected: number | string | null;
+  best_score_source: null | string;
+  best_tag_lane: null | string;
+  games_played: number | string | null;
+  tag_evidence_coverage: number | string | null;
+};
+
+type RawGlobalMapMetricSummaryRow = {
+  average_generations: number | string | null;
+  average_points: number | string | null;
+  average_points_per_generation: number | string | null;
+  expected_score_baseline: number | string | null;
+  games_played: number | string | null;
+  map_id: string;
+  maps: null | { name?: string } | Array<{ name?: string }>;
+  player_count: number | string | null;
+};
+
 function toNumber(value: number | string | null | undefined) {
   if (typeof value === 'number') {
     return value;
@@ -159,6 +182,19 @@ function toNumber(value: number | string | null | undefined) {
   return 0;
 }
 
+function toOptionalNumber(value: number | string | null | undefined) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === 'string' && value.length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
@@ -170,12 +206,72 @@ function formatAverage(value: number) {
   }).format(value);
 }
 
+function formatFixedAverage(value: number, digits = 2) {
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  }).format(value);
+}
+
+function formatSignedAverage(value: number) {
+  const formatted = formatAverage(value);
+  return value > 0 ? `+${formatted}` : formatted;
+}
+
 function getJoinedGroupName(value: GroupMembershipRow['groups']) {
   if (Array.isArray(value)) {
     return value[0]?.name?.trim() ?? '';
   }
 
   return value?.name?.trim() ?? '';
+}
+
+function getJoinedMapName(value: RawGlobalMapMetricSummaryRow['maps']) {
+  if (Array.isArray(value)) {
+    return value[0]?.name?.trim() ?? '';
+  }
+
+  return value?.name?.trim() ?? '';
+}
+
+function buildPersistedProfileMetrics(
+  row: RawPlayerMetricSummaryRow | null,
+): NativeDashboardMetric[] {
+  if (!row) {
+    return [];
+  }
+
+  const pointsPerGeneration = toOptionalNumber(row.average_points_per_generation);
+  const normalizedEfficiency = toOptionalNumber(row.average_normalized_efficiency);
+  const expectedDelta = toOptionalNumber(row.average_score_delta_vs_expected);
+  const awardRoi = toOptionalNumber(row.average_award_roi);
+
+  return [
+    pointsPerGeneration === null
+      ? null
+      : {
+          label: 'Points Per Generation',
+          value: `${formatAverage(pointsPerGeneration)} pts/gen`,
+        },
+    normalizedEfficiency === null
+      ? null
+      : {
+          label: 'Normalized Efficiency',
+          value: formatFixedAverage(normalizedEfficiency),
+        },
+    expectedDelta === null
+      ? null
+      : {
+          label: 'Expected Delta',
+          value: formatSignedAverage(expectedDelta),
+        },
+    awardRoi === null
+      ? null
+      : {
+          label: 'Award ROI',
+          value: formatFixedAverage(awardRoi),
+        },
+  ].filter((metric): metric is NativeDashboardMetric => metric !== null);
 }
 
 function buildScoreSourceRows(
@@ -402,6 +498,36 @@ function buildGlobalLeaderboardRows(
     }));
 }
 
+function buildGlobalMapRows(
+  rows: RawGlobalMapMetricSummaryRow[],
+): NativeDashboardBarRow[] {
+  return [...rows]
+    .filter((row) => toOptionalNumber(row.average_points_per_generation) !== null)
+    .sort(
+      (left, right) =>
+        toNumber(right.average_points_per_generation) -
+          toNumber(left.average_points_per_generation) ||
+        toNumber(right.games_played) - toNumber(left.games_played) ||
+        getJoinedMapName(left.maps).localeCompare(getJoinedMapName(right.maps)),
+    )
+    .slice(0, 5)
+    .map((row, index) => {
+      const averagePoints = toOptionalNumber(row.average_points);
+      const averageGenerations = toOptionalNumber(row.average_generations);
+      const gamesPlayed = toNumber(row.games_played);
+      const playerCount = toNumber(row.player_count);
+
+      return {
+        accent: index === 0 ? 'ocean' : 'greenery',
+        detail: `${averagePoints === null ? '--' : formatAverage(averagePoints)} avg pts | ${
+          averageGenerations === null ? '--' : formatAverage(averageGenerations)
+        } gens | ${gamesPlayed} games | ${playerCount} players`,
+        label: getJoinedMapName(row.maps) || 'Unknown Map',
+        value: toNumber(row.average_points_per_generation),
+      };
+    });
+}
+
 function selectCurrentMembership(
   memberships: GroupMembershipRow[],
   lastActiveGroupId: null | string,
@@ -495,6 +621,8 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
     playerPerformanceResult,
     playerScoreResult,
     playerCoverageResult,
+    playerMetricSummaryResult,
+    globalMapMetricResult,
   ] = await Promise.all([
     analyticsClient
       .from('group_leaderboard')
@@ -547,6 +675,23 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
           .eq('player_id', currentPlayer.id)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    currentPlayer
+      ? nativeSupabase
+          .from('player_metric_summaries')
+          .select(
+            'average_points_per_generation, average_normalized_efficiency, average_score_delta_vs_expected, best_tag_lane, best_score_source, average_award_roi, tag_evidence_coverage, games_played',
+          )
+          .eq('group_id', currentGroupId)
+          .eq('player_id', currentPlayer.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    nativeSupabase
+      .from('global_map_metric_summaries')
+      .select(
+        'map_id, maps(name), player_count, games_played, average_points, average_generations, average_points_per_generation, expected_score_baseline',
+      )
+      .order('average_points_per_generation', { ascending: false })
+      .order('games_played', { ascending: false }),
   ]);
 
   for (const result of [
@@ -559,6 +704,8 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
     playerPerformanceResult,
     playerScoreResult,
     playerCoverageResult,
+    playerMetricSummaryResult,
+    globalMapMetricResult,
   ]) {
     if (result?.error) {
       throw result.error;
@@ -574,6 +721,10 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
   const playerPerformance = playerPerformanceResult.data as RawLeaderboardRow | null;
   const playerScoreRow = playerScoreResult.data as RawPlayerScoreAveragesRow | null;
   const playerCoverageRow = playerCoverageResult.data as RawPlayerCoverageRow | null;
+  const playerMetricSummary =
+    playerMetricSummaryResult.data as RawPlayerMetricSummaryRow | null;
+  const globalMapMetricRows =
+    (globalMapMetricResult.data ?? []) as RawGlobalMapMetricSummaryRow[];
 
   const topGroupLeader = leaderboardRows[0] ?? null;
   const topGlobalCorporation = buildGlobalLeaderboardRows(globalRows)[0] ?? null;
@@ -618,6 +769,7 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
               ? formatPercent(toNumber(playerStyle.exact_match_rate))
               : '—',
           },
+          ...buildPersistedProfileMetrics(playerMetricSummary),
         ],
         rivalRows: buildProfileRivalRows(headToHeadRows, currentPlayer.id),
         scoreSourceRows: buildScoreSourceRows(playerScoreRow),
@@ -654,13 +806,22 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
   };
 
   const globalLeaderboardRows = buildGlobalLeaderboardRows(globalRows);
+  const globalMapRows = buildGlobalMapRows(globalMapMetricRows);
+  const topGlobalMap = globalMapMetricRows[0] ?? null;
   const globalSection: NativeDashboardSection | null =
-    globalLeaderboardRows.length > 0
+    globalLeaderboardRows.length > 0 || globalMapRows.length > 0
       ? {
           leaderboardRows: globalLeaderboardRows,
-          summary: topGlobalCorporation
-            ? `${topGlobalCorporation.label} is setting the opted-in global pace right now.`
-            : 'Opted-in global analytics are waiting on more finalized results.',
+          mapRows: globalMapRows,
+          summary: topGlobalMap
+            ? `${getJoinedMapName(topGlobalMap.maps) || 'The top map'} is the top global map baseline at ${formatAverage(
+                toNumber(topGlobalMap.average_points_per_generation),
+              )} pts/gen against ${formatAverage(
+                toNumber(topGlobalMap.expected_score_baseline),
+              )} expected points.`
+            : topGlobalCorporation
+              ? `${topGlobalCorporation.label} is setting the opted-in global pace right now.`
+              : 'Opted-in global analytics are waiting on more finalized results.',
           title: 'Global Stats',
         }
       : null;
