@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StepHeading } from '@/components/ui/step-heading';
 import {
@@ -13,14 +13,16 @@ import type {
 } from '@/lib/db/reference-repo';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
+import {
+  findMatchingPlayerOptions,
+  formatSelectedPlayerLabel,
+  type LogGamePlayerOption,
+} from './player-picker';
 
 type PlayersStepProps = {
   corporationOptions: CorporationOption[];
   playerCount: number;
-  playerOptions: Array<{
-    id: string;
-    display_name: string;
-  }>;
+  playerOptions: LogGamePlayerOption[];
   preludeOptions: PreludeOption[];
   register: UseFormRegister<LogGameDraftInput>;
   selectedPlayerIds: string[];
@@ -38,6 +40,14 @@ export function PlayersStep({
 }: PlayersStepProps) {
   const [playerEntry, setPlayerEntry] = useState('');
   const [playerEntryError, setPlayerEntryError] = useState('');
+  const matchingPlayerOptions = useMemo(
+    () =>
+      findMatchingPlayerOptions({
+        playerEntry,
+        playerOptions,
+      }),
+    [playerEntry, playerOptions],
+  );
   const selectedPlayers = selectedPlayerIds
     .map(
       (playerId) =>
@@ -46,6 +56,17 @@ export function PlayersStep({
           display_name: playerId,
         },
     );
+  const availableMatches = matchingPlayerOptions.filter(
+    (match) => !selectedPlayerIds.includes(match.player.id),
+  );
+
+  function addPlayerReference(nextReference: string) {
+    setValue('selectedPlayerIds', [...selectedPlayerIds, nextReference], {
+      shouldDirty: true,
+    });
+    setPlayerEntry('');
+    setPlayerEntryError('');
+  }
 
   function handleAddPlayer() {
     try {
@@ -72,18 +93,34 @@ export function PlayersStep({
         return;
       }
 
-      const existingPlayer = playerOptions.find(
-        (player) =>
-          normalizePlayerAlias(player.display_name) === normalizedEntry,
+      const topScore = matchingPlayerOptions[0]?.score ?? 0;
+      const topMatches = matchingPlayerOptions.filter(
+        (match) => match.score === topScore,
       );
-      const nextReference = existingPlayer
-        ? existingPlayer.id
-        : signupFullNameSchema.parse(rawValue);
 
-      setValue('selectedPlayerIds', [...selectedPlayerIds, nextReference], {
-        shouldDirty: true,
-      });
-      setPlayerEntry('');
+      if (topMatches.length === 1) {
+        const resolvedPlayer = topMatches[0]?.player;
+
+        if (!resolvedPlayer) {
+          return;
+        }
+
+        if (selectedPlayerIds.includes(resolvedPlayer.id)) {
+          setPlayerEntryError('That player is already selected for this game.');
+          return;
+        }
+
+        addPlayerReference(resolvedPlayer.id);
+        return;
+      }
+
+      if (availableMatches.length > 0) {
+        setPlayerEntryError('Pick a saved player from the list below.');
+        return;
+      }
+
+      const nextReference = signupFullNameSchema.parse(rawValue);
+      addPlayerReference(nextReference);
     } catch (error) {
       setPlayerEntryError(
         error instanceof Error
@@ -110,6 +147,10 @@ export function PlayersStep({
         Pick saved players from the roster or type a full name to create that
         player on save.
       </p>
+      <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
+        Saved players can be found by roster name, username, or first name plus
+        last initial.
+      </p>
       <p className="tm-data-label">
         {selectedPlayers.length} of {playerCount} seats filled
       </p>
@@ -119,16 +160,11 @@ export function PlayersStep({
           <input
             aria-label="Add Or Select Player"
             className="tm-input"
-            list="group-player-roster"
+            autoComplete="off"
             onChange={(event) => setPlayerEntry(event.target.value)}
-            placeholder="First Name Last Name"
+            placeholder="Username or First Name Last Name"
             value={playerEntry}
           />
-          <datalist id="group-player-roster">
-            {playerOptions.map((player) => (
-              <option key={player.id} value={player.display_name} />
-            ))}
-          </datalist>
         </label>
         <button
           className="tm-button-secondary self-end px-4 py-3 disabled:cursor-not-allowed disabled:opacity-60"
@@ -139,6 +175,26 @@ export function PlayersStep({
           Add Player
         </button>
       </div>
+      {availableMatches.length > 0 ? (
+        <div
+          className="rounded-2xl border border-white/10 bg-black/20 p-3"
+          role="list"
+        >
+          <p className="tm-data-label text-[10px]">Matching Roster Players</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {availableMatches.map((match) => (
+              <button
+                className="tm-button-secondary px-3 py-2 text-xs"
+                key={match.player.id}
+                onClick={() => addPlayerReference(match.player.id)}
+                type="button"
+              >
+                {formatSelectedPlayerLabel(match.player)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {playerEntryError ? (
         <p className="text-sm tm-text-danger">{playerEntryError}</p>
       ) : null}
@@ -148,7 +204,7 @@ export function PlayersStep({
             className="tm-stat-card flex items-center justify-between gap-3 text-sm"
             key={player.id}
           >
-            <span>{player.display_name}</span>
+            <span>{formatSelectedPlayerLabel(player)}</span>
             <button
               className="tm-button-secondary px-4 py-2 text-xs"
               onClick={() => handleRemovePlayer(player.id)}
@@ -168,7 +224,7 @@ export function PlayersStep({
           {selectedPlayers.map((player) => (
             <article className="tm-stat-card" key={player.id}>
               <p className="font-semibold text-stone-100">
-                {player.display_name}
+                {formatSelectedPlayerLabel(player)}
               </p>
               <div className="mt-4 grid gap-4">
                 <label className="relative flex flex-col gap-2 text-sm">

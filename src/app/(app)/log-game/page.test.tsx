@@ -43,13 +43,16 @@ const mockState = vi.hoisted(() => ({
 vi.mock('@/components/layout/app-shell', () => ({
   AppShell: ({
     children,
+    headerActions,
     title,
   }: {
     children: ReactNode;
+    headerActions?: ReactNode;
     title: string;
   }) => (
     <div>
       <h1>{title}</h1>
+      {headerActions}
       {children}
     </div>
   ),
@@ -174,6 +177,9 @@ describe('LogGamePage', () => {
     expect(
       screen.getByRole('heading', { name: /web import/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /review saved games/i }),
+    ).toHaveAttribute('href', '/log-game/review');
     expect(screen.getByTestId('log-game-import-shell')).toBeInTheDocument();
     expect(screen.queryByTestId('log-game-wizard')).not.toBeInTheDocument();
     expect(captureState.logGameImportShellProps).not.toBeNull();

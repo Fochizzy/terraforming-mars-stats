@@ -247,6 +247,7 @@ export function buildGameReview(input: ReviewGameInput): GameReview {
   const expectedMilestonePoints = buildExpectedMilestonePoints(input);
   const expectedAwardPoints = buildExpectedAwardPoints(input);
   const expectedPlayerCount = input.playerCount ?? input.selectedPlayerIds.length;
+  const selectedPlayerIdSet = new Set(input.selectedPlayerIds);
 
   if (input.selectedPlayerIds.length !== expectedPlayerCount) {
     issues.push({
@@ -356,7 +357,10 @@ export function buildGameReview(input: ReviewGameInput): GameReview {
       });
     }
 
-    if (!hasValue(claim.winnerPlayerId)) {
+    if (
+      !hasValue(claim.winnerPlayerId) ||
+      !selectedPlayerIdSet.has(claim.winnerPlayerId)
+    ) {
       issues.push({
         code: 'missing_milestone_winner',
         message: 'Choose a winner for every claimed milestone.',
@@ -378,7 +382,10 @@ export function buildGameReview(input: ReviewGameInput): GameReview {
       });
     }
 
-    if (!hasValue(claim.fundedByPlayerId)) {
+    if (
+      !hasValue(claim.fundedByPlayerId) ||
+      !selectedPlayerIdSet.has(claim.fundedByPlayerId)
+    ) {
       issues.push({
         code: 'missing_award_funder',
         message: 'Choose who funded every funded award.',
@@ -386,7 +393,11 @@ export function buildGameReview(input: ReviewGameInput): GameReview {
       });
     }
 
-    if (normalizeStringArray(claim.firstPlaceWinnerPlayerIds).length === 0) {
+    if (
+      normalizeStringArray(claim.firstPlaceWinnerPlayerIds).filter((playerId) =>
+        selectedPlayerIdSet.has(playerId),
+      ).length === 0
+    ) {
       issues.push({
         code: 'missing_award_first_place',
         message: 'Choose at least one first-place finisher for every funded award.',

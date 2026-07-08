@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
@@ -761,6 +762,13 @@ export default async function LogGameImportPage() {
 
   return (
     <AppShell
+      headerActions={
+        context ? (
+          <Link className="tm-button-secondary px-4 py-2 text-xs" href="/log-game/review">
+            Review Saved Games
+          </Link>
+        ) : undefined
+      }
       navItems={
         context
           ? undefined

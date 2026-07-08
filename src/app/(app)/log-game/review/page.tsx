@@ -1,6 +1,7 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { buildFinalizedGamePayload } from '@/features/games/finalize-game';
 import { LogGameWizard } from '@/features/games/log-game/log-game-wizard';
+import { SavedGamesPicker } from '@/features/games/log-game/saved-games-picker';
 import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { ImportEvidenceSummary } from '@/features/imports/import-evidence-summary';
@@ -8,13 +9,14 @@ import { mergeDraftIntoInitialValues } from '@/features/games/log-game/use-log-g
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import {
   finalizeGameLog,
-  getDraftGameForm,
+  getSavedGameForm,
+  listSavedGames,
   saveDraftGame,
 } from '@/lib/db/game-draft-repo';
 import { getLatestGameLogImportSummary } from '@/lib/db/game-import-repo';
+import { listImportResolutionPlayers } from '@/lib/db/import-player-resolution-repo';
 import { resolveLogGamePlayerReferences } from '@/lib/db/log-game-player-resolution';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
-import { listPlayers } from '@/lib/db/player-repo';
 import {
   getLatestCatalogSnapshotId,
   listCards,
@@ -41,36 +43,57 @@ export default async function LogGameReviewPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const context = await requireGroupContextOrRedirect();
-  const [
-    groupSettings,
-    mapOptions,
-    expansionOptions,
-    promoSetOptions,
-    playerOptions,
-    corporationOptions,
-    preludeOptions,
-    milestoneOptions,
-    awardOptions,
-    styleOptions,
-    cardOptions,
-    latestCatalogSnapshotId,
-  ] = await Promise.all([
-    getGroupSettings(context.groupId),
-    listMaps(),
-    listExpansions(),
-    listPromoSets(),
-    listPlayers(context.groupId),
-    listCorporations(),
-    listPreludes(),
-    listMapMilestones(),
-    listMapAwards(),
-    listStyles(),
-    listCards(),
-    getLatestCatalogSnapshotId(),
-  ]);
   const draftGameId = Array.isArray(resolvedSearchParams.gameId)
     ? resolvedSearchParams.gameId[0]
     : resolvedSearchParams.gameId;
+  const [
+    groupSettings,
+    mapOptions,
+    playerOptions,
+  ] = await Promise.all([
+    getGroupSettings(context.groupId),
+    listMaps(),
+    listImportResolutionPlayers(context.groupId),
+  ]);
+
+  if (!draftGameId) {
+    const savedGames = await listSavedGames({
+      groupId: context.groupId,
+      limit: 12,
+    });
+
+    return (
+      <AppShell
+        headerActions={
+          <GroupSwitcher
+            currentGroupId={context.groupId}
+            returnPath="/log-game/review"
+          />
+        }
+        title="Log Game Review"
+        wide
+      >
+        <SavedGamesPicker games={savedGames} />
+      </AppShell>
+    );
+  }
+
+  const [savedGame, expansionOptions, promoSetOptions, corporationOptions, preludeOptions, milestoneOptions, awardOptions, styleOptions, cardOptions, latestCatalogSnapshotId] =
+    await Promise.all([
+      getSavedGameForm({
+        gameId: draftGameId,
+        groupId: context.groupId,
+      }),
+      listExpansions(),
+      listPromoSets(),
+      listCorporations(),
+      listPreludes(),
+      listMapMilestones(),
+      listMapAwards(),
+      listStyles(),
+      listCards(),
+      getLatestCatalogSnapshotId(),
+    ]);
   const defaultInitialValues: LogGameDraftInput = {
     awardClaims: {},
     gameId: undefined,
@@ -90,21 +113,15 @@ export default async function LogGameReviewPage({
     promoSetSlugs: groupSettings.defaultPromoSetSlugs,
     selectedPlayerIds: playerOptions.slice(0, 2).map((player) => player.id),
   };
-  const savedDraft = draftGameId
-    ? await getDraftGameForm({
-        gameId: draftGameId,
-        groupId: context.groupId,
-      })
-    : null;
   const importSummary =
-    savedDraft && draftGameId
+    savedGame
       ? await getLatestGameLogImportSummary({
           gameId: draftGameId,
         })
       : null;
   const initialValues = mergeDraftIntoInitialValues(
     defaultInitialValues,
-    savedDraft,
+    savedGame?.form,
   );
 
   async function handleSaveDraft(values: LogGameDraftInput) {
@@ -175,7 +192,10 @@ export default async function LogGameReviewPage({
       return {
         status: 'success' as const,
         gameId: finalized.gameId,
-        message: `Game ${finalized.gameId.slice(0, 8)} finalized.`,
+        message:
+          savedGame?.status === 'finalized'
+            ? `Finalized game ${finalized.gameId.slice(0, 8)} updated.`
+            : `Game ${finalized.gameId.slice(0, 8)} finalized.`,
       };
     } catch (error) {
       return {
@@ -208,12 +228,18 @@ export default async function LogGameReviewPage({
         cardOptions={cardOptions}
         corporationOptions={corporationOptions}
         expansionOptions={expansionOptions}
+        initialStatus={savedGame?.status ?? 'draft'}
         initialValues={initialValues}
         mapOptions={mapOptions}
         milestoneOptions={milestoneOptions}
         onFinalizeGame={handleFinalizeGame}
         onSaveDraft={handleSaveDraft}
-        playerOptions={playerOptions}
+        playerOptions={playerOptions.map((player) => ({
+          id: player.id,
+          display_name: player.displayName,
+          linked_full_name: player.linkedFullName,
+          linked_username: player.linkedUsername,
+        }))}
         preludeOptions={preludeOptions}
         promoSetOptions={promoSetOptions}
         styleOptions={styleOptions}

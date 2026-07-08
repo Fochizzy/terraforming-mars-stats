@@ -27,6 +27,7 @@ import { MilestonesStep } from './milestones-step';
 import { PlayersStep } from './players-step';
 import { ReviewStep } from './review-step';
 import { ScoresStep } from './scores-step';
+import { sanitizePlayerLinkedState } from './sanitize-player-linked-state';
 import { SetupStep } from './setup-step';
 import { StyleStep } from './style-step';
 import {
@@ -35,6 +36,7 @@ import {
   filterPreludeOptions,
   normalizeSelectedExpansionCodes,
 } from './reference-filters';
+import type { LogGamePlayerOption } from './player-picker';
 
 type GameSubmitResult = {
   status: 'success' | 'error';
@@ -46,20 +48,20 @@ type ManualReviewScoreHighlight = ImportReviewJumpTarget & {
   playerId: string;
 };
 
+const EMPTY_PLAYER_IDS: string[] = [];
+
 type LogGameWizardProps = {
   awardOptions: MapAwardOption[];
   cardOptions: CardOption[];
   corporationOptions: CorporationOption[];
   expansionOptions: ExpansionOption[];
+  initialStatus?: 'draft' | 'finalized';
   initialValues: LogGameDraftInput;
   mapOptions: MapOption[];
   milestoneOptions: MapMilestoneOption[];
   onFinalizeGame: (values: LogGameDraftInput) => Promise<GameSubmitResult>;
   onSaveDraft: (values: LogGameDraftInput) => Promise<GameSubmitResult>;
-  playerOptions: Array<{
-    id: string;
-    display_name: string;
-  }>;
+  playerOptions: LogGamePlayerOption[];
   preludeOptions: PreludeOption[];
   promoSetOptions: PromoSetOption[];
   styleOptions: StyleOption[];
@@ -70,6 +72,7 @@ export function LogGameWizard({
   cardOptions,
   corporationOptions,
   expansionOptions,
+  initialStatus = 'draft',
   initialValues,
   mapOptions,
   milestoneOptions,
@@ -88,12 +91,15 @@ export function LogGameWizard({
   const [manualReviewHighlight, setManualReviewHighlight] =
     useState<ManualReviewScoreHighlight | null>(null);
   const [result, setResult] = useState<GameSubmitResult | null>(null);
-  const [submitMode, setSubmitMode] = useState<'draft' | 'finalize'>('draft');
+  const [submitMode, setSubmitMode] = useState<'draft' | 'finalize'>(
+    initialStatus === 'finalized' ? 'finalize' : 'draft',
+  );
+  const isFinalizedEdit = initialStatus === 'finalized';
   const selectedPlayerIds =
     useWatch({
       control: form.control,
       name: 'selectedPlayerIds',
-    }) ?? [];
+    }) ?? EMPTY_PLAYER_IDS;
   const currentMapId = useWatch({ control: form.control, name: 'mapId' });
   const playerCount =
     useWatch({ control: form.control, name: 'playerCount' }) ?? 0;
@@ -119,6 +125,25 @@ export function LogGameWizard({
           display_name: playerId,
         },
     );
+  useEffect(() => {
+    const sanitizedValues = sanitizePlayerLinkedState(form.getValues());
+
+    form.setValue('awardClaims', sanitizedValues.awardClaims, {
+      shouldDirty: false,
+    });
+    form.setValue('milestoneClaims', sanitizedValues.milestoneClaims, {
+      shouldDirty: false,
+    });
+    form.setValue('playerScores', sanitizedValues.playerScores, {
+      shouldDirty: false,
+    });
+    form.setValue('playerSelections', sanitizedValues.playerSelections, {
+      shouldDirty: false,
+    });
+    form.setValue('playerStyles', sanitizedValues.playerStyles, {
+      shouldDirty: false,
+    });
+  }, [form, selectedPlayerIds]);
   useEffect(() => {
     if (!initialValues.gameId) {
       return;
@@ -266,26 +291,37 @@ export function LogGameWizard({
       {result ? (
         <StatusBanner message={result.message} status={result.status} />
       ) : null}
-      <div className="flex flex-col gap-3 sm:flex-row">
+      {isFinalizedEdit ? (
         <button
-          className="tm-button-primary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isPending}
-          onClick={() => setSubmitMode('draft')}
-          type="submit"
-        >
-          {isPending && submitMode === 'draft' ? 'Saving...' : 'Save Draft Setup'}
-        </button>
-        <button
-          className="tm-button-secondary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
+          className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isPending || hasBlockingIssues}
           onClick={() => setSubmitMode('finalize')}
           type="submit"
         >
-          {isPending && submitMode === 'finalize'
-            ? 'Finalizing...'
-            : 'Finalize Game'}
+          {isPending ? 'Saving...' : 'Save Finalized Changes'}
         </button>
-      </div>
+      ) : (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            className="tm-button-primary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isPending}
+            onClick={() => setSubmitMode('draft')}
+            type="submit"
+          >
+            {isPending && submitMode === 'draft' ? 'Saving...' : 'Save Draft Setup'}
+          </button>
+          <button
+            className="tm-button-secondary flex-1 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isPending || hasBlockingIssues}
+            onClick={() => setSubmitMode('finalize')}
+            type="submit"
+          >
+            {isPending && submitMode === 'finalize'
+              ? 'Finalizing...'
+              : 'Finalize Game'}
+          </button>
+        </div>
+      )}
     </form>
   );
 }

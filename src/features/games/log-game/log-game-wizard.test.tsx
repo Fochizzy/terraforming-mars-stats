@@ -8,6 +8,163 @@ import {
 import { LogGameWizard } from './log-game-wizard';
 
 describe('LogGameWizard', () => {
+  it('hides draft-save actions when editing a finalized game', async () => {
+    const user = userEvent.setup();
+    const onFinalizeGame = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      gameId: 'game-final',
+      message: 'Game updated.',
+    });
+    const onSaveDraft = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      gameId: 'game-final',
+      message: 'Draft saved.',
+    });
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[]}
+        expansionOptions={[{ id: 'e1', code: 'base', name: 'Base Game' }]}
+        initialStatus="finalized"
+        initialValues={{
+          awardClaims: {},
+          gameId: 'game-final',
+          generationCount: 10,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          mapId: 'tharsis',
+          milestoneClaims: {},
+          notes: '',
+          playedOn: '2026-07-03',
+          playerCount: 1,
+          playerScores: {
+            p1: {
+              awardPoints: 0,
+              cardPointsTotal: 0,
+              citiesPoints: 0,
+              finalMegacredits: 0,
+              greeneryPoints: 0,
+              milestonePoints: 0,
+              totalPoints: 0,
+              trPoints: 0,
+            },
+          },
+          playerSelections: {
+            p1: {
+              corporationId: 'corp1',
+              preludeIds: [],
+            },
+          },
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: ['p1'],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={onFinalizeGame}
+        onSaveDraft={onSaveDraft}
+        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+        preludeOptions={[]}
+        promoSetOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /save draft setup/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /save finalized changes/i }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /save finalized changes/i }));
+
+    await waitFor(() => expect(onFinalizeGame).toHaveBeenCalledTimes(1));
+    expect(onSaveDraft).not.toHaveBeenCalled();
+  });
+
+  it('shows first name and username in the player picker list and lets the user choose a first-name-plus-initial match', async () => {
+    const user = userEvent.setup();
+    const playerOptions = [
+      {
+        id: 'p1',
+        display_name: 'Friday Mars',
+        linked_full_name: 'Friday Mars',
+        linked_username: 'friday-mars',
+      },
+      {
+        id: 'p2',
+        display_name: 'Friday May',
+        linked_full_name: 'Friday May',
+        linked_username: 'friday-may',
+      },
+    ];
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[]}
+        expansionOptions={[
+          { id: 'e1', code: 'base', name: 'Base Game' },
+        ]}
+        initialValues={{
+          awardClaims: {},
+          gameId: undefined,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          milestoneClaims: {},
+          playedOn: '2026-07-03',
+          mapId: 'tharsis',
+          notes: '',
+          playerCount: 1,
+          playerScores: {},
+          playerSelections: {},
+          generationCount: 10,
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: [],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-picked',
+          message: 'Game finalized.',
+        })}
+        onSaveDraft={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          gameId: 'game-picked',
+          message: 'Draft saved.',
+        })}
+        playerOptions={playerOptions}
+        preludeOptions={[]}
+        promoSetOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/add or select player/i), 'Friday M');
+
+    expect(
+      screen.getByRole('button', { name: /friday \(@friday-mars\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /friday \(@friday-may\)/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Friday Mars$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Friday May$/i)).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /friday \(@friday-mars\)/i }),
+    );
+
+    expect(screen.getAllByText('Friday (@friday-mars)')).toHaveLength(2);
+    expect(screen.getByLabelText(/add or select player/i)).toHaveValue('');
+  });
+
   it('adds a typed player name that is not already in the saved roster', async () => {
     const user = userEvent.setup();
 
