@@ -433,11 +433,20 @@ export function WebImportPage({
               Web Import Manifest
             </h1>
           </div>
-          <span className="tm-coverage-badge shrink-0">Unlogged</span>
+          <div className="flex flex-col items-end gap-2">
+            <span className="tm-coverage-badge shrink-0">Unlogged</span>
+            <span className="rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-100">
+              Single Upload Mode
+            </span>
+          </div>
         </div>
         <p className="tm-body-copy text-sm">
           Paste an exported game log, attach one combined game-result image,
           and prepare a guided handoff into the shared scoring flow.
+        </p>
+        <p className="text-xs text-emerald-100/85">
+          Only one image is needed here. Board screenshots are no longer part of
+          this import flow.
         </p>
       </section>
 

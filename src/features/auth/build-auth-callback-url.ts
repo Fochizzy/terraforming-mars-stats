@@ -1,4 +1,4 @@
-const DEFAULT_NEXT_PATH = '/log-game/import';
+const DEFAULT_NEXT_PATH = '/log-game/import-single';
 
 export function normalizeNextPath(nextPath: string | null | undefined) {
   if (!nextPath || !nextPath.startsWith('/') || nextPath.startsWith('//')) {

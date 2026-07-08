@@ -3,6 +3,12 @@ import { isProtectedPath } from '@/features/auth/route-guards';
 import { updateSupabaseSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === '/log-game/import') {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/log-game/import-single';
+    return NextResponse.redirect(redirectUrl);
+  }
+
   const response = await updateSupabaseSession(request);
 
   if (!isProtectedPath(request.nextUrl.pathname)) {

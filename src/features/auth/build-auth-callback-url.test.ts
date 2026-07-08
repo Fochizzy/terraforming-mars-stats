@@ -18,11 +18,11 @@ describe('buildAuthCallbackUrl', () => {
     );
   });
 
-  it('falls back to /log-game/import when the requested next path is unsafe', () => {
+  it('falls back to /log-game/import-single when the requested next path is unsafe', () => {
     expect(
       buildAuthCallbackUrl('https://terraforming-mars-stats.workers.dev', 'https://evil.test'),
     ).toBe(
-      'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Flog-game%2Fimport',
+      'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Flog-game%2Fimport-single',
     );
   });
 

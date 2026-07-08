@@ -128,6 +128,13 @@ describe('WebImportPage', () => {
     expect(
       screen.getByLabelText(/^game result screenshot$/i),
     ).toBeInTheDocument();
+    expect(screen.getByText(/single upload mode/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /only one image is needed here\. board screenshots are no longer part of this import flow\./i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^board screenshots$/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^map$/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/generation count/i)).not.toBeInTheDocument();
     expect(

@@ -66,6 +66,26 @@ describe('LoginForm', () => {
     );
   });
 
+  it('defaults sign in to the single-upload import route when no next path is provided', async () => {
+    const user = userEvent.setup();
+
+    render(<LoginForm />);
+
+    await user.type(screen.getByLabelText(/^email$/i), 'Friday.Mars@Example.com');
+    await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
+
+    await waitFor(() =>
+      expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
+        email: 'friday.mars@example.com',
+        password: '123456',
+      }),
+    );
+    expect(window.location.assign).toHaveBeenCalledWith(
+      buildAuthCompletePath('/log-game/import-single'),
+    );
+  });
+
   it('creates an account with full name, username, email, and pin', async () => {
     const user = userEvent.setup();
 
