@@ -1,7 +1,10 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   Image,
   ImageBackground,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,6 +31,10 @@ type HeroMetric = {
   label: string;
   value: string;
 };
+
+type DashboardSectionKey = 'global' | 'group' | 'profile';
+
+const sectionOrder: DashboardSectionKey[] = ['profile', 'group', 'global'];
 
 const accentColors: Record<NativeDashboardAccent, string> = {
   copper: '#d97706',
@@ -310,6 +317,13 @@ export function NativeDashboardScreen({
   dashboard,
   onSignOut,
 }: NativeDashboardScreenProps) {
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const sectionOffsetsRef = useRef<Record<DashboardSectionKey, number>>({
+    global: 0,
+    group: 0,
+    profile: 0,
+  });
+  const [activeSection, setActiveSection] = useState<DashboardSectionKey>('profile');
   const profileSection = dashboard.profile ?? buildFallbackProfileSection();
   const groupSection = dashboard.group ?? buildFallbackGroupSection();
   const globalSection = dashboard.global ?? buildFallbackGlobalSection();
@@ -322,6 +336,46 @@ export function NativeDashboardScreen({
     profileSection.subtitle ??
     'Personal, comparative, and global snapshots live here.';
 
+  function updateSectionOffset(
+    sectionKey: DashboardSectionKey,
+    event: LayoutChangeEvent,
+  ) {
+    sectionOffsetsRef.current[sectionKey] = event.nativeEvent.layout.y;
+  }
+
+  function resolveActiveSection(scrollY: number) {
+    const sectionThreshold = scrollY + 180;
+    let currentSection: DashboardSectionKey = 'profile';
+
+    for (const sectionKey of sectionOrder) {
+      if (sectionOffsetsRef.current[sectionKey] <= sectionThreshold) {
+        currentSection = sectionKey;
+      }
+    }
+
+    return currentSection;
+  }
+
+  function handleSectionScroll(
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) {
+    const currentSection = resolveActiveSection(
+      event.nativeEvent.contentOffset.y,
+    );
+
+    setActiveSection((previousSection) =>
+      previousSection === currentSection ? previousSection : currentSection,
+    );
+  }
+
+  function scrollToSection(sectionKey: DashboardSectionKey) {
+    setActiveSection(sectionKey);
+    scrollViewRef.current?.scrollTo({
+      animated: true,
+      y: Math.max(sectionOffsetsRef.current[sectionKey] - 12, 0),
+    });
+  }
+
   return (
     <ImageBackground
       imageStyle={styles.pageBackgroundImage}
@@ -330,6 +384,9 @@ export function NativeDashboardScreen({
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
+        onScroll={handleSectionScroll}
+        ref={scrollViewRef}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroBannerFrame}>
@@ -358,26 +415,61 @@ export function NativeDashboardScreen({
 
           <View style={styles.heroButtonRow}>
             <Pressable
-              onPress={() => undefined}
-              style={[styles.heroNavButton, styles.heroNavButtonActive]}
+              onPress={() => scrollToSection('profile')}
+              style={[
+                styles.heroNavButton,
+                activeSection === 'profile' ? styles.heroNavButtonActive : null,
+              ]}
             >
               <Text
-                style={[styles.heroNavButtonText, styles.heroNavButtonTextActive]}
+                style={[
+                  styles.heroNavButtonText,
+                  activeSection === 'profile'
+                    ? styles.heroNavButtonTextActive
+                    : null,
+                ]}
               >
                 Personal Stats
               </Text>
             </Pressable>
-            <Pressable onPress={() => undefined} style={styles.heroNavButton}>
-              <Text style={styles.heroNavButtonText}>Comparative Stats</Text>
-            </Pressable>
             <Pressable
-              onPress={() => undefined}
+              onPress={() => scrollToSection('group')}
               style={[
                 styles.heroNavButton,
-                !dashboard.global ? styles.heroNavButtonMuted : null,
+                activeSection === 'group' ? styles.heroNavButtonActive : null,
               ]}
             >
-              <Text style={styles.heroNavButtonText}>Global Stats</Text>
+              <Text
+                style={[
+                  styles.heroNavButtonText,
+                  activeSection === 'group'
+                    ? styles.heroNavButtonTextActive
+                    : null,
+                ]}
+              >
+                Comparative Stats
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => scrollToSection('global')}
+              style={[
+                styles.heroNavButton,
+                activeSection === 'global' ? styles.heroNavButtonActive : null,
+                !dashboard.global && activeSection !== 'global'
+                  ? styles.heroNavButtonMuted
+                  : null,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.heroNavButtonText,
+                  activeSection === 'global'
+                    ? styles.heroNavButtonTextActive
+                    : null,
+                ]}
+              >
+                Global Stats
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -389,54 +481,69 @@ export function NativeDashboardScreen({
           </SectionCard>
         ) : null}
 
-        <SectionCard title={profileSection.title}>
-          {profileSection.headline ? (
-            <Text style={styles.sectionHeadline}>{profileSection.headline}</Text>
-          ) : null}
-          {profileSection.subtitle ? (
-            <Text style={styles.sectionSubtitle}>{profileSection.subtitle}</Text>
-          ) : null}
-          <MetricGrid metrics={profileSection.metrics ?? []} />
-          <BarList
-            emptyCopy="Score-mix bars will appear once your linked player has finalized results in this group."
-            rows={profileSection.scoreSourceRows ?? []}
-            title="Score Mix Chart"
-          />
-          <RecordList
-            emptyCopy="Rival snapshots will appear once repeat head-to-head games are logged."
-            rows={profileSection.rivalRows ?? []}
-            title="Rival Snapshot"
-          />
-          <CoverageBadgeList badges={profileSection.coverageBadges ?? []} />
-        </SectionCard>
+        <View
+          onLayout={(event) => updateSectionOffset('profile', event)}
+          testID="dashboard-section-profile"
+        >
+          <SectionCard title={profileSection.title}>
+            {profileSection.headline ? (
+              <Text style={styles.sectionHeadline}>{profileSection.headline}</Text>
+            ) : null}
+            {profileSection.subtitle ? (
+              <Text style={styles.sectionSubtitle}>{profileSection.subtitle}</Text>
+            ) : null}
+            <MetricGrid metrics={profileSection.metrics ?? []} />
+            <BarList
+              emptyCopy="Score-mix bars will appear once your linked player has finalized results in this group."
+              rows={profileSection.scoreSourceRows ?? []}
+              title="Score Mix Chart"
+            />
+            <RecordList
+              emptyCopy="Rival snapshots will appear once repeat head-to-head games are logged."
+              rows={profileSection.rivalRows ?? []}
+              title="Rival Snapshot"
+            />
+            <CoverageBadgeList badges={profileSection.coverageBadges ?? []} />
+          </SectionCard>
+        </View>
 
-        <SectionCard title={groupSection.title}>
-          {groupSection.summary ? (
-            <Text style={styles.sectionSubtitle}>{groupSection.summary}</Text>
-          ) : null}
-          <BarList
-            emptyCopy="Group leaderboard bars will appear once finalized games are available."
-            rows={groupSection.leaderboardRows ?? []}
-            title="Leader Board"
-          />
-          <RecordList
-            emptyCopy="Head-to-head matchups will appear after repeated pairings."
-            rows={groupSection.headToHeadRows ?? []}
-            title="Head-to-Head Ledger"
-          />
-          <TrendChart rows={groupSection.trendRows ?? []} />
-        </SectionCard>
+        <View
+          onLayout={(event) => updateSectionOffset('group', event)}
+          testID="dashboard-section-group"
+        >
+          <SectionCard title={groupSection.title}>
+            {groupSection.summary ? (
+              <Text style={styles.sectionSubtitle}>{groupSection.summary}</Text>
+            ) : null}
+            <BarList
+              emptyCopy="Group leaderboard bars will appear once finalized games are available."
+              rows={groupSection.leaderboardRows ?? []}
+              title="Leader Board"
+            />
+            <RecordList
+              emptyCopy="Head-to-head matchups will appear after repeated pairings."
+              rows={groupSection.headToHeadRows ?? []}
+              title="Head-to-Head Ledger"
+            />
+            <TrendChart rows={groupSection.trendRows ?? []} />
+          </SectionCard>
+        </View>
 
-        <SectionCard title={globalSection.title}>
-          {globalSection.summary ? (
-            <Text style={styles.sectionSubtitle}>{globalSection.summary}</Text>
-          ) : null}
-          <BarList
-            emptyCopy="Global bars will appear once opted-in groups contribute enough finalized data."
-            rows={globalSection.leaderboardRows ?? []}
-            title="Global Corporation Board"
-          />
-        </SectionCard>
+        <View
+          onLayout={(event) => updateSectionOffset('global', event)}
+          testID="dashboard-section-global"
+        >
+          <SectionCard title={globalSection.title}>
+            {globalSection.summary ? (
+              <Text style={styles.sectionSubtitle}>{globalSection.summary}</Text>
+            ) : null}
+            <BarList
+              emptyCopy="Global bars will appear once opted-in groups contribute enough finalized data."
+              rows={globalSection.leaderboardRows ?? []}
+              title="Global Corporation Board"
+            />
+          </SectionCard>
+        </View>
 
         <Pressable onPress={onSignOut} style={styles.signOutButton}>
           <Text style={styles.signOutButtonText}>Sign Out</Text>
