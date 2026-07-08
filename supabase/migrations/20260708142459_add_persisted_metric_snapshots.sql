@@ -1544,7 +1544,7 @@ begin
     gps.map_id,
     tag_counts.tag_code,
     tag_counts.tag_count,
-    round(tag_counts.tag_count::numeric / nullif(player_tag_rollups.total_tag_count, 0), 4),
+    coalesce(round(tag_counts.tag_count::numeric / nullif(player_tag_rollups.total_tag_count, 0), 4), 0),
     player_tag_rollups.total_tag_count,
     coalesce(player_tag_rollups.played_card_count, 0),
     coalesce(player_tag_rollups.matched_card_count, 0),
