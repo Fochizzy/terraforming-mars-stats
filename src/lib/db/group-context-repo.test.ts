@@ -154,4 +154,21 @@ describe('getCurrentGroupContext', () => {
 
     await expect(listCurrentUserGroups()).resolves.toEqual([]);
   });
+
+  it('treats an invalid refresh token as signed out instead of throwing', async () => {
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: {
+            name: 'AuthApiError',
+            code: 'refresh_token_not_found',
+            status: 400,
+          },
+        }),
+      },
+    } as never);
+
+    await expect(getCurrentGroupContext()).resolves.toBeNull();
+  });
 });

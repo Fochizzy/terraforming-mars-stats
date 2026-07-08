@@ -102,11 +102,13 @@ export function NativeAuthScreen() {
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.card}>
-              <Image
-                resizeMode="contain"
-                source={require('../../../assets/text.png')}
-                style={styles.logo}
-              />
+              <View style={styles.logoWrap}>
+                <Image
+                  resizeMode="cover"
+                  source={require('../../../assets/text.png')}
+                  style={styles.logo}
+                />
+              </View>
               <View style={styles.toggleRow}>
                 <Pressable
                   onPress={() => setMode('sign-in')}
@@ -269,11 +271,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 28,
   },
-  logo: {
+  logoWrap: {
     alignSelf: 'center',
-    aspectRatio: 1536 / 1024,
-    height: undefined,
-    width: '85%',
+    aspectRatio: 1536 / 480,
+    borderRadius: 12,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  logo: {
+    height: '100%',
+    width: '100%',
   },
   toggleRow: {
     flexDirection: 'row',

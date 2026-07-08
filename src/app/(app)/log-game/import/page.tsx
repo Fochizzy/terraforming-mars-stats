@@ -57,6 +57,7 @@ import {
   listStyles,
   type MapOption,
 } from '@/lib/db/reference-repo';
+import { isUnauthenticatedAuthError } from '@/lib/supabase/auth-errors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -418,7 +419,7 @@ export default async function LogGameImportPage() {
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError && userError.name !== 'AuthSessionMissingError') {
+  if (userError && !isUnauthenticatedAuthError(userError)) {
     throw userError;
   }
 
