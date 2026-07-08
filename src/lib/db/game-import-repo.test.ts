@@ -161,19 +161,16 @@ describe('saveGameLogTagSummaries', () => {
     vi.clearAllMocks();
   });
 
-  it('replaces canonical tag summary rows and refreshes metrics for finalized imports', async () => {
+  it('replaces canonical tag summary rows through an atomic RPC and refreshes finalized metrics', async () => {
     vi.mocked(refreshGameMetricSnapshots).mockResolvedValue(undefined);
 
-    const deleteEq = vi.fn().mockResolvedValue({ error: null });
-    const deleteFn = vi.fn(() => ({ eq: deleteEq }));
-    const insertSelect = vi.fn().mockResolvedValue({
+    const rpc = vi.fn().mockResolvedValue({
       data: [
         { id: 'tag-row-1', tag_code: 'science' },
         { id: 'tag-row-2', tag_code: 'space' },
       ],
       error: null,
     });
-    const insert = vi.fn(() => ({ select: insertSelect }));
     const importMaybeSingle = vi.fn().mockResolvedValue({
       data: {
         game_id: 'game-final',
@@ -185,14 +182,8 @@ describe('saveGameLogTagSummaries', () => {
     const importSelect = vi.fn(() => ({ eq: importEq }));
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc,
       from: vi.fn((table: string) => {
-        if (table === 'game_log_tag_summaries') {
-          return {
-            delete: deleteFn,
-            insert,
-          };
-        }
-
         if (table === 'game_log_imports') {
           return {
             select: importSelect,
@@ -230,36 +221,35 @@ describe('saveGameLogTagSummaries', () => {
       ],
     });
 
-    expect(deleteEq).toHaveBeenCalledWith('game_log_import_id', 'import-1');
-    expect(insert).toHaveBeenCalledWith([
-      {
-        game_log_import_id: 'import-1',
-        game_player_id: 'game-player-1',
-        matched_card_count: 3,
-        normalized_player_name: 'friday mars',
-        played_card_count: 4,
-        player_name: 'Friday Mars',
-        tag_code: 'science',
-        tag_count: 5,
-        tag_evidence_coverage: 0.75,
-        total_tag_count: 8,
-        unresolved_card_count: 1,
-      },
-      {
-        game_log_import_id: 'import-1',
-        game_player_id: null,
-        matched_card_count: 0,
-        normalized_player_name: 'friday mars',
-        played_card_count: 0,
-        player_name: 'Friday Mars',
-        tag_code: 'space',
-        tag_count: 0,
-        tag_evidence_coverage: 0,
-        total_tag_count: 8,
-        unresolved_card_count: 0,
-      },
-    ]);
-    expect(insertSelect).toHaveBeenCalledWith('id, tag_code');
+    expect(rpc).toHaveBeenCalledWith('replace_game_log_tag_summaries', {
+      p_game_log_import_id: 'import-1',
+      p_summaries: [
+        {
+          game_player_id: 'game-player-1',
+          matched_card_count: 3,
+          normalized_player_name: 'friday mars',
+          played_card_count: 4,
+          player_name: 'Friday Mars',
+          tag_code: 'science',
+          tag_count: 5,
+          tag_evidence_coverage: 0.75,
+          total_tag_count: 8,
+          unresolved_card_count: 1,
+        },
+        {
+          game_player_id: null,
+          matched_card_count: 0,
+          normalized_player_name: 'friday mars',
+          played_card_count: 0,
+          player_name: 'Friday Mars',
+          tag_code: 'space',
+          tag_count: 0,
+          tag_evidence_coverage: 0,
+          total_tag_count: 8,
+          unresolved_card_count: 0,
+        },
+      ],
+    });
     expect(importSelect).toHaveBeenCalledWith('game_id, games!inner(status)');
     expect(importEq).toHaveBeenCalledWith('id', 'import-1');
     expect(refreshGameMetricSnapshots).toHaveBeenCalledWith('game-final');
@@ -269,14 +259,48 @@ describe('saveGameLogTagSummaries', () => {
     ]);
   });
 
+  it('throws RPC errors without checking status or refreshing metrics', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: new Error('tag summary replacement failed'),
+    });
+    const from = vi.fn((table: string) => {
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from,
+      rpc,
+    } as never);
+
+    await expect(
+      repo.saveGameLogTagSummaries({
+        gameLogImportId: 'import-failed',
+        summaries: [
+          {
+            matchedCardCount: 1,
+            normalizedPlayerName: 'friday mars',
+            playedCardCount: 2,
+            playerName: 'Friday Mars',
+            tagCode: 'science',
+            tagCount: 1,
+            totalTagCount: 1,
+            unresolvedCardCount: 1,
+          },
+        ],
+      }),
+    ).rejects.toThrow('tag summary replacement failed');
+
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(from).not.toHaveBeenCalled();
+    expect(refreshGameMetricSnapshots).not.toHaveBeenCalled();
+  });
+
   it('does not refresh metrics when tag summaries are saved for a draft import', async () => {
-    const deleteEq = vi.fn().mockResolvedValue({ error: null });
-    const deleteFn = vi.fn(() => ({ eq: deleteEq }));
-    const insertSelect = vi.fn().mockResolvedValue({
+    const rpc = vi.fn().mockResolvedValue({
       data: [{ id: 'tag-row-3', tag_code: 'plant' }],
       error: null,
     });
-    const insert = vi.fn(() => ({ select: insertSelect }));
     const importMaybeSingle = vi.fn().mockResolvedValue({
       data: {
         game_id: 'game-draft',
@@ -288,14 +312,8 @@ describe('saveGameLogTagSummaries', () => {
     const importSelect = vi.fn(() => ({ eq: importEq }));
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc,
       from: vi.fn((table: string) => {
-        if (table === 'game_log_tag_summaries') {
-          return {
-            delete: deleteFn,
-            insert,
-          };
-        }
-
         if (table === 'game_log_imports') {
           return {
             select: importSelect,
@@ -324,6 +342,49 @@ describe('saveGameLogTagSummaries', () => {
 
     expect(importEq).toHaveBeenCalledWith('id', 'import-draft');
     expect(refreshGameMetricSnapshots).not.toHaveBeenCalled();
+  });
+
+  it('sends empty summaries to the RPC as an intentional clear and refreshes finalized metrics', async () => {
+    vi.mocked(refreshGameMetricSnapshots).mockResolvedValue(undefined);
+
+    const rpc = vi.fn().mockResolvedValue({
+      data: [],
+      error: null,
+    });
+    const importMaybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        game_id: 'game-final',
+        games: { status: 'finalized' },
+      },
+      error: null,
+    });
+    const importEq = vi.fn(() => ({ maybeSingle: importMaybeSingle }));
+    const importSelect = vi.fn(() => ({ eq: importEq }));
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc,
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            select: importSelect,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const result = await repo.saveGameLogTagSummaries({
+      gameLogImportId: 'import-empty',
+      summaries: [],
+    });
+
+    expect(rpc).toHaveBeenCalledWith('replace_game_log_tag_summaries', {
+      p_game_log_import_id: 'import-empty',
+      p_summaries: [],
+    });
+    expect(refreshGameMetricSnapshots).toHaveBeenCalledWith('game-final');
+    expect(result).toEqual([]);
   });
 });
 

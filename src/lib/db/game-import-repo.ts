@@ -136,11 +136,9 @@ async function getFinalizedGameIdForImport(gameLogImportId: string) {
 }
 
 function buildTagSummaryRow(input: {
-  gameLogImportId: string;
   summary: SaveGameLogTagSummaryInput;
 }) {
   return {
-    game_log_import_id: input.gameLogImportId,
     game_player_id: input.summary.gamePlayerId ?? null,
     matched_card_count: input.summary.matchedCardCount,
     normalized_player_name: input.summary.normalizedPlayerName,
@@ -162,37 +160,20 @@ export async function saveGameLogTagSummaries(input: {
   summaries: SaveGameLogTagSummaryInput[];
 }) {
   const supabase = await createSupabaseServerClient();
-  const { error: deleteError } = await supabase
-    .from('game_log_tag_summaries')
-    .delete()
-    .eq('game_log_import_id', input.gameLogImportId);
+  const { data, error } = await supabase.rpc('replace_game_log_tag_summaries', {
+    p_game_log_import_id: input.gameLogImportId,
+    p_summaries: input.summaries.map((summary) =>
+      buildTagSummaryRow({
+        summary,
+      }),
+    ),
+  });
 
-  if (deleteError) {
-    throw deleteError;
+  if (error) {
+    throw error;
   }
 
-  let savedRows: RawSavedGameLogTagSummaryRow[] = [];
-
-  if (input.summaries.length > 0) {
-    const { data, error: insertError } = await supabase
-      .from('game_log_tag_summaries')
-      .insert(
-        input.summaries.map((summary) =>
-          buildTagSummaryRow({
-            gameLogImportId: input.gameLogImportId,
-            summary,
-          }),
-        ),
-      )
-      .select('id, tag_code');
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    savedRows = (data ?? []) as RawSavedGameLogTagSummaryRow[];
-  }
-
+  const savedRows = (data ?? []) as RawSavedGameLogTagSummaryRow[];
   const finalizedGameId = await getFinalizedGameIdForImport(input.gameLogImportId);
 
   if (finalizedGameId) {

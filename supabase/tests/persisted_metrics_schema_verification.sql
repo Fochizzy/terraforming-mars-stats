@@ -252,6 +252,16 @@ expected_functions(
       'public.can_edit_game(p_game_id)'
     ),
     (
+      'replace_game_log_tag_summaries',
+      'p_game_log_import_id uuid, p_summaries jsonb',
+      true,
+      true,
+      false,
+      false,
+      false,
+      'public.can_edit_game(v_game_id)'
+    ),
+    (
       'refresh_all_metric_snapshots',
       '',
       true,
@@ -278,6 +288,7 @@ actual_functions as (
       'rebuild_metric_summaries',
       'refresh_game_metric_snapshots_internal',
       'refresh_game_metric_snapshots',
+      'replace_game_log_tag_summaries',
       'refresh_all_metric_snapshots'
     )
 ),
@@ -287,6 +298,16 @@ required_function_fragments(function_name, identity_arguments, required_fragment
       'refresh_game_metric_snapshots_internal',
       'p_game_id uuid, p_require_editor boolean',
       'coalesce(round(tag_counts.tag_count::numeric / nullif(player_tag_rollups.total_tag_count, 0), 4), 0)'
+    ),
+    (
+      'replace_game_log_tag_summaries',
+      'p_game_log_import_id uuid, p_summaries jsonb',
+      'delete from public.game_log_tag_summaries'
+    ),
+    (
+      'replace_game_log_tag_summaries',
+      'p_game_log_import_id uuid, p_summaries jsonb',
+      'jsonb_array_length(normalized_summaries) = 0'
     )
 ),
 forbidden_function_fragments(function_name, identity_arguments, forbidden_fragment) as (
