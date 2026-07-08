@@ -14,6 +14,7 @@ import {
 import {
   saveGameLogEvents,
   saveGameLogImport,
+  saveGameLogTagSummaries,
 } from '@/lib/db/game-import-repo';
 import { listImportResolutionPlayers } from '@/lib/db/import-player-resolution-repo';
 import {
@@ -40,6 +41,7 @@ import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-playe
 import { buildImportDraft } from '@/lib/imports/build-import-draft';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
+import { derivePlayerTagSummaries } from '@/lib/imports/derive-player-tag-summaries';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
 import {
   parseCreateImportDraftFormData,
@@ -453,6 +455,10 @@ export default async function LogGameImportPage() {
           listMapAwards(),
           listMapMilestones(),
         ]);
+      const tagSummaries = derivePlayerTagSummaries({
+        cardReferences,
+        events: parsedGameLog.events,
+      });
       const screenshotEvidence = await parseGameResultEvidence({
         ...buildMapScoreReferences({
           awardOptions: analyzeAwardOptions,
@@ -513,6 +519,7 @@ export default async function LogGameImportPage() {
             milestoneClaims:
               screenshotEvidence.parsedScoreDetails.milestoneClaims,
           },
+          tagSummaries,
         }),
       };
     } catch (error) {
@@ -573,6 +580,10 @@ export default async function LogGameImportPage() {
         listPreludes(),
         listStyles(),
       ]);
+      const tagSummaries = derivePlayerTagSummaries({
+        cardReferences: cardScoringReferences,
+        events: parsedGameLog.events,
+      });
       const screenshotEvidence = await parseGameResultEvidence({
         ...buildMapScoreReferences({
           awardOptions,
@@ -722,6 +733,10 @@ export default async function LogGameImportPage() {
           parsedGameLog,
         }),
         gameLogImportId: gameLogImport.id,
+      });
+      await saveGameLogTagSummaries({
+        gameLogImportId: gameLogImport.id,
+        tagSummaries,
       });
 
       if (confirmedPlayerLinks.length > 0) {

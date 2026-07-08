@@ -29,6 +29,7 @@ describe('ImportCardScoringPanel', () => {
               {
                 cardId: 'card-2',
                 cardName: 'Commercial District',
+                imageUrl: 'https://example.com/commercial-district.png',
                 reason:
                   'The city placement from Commercial District could not be linked safely from the imported log.',
                 reviewKind: 'board_evidence',
@@ -60,6 +61,11 @@ describe('ImportCardScoringPanel', () => {
     expect(screen.getByText(/Pets: 3 VP\./i)).toBeInTheDocument();
     expect(screen.getByText(/Review Commercial District/i)).toBeInTheDocument();
     expect(screen.getByText(/Review Research Outpost/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: /open commercial district card image/i,
+      }),
+    ).toHaveAttribute('href', 'https://example.com/commercial-district.png');
     expect(
       screen.getByRole('button', {
         name: /fill manually commercial district for friday mars/i,

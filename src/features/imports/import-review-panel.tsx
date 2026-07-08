@@ -7,6 +7,7 @@ import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-st
 import { ImportCardScoringPanel } from './import-card-scoring-panel';
 import { ImportPlayerResolutionPanel } from './import-player-resolution-panel';
 import { ImportScoreCandidatesPanel } from './import-score-candidates-panel';
+import { ImportTagSummaryPanel } from './import-tag-summary-panel';
 
 function formatScoreFieldLabel(field: string) {
   switch (field) {
@@ -139,6 +140,7 @@ export function ImportReviewPanel({
 
   const detectedParticipantNames = review.detectedParticipantNames ?? [];
   const cardScoring = review.cardScoring ?? [];
+  const tagSummaries = review.tagSummaries ?? [];
   const logScoreCandidates = review.logScoreCandidates ?? [];
   const boardReviewItems = review.boardReviewItems ?? [];
   const boardReviewJumpTargets = boardReviewItems.flatMap((item) => {
@@ -324,6 +326,7 @@ export function ImportReviewPanel({
           </ul>
         </div>
       ) : null}
+      <ImportTagSummaryPanel summaries={tagSummaries} />
       <ImportPlayerResolutionPanel
         creatingImportedName={creatingImportedName}
         onCreatePlayer={onCreatePlayer}

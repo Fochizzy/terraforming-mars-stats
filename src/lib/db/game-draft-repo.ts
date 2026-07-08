@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { FinalizedGamePayload } from '@/features/games/finalize-game';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
+import { getServerEnv } from '@/lib/env';
 
 type SavedGameStatus = 'draft' | 'finalized';
 
@@ -21,6 +22,14 @@ type GameRevisionRow = {
 type PlayerNameRow = {
   display_name: string;
   id: string;
+};
+
+type LegacyImportEvidenceRow = {
+  screenshot_object_path: string | null;
+};
+
+type ScreenshotImportEvidenceRow = {
+  storage_object_path: string | null;
 };
 
 function extractSelectedPlayerIds(snapshot: unknown) {
@@ -402,6 +411,122 @@ export async function listSavedGames(payload: {
       updatedAt: game.updated_at,
     };
   });
+}
+
+function normalizeEvidencePaths(paths: Array<string | null | undefined>) {
+  return [
+    ...new Set(
+      paths
+        .map((path) => (typeof path === 'string' ? path.trim() : ''))
+        .filter((path) => path.length > 0),
+    ),
+  ];
+}
+
+function isMissingSplitScreenshotTableError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code =
+    'code' in error && typeof error.code === 'string' ? error.code : null;
+  const message =
+    'message' in error && typeof error.message === 'string'
+      ? error.message
+      : null;
+
+  return (
+    code === 'PGRST205' &&
+    message?.includes('game_result_screenshot_imports') === true
+  );
+}
+
+export async function deleteDraftGame(payload: {
+  gameId: string;
+  groupId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { data: draftGame, error: draftGameError } = await supabase
+    .from('games')
+    .select('id')
+    .eq('id', payload.gameId)
+    .eq('group_id', payload.groupId)
+    .eq('status', 'draft')
+    .maybeSingle();
+
+  if (draftGameError) {
+    throw draftGameError;
+  }
+
+  if (!draftGame) {
+    throw new Error('Draft not found or already finalized.');
+  }
+
+  const [
+    { data: legacyImportRows, error: legacyImportError },
+    { data: screenshotImportRows, error: screenshotImportError },
+  ] = await Promise.all([
+    supabase
+      .from('game_log_imports')
+      .select('screenshot_object_path')
+      .eq('game_id', payload.gameId),
+    supabase
+      .from('game_result_screenshot_imports')
+      .select('storage_object_path')
+      .eq('game_id', payload.gameId),
+  ]);
+
+  if (legacyImportError) {
+    throw legacyImportError;
+  }
+
+  if (
+    screenshotImportError &&
+    !isMissingSplitScreenshotTableError(screenshotImportError)
+  ) {
+    throw screenshotImportError;
+  }
+
+  const evidencePaths = normalizeEvidencePaths([
+    ...((legacyImportRows ?? []) as LegacyImportEvidenceRow[]).map(
+      (row) => row.screenshot_object_path,
+    ),
+    ...(screenshotImportError
+      ? []
+      : ((screenshotImportRows ?? []) as ScreenshotImportEvidenceRow[]).map(
+          (row) => row.storage_object_path,
+        )),
+  ]);
+
+  if (evidencePaths.length > 0) {
+    const { SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE } = getServerEnv();
+    const { error: removeEvidenceError } = await supabase.storage
+      .from(SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE)
+      .remove(evidencePaths);
+
+    if (removeEvidenceError) {
+      throw removeEvidenceError;
+    }
+  }
+
+  const { data: deletedGame, error: deleteGameError } = await supabase
+    .from('games')
+    .delete()
+    .eq('id', payload.gameId)
+    .eq('group_id', payload.groupId)
+    .eq('status', 'draft')
+    .select('id')
+    .maybeSingle();
+
+  if (deleteGameError) {
+    throw deleteGameError;
+  }
+
+  if (!deletedGame) {
+    throw new Error('Draft not found or already finalized.');
+  }
+
+  return { gameId: deletedGame.id as string };
 }
 
 export async function finalizeGameLog(payload: {

@@ -9,6 +9,7 @@ import { mergeDraftIntoInitialValues } from '@/features/games/log-game/use-log-g
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import {
   finalizeGameLog,
+  deleteDraftGame,
   getSavedGameForm,
   listSavedGames,
   saveDraftGame,
@@ -62,6 +63,23 @@ export default async function LogGameReviewPage({
       limit: 12,
     });
 
+    async function handleDeleteDraft(formData: FormData) {
+      'use server';
+
+      const activeContext = await requireCurrentGroupContext();
+      const gameId = String(formData.get('gameId') ?? '').trim();
+
+      if (!gameId) {
+        throw new Error('Missing draft id.');
+      }
+
+      await deleteDraftGame({
+        gameId,
+        groupId: activeContext.groupId,
+      });
+      revalidatePath('/log-game/review');
+    }
+
     return (
       <AppShell
         headerActions={
@@ -73,7 +91,10 @@ export default async function LogGameReviewPage({
         title="Log Game Review"
         wide
       >
-        <SavedGamesPicker games={savedGames} />
+        <SavedGamesPicker
+          deleteDraftAction={handleDeleteDraft}
+          games={savedGames}
+        />
       </AppShell>
     );
   }

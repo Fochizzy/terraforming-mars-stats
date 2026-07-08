@@ -10,6 +10,7 @@ import type {
   ParsedScreenshotMilestoneClaim,
 } from './parse-score-details-screenshot';
 import type { CuratedBoardImportItem } from './score-curated-board-import-items';
+import type { ImportPlayerTagSummary } from './derive-player-tag-summaries';
 
 export type ImportScreenshotScoreDetails = {
   awardPlacements: ParsedScreenshotAwardPlacement[];
@@ -37,6 +38,7 @@ export type ImportReviewModel = {
   scoreCrossChecks?: ImportScoreCrossCheck[];
   scoreCandidates: ParsedEndgameScoreScreenshot['playerRows'];
   screenshotScoreDetails?: ImportScreenshotScoreDetails;
+  tagSummaries?: ImportPlayerTagSummary[];
 };
 
 const scoreCrossCheckFields = [
@@ -150,6 +152,7 @@ export function buildImportReviewModel(input: {
   };
   screenshotParse: ParsedEndgameScoreScreenshot;
   screenshotScoreDetails?: ImportScreenshotScoreDetails;
+  tagSummaries?: ImportPlayerTagSummary[];
 }): ImportReviewModel {
   const logScoreCandidates = input.logScoreCandidates ?? [];
 
@@ -173,5 +176,6 @@ export function buildImportReviewModel(input: {
       efficiencies: [],
       milestoneClaims: [],
     },
+    tagSummaries: input.tagSummaries ?? [],
   };
 }

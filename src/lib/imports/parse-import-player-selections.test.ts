@@ -95,6 +95,35 @@ describe('parseImportPlayerSelections', () => {
     ).toEqual({});
   });
 
+  it('does not match a prelude when a played card merely starts with its name', () => {
+    expect(
+      parseImportPlayerSelections({
+        corporationOptions: corporations,
+        participants: [{ importedName: 'James', playerId: 'p1' }],
+        preludeOptions: [
+          ...preludes,
+          {
+            expansionCode: 'prelude',
+            id: 'prelude-mohole',
+            name: 'Mohole',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['prelude'],
+          },
+        ],
+        rawLogText: [
+          'James played Tharsis Republic',
+          'James played Allied Bank',
+          'James played Mohole Lake',
+        ].join('\n'),
+      }),
+    ).toEqual({
+      p1: {
+        corporationId: 'corp1',
+        preludeIds: ['prelude1'],
+      },
+    });
+  });
+
   it('extracts corporations and preludes from real TM export play lines', () => {
     expect(
       parseImportPlayerSelections({

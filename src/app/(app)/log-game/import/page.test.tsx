@@ -96,6 +96,7 @@ const mockState = vi.hoisted(() => ({
   saveDraftGame: vi.fn(),
   saveGameLogEvents: vi.fn(),
   saveGameLogImport: vi.fn(),
+  saveGameLogTagSummaries: vi.fn(),
   savePlayerImportAlias: vi.fn(),
   upsertCardScoringRuleCache: vi.fn(),
 }));
@@ -141,6 +142,7 @@ vi.mock('@/lib/db/game-draft-repo', () => ({
 vi.mock('@/lib/db/game-import-repo', () => ({
   saveGameLogEvents: mockState.saveGameLogEvents,
   saveGameLogImport: mockState.saveGameLogImport,
+  saveGameLogTagSummaries: mockState.saveGameLogTagSummaries,
 }));
 
 vi.mock('@/lib/db/player-import-alias-repo', () => ({
@@ -254,6 +256,7 @@ describe('LogGameImportPage', () => {
     mockState.saveDraftGame.mockResolvedValue({ gameId: 'game-1' });
     mockState.saveGameLogImport.mockResolvedValue({ id: 'import-1' });
     mockState.saveGameLogEvents.mockResolvedValue([]);
+    mockState.saveGameLogTagSummaries.mockResolvedValue([]);
     mockState.savePlayerImportAlias.mockResolvedValue(undefined);
     mockState.getCardScoringRuleCache.mockResolvedValue(null);
     mockState.upsertCardScoringRuleCache.mockResolvedValue(undefined);
@@ -335,6 +338,15 @@ describe('LogGameImportPage', () => {
             requiresConfirmation: false,
             selectedPlayerId: 'player-1',
             status: 'exact',
+          }),
+        ],
+        tagSummaries: [
+          expect.objectContaining({
+            matchedCardCount: 2,
+            playerName: 'Friday Mars',
+            tagCounts: expect.objectContaining({ building: 2 }),
+            totalTags: 2,
+            unresolvedCardCount: 0,
           }),
         ],
       },
@@ -584,6 +596,18 @@ describe('LogGameImportPage', () => {
         rawLine: 'Friday Mars played Builder Hall',
       }),
     ]);
+    expect(mockState.saveGameLogTagSummaries).toHaveBeenCalledWith({
+      gameLogImportId: 'import-1',
+      tagSummaries: [
+        expect.objectContaining({
+          matchedCardCount: 2,
+          playerName: 'Friday Mars',
+          tagCounts: expect.objectContaining({ building: 2 }),
+          totalTags: 2,
+          unresolvedCardCount: 0,
+        }),
+      ],
+    });
   });
 
   it('uses the selected map and infers generation count from the uploaded game result screenshot before saving the draft', async () => {

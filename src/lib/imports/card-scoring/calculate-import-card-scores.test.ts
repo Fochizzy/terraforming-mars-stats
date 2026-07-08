@@ -154,6 +154,7 @@ describe('calculateImportCardScores', () => {
           {
             cardId: 'card-mystery',
             cardName: 'Mystery Science Score',
+            imageUrl: 'https://example.com/mystery-science-score.png',
             reason:
               'Multiple endgame scoring formulas were detected for Mystery Science Score.',
           },
@@ -222,6 +223,7 @@ describe('calculateImportCardScores', () => {
           {
             cardId: 'card-commercial-harbor',
             cardName: 'Commercial Harbor',
+            imageUrl: 'https://example.com/commercial-harbor.png',
             reason:
               'Commercial Harbor still needs board confirmation for spaces 20, 22, 29, 30.',
             requestedSpaceIds: ['20', '22', '29', '30'],

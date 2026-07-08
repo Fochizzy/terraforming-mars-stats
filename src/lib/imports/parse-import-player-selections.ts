@@ -15,12 +15,35 @@ function normalizeImportToken(input: string) {
   return normalizePlayerAlias(input).replace(/\s+/g, ' ');
 }
 
+function extractPlayedName(normalizedLine: string) {
+  const playedIndex = normalizedLine.indexOf(' played ');
+
+  return playedIndex >= 0
+    ? normalizedLine.slice(playedIndex + ' played '.length).trim()
+    : null;
+}
+
 function findMatchingIds(
   normalizedLine: string,
   options: Array<{ id: string; name: string }>,
 ) {
+  // "X played <name>" lines name exactly one card/corp/prelude, so the tail
+  // must equal the option name — plain substring matching turns cards like
+  // "Mohole Lake" into false hits for the "Mohole" prelude. Other mention
+  // shapes ("used <name> action") keep substring matching, but only on word
+  // boundaries so e.g. "Inspired..." cannot match the corporation "Spire".
+  const playedName = extractPlayedName(normalizedLine);
+
   return options
-    .filter((option) => normalizedLine.includes(normalizeImportToken(option.name)))
+    .filter((option) => {
+      const token = normalizeImportToken(option.name);
+
+      if (playedName !== null) {
+        return playedName === token;
+      }
+
+      return ` ${normalizedLine} `.includes(` ${token} `);
+    })
     .map((option) => option.id);
 }
 

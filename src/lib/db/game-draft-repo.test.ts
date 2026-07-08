@@ -6,6 +6,12 @@ vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
 }));
 
+vi.mock('@/lib/env', () => ({
+  getServerEnv: () => ({
+    SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE: 'tm-import-evidence',
+  }),
+}));
+
 describe('getDraftGameForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,6 +98,229 @@ describe('getDraftGameForm', () => {
       '11111111-1111-4111-8111-111111111111',
     );
     expect(revisionQuery.eq).toHaveBeenCalledWith('game_id', 'game-1');
+  });
+});
+
+describe('deleteDraftGame', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('deletes only a draft in the active group and removes import evidence files first', async () => {
+    const gameLookupQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: 'game-draft' },
+        error: null,
+      }),
+    };
+    const legacyImportsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: [
+          { screenshot_object_path: 'game-draft/legacy.png' },
+          { screenshot_object_path: null },
+        ],
+        error: null,
+      }),
+    };
+    const screenshotImportsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: [{ storage_object_path: 'game-draft/result.png' }],
+        error: null,
+      }),
+    };
+    const deleteQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: 'game-draft' },
+        error: null,
+      }),
+    };
+    const remove = vi.fn().mockResolvedValue({ data: [], error: null });
+    const storageFrom = vi.fn().mockReturnValue({ remove });
+    let gamesCallCount = 0;
+    const from = vi.fn((table: string) => {
+      if (table === 'games') {
+        gamesCallCount += 1;
+        return gamesCallCount === 1 ? gameLookupQuery : deleteQuery;
+      }
+
+      if (table === 'game_log_imports') {
+        return legacyImportsQuery;
+      }
+
+      if (table === 'game_result_screenshot_imports') {
+        return screenshotImportsQuery;
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    });
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from,
+      storage: {
+        from: storageFrom,
+      },
+    } as never);
+
+    const repoModule = repo as {
+      deleteDraftGame?: (input: {
+        gameId: string;
+        groupId: string;
+      }) => Promise<unknown>;
+    };
+
+    expect(repoModule.deleteDraftGame).toBeTypeOf('function');
+    if (!repoModule.deleteDraftGame) {
+      return;
+    }
+
+    await expect(
+      repoModule.deleteDraftGame({
+        gameId: 'game-draft',
+        groupId: 'group-1',
+      }),
+    ).resolves.toEqual({ gameId: 'game-draft' });
+
+    expect(gameLookupQuery.eq).toHaveBeenCalledWith('id', 'game-draft');
+    expect(gameLookupQuery.eq).toHaveBeenCalledWith('group_id', 'group-1');
+    expect(gameLookupQuery.eq).toHaveBeenCalledWith('status', 'draft');
+    expect(storageFrom).toHaveBeenCalledWith('tm-import-evidence');
+    expect(remove).toHaveBeenCalledWith([
+      'game-draft/legacy.png',
+      'game-draft/result.png',
+    ]);
+    expect(deleteQuery.eq).toHaveBeenCalledWith('id', 'game-draft');
+    expect(deleteQuery.eq).toHaveBeenCalledWith('group_id', 'group-1');
+    expect(deleteQuery.eq).toHaveBeenCalledWith('status', 'draft');
+  });
+
+  it('refuses to delete a missing or finalized game', async () => {
+    const gameLookupQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      }),
+    };
+    const from = vi.fn((table: string) => {
+      if (table === 'games') {
+        return gameLookupQuery;
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    });
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from,
+    } as never);
+
+    const repoModule = repo as {
+      deleteDraftGame?: (input: {
+        gameId: string;
+        groupId: string;
+      }) => Promise<unknown>;
+    };
+
+    expect(repoModule.deleteDraftGame).toBeTypeOf('function');
+    if (!repoModule.deleteDraftGame) {
+      return;
+    }
+
+    await expect(
+      repoModule.deleteDraftGame({
+        gameId: 'game-final',
+        groupId: 'group-1',
+      }),
+    ).rejects.toThrow(/draft not found/i);
+
+    expect(gameLookupQuery.eq).toHaveBeenCalledWith('status', 'draft');
+  });
+
+  it('still deletes drafts when the split screenshot import table is unavailable', async () => {
+    const gameLookupQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: 'game-draft' },
+        error: null,
+      }),
+    };
+    const legacyImportsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: [{ screenshot_object_path: 'game-draft/legacy.png' }],
+        error: null,
+      }),
+    };
+    const screenshotImportsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: 'PGRST205',
+          message: "Could not find the table 'game_result_screenshot_imports'",
+        },
+      }),
+    };
+    const deleteQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: 'game-draft' },
+        error: null,
+      }),
+    };
+    const remove = vi.fn().mockResolvedValue({ data: [], error: null });
+    let gamesCallCount = 0;
+    const from = vi.fn((table: string) => {
+      if (table === 'games') {
+        gamesCallCount += 1;
+        return gamesCallCount === 1 ? gameLookupQuery : deleteQuery;
+      }
+
+      if (table === 'game_log_imports') {
+        return legacyImportsQuery;
+      }
+
+      if (table === 'game_result_screenshot_imports') {
+        return screenshotImportsQuery;
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    });
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from,
+      storage: {
+        from: vi.fn().mockReturnValue({ remove }),
+      },
+    } as never);
+
+    const repoModule = repo as {
+      deleteDraftGame?: (input: {
+        gameId: string;
+        groupId: string;
+      }) => Promise<unknown>;
+    };
+
+    expect(repoModule.deleteDraftGame).toBeTypeOf('function');
+    if (!repoModule.deleteDraftGame) {
+      return;
+    }
+
+    await expect(
+      repoModule.deleteDraftGame({
+        gameId: 'game-draft',
+        groupId: 'group-1',
+      }),
+    ).resolves.toEqual({ gameId: 'game-draft' });
+
+    expect(remove).toHaveBeenCalledWith(['game-draft/legacy.png']);
   });
 });
 

@@ -51,6 +51,45 @@ describe('buildImportReviewModel', () => {
             },
           },
         ],
+        tagSummaries: [
+          {
+            matchedCardCount: 2,
+            matchedCards: [
+              {
+                cardId: 'card-1',
+                cardName: 'Earth Catapult',
+                lineNumber: 3,
+                rawLine: 'Izzy played Earth Catapult',
+                sourceTags: ['building', 'earth'],
+              },
+            ],
+            playedCardCount: 3,
+            playerName: 'Izzy H.',
+            tagCounts: {
+              animal: 0,
+              building: 1,
+              city: 0,
+              earth: 1,
+              event: 0,
+              jovian: 0,
+              microbe: 0,
+              plant: 0,
+              power: 0,
+              science: 0,
+              space: 0,
+            },
+            totalTags: 2,
+            unresolvedCardCount: 1,
+            unresolvedCards: [
+              {
+                cardName: 'Mystery Import Card',
+                lineNumber: 4,
+                rawLine: 'Izzy played Mystery Import Card',
+                reason: 'not_found',
+              },
+            ],
+          },
+        ],
         logScoreCandidates: [
           {
             awardPoints: 2,
@@ -106,6 +145,15 @@ describe('buildImportReviewModel', () => {
           pendingCards: [{ cardName: 'Mystery Science Score' }],
           playerName: 'Izzy H.',
           totals: { animals: 2, complete: false, total: 2 },
+        },
+      ],
+      tagSummaries: [
+        {
+          matchedCardCount: 2,
+          playerName: 'Izzy H.',
+          tagCounts: expect.objectContaining({ building: 1, earth: 1 }),
+          totalTags: 2,
+          unresolvedCardCount: 1,
         },
       ],
       detectedParticipantNames: ['Izzy'],

@@ -1,6 +1,11 @@
 import { getServerEnv } from '@/lib/env';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { buildImportEvidencePath } from '@/lib/imports/build-import-evidence-path';
+import {
+  PLAYER_TAG_CODES,
+  type ImportPlayerTagSummary,
+} from '@/lib/imports/derive-player-tag-summaries';
+import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 
 export type GameLogImportSummary = {
   createdAt: string;
@@ -64,6 +69,11 @@ type RawScreenshotImportRow = {
 type RawSavedGameLogEventRow = {
   event_order: number;
   id: string;
+};
+
+type RawSavedGameLogTagSummaryRow = {
+  id: string;
+  tag_code: string;
 };
 
 type NormalizedSaveGameLogScreenshotInput = SaveGameLogScreenshotInput & {
@@ -551,6 +561,53 @@ export async function saveGameLogEvents(input: {
   return ((data ?? []) as RawSavedGameLogEventRow[]).map((row) => ({
     eventOrder: row.event_order,
     id: row.id,
+  }));
+}
+
+export async function saveGameLogTagSummaries(input: {
+  gameLogImportId: string;
+  tagSummaries: ImportPlayerTagSummary[];
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { error: deleteError } = await supabase
+    .from('game_log_tag_summaries')
+    .delete()
+    .eq('game_log_import_id', input.gameLogImportId);
+
+  if (deleteError) {
+    throw deleteError;
+  }
+
+  const rows = input.tagSummaries.flatMap((summary) =>
+    PLAYER_TAG_CODES.map((tagCode) => ({
+      game_log_import_id: input.gameLogImportId,
+      matched_card_count: summary.matchedCardCount,
+      normalized_player_name: normalizePlayerAlias(summary.playerName),
+      player_name: summary.playerName,
+      played_card_count: summary.playedCardCount,
+      tag_code: tagCode,
+      tag_count: summary.tagCounts[tagCode] ?? 0,
+      total_tag_count: summary.totalTags,
+      unresolved_card_count: summary.unresolvedCardCount,
+    })),
+  );
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('game_log_tag_summaries')
+    .insert(rows)
+    .select('id, tag_code');
+
+  if (error) {
+    throw error;
+  }
+
+  return ((data ?? []) as RawSavedGameLogTagSummaryRow[]).map((row) => ({
+    id: row.id,
+    tagCode: row.tag_code,
   }));
 }
 

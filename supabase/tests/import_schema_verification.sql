@@ -7,6 +7,7 @@ where table_schema = 'public'
   and table_name in (
     'game_log_imports',
     'game_log_events',
+    'game_log_tag_summaries',
     'game_result_screenshot_imports',
     'player_import_aliases'
   )
@@ -22,6 +23,7 @@ where tc.table_schema = 'public'
   and tc.table_name in (
     'game_log_imports',
     'game_log_events',
+    'game_log_tag_summaries',
     'game_result_screenshot_imports',
     'player_import_aliases'
   )
@@ -36,6 +38,7 @@ select
 from pg_indexes
 where schemaname = 'public'
   and indexname in (
+    'game_log_tag_summaries_import_player_idx',
     'game_result_screenshot_imports_game_id_created_at_idx',
     'player_import_aliases_group_player_idx'
   )

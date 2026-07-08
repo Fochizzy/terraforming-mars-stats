@@ -779,6 +779,107 @@ describe('saveGameLogEvents', () => {
   });
 });
 
+describe('saveGameLogTagSummaries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('replaces import tag counts with one row per canonical tag per player', async () => {
+    const eq = vi.fn().mockResolvedValue({
+      error: null,
+    });
+    const deleteFn = vi.fn(() => ({
+      eq,
+    }));
+    const select = vi.fn().mockResolvedValue({
+      data: [
+        { id: 'tag-row-1', tag_code: 'building' },
+        { id: 'tag-row-2', tag_code: 'science' },
+      ],
+      error: null,
+    });
+    const insert = vi.fn((rows: Array<Record<string, unknown>>) => ({
+      select,
+      rows,
+    }));
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_tag_summaries') {
+          return {
+            delete: deleteFn,
+            insert,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const result = await repo.saveGameLogTagSummaries({
+      gameLogImportId: 'import-1',
+      tagSummaries: [
+        {
+          matchedCardCount: 2,
+          matchedCards: [],
+          playedCardCount: 3,
+          playerName: 'Friday Mars',
+          tagCounts: {
+            animal: 0,
+            building: 1,
+            city: 0,
+            earth: 1,
+            event: 0,
+            jovian: 0,
+            microbe: 0,
+            plant: 0,
+            power: 1,
+            science: 1,
+            space: 0,
+          },
+          totalTags: 4,
+          unresolvedCardCount: 1,
+          unresolvedCards: [],
+        },
+      ],
+    });
+
+    expect(deleteFn).toHaveBeenCalledTimes(1);
+    expect(eq).toHaveBeenCalledWith('game_log_import_id', 'import-1');
+    expect(insert).toHaveBeenCalledTimes(1);
+
+    const rows = insert.mock.calls[0]?.[0] ?? [];
+
+    expect(rows).toHaveLength(11);
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          game_log_import_id: 'import-1',
+          matched_card_count: 2,
+          normalized_player_name: 'friday mars',
+          player_name: 'Friday Mars',
+          played_card_count: 3,
+          tag_code: 'building',
+          tag_count: 1,
+          total_tag_count: 4,
+          unresolved_card_count: 1,
+        }),
+        expect.objectContaining({
+          game_log_import_id: 'import-1',
+          player_name: 'Friday Mars',
+          tag_code: 'event',
+          tag_count: 0,
+        }),
+      ]),
+    );
+    expect(select).toHaveBeenCalledWith('id, tag_code');
+    expect(result).toEqual([
+      { id: 'tag-row-1', tagCode: 'building' },
+      { id: 'tag-row-2', tagCode: 'science' },
+    ]);
+  });
+});
+
 describe('getLatestGameLogImportSummary', () => {
   beforeEach(() => {
     vi.clearAllMocks();

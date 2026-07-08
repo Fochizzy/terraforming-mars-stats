@@ -62,6 +62,7 @@ export async function calculateImportCardScores(input: {
       playerSummary.pendingCards.push({
         cardId: card.id,
         cardName: card.cardName,
+        imageUrl: card.fullImageUrl,
         reason: resolution.reason,
       });
       playerSummary.totals.complete = false;
@@ -86,6 +87,7 @@ export async function calculateImportCardScores(input: {
       playerSummary.pendingCards.push({
         cardId: card.id,
         cardName: card.cardName,
+        imageUrl: card.fullImageUrl,
         reason: scoredCard.reason,
         requestedSpaceIds: scoredCard.requestedSpaceIds,
         reviewKind: scoredCard.reviewKind,

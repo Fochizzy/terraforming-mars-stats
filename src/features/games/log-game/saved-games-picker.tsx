@@ -2,7 +2,15 @@ import Link from 'next/link';
 import type { SavedGameListItem } from '@/lib/db/game-draft-repo';
 import { StepHeading } from '@/components/ui/step-heading';
 
-export function SavedGamesPicker({ games }: { games: SavedGameListItem[] }) {
+type DeleteDraftAction = (formData: FormData) => Promise<void>;
+
+export function SavedGamesPicker({
+  deleteDraftAction,
+  games,
+}: {
+  deleteDraftAction: DeleteDraftAction;
+  games: SavedGameListItem[];
+}) {
   return (
     <section className="tm-panel flex flex-col gap-4">
       <StepHeading step="01" title="Saved Games" />
@@ -32,12 +40,26 @@ export function SavedGamesPicker({ games }: { games: SavedGameListItem[] }) {
                     Updated {game.updatedAt}
                   </p>
                 </div>
-                <Link
-                  className="tm-button-secondary px-4 py-2 text-xs"
-                  href={`/log-game/review?gameId=${game.gameId}`}
-                >
-                  {game.status === 'draft' ? 'Resume Draft' : 'Correct Players'}
-                </Link>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Link
+                    className="tm-button-secondary px-4 py-2 text-xs"
+                    href={`/log-game/review?gameId=${game.gameId}`}
+                  >
+                    {game.status === 'draft' ? 'Resume Draft' : 'Correct Players'}
+                  </Link>
+                  {game.status === 'draft' ? (
+                    <form action={deleteDraftAction}>
+                      <input name="gameId" type="hidden" value={game.gameId} />
+                      <button
+                        aria-label={`Delete draft ${game.playerNames.join(', ') || game.gameId}`}
+                        className="tm-button-secondary tm-text-danger px-4 py-2 text-xs"
+                        type="submit"
+                      >
+                        Delete Draft
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
               </div>
             </article>
           ))}

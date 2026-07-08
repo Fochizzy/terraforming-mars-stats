@@ -5,6 +5,136 @@ import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-st
 import { ImportReviewPanel } from './import-review-panel';
 
 describe('ImportReviewPanel', () => {
+  it('treats matched cards with no printed tags as a valid zero-tag result', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          detectedParticipantNames: ['Friday Mars'],
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          parsedEventCount: 1,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [],
+          tagSummaries: [
+            {
+              matchedCardCount: 1,
+              matchedCards: [],
+              playedCardCount: 1,
+              playerName: 'Friday Mars',
+              tagCounts: {
+                animal: 0,
+                building: 0,
+                city: 0,
+                earth: 0,
+                event: 0,
+                jovian: 0,
+                microbe: 0,
+                plant: 0,
+                power: 0,
+                science: 0,
+                space: 0,
+              },
+              totalTags: 0,
+              unresolvedCardCount: 0,
+              unresolvedCards: [],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/friday mars: 0 played tags/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/no tags were present on matched played cards/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/unresolved card/i)).not.toBeInTheDocument();
+  });
+
+  it('shows per-player played tag counts and unresolved catalog matches', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          detectedParticipantNames: ['Friday Mars'],
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [],
+          tagSummaries: [
+            {
+              matchedCardCount: 2,
+              matchedCards: [],
+              playedCardCount: 3,
+              playerName: 'Friday Mars',
+              tagCounts: {
+                animal: 0,
+                building: 1,
+                city: 1,
+                earth: 1,
+                event: 0,
+                jovian: 0,
+                microbe: 0,
+                plant: 0,
+                power: 1,
+                science: 1,
+                space: 0,
+              },
+              totalTags: 5,
+              unresolvedCardCount: 2,
+              unresolvedCards: [
+                {
+                  cardName: 'Missing Project',
+                  lineNumber: 7,
+                  rawLine: 'Friday Mars played Missing Project',
+                  reason: 'not_found',
+                },
+                {
+                  candidateCards: [
+                    {
+                      cardId: 'card-duplicate-a',
+                      cardName: 'Duplicate Project',
+                      imageUrl: 'https://example.com/duplicate-project-a.png',
+                    },
+                    {
+                      cardId: 'card-duplicate-b',
+                      cardName: 'Duplicate Project',
+                      imageUrl: 'https://example.com/duplicate-project-b.png',
+                    },
+                  ],
+                  cardName: 'Duplicate Project',
+                  lineNumber: 8,
+                  rawLine: 'Friday Mars played Duplicate Project',
+                  reason: 'ambiguous_match',
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: /tags from log/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/friday mars: 5 played tags/i)).toBeInTheDocument();
+    expect(screen.getByText('Building 1')).toBeInTheDocument();
+    expect(screen.getByText('Science 1')).toBeInTheDocument();
+    expect(screen.getByText('City 1')).toBeInTheDocument();
+    expect(screen.getByText(/2 unresolved cards/i)).toBeInTheDocument();
+    expect(screen.getByText(/missing project/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', {
+        name: /open duplicate project card image/i,
+      }),
+    ).toHaveLength(2);
+  });
+
   it('exposes only one manual-fill control when curated board review already covers the same unresolved card', async () => {
     const user = userEvent.setup();
     const onSelectManualReviewJumpTarget = vi.fn();

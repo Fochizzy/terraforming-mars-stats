@@ -59,6 +59,28 @@ function isSameManualReviewJumpTarget(
   );
 }
 
+function CardImageLink({
+  card,
+}: {
+  card: ImportPlayerCardScoringSummary['pendingCards'][number];
+}) {
+  if (!card.imageUrl) {
+    return null;
+  }
+
+  return (
+    <a
+      aria-label={`Open ${card.cardName} card image`}
+      className="tm-button-secondary shrink-0"
+      href={card.imageUrl}
+      rel="noreferrer"
+      target="_blank"
+    >
+      Open card image
+    </a>
+  );
+}
+
 export function ImportCardScoringPanel({
   suppressedManualReviewTargets = [],
   onSelectManualReviewJumpTarget,
@@ -114,7 +136,12 @@ export function ImportCardScoringPanel({
                   if (!jumpTarget || isSuppressed) {
                     return (
                       <li key={`${summary.playerName}-${card.cardId}-pending`}>
-                        Review {card.cardName}: {card.reason}
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <span>
+                            Review {card.cardName}: {card.reason}
+                          </span>
+                          <CardImageLink card={card} />
+                        </div>
                       </li>
                     );
                   }
@@ -128,25 +155,28 @@ export function ImportCardScoringPanel({
                         <span>
                           Review {card.cardName}: {card.reason}
                         </span>
-                        <button
-                          aria-label={`Fill manually ${jumpTarget.itemLabel} for ${jumpTarget.playerName}`}
-                          className="tm-button-secondary shrink-0"
-                          onClick={() =>
-                            onSelectManualReviewJumpTarget?.(jumpTarget)
-                          }
-                          type="button"
-                        >
-                          {isSelected
-                            ? (
-                                <>
-                                  Manual fill selected &middot;{' '}
-                                  {formatManualReviewScoreFieldLabel(
-                                    jumpTarget.scoreField,
-                                  )}
-                                </>
-                              )
-                            : 'Fill manually'}
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                          <CardImageLink card={card} />
+                          <button
+                            aria-label={`Fill manually ${jumpTarget.itemLabel} for ${jumpTarget.playerName}`}
+                            className="tm-button-secondary shrink-0"
+                            onClick={() =>
+                              onSelectManualReviewJumpTarget?.(jumpTarget)
+                            }
+                            type="button"
+                          >
+                            {isSelected
+                              ? (
+                                  <>
+                                    Manual fill selected &middot;{' '}
+                                    {formatManualReviewScoreFieldLabel(
+                                      jumpTarget.scoreField,
+                                    )}
+                                  </>
+                                )
+                              : 'Fill manually'}
+                          </button>
+                        </div>
                       </div>
                     </li>
                   );

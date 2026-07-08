@@ -89,6 +89,7 @@ export type ImportCalculatedCardScore = {
 export type ImportPendingCardScore = {
   cardId: string;
   cardName: string;
+  imageUrl?: string;
   reason: string;
   requestedSpaceIds?: string[];
   reviewKind?: 'board_evidence';
