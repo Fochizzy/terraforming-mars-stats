@@ -1598,40 +1598,7 @@ begin
     on gps.game_player_id = gm.winner_game_player_id
   join public.milestones m on m.id = gm.milestone_id
   left join lateral (
-    select coalesce(
-      gle.generation_number,
-      (
-        select max(previous_event.generation_number)
-        from public.game_log_events previous_event
-        where previous_event.game_log_import_id = gle.game_log_import_id
-          and previous_event.event_order <= gle.event_order
-          and previous_event.event_type = 'generation_started'
-      )
-    ) as claimed_generation_number
-    from public.game_log_imports gli
-    join public.game_log_events gle
-      on gle.game_log_import_id = gli.id
-    join public.game_players winner_gp on winner_gp.id = gm.winner_game_player_id
-    join public.players winner_player on winner_player.id = winner_gp.player_id
-    where gli.game_id = gm.game_id
-      and gle.event_type = 'milestone_claimed'
-      and (
-        gle.game_player_id = gm.winner_game_player_id
-        or (
-          gle.game_player_id is null
-          and public.metric_normalized_label(winner_player.display_name)
-            = public.metric_normalized_label(gle.payload ->> 'actor')
-        )
-      )
-      and (
-        public.metric_normalized_label(gle.payload ->> 'milestoneName')
-          in (public.metric_normalized_label(m.name), public.metric_normalized_label(m.code))
-        or public.metric_normalized_label(gle.raw_line) like '%' || public.metric_normalized_label(m.name) || '%'
-      )
-    order by
-      case when gle.game_player_id = gm.winner_game_player_id then 0 else 1 end,
-      gle.event_order
-    limit 1
+    select null::integer as claimed_generation_number
   ) milestone_event on true
   where gm.game_id = p_game_id;
 
@@ -1704,40 +1671,7 @@ begin
     on funder_snapshot.game_player_id = ga.funded_by_game_player_id
   join public.awards a on a.id = ga.award_id
   left join lateral (
-    select coalesce(
-      gle.generation_number,
-      (
-        select max(previous_event.generation_number)
-        from public.game_log_events previous_event
-        where previous_event.game_log_import_id = gle.game_log_import_id
-          and previous_event.event_order <= gle.event_order
-          and previous_event.event_type = 'generation_started'
-      )
-    ) as funded_generation_number
-    from public.game_log_imports gli
-    join public.game_log_events gle
-      on gle.game_log_import_id = gli.id
-    join public.game_players funder_gp on funder_gp.id = ga.funded_by_game_player_id
-    join public.players funder_player on funder_player.id = funder_gp.player_id
-    where gli.game_id = ga.game_id
-      and gle.event_type = 'award_funded'
-      and (
-        gle.game_player_id = ga.funded_by_game_player_id
-        or (
-          gle.game_player_id is null
-          and public.metric_normalized_label(funder_player.display_name)
-            = public.metric_normalized_label(gle.payload ->> 'actor')
-        )
-      )
-      and (
-        public.metric_normalized_label(gle.payload ->> 'awardName')
-          in (public.metric_normalized_label(a.name), public.metric_normalized_label(a.code))
-        or public.metric_normalized_label(gle.raw_line) like '%' || public.metric_normalized_label(a.name) || '%'
-      )
-    order by
-      case when gle.game_player_id = ga.funded_by_game_player_id then 0 else 1 end,
-      gle.event_order
-    limit 1
+    select null::integer as funded_generation_number
   ) award_event on true
   where ga.game_id = p_game_id;
 

@@ -129,16 +129,6 @@ export type CoverageRow = {
   playerName?: string;
 };
 
-export type ImportCoverageRow = {
-  gameId: string;
-  groupId: string;
-  hasScoreSourceBreakdown: boolean;
-  ignoredFillerLines: number;
-  lineCount: number;
-  screenshotCount: number;
-  unparsedLineCount: number;
-};
-
 export type PlayerEfficiencySummary = {
   averageAwardRoi: number;
   averageExpectedScore: number | null;
@@ -366,16 +356,6 @@ type RawCoverageRow = {
   player_name?: string;
 };
 
-type RawImportCoverageRow = {
-  game_id: string;
-  group_id: string;
-  has_score_source_breakdown: boolean;
-  ignored_filler_lines: number | string;
-  line_count: number | string;
-  screenshot_count: number | string;
-  unparsed_line_count: number | string;
-};
-
 export type RawPlayerEfficiencySummaryRow = {
   average_award_roi: number | string;
   average_expected_score: number | string | null;
@@ -451,6 +431,66 @@ type RawTrendRow = {
   total_points: number | string;
 };
 
+type RawProfileGameResultRow = {
+  award_points: number | string;
+  card_points_animals: number | string | null;
+  card_points_jovian: number | string | null;
+  card_points_microbes: number | string | null;
+  card_points_total: number | string;
+  cities_points: number | string;
+  declared_modifier_style_codes: string[] | null;
+  declared_primary_style_code: null | string;
+  game_id: string;
+  greenery_points: number | string;
+  group_id: string;
+  has_full_card_breakdown: boolean;
+  inferred_primary_style_code: null | string;
+  inferred_style_confidence: number | string | null;
+  is_winner: boolean;
+  key_card_count: number | string;
+  loss_gap_points: number | string | null;
+  milestone_points: number | string;
+  other_card_points: number | string | null;
+  placement: number | string;
+  placement_score: number | string;
+  player_id: string;
+  player_name: string;
+  signed_differential_points: number | string;
+  total_points: number | string;
+  tr_points: number | string;
+  win_differential_points: number | string | null;
+};
+
+type ProfileGameResultRow = {
+  awardPoints: number;
+  cardPointsAnimals: null | number;
+  cardPointsJovian: null | number;
+  cardPointsMicrobes: null | number;
+  cardPointsTotal: number;
+  citiesPoints: number;
+  declaredModifierStyleCodes: string[];
+  declaredPrimaryStyleCode: null | string;
+  gameId: string;
+  greeneryPoints: number;
+  groupId: string;
+  hasFullCardBreakdown: boolean;
+  inferredPrimaryStyleCode: null | string;
+  inferredStyleConfidence: null | number;
+  isWinner: boolean;
+  keyCardCount: number;
+  lossGapPoints: null | number;
+  milestonePoints: number;
+  otherCardPoints: null | number;
+  placement: number;
+  placementScore: number;
+  playerId: string;
+  playerName: string;
+  signedDifferentialPoints: number;
+  totalPoints: number;
+  trPoints: number;
+  winDifferentialPoints: null | number;
+};
+
 function toNumber(value: number | string | null | undefined) {
   if (typeof value === 'number') {
     return value;
@@ -470,6 +510,33 @@ function toNullableNumber(value: number | string | null | undefined) {
   }
 
   return toNumber(value);
+}
+
+function roundNumber(value: number, digits: number) {
+  return Number(value.toFixed(digits));
+}
+
+function averageNumbers(values: number[]) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function weightedAverage(entries: Array<{ value: number; weight: number }>) {
+  const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+
+  if (totalWeight <= 0) {
+    return null;
+  }
+
+  const weightedTotal = entries.reduce(
+    (sum, entry) => sum + entry.value * entry.weight,
+    0,
+  );
+
+  return weightedTotal / totalWeight;
 }
 
 function getWeightedScore(row: Record<string, unknown>) {
@@ -636,18 +703,6 @@ function mapCoverageRow(row: RawCoverageRow): CoverageRow {
   };
 }
 
-function mapImportCoverageRow(row: RawImportCoverageRow): ImportCoverageRow {
-  return {
-    gameId: row.game_id,
-    groupId: row.group_id,
-    hasScoreSourceBreakdown: row.has_score_source_breakdown,
-    ignoredFillerLines: toNumber(row.ignored_filler_lines),
-    lineCount: toNumber(row.line_count),
-    screenshotCount: toNumber(row.screenshot_count),
-    unparsedLineCount: toNumber(row.unparsed_line_count),
-  };
-}
-
 export function mapPlayerEfficiencySummary(
   row: RawPlayerEfficiencySummaryRow,
 ): PlayerEfficiencySummary {
@@ -736,6 +791,38 @@ function mapTrendRow(row: RawTrendRow): TrendRow {
     totalPoints: toNumber(row.total_points),
     generationCount: toNumber(row.generation_count),
     inferredPrimaryStyleCode: row.inferred_primary_style_code,
+  };
+}
+
+function mapProfileGameResultRow(row: RawProfileGameResultRow): ProfileGameResultRow {
+  return {
+    gameId: row.game_id,
+    groupId: row.group_id,
+    playerId: row.player_id,
+    playerName: row.player_name,
+    placement: toNumber(row.placement),
+    isWinner: row.is_winner,
+    totalPoints: toNumber(row.total_points),
+    citiesPoints: toNumber(row.cities_points),
+    greeneryPoints: toNumber(row.greenery_points),
+    cardPointsTotal: toNumber(row.card_points_total),
+    cardPointsMicrobes: toNullableNumber(row.card_points_microbes),
+    cardPointsAnimals: toNullableNumber(row.card_points_animals),
+    cardPointsJovian: toNullableNumber(row.card_points_jovian),
+    otherCardPoints: toNullableNumber(row.other_card_points),
+    trPoints: toNumber(row.tr_points),
+    milestonePoints: toNumber(row.milestone_points),
+    awardPoints: toNumber(row.award_points),
+    hasFullCardBreakdown: row.has_full_card_breakdown,
+    declaredPrimaryStyleCode: row.declared_primary_style_code,
+    declaredModifierStyleCodes: row.declared_modifier_style_codes ?? [],
+    inferredPrimaryStyleCode: row.inferred_primary_style_code,
+    inferredStyleConfidence: toNullableNumber(row.inferred_style_confidence),
+    keyCardCount: toNumber(row.key_card_count),
+    winDifferentialPoints: toNullableNumber(row.win_differential_points),
+    lossGapPoints: toNullableNumber(row.loss_gap_points),
+    signedDifferentialPoints: toNumber(row.signed_differential_points),
+    placementScore: toNumber(row.placement_score),
   };
 }
 
@@ -1489,20 +1576,6 @@ export async function listGroupPlayerCoverage(groupId: string) {
     );
 }
 
-export async function listImportCoverage(groupId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await getAnalyticsClient(supabase)
-    .from('import_coverage')
-    .select('game_id, group_id, has_score_source_breakdown, ignored_filler_lines, line_count, screenshot_count, unparsed_line_count')
-    .eq('group_id', groupId);
-
-  if (error) {
-    throw error;
-  }
-
-  return (data as RawImportCoverageRow[]).map(mapImportCoverageRow);
-}
-
 const playerEfficiencySummarySelect =
   'average_award_roi, average_expected_score, average_loss_gap, average_normalized_efficiency, average_placement, average_points_per_generation, average_score, average_score_delta_vs_expected, average_win_margin, award_score_share, best_score_source, best_tag_lane, card_score_share, cities_score_share, close_game_count, close_game_wins, close_game_win_rate, games_played, greenery_score_share, group_id, milestone_score_share, player_id, tag_evidence_coverage, tr_score_share, win_rate, wins';
 
@@ -1711,7 +1784,6 @@ export async function getGroupAnalytics(groupId: string) {
     styleAgreementRows,
     coverage,
     playerCoverages,
-    importCoverageRows,
     playerEfficiencySummaries,
     playerMapMetricRows,
     globalMapMetricRows,
@@ -1729,7 +1801,6 @@ export async function getGroupAnalytics(groupId: string) {
     listGroupStyleAgreement(groupId),
     getGroupCoverage(groupId),
     listGroupPlayerCoverage(groupId),
-    listImportCoverage(groupId),
     listGroupPlayerEfficiencySummaries(groupId),
     listGroupPlayerMapMetrics(groupId),
     listGlobalMapMetrics(),
@@ -1749,7 +1820,6 @@ export async function getGroupAnalytics(groupId: string) {
     styleAgreementRows,
     coverage,
     playerCoverages,
-    importCoverageRows,
     playerEfficiencySummaries,
     playerMapMetricRows,
     globalMapMetricRows,

@@ -49,6 +49,7 @@ function createTableQuery(entry: TableEntry) {
     eq: vi.fn(() => query),
     gt: vi.fn(() => query),
     in: vi.fn(() => query),
+    limit: vi.fn(() => query),
     maybeSingle: vi.fn().mockResolvedValue({
       data: tableResult.data?.[0] ?? null,
       error: tableResult.error,
@@ -485,7 +486,6 @@ describe('getGroupAnalytics', () => {
       'analytics.style_agreement': [],
       'analytics.data_coverage': [],
       'analytics.player_data_coverage': [],
-      'analytics.import_coverage': [],
       player_metric_summaries: [
         {
           average_award_roi: '1.2500',
@@ -679,7 +679,6 @@ describe('getGroupAnalytics', () => {
       'analytics.style_agreement': [],
       'analytics.data_coverage': [],
       'analytics.player_data_coverage': [],
-      'analytics.import_coverage': [],
     });
 
     await expect(getGroupAnalytics('group-1')).rejects.toThrow(
