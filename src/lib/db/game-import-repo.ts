@@ -1,6 +1,7 @@
 import { getServerEnv } from '@/lib/env';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { buildImportEvidencePath } from '@/lib/imports/build-import-evidence-path';
+import { refreshGameMetricSnapshots } from './metric-refresh-repo';
 
 export type GameLogImportSummary = {
   createdAt: string;
@@ -25,6 +26,18 @@ export type SaveGameLogEventInput = {
   resourceAmount?: number | null;
   resourceType?: string | null;
   tileType?: string | null;
+};
+
+export type SaveGameLogTagSummaryInput = {
+  gamePlayerId?: string | null;
+  matchedCardCount: number;
+  normalizedPlayerName: string;
+  playedCardCount: number;
+  playerName: string;
+  tagCode: string;
+  tagCount: number;
+  totalTagCount: number;
+  unresolvedCardCount: number;
 };
 
 export type SaveGameLogScreenshotParseInput = {
@@ -64,6 +77,16 @@ type RawScreenshotImportRow = {
 type RawSavedGameLogEventRow = {
   event_order: number;
   id: string;
+};
+
+type RawSavedGameLogTagSummaryRow = {
+  id: string;
+  tag_code: string;
+};
+
+type RawGameLogImportStatusRow = {
+  game_id: string;
+  games: { status: string } | Array<{ status: string }>;
 };
 
 type NormalizedSaveGameLogScreenshotInput = SaveGameLogScreenshotInput & {
@@ -551,6 +574,96 @@ export async function saveGameLogEvents(input: {
   return ((data ?? []) as RawSavedGameLogEventRow[]).map((row) => ({
     eventOrder: row.event_order,
     id: row.id,
+  }));
+}
+
+async function getFinalizedGameIdForImport(gameLogImportId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('game_log_imports')
+    .select('game_id, games!inner(status)')
+    .eq('id', gameLogImportId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  const row = data as RawGameLogImportStatusRow | null;
+  const gameStatus = Array.isArray(row?.games)
+    ? row.games[0]?.status
+    : row?.games.status;
+
+  return gameStatus === 'finalized' ? row?.game_id ?? null : null;
+}
+
+function buildTagSummaryRow(input: {
+  gameLogImportId: string;
+  summary: SaveGameLogTagSummaryInput;
+}) {
+  return {
+    game_log_import_id: input.gameLogImportId,
+    game_player_id: input.summary.gamePlayerId ?? null,
+    matched_card_count: input.summary.matchedCardCount,
+    normalized_player_name: input.summary.normalizedPlayerName,
+    played_card_count: input.summary.playedCardCount,
+    player_name: input.summary.playerName,
+    tag_code: input.summary.tagCode,
+    tag_count: input.summary.tagCount,
+    tag_evidence_coverage:
+      input.summary.playedCardCount === 0
+        ? 0
+        : input.summary.matchedCardCount / input.summary.playedCardCount,
+    total_tag_count: input.summary.totalTagCount,
+    unresolved_card_count: input.summary.unresolvedCardCount,
+  };
+}
+
+export async function saveGameLogTagSummaries(input: {
+  gameLogImportId: string;
+  summaries: SaveGameLogTagSummaryInput[];
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { error: deleteError } = await supabase
+    .from('game_log_tag_summaries')
+    .delete()
+    .eq('game_log_import_id', input.gameLogImportId);
+
+  if (deleteError) {
+    throw deleteError;
+  }
+
+  let savedRows: RawSavedGameLogTagSummaryRow[] = [];
+
+  if (input.summaries.length > 0) {
+    const { data, error: insertError } = await supabase
+      .from('game_log_tag_summaries')
+      .insert(
+        input.summaries.map((summary) =>
+          buildTagSummaryRow({
+            gameLogImportId: input.gameLogImportId,
+            summary,
+          }),
+        ),
+      )
+      .select('id, tag_code');
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    savedRows = (data ?? []) as RawSavedGameLogTagSummaryRow[];
+  }
+
+  const finalizedGameId = await getFinalizedGameIdForImport(input.gameLogImportId);
+
+  if (finalizedGameId) {
+    await refreshGameMetricSnapshots(finalizedGameId);
+  }
+
+  return savedRows.map((row) => ({
+    id: row.id,
+    tagCode: row.tag_code,
   }));
 }
 

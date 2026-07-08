@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { refreshGameMetricSnapshots } from './metric-refresh-repo';
 import * as repo from './game-import-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
+}));
+
+vi.mock('./metric-refresh-repo', () => ({
+  refreshGameMetricSnapshots: vi.fn(),
 }));
 
 describe('saveGameLogImport', () => {
@@ -776,6 +781,177 @@ describe('saveGameLogEvents', () => {
       { eventOrder: 1, id: 'event-7' },
       { eventOrder: 2, id: 'event-8' },
     ]);
+  });
+});
+
+describe('saveGameLogTagSummaries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('replaces canonical tag summary rows and refreshes metrics for finalized imports', async () => {
+    vi.mocked(refreshGameMetricSnapshots).mockResolvedValue(undefined);
+
+    const deleteEq = vi.fn().mockResolvedValue({ error: null });
+    const deleteFn = vi.fn(() => ({ eq: deleteEq }));
+    const insertSelect = vi.fn().mockResolvedValue({
+      data: [
+        { id: 'tag-row-1', tag_code: 'science' },
+        { id: 'tag-row-2', tag_code: 'space' },
+      ],
+      error: null,
+    });
+    const insert = vi.fn(() => ({ select: insertSelect }));
+    const importMaybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        game_id: 'game-final',
+        games: { status: 'finalized' },
+      },
+      error: null,
+    });
+    const importEq = vi.fn(() => ({ maybeSingle: importMaybeSingle }));
+    const importSelect = vi.fn(() => ({ eq: importEq }));
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_tag_summaries') {
+          return {
+            delete: deleteFn,
+            insert,
+          };
+        }
+
+        if (table === 'game_log_imports') {
+          return {
+            select: importSelect,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const result = await repo.saveGameLogTagSummaries({
+      gameLogImportId: 'import-1',
+      summaries: [
+        {
+          gamePlayerId: 'game-player-1',
+          matchedCardCount: 3,
+          normalizedPlayerName: 'friday mars',
+          playedCardCount: 4,
+          playerName: 'Friday Mars',
+          tagCode: 'science',
+          tagCount: 5,
+          totalTagCount: 8,
+          unresolvedCardCount: 1,
+        },
+        {
+          matchedCardCount: 0,
+          normalizedPlayerName: 'friday mars',
+          playedCardCount: 0,
+          playerName: 'Friday Mars',
+          tagCode: 'space',
+          tagCount: 0,
+          totalTagCount: 8,
+          unresolvedCardCount: 0,
+        },
+      ],
+    });
+
+    expect(deleteEq).toHaveBeenCalledWith('game_log_import_id', 'import-1');
+    expect(insert).toHaveBeenCalledWith([
+      {
+        game_log_import_id: 'import-1',
+        game_player_id: 'game-player-1',
+        matched_card_count: 3,
+        normalized_player_name: 'friday mars',
+        played_card_count: 4,
+        player_name: 'Friday Mars',
+        tag_code: 'science',
+        tag_count: 5,
+        tag_evidence_coverage: 0.75,
+        total_tag_count: 8,
+        unresolved_card_count: 1,
+      },
+      {
+        game_log_import_id: 'import-1',
+        game_player_id: null,
+        matched_card_count: 0,
+        normalized_player_name: 'friday mars',
+        played_card_count: 0,
+        player_name: 'Friday Mars',
+        tag_code: 'space',
+        tag_count: 0,
+        tag_evidence_coverage: 0,
+        total_tag_count: 8,
+        unresolved_card_count: 0,
+      },
+    ]);
+    expect(insertSelect).toHaveBeenCalledWith('id, tag_code');
+    expect(importSelect).toHaveBeenCalledWith('game_id, games!inner(status)');
+    expect(importEq).toHaveBeenCalledWith('id', 'import-1');
+    expect(refreshGameMetricSnapshots).toHaveBeenCalledWith('game-final');
+    expect(result).toEqual([
+      { id: 'tag-row-1', tagCode: 'science' },
+      { id: 'tag-row-2', tagCode: 'space' },
+    ]);
+  });
+
+  it('does not refresh metrics when tag summaries are saved for a draft import', async () => {
+    const deleteEq = vi.fn().mockResolvedValue({ error: null });
+    const deleteFn = vi.fn(() => ({ eq: deleteEq }));
+    const insertSelect = vi.fn().mockResolvedValue({
+      data: [{ id: 'tag-row-3', tag_code: 'plant' }],
+      error: null,
+    });
+    const insert = vi.fn(() => ({ select: insertSelect }));
+    const importMaybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        game_id: 'game-draft',
+        games: [{ status: 'draft' }],
+      },
+      error: null,
+    });
+    const importEq = vi.fn(() => ({ maybeSingle: importMaybeSingle }));
+    const importSelect = vi.fn(() => ({ eq: importEq }));
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_tag_summaries') {
+          return {
+            delete: deleteFn,
+            insert,
+          };
+        }
+
+        if (table === 'game_log_imports') {
+          return {
+            select: importSelect,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    await repo.saveGameLogTagSummaries({
+      gameLogImportId: 'import-draft',
+      summaries: [
+        {
+          matchedCardCount: 2,
+          normalizedPlayerName: 'izzy hodnett',
+          playedCardCount: 2,
+          playerName: 'Izzy Hodnett',
+          tagCode: 'plant',
+          tagCount: 3,
+          totalTagCount: 3,
+          unresolvedCardCount: 0,
+        },
+      ],
+    });
+
+    expect(importEq).toHaveBeenCalledWith('id', 'import-draft');
+    expect(refreshGameMetricSnapshots).not.toHaveBeenCalled();
   });
 });
 
