@@ -97,6 +97,85 @@ function normalizeImportToken(input: string) {
   return normalizePlayerAlias(input).replace(/\s+/g, ' ');
 }
 
+// The community app closes its exported log with a machine-written block:
+//   Final scores:
+//   Player: Izzy, Total: 115, TR: 35, Milestones: 10, Awards: 10, ...
+// Keys are matched after stripping everything but ASCII letters so currency
+// mojibake ("M€", "MÃ¢â€šÂ¬") still resolves to the megacredits column.
+const finalScoreFieldByKey: Record<string, ImportScoreField> = {
+  award: 'awardPoints',
+  awards: 'awardPoints',
+  city: 'citiesPoints',
+  cities: 'citiesPoints',
+  greenery: 'greeneryPoints',
+  m: 'finalMegacredits',
+  mc: 'finalMegacredits',
+  milestone: 'milestonePoints',
+  milestones: 'milestonePoints',
+  total: 'totalPoints',
+  tr: 'trPoints',
+  vp: 'cardPointsTotal',
+};
+
+function parseFinalScoreLine(line: string) {
+  const parts = line.split(',').map((part) => part.split(':'));
+  const [firstKey, ...firstValue] = parts[0] ?? [];
+
+  if (!firstKey || firstKey.trim().toLowerCase() !== 'player') {
+    return null;
+  }
+
+  const playerName = firstValue.join(':').trim();
+  const fields: Partial<Record<ImportScoreField, number>> = {};
+
+  for (const [key, ...valueParts] of parts.slice(1)) {
+    const normalizedKey = (key ?? '').toLowerCase().replace(/[^a-z]/g, '');
+    const field = finalScoreFieldByKey[normalizedKey];
+    const value = Number(valueParts.join(':').trim());
+
+    if (field && isValidScoreValue(value)) {
+      fields[field] = value;
+    }
+  }
+
+  // A real final-scores row names several columns; fewer mapped fields means
+  // this "Player:" line was chat or some other coincidence — ignore it.
+  return playerName && Object.keys(fields).length >= 3
+    ? { fields, playerName }
+    : null;
+}
+
+function collectStructuredLogScores(
+  players: Array<{ id: string; name: string }>,
+  evidence: string,
+): LogGameDraftInput['playerScores'] {
+  const scores: LogGameDraftInput['playerScores'] = {};
+
+  for (const rawLine of evidence.split(/\r?\n/)) {
+    const parsedLine = parseFinalScoreLine(rawLine.trim());
+
+    if (!parsedLine) {
+      continue;
+    }
+
+    const playerId = resolvePlayerIdByName(players, parsedLine.playerName);
+
+    if (playerId) {
+      scores[playerId] = { ...scores[playerId], ...parsedLine.fields };
+    }
+  }
+
+  return scores;
+}
+
+export function extractStructuredLogScores(
+  input: ParseImportPlayerScoresInput,
+): LogGameDraftInput['playerScores'] {
+  return typeof input.evidence === 'string'
+    ? collectStructuredLogScores(input.players, input.evidence)
+    : {};
+}
+
 function escapeRegExp(input: string) {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -332,6 +411,9 @@ function parseTextEvidence(
   players: Array<{ id: string; name: string }>,
   evidence: string,
 ): LogGameDraftInput['playerScores'] {
+  // A machine-written final-scores row beats scraping loose "<n> TR" or
+  // "bought 2 card(s)" mentions, which otherwise register false conflicts.
+  const structuredScores = collectStructuredLogScores(players, evidence);
   const normalizedPlayers = players.map((player) => {
     const token = normalizeImportToken(player.name);
 
@@ -369,7 +451,7 @@ function parseTextEvidence(
     }
   }
 
-  return Object.fromEntries(
+  const scrapedScores = Object.fromEntries(
     Object.entries(scores).flatMap(([playerId, playerObservations]) => {
       const compacted = materializeObservations(playerObservations);
 
@@ -377,6 +459,18 @@ function parseTextEvidence(
         ? [[playerId, compacted] as const]
         : [];
     }),
+  );
+
+  const playerIds = new Set([
+    ...Object.keys(scrapedScores),
+    ...Object.keys(structuredScores),
+  ]);
+
+  return Object.fromEntries(
+    [...playerIds].map((playerId) => [
+      playerId,
+      structuredScores[playerId] ?? scrapedScores[playerId] ?? {},
+    ]),
   );
 }
 

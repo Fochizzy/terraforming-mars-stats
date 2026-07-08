@@ -77,6 +77,46 @@ describe('parseImportPlayerScores', () => {
     });
   });
 
+  it('reads the community app final-scores block and ignores loose in-log mentions', () => {
+    const result = parseImportPlayerScores({
+      players: [
+        { id: 'p1', name: 'James' },
+        { id: 'p2', name: 'Izzy' },
+      ],
+      evidence: [
+        'James gained 7 TR',
+        'Izzy bought 2 card(s)',
+        'Izzy bought 3 card(s)',
+        'Final scores:',
+        'Player: James, Total: 145, TR: 56, Milestones: 5, Awards: 5, Greenery: 5, City: 5, VP: 69, M€: 94, Time: 21.17 mins, Actions: 134',
+        'Player: Izzy, Total: 115, TR: 35, Milestones: 10, Awards: 10, Greenery: 12, City: 17, VP: 31, M€: 72, Time: 14.39 mins, Actions: 85',
+      ].join('\n'),
+    });
+
+    expect(result).toEqual({
+      p1: {
+        awardPoints: 5,
+        cardPointsTotal: 69,
+        citiesPoints: 5,
+        finalMegacredits: 94,
+        greeneryPoints: 5,
+        milestonePoints: 5,
+        totalPoints: 145,
+        trPoints: 56,
+      },
+      p2: {
+        awardPoints: 10,
+        cardPointsTotal: 31,
+        citiesPoints: 17,
+        finalMegacredits: 72,
+        greeneryPoints: 12,
+        milestonePoints: 10,
+        totalPoints: 115,
+        trPoints: 35,
+      },
+    });
+  });
+
   it('keeps total points when card points total appears in the same clause', () => {
     const result = parseImportPlayerScores({
       players,

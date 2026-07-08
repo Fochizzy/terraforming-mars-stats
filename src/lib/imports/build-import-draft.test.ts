@@ -42,6 +42,58 @@ describe('buildImportDraft', () => {
     });
   });
 
+  it('lets the log final-scores block beat conflicting screenshot OCR readings', () => {
+    expect(
+      buildImportDraft({
+        defaultExpansionCodes: ['base'],
+        defaultPromoSetSlugs: [],
+        groupId: '11111111-1111-4111-8111-111111111111',
+        importValues: {
+          endgameScreenshotName: 'endgame.png',
+          exportedGameLog: [
+            'Izzy played Arklight',
+            'Final scores:',
+            'Player: Izzy, Total: 115, TR: 35, Milestones: 10, Awards: 10, Greenery: 12, City: 17, VP: 31, M€: 72, Time: 14.39 mins, Actions: 85',
+          ].join('\n'),
+          generationCount: 13,
+          mapId: 'tharsis',
+          participantNames: ['Izzy'],
+          playedOn: '2026-07-08',
+          playerCount: 1,
+        },
+        scoreCandidates: [
+          {
+            playerName: 'Izzy',
+            trPoints: 85,
+            citiesPoints: 1,
+            greeneryPoints: 2,
+            cardPointsTotal: 3,
+            totalPoints: 15,
+            awardPoints: 0,
+            milestonePoints: 0,
+            finalMegacredits: 72,
+            cardPointsJovian: 2,
+          },
+        ],
+        selectedPlayerIds: ['player-1'],
+      }),
+    ).toMatchObject({
+      playerScores: {
+        'player-1': {
+          awardPoints: 10,
+          cardPointsJovian: 2,
+          cardPointsTotal: 31,
+          citiesPoints: 17,
+          finalMegacredits: 72,
+          greeneryPoints: 12,
+          milestonePoints: 10,
+          totalPoints: 115,
+          trPoints: 35,
+        },
+      },
+    });
+  });
+
   it('prefills optional card-point breakdowns when the imported log exposes them for matched participants', () => {
     expect(
       buildImportDraft({

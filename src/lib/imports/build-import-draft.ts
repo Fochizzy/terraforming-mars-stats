@@ -15,7 +15,10 @@ import type {
   StyleOption,
 } from '@/lib/db/reference-repo';
 import { normalizePlayerAlias } from './normalize-player-alias';
-import { parseImportPlayerScores } from './parse-import-player-scores';
+import {
+  extractStructuredLogScores,
+  parseImportPlayerScores,
+} from './parse-import-player-scores';
 import { parseImportPlayerSelections } from './parse-import-player-selections';
 import { parseImportPlayerStyles } from './parse-import-player-styles';
 import type { ImportPlayerCardScoringSummary } from './card-scoring/card-scoring-types';
@@ -49,10 +52,17 @@ function hasFiniteScoreValue(value: unknown): value is number {
 }
 
 function mergeCrossCheckedScoreValue(input: {
+  authoritativeValue?: number;
   fallbackValue?: number;
   logValue?: number;
   screenshotValue?: number;
 }) {
+  // The exported log's machine-written final-scores block is written by the
+  // game engine itself, so it wins outright over screenshot OCR readings.
+  if (hasFiniteScoreValue(input.authoritativeValue)) {
+    return input.authoritativeValue;
+  }
+
   if (
     hasFiniteScoreValue(input.logValue) &&
     hasFiniteScoreValue(input.screenshotValue)
@@ -139,6 +149,13 @@ export function buildImportDraft(input: {
   const logScoresByPlayerId =
     importedPlayers.length > 0
       ? parseImportPlayerScores({
+          evidence: input.importValues.exportedGameLog,
+          players: importedPlayers,
+        })
+      : {};
+  const structuredLogScoresByPlayerId =
+    importedPlayers.length > 0
+      ? extractStructuredLogScores({
           evidence: input.importValues.exportedGameLog,
           players: importedPlayers,
         })
@@ -470,6 +487,7 @@ export function buildImportDraft(input: {
       const scoreCandidate = scoreCandidatesByPlayerId.get(playerId);
       const cardScoringSummary = cardScoringByPlayerId.get(playerId);
       const logScore = logScoresByPlayerId[playerId] ?? {};
+      const structuredLogScore = structuredLogScoresByPlayerId[playerId] ?? {};
       const cardPointBreakdown =
         cardBreakdownsByPlayerId.get(playerId) ??
         (importedName
@@ -530,6 +548,7 @@ export function buildImportDraft(input: {
         !hasPartialCardCategoryBreakdown;
       const mergedScore = {
         awardPoints: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.awardPoints,
           fallbackValue: expectedAwardPointsByPlayerId.get(playerId),
           logValue: logScore.awardPoints,
           screenshotValue: scoreCandidate?.awardPoints,
@@ -538,6 +557,7 @@ export function buildImportDraft(input: {
         cardPointsJovian,
         cardPointsMicrobes,
         cardPointsTotal: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.cardPointsTotal,
           fallbackValue:
             completeCalculatedCardPointsTotal ??
             (allowBoardOnlyCardPointsTotalFallback
@@ -547,27 +567,33 @@ export function buildImportDraft(input: {
           screenshotValue: scoreCandidate?.cardPointsTotal,
         }),
         citiesPoints: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.citiesPoints,
           logValue: logScore.citiesPoints,
           screenshotValue: scoreCandidate?.citiesPoints,
         }),
         finalMegacredits: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.finalMegacredits,
           logValue: logScore.finalMegacredits,
           screenshotValue: scoreCandidate?.finalMegacredits,
         }),
         greeneryPoints: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.greeneryPoints,
           logValue: logScore.greeneryPoints,
           screenshotValue: scoreCandidate?.greeneryPoints,
         }),
         milestonePoints: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.milestonePoints,
           fallbackValue: expectedMilestonePointsByPlayerId.get(playerId),
           logValue: logScore.milestonePoints,
           screenshotValue: scoreCandidate?.milestonePoints,
         }),
         totalPoints: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.totalPoints,
           logValue: logScore.totalPoints,
           screenshotValue: scoreCandidate?.totalPoints,
         }),
         trPoints: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.trPoints,
           logValue: logScore.trPoints,
           screenshotValue: scoreCandidate?.trPoints,
         }),
