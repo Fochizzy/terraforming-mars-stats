@@ -125,7 +125,7 @@ describe('GroupPage', () => {
   });
 
   it('shows group settings access for any group member role', async () => {
-    render(await GroupPage());
+    render(await GroupPage({}));
 
     expect(screen.getByRole('heading', { name: 'Group' })).toBeInTheDocument();
     expect(screen.getByText('Group Switcher')).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('GroupPage', () => {
   });
 
   it('compares play in the active group against overall by default', async () => {
-    render(await GroupPage());
+    render(await GroupPage({}));
 
     expect(screen.getByLabelText('Group')).toHaveValue('group-1');
     expect(mockState.getProfileAnalytics).toHaveBeenCalledWith('user-1');
@@ -181,7 +181,7 @@ describe('GroupPage', () => {
       new Error('analytics offline'),
     );
 
-    render(await GroupPage());
+    render(await GroupPage({}));
 
     expect(screen.getByTestId('group-dashboard')).toBeInTheDocument();
     expect(

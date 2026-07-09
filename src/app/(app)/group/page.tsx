@@ -14,7 +14,7 @@ type GroupPageProps = {
   searchParams?: Promise<{ compareGroupId?: string | string[] }>;
 };
 
-export default async function GroupPage({ searchParams }: GroupPageProps = {}) {
+export default async function GroupPage({ searchParams }: GroupPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const context = await requireGroupContextOrRedirect();
   const requestedCompareGroupId = Array.isArray(
