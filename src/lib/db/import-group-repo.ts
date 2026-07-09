@@ -106,7 +106,7 @@ export function findExactGroupRosterMatch(
   return matchingGroupIds[0] ?? null;
 }
 
-function buildImportGroupName(participantNames: string[]) {
+export function buildImportGroupName(participantNames: string[]) {
   const sortedNames = [...participantNames].sort((left, right) =>
     left.localeCompare(right),
   );
@@ -116,6 +116,213 @@ function buildImportGroupName(participantNames: string[]) {
   }
 
   return `${sortedNames[0]} / ${sortedNames[1]} / +${sortedNames.length - 2} more`;
+}
+
+export type ImportGroupReconciliationPlan = {
+  playerIdsToRemove: string[];
+  updatedGroupName: string | null;
+};
+
+const NOOP_RECONCILIATION_PLAN: ImportGroupReconciliationPlan = {
+  playerIdsToRemove: [],
+  updatedGroupName: null,
+};
+
+export function planImportGroupReconciliation(input: {
+  confirmedPlayerIds: string[];
+  groupName: string;
+  originalRosterPlayerIds: string[];
+  rosterPlayers: Array<
+    Pick<GlobalPlayerRow, 'display_name' | 'id' | 'linked_user_id'>
+  >;
+}): ImportGroupReconciliationPlan {
+  if (
+    input.confirmedPlayerIds.length === 0 ||
+    input.originalRosterPlayerIds.length === 0
+  ) {
+    return NOOP_RECONCILIATION_PLAN;
+  }
+
+  const nameById = new Map(
+    input.rosterPlayers.map((player) => [player.id, player.display_name]),
+  );
+  const originalNames: string[] = [];
+
+  for (const playerId of input.originalRosterPlayerIds) {
+    const name = nameById.get(playerId);
+
+    if (name === undefined) {
+      return NOOP_RECONCILIATION_PLAN;
+    }
+
+    originalNames.push(name);
+  }
+
+  // Only reconcile while the group still bears the name auto-generated from
+  // the pre-review import roster; a manually created or renamed group keeps
+  // its roster and name untouched.
+  if (input.groupName !== buildImportGroupName(originalNames)) {
+    return NOOP_RECONCILIATION_PLAN;
+  }
+
+  const confirmedNames: string[] = [];
+
+  for (const playerId of input.confirmedPlayerIds) {
+    const name = nameById.get(playerId);
+
+    if (name === undefined) {
+      return NOOP_RECONCILIATION_PLAN;
+    }
+
+    confirmedNames.push(name);
+  }
+
+  const confirmedPlayerIdSet = new Set(input.confirmedPlayerIds);
+  const playerIdsToRemove = input.rosterPlayers
+    .filter(
+      (player) =>
+        !confirmedPlayerIdSet.has(player.id) && !player.linked_user_id,
+    )
+    .map((player) => player.id);
+  const updatedGroupName = buildImportGroupName(confirmedNames);
+
+  return {
+    playerIdsToRemove,
+    updatedGroupName:
+      updatedGroupName === input.groupName ? null : updatedGroupName,
+  };
+}
+
+function extractSnapshotSelectedPlayerIds(snapshot: unknown) {
+  if (
+    snapshot &&
+    typeof snapshot === 'object' &&
+    'selectedPlayerIds' in snapshot &&
+    Array.isArray(snapshot.selectedPlayerIds)
+  ) {
+    return snapshot.selectedPlayerIds.filter(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    );
+  }
+
+  return [];
+}
+
+export async function reconcileImportGroupAfterFinalize(input: {
+  gameId: string;
+  groupId: string;
+}): Promise<ImportGroupReconciliationPlan> {
+  const admin = createSupabaseAdminClient();
+  const { data: importRows, error: importRowsError } = await admin
+    .from('game_log_imports')
+    .select('id')
+    .eq('game_id', input.gameId)
+    .limit(1);
+
+  if (importRowsError) {
+    throw importRowsError;
+  }
+
+  if ((importRows ?? []).length === 0) {
+    return NOOP_RECONCILIATION_PLAN;
+  }
+
+  const { data: groupGames, error: groupGamesError } = await admin
+    .from('games')
+    .select('id, status')
+    .eq('group_id', input.groupId);
+
+  if (groupGamesError) {
+    throw groupGamesError;
+  }
+
+  const games = (groupGames ?? []) as Array<{ id: string; status: string }>;
+  const finalizedGame = games.find((game) => game.id === input.gameId);
+
+  // Only a group whose entire history is this one finalized import can be
+  // reconciled safely; groups with other games keep their roster untouched.
+  if (
+    !finalizedGame ||
+    finalizedGame.status !== 'finalized' ||
+    games.length !== 1
+  ) {
+    return NOOP_RECONCILIATION_PLAN;
+  }
+
+  const [groupResult, rosterResult, gamePlayersResult, firstRevisionResult] =
+    await Promise.all([
+      admin.from('groups').select('id, name').eq('id', input.groupId).single(),
+      admin
+        .from('players')
+        .select('id, display_name, linked_user_id')
+        .eq('group_id', input.groupId),
+      admin
+        .from('game_players')
+        .select('player_id')
+        .eq('game_id', input.gameId),
+      admin
+        .from('game_revisions')
+        .select('snapshot')
+        .eq('game_id', input.gameId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+  if (groupResult.error) {
+    throw groupResult.error;
+  }
+
+  if (rosterResult.error) {
+    throw rosterResult.error;
+  }
+
+  if (gamePlayersResult.error) {
+    throw gamePlayersResult.error;
+  }
+
+  if (firstRevisionResult.error) {
+    throw firstRevisionResult.error;
+  }
+
+  const plan = planImportGroupReconciliation({
+    confirmedPlayerIds: (
+      (gamePlayersResult.data ?? []) as Array<{ player_id: string }>
+    ).map((row) => row.player_id),
+    groupName: (groupResult.data as { id: string; name: string }).name,
+    originalRosterPlayerIds: extractSnapshotSelectedPlayerIds(
+      firstRevisionResult.data?.snapshot,
+    ),
+    rosterPlayers: (rosterResult.data ?? []) as Array<
+      Pick<GlobalPlayerRow, 'display_name' | 'id' | 'linked_user_id'>
+    >,
+  });
+
+  if (plan.playerIdsToRemove.length > 0) {
+    const { error: removePlayersError } = await admin
+      .from('players')
+      .delete()
+      .in('id', plan.playerIdsToRemove)
+      .eq('group_id', input.groupId);
+
+    if (removePlayersError) {
+      throw removePlayersError;
+    }
+  }
+
+  if (plan.updatedGroupName) {
+    const { error: renameGroupError } = await admin
+      .from('groups')
+      .update({ name: plan.updatedGroupName })
+      .eq('id', input.groupId);
+
+    if (renameGroupError) {
+      throw renameGroupError;
+    }
+  }
+
+  return plan;
 }
 
 function selectImportPlayerIds(

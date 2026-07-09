@@ -15,6 +15,7 @@ import {
   saveDraftGame,
 } from '@/lib/db/game-draft-repo';
 import { getLatestGameLogImportSummary } from '@/lib/db/game-import-repo';
+import { reconcileImportGroupAfterFinalize } from '@/lib/db/import-group-repo';
 import { listImportResolutionPlayers } from '@/lib/db/import-player-resolution-repo';
 import { resolveLogGamePlayerReferences } from '@/lib/db/log-game-player-resolution';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
@@ -28,6 +29,7 @@ import {
   listPreludes,
   listStyles,
 } from '@/lib/db/reference-repo';
+import { serializeUnknownError } from '@/lib/errors/describe-unknown-error';
 import {
   logGameDraftSchema,
   type LogGameDraftInput,
@@ -199,19 +201,39 @@ export default async function LogGameReviewPage({
         userId: activeContext.userId,
       });
 
+      let reconciledGroupName: string | null = null;
+
+      try {
+        const reconciliation = await reconcileImportGroupAfterFinalize({
+          gameId: finalized.gameId,
+          groupId: activeContext.groupId,
+        });
+        reconciledGroupName = reconciliation.updatedGroupName;
+      } catch (reconcileError) {
+        console.warn(
+          'Import group reconciliation failed',
+          serializeUnknownError(reconcileError),
+        );
+      }
+
       revalidatePath('/group');
       revalidatePath('/group/players');
+      revalidatePath('/group/settings');
       revalidatePath('/insights');
       revalidatePath('/log-game/review');
       revalidatePath('/profile');
 
+      const finalizeMessage =
+        savedGame?.status === 'finalized'
+          ? `Finalized game ${finalized.gameId.slice(0, 8)} updated.`
+          : `Game ${finalized.gameId.slice(0, 8)} finalized.`;
+
       return {
         status: 'success' as const,
         gameId: finalized.gameId,
-        message:
-          savedGame?.status === 'finalized'
-            ? `Finalized game ${finalized.gameId.slice(0, 8)} updated.`
-            : `Game ${finalized.gameId.slice(0, 8)} finalized.`,
+        message: reconciledGroupName
+          ? `${finalizeMessage} Group renamed to ${reconciledGroupName}.`
+          : finalizeMessage,
       };
     } catch (error) {
       return {
