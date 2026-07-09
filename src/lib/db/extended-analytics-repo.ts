@@ -94,6 +94,8 @@ export type AwardOutcomeRow = {
 };
 
 export type AwardFunderWinnerRow = {
+  awardId: string;
+  awardName: string;
   firstPlaceAwards: number;
   funderPlayerId: string;
   funderPlayerName: string;
@@ -253,6 +255,8 @@ type RawAwardOutcomeRow = {
 };
 
 type RawAwardFunderWinnerRow = {
+  award_id: string;
+  award_name: string;
   first_place_awards: number;
   funder_player_id: string;
   funder_player_name: string;
@@ -450,6 +454,8 @@ function mapAwardFunderWinnerRow(
   row: RawAwardFunderWinnerRow,
 ): AwardFunderWinnerRow {
   return {
+    awardId: row.award_id,
+    awardName: row.award_name,
     firstPlaceAwards: row.first_place_awards,
     funderPlayerId: row.funder_player_id,
     funderPlayerName: row.funder_player_name,
@@ -675,7 +681,8 @@ export async function listAwardFunderWinnerMatrix(groupId: string) {
   return rows.sort(
     (left, right) =>
       left.funderPlayerName.localeCompare(right.funderPlayerName) ||
-      left.winnerPlayerName.localeCompare(right.winnerPlayerName),
+      left.winnerPlayerName.localeCompare(right.winnerPlayerName) ||
+      left.awardName.localeCompare(right.awardName),
   );
 }
 

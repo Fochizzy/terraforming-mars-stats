@@ -280,7 +280,12 @@ export async function saveDraftGame(payload: {
     status: 'draft',
   });
 
-  await saveGameRevision(gameId, payload.userId, parsed, 'Draft autosave');
+  await saveGameRevision(
+    gameId,
+    payload.userId,
+    { ...parsed, gameId },
+    'Draft autosave',
+  );
 
   return { gameId };
 }

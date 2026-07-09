@@ -18,8 +18,10 @@ import {
 import { buildGameLengthBucketData } from './game-length-section';
 import { buildMapPerformanceData } from './map-performance-section';
 import {
+  AwardEconomicsSection,
   buildAwardMatrixModel,
   buildMilestoneChartData,
+  findAwardLeaders,
 } from './milestone-award-section';
 import { buildPlacementShareData } from './placement-distribution-chart';
 import { buildRadarData } from './score-source-radar';
@@ -256,6 +258,8 @@ describe('buildAwardMatrixModel', () => {
   it('accumulates funder→winner counts and tracks the max cell', () => {
     const model = buildAwardMatrixModel([
       {
+        awardId: 'a1',
+        awardName: 'Landlord',
         firstPlaceAwards: 2,
         funderPlayerId: 'p1',
         funderPlayerName: 'Ada',
@@ -264,6 +268,8 @@ describe('buildAwardMatrixModel', () => {
         winnerPlayerName: 'Brin',
       },
       {
+        awardId: 'a2',
+        awardName: 'Miner',
         firstPlaceAwards: 1,
         funderPlayerId: 'p1',
         funderPlayerName: 'Ada',
@@ -277,6 +283,112 @@ describe('buildAwardMatrixModel', () => {
     expect(model.winnerNames).toEqual(['Ada', 'Brin']);
     expect(model.counts.get('Ada→Brin')).toBe(2);
     expect(model.maxCount).toBe(2);
+  });
+});
+
+describe('findAwardLeaders', () => {
+  it('picks the top funder and top winner per award', () => {
+    const leaders = findAwardLeaders([
+      {
+        awardId: 'a1',
+        awardName: 'Landlord',
+        firstPlaceAwards: 2,
+        funderPlayerId: 'p1',
+        funderPlayerName: 'Ada',
+        groupId: 'group-1',
+        winnerPlayerId: 'p2',
+        winnerPlayerName: 'Brin',
+      },
+      {
+        awardId: 'a1',
+        awardName: 'Landlord',
+        firstPlaceAwards: 1,
+        funderPlayerId: 'p2',
+        funderPlayerName: 'Brin',
+        groupId: 'group-1',
+        winnerPlayerId: 'p2',
+        winnerPlayerName: 'Brin',
+      },
+    ]);
+
+    expect(leaders.get('a1')).toEqual({
+      topFunderCount: 2,
+      topFunderName: 'Ada',
+      topWinnerCount: 3,
+      topWinnerName: 'Brin',
+    });
+  });
+
+  it('breaks ties alphabetically', () => {
+    const leaders = findAwardLeaders([
+      {
+        awardId: 'a1',
+        awardName: 'Landlord',
+        firstPlaceAwards: 1,
+        funderPlayerId: 'p2',
+        funderPlayerName: 'Brin',
+        groupId: 'group-1',
+        winnerPlayerId: 'p1',
+        winnerPlayerName: 'Ada',
+      },
+      {
+        awardId: 'a1',
+        awardName: 'Landlord',
+        firstPlaceAwards: 1,
+        funderPlayerId: 'p1',
+        funderPlayerName: 'Ada',
+        groupId: 'group-1',
+        winnerPlayerId: 'p2',
+        winnerPlayerName: 'Brin',
+      },
+    ]);
+
+    expect(leaders.get('a1')).toEqual({
+      topFunderCount: 1,
+      topFunderName: 'Ada',
+      topWinnerCount: 1,
+      topWinnerName: 'Ada',
+    });
+  });
+});
+
+describe('AwardEconomicsSection', () => {
+  it('shows who funded and who won each award on its card', () => {
+    render(
+      <AwardEconomicsSection
+        focusPlayerId={null}
+        focusPlayerName={null}
+        matrixRows={[
+          {
+            awardId: 'a1',
+            awardName: 'Excentric',
+            firstPlaceAwards: 1,
+            funderPlayerId: 'p1',
+            funderPlayerName: 'Izzy Hodnett',
+            groupId: 'group-1',
+            winnerPlayerId: 'p2',
+            winnerPlayerName: 'James Hodnett',
+          },
+        ]}
+        outcomeRows={[
+          {
+            awardId: 'a1',
+            awardName: 'Excentric',
+            fundedCount: 1,
+            funderWonCount: 0,
+            funderWonRate: 0,
+            groupId: 'group-1',
+            snipedCount: 1,
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        /Most funded by Izzy Hodnett \(1×\) \| most won by James Hodnett \(1×\)/,
+      ),
+    ).toBeInTheDocument();
   });
 });
 

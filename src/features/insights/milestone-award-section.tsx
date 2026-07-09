@@ -209,6 +209,70 @@ export function buildAwardMatrixModel(
   return { counts, funderNames, maxCount, winnerNames };
 }
 
+export type AwardLeaders = {
+  topFunderCount: number;
+  topFunderName: string;
+  topWinnerCount: number;
+  topWinnerName: string;
+};
+
+export function findAwardLeaders(
+  rows: AwardFunderWinnerRow[],
+): Map<string, AwardLeaders> {
+  const funderTotals = new Map<string, Map<string, number>>();
+  const winnerTotals = new Map<string, Map<string, number>>();
+
+  for (const row of rows) {
+    const funders = funderTotals.get(row.awardId) ?? new Map<string, number>();
+    const winners = winnerTotals.get(row.awardId) ?? new Map<string, number>();
+
+    funders.set(
+      row.funderPlayerName,
+      (funders.get(row.funderPlayerName) ?? 0) + row.firstPlaceAwards,
+    );
+    winners.set(
+      row.winnerPlayerName,
+      (winners.get(row.winnerPlayerName) ?? 0) + row.firstPlaceAwards,
+    );
+    funderTotals.set(row.awardId, funders);
+    winnerTotals.set(row.awardId, winners);
+  }
+
+  const leaders = new Map<string, AwardLeaders>();
+
+  for (const [awardId, funders] of funderTotals) {
+    const topFunder = findTopEntry(funders);
+    const topWinner = findTopEntry(winnerTotals.get(awardId) ?? new Map());
+
+    if (topFunder && topWinner) {
+      leaders.set(awardId, {
+        topFunderCount: topFunder.count,
+        topFunderName: topFunder.name,
+        topWinnerCount: topWinner.count,
+        topWinnerName: topWinner.name,
+      });
+    }
+  }
+
+  return leaders;
+}
+
+function findTopEntry(totals: Map<string, number>) {
+  let top: { count: number; name: string } | null = null;
+
+  for (const [name, count] of totals) {
+    if (
+      !top ||
+      count > top.count ||
+      (count === top.count && name.localeCompare(top.name) < 0)
+    ) {
+      top = { count, name };
+    }
+  }
+
+  return top;
+}
+
 export function AwardEconomicsSection(props: {
   focusPlayerId: string | null;
   focusPlayerName: string | null;
@@ -219,6 +283,7 @@ export function AwardEconomicsSection(props: {
     ? props.matrixRows.filter((row) => row.funderPlayerId === props.focusPlayerId)
     : props.matrixRows;
   const matrix = buildAwardMatrixModel(matrixRows);
+  const awardLeaders = findAwardLeaders(props.matrixRows);
 
   return (
     <ChartFrame
@@ -235,20 +300,33 @@ export function AwardEconomicsSection(props: {
       ) : (
         <div className="flex flex-col gap-4">
           <div className="grid gap-3 md:grid-cols-2">
-            {props.outcomeRows.slice(0, 8).map((row) => (
-              <article className="tm-stat-card" key={row.awardId}>
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="font-semibold text-stone-100">{row.awardName}</h3>
-                  <p className="tm-accent-copy text-sm">
-                    {formatPercent(row.funderWonRate)} funder ROI
+            {props.outcomeRows.map((row) => {
+              const leaders = awardLeaders.get(row.awardId);
+
+              return (
+                <article className="tm-stat-card" key={row.awardId}>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-semibold text-stone-100">
+                      {row.awardName}
+                    </h3>
+                    <p className="tm-accent-copy text-sm">
+                      {formatPercent(row.funderWonRate)} funder ROI
+                    </p>
+                  </div>
+                  <p className="tm-muted-copy mt-2 text-sm">
+                    Funded {row.fundedCount}× | funder took 1st{' '}
+                    {row.funderWonCount}× | sniped {row.snipedCount}×
                   </p>
-                </div>
-                <p className="tm-muted-copy mt-2 text-sm">
-                  Funded {row.fundedCount}× | funder took 1st{' '}
-                  {row.funderWonCount}× | sniped {row.snipedCount}×
-                </p>
-              </article>
-            ))}
+                  {leaders ? (
+                    <p className="tm-muted-copy mt-1 text-sm">
+                      Most funded by {leaders.topFunderName} (
+                      {leaders.topFunderCount}×) | most won by{' '}
+                      {leaders.topWinnerName} ({leaders.topWinnerCount}×)
+                    </p>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
           {matrix.funderNames.length > 0 ? (
             <div className="overflow-x-auto">

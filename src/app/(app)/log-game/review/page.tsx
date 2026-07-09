@@ -138,7 +138,7 @@ export default async function LogGameReviewPage({
       : null;
   const initialValues = mergeDraftIntoInitialValues(
     defaultInitialValues,
-    savedGame?.form,
+    savedGame ? { ...savedGame.form, gameId: draftGameId } : null,
   );
 
   async function handleSaveDraft(values: LogGameDraftInput) {

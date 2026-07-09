@@ -466,9 +466,15 @@ function collectColumnDetailClaims(input: {
     const milestoneMatch = MILESTONE_LINE_PATTERN.exec(line.trim());
 
     if (milestoneMatch?.[1]) {
-      const lineParts = extractDetailLineParts(
-        milestoneMatch[1].replace(/\bmilestones?\b/gi, ' ').trim(),
-      );
+      const strippedMilestoneText = milestoneMatch[1]
+        .replace(/\bmilestones?\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const lineParts =
+        extractDetailLineParts(strippedMilestoneText) ??
+        (/[a-z]/i.test(strippedMilestoneText)
+          ? { nameText: strippedMilestoneText, points: null }
+          : null);
 
       if (!lineParts) {
         return;
@@ -506,9 +512,21 @@ function collectColumnDetailClaims(input: {
 
     if (awardMatch?.[1] && awardMatch[2]) {
       const placement: 1 | 2 = /^(1st|first)$/i.test(awardMatch[1]) ? 1 : 2;
-      const lineParts = extractDetailLineParts(
-        awardMatch[2].replace(/\bawards?\b.*$/i, ' ').trim(),
-      );
+      // Short award names ("Miner") keep the word "award" and the points on
+      // the same OCR line, so only the funded-by fragment and the word
+      // itself can be stripped — a trailing points token must survive. When
+      // no points token is present the claim is still kept: resolveClaimPoints
+      // falls back to the standard placement points.
+      const strippedAwardText = awardMatch[2]
+        .replace(/\(?\s*funded\s+by\b[^)]*\)?/gi, ' ')
+        .replace(/\bawards?\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const lineParts =
+        extractDetailLineParts(strippedAwardText) ??
+        (/[a-z]/i.test(strippedAwardText)
+          ? { nameText: strippedAwardText, points: null }
+          : null);
 
       if (!lineParts) {
         return;

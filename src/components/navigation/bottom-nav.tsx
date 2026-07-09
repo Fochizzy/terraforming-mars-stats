@@ -44,6 +44,11 @@ export function BottomNav({
 }: {
   items?: BottomNavItem[];
 }) {
+  const cardsItem = items.find((item) => item.href === '/cards');
+  const stripItems = cardsItem
+    ? items.filter((item) => item !== cardsItem)
+    : items;
+
   return (
     <nav aria-label="Primary" className="tm-bottom-nav">
       <Link
@@ -54,7 +59,7 @@ export function BottomNav({
         <HomeIcon />
       </Link>
       <div className="tm-bottom-nav__links">
-        {items.map((item) => (
+        {stripItems.map((item) => (
           <Link
             className="tm-bottom-nav__link"
             href={item.href}
@@ -64,6 +69,14 @@ export function BottomNav({
           </Link>
         ))}
       </div>
+      {cardsItem ? (
+        <Link
+          className="tm-bottom-nav__link tm-bottom-nav__link--edge"
+          href={cardsItem.href}
+        >
+          {cardsItem.label}
+        </Link>
+      ) : null}
       <span aria-hidden className="tm-bottom-nav__icon">
         <ChartIcon />
       </span>

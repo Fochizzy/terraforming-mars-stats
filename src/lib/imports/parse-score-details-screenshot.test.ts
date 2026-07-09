@@ -148,6 +148,74 @@ describe('parseScoreDetailsScreenshot', () => {
     });
   });
 
+  it('keeps award claims when the word "award" lands on the same OCR line as the points', () => {
+    const parsed = parseScoreDetailsScreenshot({
+      awardReferences: [
+        { id: 'award-landlord', name: 'Landlord' },
+        { id: 'award-miner', name: 'Miner' },
+      ],
+      cardReferences: [],
+      events: [],
+      expectedAwardPointsByPlayerName: { Izzy: 10 },
+      expectedMilestonePointsByPlayerName: { Izzy: 10 },
+      expectedPlayerNames: ['Izzy'],
+      milestoneReferences: [
+        { id: 'milestone-mayor', name: 'Mayor' },
+        { id: 'milestone-gardener', name: 'Gardener' },
+      ],
+      ocrColumns: [
+        {
+          // Short award names ("Miner") keep the word "award" on the same
+          // rendered line, while longer ones wrap it onto the next line.
+          textLines: [
+            'Izzy',
+            'Efficiency: +0.02',
+            'Claimed Mayor milestone 5',
+            'Claimed Gardener 5',
+            'milestone',
+            '1st place for Landlord 5',
+            'award (funded by Izzy)',
+            '1st place for Miner award 5',
+            '(funded by Izzy)',
+          ],
+        },
+      ],
+    });
+
+    expect(parsed.awardPlacements).toEqual([
+      {
+        awardName: 'Landlord',
+        fundedByPlayerName: 'Izzy',
+        matchedAwardId: 'award-landlord',
+        placement: 1,
+        playerName: 'Izzy',
+        points: 5,
+      },
+      {
+        awardName: 'Miner',
+        fundedByPlayerName: 'Izzy',
+        matchedAwardId: 'award-miner',
+        placement: 1,
+        playerName: 'Izzy',
+        points: 5,
+      },
+    ]);
+    expect(parsed.milestoneClaims).toEqual([
+      {
+        matchedMilestoneId: 'milestone-mayor',
+        milestoneName: 'Mayor',
+        playerName: 'Izzy',
+        points: 5,
+      },
+      {
+        matchedMilestoneId: 'milestone-gardener',
+        milestoneName: 'Gardener',
+        playerName: 'Izzy',
+        points: 5,
+      },
+    ]);
+  });
+
   it('extracts milestones and award placements from noisy OCR lines and reconciles points against the table totals', () => {
     const parsed = parseScoreDetailsScreenshot({
       awardReferences: [

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LogGameReviewPage from './page';
 
 const mockState = vi.hoisted(() => ({
+  capturedWizardProps: [] as Array<Record<string, unknown>>,
   getGroupSettings: vi.fn(),
   getLatestCatalogSnapshotId: vi.fn(),
   getLatestGameLogImportSummary: vi.fn(),
@@ -45,7 +46,10 @@ vi.mock('@/features/groups/group-switcher', () => ({
 }));
 
 vi.mock('@/features/games/log-game/log-game-wizard', () => ({
-  LogGameWizard: () => <div data-testid="log-game-wizard" />,
+  LogGameWizard: (props: Record<string, unknown>) => {
+    mockState.capturedWizardProps.push(props);
+    return <div data-testid="log-game-wizard" />;
+  },
 }));
 
 vi.mock('@/features/imports/import-evidence-summary', () => ({
@@ -99,6 +103,7 @@ vi.mock('@/lib/db/reference-repo', () => ({
 describe('LogGameReviewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.capturedWizardProps.length = 0;
 
     mockState.requireGroupContextOrRedirect.mockResolvedValue({
       groupId: 'group-1',
@@ -199,5 +204,40 @@ describe('LogGameReviewPage', () => {
 
     expect(screen.getByTestId('log-game-wizard')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /saved games/i })).not.toBeInTheDocument();
+  });
+
+  it('seeds the wizard with the requested game id even when the saved snapshot lacks one', async () => {
+    mockState.getSavedGameForm.mockResolvedValue({
+      form: {
+        awardClaims: {},
+        expansionCodes: ['base'],
+        gameId: undefined,
+        generationCount: 11,
+        groupId: 'group-1',
+        mapId: 'tharsis',
+        milestoneClaims: {},
+        notes: '',
+        playedOn: '2026-07-07',
+        playerCount: 2,
+        playerScores: {},
+        playerSelections: {},
+        playerStyles: {},
+        promoSetSlugs: [],
+        selectedPlayerIds: ['player-1'],
+      },
+      status: 'draft',
+    });
+
+    render(
+      await LogGameReviewPage({
+        searchParams: Promise.resolve({ gameId: 'game-draft' }),
+      }),
+    );
+
+    const wizardProps = mockState.capturedWizardProps.at(-1) as {
+      initialValues: { gameId?: string };
+    };
+
+    expect(wizardProps.initialValues.gameId).toBe('game-draft');
   });
 });

@@ -388,6 +388,10 @@ a {
     border-right: none;
   }
 
+  .tm-bottom-nav__link--edge {
+    border-right: none;
+  }
+
   .tm-bottom-nav__link:hover {
     color: var(--tm-dust-300);
   }
