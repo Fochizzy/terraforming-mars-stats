@@ -23,6 +23,23 @@ function getExtendedAnalyticsViewsMigration() {
   return readFileSync(path.join(migrationsDirectory, migrationFileName), 'utf8');
 }
 
+function getMigrationContaining(fragment: string) {
+  const migrationsDirectory = path.resolve(process.cwd(), 'supabase', 'migrations');
+  const migrationFileName = readdirSync(migrationsDirectory)
+    .filter((entry) => entry.endsWith('.sql'))
+    .sort()
+    .reverse()
+    .find((entry) =>
+      readFileSync(path.join(migrationsDirectory, entry), 'utf8').includes(fragment),
+    );
+
+  if (!migrationFileName) {
+    throw new Error(`Expected a migration containing ${fragment}.`);
+  }
+
+  return readFileSync(path.join(migrationsDirectory, migrationFileName), 'utf8');
+}
+
 describe('extended analytics views migration', () => {
   const migration = getExtendedAnalyticsViewsMigration();
 
@@ -84,5 +101,36 @@ describe('extended analytics views migration', () => {
     expect(migration).toContain(
       'grant select on all tables in schema analytics to authenticated;',
     );
+  });
+});
+
+describe('tag summary alias resolution migration', () => {
+  const migration = getMigrationContaining('tag_summary_player_links');
+
+  it('resolves tag outcomes through confirmed game-log aliases before display names', () => {
+    expect(migration).toContain("pia.source_type = 'game_log'");
+    expect(migration).toContain(
+      'pia.normalized_alias = ts.normalized_player_name',
+    );
+    expect(migration).toContain(
+      'p.normalized_display_name = ts.normalized_player_name',
+    );
+    expect(migration).toContain('order by candidates.preference');
+  });
+
+  it('exposes the selected corporation on tag outcome rows', () => {
+    expect(migration).toContain('gp.corporation_id');
+    expect(migration).toContain(
+      "coalesce(c.name, 'Unknown Corporation') as corporation_name",
+    );
+    expect(migration).toContain(
+      'left join public.corporations c on c.id = gp.corporation_id',
+    );
+  });
+
+  it('uses the same resolved tag-summary links in selection stats', () => {
+    expect(migration).toContain('tag_summary_player_links as');
+    expect(migration).toContain('tsl.game_id = e.game_id');
+    expect(migration).toContain('tsl.player_id = e.player_id');
   });
 });

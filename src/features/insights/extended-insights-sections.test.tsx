@@ -27,8 +27,9 @@ import { buildPlacementShareData } from './placement-distribution-chart';
 import { buildRadarData } from './score-source-radar';
 import { buildTableSizeData } from './table-size-chart';
 import {
-  buildTagFingerprintData,
-  buildTagScatterData,
+  buildCorporationTagData,
+  buildTagCountDistributionData,
+  buildTagWinRateData,
 } from './tag-outcomes-section';
 
 function buildPaceRow(overrides: Partial<GenerationPaceRow>): GenerationPaceRow {
@@ -416,6 +417,8 @@ describe('buildRadarData', () => {
 describe('tag outcome builders', () => {
   const rows = [
     {
+      corporationId: 'corp-1',
+      corporationName: 'Tharsis Republic',
       gameId: 'g1',
       groupId: 'group-1',
       isWinner: true,
@@ -427,6 +430,8 @@ describe('tag outcome builders', () => {
       totalPoints: 90,
     },
     {
+      corporationId: 'corp-2',
+      corporationName: 'Saturn Systems',
       gameId: 'g1',
       groupId: 'group-1',
       isWinner: false,
@@ -437,22 +442,137 @@ describe('tag outcome builders', () => {
       tagCount: 2,
       totalPoints: 60,
     },
+    {
+      corporationId: 'corp-1',
+      corporationName: 'Tharsis Republic',
+      gameId: 'g2',
+      groupId: 'group-1',
+      isWinner: false,
+      playedOn: '2026-06-08',
+      playerId: 'p1',
+      playerName: 'Ada',
+      tagCode: 'science',
+      tagCount: 0,
+      totalPoints: 70,
+    },
+    {
+      corporationId: 'corp-2',
+      corporationName: 'Saturn Systems',
+      gameId: 'g2',
+      groupId: 'group-1',
+      isWinner: false,
+      playedOn: '2026-06-08',
+      playerId: 'p2',
+      playerName: 'Brin',
+      tagCode: 'building',
+      tagCount: 3,
+      totalPoints: 70,
+    },
   ];
 
-  it('splits scatter points into wins and losses', () => {
-    const scatter = buildTagScatterData(rows, 'science', null);
-
-    expect(scatter.wins).toEqual([
-      { playerName: 'Ada', tagCount: 6, totalPoints: 90 },
-    ]);
-    expect(scatter.losses).toEqual([
-      { playerName: 'Brin', tagCount: 2, totalPoints: 60 },
+  it('calculates win rate by tag only when the tag was played', () => {
+    expect(buildTagWinRateData(rows, null)).toEqual([
+      {
+        averageTagCount: 4,
+        maxTagCount: 6,
+        results: 2,
+        tagCode: 'science',
+        winRate: 50,
+        wins: 1,
+      },
+      {
+        averageTagCount: 3,
+        maxTagCount: 3,
+        results: 1,
+        tagCode: 'building',
+        winRate: 0,
+        wins: 0,
+      },
     ]);
   });
 
-  it('compares a focused player fingerprint against the group', () => {
-    expect(buildTagFingerprintData(rows, 'p1')).toEqual([
-      { groupAverage: 4, playerAverage: 6, tagCode: 'science' },
+  it('builds a frequency distribution for counts of a selected tag', () => {
+    expect(buildTagCountDistributionData(rows, 'science', null)).toEqual([
+      {
+        countLabel: '0',
+        resultShare: 33,
+        results: 1,
+        tagCount: 0,
+        winRate: 0,
+        wins: 0,
+      },
+      {
+        countLabel: '2',
+        resultShare: 33,
+        results: 1,
+        tagCount: 2,
+        winRate: 0,
+        wins: 0,
+      },
+      {
+        countLabel: '6',
+        resultShare: 33,
+        results: 1,
+        tagCount: 6,
+        winRate: 100,
+        wins: 1,
+      },
+    ]);
+  });
+
+  it('scopes tag win rates and distributions to a focused player', () => {
+    expect(buildTagWinRateData(rows, 'p1')).toEqual([
+      {
+        averageTagCount: 6,
+        maxTagCount: 6,
+        results: 1,
+        tagCode: 'science',
+        winRate: 100,
+        wins: 1,
+      },
+    ]);
+    expect(buildTagCountDistributionData(rows, 'science', 'p1')).toEqual([
+      {
+        countLabel: '0',
+        resultShare: 50,
+        results: 1,
+        tagCount: 0,
+        winRate: 0,
+        wins: 0,
+      },
+      {
+        countLabel: '6',
+        resultShare: 50,
+        results: 1,
+        tagCount: 6,
+        winRate: 100,
+        wins: 1,
+      },
+    ]);
+  });
+
+  it('relates selected tags to corporation choices', () => {
+    expect(buildCorporationTagData(rows, 'science', null)).toEqual([
+      {
+        averageTagCount: 2,
+        corporationId: 'corp-2',
+        corporationName: 'Saturn Systems',
+        results: 1,
+        tagUseRate: 100,
+        winRate: 0,
+        winsWithTag: 0,
+        withTagResults: 1,
+      },
+      {
+        averageTagCount: 3,
+        corporationId: 'corp-1',
+        corporationName: 'Tharsis Republic',
+        results: 2,
+        tagUseRate: 50,
+        winRate: 100,
+        winsWithTag: 1,
+        withTagResults: 1,
+      },
     ]);
   });
 });

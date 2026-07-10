@@ -132,6 +132,8 @@ export type TilePlacementRow = {
 };
 
 export type TagOutcomeRow = {
+  corporationId: string | null;
+  corporationName: string;
   gameId: string;
   groupId: string;
   isWinner: boolean;
@@ -293,6 +295,8 @@ type RawTilePlacementRow = {
 };
 
 type RawTagOutcomeRow = {
+  corporation_id: string | null;
+  corporation_name: string;
   game_id: string;
   group_id: string;
   is_winner: boolean;
@@ -498,6 +502,8 @@ function mapTilePlacementRow(row: RawTilePlacementRow): TilePlacementRow {
 
 function mapTagOutcomeRow(row: RawTagOutcomeRow): TagOutcomeRow {
   return {
+    corporationId: row.corporation_id,
+    corporationName: row.corporation_name,
     gameId: row.game_id,
     groupId: row.group_id,
     isWinner: row.is_winner,
