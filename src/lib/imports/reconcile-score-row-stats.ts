@@ -13,6 +13,61 @@ export type ReconciledScoreRowStats = {
 
 const STAT_COLUMN_COUNT = 6;
 const TOTAL_INDEX = STAT_COLUMN_COUNT;
+// Columns of the victory point breakdown, in the order the table prints them.
+const MILESTONE_INDEX = 1;
+const AWARD_INDEX = 2;
+const MAX_CLAIMS_PER_PLAYER = 3;
+const MILESTONE_POINTS = 5;
+const FIRST_PLACE_AWARD_POINTS = 5;
+const SECOND_PLACE_AWARD_POINTS = 2;
+
+function buildMilestonePointValues() {
+  return new Set(
+    Array.from(
+      { length: MAX_CLAIMS_PER_PLAYER + 1 },
+      (_, claimed) => claimed * MILESTONE_POINTS,
+    ),
+  );
+}
+
+function buildAwardPointValues() {
+  const values = new Set<number>();
+
+  for (let firsts = 0; firsts <= MAX_CLAIMS_PER_PLAYER; firsts += 1) {
+    for (
+      let seconds = 0;
+      firsts + seconds <= MAX_CLAIMS_PER_PLAYER;
+      seconds += 1
+    ) {
+      values.add(
+        firsts * FIRST_PLACE_AWARD_POINTS +
+          seconds * SECOND_PLACE_AWARD_POINTS,
+      );
+    }
+  }
+
+  return values;
+}
+
+/**
+ * A milestone is always worth five points and an award five or two, and no
+ * player can hold more than three of either. Two readings that swap a pair of
+ * columns both satisfy the row total, so these are what tell them apart.
+ */
+const MILESTONE_POINT_VALUES = buildMilestonePointValues();
+const AWARD_POINT_VALUES = buildAwardPointValues();
+
+function isPlausibleStatValue(index: number, value: number) {
+  if (index === MILESTONE_INDEX) {
+    return MILESTONE_POINT_VALUES.has(value);
+  }
+
+  if (index === AWARD_INDEX) {
+    return AWARD_POINT_VALUES.has(value);
+  }
+
+  return true;
+}
 const MAX_TOKENS = STAT_COLUMN_COUNT + 2;
 const MAX_STAT_VALUE = 200;
 const MAX_TOTAL_VALUE = 999;
@@ -124,7 +179,12 @@ export function reconcileScoreRowStats(
     for (let index = 0; index < STAT_COLUMN_COUNT; index += 1) {
       const value = pass[index];
 
-      if (typeof value === 'number' && value >= 0 && value <= MAX_STAT_VALUE) {
+      if (
+        typeof value === 'number' &&
+        value >= 0 &&
+        value <= MAX_STAT_VALUE &&
+        isPlausibleStatValue(index, value)
+      ) {
         tallyValue(statCandidates[index], value);
       }
     }
@@ -180,7 +240,7 @@ export function reconcileScoreRowStats(
     );
   }
 
-  const balanced = combinations
+  const balancedCombinations = combinations
     .flatMap((combination) => {
       if (unreadIndex < 0) {
         return combination.stats.reduce((sum, value) => sum + value, 0) ===
@@ -195,7 +255,11 @@ export function reconcileScoreRowStats(
       );
       const missing = totalPoints - knownSum;
 
-      if (missing < 0 || missing > MAX_STAT_VALUE) {
+      if (
+        missing < 0 ||
+        missing > MAX_STAT_VALUE ||
+        !isPlausibleStatValue(unreadIndex, missing)
+      ) {
         return [];
       }
 
@@ -207,18 +271,18 @@ export function reconcileScoreRowStats(
           ),
         },
       ];
-    })
-    .sort((left, right) => right.score - left.score);
+    });
 
-  if (
-    balanced.length === 0 ||
-    (balanced.length > 1 && balanced[0].score === balanced[1].score)
-  ) {
+  // The total only checks the sum, so two readings that swap a pair of columns
+  // both balance. Preferring the better-supported one would silently write the
+  // wrong score, so an ambiguous row is refused outright and left to the
+  // review step rather than guessed at.
+  if (balancedCombinations.length !== 1) {
     return null;
   }
 
   return {
-    stats: balanced[0].stats,
+    stats: balancedCombinations[0].stats,
     totalPoints,
   };
 }

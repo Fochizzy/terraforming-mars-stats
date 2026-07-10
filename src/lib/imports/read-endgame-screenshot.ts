@@ -449,6 +449,33 @@ function parseLooseInteger(token: string) {
   return digits ? Number(digits) : null;
 }
 
+const SCORE_STAT_COLUMN_COUNT = 6;
+
+/**
+ * The score table's six stat columns always sum to its total, so a line that
+ * does not balance was misread.
+ */
+function isBalancedScoreLine(line: string) {
+  const tokens = extractScoreTokens(line);
+
+  if (tokens.length <= SCORE_STAT_COLUMN_COUNT) {
+    return false;
+  }
+
+  const values = tokens.slice(0, SCORE_STAT_COLUMN_COUNT + 1).map(parseLooseInteger);
+
+  if (values.some((value) => value === null)) {
+    return false;
+  }
+
+  const numbers = values as number[];
+  const statsSum = numbers
+    .slice(0, SCORE_STAT_COLUMN_COUNT)
+    .reduce((sum, value) => sum + value, 0);
+
+  return statsSum === numbers[SCORE_STAT_COLUMN_COUNT];
+}
+
 function compactSynthesizedScoreLines(lines: string[]) {
   const candidates = lines.map((line) => ({
     line,
@@ -632,13 +659,16 @@ function synthesizeRowScoreLines(input: {
     }
   }
 
+  // Without the checksum the synthesized lines are unverified guesses, and a
+  // wrong score is worse than a missing one: the review step can ask for the
+  // number, but it cannot know a written one is wrong.
   return compactSynthesizedScoreLines(
     buildUniqueLines([
       ...synthesizedLines,
       ...synthesizedStatLines,
       ...normalizedFullLines,
     ]),
-  );
+  ).filter(isBalancedScoreLine);
 }
 
 function buildHelpfulGlobalLines(input: {
