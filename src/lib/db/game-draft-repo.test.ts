@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as repo from './game-draft-repo';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { logGameDraftSchema } from '@/lib/validation/log-game';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
@@ -30,27 +31,28 @@ describe('getDraftGameForm', () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: {
-          snapshot: {
-            awardClaims: {},
-            expansionCodes: ['base'],
-            gameId: 'game-1',
-            generationCount: 11,
-            groupId: '11111111-1111-4111-8111-111111111111',
-            mapId: 'tharsis',
-            milestoneClaims: {},
-            notes: 'Imported evidence',
-            playedOn: '2026-07-04',
-            playerCount: 3,
-            playerScores: {},
-            playerSelections: {},
-            playerStyles: {},
-            promoSetSlugs: [],
-            selectedPlayerIds: [],
+      limit: vi.fn().mockResolvedValue({
+        data: [
+          {
+            snapshot: {
+              awardClaims: {},
+              expansionCodes: ['base'],
+              gameId: 'game-1',
+              generationCount: 11,
+              groupId: '11111111-1111-4111-8111-111111111111',
+              mapId: 'tharsis',
+              milestoneClaims: {},
+              notes: 'Imported evidence',
+              playedOn: '2026-07-04',
+              playerCount: 3,
+              playerScores: {},
+              playerSelections: {},
+              playerStyles: {},
+              promoSetSlugs: [],
+              selectedPlayerIds: [],
+            },
           },
-        },
+        ],
         error: null,
       }),
     };
@@ -98,6 +100,98 @@ describe('getDraftGameForm', () => {
       '11111111-1111-4111-8111-111111111111',
     );
     expect(revisionQuery.eq).toHaveBeenCalledWith('game_id', 'game-1');
+  });
+});
+
+describe('getSavedGameForm revision fallback', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const draftFormSnapshot = {
+    awardClaims: {},
+    expansionCodes: ['base'],
+    gameId: 'game-final',
+    generationCount: 11,
+    groupId: '11111111-1111-4111-8111-111111111111',
+    mapId: 'tharsis',
+    milestoneClaims: {},
+    notes: '',
+    playedOn: '2026-07-04',
+    playerCount: 3,
+    playerScores: {},
+    playerSelections: {},
+    playerStyles: {},
+    promoSetSlugs: [],
+    selectedPlayerIds: [],
+  };
+
+  // A finalize revision written before the snapshot carried the whole form.
+  const legacyFinalizeSnapshot = {
+    awardClaims: {},
+    awards: [],
+    catalogSnapshotId: 'snap-1',
+    gameId: 'game-final',
+    milestoneClaims: {},
+    milestones: [],
+    notes: '',
+    players: [],
+    playerSelections: {},
+    playerStyles: {},
+    preludes: [],
+    selectedPlayerIds: [],
+  };
+
+  function mockRevisions(snapshots: unknown[]) {
+    const gameQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: 'game-final', status: 'draft' },
+        error: null,
+      }),
+    };
+    const revisionQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: snapshots.map((snapshot) => ({ snapshot })),
+        error: null,
+      }),
+    };
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) =>
+        table === 'games' ? gameQuery : revisionQuery,
+      ),
+    } as never);
+
+    return { gameQuery, revisionQuery };
+  }
+
+  it('falls back to the newest revision that still parses as a draft form', async () => {
+    mockRevisions([legacyFinalizeSnapshot, draftFormSnapshot]);
+
+    await expect(
+      repo.getSavedGameForm({
+        gameId: 'game-final',
+        groupId: '11111111-1111-4111-8111-111111111111',
+      }),
+    ).resolves.toMatchObject({
+      form: { mapId: 'tharsis', playedOn: '2026-07-04', playerCount: 3 },
+      status: 'draft',
+    });
+  });
+
+  it('returns null instead of throwing when no revision parses', async () => {
+    mockRevisions([legacyFinalizeSnapshot]);
+
+    await expect(
+      repo.getSavedGameForm({
+        gameId: 'game-final',
+        groupId: '11111111-1111-4111-8111-111111111111',
+      }),
+    ).resolves.toBeNull();
   });
 });
 
@@ -498,6 +592,20 @@ describe('finalizeGameLog', () => {
         corporation_id: 'corp-2',
       },
     ]);
+
+    // The finalize revision must stay loadable by getSavedGameForm, otherwise
+    // reopening or correcting the game 500s.
+    const revisionSnapshot = revisionInsert.mock.calls[0]?.[0]?.snapshot;
+
+    expect(logGameDraftSchema.safeParse(revisionSnapshot).success).toBe(true);
+    expect(revisionSnapshot).toMatchObject({
+      gameId: 'game-1',
+      generationCount: 10,
+      groupId: '11111111-1111-4111-8111-111111111111',
+      mapId: 'tharsis',
+      playedOn: '2026-07-08',
+      playerCount: 1,
+    });
   });
 });
 
@@ -519,27 +627,28 @@ describe('getSavedGameForm', () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: {
-          snapshot: {
-            awardClaims: {},
-            expansionCodes: ['base'],
-            gameId: 'game-final',
-            generationCount: 12,
-            groupId: '11111111-1111-4111-8111-111111111111',
-            mapId: 'tharsis',
-            milestoneClaims: {},
-            notes: 'Corrected result',
-            playedOn: '2026-07-06',
-            playerCount: 4,
-            playerScores: {},
-            playerSelections: {},
-            playerStyles: {},
-            promoSetSlugs: [],
-            selectedPlayerIds: ['player-1', 'player-2'],
+      limit: vi.fn().mockResolvedValue({
+        data: [
+          {
+            snapshot: {
+              awardClaims: {},
+              expansionCodes: ['base'],
+              gameId: 'game-final',
+              generationCount: 12,
+              groupId: '11111111-1111-4111-8111-111111111111',
+              mapId: 'tharsis',
+              milestoneClaims: {},
+              notes: 'Corrected result',
+              playedOn: '2026-07-06',
+              playerCount: 4,
+              playerScores: {},
+              playerSelections: {},
+              playerStyles: {},
+              promoSetSlugs: [],
+              selectedPlayerIds: ['player-1', 'player-2'],
+            },
           },
-        },
+        ],
         error: null,
       }),
     };

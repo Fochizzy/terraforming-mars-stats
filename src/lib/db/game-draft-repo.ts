@@ -5,6 +5,10 @@ import { getServerEnv } from '@/lib/env';
 
 type SavedGameStatus = 'draft' | 'finalized';
 
+// How far back getSavedGameForm will look for a revision that still parses as a
+// draft form.
+const RECENT_REVISION_SCAN_LIMIT = 20;
+
 type SavedGameRow = {
   id: string;
   player_count: number;
@@ -323,26 +327,33 @@ export async function getSavedGameForm(payload: {
     return null;
   }
 
-  const { data: latestRevision, error: latestRevisionError } = await supabase
+  const { data: revisions, error: revisionsError } = await supabase
     .from('game_revisions')
     .select('snapshot')
     .eq('game_id', payload.gameId)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(RECENT_REVISION_SCAN_LIMIT);
 
-  if (latestRevisionError) {
-    throw latestRevisionError;
+  if (revisionsError) {
+    throw revisionsError;
   }
 
-  if (!latestRevision?.snapshot) {
-    return null;
+  // Finalize revisions written before finalizeGameLog started recording the
+  // whole draft form only carry the scored payload (players, awards, ...), so
+  // they cannot be parsed back into a form. Fall back to the newest revision
+  // that still round-trips instead of throwing and 500-ing the review page.
+  for (const revision of revisions ?? []) {
+    const parsedForm = logGameDraftSchema.safeParse(revision.snapshot);
+
+    if (parsedForm.success) {
+      return {
+        form: parsedForm.data,
+        status: savedGame.status as SavedGameStatus,
+      };
+    }
   }
 
-  return {
-    form: logGameDraftSchema.parse(latestRevision.snapshot),
-    status: savedGame.status as SavedGameStatus,
-  };
+  return null;
 }
 
 export async function listSavedGames(payload: {
@@ -759,10 +770,15 @@ export async function finalizeGameLog(payload: {
     }
   }
 
+  // The finalized payload alone is not a draft form -- it has no mapId,
+  // playedOn, playerCount, generationCount or groupId -- so a revision holding
+  // only that cannot be loaded back into the wizard. Merge the parsed form over
+  // it so the snapshot stays a superset: the scored payload for auditing, and a
+  // form that getSavedGameForm can reopen.
   await saveGameRevision(
     gameId,
     payload.userId,
-    payload.finalizedPayload.revision.snapshot,
+    { ...payload.finalizedPayload.revision.snapshot, ...parsed, gameId },
     payload.finalizedPayload.revision.note,
   );
 
