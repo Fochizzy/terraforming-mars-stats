@@ -68,6 +68,13 @@ export const referenceDimensions: {
     { code: 'ares', name: 'Ares' },
     { code: 'community', name: 'Community' },
     { code: 'moon', name: 'Moon' },
+    // Modules the open-source app has added; corporations and preludes from
+    // these carry the matching expansion_code.
+    { code: 'pathfinders', name: 'Pathfinders' },
+    { code: 'ceo', name: 'CEOs' },
+    { code: 'underworld', name: 'Underworld' },
+    { code: 'star_wars', name: 'Star Wars' },
+    { code: 'delta_project', name: 'The Delta Project' },
   ],
   maps: [
     { code: 'tharsis', name: 'Tharsis' },

@@ -16,6 +16,11 @@ describe('referenceDimensions', () => {
       'ares',
       'community',
       'moon',
+      'pathfinders',
+      'ceo',
+      'underworld',
+      'star_wars',
+      'delta_project',
     ]);
 
     expect(referenceDimensions.maps.map((entry) => entry.code)).toEqual([
