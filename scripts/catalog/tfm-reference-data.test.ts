@@ -64,7 +64,7 @@ describe('mapTfmRecordToCatalogSource', () => {
         module: 'Community',
         name: 'Project Workshop',
         nameKey: 'PROJECT_WORKSHOP',
-        tags: ['building'],
+        tags: ['earth'],
       }),
       sourceRecord({
         cardNumber: 'Y08',
@@ -104,6 +104,24 @@ describe('mapTfmRecordToCatalogSource', () => {
     expect(payload.cards.map((card) => card.card_name)).toEqual([
       'Project Workshop',
       'Accumulated Knowledge',
+    ]);
+    expect(
+      payload.cards.map((card) => ({
+        name: card.card_name,
+        gameplayTags: card.gameplay_tags,
+        sourceGameplayTags: card.sync_metadata.gameplayTags,
+      })),
+    ).toEqual([
+      {
+        name: 'Project Workshop',
+        gameplayTags: ['earth'],
+        sourceGameplayTags: ['earth'],
+      },
+      {
+        name: 'Accumulated Knowledge',
+        gameplayTags: ['science'],
+        sourceGameplayTags: ['science'],
+      },
     ]);
   });
 });

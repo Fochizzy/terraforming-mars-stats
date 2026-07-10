@@ -198,8 +198,10 @@ function buildCardRecord(source: TfmCatalogSource): NormalizedCardRecord {
     expansion: source.expansionCode,
     expansionName: source.expansionName,
     fullImagePath: source.fullImagePath,
+    gameplayTags: source.gameplayTags,
     imageUrl: source.fullImagePath,
     name: source.cardName,
+    printedVictoryPoints: source.printedVictoryPoints,
     sourceAttribution: TFM_CARDS_PAGE_URL,
     sourceCardId: source.sourceCardId,
     syncMetadata: {
@@ -214,6 +216,7 @@ function buildCardRecord(source: TfmCatalogSource): NormalizedCardRecord {
     },
     thumbnailPath: source.thumbnailPath,
     type: source.cardType,
+    victoryPointsKind: source.victoryPointsKind,
   });
 }
 
@@ -239,18 +242,6 @@ function buildPreludeSeed(source: TfmCatalogSource): CatalogPreludeSeed {
   };
 }
 
-function attachCatalogSourceFields(
-  card: NormalizedCardRecord,
-  source: TfmCatalogSource,
-): NormalizedCardRecord {
-  return {
-    ...card,
-    gameplay_tags: source.gameplayTags,
-    printed_victory_points: source.printedVictoryPoints,
-    victory_points_kind: source.victoryPointsKind,
-  };
-}
-
 export function buildTfmCatalogImportPayload(
   records: TfmCardTagRecord[],
 ): CatalogImportPayload {
@@ -260,9 +251,7 @@ export function buildTfmCatalogImportPayload(
     .filter((source) => source.expansionCode !== 'automa');
 
   return {
-    cards: sources.map((source) =>
-      attachCatalogSourceFields(buildCardRecord(source), source),
-    ),
+    cards: sources.map(buildCardRecord),
     corporations: sources
       .filter((source) => source.cardType === 'Corporation')
       .map(buildCorporationSeed),

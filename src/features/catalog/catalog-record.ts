@@ -22,13 +22,16 @@ export function normalizeCardRecord(input: {
   type: string;
   expansion: string;
   expansionName?: string;
+  gameplayTags?: string[];
   imageUrl: string;
   thumbnailPath?: string | null;
   fullImagePath?: string | null;
+  printedVictoryPoints?: number | null;
   promoSetId?: string | null;
   syncMetadata?: Record<string, unknown>;
   sourceAttribution?: string;
   sourceCardId?: string;
+  victoryPointsKind?: 'none' | 'static' | 'dynamic';
 }): NormalizedCardRecord {
   return {
     source_card_id: input.sourceCardId ?? `${input.expansion}:${input.cardNumber}`,
@@ -37,7 +40,9 @@ export function normalizeCardRecord(input: {
     card_type: input.type,
     expansion_code: input.expansion,
     expansion_name: input.expansionName ?? input.expansion,
+    gameplay_tags: input.gameplayTags ?? [],
     image_url: input.imageUrl,
+    printed_victory_points: input.printedVictoryPoints ?? null,
     thumbnail_path: input.thumbnailPath ?? null,
     full_image_path: input.fullImagePath ?? input.imageUrl,
     promo_set_id: input.promoSetId ?? null,
@@ -51,5 +56,6 @@ export function normalizeCardRecord(input: {
       type: input.type,
       ...(input.syncMetadata ?? {}),
     },
+    victory_points_kind: input.victoryPointsKind ?? 'none',
   };
 }
