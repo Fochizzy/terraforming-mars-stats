@@ -8,10 +8,16 @@ export type BottomNavItem = {
 export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/profile', label: 'My Profile' },
   { href: '/log-game', label: 'Log Game' },
+  { href: '/log-game/review', label: 'Saved Games' },
   { href: '/group', label: 'Group' },
   { href: '/cards', label: 'Cards' },
   { href: '/insights', label: 'Insights' },
 ];
+
+const savedGamesNavItem: BottomNavItem = {
+  href: '/log-game/review',
+  label: 'Saved Games',
+};
 
 function HomeIcon() {
   return (
@@ -44,17 +50,20 @@ export function BottomNav({
 }: {
   items?: BottomNavItem[];
 }) {
-  const cardsItem = items.find((item) => item.href === '/cards');
+  const navigationItems = items.some((item) => item.href === savedGamesNavItem.href)
+    ? items
+    : [...items, savedGamesNavItem];
+  const cardsItem = navigationItems.find((item) => item.href === '/cards');
   const stripItems = cardsItem
-    ? items.filter((item) => item !== cardsItem)
-    : items;
+    ? navigationItems.filter((item) => item !== cardsItem)
+    : navigationItems;
 
   return (
     <nav aria-label="Primary" className="tm-bottom-nav">
       <Link
         aria-label="Home"
         className="tm-bottom-nav__icon"
-        href={items[0]?.href ?? '/'}
+        href={navigationItems[0]?.href ?? '/'}
       >
         <HomeIcon />
       </Link>
