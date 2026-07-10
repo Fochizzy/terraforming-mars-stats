@@ -445,6 +445,42 @@ export function InsightsDashboard({
         </div>
       </ChartFrame>
 
+      <ChartFrame title="What These Metrics Mean">
+        <dl className="grid gap-4">
+          <div>
+            <dt className="tm-data-label">Weighted Score</dt>
+            <dd className="tm-muted-copy mt-1 text-sm">
+              A single ranking number that blends how a player finishes rather
+              than just their raw points: 50% win rate, 30% average finishing
+              placement, and 20% average score margin against opponents (capped
+              at ±20 points). Higher is better, and it drives the weighted
+              leaderboard order.
+            </dd>
+          </div>
+          <div>
+            <dt className="tm-data-label">Optional Data Coverage</dt>
+            <dd className="tm-muted-copy mt-1 text-sm">
+              The share of a player&apos;s or group&apos;s finalized games that
+              recorded the optional breakdown details — full card-point
+              breakdowns, microbe / animal / Jovian points, declared play style,
+              and key cards. A low value means that detail is simply missing from
+              those games, not that the value was zero, so treat the dependent
+              charts as partial samples.
+            </dd>
+          </div>
+          <div>
+            <dt className="tm-data-label">Play Style</dt>
+            <dd className="tm-muted-copy mt-1 text-sm">
+              A game&apos;s strategic archetype (for example greenery-heavy,
+              card-engine, or milestone-and-award focused). Each game can carry a
+              declared style the player chose up front and an inferred style
+              derived from how their points actually came together; the style
+              sections compare the two and track which styles win most.
+            </dd>
+          </div>
+        </dl>
+      </ChartFrame>
+
       {hasAnalytics ? (
         <>
           <ChartFrame title="Insight Cards">
