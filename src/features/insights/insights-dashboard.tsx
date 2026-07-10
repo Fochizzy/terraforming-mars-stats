@@ -32,6 +32,7 @@ import type {
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { buildInsightCards } from './build-insight-cards';
 import { BoardHeatmapSection } from './board-heatmap-section';
+import { CardOutcomesSection } from './card-outcomes-section';
 import { GameLengthSection } from './game-length-section';
 import { GamePaceSection } from './game-pace-section';
 import { MapPerformanceSection } from './map-performance-section';
@@ -810,6 +811,12 @@ export function InsightsDashboard({
             focusPlayerName={selectedPlayer?.displayName ?? null}
             matrixRows={extended.awardFunderWinnerRows}
             outcomeRows={extended.awardOutcomeRows}
+          />
+
+          <CardOutcomesSection
+            focusPlayerId={selectedPlayer?.id ?? null}
+            focusPlayerName={selectedPlayer?.displayName ?? null}
+            rows={extended.cardOutcomeRows}
           />
 
           <TagOutcomesSection

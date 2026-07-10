@@ -10,6 +10,7 @@ function buildExtendedFixture(
   return {
     awardFunderWinnerRows: [],
     awardOutcomeRows: [],
+    cardOutcomeRows: [],
     gameLengthPerformanceRows: [],
     generationDistributionRows: [],
     generationPaceRows: [],

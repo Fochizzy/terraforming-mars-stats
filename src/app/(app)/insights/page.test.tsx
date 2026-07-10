@@ -174,6 +174,7 @@ describe('InsightsPage', () => {
     mockState.getExtendedGroupAnalytics.mockResolvedValue({
       awardFunderWinnerRows: [],
       awardOutcomeRows: [],
+      cardOutcomeRows: [],
       gameLengthPerformanceRows: [],
       generationDistributionRows: [],
       generationPaceRows: [],

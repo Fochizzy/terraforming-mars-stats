@@ -145,9 +145,21 @@ export type TagOutcomeRow = {
   totalPoints: number;
 };
 
+export type CardOutcomeRow = {
+  cardId: string;
+  cardName: string;
+  gameId: string;
+  groupId: string;
+  isWinner: boolean;
+  playedOn: string;
+  playerId: string;
+  playerName: string;
+};
+
 export type ExtendedGroupAnalytics = {
   awardFunderWinnerRows: AwardFunderWinnerRow[];
   awardOutcomeRows: AwardOutcomeRow[];
+  cardOutcomeRows: CardOutcomeRow[];
   gameLengthPerformanceRows: GameLengthPerformanceRow[];
   generationDistributionRows: GenerationDistributionRow[];
   generationPaceRows: GenerationPaceRow[];
@@ -306,6 +318,17 @@ type RawTagOutcomeRow = {
   tag_code: string;
   tag_count: number;
   total_points: number;
+};
+
+type RawCardOutcomeRow = {
+  card_id: string;
+  card_name: string;
+  game_id: string;
+  group_id: string;
+  is_winner: boolean;
+  played_on: string;
+  player_id: string;
+  player_name: string;
 };
 
 function toNumber(value: number | string | null | undefined) {
@@ -513,6 +536,19 @@ function mapTagOutcomeRow(row: RawTagOutcomeRow): TagOutcomeRow {
     tagCode: row.tag_code,
     tagCount: row.tag_count,
     totalPoints: row.total_points,
+  };
+}
+
+function mapCardOutcomeRow(row: RawCardOutcomeRow): CardOutcomeRow {
+  return {
+    cardId: row.card_id,
+    cardName: row.card_name,
+    gameId: row.game_id,
+    groupId: row.group_id,
+    isWinner: row.is_winner,
+    playedOn: row.played_on,
+    playerId: row.player_id,
+    playerName: row.player_name,
   };
 }
 
@@ -724,6 +760,21 @@ export async function listTagOutcomes(groupId: string) {
   );
 }
 
+export async function listCardOutcomes(groupId: string) {
+  const rows = await listView(
+    'player_card_outcomes',
+    groupId,
+    mapCardOutcomeRow,
+  );
+
+  return rows.sort(
+    (left, right) =>
+      left.playerName.localeCompare(right.playerName) ||
+      left.playedOn.localeCompare(right.playedOn) ||
+      left.cardName.localeCompare(right.cardName),
+  );
+}
+
 export async function getExtendedGroupAnalytics(
   groupId: string,
 ): Promise<ExtendedGroupAnalytics> {
@@ -741,6 +792,7 @@ export async function getExtendedGroupAnalytics(
     generationPaceRows,
     tilePlacementRows,
     tagOutcomeRows,
+    cardOutcomeRows,
   ] = await Promise.all([
     listPlacementDistribution(groupId),
     listPlayerCountPerformance(groupId),
@@ -755,11 +807,13 @@ export async function getExtendedGroupAnalytics(
     listGenerationPace(groupId),
     listTilePlacements(groupId),
     listTagOutcomes(groupId),
+    listCardOutcomes(groupId),
   ]);
 
   return {
     awardFunderWinnerRows,
     awardOutcomeRows,
+    cardOutcomeRows,
     gameLengthPerformanceRows,
     generationDistributionRows,
     generationPaceRows,

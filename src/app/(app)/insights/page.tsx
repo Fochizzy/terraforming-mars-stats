@@ -48,6 +48,7 @@ const emptyGroupAnalytics: GroupAnalytics = {
 const emptyExtendedAnalytics: ExtendedGroupAnalytics = {
   awardFunderWinnerRows: [],
   awardOutcomeRows: [],
+  cardOutcomeRows: [],
   gameLengthPerformanceRows: [],
   generationDistributionRows: [],
   generationPaceRows: [],
