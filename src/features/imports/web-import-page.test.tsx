@@ -123,6 +123,9 @@ describe('WebImportPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/single upload mode/i)).toBeInTheDocument();
     expect(
+      screen.getByRole('link', { name: /review saved games/i }),
+    ).toHaveAttribute('href', '/log-game/review');
+    expect(
       screen.getByText(
         /only one image is needed here\. board screenshots are no longer part of this import flow\./i,
       ),

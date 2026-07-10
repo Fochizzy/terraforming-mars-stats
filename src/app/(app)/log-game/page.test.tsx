@@ -62,7 +62,11 @@ vi.mock('@/features/imports/log-game-import-shell', () => ({
   LogGameImportShell: (props: CapturedLogGameImportShellProps) => {
     captureState.logGameImportShellProps = props;
 
-    return <div data-testid="log-game-import-shell" />;
+    return (
+      <div data-testid="log-game-import-shell">
+        <a href="/log-game/review">Review Saved Games</a>
+      </div>
+    );
   },
 }));
 

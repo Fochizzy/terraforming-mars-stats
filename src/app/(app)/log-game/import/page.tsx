@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/layout/app-shell';
@@ -580,6 +579,23 @@ export default async function LogGameImportPage() {
     'use server';
 
     try {
+      const analyzeSupabase = await createSupabaseServerClient();
+      const {
+        data: { user: analyzeUser },
+        error: analyzeUserError,
+      } = await analyzeSupabase.auth.getUser();
+
+      if (analyzeUserError && !isUnauthenticatedAuthError(analyzeUserError)) {
+        throw analyzeUserError;
+      }
+
+      // The reference reads below are RLS-gated to `authenticated`, so a lapsed
+      // session returns empty rows instead of an error and is indistinguishable
+      // from an empty catalog.
+      if (!analyzeUser) {
+        throw new Error('Sign in again before analyzing this import.');
+      }
+
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
       const detectedParticipantNames =
@@ -719,7 +735,7 @@ export default async function LogGameImportPage() {
         error: activeUserError,
       } = await activeSupabase.auth.getUser();
 
-      if (activeUserError) {
+      if (activeUserError && !isUnauthenticatedAuthError(activeUserError)) {
         throw activeUserError;
       }
 
@@ -1046,13 +1062,6 @@ export default async function LogGameImportPage() {
 
   return (
     <AppShell
-      headerActions={
-        context ? (
-          <Link className="tm-button-secondary px-4 py-2 text-xs" href="/log-game/review">
-            Review Saved Games
-          </Link>
-        ) : undefined
-      }
       navItems={
         context
           ? undefined

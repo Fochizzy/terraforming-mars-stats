@@ -699,6 +699,41 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('asks the user to sign in again when the analyze action has lost the session', async () => {
+    // Reference reads are RLS-gated, so a lapsed session yields empty rows
+    // rather than an error. Without an auth check that reads as an empty
+    // catalog. The page still renders, so only the action call is signed out.
+    mockState.getUser
+      .mockResolvedValueOnce({
+        data: { user: { id: 'user-1' } },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { user: null },
+        error: Object.assign(new Error('Auth session missing!'), {
+          name: 'AuthSessionMissingError',
+        }),
+      });
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: 'Friday Mars played Steel Works',
+      generationCount: 10,
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message: 'Sign in again before analyzing this import.',
+      status: 'error',
+    });
+  });
+
   it('falls back to the group default map when the log has no map evidence', async () => {
     const shellProps = await renderPageAndCaptureShellProps();
     const analyzeFormData = buildCreateImportDraftFormData({

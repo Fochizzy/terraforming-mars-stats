@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildCreateImportDraftFormData,
@@ -584,6 +585,12 @@ export function WebImportPage({
           Only one image is needed here. Board screenshots are no longer part of
           this import flow.
         </p>
+        <Link
+          className="tm-button-secondary w-fit px-4 py-2 text-xs"
+          href="/log-game/review"
+        >
+          Review Saved Games
+        </Link>
       </section>
 
       <form
