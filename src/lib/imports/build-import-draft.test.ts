@@ -809,6 +809,7 @@ describe('buildImportDraft', () => {
         'player-1': {
           corporationId: 'corp-1',
           corporationIds: ['corp-1'],
+          midgamePreludeIds: [],
           preludeIds: ['prelude-1', 'prelude-2'],
         },
       },

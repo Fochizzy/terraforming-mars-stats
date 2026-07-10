@@ -419,6 +419,163 @@ describe('finalizeGameLog', () => {
     vi.clearAllMocks();
   });
 
+  it('writes setup preludes and mid-game preludes to separate tables', async () => {
+    const finalGamePlayersDeleteQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const finalGamePlayersInsertQuery = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue({
+        data: [{ id: 'game-player-1', player_id: 'player-1' }],
+        error: null,
+      }),
+    };
+    let finalGamePlayersCallCount = 0;
+    const corporationInsert = vi.fn().mockResolvedValue({ error: null });
+    const preludeInsert = vi.fn().mockResolvedValue({ error: null });
+    const midgamePreludeInsert = vi.fn().mockResolvedValue({ error: null });
+    const finalClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_players') {
+          finalGamePlayersCallCount += 1;
+          return finalGamePlayersCallCount === 1
+            ? finalGamePlayersDeleteQuery
+            : finalGamePlayersInsertQuery;
+        }
+
+        if (table === 'game_player_corporations') {
+          return { insert: corporationInsert };
+        }
+
+        if (table === 'game_player_preludes') {
+          return { insert: preludeInsert };
+        }
+
+        if (table === 'game_player_midgame_preludes') {
+          return { insert: midgamePreludeInsert };
+        }
+
+        throw new Error(`Unexpected finalization table ${table}`);
+      }),
+    };
+    const updateGameQuery = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { id: 'game-1' },
+        error: null,
+      }),
+    };
+    const shellClient = {
+      from: vi.fn(() => updateGameQuery),
+    };
+    const setupDeleteQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const setupClient = {
+      from: vi.fn(() => setupDeleteQuery),
+    };
+    const revisionClient = {
+      from: vi.fn(() => ({
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      })),
+    };
+
+    vi.mocked(createSupabaseServerClient)
+      .mockResolvedValueOnce(finalClient as never)
+      .mockResolvedValueOnce(shellClient as never)
+      .mockResolvedValueOnce(setupClient as never)
+      .mockResolvedValueOnce(revisionClient as never);
+
+    await expect(
+      repo.finalizeGameLog({
+        form: {
+          awardClaims: {},
+          expansionCodes: [],
+          gameId: 'game-1',
+          generationCount: 10,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          mapId: 'tharsis',
+          milestoneClaims: {},
+          notes: '',
+          playedOn: '2026-07-08',
+          playerCount: 1,
+          playerScores: {},
+          playerSelections: {
+            'player-1': {
+              corporationId: 'corp-1',
+              corporationIds: ['corp-1'],
+              midgamePreludeIds: ['prelude-2'],
+              preludeIds: ['prelude-1'],
+            },
+          },
+          playerStyles: {},
+          promoSetSlugs: [],
+          selectedPlayerIds: ['player-1'],
+        },
+        finalizedPayload: {
+          awards: [],
+          corporations: [{ playerId: 'player-1', corporationId: 'corp-1' }],
+          declaredStyles: [],
+          gameUpdate: {
+            catalog_snapshot_id: null,
+            status: 'finalized',
+          },
+          inferredStyles: [],
+          keyCards: [],
+          midgamePreludes: [{ playerId: 'player-1', preludeId: 'prelude-2' }],
+          milestones: [],
+          players: [
+            {
+              awardPoints: 0,
+              cardPointsAnimals: null,
+              cardPointsJovian: null,
+              cardPointsMicrobes: null,
+              cardPointsTotal: 0,
+              citiesPoints: 0,
+              corporationId: 'corp-1',
+              corporationIds: ['corp-1'],
+              finalMegacredits: 0,
+              greeneryPoints: 0,
+              isWinner: true,
+              milestonePoints: 0,
+              otherCardPoints: null,
+              placement: 1,
+              playerId: 'player-1',
+              totalPoints: 42,
+              trPoints: 42,
+            },
+          ],
+          preludes: [{ playerId: 'player-1', preludeId: 'prelude-1' }],
+          review: {
+            coverage: {
+              playersWithCardBreakdown: 0,
+              playersWithDeclaredStyle: 0,
+              playersWithKeyCards: 0,
+              playersWithOptionalSubscores: 0,
+            },
+            issues: [],
+          },
+          revision: {
+            note: 'Finalize game results',
+            snapshot: {},
+          },
+        },
+        userId: 'user-1',
+      }),
+    ).resolves.toEqual({ gameId: 'game-1' });
+
+    expect(preludeInsert).toHaveBeenCalledWith([
+      { game_player_id: 'game-player-1', prelude_id: 'prelude-1' },
+    ]);
+    expect(midgamePreludeInsert).toHaveBeenCalledWith([
+      { game_player_id: 'game-player-1', prelude_id: 'prelude-2' },
+    ]);
+  });
+
   it('writes every selected corporation for a finalized player', async () => {
     const finalGamePlayersDeleteQuery = {
       delete: vi.fn().mockReturnThis(),
@@ -515,6 +672,7 @@ describe('finalizeGameLog', () => {
             'player-1': {
               corporationId: 'corp-1',
               corporationIds: ['corp-1', 'corp-2'],
+              midgamePreludeIds: [],
               preludeIds: [],
             },
           },
@@ -535,6 +693,7 @@ describe('finalizeGameLog', () => {
           },
           inferredStyles: [],
           keyCards: [],
+          midgamePreludes: [],
           milestones: [],
           players: [
             {

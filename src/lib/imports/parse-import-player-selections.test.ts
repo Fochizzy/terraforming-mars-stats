@@ -58,6 +58,7 @@ describe('parseImportPlayerSelections', () => {
       p1: {
         corporationId: 'corp1',
         corporationIds: ['corp1'],
+        midgamePreludeIds: [],
         preludeIds: ['prelude1', 'prelude2'],
       },
     });
@@ -79,6 +80,7 @@ describe('parseImportPlayerSelections', () => {
       p1: {
         corporationId: 'corp1',
         corporationIds: ['corp1', 'corp2'],
+        midgamePreludeIds: [],
         preludeIds: ['prelude1'],
       },
     });
@@ -112,6 +114,7 @@ describe('parseImportPlayerSelections', () => {
       p1: {
         corporationId: 'corp1',
         corporationIds: ['corp1', 'corp2'],
+        midgamePreludeIds: [],
         preludeIds: [],
       },
     });
@@ -163,7 +166,95 @@ describe('parseImportPlayerSelections', () => {
       p1: {
         corporationId: 'corp1',
         corporationIds: ['corp1'],
+        midgamePreludeIds: [],
         preludeIds: ['prelude1'],
+      },
+    });
+  });
+
+  it('separates preludes played after the opening phase from setup selections', () => {
+    expect(
+      parseImportPlayerSelections({
+        corporationOptions: [
+          ...corporations,
+          {
+            expansionCode: 'promo',
+            id: 'corp-valley-trust',
+            name: 'Valley Trust',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['prelude'],
+          },
+        ],
+        participants: [{ importedName: 'Corey', playerId: 'p1' }],
+        preludeOptions: [
+          ...preludes,
+          {
+            expansionCode: 'prelude',
+            id: 'prelude-board',
+            name: 'Board of Directors',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['prelude'],
+          },
+          {
+            expansionCode: 'prelude',
+            id: 'prelude-merger',
+            name: 'Merger',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['prelude'],
+          },
+          {
+            expansionCode: 'prelude',
+            id: 'prelude-new-partner',
+            name: 'New Partner',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['prelude'],
+          },
+        ],
+        // Valley Trust's first action and the Board of Directors prelude both
+        // play further preludes, so Corey names five preludes across the log
+        // while only starting with two.
+        rawLogText: [
+          'Corey played Valley Trust',
+          'Corey played Board of Directors',
+          'Corey played Merger',
+          'Corey took the first action of Valley Trust corporation',
+          'Corey played New Partner',
+          'Corey used Board of Directors action',
+          'Corey played Corporate Archives',
+          'Corey used Board of Directors action',
+          'Corey played Donation',
+        ].join('\n'),
+      }),
+    ).toEqual({
+      p1: {
+        corporationId: 'corp-valley-trust',
+        corporationIds: ['corp-valley-trust'],
+        midgamePreludeIds: ['prelude-new-partner', 'prelude2', 'prelude3'],
+        preludeIds: ['prelude-board', 'prelude-merger'],
+      },
+    });
+  });
+
+  it('never counts a mid-game prelude that is already a setup selection', () => {
+    expect(
+      parseImportPlayerSelections({
+        corporationOptions: corporations,
+        participants: [{ importedName: 'Corey', playerId: 'p1' }],
+        preludeOptions: preludes,
+        rawLogText: [
+          'Corey played Tharsis Republic',
+          'Corey played Donation',
+          'Corey passed',
+          // Double Down replays a prelude the player already started with.
+          'Corey played Donation',
+        ].join('\n'),
+      }),
+    ).toEqual({
+      p1: {
+        corporationId: 'corp1',
+        corporationIds: ['corp1'],
+        midgamePreludeIds: [],
+        preludeIds: ['prelude3'],
       },
     });
   });
@@ -232,11 +323,13 @@ describe('parseImportPlayerSelections', () => {
       p1: {
         corporationId: 'corp3',
         corporationIds: ['corp3'],
+        midgamePreludeIds: [],
         preludeIds: ['prelude4', 'prelude5'],
       },
       p2: {
         corporationId: 'corp2',
         corporationIds: ['corp2'],
+        midgamePreludeIds: [],
         preludeIds: ['prelude6', 'prelude7'],
       },
     });

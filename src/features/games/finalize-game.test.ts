@@ -114,11 +114,13 @@ describe('buildGameReview', () => {
         p1: {
           corporationId: 'corp1',
           corporationIds: ['corp1'],
+          midgamePreludeIds: [],
           preludeIds: ['prelude1', 'prelude2'],
         },
         p2: {
           corporationId: 'corp2',
           corporationIds: ['corp2'],
+          midgamePreludeIds: [],
           preludeIds: [],
         },
       },
@@ -147,6 +149,7 @@ describe('buildGameReview', () => {
         p1: {
           corporationId: 'corp1',
           corporationIds: ['corp1'],
+          midgamePreludeIds: [],
           preludeIds: [],
         },
       },
@@ -193,6 +196,7 @@ describe('buildGameReview', () => {
         kept: {
           corporationId: 'corp-1',
           corporationIds: ['corp-1'],
+          midgamePreludeIds: [],
           preludeIds: [],
         },
       },
@@ -234,11 +238,13 @@ describe('buildFinalizedGamePayload', () => {
         p1: {
           corporationId: 'corp1',
           corporationIds: ['corp1'],
+          midgamePreludeIds: [],
           preludeIds: ['prelude1'],
         },
         p2: {
           corporationId: 'corp2',
           corporationIds: ['corp2'],
+          midgamePreludeIds: [],
           preludeIds: ['prelude2'],
         },
       },
@@ -356,6 +362,7 @@ describe('buildFinalizedGamePayload', () => {
         p1: {
           corporationId: 'corp1',
           corporationIds: ['corp1', 'corp2'],
+          midgamePreludeIds: [],
           preludeIds: [],
         },
       },

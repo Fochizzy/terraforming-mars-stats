@@ -65,6 +65,7 @@ describe('LogGameWizard', () => {
             p1: {
               corporationId: 'corp1',
               corporationIds: ['corp1'],
+              midgamePreludeIds: [],
               preludeIds: [],
             },
           },
@@ -136,6 +137,7 @@ describe('LogGameWizard', () => {
             p1: {
               corporationId: 'corp1',
               corporationIds: ['corp1'],
+              midgamePreludeIds: [],
               preludeIds: [],
             },
           },
@@ -201,6 +203,7 @@ describe('LogGameWizard', () => {
             p1: {
               corporationId: 'corp1',
               corporationIds: ['corp1'],
+              midgamePreludeIds: [],
               preludeIds: [],
             },
           },
@@ -519,6 +522,7 @@ describe('LogGameWizard', () => {
           p1: {
             corporationId: 'corp1',
             corporationIds: ['corp1'],
+            midgamePreludeIds: [],
             preludeIds: ['prelude1'],
           },
         },
@@ -604,6 +608,7 @@ describe('LogGameWizard', () => {
             p1: {
               corporationId: 'corp1',
               corporationIds: ['corp1', 'corp2'],
+              midgamePreludeIds: [],
               preludeIds: [],
             },
           },
@@ -721,8 +726,10 @@ describe('LogGameWizard', () => {
     expect(
       screen.getAllByRole('option', { name: /arcadian communities/i }),
     ).toHaveLength(3);
-    expect(screen.getAllByRole('option', { name: /allied bank/i })).toHaveLength(3);
-    expect(screen.getAllByRole('option', { name: /corporate archives/i })).toHaveLength(3);
+    // Each prelude is offered in the three setup slots plus the eight
+    // mid-game slots.
+    expect(screen.getAllByRole('option', { name: /allied bank/i })).toHaveLength(11);
+    expect(screen.getAllByRole('option', { name: /corporate archives/i })).toHaveLength(11);
     expect(
       screen.getAllByRole('option', { name: /001 - colonizer training camp/i }),
     ).toHaveLength(3);

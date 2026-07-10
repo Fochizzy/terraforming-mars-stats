@@ -39,11 +39,13 @@ describe('sanitizePlayerLinkedState', () => {
           'kept-player': {
             corporationId: 'corp-1',
             corporationIds: ['corp-1'],
+            midgamePreludeIds: [],
             preludeIds: [],
           },
           'removed-player': {
             corporationId: 'corp-2',
             corporationIds: ['corp-2'],
+            midgamePreludeIds: [],
             preludeIds: [],
           },
         },
@@ -94,6 +96,7 @@ describe('sanitizePlayerLinkedState', () => {
         'kept-player': {
           corporationId: 'corp-1',
           corporationIds: ['corp-1'],
+          midgamePreludeIds: [],
           preludeIds: [],
         },
       },

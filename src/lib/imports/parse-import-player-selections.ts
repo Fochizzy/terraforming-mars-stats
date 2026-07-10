@@ -9,6 +9,7 @@ type ImportParticipant = {
 type ParsedPlayerSelection = {
   corporationId: string;
   corporationIds: string[];
+  midgamePreludeIds: string[];
   preludeIds: string[];
 };
 
@@ -61,6 +62,19 @@ function lineMentionsPrelude(normalizedLine: string) {
   return normalizedLine.includes(' prelude') || normalizedLine.includes(' played ');
 }
 
+// Preludes are dealt in the opening phase, before anyone takes an action.
+// Cards played later can still be preludes — Valley Trust's first action, the
+// Board of Directors prelude, and New Partner all play further preludes — so a
+// player's opening phase ends at their first action, and preludes found after
+// it are recorded separately rather than counted as setup selections.
+function lineEndsPreludePhase(normalizedLine: string) {
+  return (
+    normalizedLine.includes(' took the first action of') ||
+    normalizedLine.includes(' used ') ||
+    normalizedLine.includes(' passed')
+  );
+}
+
 export function parseImportPlayerSelections(input: {
   corporationOptions: CorporationOption[];
   participants: ImportParticipant[];
@@ -73,12 +87,19 @@ export function parseImportPlayerSelections(input: {
     .filter(Boolean);
   const detected = new Map<
     string,
-    { corporationIds: Set<string>; preludeIds: Set<string> }
+    {
+      corporationIds: Set<string>;
+      midgamePreludeIds: Set<string>;
+      preludePhaseOver: boolean;
+      preludeIds: Set<string>;
+    }
   >();
 
   for (const participant of input.participants) {
     detected.set(participant.playerId, {
       corporationIds: new Set<string>(),
+      midgamePreludeIds: new Set<string>(),
+      preludePhaseOver: false,
       preludeIds: new Set<string>(),
     });
   }
@@ -110,17 +131,30 @@ export function parseImportPlayerSelections(input: {
         }
       }
 
+      if (lineEndsPreludePhase(line)) {
+        entry.preludePhaseOver = true;
+      }
+
       if (lineMentionsPrelude(line)) {
         const preludeMatches = findMatchingIds(line, input.preludeOptions);
 
-        if (preludeMatches.length > 0 && preludeMatches.length <= 3) {
+        // A single line naming more than three preludes is a parse we do not
+        // trust, so the opening selection is discarded rather than guessed at.
+        if (entry.preludePhaseOver) {
+          // The number of preludes a player can play mid-game is unbounded —
+          // Board of Directors plays one per director — so these are never
+          // capped by count.
+          for (const preludeId of preludeMatches) {
+            if (!entry.preludeIds.has(preludeId)) {
+              entry.midgamePreludeIds.add(preludeId);
+            }
+          }
+        } else if (preludeMatches.length > 3) {
+          entry.preludeIds.clear();
+        } else {
           for (const preludeId of preludeMatches) {
             entry.preludeIds.add(preludeId);
           }
-        }
-
-        if (preludeMatches.length > 3) {
-          entry.preludeIds.clear();
         }
       }
     }
@@ -137,12 +171,22 @@ export function parseImportPlayerSelections(input: {
         selection.preludeIds.size > 0 && selection.preludeIds.size <= 3
           ? [...selection.preludeIds]
           : [];
+      const midgamePreludeIds = [...selection.midgamePreludeIds];
 
-      if (corporationIds.length === 0 && preludeIds.length === 0) {
+      if (
+        corporationIds.length === 0 &&
+        preludeIds.length === 0 &&
+        midgamePreludeIds.length === 0
+      ) {
         return [];
       }
 
-      return [[playerId, { corporationId, corporationIds, preludeIds }] as const];
+      return [
+        [
+          playerId,
+          { corporationId, corporationIds, midgamePreludeIds, preludeIds },
+        ] as const,
+      ];
     }),
   );
 }

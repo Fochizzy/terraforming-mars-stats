@@ -15,11 +15,13 @@ function sanitizeUniqueStringArray(values: Array<string | null | undefined>) {
 function isPopulatedSelection(value: {
   corporationId: string;
   corporationIds: string[];
+  midgamePreludeIds: string[];
   preludeIds: string[];
 }) {
   return (
     value.corporationId.length > 0 ||
     value.corporationIds.length > 0 ||
+    value.midgamePreludeIds.length > 0 ||
     value.preludeIds.length > 0
   );
 }
@@ -94,6 +96,7 @@ const playerSelectionSchema = z.object({
     .nullable()
     .transform(sanitizeString),
   corporationIds: sanitizedStringArraySchema,
+  midgamePreludeIds: sanitizedStringArraySchema.default([]),
   preludeIds: sanitizedStringArraySchema,
 }).transform((selection) => {
   const corporationIds = sanitizeUniqueStringArray(
@@ -101,11 +104,18 @@ const playerSelectionSchema = z.object({
       ? selection.corporationIds
       : [selection.corporationId],
   );
+  const preludeIds = sanitizeUniqueStringArray(selection.preludeIds);
 
   return {
     ...selection,
     corporationId: corporationIds[0] ?? '',
     corporationIds,
+    // A prelude played mid-game is never also a setup selection, so the two
+    // sets stay disjoint even if a stale form value says otherwise.
+    midgamePreludeIds: sanitizeUniqueStringArray(
+      selection.midgamePreludeIds,
+    ).filter((preludeId) => !preludeIds.includes(preludeId)),
+    preludeIds,
   };
 });
 

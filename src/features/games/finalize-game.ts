@@ -105,6 +105,10 @@ export type FinalizedGamePayload = {
     corporationId: string;
     playerId: string;
   }>;
+  midgamePreludes: Array<{
+    playerId: string;
+    preludeId: string;
+  }>;
   preludes: Array<{
     playerId: string;
     preludeId: string;
@@ -158,10 +162,15 @@ function getPlayerSelection(input: ReviewGameInput, playerId: string) {
       : [selection?.corporationId],
   );
 
+  const preludeIds = normalizeUniqueStringArray(selection?.preludeIds);
+
   return {
     corporationId: corporationIds[0] ?? '',
     corporationIds,
-    preludeIds: normalizeStringArray(selection?.preludeIds),
+    midgamePreludeIds: normalizeUniqueStringArray(
+      selection?.midgamePreludeIds,
+    ).filter((preludeId) => !preludeIds.includes(preludeId)),
+    preludeIds,
   };
 }
 
@@ -540,6 +549,13 @@ export function buildFinalizedGamePayload(
     })),
   );
 
+  const midgamePreludes = input.selectedPlayerIds.flatMap((playerId) =>
+    getPlayerSelection(input, playerId).midgamePreludeIds.map((preludeId) => ({
+      playerId,
+      preludeId,
+    })),
+  );
+
   const milestones = Object.entries(input.milestoneClaims ?? {})
     .filter(
       ([milestoneId, claim]) =>
@@ -636,6 +652,7 @@ export function buildFinalizedGamePayload(
     players,
     corporations,
     preludes,
+    midgamePreludes,
     milestones,
     awards,
     declaredStyles,
@@ -654,6 +671,7 @@ export function buildFinalizedGamePayload(
         notes: input.notes,
         players,
         corporations,
+        midgamePreludes,
         playerSelections: input.playerSelections,
         playerStyles: input.playerStyles,
         preludes,

@@ -671,6 +671,23 @@ export async function finalizeGameLog(payload: {
     }
   }
 
+  const midgamePreludeRows = payload.finalizedPayload.midgamePreludes
+    .map((row) => ({
+      game_player_id: gamePlayerIdByPlayerId.get(row.playerId),
+      prelude_id: row.preludeId,
+    }))
+    .filter((row) => row.game_player_id);
+
+  if (midgamePreludeRows.length > 0) {
+    const { error: midgamePreludeError } = await supabase
+      .from('game_player_midgame_preludes')
+      .insert(midgamePreludeRows);
+
+    if (midgamePreludeError) {
+      throw midgamePreludeError;
+    }
+  }
+
   const milestoneRows = payload.finalizedPayload.milestones
     .map((row) => ({
       game_id: gameId,

@@ -19,6 +19,11 @@ import {
   type LogGamePlayerOption,
 } from './player-picker';
 
+// Board of Directors plays one prelude per director, so there is no hard cap.
+// Eight slots covers the deepest prelude engine we have seen; only these slots
+// are editable, so a longer run needs another slot adding here.
+const MIDGAME_PRELUDE_SLOT_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7];
+
 type PlayersStepProps = {
   corporationOptions: CorporationOption[];
   playerCount: number;
@@ -286,6 +291,41 @@ export function PlayersStep({
                       <SelectChevron />
                     </label>
                   ))}
+                </div>
+                <div className="grid gap-3">
+                  <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+                    Preludes played later in the game, by Valley Trust, Board of
+                    Directors or New Partner. These are kept apart from the
+                    preludes dealt at setup.
+                  </p>
+                  <div className="grid gap-3 lg:grid-cols-4">
+                    {MIDGAME_PRELUDE_SLOT_INDEXES.map((slotIndex) => (
+                      <label
+                        className="relative flex flex-col gap-2 text-sm"
+                        key={slotIndex}
+                      >
+                        <span className="tm-data-label">
+                          Mid-game prelude {slotIndex + 1}
+                        </span>
+                        <select
+                          aria-label={`${player.display_name} Mid-game prelude ${slotIndex + 1}`}
+                          className="tm-input appearance-none pr-9"
+                          defaultValue=""
+                          {...register(
+                            `playerSelections.${player.id}.midgamePreludeIds.${slotIndex}` as const,
+                          )}
+                        >
+                          <option value="">No prelude</option>
+                          {preludeOptions.map((prelude) => (
+                            <option key={prelude.id} value={prelude.id}>
+                              {prelude.name}
+                            </option>
+                          ))}
+                        </select>
+                        <SelectChevron />
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             </article>

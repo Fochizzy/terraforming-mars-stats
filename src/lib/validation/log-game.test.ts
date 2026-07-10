@@ -25,6 +25,7 @@ describe('logGameDraftSchema', () => {
       playerSelections: {
         'player-1': {
           corporationId: 'corp-1',
+          midgamePreludeIds: [],
           preludeIds: [],
         },
       },
@@ -33,6 +34,7 @@ describe('logGameDraftSchema', () => {
     expect(parsed.playerSelections['player-1']).toEqual({
       corporationId: 'corp-1',
       corporationIds: ['corp-1'],
+      midgamePreludeIds: [],
       preludeIds: [],
     });
   });
@@ -44,6 +46,7 @@ describe('logGameDraftSchema', () => {
         'player-1': {
           corporationId: '',
           corporationIds: ['corp-1', '', 'corp-2', 'corp-1'],
+          midgamePreludeIds: [],
           preludeIds: [],
         },
       },
@@ -52,6 +55,7 @@ describe('logGameDraftSchema', () => {
     expect(parsed.playerSelections['player-1']).toEqual({
       corporationId: 'corp-1',
       corporationIds: ['corp-1', 'corp-2'],
+      midgamePreludeIds: [],
       preludeIds: [],
     });
   });
