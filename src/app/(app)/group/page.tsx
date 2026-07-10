@@ -1,36 +1,48 @@
-import Link from 'next/link';
 import { AppShell } from '@/components/layout/app-shell';
-import { GroupDashboard } from '@/features/analytics/group-dashboard';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
-import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
-import { getGroupAnalytics } from '@/lib/db/analytics-repo';
+import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
+import {
+  getSelectionStats,
+  type SelectionStats,
+} from '@/lib/db/selection-stats-repo';
 
-export default async function GroupPage() {
-  const context = await requireGroupContextOrRedirect();
-  const groupAnalytics = await getGroupAnalytics(context.groupId);
+const emptySelectionStats: SelectionStats = {
+  awardFunding: [],
+  baselineWinRate: 0,
+  cards: [],
+  corporations: [],
+  corporationTags: [],
+  pairs: [],
+  preludes: [],
+  tagWins: [],
+};
+
+async function loadGlobalStatsOrDefault(): Promise<SelectionStats> {
+  try {
+    return await getSelectionStats('global');
+  } catch (error) {
+    console.error('[global] Failed to load global selection stats', error);
+    return emptySelectionStats;
+  }
+}
+
+export default async function GlobalStatisticsPage() {
+  const globalStats = await loadGlobalStatsOrDefault();
 
   return (
-    <AppShell
-      headerActions={
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <GroupSwitcher currentGroupId={context.groupId} returnPath="/group" />
-          <Link className="tm-button-secondary px-4 py-2 text-xs" href="/group/settings">
-            Group Settings
-          </Link>
+    <AppShell showReviewSavedGamesLink title="Global Statistics" wide>
+      <section className="tm-panel flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <h2 className="tm-panel-title text-lg">All Recorded Games</h2>
+          <p className="tm-muted-copy text-sm">
+            Corporation, prelude, and card performance across every recorded game
+            — including games you didn&apos;t play in.
+          </p>
         </div>
-      }
-      showReviewSavedGamesLink
-      title="Group"
-      wide
-    >
-      <GroupDashboard
-        coverage={groupAnalytics.coverage}
-        headToHeadRows={groupAnalytics.headToHeadRows}
-        leaderboardRows={groupAnalytics.leaderboardRows}
-        lineupEffectRows={groupAnalytics.lineupEffectRows}
-        scoreAverages={groupAnalytics.scoreAverages}
-        styleAgreementRows={groupAnalytics.styleAgreementRows}
-      />
+        <SelectionStatsScope
+          heading="Corporation &amp; Prelude Performance"
+          stats={globalStats}
+        />
+      </section>
     </AppShell>
   );
 }

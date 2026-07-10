@@ -99,7 +99,7 @@ function SelectionStatRows(props: {
   );
 }
 
-function SelectionStatsScope(props: {
+export function SelectionStatsScope(props: {
   heading: string;
   stats: SelectionStats;
 }) {

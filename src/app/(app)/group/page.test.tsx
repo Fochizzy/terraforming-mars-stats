@@ -1,11 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import GroupPage from './page';
+import GlobalStatisticsPage from './page';
+import type { SelectionStats } from '@/lib/db/selection-stats-repo';
 
 const mockState = vi.hoisted(() => ({
-  getGroupAnalytics: vi.fn(),
-  requireGroupContextOrRedirect: vi.fn(),
+  getSelectionStats: vi.fn(),
 }));
 
 vi.mock('@/components/layout/app-shell', () => ({
@@ -31,61 +31,66 @@ vi.mock('@/components/layout/app-shell', () => ({
   ),
 }));
 
-vi.mock('@/features/analytics/group-dashboard', () => ({
-  GroupDashboard: () => <div data-testid="group-dashboard" />,
+vi.mock('@/features/insights/selection-stats-section', () => ({
+  SelectionStatsScope: ({ heading }: { heading: string; stats: SelectionStats }) => (
+    <div data-testid="global-selection-stats">{heading}</div>
+  ),
 }));
 
-vi.mock('@/features/groups/group-switcher', () => ({
-  GroupSwitcher: () => <div>Group Switcher</div>,
+vi.mock('@/lib/db/selection-stats-repo', () => ({
+  getSelectionStats: mockState.getSelectionStats,
 }));
 
-vi.mock('@/features/groups/require-group-context', () => ({
-  requireGroupContextOrRedirect: mockState.requireGroupContextOrRedirect,
-}));
+const sampleStats: SelectionStats = {
+  awardFunding: [],
+  baselineWinRate: 0.2,
+  cards: [],
+  corporations: [],
+  corporationTags: [],
+  pairs: [],
+  preludes: [],
+  tagWins: [],
+};
 
-vi.mock('@/lib/db/analytics-repo', () => ({
-  getGroupAnalytics: mockState.getGroupAnalytics,
-}));
-
-describe('GroupPage', () => {
+describe('GlobalStatisticsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    mockState.requireGroupContextOrRedirect.mockResolvedValue({
-      groupId: 'group-1',
-      groupName: 'Mars Club',
-      role: 'viewer',
-      userId: 'user-1',
-    });
-    mockState.getGroupAnalytics.mockResolvedValue({
-      coverage: null,
-      headToHeadRows: [],
-      leaderboardRows: [],
-      lineupEffectRows: [],
-      scoreAverages: null,
-      styleAgreementRows: [],
-    });
+    mockState.getSelectionStats.mockResolvedValue(sampleStats);
   });
 
-  it('shows group settings access for any group member role', async () => {
-    render(await GroupPage());
+  it('renders global statistics from all recorded games', async () => {
+    render(await GlobalStatisticsPage());
 
-    expect(screen.getByRole('heading', { name: 'Group' })).toBeInTheDocument();
-    expect(screen.getByText('Group Switcher')).toBeInTheDocument();
+    expect(mockState.getSelectionStats).toHaveBeenCalledWith('global');
     expect(
-      screen.getByRole('link', { name: /group settings/i }),
-    ).toHaveAttribute('href', '/group/settings');
+      screen.getByRole('heading', { name: 'Global Statistics' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('global-selection-stats')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /review saved games/i }),
     ).toHaveAttribute('href', '/log-game/review');
-    expect(screen.getByTestId('group-dashboard')).toBeInTheDocument();
   });
 
-  // The personal comparison moved to its own screen at /profile/comparison.
-  it('does not render the personal play comparison', async () => {
-    render(await GroupPage());
+  it('does not render group-scoped affordances', async () => {
+    render(await GlobalStatisticsPage());
 
-    expect(screen.queryByText('My Play vs Overall')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Group')).not.toBeInTheDocument();
+    expect(screen.queryByText('Group Switcher')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /group settings/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('group-dashboard')).not.toBeInTheDocument();
+  });
+
+  it('falls back to empty stats when the global query fails', async () => {
+    mockState.getSelectionStats.mockRejectedValueOnce(new Error('boom'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(await GlobalStatisticsPage());
+
+    expect(
+      screen.getByRole('heading', { name: 'Global Statistics' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('global-selection-stats')).toBeInTheDocument();
+    consoleError.mockRestore();
   });
 });
