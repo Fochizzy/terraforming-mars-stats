@@ -90,7 +90,9 @@ function dimmedRow(input: {
   ];
 }
 
-const GLOBAL_PARAMETER_X = [181, 249, 322, 413];
+// The total column lands within a couple of points of the second detail
+// column's text x (400), so its numbers can be mistaken for a wrapped line.
+const GLOBAL_PARAMETER_X = [181, 249, 322, 402];
 
 function globalParameterRow(input: {
   name: string;
@@ -189,6 +191,16 @@ function buildGameResultPdf(
         { column: 3, text: 'award (funded by Colette)' },
       ]),
       ...detailRow(7, [{ column: 0, text: 'Izzy)' }]),
+      // A blank spacer separates the cards from the milestones and awards, so
+      // rows 8 and 9 are skipped entirely.
+      ...detailRow(10, [
+        { column: 0, points: 5, text: 'Claimed Ecologist' },
+        { column: 1, points: 5, text: '1st place for Industrialist' },
+      ]),
+      ...detailRow(11, [
+        { column: 0, text: 'milestone' },
+        { column: 1, text: 'award (funded by James)' },
+      ]),
       // The global parameter table sits far below the detail block, headed by
       // icons plus a single "Total" text column, and is ordered by turn order.
       { text: 'Total', x: 404, y: 2726 },
@@ -320,6 +332,7 @@ describe('readGameResultPdf', () => {
       'Vermin -5',
       '1st place for Estate Dealer award 5',
       '(funded by Izzy)',
+      'Claimed Ecologist milestone 5',
     ]);
   });
 
@@ -343,7 +356,33 @@ describe('readGameResultPdf', () => {
       '16 Psyche 2',
       'Nuclear Zone -2',
       'Claimed Specialist milestone 5',
+      '1st place for Industrialist award 5',
+      '(funded by James)',
     ]);
+  });
+
+  // The game prints milestones and awards last, after a blank spacer row. A
+  // vertical cut ends the block at that spacer and loses every claim.
+  it('reads the milestones and awards printed below a blank spacer row', async () => {
+    const read = await readGameResultPdf(buildGameResultPdf());
+    const [izzy, james] = read.scoreDetailsColumns;
+
+    expect(izzy.textLines).toContain('Claimed Ecologist milestone 5');
+    expect(james.textLines).toContain('1st place for Industrialist award 5');
+    expect(james.textLines).toContain('(funded by James)');
+  });
+
+  // The global parameter table's total column all but touches the second
+  // column's text x, so its numbers must not be appended to the award above it.
+  it('does not append the global parameter totals to the entry above them', async () => {
+    const read = await readGameResultPdf(buildGameResultPdf());
+
+    for (const column of read.scoreDetailsColumns) {
+      for (const line of column.textLines) {
+        expect(line).not.toMatch(/award \d+ \d+$/);
+        expect(line).not.toMatch(/\b(?:13|12|11)\b/);
+      }
+    }
   });
 
   it('keeps the global parameter table out of the score detail columns', async () => {

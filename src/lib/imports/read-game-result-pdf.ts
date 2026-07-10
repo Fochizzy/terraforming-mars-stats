@@ -52,7 +52,10 @@ const NAME_ABOVE_MARGIN = 5;
 /** Entry point badges sit ~28pt left of the entry text; negatives shift left. */
 const BADGE_TOLERANCE = 14;
 /** Detail rows are ~27pt apart; the stats table below them is far further. */
-const DETAIL_BLOCK_MAX_ROW_GAP = 60;
+/** How far a token may sit from a column's text x and still continue it. */
+const ANCHOR_TOLERANCE = 3;
+/** Blank spacer rows separate the detail groups, so one gap must not end them. */
+const MAX_UNALIGNED_ROWS = 3;
 const NUMBER_PATTERN = /^-?\d+$/;
 const GENERATION_LABEL_PATTERN = /^GEN\b/i;
 const FUNDED_BY_FRAGMENT_PATTERN = /\(\s*funded\s+by\s+[^)]*\)/i;
@@ -202,58 +205,143 @@ function findGenerationCount(pages: PdfTextPage[]) {
 }
 
 type DetailColumn = {
+  /** x of an entry's points badge. */
   badgeX: number;
   leftBound: number;
   playerName: string;
   rightBound: number;
+  /** x of an entry's text, and of the wrapped lines that continue it. */
+  textX: number;
 };
 
-function findDetailColumns(input: {
+function findColumnBounds(input: {
+  headerTokens: PdfToken[];
   playerNames: string[];
-  rows: PdfRow[];
-}): { columns: DetailColumn[]; headerIndex: number } | null {
+}) {
   const normalized = input.playerNames.map((name) => name.toLowerCase());
+  const matched = input.headerTokens.filter((token) =>
+    normalized.includes(token.text.toLowerCase()),
+  );
 
-  for (const [index, row] of input.rows.entries()) {
-    const matched = row.tokens.filter((token) =>
-      normalized.includes(token.text.toLowerCase()),
-    );
+  if (matched.length < 2) {
+    return null;
+  }
 
-    if (matched.length < 2) {
-      continue;
+  const lefts = matched.map((token) => token.x);
+
+  return matched.map((token, index) => ({
+    leftBound:
+      index === 0
+        ? Number.NEGATIVE_INFINITY
+        : (lefts[index - 1] + lefts[index]) / 2,
+    playerName: token.text,
+    rightBound:
+      index === matched.length - 1
+        ? Number.POSITIVE_INFINITY
+        : (lefts[index] + lefts[index + 1]) / 2,
+  }));
+}
+
+/**
+ * The first row under the header carries a points badge and an entry text in
+ * every column, which fixes the two x positions every later row aligns to.
+ */
+function readColumnAnchors(input: {
+  bounds: Array<Omit<DetailColumn, 'badgeX' | 'textX'>>;
+  rows: PdfRow[];
+  startIndex: number;
+}): DetailColumn[] | null {
+  for (let index = input.startIndex; index < input.rows.length; index += 1) {
+    const anchored = input.bounds.map((column) => {
+      const tokens = input.rows[index].tokens.filter(
+        (token) => token.x >= column.leftBound && token.x < column.rightBound,
+      );
+
+      return tokens.length >= 2 && isNumberToken(tokens[0])
+        ? { ...column, badgeX: tokens[0].x, textX: tokens[1].x }
+        : null;
+    });
+
+    if (anchored.every((column): column is DetailColumn => column !== null)) {
+      return anchored;
     }
-
-    const lefts = matched.map((token) => token.x);
-    const columns = matched.map((token, columnIndex) => ({
-      badgeX: Number.POSITIVE_INFINITY,
-      leftBound:
-        columnIndex === 0
-          ? Number.NEGATIVE_INFINITY
-          : (lefts[columnIndex - 1] + lefts[columnIndex]) / 2,
-      playerName: token.text,
-      rightBound:
-        columnIndex === matched.length - 1
-          ? Number.POSITIVE_INFINITY
-          : (lefts[columnIndex] + lefts[columnIndex + 1]) / 2,
-    }));
-
-    return { columns, headerIndex: index };
   }
 
   return null;
 }
 
-function collectDetailBlockRows(rows: PdfRow[], headerIndex: number) {
+function rowAnchorsToColumns(row: PdfRow, columns: DetailColumn[]) {
+  return columns.some((column) =>
+    row.tokens.some((token) => {
+      if (token.x < column.leftBound || token.x >= column.rightBound) {
+        return false;
+      }
+
+      if (Math.abs(token.x - column.textX) <= ANCHOR_TOLERANCE) {
+        return true;
+      }
+
+      return (
+        isNumberToken(token) &&
+        token.x >= column.badgeX - ANCHOR_TOLERANCE &&
+        token.x <= column.badgeX + BADGE_TOLERANCE
+      );
+    }),
+  );
+}
+
+/**
+ * The global parameter table repeats the player names beside their terraforming
+ * counts. Its total column can land within a hair of a detail column's text x,
+ * so the block has to end here rather than rely on x alignment alone.
+ */
+function isGlobalParameterRow(row: PdfRow, playerNames: string[]) {
+  const normalized = playerNames.map((name) => name.toLowerCase());
+  const namesInRow = row.tokens.filter((token) =>
+    normalized.includes(token.text.toLowerCase()),
+  ).length;
+
+  return namesInRow === 1 && row.tokens.filter(isNumberToken).length >= 3;
+}
+
+/**
+ * Rows belong to the block when they line up with a column's badge or text, not
+ * when they sit close to the row above. The details are broken up by blank
+ * spacer rows, and a purely vertical cut ends the block at the first one --
+ * dropping the milestones and awards, which the game prints last.
+ *
+ * Below the details come the game log and the global parameter table, so the
+ * block ends at the first parameter row, or after a short run of rows that line
+ * up with nothing.
+ */
+function collectDetailBlockRows(input: {
+  columns: DetailColumn[];
+  headerIndex: number;
+  playerNames: string[];
+  rows: PdfRow[];
+}) {
   const blockRows: PdfRow[] = [];
+  let unalignedRun = 0;
 
-  for (let index = headerIndex + 1; index < rows.length; index += 1) {
-    const previous = blockRows.at(-1) ?? rows[headerIndex];
+  for (let index = input.headerIndex + 1; index < input.rows.length; index += 1) {
+    const row = input.rows[index];
 
-    if (rows[index].y - previous.y > DETAIL_BLOCK_MAX_ROW_GAP) {
+    if (isGlobalParameterRow(row, input.playerNames)) {
       break;
     }
 
-    blockRows.push(rows[index]);
+    if (!rowAnchorsToColumns(row, input.columns)) {
+      unalignedRun += 1;
+
+      if (unalignedRun >= MAX_UNALIGNED_ROWS) {
+        break;
+      }
+
+      continue;
+    }
+
+    unalignedRun = 0;
+    blockRows.push(row);
   }
 
   return blockRows;
@@ -276,21 +364,28 @@ function buildColumnTextLines(input: {
       ),
     )
     .filter((tokens) => tokens.length > 0);
-  const badgeX = Math.min(
-    ...columnRows.flatMap((tokens) =>
-      isNumberToken(tokens[0]) ? [tokens[0].x] : [],
-    ),
-  );
+  const { badgeX } = input.column;
   const entries: DetailEntry[] = [];
 
   for (const tokens of columnRows) {
     const [first, ...rest] = tokens;
 
-    if (isNumberToken(first) && first.x <= badgeX + BADGE_TOLERANCE) {
+    if (
+      isNumberToken(first) &&
+      first.x >= badgeX - ANCHOR_TOLERANCE &&
+      first.x <= badgeX + BADGE_TOLERANCE
+    ) {
       entries.push({
         points: Number(first.text),
         textParts: rest.map((token) => token.text),
       });
+      continue;
+    }
+
+    // A wrapped line starts at the entry text. Rows that merely pass through
+    // the column's x range -- the global parameter table and the game log both
+    // do -- must not be appended to the entry above them.
+    if (Math.abs(first.x - input.column.textX) > ANCHOR_TOLERANCE) {
       continue;
     }
 
@@ -331,15 +426,45 @@ function readScoreDetailColumns(input: {
     tokens.sort((left, right) => left.y - right.y || left.x - right.x),
     ROW_TOLERANCE,
   );
-  const located = findDetailColumns({ playerNames: input.playerNames, rows });
+  const normalized = input.playerNames.map((name) => name.toLowerCase());
+  const headerIndex = rows.findIndex(
+    (row) =>
+      row.tokens.filter((token) =>
+        normalized.includes(token.text.toLowerCase()),
+      ).length >= 2,
+  );
 
-  if (!located) {
+  if (headerIndex < 0) {
     return [];
   }
 
-  const blockRows = collectDetailBlockRows(rows, located.headerIndex);
+  const bounds = findColumnBounds({
+    headerTokens: rows[headerIndex].tokens,
+    playerNames: input.playerNames,
+  });
 
-  return located.columns.map((column) => ({
+  if (!bounds) {
+    return [];
+  }
+
+  const columns = readColumnAnchors({
+    bounds,
+    rows,
+    startIndex: headerIndex + 1,
+  });
+
+  if (!columns) {
+    return [];
+  }
+
+  const blockRows = collectDetailBlockRows({
+    columns,
+    headerIndex,
+    playerNames: input.playerNames,
+    rows,
+  });
+
+  return columns.map((column) => ({
     textLines: [
       column.playerName,
       ...buildColumnTextLines({ blockRows, column }),
