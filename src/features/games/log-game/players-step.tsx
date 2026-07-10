@@ -227,25 +227,38 @@ export function PlayersStep({
                 {formatSelectedPlayerLabel(player)}
               </p>
               <div className="mt-4 grid gap-4">
-                <label className="relative flex flex-col gap-2 text-sm">
-                  <span className="tm-data-label">Corporation</span>
-                  <select
-                    aria-label={`${player.display_name} Corporation`}
-                    className="tm-input appearance-none pr-9"
-                    defaultValue=""
-                    {...register(
-                      `playerSelections.${player.id}.corporationId` as const,
-                    )}
-                  >
-                    <option value="">Select corporation</option>
-                    {corporationOptions.map((corporation) => (
-                      <option key={corporation.id} value={corporation.id}>
-                        {corporation.name}
-                      </option>
-                    ))}
-                  </select>
-                  <SelectChevron />
-                </label>
+                <div className="grid gap-3 lg:grid-cols-3">
+                  {[0, 1, 2].map((slotIndex) => (
+                    <label
+                      className="relative flex flex-col gap-2 text-sm"
+                      key={slotIndex}
+                    >
+                      <span className="tm-data-label">
+                        Corporation {slotIndex + 1}
+                      </span>
+                      <select
+                        aria-label={`${player.display_name} Corporation ${slotIndex + 1}`}
+                        className="tm-input appearance-none pr-9"
+                        defaultValue=""
+                        {...register(
+                          `playerSelections.${player.id}.corporationIds.${slotIndex}` as const,
+                        )}
+                      >
+                        <option value="">
+                          {slotIndex === 0
+                            ? 'Select corporation'
+                            : 'No extra corporation'}
+                        </option>
+                        {corporationOptions.map((corporation) => (
+                          <option key={corporation.id} value={corporation.id}>
+                            {corporation.name}
+                          </option>
+                        ))}
+                      </select>
+                      <SelectChevron />
+                    </label>
+                  ))}
+                </div>
                 <div className="grid gap-3 lg:grid-cols-3">
                   {[0, 1, 2].map((slotIndex) => (
                     <label

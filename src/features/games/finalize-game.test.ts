@@ -113,10 +113,12 @@ describe('buildGameReview', () => {
       playerSelections: {
         p1: {
           corporationId: 'corp1',
+          corporationIds: ['corp1'],
           preludeIds: ['prelude1', 'prelude2'],
         },
         p2: {
           corporationId: 'corp2',
+          corporationIds: ['corp2'],
           preludeIds: [],
         },
       },
@@ -144,6 +146,7 @@ describe('buildGameReview', () => {
       playerSelections: {
         p1: {
           corporationId: 'corp1',
+          corporationIds: ['corp1'],
           preludeIds: [],
         },
       },
@@ -189,6 +192,7 @@ describe('buildGameReview', () => {
       playerSelections: {
         kept: {
           corporationId: 'corp-1',
+          corporationIds: ['corp-1'],
           preludeIds: [],
         },
       },
@@ -229,10 +233,12 @@ describe('buildFinalizedGamePayload', () => {
       playerSelections: {
         p1: {
           corporationId: 'corp1',
+          corporationIds: ['corp1'],
           preludeIds: ['prelude1'],
         },
         p2: {
           corporationId: 'corp2',
+          corporationIds: ['corp2'],
           preludeIds: ['prelude2'],
         },
       },
@@ -280,6 +286,8 @@ describe('buildFinalizedGamePayload', () => {
       expect.arrayContaining([
         expect.objectContaining({
           playerId: 'p1',
+          corporationId: 'corp1',
+          corporationIds: ['corp1'],
           placement: 1,
           isWinner: true,
           otherCardPoints: 10,
@@ -295,6 +303,12 @@ describe('buildFinalizedGamePayload', () => {
       expect.arrayContaining([
         { playerId: 'p1', preludeId: 'prelude1' },
         { playerId: 'p2', preludeId: 'prelude2' },
+      ]),
+    );
+    expect(payload.corporations).toEqual(
+      expect.arrayContaining([
+        { playerId: 'p1', corporationId: 'corp1' },
+        { playerId: 'p2', corporationId: 'corp2' },
       ]),
     );
     expect(payload.milestones).toEqual([
@@ -331,5 +345,44 @@ describe('buildFinalizedGamePayload', () => {
       ]),
     );
     expect(payload.keyCards).toEqual([{ cardId: 'card1', playerId: 'p1' }]);
+  });
+
+  it('keeps multiple selected corporations for the same player', () => {
+    const payload = buildFinalizedGamePayload({
+      catalogSnapshotId: null,
+      mapAwardIds: [],
+      mapMilestoneIds: [],
+      playerSelections: {
+        p1: {
+          corporationId: 'corp1',
+          corporationIds: ['corp1', 'corp2'],
+          preludeIds: [],
+        },
+      },
+      playerScores: {
+        p1: {
+          awardPoints: 0,
+          cardPointsTotal: 0,
+          citiesPoints: 0,
+          finalMegacredits: 0,
+          greeneryPoints: 0,
+          milestonePoints: 0,
+          totalPoints: 42,
+          trPoints: 42,
+        },
+      },
+      selectedPlayerIds: ['p1'],
+    });
+
+    expect(payload.review.issues).toHaveLength(0);
+    expect(payload.players[0]).toMatchObject({
+      playerId: 'p1',
+      corporationId: 'corp1',
+      corporationIds: ['corp1', 'corp2'],
+    });
+    expect(payload.corporations).toEqual([
+      { playerId: 'p1', corporationId: 'corp1' },
+      { playerId: 'p1', corporationId: 'corp2' },
+    ]);
   });
 });

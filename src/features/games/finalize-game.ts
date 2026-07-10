@@ -90,6 +90,7 @@ export type FinalizedGamePayload = {
     cardPointsTotal: number;
     citiesPoints: number;
     corporationId: string | null;
+    corporationIds: string[];
     finalMegacredits: number;
     greeneryPoints: number;
     isWinner: boolean;
@@ -99,6 +100,10 @@ export type FinalizedGamePayload = {
     playerId: string;
     totalPoints: number;
     trPoints: number;
+  }>;
+  corporations: Array<{
+    corporationId: string;
+    playerId: string;
   }>;
   preludes: Array<{
     playerId: string;
@@ -141,14 +146,21 @@ function normalizeStringArray(value: unknown) {
     .filter(Boolean);
 }
 
+function normalizeUniqueStringArray(value: unknown) {
+  return [...new Set(normalizeStringArray(value))];
+}
+
 function getPlayerSelection(input: ReviewGameInput, playerId: string) {
   const selection = input.playerSelections?.[playerId];
+  const corporationIds = normalizeUniqueStringArray(
+    selection?.corporationIds?.length
+      ? selection.corporationIds
+      : [selection?.corporationId],
+  );
 
   return {
-    corporationId:
-      selection && typeof selection.corporationId === 'string'
-        ? selection.corporationId.trim()
-        : '',
+    corporationId: corporationIds[0] ?? '',
+    corporationIds,
     preludeIds: normalizeStringArray(selection?.preludeIds),
   };
 }
@@ -264,10 +276,10 @@ export function buildGameReview(input: ReviewGameInput): GameReview {
   );
 
   for (const { playerId, score, selection, style } of playerSelectionRows) {
-    if (!hasValue(selection.corporationId)) {
+    if (selection.corporationIds.length === 0) {
       issues.push({
         code: 'missing_corporation',
-        message: `Choose a corporation for ${playerId}.`,
+        message: `Choose at least one corporation for ${playerId}.`,
         severity: 'error',
       });
     }
@@ -496,6 +508,7 @@ export function buildFinalizedGamePayload(
       corporationId: hasValue(selection.corporationId)
         ? selection.corporationId
         : null,
+      corporationIds: selection.corporationIds,
       placement: ranking.placement,
       isWinner: ranking.isWinner,
       totalPoints: requireScoreField(score, 'totalPoints'),
@@ -512,6 +525,13 @@ export function buildFinalizedGamePayload(
       otherCardPoints: computeOtherCardPoints(score),
     };
   });
+
+  const corporations = input.selectedPlayerIds.flatMap((playerId) =>
+    getPlayerSelection(input, playerId).corporationIds.map((corporationId) => ({
+      playerId,
+      corporationId,
+    })),
+  );
 
   const preludes = input.selectedPlayerIds.flatMap((playerId) =>
     getPlayerSelection(input, playerId).preludeIds.map((preludeId) => ({
@@ -614,6 +634,7 @@ export function buildFinalizedGamePayload(
       catalog_snapshot_id: input.catalogSnapshotId,
     },
     players,
+    corporations,
     preludes,
     milestones,
     awards,
@@ -632,6 +653,7 @@ export function buildFinalizedGamePayload(
         milestones,
         notes: input.notes,
         players,
+        corporations,
         playerSelections: input.playerSelections,
         playerStyles: input.playerStyles,
         preludes,

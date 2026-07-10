@@ -41,6 +41,27 @@ function getScopedRows(rows: TagOutcomeRow[], focusPlayerId: string | null) {
   return rows.filter((row) => !focusPlayerId || row.playerId === focusPlayerId);
 }
 
+// A player who controls several corporations (e.g. after the Merger prelude)
+// gets one row per corporation for the same tag result. Aggregations that count
+// player results — rather than corporation results — must collapse those back to
+// a single row, otherwise multi-corporation games are counted twice.
+function getScopedPlayerResultRows(
+  rows: TagOutcomeRow[],
+  focusPlayerId: string | null,
+) {
+  const byPlayerResult = new Map<string, TagOutcomeRow>();
+
+  for (const row of getScopedRows(rows, focusPlayerId)) {
+    const key = `${row.gameId}|${row.playerId}|${row.tagCode}`;
+
+    if (!byPlayerResult.has(key)) {
+      byPlayerResult.set(key, row);
+    }
+  }
+
+  return [...byPlayerResult.values()];
+}
+
 export type TagWinRateDatum = {
   averageTagCount: number;
   maxTagCount: number;
@@ -59,7 +80,7 @@ export function buildTagWinRateData(
     { maxTagCount: number; results: number; tagSum: number; wins: number }
   >();
 
-  for (const row of getScopedRows(rows, focusPlayerId)) {
+  for (const row of getScopedPlayerResultRows(rows, focusPlayerId)) {
     if (row.tagCount <= 0) {
       continue;
     }
@@ -109,7 +130,7 @@ export function buildTagCountDistributionData(
   tagCode: string,
   focusPlayerId: string | null,
 ): TagCountDistributionDatum[] {
-  const relevantRows = getScopedRows(rows, focusPlayerId).filter(
+  const relevantRows = getScopedPlayerResultRows(rows, focusPlayerId).filter(
     (row) => row.tagCode === tagCode,
   );
   const totalResults = relevantRows.length;

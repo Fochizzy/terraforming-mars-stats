@@ -808,6 +808,7 @@ describe('buildImportDraft', () => {
       playerSelections: {
         'player-1': {
           corporationId: 'corp-1',
+          corporationIds: ['corp-1'],
           preludeIds: ['prelude-1', 'prelude-2'],
         },
       },

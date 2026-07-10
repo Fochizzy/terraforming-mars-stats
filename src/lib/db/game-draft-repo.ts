@@ -588,6 +588,23 @@ export async function finalizeGameLog(payload: {
     insertedPlayers.map((player) => [player.player_id, player.id]),
   );
 
+  const corporationRows = payload.finalizedPayload.corporations
+    .map((row) => ({
+      game_player_id: gamePlayerIdByPlayerId.get(row.playerId),
+      corporation_id: row.corporationId,
+    }))
+    .filter((row) => row.game_player_id);
+
+  if (corporationRows.length > 0) {
+    const { error: corporationError } = await supabase
+      .from('game_player_corporations')
+      .insert(corporationRows);
+
+    if (corporationError) {
+      throw corporationError;
+    }
+  }
+
   const preludeRows = payload.finalizedPayload.preludes
     .map((row) => ({
       game_player_id: gamePlayerIdByPlayerId.get(row.playerId),

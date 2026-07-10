@@ -320,6 +320,187 @@ describe('deleteSavedGame', () => {
   });
 });
 
+describe('finalizeGameLog', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('writes every selected corporation for a finalized player', async () => {
+    const finalGamePlayersDeleteQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const finalGamePlayersInsertQuery = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue({
+        data: [{ id: 'game-player-1', player_id: 'player-1' }],
+        error: null,
+      }),
+    };
+    let finalGamePlayersCallCount = 0;
+    const corporationInsert = vi.fn().mockResolvedValue({ error: null });
+    const finalClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_players') {
+          finalGamePlayersCallCount += 1;
+          return finalGamePlayersCallCount === 1
+            ? finalGamePlayersDeleteQuery
+            : finalGamePlayersInsertQuery;
+        }
+
+        if (table === 'game_player_corporations') {
+          return { insert: corporationInsert };
+        }
+
+        throw new Error(`Unexpected finalization table ${table}`);
+      }),
+    };
+    const updateGameQuery = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { id: 'game-1' },
+        error: null,
+      }),
+    };
+    const shellClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'games') {
+          return updateGameQuery;
+        }
+
+        throw new Error(`Unexpected shell table ${table}`);
+      }),
+    };
+    const setupDeleteQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const setupClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_expansions' || table === 'game_promo_sets') {
+          return setupDeleteQuery;
+        }
+
+        throw new Error(`Unexpected setup table ${table}`);
+      }),
+    };
+    const revisionInsert = vi.fn().mockResolvedValue({ error: null });
+    const revisionClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_revisions') {
+          return { insert: revisionInsert };
+        }
+
+        throw new Error(`Unexpected revision table ${table}`);
+      }),
+    };
+
+    vi.mocked(createSupabaseServerClient)
+      .mockResolvedValueOnce(finalClient as never)
+      .mockResolvedValueOnce(shellClient as never)
+      .mockResolvedValueOnce(setupClient as never)
+      .mockResolvedValueOnce(revisionClient as never);
+
+    await expect(
+      repo.finalizeGameLog({
+        form: {
+          awardClaims: {},
+          expansionCodes: [],
+          gameId: 'game-1',
+          generationCount: 10,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          mapId: 'tharsis',
+          milestoneClaims: {},
+          notes: '',
+          playedOn: '2026-07-08',
+          playerCount: 1,
+          playerScores: {},
+          playerSelections: {
+            'player-1': {
+              corporationId: 'corp-1',
+              corporationIds: ['corp-1', 'corp-2'],
+              preludeIds: [],
+            },
+          },
+          playerStyles: {},
+          promoSetSlugs: [],
+          selectedPlayerIds: ['player-1'],
+        },
+        finalizedPayload: {
+          awards: [],
+          corporations: [
+            { playerId: 'player-1', corporationId: 'corp-1' },
+            { playerId: 'player-1', corporationId: 'corp-2' },
+          ],
+          declaredStyles: [],
+          gameUpdate: {
+            catalog_snapshot_id: null,
+            status: 'finalized',
+          },
+          inferredStyles: [],
+          keyCards: [],
+          milestones: [],
+          players: [
+            {
+              awardPoints: 0,
+              cardPointsAnimals: null,
+              cardPointsJovian: null,
+              cardPointsMicrobes: null,
+              cardPointsTotal: 0,
+              citiesPoints: 0,
+              corporationId: 'corp-1',
+              corporationIds: ['corp-1', 'corp-2'],
+              finalMegacredits: 0,
+              greeneryPoints: 0,
+              isWinner: true,
+              milestonePoints: 0,
+              otherCardPoints: null,
+              placement: 1,
+              playerId: 'player-1',
+              totalPoints: 42,
+              trPoints: 42,
+            },
+          ],
+          preludes: [],
+          review: {
+            coverage: {
+              playersWithCardBreakdown: 0,
+              playersWithDeclaredStyle: 0,
+              playersWithKeyCards: 0,
+              playersWithOptionalSubscores: 0,
+            },
+            issues: [],
+          },
+          revision: {
+            note: 'Finalize game results',
+            snapshot: {},
+          },
+        },
+        userId: 'user-1',
+      }),
+    ).resolves.toEqual({ gameId: 'game-1' });
+
+    expect(finalGamePlayersInsertQuery.insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        corporation_id: 'corp-1',
+        player_id: 'player-1',
+      }),
+    ]);
+    expect(corporationInsert).toHaveBeenCalledWith([
+      {
+        game_player_id: 'game-player-1',
+        corporation_id: 'corp-1',
+      },
+      {
+        game_player_id: 'game-player-1',
+        corporation_id: 'corp-2',
+      },
+    ]);
+  });
+});
+
 describe('getSavedGameForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -8,6 +8,7 @@ type ImportParticipant = {
 
 type ParsedPlayerSelection = {
   corporationId: string;
+  corporationIds: string[];
   preludeIds: string[];
 };
 
@@ -99,12 +100,13 @@ export function parseImportPlayerSelections(input: {
       if (lineMentionsCorporation(line)) {
         const corporationMatches = findMatchingIds(line, input.corporationOptions);
 
+        // A player can control several corporations (e.g. after the Merger
+        // prelude), so confident single-corp lines accumulate. A line naming two
+        // corporations is ambiguous — we cannot tell which one the player took —
+        // so it is skipped rather than discarding the corporations that earlier
+        // "<player> played <corporation>" lines already established.
         if (corporationMatches.length === 1) {
           entry.corporationIds.add(corporationMatches[0]!);
-        }
-
-        if (corporationMatches.length > 1) {
-          entry.corporationIds.clear();
         }
       }
 
@@ -126,20 +128,21 @@ export function parseImportPlayerSelections(input: {
 
   return Object.fromEntries(
     [...detected.entries()].flatMap(([playerId, selection]) => {
-      const corporationId =
-        selection.corporationIds.size === 1
-          ? [...selection.corporationIds][0]!
-          : '';
+      const corporationIds =
+        selection.corporationIds.size > 0 && selection.corporationIds.size <= 3
+          ? [...selection.corporationIds]
+          : [];
+      const corporationId = corporationIds[0] ?? '';
       const preludeIds =
         selection.preludeIds.size > 0 && selection.preludeIds.size <= 3
           ? [...selection.preludeIds]
           : [];
 
-      if (!corporationId && preludeIds.length === 0) {
+      if (corporationIds.length === 0 && preludeIds.length === 0) {
         return [];
       }
 
-      return [[playerId, { corporationId, preludeIds }] as const];
+      return [[playerId, { corporationId, corporationIds, preludeIds }] as const];
     }),
   );
 }

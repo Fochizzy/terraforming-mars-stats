@@ -3,13 +3,17 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
 import { SelectionStatsSection } from '@/features/insights/selection-stats-section';
-import type { GroupHeadToHeadRow } from '@/lib/db/analytics-repo';
+import type { GroupAnalytics, GroupHeadToHeadRow } from '@/lib/db/analytics-repo';
 import { getGroupAnalytics } from '@/lib/db/analytics-repo';
+import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { getExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import {
   getHeadToHeadStats,
   getMergerImpactStats,
   getSelectionStats,
+  type HeadToHeadStats,
+  type MergerImpactStat,
+  type SelectionStats,
 } from '@/lib/db/selection-stats-repo';
 import { listPlayers } from '@/lib/db/player-repo';
 
@@ -21,8 +25,72 @@ type InsightPlayerOption = {
 type InsightPlayerRow = {
   display_name: string;
   id: string;
-  linked_user_id?: string | null;
+  linked_user_id: string | null;
 };
+
+const emptyGroupAnalytics: GroupAnalytics = {
+  coverage: null,
+  groupInteractionRows: [],
+  groupStylePerformanceRows: [],
+  headToHeadRows: [],
+  importCoverageRows: [],
+  leaderboardRows: [],
+  lineupEffectRows: [],
+  playerCoverages: [],
+  playerInteractionRows: [],
+  playerScoreAverages: [],
+  playerStylePerformanceRows: [],
+  playerTrendRows: [],
+  scoreAverages: null,
+  styleAgreementRows: [],
+};
+
+const emptyExtendedAnalytics: ExtendedGroupAnalytics = {
+  awardFunderWinnerRows: [],
+  awardOutcomeRows: [],
+  gameLengthPerformanceRows: [],
+  generationDistributionRows: [],
+  generationPaceRows: [],
+  groupMapPerformanceRows: [],
+  milestoneEconomicsRows: [],
+  placementDistributionRows: [],
+  playerCountPerformanceRows: [],
+  playerMapPerformanceRows: [],
+  playerMilestoneClaimRows: [],
+  tagOutcomeRows: [],
+  tilePlacementRows: [],
+};
+
+const emptySelectionStats: SelectionStats = {
+  awardFunding: [],
+  baselineWinRate: 0,
+  cards: [],
+  corporations: [],
+  corporationTags: [],
+  pairs: [],
+  preludes: [],
+  tagWins: [],
+};
+
+const emptyHeadToHeadStats: HeadToHeadStats = {
+  corporationMatchups: [],
+  pairs: [],
+};
+
+const emptyMergerImpactStats: MergerImpactStat[] = [];
+
+async function loadInsightsDataOrDefault<T>(
+  label: string,
+  loadData: Promise<T>,
+  fallback: T,
+) {
+  try {
+    return await loadData;
+  } catch (error) {
+    console.error(`[insights] Failed to load ${label}`, error);
+    return fallback;
+  }
+}
 
 function buildSelectableInsightPlayers(input: {
   headToHeadRows: GroupHeadToHeadRow[];
@@ -70,13 +138,41 @@ export default async function InsightsPage() {
     headToHeadStats,
     mergerImpactStats,
   ] = await Promise.all([
-    getGroupAnalytics(context.groupId),
-    getExtendedGroupAnalytics(context.groupId),
-    listPlayers(context.groupId),
-    getSelectionStats('personal'),
-    getSelectionStats('global'),
-    getHeadToHeadStats(context.groupId),
-    getMergerImpactStats(context.groupId),
+    loadInsightsDataOrDefault(
+      'group analytics',
+      getGroupAnalytics(context.groupId),
+      emptyGroupAnalytics,
+    ),
+    loadInsightsDataOrDefault(
+      'extended analytics',
+      getExtendedGroupAnalytics(context.groupId),
+      emptyExtendedAnalytics,
+    ),
+    loadInsightsDataOrDefault(
+      'players',
+      listPlayers(context.groupId),
+      [] as InsightPlayerRow[],
+    ),
+    loadInsightsDataOrDefault(
+      'personal selection stats',
+      getSelectionStats('personal'),
+      emptySelectionStats,
+    ),
+    loadInsightsDataOrDefault(
+      'global selection stats',
+      getSelectionStats('global'),
+      emptySelectionStats,
+    ),
+    loadInsightsDataOrDefault(
+      'head-to-head selection stats',
+      getHeadToHeadStats(context.groupId),
+      emptyHeadToHeadStats,
+    ),
+    loadInsightsDataOrDefault(
+      'Merger impact stats',
+      getMergerImpactStats(context.groupId),
+      emptyMergerImpactStats,
+    ),
   ]);
   const selectablePlayers = buildSelectableInsightPlayers({
     headToHeadRows: analytics.headToHeadRows,

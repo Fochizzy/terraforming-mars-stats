@@ -64,6 +64,7 @@ describe('LogGameWizard', () => {
           playerSelections: {
             p1: {
               corporationId: 'corp1',
+              corporationIds: ['corp1'],
               preludeIds: [],
             },
           },
@@ -134,6 +135,7 @@ describe('LogGameWizard', () => {
           playerSelections: {
             p1: {
               corporationId: 'corp1',
+              corporationIds: ['corp1'],
               preludeIds: [],
             },
           },
@@ -198,6 +200,7 @@ describe('LogGameWizard', () => {
           playerSelections: {
             p1: {
               corporationId: 'corp1',
+              corporationIds: ['corp1'],
               preludeIds: [],
             },
           },
@@ -443,7 +446,7 @@ describe('LogGameWizard', () => {
       screen.getByRole('link', { name: /open web import/i }),
     ).toHaveAttribute('href', '/log-game');
 
-    await user.selectOptions(screen.getByLabelText(/friday mars corporation/i), 'corp1');
+    await user.selectOptions(screen.getByLabelText(/friday mars corporation 1/i), 'corp1');
     await user.selectOptions(screen.getByLabelText(/friday mars prelude 1/i), 'prelude1');
     await user.click(screen.getByLabelText(/builder claimed/i));
     await user.click(screen.getByLabelText(/builder winner friday mars/i));
@@ -515,6 +518,7 @@ describe('LogGameWizard', () => {
         playerSelections: {
           p1: {
             corporationId: 'corp1',
+            corporationIds: ['corp1'],
             preludeIds: ['prelude1'],
           },
         },
@@ -532,6 +536,80 @@ describe('LogGameWizard', () => {
     );
     expect(onFinalizeGame).not.toHaveBeenCalled();
     expect(routerMocks.push).not.toHaveBeenCalled();
+  });
+
+  it('submits multiple corporations for one selected player', async () => {
+    const user = userEvent.setup();
+    const onSaveDraft = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      gameId: 'game-multi-corp',
+      message: 'Draft created.',
+    });
+
+    render(
+      <LogGameWizard
+        awardOptions={[]}
+        cardOptions={[]}
+        corporationOptions={[
+          {
+            expansionCode: 'base',
+            id: 'corp1',
+            name: 'Tharsis Republic',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['base'],
+          },
+          {
+            expansionCode: 'colonies',
+            id: 'corp2',
+            name: 'Poseidon',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['colonies'],
+          },
+        ]}
+        initialValues={{
+          awardClaims: {},
+          gameId: undefined,
+          groupId: '11111111-1111-4111-8111-111111111111',
+          milestoneClaims: {},
+          playedOn: '2026-07-03',
+          mapId: 'tharsis',
+          notes: '',
+          playerCount: 1,
+          playerScores: {},
+          playerSelections: {},
+          generationCount: 10,
+          playerStyles: {},
+          expansionCodes: ['base'],
+          promoSetSlugs: [],
+          selectedPlayerIds: ['p1'],
+        }}
+        mapOptions={[{ id: 'tharsis', code: 'tharsis', name: 'Tharsis' }]}
+        milestoneOptions={[]}
+        onFinalizeGame={vi.fn()}
+        onSaveDraft={onSaveDraft}
+        playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
+        preludeOptions={[]}
+        styleOptions={[]}
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText(/friday mars corporation 1/i), 'corp1');
+    await user.selectOptions(screen.getByLabelText(/friday mars corporation 2/i), 'corp2');
+    await user.click(screen.getByRole('button', { name: /save draft setup/i }));
+
+    await waitFor(() =>
+      expect(onSaveDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          playerSelections: {
+            p1: {
+              corporationId: 'corp1',
+              corporationIds: ['corp1', 'corp2'],
+              preludeIds: [],
+            },
+          },
+        }),
+      ),
+    );
   });
 
   it('offers every corporation, prelude, and key card regardless of the stored expansion and promo selections', () => {
@@ -638,11 +716,11 @@ describe('LogGameWizard', () => {
       promoSetSlugs: [],
     });
 
-    expect(screen.getByRole('option', { name: /tharsis republic/i })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: /poseidon/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('option', { name: /tharsis republic/i })).toHaveLength(3);
+    expect(screen.getAllByRole('option', { name: /poseidon/i })).toHaveLength(3);
     expect(
-      screen.getByRole('option', { name: /arcadian communities/i }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('option', { name: /arcadian communities/i }),
+    ).toHaveLength(3);
     expect(screen.getAllByRole('option', { name: /allied bank/i })).toHaveLength(3);
     expect(screen.getAllByRole('option', { name: /corporate archives/i })).toHaveLength(3);
     expect(

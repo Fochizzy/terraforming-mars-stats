@@ -12,8 +12,11 @@ const captureState = vi.hoisted(() => ({
 }));
 
 const mockState = vi.hoisted(() => ({
+  getHeadToHeadStats: vi.fn(),
   getExtendedGroupAnalytics: vi.fn(),
   getGroupAnalytics: vi.fn(),
+  getMergerImpactStats: vi.fn(),
+  getSelectionStats: vi.fn(),
   listPlayers: vi.fn(),
   listPromoCards: vi.fn(),
   listPromoSets: vi.fn(),
@@ -78,9 +81,9 @@ vi.mock('@/lib/db/reference-repo', () => ({
 }));
 
 vi.mock('@/lib/db/selection-stats-repo', () => ({
-  getHeadToHeadStats: vi.fn(async () => []),
-  getMergerImpactStats: vi.fn(async () => []),
-  getSelectionStats: vi.fn(async () => []),
+  getHeadToHeadStats: mockState.getHeadToHeadStats,
+  getMergerImpactStats: mockState.getMergerImpactStats,
+  getSelectionStats: mockState.getSelectionStats,
 }));
 
 vi.mock('@/features/insights/selection-stats-section', () => ({
@@ -180,6 +183,21 @@ describe('InsightsPage', () => {
     });
     mockState.listPromoCards.mockResolvedValue([]);
     mockState.listPromoSets.mockResolvedValue([]);
+    mockState.getHeadToHeadStats.mockResolvedValue({
+      corporationMatchups: [],
+      pairs: [],
+    });
+    mockState.getMergerImpactStats.mockResolvedValue([]);
+    mockState.getSelectionStats.mockResolvedValue({
+      awardFunding: [],
+      baselineWinRate: 0,
+      cards: [],
+      corporations: [],
+      corporationTags: [],
+      pairs: [],
+      preludes: [],
+      tagWins: [],
+    });
   });
 
   it('only forwards the signed-in player and shared-game opponents into player focus', async () => {
@@ -196,5 +214,42 @@ describe('InsightsPage', () => {
     expect(mockState.listPromoSets).not.toHaveBeenCalled();
     expect(screen.queryByText('Third Seat')).not.toBeInTheDocument();
     expect(screen.queryByText('Fourth Seat')).not.toBeInTheDocument();
+  });
+
+  it('keeps the insights page renderable when optional analytics fail', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    mockState.getExtendedGroupAnalytics.mockRejectedValueOnce(
+      new Error('missing live analytics view'),
+    );
+    mockState.getSelectionStats.mockRejectedValue(new Error('stale stats rpc'));
+    mockState.getHeadToHeadStats.mockRejectedValueOnce(
+      new Error('stale head-to-head rpc'),
+    );
+    mockState.getMergerImpactStats.mockRejectedValueOnce(
+      new Error('missing merger rpc'),
+    );
+
+    render(await InsightsPage());
+
+    expect(screen.getByRole('heading', { name: /insights/i })).toBeInTheDocument();
+    expect(screen.getByTestId('insights-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('selection-stats-section')).toBeInTheDocument();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[insights] Failed to load extended analytics',
+      expect.any(Error),
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[insights] Failed to load personal selection stats',
+      expect.any(Error),
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[insights] Failed to load Merger impact stats',
+      expect.any(Error),
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 });

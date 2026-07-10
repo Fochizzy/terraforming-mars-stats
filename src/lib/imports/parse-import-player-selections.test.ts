@@ -57,7 +57,29 @@ describe('parseImportPlayerSelections', () => {
     ).toEqual({
       p1: {
         corporationId: 'corp1',
+        corporationIds: ['corp1'],
         preludeIds: ['prelude1', 'prelude2'],
+      },
+    });
+  });
+
+  it('extracts multiple corporations for the same player from confident lines', () => {
+    expect(
+      parseImportPlayerSelections({
+        corporationOptions: corporations,
+        participants: [{ importedName: 'Friday Mars', playerId: 'p1' }],
+        preludeOptions: preludes,
+        rawLogText: [
+          'Friday Mars played Tharsis Republic',
+          'Friday Mars played Poseidon',
+          'Friday Mars kept preludes Allied Bank',
+        ].join('\n'),
+      }),
+    ).toEqual({
+      p1: {
+        corporationId: 'corp1',
+        corporationIds: ['corp1', 'corp2'],
+        preludeIds: ['prelude1'],
       },
     });
   });
@@ -72,6 +94,27 @@ describe('parseImportPlayerSelections', () => {
           'Friday Mars mentioned corporation Tharsis Republic and Poseidon in the same line',
       }),
     ).toEqual({});
+  });
+
+  it('keeps confidently detected corporations when a later line is ambiguous', () => {
+    expect(
+      parseImportPlayerSelections({
+        corporationOptions: corporations,
+        participants: [{ importedName: 'Friday Mars', playerId: 'p1' }],
+        preludeOptions: preludes,
+        rawLogText: [
+          'Friday Mars played Tharsis Republic',
+          'Friday Mars played Poseidon',
+          'Friday Mars mentioned corporation Tharsis Republic and Poseidon in the same line',
+        ].join('\n'),
+      }),
+    ).toEqual({
+      p1: {
+        corporationId: 'corp1',
+        corporationIds: ['corp1', 'corp2'],
+        preludeIds: [],
+      },
+    });
   });
 
   it('ignores prelude lines that resolve to more than three unique cards', () => {
@@ -119,6 +162,7 @@ describe('parseImportPlayerSelections', () => {
     ).toEqual({
       p1: {
         corporationId: 'corp1',
+        corporationIds: ['corp1'],
         preludeIds: ['prelude1'],
       },
     });
@@ -187,10 +231,12 @@ describe('parseImportPlayerSelections', () => {
     ).toEqual({
       p1: {
         corporationId: 'corp3',
+        corporationIds: ['corp3'],
         preludeIds: ['prelude4', 'prelude5'],
       },
       p2: {
         corporationId: 'corp2',
+        corporationIds: ['corp2'],
         preludeIds: ['prelude6', 'prelude7'],
       },
     });

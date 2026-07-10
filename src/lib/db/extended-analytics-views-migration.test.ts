@@ -106,6 +106,9 @@ describe('extended analytics views migration', () => {
 
 describe('tag summary alias resolution migration', () => {
   const migration = getMigrationContaining('tag_summary_player_links');
+  const multipleCorporationsMigration = getMigrationContaining(
+    'game_player_corporations',
+  );
 
   it('resolves tag outcomes through confirmed game-log aliases before display names', () => {
     expect(migration).toContain("pia.source_type = 'game_log'");
@@ -119,12 +122,15 @@ describe('tag summary alias resolution migration', () => {
   });
 
   it('exposes the selected corporation on tag outcome rows', () => {
-    expect(migration).toContain('gp.corporation_id');
+    expect(migration).toContain('corporation_selections.corporation_id');
     expect(migration).toContain(
       "coalesce(c.name, 'Unknown Corporation') as corporation_name",
     );
     expect(migration).toContain(
-      'left join public.corporations c on c.id = gp.corporation_id',
+      'from public.game_player_corporations gpc',
+    );
+    expect(migration).toContain(
+      'left join public.corporations c on c.id = corporation_selections.corporation_id',
     );
   });
 
@@ -132,6 +138,24 @@ describe('tag summary alias resolution migration', () => {
     expect(migration).toContain('tag_summary_player_links as');
     expect(migration).toContain('tsl.game_id = e.game_id');
     expect(migration).toContain('tsl.player_id = e.player_id');
+  });
+
+  it('creates and backfills the game-player corporation join table', () => {
+    expect(multipleCorporationsMigration).toContain(
+      'create table if not exists public.game_player_corporations',
+    );
+    expect(multipleCorporationsMigration).toContain(
+      'insert into public.game_player_corporations',
+    );
+    expect(multipleCorporationsMigration).toContain(
+      'alter table public.game_player_corporations enable row level security',
+    );
+    expect(multipleCorporationsMigration).toContain(
+      'public.can_read_game_player(game_player_id)',
+    );
+    expect(multipleCorporationsMigration).toContain(
+      'public.can_edit_game_player(game_player_id)',
+    );
   });
 });
 

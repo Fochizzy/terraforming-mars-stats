@@ -8,11 +8,20 @@ function sanitizeStringArray(values: Array<string | null | undefined>) {
   return values.map((value) => sanitizeString(value)).filter(Boolean);
 }
 
+function sanitizeUniqueStringArray(values: Array<string | null | undefined>) {
+  return [...new Set(sanitizeStringArray(values))];
+}
+
 function isPopulatedSelection(value: {
   corporationId: string;
+  corporationIds: string[];
   preludeIds: string[];
 }) {
-  return value.corporationId.length > 0 || value.preludeIds.length > 0;
+  return (
+    value.corporationId.length > 0 ||
+    value.corporationIds.length > 0 ||
+    value.preludeIds.length > 0
+  );
 }
 
 function isPopulatedMilestoneClaim(value: {
@@ -84,7 +93,20 @@ const playerSelectionSchema = z.object({
     .optional()
     .nullable()
     .transform(sanitizeString),
+  corporationIds: sanitizedStringArraySchema,
   preludeIds: sanitizedStringArraySchema,
+}).transform((selection) => {
+  const corporationIds = sanitizeUniqueStringArray(
+    selection.corporationIds.length > 0
+      ? selection.corporationIds
+      : [selection.corporationId],
+  );
+
+  return {
+    ...selection,
+    corporationId: corporationIds[0] ?? '',
+    corporationIds,
+  };
 });
 
 const milestoneClaimSchema = z.object({

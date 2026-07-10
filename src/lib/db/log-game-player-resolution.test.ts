@@ -36,6 +36,7 @@ describe('resolveLogGamePlayerReferences', () => {
         playerSelections: {
           'Friday Mars': {
             corporationId: 'corp-1',
+            corporationIds: ['corp-1'],
             preludeIds: ['prelude-1'],
           },
         },
@@ -48,6 +49,7 @@ describe('resolveLogGamePlayerReferences', () => {
       playerSelections: {
         'player-friday': {
           corporationId: 'corp-1',
+          corporationIds: ['corp-1'],
           preludeIds: ['prelude-1'],
         },
       },

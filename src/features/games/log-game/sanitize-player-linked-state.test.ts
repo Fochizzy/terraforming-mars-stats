@@ -38,10 +38,12 @@ describe('sanitizePlayerLinkedState', () => {
         playerSelections: {
           'kept-player': {
             corporationId: 'corp-1',
+            corporationIds: ['corp-1'],
             preludeIds: [],
           },
           'removed-player': {
             corporationId: 'corp-2',
+            corporationIds: ['corp-2'],
             preludeIds: [],
           },
         },
@@ -91,6 +93,7 @@ describe('sanitizePlayerLinkedState', () => {
       playerSelections: {
         'kept-player': {
           corporationId: 'corp-1',
+          corporationIds: ['corp-1'],
           preludeIds: [],
         },
       },
