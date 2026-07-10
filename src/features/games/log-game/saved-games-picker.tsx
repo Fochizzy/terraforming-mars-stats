@@ -2,13 +2,13 @@ import Link from 'next/link';
 import type { SavedGameListItem } from '@/lib/db/game-draft-repo';
 import { StepHeading } from '@/components/ui/step-heading';
 
-type DeleteDraftAction = (formData: FormData) => Promise<void>;
+type DeleteGameAction = (formData: FormData) => Promise<void>;
 
 export function SavedGamesPicker({
-  deleteDraftAction,
+  deleteGameAction,
   games,
 }: {
-  deleteDraftAction: DeleteDraftAction;
+  deleteGameAction: DeleteGameAction;
   games: SavedGameListItem[];
 }) {
   return (
@@ -47,18 +47,16 @@ export function SavedGamesPicker({
                   >
                     {game.status === 'draft' ? 'Resume Draft' : 'Correct Players'}
                   </Link>
-                  {game.status === 'draft' ? (
-                    <form action={deleteDraftAction}>
-                      <input name="gameId" type="hidden" value={game.gameId} />
-                      <button
-                        aria-label={`Delete draft ${game.playerNames.join(', ') || game.gameId}`}
-                        className="tm-button-secondary tm-text-danger px-4 py-2 text-xs"
-                        type="submit"
-                      >
-                        Delete Draft
-                      </button>
-                    </form>
-                  ) : null}
+                  <form action={deleteGameAction}>
+                    <input name="gameId" type="hidden" value={game.gameId} />
+                    <button
+                      aria-label={`Delete ${game.status === 'draft' ? 'draft' : 'game'} ${game.playerNames.join(', ') || game.gameId}`}
+                      className="tm-button-secondary tm-text-danger px-4 py-2 text-xs"
+                      type="submit"
+                    >
+                      {game.status === 'draft' ? 'Delete Draft' : 'Delete Game'}
+                    </button>
+                  </form>
                 </div>
               </div>
             </article>

@@ -9,6 +9,7 @@ const mockState = vi.hoisted(() => ({
   getLatestCatalogSnapshotId: vi.fn(),
   getLatestGameLogImportSummary: vi.fn(),
   getSavedGameForm: vi.fn(),
+  deleteSavedGame: vi.fn(),
   listCards: vi.fn(),
   listCorporations: vi.fn(),
   listExpansions: vi.fn(),
@@ -61,6 +62,7 @@ vi.mock('@/features/groups/require-group-context', () => ({
 }));
 
 vi.mock('@/lib/db/game-draft-repo', () => ({
+  deleteSavedGame: mockState.deleteSavedGame,
   getSavedGameForm: mockState.getSavedGameForm,
   listSavedGames: mockState.listSavedGames,
   saveDraftGame: vi.fn(),
@@ -171,6 +173,7 @@ describe('LogGameReviewPage', () => {
       'href',
       '/log-game/review?gameId=game-final',
     );
+    expect(screen.getByRole('button', { name: /delete game/i })).toBeInTheDocument();
     expect(screen.queryByTestId('log-game-wizard')).not.toBeInTheDocument();
   });
 

@@ -446,25 +446,24 @@ function isMissingSplitScreenshotTableError(error: unknown) {
   );
 }
 
-export async function deleteDraftGame(payload: {
+export async function deleteSavedGame(payload: {
   gameId: string;
   groupId: string;
 }) {
   const supabase = await createSupabaseServerClient();
-  const { data: draftGame, error: draftGameError } = await supabase
+  const { data: savedGame, error: savedGameError } = await supabase
     .from('games')
     .select('id')
     .eq('id', payload.gameId)
     .eq('group_id', payload.groupId)
-    .eq('status', 'draft')
     .maybeSingle();
 
-  if (draftGameError) {
-    throw draftGameError;
+  if (savedGameError) {
+    throw savedGameError;
   }
 
-  if (!draftGame) {
-    throw new Error('Draft not found or already finalized.');
+  if (!savedGame) {
+    throw new Error('Saved game not found or you do not have permission to delete it.');
   }
 
   const [
@@ -519,7 +518,6 @@ export async function deleteDraftGame(payload: {
     .delete()
     .eq('id', payload.gameId)
     .eq('group_id', payload.groupId)
-    .eq('status', 'draft')
     .select('id')
     .maybeSingle();
 
@@ -528,7 +526,7 @@ export async function deleteDraftGame(payload: {
   }
 
   if (!deletedGame) {
-    throw new Error('Draft not found or already finalized.');
+    throw new Error('Saved game not found or you do not have permission to delete it.');
   }
 
   return { gameId: deletedGame.id as string };

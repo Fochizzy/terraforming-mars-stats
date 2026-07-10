@@ -101,17 +101,17 @@ describe('getDraftGameForm', () => {
   });
 });
 
-describe('deleteDraftGame', () => {
+describe('deleteSavedGame', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('deletes only a draft in the active group and removes import evidence files first', async () => {
+  it('deletes a saved game in the active group and removes import evidence files first', async () => {
     const gameLookupQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({
-        data: { id: 'game-draft' },
+        data: { id: 'game-final' },
         error: null,
       }),
     };
@@ -119,7 +119,7 @@ describe('deleteDraftGame', () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({
         data: [
-          { screenshot_object_path: 'game-draft/legacy.png' },
+          { screenshot_object_path: 'game-final/legacy.png' },
           { screenshot_object_path: null },
         ],
         error: null,
@@ -128,7 +128,7 @@ describe('deleteDraftGame', () => {
     const screenshotImportsQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({
-        data: [{ storage_object_path: 'game-draft/result.png' }],
+        data: [{ storage_object_path: 'game-final/result.png' }],
         error: null,
       }),
     };
@@ -137,7 +137,7 @@ describe('deleteDraftGame', () => {
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({
-        data: { id: 'game-draft' },
+        data: { id: 'game-final' },
         error: null,
       }),
     };
@@ -168,38 +168,36 @@ describe('deleteDraftGame', () => {
     } as never);
 
     const repoModule = repo as {
-      deleteDraftGame?: (input: {
+      deleteSavedGame?: (input: {
         gameId: string;
         groupId: string;
       }) => Promise<unknown>;
     };
 
-    expect(repoModule.deleteDraftGame).toBeTypeOf('function');
-    if (!repoModule.deleteDraftGame) {
+    expect(repoModule.deleteSavedGame).toBeTypeOf('function');
+    if (!repoModule.deleteSavedGame) {
       return;
     }
 
     await expect(
-      repoModule.deleteDraftGame({
-        gameId: 'game-draft',
+      repoModule.deleteSavedGame({
+        gameId: 'game-final',
         groupId: 'group-1',
       }),
-    ).resolves.toEqual({ gameId: 'game-draft' });
+    ).resolves.toEqual({ gameId: 'game-final' });
 
-    expect(gameLookupQuery.eq).toHaveBeenCalledWith('id', 'game-draft');
+    expect(gameLookupQuery.eq).toHaveBeenCalledWith('id', 'game-final');
     expect(gameLookupQuery.eq).toHaveBeenCalledWith('group_id', 'group-1');
-    expect(gameLookupQuery.eq).toHaveBeenCalledWith('status', 'draft');
     expect(storageFrom).toHaveBeenCalledWith('tm-import-evidence');
     expect(remove).toHaveBeenCalledWith([
-      'game-draft/legacy.png',
-      'game-draft/result.png',
+      'game-final/legacy.png',
+      'game-final/result.png',
     ]);
-    expect(deleteQuery.eq).toHaveBeenCalledWith('id', 'game-draft');
+    expect(deleteQuery.eq).toHaveBeenCalledWith('id', 'game-final');
     expect(deleteQuery.eq).toHaveBeenCalledWith('group_id', 'group-1');
-    expect(deleteQuery.eq).toHaveBeenCalledWith('status', 'draft');
   });
 
-  it('refuses to delete a missing or finalized game', async () => {
+  it('refuses to delete a missing or inaccessible game', async () => {
     const gameLookupQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -220,28 +218,26 @@ describe('deleteDraftGame', () => {
     } as never);
 
     const repoModule = repo as {
-      deleteDraftGame?: (input: {
+      deleteSavedGame?: (input: {
         gameId: string;
         groupId: string;
       }) => Promise<unknown>;
     };
 
-    expect(repoModule.deleteDraftGame).toBeTypeOf('function');
-    if (!repoModule.deleteDraftGame) {
+    expect(repoModule.deleteSavedGame).toBeTypeOf('function');
+    if (!repoModule.deleteSavedGame) {
       return;
     }
 
     await expect(
-      repoModule.deleteDraftGame({
+      repoModule.deleteSavedGame({
         gameId: 'game-final',
         groupId: 'group-1',
       }),
-    ).rejects.toThrow(/draft not found/i);
-
-    expect(gameLookupQuery.eq).toHaveBeenCalledWith('status', 'draft');
+    ).rejects.toThrow(/saved game not found/i);
   });
 
-  it('still deletes drafts when the split screenshot import table is unavailable', async () => {
+  it('still deletes saved games when the split screenshot import table is unavailable', async () => {
     const gameLookupQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -302,19 +298,19 @@ describe('deleteDraftGame', () => {
     } as never);
 
     const repoModule = repo as {
-      deleteDraftGame?: (input: {
+      deleteSavedGame?: (input: {
         gameId: string;
         groupId: string;
       }) => Promise<unknown>;
     };
 
-    expect(repoModule.deleteDraftGame).toBeTypeOf('function');
-    if (!repoModule.deleteDraftGame) {
+    expect(repoModule.deleteSavedGame).toBeTypeOf('function');
+    if (!repoModule.deleteSavedGame) {
       return;
     }
 
     await expect(
-      repoModule.deleteDraftGame({
+      repoModule.deleteSavedGame({
         gameId: 'game-draft',
         groupId: 'group-1',
       }),

@@ -6,7 +6,7 @@ describe('SavedGamesPicker', () => {
   it('renders draft and finalized rows with the right action labels', () => {
     render(
       <SavedGamesPicker
-        deleteDraftAction={async () => {}}
+        deleteGameAction={async () => {}}
         games={[
           {
             gameId: 'game-draft',
@@ -38,7 +38,8 @@ describe('SavedGamesPicker', () => {
       '/log-game/review?gameId=game-final',
     );
     expect(screen.getByRole('button', { name: /delete draft/i })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /delete/i })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /delete game/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /delete/i })).toHaveLength(2);
     expect(screen.getAllByText(/friday mars/i)).toHaveLength(2);
     expect(screen.getByText(/sam terraformer/i)).toBeInTheDocument();
   });
