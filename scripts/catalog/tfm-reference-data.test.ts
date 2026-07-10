@@ -124,6 +124,46 @@ describe('mapTfmRecordToCatalogSource', () => {
       },
     ]);
   });
+
+  it('disambiguates duplicate source card ids while preserving source tags', () => {
+    const payload = buildTfmCatalogImportPayload([
+      sourceRecord({
+        cardNumber: 'R51',
+        category: 'corporationCards',
+        module: 'Community',
+        name: 'Labour Union',
+        nameKey: 'LABOUR_UNION',
+        tags: ['building'],
+      }),
+      sourceRecord({
+        cardNumber: 'R51',
+        category: 'corporationCards',
+        module: 'Community',
+        name: 'Project 10',
+        nameKey: 'PROJECT_10',
+        tags: ['science'],
+      }),
+    ]);
+
+    expect(
+      payload.cards.map((card) => ({
+        name: card.card_name,
+        sourceCardId: card.source_card_id,
+        gameplayTags: card.gameplay_tags,
+      })),
+    ).toEqual([
+      {
+        name: 'Labour Union',
+        sourceCardId: 'corporation:community:R51:labour-union',
+        gameplayTags: ['building'],
+      },
+      {
+        name: 'Project 10',
+        sourceCardId: 'corporation:community:R51:project-10',
+        gameplayTags: ['science'],
+      },
+    ]);
+  });
 });
 
 describe('buildTfmCardBrowserUrl', () => {

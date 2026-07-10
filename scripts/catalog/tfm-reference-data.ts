@@ -192,6 +192,28 @@ export function mapTfmRecordToCatalogSource(
   };
 }
 
+export function disambiguateDuplicateSourceCardIds(
+  sources: TfmCatalogSource[],
+) {
+  const sourceCardIdCounts = new Map<string, number>();
+
+  for (const source of sources) {
+    sourceCardIdCounts.set(
+      source.sourceCardId,
+      (sourceCardIdCounts.get(source.sourceCardId) ?? 0) + 1,
+    );
+  }
+
+  return sources.map((source) =>
+    (sourceCardIdCounts.get(source.sourceCardId) ?? 0) > 1
+      ? {
+          ...source,
+          sourceCardId: `${source.sourceCardId}:${slugifyCardName(source.cardName)}`,
+        }
+      : source,
+  );
+}
+
 function buildCardRecord(source: TfmCatalogSource): NormalizedCardRecord {
   return normalizeCardRecord({
     cardNumber: source.cardNumber,
@@ -249,13 +271,14 @@ export function buildTfmCatalogImportPayload(
     .map(mapTfmRecordToCatalogSource)
     .filter((source): source is TfmCatalogSource => Boolean(source))
     .filter((source) => source.expansionCode !== 'automa');
+  const uniqueSources = disambiguateDuplicateSourceCardIds(sources);
 
   return {
-    cards: sources.map(buildCardRecord),
-    corporations: sources
+    cards: uniqueSources.map(buildCardRecord),
+    corporations: uniqueSources
       .filter((source) => source.cardType === 'Corporation')
       .map(buildCorporationSeed),
-    preludes: sources
+    preludes: uniqueSources
       .filter((source) => source.cardType === 'Prelude')
       .map(buildPreludeSeed),
   };

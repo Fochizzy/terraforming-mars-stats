@@ -12,6 +12,7 @@ import {
 } from './extract-tfm-card-tags';
 import {
   buildMissingSelectionReferenceRows,
+  disambiguateDuplicateSourceCardIds,
   mapTfmRecordToCatalogSource,
   type TfmCatalogSource,
 } from './tfm-reference-data';
@@ -110,6 +111,7 @@ async function main() {
   const sourceByKey = new Map<string, TfmCatalogSource>();
   const sourceByName = new Map<string, TfmCatalogSource[]>();
   const skippedUnsupportedSourceCards: string[] = [];
+  const rawSources: TfmCatalogSource[] = [];
 
   for (const record of records) {
     const source = mapTfmRecordToCatalogSource(record);
@@ -123,8 +125,14 @@ async function main() {
       continue;
     }
 
+    rawSources.push(source);
+  }
+
+  const bundleSources = disambiguateDuplicateSourceCardIds(rawSources);
+
+  for (const source of bundleSources) {
     sourceByKey.set(source.sourceKey, source);
-    const sourceName = normalizeCardName(record.name);
+    const sourceName = normalizeCardName(source.cardName);
     sourceByName.set(sourceName, [...(sourceByName.get(sourceName) ?? []), source]);
   }
 
@@ -165,7 +173,6 @@ async function main() {
     throw preludeNamesError;
   }
 
-  const bundleSources = [...sourceByKey.values()];
   const corporationReferenceInserts = buildMissingSelectionReferenceRows({
     existingNames: ((corporationNameRows ?? []) as Array<{ name: string }>).map(
       (row) => row.name,
