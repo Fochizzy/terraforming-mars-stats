@@ -178,6 +178,12 @@ export function ImportReviewPanel({
           Detected from log: {detectedParticipantNames.join(', ')}
         </p>
       ) : null}
+      {review.evidenceReadError ? (
+        <p className="tm-banner-danger" data-testid="evidence-read-error">
+          The game result upload could not be read: {review.evidenceReadError}{' '}
+          Scores, milestones and award placements it carries are missing below.
+        </p>
+      ) : null}
       {review.requiresPlayerConfirmation ? (
         <p className="tm-banner-warning">
           Some imported names still need profile confirmation before final

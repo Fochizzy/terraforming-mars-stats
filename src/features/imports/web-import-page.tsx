@@ -235,6 +235,9 @@ export function WebImportPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isReadingScreenshot, setIsReadingScreenshot] = useState(false);
+  const [screenshotReadError, setScreenshotReadError] = useState<string | null>(
+    null,
+  );
   const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
     string | null
   >(null);
@@ -288,6 +291,7 @@ export function WebImportPage({
 
   function attachEndgameScreenshot(file: File | null) {
     setEndgameScreenshot(file);
+    setScreenshotReadError(null);
     resetFeedback();
   }
 
@@ -430,9 +434,16 @@ export function WebImportPage({
         file: endgameScreenshot,
         payload,
       };
+      setScreenshotReadError(null);
 
       return payload;
-    } catch {
+    } catch (error) {
+      // The server retries the read, but a silent failure here is
+      // indistinguishable from attaching nothing when the retry also fails.
+      setScreenshotReadError(
+        describeUnknownError(error, 'The file could not be read.'),
+      );
+
       return null;
     } finally {
       setIsReadingScreenshot(false);
@@ -717,6 +728,18 @@ export function WebImportPage({
                 {endgameScreenshot && isPdfFile(endgameScreenshot)
                   ? 'Reading the PDF…'
                   : 'Reading the screenshot in your browser… this can take a minute on the first run.'}
+              </p>
+            ) : null}
+            {screenshotReadError && !isReadingScreenshot ? (
+              <p
+                className="mt-1 text-xs"
+                data-testid="screenshot-read-error"
+                role="alert"
+                style={{ color: 'var(--tm-danger)' }}
+              >
+                Reading this file in your browser failed: {screenshotReadError}{' '}
+                The import will retry it on the server — if the score fields
+                come back empty, that retry failed too.
               </p>
             ) : null}
           </div>

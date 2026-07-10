@@ -419,6 +419,61 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('reports why an unreadable game result upload produced no scores', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    // A read that throws used to be swallowed into a console warning, leaving
+    // empty score fields that looked like no upload at all.
+    ocrMocks.readGameResultScreenshot.mockRejectedValue(
+      new Error('We could not find the victory point table on page 1.'),
+    );
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: new File(['screenshot'], 'game-result.png', {
+        type: 'image/png',
+      }),
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    // The log still parses, so the analysis succeeds with the reason attached.
+    expect(result).toMatchObject({
+      review: {
+        evidenceReadError: expect.stringContaining('victory point table'),
+        scoreCandidates: [],
+      },
+      status: 'success',
+    });
+  });
+
+  it('leaves the read error unset when the game result reads cleanly', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: new File(['screenshot'], 'game-result.png', {
+        type: 'image/png',
+      }),
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      review: { evidenceReadError: null },
+      status: 'success',
+    });
+  });
+
   it('imports one player per evidence name when the participants field uses roster names', async () => {
     const shellProps = await renderPageAndCaptureShellProps();
     const gameResultScreenshot = new File(['screenshot'], 'game-result.png', {

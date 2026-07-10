@@ -41,7 +41,12 @@ export function OcrHarness() {
         expectedPlayerCount: expectedPlayerNames.length,
         expectedPlayerNames,
       });
-      const parsed = parseEndgameScoreScreenshot(read.endgameLines);
+      // The evidence fixes the layout, and a PDF's columns land in the wrong
+      // fields without it. The import passes these through too.
+      const parsed = parseEndgameScoreScreenshot(read.endgameLines, {
+        generationCount: read.generationCount,
+        layout: read.endgameLayout,
+      });
 
       setOutput(
         JSON.stringify(
@@ -69,7 +74,7 @@ export function OcrHarness() {
         exactly as the web import page does before submitting.
       </p>
       <input
-        accept="image/*"
+        accept="image/*,application/pdf,.pdf"
         data-testid="ocr-file"
         onChange={(event) => setFile(event.target.files?.[0] ?? null)}
         type="file"

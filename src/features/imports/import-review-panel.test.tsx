@@ -285,6 +285,55 @@ describe('ImportReviewPanel', () => {
     );
   });
 
+  it('explains why an unreadable game result upload left the scores empty', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          detectedParticipantNames: ['Friday Mars'],
+          drawInfoLineCount: 0,
+          evidenceReadError:
+            'We could not find the victory point table on the first page of this PDF.',
+          ignoredLineCount: 0,
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('evidence-read-error')).toHaveTextContent(
+      /could not find the victory point table/i,
+    );
+  });
+
+  it('stays quiet about the game result upload when it read cleanly', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          detectedParticipantNames: ['Friday Mars'],
+          drawInfoLineCount: 0,
+          evidenceReadError: null,
+          ignoredLineCount: 0,
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [
+            { playerName: 'Friday Mars', totalPoints: 61, trPoints: 18 },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId('evidence-read-error'),
+    ).not.toBeInTheDocument();
+  });
+
   it('calls out when the draft will fall back to log score rows', () => {
     render(
       <ImportReviewPanel

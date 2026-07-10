@@ -416,6 +416,100 @@ describe('WebImportPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('reports a game result file the browser cannot read, and still submits it', async () => {
+    const user = userEvent.setup();
+    // Not a readable PDF, so the in-browser read throws the way a corrupt or
+    // unsupported export does.
+    const unreadablePdf = new File(['%PDF-1.4 not really'], 'game-5.pdf', {
+      type: 'application/pdf',
+    });
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          playedOn: '2026-07-03',
+        }}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    fireEvent.drop(
+      screen.getByLabelText(/paste target for game result screenshot/i),
+      { dataTransfer: { files: [unreadablePdf] } },
+    );
+
+    expect(
+      screen.queryByTestId('screenshot-read-error'),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('screenshot-read-error')).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('screenshot-read-error')).toHaveTextContent(
+      /reading this file in your browser failed/i,
+    );
+
+    // The server retries the read, so the file still travels with the form.
+    expect(
+      onAnalyzeImportEvidence.mock.calls[0]?.[0].get('endgameScreenshot'),
+    ).toBe(unreadablePdf);
+  });
+
+  it('clears a previous read failure when another file is attached', async () => {
+    const user = userEvent.setup();
+    const unreadablePdf = new File(['%PDF-1.4 not really'], 'game-5.pdf', {
+      type: 'application/pdf',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          playedOn: '2026-07-03',
+        }}
+        onAnalyzeImportEvidence={vi.fn().mockResolvedValue({
+          status: 'success' as const,
+          message: 'Import evidence analyzed.',
+          review,
+        })}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    fireEvent.drop(
+      screen.getByLabelText(/paste target for game result screenshot/i),
+      { dataTransfer: { files: [unreadablePdf] } },
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('screenshot-read-error')).toBeInTheDocument(),
+    );
+
+    await user.upload(
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
+      new File(['%PDF-1.4 still not really'], 'game-6.pdf', {
+        type: 'application/pdf',
+      }),
+    );
+
+    expect(
+      screen.queryByTestId('screenshot-read-error'),
+    ).not.toBeInTheDocument();
+  });
+
   it('analyzes the structured import payload and shows the review before confirmation', async () => {
     const user = userEvent.setup();
     const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({

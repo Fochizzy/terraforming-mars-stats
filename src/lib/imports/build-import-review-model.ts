@@ -30,6 +30,8 @@ export type ImportReviewModel = {
   cardScoring?: ImportPlayerCardScoringSummary[];
   detectedParticipantNames: string[];
   drawInfoLineCount: number;
+  /** Why the uploaded game result could not be read, when it could not be. */
+  evidenceReadError?: string | null;
   ignoredLineCount: number;
   logScoreCandidates?: ParsedEndgameScoreScreenshot['playerRows'];
   parsedEventCount: number;
@@ -141,6 +143,7 @@ function buildScoreCrossChecks(input: {
 export function buildImportReviewModel(input: {
   boardReviewItems?: CuratedBoardImportItem[];
   cardScoring?: ImportPlayerCardScoringSummary[];
+  evidenceReadError?: string | null;
   logScoreCandidates?: ParsedEndgameScoreScreenshot['playerRows'];
   logParse: Pick<
     ParsedGameLog,
@@ -161,6 +164,7 @@ export function buildImportReviewModel(input: {
     cardScoring: input.cardScoring ?? [],
     detectedParticipantNames: extractGameLogParticipantNames(input.logParse),
     drawInfoLineCount: input.logParse.drawInfoLineCount,
+    evidenceReadError: input.evidenceReadError ?? null,
     ignoredLineCount: input.logParse.ignoredLineCount,
     logScoreCandidates,
     parsedEventCount: input.logParse.events.length,

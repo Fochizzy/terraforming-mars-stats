@@ -458,6 +458,9 @@ async function parseGameResultEvidence(input: {
     milestoneClaims: [],
   };
   let globalParameters: GameResultGlobalParameters[] = [];
+  // An unreadable game result leaves every score field blank, which looks the
+  // same as attaching nothing at all. The reason travels to the review panel.
+  let readError: string | null = null;
 
   try {
     const screenshotRead =
@@ -524,6 +527,11 @@ async function parseGameResultEvidence(input: {
       'Game result screenshot OCR failed',
       serializeUnknownError(error),
     );
+
+    readError = describeUnknownError(
+      error,
+      'The uploaded game result could not be read.',
+    );
   }
 
   // The evidence names the players as the game did ("Izzy"), while the
@@ -549,6 +557,7 @@ async function parseGameResultEvidence(input: {
     }),
     parsedScoreDetails,
     parsedScreenshot,
+    readError,
   };
 }
 
@@ -692,6 +701,7 @@ export default async function LogGameImportPage() {
           .join(' '),
         review: buildImportReviewModel({
           cardScoring: screenshotEvidence.parsedScoreDetails.cardScoring,
+          evidenceReadError: screenshotEvidence.readError,
           logScoreCandidates: screenshotEvidence.logScoreCandidates,
           logParse: parsedGameLog,
           playerLinks,
