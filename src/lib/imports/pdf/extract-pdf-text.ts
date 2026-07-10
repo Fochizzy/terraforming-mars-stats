@@ -41,7 +41,15 @@ type Matrix = [number, number, number, number, number, number];
 
 const PDF_MAGIC = '%PDF-';
 const OBJECT_HEADER_PATTERN = /(?:^|[^0-9])(\d+)\s+(\d+)\s+obj\b/g;
+const PAGE_TYPE_PATTERN = /\/Type\s*\/Page(?!s)/;
+const PAGES_TYPE_PATTERN = /\/Type\s*\/Pages\b/;
+const CATALOG_TYPE_PATTERN = /\/Type\s*\/Catalog\b/;
+const KIDS_PATTERN = /\/Kids\s*\[([^\]]*)\]/;
+const CATALOG_PAGES_PATTERN = /\/Pages\s+(\d+)\s+\d+\s+R/;
+const INDIRECT_REFERENCE_PATTERN = /(\d+)\s+\d+\s+R/g;
 const IDENTITY_MATRIX: Matrix = [1, 0, 0, 1, 0, 0];
+/** Guards against a form that paints itself, directly or through a cycle. */
+const MAX_FORM_DEPTH = 8;
 
 export function isPdfBytes(bytes: Uint8Array) {
   if (bytes.byteLength < PDF_MAGIC.length) {
@@ -167,14 +175,68 @@ class PdfDocument {
     }
   }
 
+  /**
+   * Pages come back in reading order, which is the order the page tree's /Kids
+   * arrays give — not the order of their object numbers. A PDF saved through an
+   * incremental update renumbers the objects it rewrites, so its first page can
+   * carry the highest object number in the file.
+   */
   pageObjectNumbers() {
-    return [...this.objectRanges.keys()]
-      .filter((objectNumber) => {
-        const source = this.objectSource(objectNumber);
+    const rootSource = [...this.objectRanges.keys()].flatMap((objectNumber) => {
+      const source = this.objectSource(objectNumber);
 
-        return /\/Type\s*\/Page[^s]/.test(source);
-      })
+      return CATALOG_TYPE_PATTERN.test(source) ? [source] : [];
+    });
+    const rootMatch = rootSource.flatMap((source) => {
+      const match = CATALOG_PAGES_PATTERN.exec(source);
+
+      return match ? [Number(match[1])] : [];
+    });
+    const ordered = rootMatch.flatMap((pagesObjectNumber) =>
+      this.flattenPageTree(pagesObjectNumber, new Set()),
+    );
+
+    if (ordered.length > 0) {
+      return ordered;
+    }
+
+    // No usable page tree (a damaged catalog, say). Object number order is a
+    // decent guess for a file that was written in one pass.
+    return [...this.objectRanges.keys()]
+      .filter((objectNumber) =>
+        PAGE_TYPE_PATTERN.test(this.objectSource(objectNumber)),
+      )
       .sort((left, right) => left - right);
+  }
+
+  private flattenPageTree(objectNumber: number, visited: Set<number>): number[] {
+    if (visited.has(objectNumber)) {
+      return [];
+    }
+
+    visited.add(objectNumber);
+
+    const source = this.objectSource(objectNumber);
+
+    if (PAGE_TYPE_PATTERN.test(source)) {
+      return [objectNumber];
+    }
+
+    if (!PAGES_TYPE_PATTERN.test(source)) {
+      return [];
+    }
+
+    const kids = KIDS_PATTERN.exec(source);
+
+    if (!kids) {
+      return [];
+    }
+
+    INDIRECT_REFERENCE_PATTERN.lastIndex = 0;
+
+    return [...kids[1].matchAll(INDIRECT_REFERENCE_PATTERN)].flatMap((match) =>
+      this.flattenPageTree(Number(match[1]), visited),
+    );
   }
 
   font(objectNumber: number) {
@@ -491,13 +553,13 @@ function translate(matrix: Matrix, tx: number, ty: number): Matrix {
   return [a, b, c, d, a * tx + c * ty + e, b * tx + d * ty + f];
 }
 
-async function resolvePageFonts(input: {
+async function resolveFonts(input: {
   document: PdfDocument;
-  pageSource: string;
+  resourcesSource: string;
 }) {
   const fonts = new Map<string, PdfFont>();
-  const inlineMatch = /\/Font\s*<<([\s\S]*?)>>/.exec(input.pageSource);
-  const indirectMatch = /\/Font\s+(\d+)\s+\d+\s+R/.exec(input.pageSource);
+  const inlineMatch = /\/Font\s*<<([\s\S]*?)>>/.exec(input.resourcesSource);
+  const indirectMatch = /\/Font\s+(\d+)\s+\d+\s+R/.exec(input.resourcesSource);
   const dictionary = inlineMatch
     ? inlineMatch[1]
     : indirectMatch
@@ -511,11 +573,42 @@ async function resolvePageFonts(input: {
   return fonts;
 }
 
+/**
+ * Form XObjects the content stream paints with `Do`. Chrome emits one for every
+ * element it composites separately — notably anything with `opacity`, which is
+ * how the results table draws its dimmed megacredits, timer and generation
+ * columns. Image XObjects are skipped; they carry no text.
+ */
+function resolveFormXObjects(input: {
+  document: PdfDocument;
+  resourcesSource: string;
+}) {
+  const forms = new Map<string, number>();
+  const dictionary = /\/XObject\s*<<([\s\S]*?)>>/.exec(input.resourcesSource);
+
+  if (!dictionary) {
+    return forms;
+  }
+
+  for (const entry of dictionary[1].matchAll(/\/(\w+)\s+(\d+)\s+\d+\s+R/g)) {
+    const objectNumber = Number(entry[2]);
+    const objectSource = input.document.objectSource(objectNumber);
+
+    if (/\/Subtype\s*\/Form/.test(objectSource)) {
+      forms.set(`/${entry[1]}`, objectNumber);
+    }
+  }
+
+  return forms;
+}
+
 async function readPageContent(input: {
   document: PdfDocument;
   pageSource: string;
 }) {
-  const contentsMatch = /\/Contents\s+(?:(\d+)\s+\d+\s+R|\[([^\]]*)\])/.exec(
+  // A page splitting its drawing across several streams writes them as an array,
+  // and Chrome leaves no space before the bracket: `/Contents[1134 0 R ...]`.
+  const contentsMatch = /\/Contents\s*(?:(\d+)\s+\d+\s+R|\[([^\]]*)\])/.exec(
     input.pageSource,
   );
 
@@ -541,16 +634,24 @@ async function readPageContent(input: {
   return content;
 }
 
-async function extractPageItems(input: {
+/**
+ * Runs one content stream, appending every text draw to `items`. A form's own
+ * `cm` only undoes the transform that places it on the page, so its `Tm`
+ * translations are already in the same space as the page's text and no matrix
+ * bookkeeping is needed to make the coordinates comparable.
+ */
+async function runContentStream(input: {
+  content: string;
+  depth: number;
   document: PdfDocument;
-  pageObjectNumber: number;
+  items: PdfTextItem[];
+  resourcesSource: string;
 }) {
-  const pageSource = input.document.objectSource(input.pageObjectNumber);
-  const [fonts, content] = await Promise.all([
-    resolvePageFonts({ document: input.document, pageSource }),
-    readPageContent({ document: input.document, pageSource }),
+  const { document, items } = input;
+  const [fonts, forms] = await Promise.all([
+    resolveFonts({ document, resourcesSource: input.resourcesSource }),
+    resolveFormXObjects({ document, resourcesSource: input.resourcesSource }),
   ]);
-  const items: PdfTextItem[] = [];
   const operands: Token[] = [];
   let font: PdfFont | null = null;
   let fontSize = 12;
@@ -563,7 +664,7 @@ async function extractPageItems(input: {
     }
   };
 
-  for (const token of tokenizeContent(content)) {
+  for (const token of tokenizeContent(input.content)) {
     if (
       token.kind === 'string' ||
       /^-?[\d.]+$/.test(token.value) ||
@@ -665,12 +766,54 @@ async function extractPageItems(input: {
 
         break;
       }
+      case 'Do': {
+        const name = names.at(-1);
+        const objectNumber = name ? forms.get(name.value) : undefined;
+
+        if (objectNumber === undefined || input.depth >= MAX_FORM_DEPTH) {
+          break;
+        }
+
+        const data = await document.streamBytes(objectNumber);
+
+        if (data) {
+          await runContentStream({
+            content: decodeLatin1(data),
+            depth: input.depth + 1,
+            document,
+            items,
+            resourcesSource: document.objectSource(objectNumber),
+          });
+        }
+
+        break;
+      }
       default:
         break;
     }
 
     operands.length = 0;
   }
+}
+
+async function extractPageItems(input: {
+  document: PdfDocument;
+  pageObjectNumber: number;
+}) {
+  const pageSource = input.document.objectSource(input.pageObjectNumber);
+  const content = await readPageContent({
+    document: input.document,
+    pageSource,
+  });
+  const items: PdfTextItem[] = [];
+
+  await runContentStream({
+    content,
+    depth: 0,
+    document: input.document,
+    items,
+    resourcesSource: pageSource,
+  });
 
   return dedupeStackedDraws(items);
 }

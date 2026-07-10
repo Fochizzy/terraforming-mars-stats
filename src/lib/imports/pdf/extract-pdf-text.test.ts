@@ -73,6 +73,32 @@ describe('extractPdfTextPages', () => {
     expect(pages[0].items[0].text).toBe('AI Central');
   });
 
+  it('reads text the page paints through a form xobject', async () => {
+    // The results table dims its megacredits column, so Chrome composites those
+    // cells separately and emits them as a form the page draws with `Do`.
+    const pages = await extractPdfTextPages(
+      buildTestPdf([
+        {
+          formRuns: [{ text: '88', x: 911, y: 444 }],
+          runs: [{ text: '82', x: 803, y: 444 }],
+        },
+      ]),
+    );
+
+    expect(pages[0].items).toEqual([
+      { text: '82', width: 12, x: 803, y: 444 },
+      { text: '88', width: 12, x: 911, y: 444 },
+    ]);
+  });
+
+  it('ignores a form that is not referenced by the page resources', async () => {
+    const pages = await extractPdfTextPages(
+      buildTestPdf([{ runs: [{ text: '82', x: 803, y: 444 }] }]),
+    );
+
+    expect(pages[0].items.map((item) => item.text)).toEqual(['82']);
+  });
+
   it('reads a page whose text is spread over separately positioned glyphs', async () => {
     const pages = await extractPdfTextPages(
       buildTestPdf([
@@ -89,5 +115,40 @@ describe('extractPdfTextPages', () => {
 
     expect(pages[0].items.map((item) => item.text).join('')).toBe('Izzy');
     expect(pages[0].items.map((item) => item.x)).toEqual([100, 106, 112, 118]);
+  });
+
+  it('reads a page that references its content streams as an array', async () => {
+    const pages = await extractPdfTextPages(
+      buildTestPdf([
+        {
+          runs: [
+            { text: 'James', x: 100, y: 50 },
+            { text: 'Corey', x: 100, y: 80 },
+          ],
+          splitContents: true,
+        },
+      ]),
+    );
+
+    expect(pages[0].items.map((item) => item.text)).toEqual(['James', 'Corey']);
+  });
+
+  it('returns pages in page tree order, not object number order', async () => {
+    const pages = await extractPdfTextPages(
+      buildTestPdf(
+        [
+          { runs: [{ text: 'score table', x: 100, y: 50 }] },
+          { runs: [{ text: 'score details', x: 100, y: 50 }] },
+          { runs: [{ text: 'board', x: 100, y: 50 }] },
+        ],
+        { reversePageObjectNumbers: true },
+      ),
+    );
+
+    expect(pages.map((page) => page.items[0].text)).toEqual([
+      'score table',
+      'score details',
+      'board',
+    ]);
   });
 });

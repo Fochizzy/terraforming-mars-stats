@@ -64,6 +64,32 @@ function detailRow(
   ]);
 }
 
+const MEGACREDITS_X = 911;
+const TIMER_X = 964;
+const TIMER_MINUTES_X = 996;
+const TRAILING_X = 1043;
+
+/**
+ * The dimmed cells the results table prints after the total: megacredits, the
+ * elapsed time (drawn as two runs) and a trailing count. Chrome composites them
+ * separately, so they arrive through a form XObject.
+ */
+function dimmedRow(input: {
+  megacredits: number;
+  nameY: number;
+  timer: [string, string];
+  trailing: number;
+}): TestPdfTextRun[] {
+  const y = input.nameY + 13;
+
+  return [
+    { text: String(input.megacredits), x: MEGACREDITS_X, y },
+    { text: input.timer[0], x: TIMER_X, y },
+    { text: input.timer[1], x: TIMER_MINUTES_X, y },
+    { text: String(input.trailing), x: TRAILING_X, y },
+  ];
+}
+
 const GLOBAL_PARAMETER_X = [181, 249, 322, 413];
 
 function globalParameterRow(input: {
@@ -82,8 +108,18 @@ function globalParameterRow(input: {
   ];
 }
 
-function buildGameResultPdf(): Uint8Array {
+function buildGameResultPdf(
+  options: { withDimmedColumns?: boolean } = {},
+): Uint8Array {
   const scoreTablePage: TestPdfPage = {
+    formRuns: options.withDimmedColumns
+      ? [
+          ...dimmedRow({ megacredits: 88, nameY: 431, timer: ['15:', '44'], trailing: 117 }),
+          ...dimmedRow({ megacredits: 98, nameY: 514, timer: ['17:', '45'], trailing: 114 }),
+          ...dimmedRow({ megacredits: 58, nameY: 627, timer: ['16:', '26'], trailing: 116 }),
+          ...dimmedRow({ megacredits: 60, nameY: 710, timer: ['39:', '44'], trailing: 141 }),
+        ]
+      : undefined,
     runs: [
       { size: 40, text: 'Izzy won!', x: 737, y: 264 },
       ...scoreRow({
@@ -187,6 +223,43 @@ describe('readGameResultPdf', () => {
       'Corey 37 0 7 6 0 24 74',
       'Colette 36 10 2 3 0 9 60',
     ]);
+  });
+
+  it('reads the megacredits the table dims after the total', async () => {
+    const read = await readGameResultPdf(
+      buildGameResultPdf({ withDimmedColumns: true }),
+    );
+
+    // The elapsed time and the trailing count sit further right and are cut.
+    expect(read.endgameLines).toEqual([
+      'Izzy 28 0 10 5 11 28 82 88',
+      'James 36 5 7 2 6 22 78 98',
+      'Corey 37 0 7 6 0 24 74 58',
+      'Colette 36 10 2 3 0 9 60 60',
+    ]);
+  });
+
+  it('carries the dimmed megacredits through to the parsed rows', async () => {
+    const read = await readGameResultPdf(
+      buildGameResultPdf({ withDimmedColumns: true }),
+    );
+    const parsed = parseEndgameScoreScreenshot(read.endgameLines, {
+      generationCount: read.generationCount,
+      layout: read.endgameLayout,
+    });
+
+    expect(
+      parsed.playerRows.map((row) => [row.playerName, row.finalMegacredits]),
+    ).toEqual([
+      ['Izzy', 88],
+      ['James', 98],
+      ['Corey', 58],
+      ['Colette', 60],
+    ]);
+    expect(parsed.playerRows[0]).toMatchObject({
+      totalPoints: 82,
+      trPoints: 28,
+    });
   });
 
   it('reports the victory breakdown layout and the generation count', async () => {

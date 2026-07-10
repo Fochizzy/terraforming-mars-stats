@@ -40,6 +40,12 @@ const TOKEN_GAP = 1;
 const ROW_TOLERANCE = 4;
 /** TR, milestones, awards, greenery, cities, cards, total. */
 const SCORE_COLUMN_COUNT = 7;
+/**
+ * The results table dims a megacredits column after the total, then a timer and
+ * a generation count. Only the megacredits are wanted, and the timer's minutes
+ * read as a number, so the row is cut immediately after it.
+ */
+const MEGACREDITS_COLUMN_COUNT = 1;
 const SCORE_ROW_TOLERANCE = 6;
 /** The score table draws the total slightly below the component cells. */
 const NAME_ABOVE_MARGIN = 5;
@@ -147,7 +153,10 @@ function readScoreTable(page: PdfTextPage): ScoreTableRow[] {
     .filter((row) => row.tokens.length >= SCORE_COLUMN_COUNT);
 
   return numberRows.flatMap((row) => {
-    const cells = row.tokens.slice(0, SCORE_COLUMN_COUNT);
+    const cells = row.tokens.slice(
+      0,
+      SCORE_COLUMN_COUNT + MEGACREDITS_COLUMN_COUNT,
+    );
     const firstCellX = Math.min(...cells.map((cell) => cell.x));
     const rowTop = Math.min(...cells.map((cell) => cell.y));
     const nameToken = tokens
