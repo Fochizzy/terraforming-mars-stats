@@ -12,6 +12,7 @@ import {
   deleteSavedGame,
   getSavedGameForm,
   listSavedGames,
+  reopenSavedGame,
   saveDraftGame,
 } from '@/lib/db/game-draft-repo';
 import { getLatestGameLogImportSummary } from '@/lib/db/game-import-repo';
@@ -84,6 +85,28 @@ export default async function LogGameReviewPage({
       revalidatePath('/profile');
     }
 
+    async function handleReopenGame(formData: FormData) {
+      'use server';
+
+      const activeContext = await requireCurrentGroupContext();
+      const gameId = String(formData.get('gameId') ?? '').trim();
+
+      if (!gameId) {
+        throw new Error('Missing game id.');
+      }
+
+      await reopenSavedGame({
+        gameId,
+        groupId: activeContext.groupId,
+        userId: activeContext.userId,
+      });
+      revalidatePath('/group');
+      revalidatePath('/group/players');
+      revalidatePath('/insights');
+      revalidatePath('/log-game/review');
+      revalidatePath('/profile');
+    }
+
     return (
       <AppShell
         headerActions={
@@ -98,6 +121,7 @@ export default async function LogGameReviewPage({
         <SavedGamesPicker
           deleteGameAction={handleDeleteGame}
           games={savedGames}
+          reopenGameAction={handleReopenGame}
         />
       </AppShell>
     );

@@ -532,6 +532,44 @@ export async function deleteSavedGame(payload: {
   return { gameId: deletedGame.id as string };
 }
 
+export async function reopenSavedGame(payload: {
+  gameId: string;
+  groupId: string;
+  userId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  // Clear the finalized bookkeeping so the game looks exactly like a draft that
+  // was never finalized. The scored game_players rows stay put: they are
+  // rewritten when the game is finalized again, and analytics.player_game_results
+  // only reads finalized games, so a reopened game leaves the stats immediately.
+  const { data: reopenedGame, error: reopenError } = await supabase
+    .from('games')
+    .update({
+      status: 'draft',
+      updated_by_user_id: payload.userId,
+      catalog_snapshot_id: null,
+      finalized_at: null,
+      finalized_by_user_id: null,
+    })
+    .eq('id', payload.gameId)
+    .eq('group_id', payload.groupId)
+    .eq('status', 'finalized')
+    .select('id')
+    .maybeSingle();
+
+  if (reopenError) {
+    throw reopenError;
+  }
+
+  if (!reopenedGame) {
+    throw new Error(
+      'Finalized game not found or you do not have permission to reopen it.',
+    );
+  }
+
+  return { gameId: reopenedGame.id as string };
+}
+
 export async function finalizeGameLog(payload: {
   form: LogGameDraftInput;
   finalizedPayload: FinalizedGamePayload;

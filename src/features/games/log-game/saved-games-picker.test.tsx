@@ -7,6 +7,7 @@ describe('SavedGamesPicker', () => {
     render(
       <SavedGamesPicker
         deleteGameAction={async () => {}}
+        reopenGameAction={async () => {}}
         games={[
           {
             gameId: 'game-draft',
@@ -61,8 +62,51 @@ describe('SavedGamesPicker', () => {
     expect(screen.getByText(/sam terraformer/i)).toBeInTheDocument();
   });
 
+  it('offers reopen only on finished games', () => {
+    render(
+      <SavedGamesPicker
+        deleteGameAction={async () => {}}
+        reopenGameAction={async () => {}}
+        games={[
+          {
+            gameId: 'game-draft',
+            playedOn: '2026-07-07',
+            playerCount: 2,
+            playerNames: ['Friday Mars'],
+            status: 'draft',
+            updatedAt: '2026-07-08T09:00:00.000Z',
+          },
+          {
+            gameId: 'game-final',
+            playedOn: '2026-07-06',
+            playerCount: 4,
+            playerNames: ['Sam Terraformer'],
+            status: 'finalized',
+            updatedAt: '2026-07-08T08:00:00.000Z',
+          },
+        ]}
+      />,
+    );
+
+    const reopenButtons = screen.getAllByRole('button', { name: /reopen/i });
+
+    expect(reopenButtons).toHaveLength(1);
+    expect(reopenButtons[0]).toHaveAccessibleName(
+      /reopen game sam terraformer as a draft/i,
+    );
+    expect(reopenButtons[0]?.closest('article')).toHaveClass(
+      'tm-saved-game-card--finalized',
+    );
+  });
+
   it('keeps both saved game sections visible when they are empty', () => {
-    render(<SavedGamesPicker deleteGameAction={async () => {}} games={[]} />);
+    render(
+      <SavedGamesPicker
+        deleteGameAction={async () => {}}
+        reopenGameAction={async () => {}}
+        games={[]}
+      />,
+    );
 
     expect(screen.getByRole('heading', { name: /in progress games/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /finished games/i })).toBeInTheDocument();

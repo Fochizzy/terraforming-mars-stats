@@ -725,3 +725,67 @@ describe('listSavedGames', () => {
     );
   });
 });
+
+describe('reopenSavedGame', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function buildReopenQuery(
+    result: { data: unknown; error: unknown } = {
+      data: { id: 'game-final' },
+      error: null,
+    },
+  ) {
+    return {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue(result),
+    };
+  }
+
+  it('moves a finalized game back to draft and clears its finalized bookkeeping', async () => {
+    const reopenQuery = buildReopenQuery();
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn(() => reopenQuery),
+    } as never);
+
+    await expect(
+      repo.reopenSavedGame({
+        gameId: 'game-final',
+        groupId: '11111111-1111-4111-8111-111111111111',
+        userId: 'user-1',
+      }),
+    ).resolves.toEqual({ gameId: 'game-final' });
+
+    expect(reopenQuery.update).toHaveBeenCalledWith({
+      status: 'draft',
+      updated_by_user_id: 'user-1',
+      catalog_snapshot_id: null,
+      finalized_at: null,
+      finalized_by_user_id: null,
+    });
+    expect(reopenQuery.eq).toHaveBeenCalledWith('id', 'game-final');
+    expect(reopenQuery.eq).toHaveBeenCalledWith(
+      'group_id',
+      '11111111-1111-4111-8111-111111111111',
+    );
+    // Guards against reopening a game that is already a draft.
+    expect(reopenQuery.eq).toHaveBeenCalledWith('status', 'finalized');
+  });
+
+  it('throws when no finalized game matches the group', async () => {
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn(() => buildReopenQuery({ data: null, error: null })),
+    } as never);
+
+    await expect(
+      repo.reopenSavedGame({
+        gameId: 'game-draft',
+        groupId: '11111111-1111-4111-8111-111111111111',
+        userId: 'user-1',
+      }),
+    ).rejects.toThrow(/not found or you do not have permission to reopen it/i);
+  });
+});

@@ -3,6 +3,7 @@ import type { SavedGameListItem } from '@/lib/db/game-draft-repo';
 import { StepHeading } from '@/components/ui/step-heading';
 
 type DeleteGameAction = (formData: FormData) => Promise<void>;
+type ReopenGameAction = (formData: FormData) => Promise<void>;
 
 function formatGameStatus(status: SavedGameListItem['status']) {
   return status === 'draft' ? 'In progress' : 'Finished';
@@ -11,9 +12,11 @@ function formatGameStatus(status: SavedGameListItem['status']) {
 function SavedGameCard({
   deleteGameAction,
   game,
+  reopenGameAction,
 }: {
   deleteGameAction: DeleteGameAction;
   game: SavedGameListItem;
+  reopenGameAction: ReopenGameAction;
 }) {
   const playerNames =
     game.playerNames.length > 0
@@ -45,6 +48,20 @@ function SavedGameCard({
           >
             {game.status === 'draft' ? 'Resume Draft' : 'Correct Players'}
           </Link>
+          {game.status === 'finalized' ? (
+            <form action={reopenGameAction}>
+              <input name="gameId" type="hidden" value={game.gameId} />
+              <button
+                aria-label={`Reopen game ${
+                  game.playerNames.join(', ') || game.gameId
+                } as a draft`}
+                className="tm-button-secondary px-4 py-2 text-xs"
+                type="submit"
+              >
+                Reopen as Draft
+              </button>
+            </form>
+          ) : null}
           <form action={deleteGameAction}>
             <input name="gameId" type="hidden" value={game.gameId} />
             <button
@@ -66,10 +83,12 @@ function SavedGameCard({
 function SavedGameSection({
   deleteGameAction,
   games,
+  reopenGameAction,
   status,
 }: {
   deleteGameAction: DeleteGameAction;
   games: SavedGameListItem[];
+  reopenGameAction: ReopenGameAction;
   status: SavedGameListItem['status'];
 }) {
   const title = status === 'draft' ? 'In Progress Games' : 'Finished Games';
@@ -99,6 +118,7 @@ function SavedGameSection({
               deleteGameAction={deleteGameAction}
               game={game}
               key={game.gameId}
+              reopenGameAction={reopenGameAction}
             />
           ))}
         </div>
@@ -110,9 +130,11 @@ function SavedGameSection({
 export function SavedGamesPicker({
   deleteGameAction,
   games,
+  reopenGameAction,
 }: {
   deleteGameAction: DeleteGameAction;
   games: SavedGameListItem[];
+  reopenGameAction: ReopenGameAction;
 }) {
   const draftGames = games.filter((game) => game.status === 'draft');
   const finalizedGames = games.filter((game) => game.status === 'finalized');
@@ -121,17 +143,21 @@ export function SavedGamesPicker({
     <section className="tm-panel flex flex-col gap-4">
       <StepHeading step="01" title="Saved Games" />
       <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
-        Reopen a draft or correct players on a finalized game.
+        Resume a draft, or correct players on a finished game. Reopening a
+        finished game moves it back to In Progress and removes it from stats
+        until you finalize it again.
       </p>
       <div className="grid gap-4">
         <SavedGameSection
           deleteGameAction={deleteGameAction}
           games={draftGames}
+          reopenGameAction={reopenGameAction}
           status="draft"
         />
         <SavedGameSection
           deleteGameAction={deleteGameAction}
           games={finalizedGames}
+          reopenGameAction={reopenGameAction}
           status="finalized"
         />
       </div>
