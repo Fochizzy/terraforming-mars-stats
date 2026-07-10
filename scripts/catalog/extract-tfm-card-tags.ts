@@ -165,6 +165,15 @@ function readVictoryPoints(value: unknown): TfmCardVictoryPoints {
   return { kind: 'dynamic' };
 }
 
+/**
+ * Upstream models event-ness as the card's `type`, not as a tag, so an event
+ * card carries only its subject tags. The catalog counts gameplay tags per
+ * player, and "events played" is one of the things it counts, so the event tag
+ * is restored here. Dropping it would silently empty that statistic for the 95
+ * event cards.
+ */
+const EVENT_CARD_TYPE = 'event';
+
 function readTags(value: unknown) {
   return Array.isArray(value)
     ? value.filter((tag): tag is string => typeof tag === 'string')
@@ -218,6 +227,8 @@ export function extractTfmCardManifest(input: {
           ? entry.metadata.cardNumber
           : null;
 
+      const tags = readTags(entry.tags);
+
       records.push({
         cardNumber,
         cardType: CARD_TYPE_OVERRIDES[type] ?? type,
@@ -225,7 +236,7 @@ export function extractTfmCardManifest(input: {
         module: moduleId ? (MODULE_LABELS[moduleId] ?? moduleId) : null,
         name: entry.name,
         nameKey: input.nameKeysByName.get(entry.name) ?? '',
-        tags: readTags(entry.tags),
+        tags: type === EVENT_CARD_TYPE ? [...tags, EVENT_CARD_TYPE] : tags,
         victoryPoints: readVictoryPoints(entry.victoryPoints),
       });
     }

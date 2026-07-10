@@ -71,6 +71,21 @@ const MANIFEST_CARDS = [
     type: 'prelude',
     metadata: { cardNumber: 'P41' },
   },
+  // Upstream marks event-ness as the type, not as a tag.
+  {
+    module: 'base',
+    name: 'Asteroid',
+    tags: ['space'],
+    type: 'event',
+    metadata: { cardNumber: '009' },
+  },
+  {
+    module: 'promo',
+    name: 'Air Raid',
+    tags: [],
+    type: 'event',
+    metadata: { cardNumber: 'X01' },
+  },
 ];
 
 function buildRecords() {
@@ -110,7 +125,7 @@ describe('extractTfmCardManifest', () => {
   it('reads the manifest embedded as a JSON.parse literal', () => {
     const records = buildRecords();
 
-    expect(records).toHaveLength(5);
+    expect(records).toHaveLength(7);
     expect(records.find((record) => record.name === 'Research')).toEqual({
       cardNumber: '077',
       cardType: 'automated',
@@ -148,6 +163,24 @@ describe('extractTfmCardManifest', () => {
     expect(byName.get('Bio-Sol')).toEqual({ kind: 'dynamic' });
     expect(byName.get('Agricola Inc')).toEqual({ kind: 'dynamic' });
     expect(byName.get('Merger')).toEqual({ kind: 'none' });
+  });
+
+  // The catalog counts gameplay tags per player, and events are one of the
+  // things it counts, so the tag has to survive the round trip.
+  it('restores the event tag that upstream carries as a card type', () => {
+    const byName = new Map(buildRecords().map((r) => [r.name, r]));
+
+    expect(byName.get('Asteroid')).toMatchObject({
+      cardType: 'event',
+      tags: ['space', 'event'],
+    });
+    expect(byName.get('Air Raid')).toMatchObject({
+      cardType: 'event',
+      tags: ['event'],
+    });
+    // Non-event cards must not gain the tag.
+    expect(byName.get('Research')?.tags).toEqual(['science', 'science']);
+    expect(byName.get('Merger')?.tags).toEqual([]);
   });
 
   it('returns nothing for a chunk that holds no manifest', () => {
@@ -192,7 +225,7 @@ describe('mergeTfmCardRecords', () => {
 
     const merged = mergeTfmCardRecords([first, second]);
 
-    expect(merged).toHaveLength(6);
+    expect(merged).toHaveLength(8);
     expect(merged.map((record) => record.name)).toContain('Aristarchus');
     expect(merged.find((record) => record.name === 'Research')).toMatchObject({
       module: 'Base',

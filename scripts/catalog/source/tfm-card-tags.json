@@ -195,7 +195,8 @@
   "name": "Aerobraked Ammonia Asteroid",
   "nameKey": "AEROBRAKED_AMMONIA_ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -236,7 +237,9 @@
   "module": "Venus",
   "name": "Aerosport Tournament",
   "nameKey": "AEROSPORT_TOURNAMENT",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": 1
@@ -322,7 +325,9 @@
   "module": "Colonies",
   "name": "Air Raid",
   "nameKey": "AIR_RAID",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -359,7 +364,8 @@
   "name": "Air-Scrapping Expedition",
   "nameKey": "AIR_SCRAPPING_EXPEDITION",
   "tags": [
-   "venus"
+   "venus",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -455,7 +461,9 @@
   "module": "Moon",
   "name": "An Offer You Can't Refuse",
   "nameKey": "AN_OFFER_YOU_CANT_REFUSE",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -529,7 +537,8 @@
   "name": "Anti-trust Crackdown",
   "nameKey": "ANTI_TRUST_CRACKDOWN",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -831,7 +840,8 @@
   "name": "Asteroid",
   "nameKey": "ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -1077,7 +1087,9 @@
   "module": "Turmoil",
   "name": "Banned Delegate",
   "nameKey": "BANNED_DELEGATE",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -1176,7 +1188,8 @@
   "name": "Behold The Emperor! (III)",
   "nameKey": "BEHOLD_THE_EMPEROR",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -1190,7 +1203,8 @@
   "name": "Big Asteroid",
   "nameKey": "BIG_ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -1433,7 +1447,8 @@
   "name": "Bribed Committee",
   "nameKey": "BRIBED_COMMITTEE",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -1500,7 +1515,8 @@
   "name": "Business Contacts",
   "nameKey": "BUSINESS_CONTACTS",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -1541,7 +1557,9 @@
   "module": "Ares",
   "name": "Butterfly Effect",
   "nameKey": "BUTTERFLY_EFFECT",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -1596,7 +1614,8 @@
   "name": "Canyon Survey",
   "nameKey": "CANYON_SURVEY",
   "tags": [
-   "science"
+   "science",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -1783,7 +1802,9 @@
   "module": "Corp Era",
   "name": "CEO's Favorite Project",
   "nameKey": "CEOS_FAVORITE_PROJECT",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -1830,7 +1851,8 @@
   "name": "Charity Donation",
   "nameKey": "CHARITY_DONATION",
   "tags": [
-   "mars"
+   "mars",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -1928,7 +1950,8 @@
   "name": "Class-action Lawsuit",
   "nameKey": "CLASS_ACTION_LAWSUIT",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -2065,7 +2088,9 @@
   "module": "Prelude 2",
   "name": "Colonial Envoys",
   "nameKey": "COLONIAL_ENVOYS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -2134,7 +2159,8 @@
   "name": "Comet",
   "nameKey": "COMET",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -2162,7 +2188,8 @@
   "name": "Comet for Venus",
   "nameKey": "COMET_FOR_VENUS",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -2233,7 +2260,8 @@
   "name": "Conscription",
   "nameKey": "CONSCRIPTION",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -2249,7 +2277,8 @@
   "nameKey": "CONTROLLED_BLOOM",
   "tags": [
    "microbe",
-   "plant"
+   "plant",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -2288,7 +2317,8 @@
   "name": "Convoy From Europa",
   "nameKey": "CONVOY_FROM_EUROPA",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -2301,7 +2331,9 @@
   "module": "Pathfinders",
   "name": "Coordinated Raid",
   "nameKey": "COORDINATED_RAID",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -2387,7 +2419,8 @@
   "name": "Corporate Blackmail",
   "nameKey": "CORPORATE_BLACKMAIL",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -2461,7 +2494,8 @@
   "name": "Cosmic Radiation",
   "nameKey": "COSMIC_RADIATION",
   "tags": [
-   "moon"
+   "moon",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -2474,7 +2508,9 @@
   "module": "Promo",
   "name": "Crash Site Cleanup",
   "nameKey": "CRASH_SITE_CLEANUP",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": 1
@@ -2487,7 +2523,9 @@
   "module": "Pathfinders",
   "name": "Crashlanding",
   "nameKey": "CRASHLANDING",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -2500,7 +2538,8 @@
   "name": "Crater Survey",
   "nameKey": "CRATER_SURVEY",
   "tags": [
-   "science"
+   "science",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -2717,7 +2756,8 @@
   "name": "Darkside Meteor Bombardment",
   "nameKey": "DARKSIDE_METEOR_BOMBARDMENT",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -2773,7 +2813,9 @@
   "module": "Pathfinders",
   "name": "Data Leak",
   "nameKey": "DATA_LEAK",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -2802,7 +2844,8 @@
   "name": "Declaration of Independence",
   "nameKey": "DECLARATION_OF_INDEPENDENCE",
   "tags": [
-   "mars"
+   "mars",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -2902,7 +2945,9 @@
   "module": "Underworld",
   "name": "Deepnuking",
   "nameKey": "DEEPNUKING",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": -1
@@ -2931,7 +2976,8 @@
   "name": "Deimos Down",
   "nameKey": "DEIMOS_DOWN",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -2945,7 +2991,8 @@
   "name": "Deimos Down:ares",
   "nameKey": "DEIMOS_DOWN_ARES",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -2959,7 +3006,8 @@
   "name": "Deimos Down:promo",
   "nameKey": "DEIMOS_DOWN_PROMO",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -3043,7 +3091,9 @@
   "module": "Ares",
   "name": "Desperate Measures",
   "nameKey": "DESPERATE_MEASURES",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": -2
@@ -3156,7 +3206,9 @@
   "module": "Promo",
   "name": "Diversity Support",
   "nameKey": "DIVERSITY_SUPPORT",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -3263,7 +3315,8 @@
   "name": "Dust Storm",
   "nameKey": "DUST_STORM",
   "tags": [
-   "mars"
+   "mars",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -3530,7 +3583,9 @@
   "module": "Pathfinders",
   "name": "Economic Help",
   "nameKey": "ECONOMIC_HELP",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -3642,7 +3697,8 @@
   "name": "Envoys From Venus",
   "nameKey": "ENVOYS_FROM_VENUS",
   "tags": [
-   "venus"
+   "venus",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -3764,7 +3820,8 @@
   "name": "Expedition to the Surface - Venus",
   "nameKey": "EXPEDITION_TO_THE_SURFACE_VENUS",
   "tags": [
-   "venus"
+   "venus",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -3834,7 +3891,8 @@
   "name": "Export Convoy",
   "nameKey": "EXPORT_CONVOY",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -3892,7 +3950,8 @@
   "name": "Fabricated Scandal",
   "nameKey": "FABRICATED_SCANDAL",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -3921,7 +3980,8 @@
   "name": "Family Connections",
   "nameKey": "FAMILY_CONNECTIONS",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -4033,7 +4093,8 @@
   "name": "Floater Prototypes",
   "nameKey": "FLOATER_PROTOTYPES",
   "tags": [
-   "science"
+   "science",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -4116,7 +4177,9 @@
   "module": "Base",
   "name": "Flooding",
   "nameKey": "FLOODING",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": -1
@@ -4596,7 +4659,8 @@
   "nameKey": "GHG_IMPORT_FROM_VENUS",
   "tags": [
    "space",
-   "venus"
+   "venus",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -4625,7 +4689,8 @@
   "name": "GHG Shipment",
   "nameKey": "GHG_SHIPMENT",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -4639,7 +4704,8 @@
   "name": "Giant Ice Asteroid",
   "nameKey": "GIANT_ICE_ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -4698,7 +4764,8 @@
   "name": "Global Audit",
   "nameKey": "GLOBAL_AUDIT",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5004,7 +5071,8 @@
   "name": "Harvest",
   "nameKey": "HARVEST",
   "tags": [
-   "plant"
+   "plant",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5048,7 +5116,8 @@
   "name": "HE3 Production Quotas",
   "nameKey": "HE3_PRODUCTION_QUOTAS",
   "tags": [
-   "moon"
+   "moon",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5260,7 +5329,9 @@
   "module": "Corp Era",
   "name": "Hired Raiders",
   "nameKey": "HIRED_RAIDERS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -5273,7 +5344,8 @@
   "name": "Hired Raiders:u",
   "nameKey": "HIRED_RAIDERS_UNDERWORLD",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5317,7 +5389,8 @@
   "nameKey": "HOSTILE_TAKEOVER",
   "tags": [
    "city",
-   "moon"
+   "moon",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5417,7 +5490,8 @@
   "name": "Hydrogen to Venus",
   "nameKey": "HYDROGEN_TO_VENUS",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5460,7 +5534,8 @@
   "name": "Ice Asteroid",
   "nameKey": "ICE_ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5473,7 +5548,9 @@
   "module": "Base",
   "name": "Ice Cap Melting",
   "nameKey": "ICE_CAP_MELTING",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -5544,7 +5621,8 @@
   "name": "Impactor Swarm",
   "nameKey": "IMPACTOR_SWARM",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5559,7 +5637,8 @@
   "nameKey": "IMPORT_OF_ADVANCED_GHG",
   "tags": [
    "earth",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5574,7 +5653,8 @@
   "nameKey": "IMPORTED_GHG",
   "tags": [
    "earth",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5604,7 +5684,8 @@
   "nameKey": "IMPORTED_HYDROGEN",
   "tags": [
    "earth",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5619,7 +5700,8 @@
   "nameKey": "IMPORTED_NITROGEN",
   "tags": [
    "earth",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5634,7 +5716,8 @@
   "nameKey": "IMPORTED_NUTRIENTS",
   "tags": [
    "earth",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5675,7 +5758,9 @@
   "module": "Corp Era",
   "name": "Indentured Workers",
   "nameKey": "INDENTURED_WORKERS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": -1
@@ -5688,7 +5773,9 @@
   "module": "Underworld",
   "name": "Induced Tremor",
   "nameKey": "INDUCED_TREMOR",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -5841,7 +5928,8 @@
   "nameKey": "INTERPLANETARY_COLONY_SHIP",
   "tags": [
    "space",
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5888,7 +5976,8 @@
   "nameKey": "INTERSTELLAR_COLONY_SHIP",
   "tags": [
    "earth",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -5918,7 +6007,8 @@
   "name": "Invention Contest",
   "nameKey": "INVENTION_CONTEST",
   "tags": [
-   "science"
+   "science",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -5974,7 +6064,8 @@
   "name": "Investment Loan",
   "nameKey": "INVESTMENT_LOAN",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -6077,7 +6168,8 @@
   "name": "Ishtar Expedition",
   "nameKey": "ISHTAR_EXPEDITION",
   "tags": [
-   "venus"
+   "venus",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -6160,7 +6252,9 @@
   "module": "Prelude 2",
   "name": "Jovian Envoys",
   "nameKey": "JOVIAN_ENVOYS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -6416,7 +6510,9 @@
   "module": "Corp Era",
   "name": "Land Claim",
   "nameKey": "LAND_CLAIM",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -6445,7 +6541,8 @@
   "nameKey": "LARGE_CONVOY",
   "tags": [
    "earth",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -6459,7 +6556,9 @@
   "module": "Pathfinders",
   "name": "Last Resort Ingenuity",
   "nameKey": "LAST_RESORT_INGENUITY",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -6471,7 +6570,9 @@
   "module": "Base",
   "name": "Lava Flows",
   "nameKey": "LAVA_FLOWS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -6483,7 +6584,9 @@
   "module": "Ares",
   "name": "Lava Flows:ares",
   "nameKey": "LAVA_FLOWS_ARES",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -6511,7 +6614,8 @@
   "name": "Law Suit",
   "nameKey": "LAW_SUIT",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "dynamic"
@@ -6608,7 +6712,9 @@
   "module": "Base",
   "name": "Local Heat Trapping",
   "nameKey": "LOCAL_HEAT_TRAPPING",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -6665,7 +6771,8 @@
   "nameKey": "LUNA_CONFERENCE",
   "tags": [
    "science",
-   "moon"
+   "moon",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -7038,7 +7145,8 @@
   "nameKey": "LUNAR_MINE_URBANIZATION",
   "tags": [
    "moon",
-   "building"
+   "building",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -7367,7 +7475,8 @@
   "name": "Market Manipulation",
   "nameKey": "MARKET_MANIPULATION",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -7626,7 +7735,8 @@
   "name": "Martian Survey",
   "nameKey": "MARTIAN_SURVEY",
   "tags": [
-   "science"
+   "science",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -7716,7 +7826,8 @@
   "name": "Media Frenzy",
   "nameKey": "MEDIA_FRENZY",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -7774,7 +7885,8 @@
   "name": "Mercenary Squad",
   "nameKey": "MERCENARY_SQUAD",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -7826,7 +7938,8 @@
   "name": "Metallic Asteroid",
   "nameKey": "METALLIC_ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -8007,7 +8120,9 @@
   "module": "Corp Era",
   "name": "Mineral Deposit",
   "nameKey": "MINERAL_DEPOSIT",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -8075,7 +8190,9 @@
   "module": "Base",
   "name": "Mining Expedition",
   "nameKey": "MINING_EXPEDITION",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -8374,7 +8491,9 @@
   "module": "Moon",
   "name": "Mooncrate Convoys To Mars",
   "nameKey": "MOONCRATE_CONVOYS_TO_MARS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -8485,7 +8604,8 @@
   "name": "Narrative Spin",
   "nameKey": "NARRATIVE_SPIN",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -8718,7 +8838,8 @@
   "name": "Nitrogen-Rich Asteroid",
   "nameKey": "NITROGEN_RICH_ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -9219,7 +9340,8 @@
   "name": "Patent Manipulation",
   "nameKey": "PATENT_MANIPULATION",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -9247,7 +9369,9 @@
   "module": "Base",
   "name": "Permafrost Extraction",
   "nameKey": "PERMAFROST_EXTRACTION",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -9435,7 +9559,8 @@
   "nameKey": "PLANETARY_RIGHTS_BUYOUT",
   "tags": [
    "crime",
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -9449,7 +9574,9 @@
   "module": "Underworld",
   "name": "Plant Tax",
   "nameKey": "PLANT_TAX",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -9546,7 +9673,9 @@
   "module": "Turmoil",
   "name": "Political Alliance",
   "nameKey": "POLITICAL_ALLIANCE",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -9767,7 +9896,8 @@
   "name": "Preliminary Darkside",
   "nameKey": "PRELIMINARY_DARKSIDE",
   "tags": [
-   "moon"
+   "moon",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -9792,7 +9922,9 @@
   "module": "Underworld",
   "name": "Price Wars",
   "nameKey": "PRICE_WARS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": -1
@@ -9833,7 +9965,9 @@
   "module": "Underworld",
   "name": "Private Investigator",
   "nameKey": "PRIVATE_INVESTIGATOR",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "dynamic"
   }
@@ -9930,7 +10064,9 @@
   "module": "Promo",
   "name": "Project Inspection",
   "nameKey": "PROJECT_INSPECTION",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -9971,7 +10107,8 @@
   "name": "Protected Growth",
   "nameKey": "PROTECTED_GROWTH",
   "tags": [
-   "plant"
+   "plant",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -10040,7 +10177,9 @@
   "module": "Turmoil",
   "name": "Public Celebrations",
   "nameKey": "PUBLIC_CELEBRATIONS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": 2
@@ -10053,7 +10192,9 @@
   "module": "Promo",
   "name": "Public Plans",
   "nameKey": "PUBLIC_PLANS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": 1
@@ -10087,7 +10228,9 @@
   "module": "Pathfinders",
   "name": "Public Sponsored Grant",
   "nameKey": "PUBLIC_SPONSORED_GRANT",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -10209,7 +10352,8 @@
   "name": "Reckless Detonation",
   "nameKey": "RECKLESS_DETONATION",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -10222,7 +10366,9 @@
   "module": "Turmoil",
   "name": "Recruitment",
   "nameKey": "RECRUITMENT",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -10249,7 +10395,9 @@
   "module": "Prelude 2",
   "name": "Red Appeasement",
   "nameKey": "RED_APPEASEMENT",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -10305,7 +10453,8 @@
   "name": "Red Tourism Wave",
   "nameKey": "RED_TOURISM_WAVE",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -10362,7 +10511,9 @@
   "module": "Base",
   "name": "Release of Inert Gases",
   "nameKey": "RELEASE_OF_INERT_GASES",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -10523,7 +10674,8 @@
   "name": "Return to Abandoned Technology",
   "nameKey": "RETURN_TO_ABANDONED_TECHNOLOGY",
   "tags": [
-   "mars"
+   "mars",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -10537,7 +10689,8 @@
   "name": "Revolting Colonists",
   "nameKey": "REVOLTING_COLONISTS",
   "tags": [
-   "moon"
+   "moon",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -10654,7 +10807,8 @@
   "name": "Road Piracy",
   "nameKey": "ROAD_PIRACY",
   "tags": [
-   "moon"
+   "moon",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -10815,7 +10969,9 @@
   "module": "Corp Era",
   "name": "Sabotage",
   "nameKey": "SABOTAGE",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -10884,7 +11040,8 @@
   "name": "Scapegoat",
   "nameKey": "SCAPEGOAT",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11024,7 +11181,8 @@
   "name": "Server Sabotage",
   "nameKey": "SERVER_SABOTAGE",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11142,7 +11300,8 @@
   "name": "Small Asteroid",
   "nameKey": "SMALL_ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11157,7 +11316,8 @@
   "nameKey": "SMALL_COMET",
   "tags": [
    "mars",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11229,7 +11389,8 @@
   "nameKey": "SOCIAL_EVENTS",
   "tags": [
    "earth",
-   "mars"
+   "mars",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11285,7 +11446,8 @@
   "nameKey": "SOIL_ENRICHMENT",
   "tags": [
    "microbe",
-   "plant"
+   "plant",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11331,7 +11493,8 @@
   "nameKey": "SOIL_STUDIES",
   "tags": [
    "microbe",
-   "plant"
+   "plant",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11409,7 +11572,8 @@
   "nameKey": "SOLAR_PROBE",
   "tags": [
    "space",
-   "science"
+   "science",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -11438,7 +11602,8 @@
   "name": "Solar Storm",
   "nameKey": "SOLAR_STORM",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11537,7 +11702,8 @@
   "nameKey": "SPACE_DEBRIS_CLEANING_OPERATION",
   "tags": [
    "mars",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11701,7 +11867,8 @@
   "name": "Special Design",
   "nameKey": "SPECIAL_DESIGN",
   "tags": [
-   "science"
+   "science",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11715,7 +11882,8 @@
   "name": "Special Permit",
   "nameKey": "SPECIAL_PERMIT",
   "tags": [
-   "plant"
+   "plant",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11760,7 +11928,8 @@
   "name": "Spin-Inducing Asteroid",
   "nameKey": "SPIN_INDUCING_ASTEROID",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -11887,7 +12056,8 @@
   "name": "Staged Protests",
   "nameKey": "STAGED_PROTESTS",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -12072,7 +12242,8 @@
   "name": "Sting Operation",
   "nameKey": "STING_OPERATION",
   "tags": [
-   "earth"
+   "earth",
+   "event"
   ],
   "victoryPoints": {
    "kind": "dynamic"
@@ -12147,7 +12318,8 @@
   "nameKey": "STRATOSPHERIC_EXPEDITION",
   "tags": [
    "venus",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "static",
@@ -12207,7 +12379,8 @@
   "name": "Subnautic Pirates",
   "nameKey": "SUBNAUTIC_PIRATES",
   "tags": [
-   "crime"
+   "crime",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -12234,7 +12407,9 @@
   "module": "Base",
   "name": "Subterranean Reservoir",
   "nameKey": "SUBTERRANEAN_RESERVOIR",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -12416,7 +12591,8 @@
   "name": "Syndicate Pirate Raids",
   "nameKey": "SYNDICATE_PIRATE_RAIDS",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -12472,7 +12648,8 @@
   "nameKey": "TECHNOLOGY_DEMONSTRATION",
   "tags": [
    "science",
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -12782,7 +12959,8 @@
   "nameKey": "THORIUM_RUSH",
   "tags": [
    "moon",
-   "building"
+   "building",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -12956,7 +13134,8 @@
   "name": "Towing A Comet",
   "nameKey": "TOWING_A_COMET",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -12984,7 +13163,8 @@
   "name": "Trade Embargo (I)",
   "nameKey": "TRADE_EMBARGO",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -13098,7 +13278,9 @@
   "module": "Underworld",
   "name": "Tunneling Loophole",
   "nameKey": "TUNNELING_LOOPHOLE",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "static",
    "points": -1
@@ -13224,7 +13406,9 @@
   "module": "Moon",
   "name": "Underground Detonators",
   "nameKey": "UNDERGROUND_DETONATORS",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -13340,7 +13524,8 @@
   "name": "Unexpected Application",
   "nameKey": "UNEXPECTED_APPLICATION",
   "tags": [
-   "venus"
+   "venus",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -13781,7 +13966,8 @@
   "name": "Virus",
   "nameKey": "VIRUS",
   "tags": [
-   "microbe"
+   "microbe",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -13852,7 +14038,9 @@
   "module": "Underworld",
   "name": "Volunteer Mining Initiative",
   "nameKey": "VOLUNTEER_MINING_INITIATIVE",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -13864,7 +14052,9 @@
   "module": "Turmoil",
   "name": "Vote Of No Confidence",
   "nameKey": "VOTE_OF_NO_CONFIDENCE",
-  "tags": [],
+  "tags": [
+   "event"
+  ],
   "victoryPoints": {
    "kind": "none"
   }
@@ -13921,7 +14111,8 @@
   "name": "Water to Venus",
   "nameKey": "WATER_TO_VENUS",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
@@ -13964,7 +14155,8 @@
   "name": "We Grow As One",
   "nameKey": "WE_GROW_AS_ONE",
   "tags": [
-   "space"
+   "space",
+   "event"
   ],
   "victoryPoints": {
    "kind": "none"
