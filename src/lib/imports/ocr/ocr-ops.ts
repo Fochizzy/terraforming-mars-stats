@@ -21,6 +21,13 @@ export type OcrImageSize = {
 
 export type OcrImageBytes = Uint8Array<ArrayBuffer>;
 
+export type OcrPixelData = {
+  /** Row-major RGBA samples, four bytes per pixel. */
+  data: Uint8Array;
+  height: number;
+  width: number;
+};
+
 /**
  * Runtime-specific image + OCR primitives. The screenshot readers stay pure
  * text/geometry logic; callers inject sharp+tesseract on Node or
@@ -29,6 +36,7 @@ export type OcrImageBytes = Uint8Array<ArrayBuffer>;
  */
 export type OcrOps = {
   getImageSize(image: OcrImageBytes): Promise<OcrImageSize | null>;
+  readPixels(image: OcrImageBytes): Promise<OcrPixelData | null>;
   recognizeText(
     image: OcrImageBytes,
     options?: { singleLine?: boolean },

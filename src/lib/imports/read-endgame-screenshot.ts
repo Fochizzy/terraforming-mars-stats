@@ -1,5 +1,7 @@
+import { buildPlayerNameMatchKeys } from './build-player-name-match-keys';
 import { normalizePlayerAlias } from './normalize-player-alias';
-import type { OcrImageBytes, OcrOps } from './ocr/ocr-ops';
+import type { OcrImageBytes, OcrImageCrop, OcrOps } from './ocr/ocr-ops';
+import { reconcileScoreRowStats } from './reconcile-score-row-stats';
 
 type OcrPass =
   | {
@@ -13,19 +15,47 @@ type OcrPass =
         | 'row_name'
         | 'row_stats_hard'
         | 'row_stats_soft'
+        | 'row_stats_isolated'
         | 'row_totals_soft';
       rowIndex: number;
     };
 
+// Tesseract reads these digits best a little above their native size; the
+// spread of scales and thresholds is what lets the checksum reconciliation pick
+// a correct value for every column on low-resolution captures.
+const ISOLATED_STATS_PASSES: ReadonlyArray<{
+  scale: number;
+  threshold?: number;
+}> = [
+  { scale: 3, threshold: 120 },
+  { scale: 3, threshold: 140 },
+  { scale: 5, threshold: 120 },
+  { scale: 5, threshold: 140 },
+  { scale: 4 },
+];
+
 export type ReadEndgameScreenshotOptions = {
   expectedPlayerCount?: number;
   expectedPlayerNames?: string[];
+  /**
+   * Player row rects, in the coordinates of the passed image. Supplied when the
+   * caller located the table by content; otherwise the rows are guessed by
+   * splitting the image, which only fits a tightly cropped score table.
+   */
+  rowRects?: OcrImageCrop[];
+  /**
+   * Where the score digits begin, in the coordinates of the passed image.
+   * Recognising them without the stacked player name and corporation lines
+   * beside them is what makes a row readable.
+   */
+  statsLeft?: number;
 };
 
 type RowOcrLines = {
   full: string[];
   name: string[];
   statsHard: string[];
+  statsIsolated: string[];
   statsSoft: string[];
   totalsSoft: string[];
 };
@@ -220,12 +250,12 @@ function resolveExpectedPlayerName(
   candidates: string[],
   expectedPlayerNames: string[],
 ) {
-  const normalizedExpectedPlayers = expectedPlayerNames
-    .map((playerName) => ({
-      normalized: normalizePlayerAlias(playerName),
-      playerName,
+  const normalizedExpectedPlayers = buildPlayerNameMatchKeys(expectedPlayerNames)
+    .map((player) => ({
+      keys: player.keys.filter(Boolean),
+      playerName: player.playerName,
     }))
-    .filter((player) => player.normalized);
+    .filter((player) => player.keys.length > 0);
 
   if (normalizedExpectedPlayers.length === 0) {
     return null;
@@ -238,8 +268,8 @@ function resolveExpectedPlayerName(
       continue;
     }
 
-    const exactMatch = normalizedExpectedPlayers.find(
-      (player) => player.normalized === normalizedCandidate,
+    const exactMatch = normalizedExpectedPlayers.find((player) =>
+      player.keys.includes(normalizedCandidate),
     );
 
     if (exactMatch) {
@@ -257,9 +287,10 @@ function resolveExpectedPlayerName(
     }
 
     for (const player of normalizedExpectedPlayers) {
-      const distance = levenshteinDistance(
-        normalizedCandidate,
-        player.normalized,
+      const distance = Math.min(
+        ...player.keys.map((key) =>
+          levenshteinDistance(normalizedCandidate, key),
+        ),
       );
 
       if (distance > 1) {
@@ -276,6 +307,115 @@ function resolveExpectedPlayerName(
   }
 
   return bestMatch?.playerName ?? null;
+}
+
+function measureNameDistance(candidates: string[], matchKeys: string[]) {
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizePlayerAlias(candidate);
+
+    if (!normalizedCandidate) {
+      continue;
+    }
+
+    for (const key of matchKeys) {
+      bestDistance = Math.min(
+        bestDistance,
+        levenshteinDistance(normalizedCandidate, key),
+      );
+    }
+  }
+
+  return bestDistance;
+}
+
+const MAX_ASSIGNED_NAME_DISTANCE = 4;
+const MAX_FINAL_MEGACREDITS = 999;
+
+/**
+ * Reads the megacredits column, which the screenshot prints directly after the
+ * total. Unreadable tokens are kept as gaps rather than skipped: skipping one
+ * would silently promote the elapsed-time or action-count column into the
+ * megacredits slot.
+ */
+function extractMegacreditsAfterTotal(line: string, totalPoints: number) {
+  const tokens: Array<number | null> = [];
+
+  for (const token of line.split(' ').filter(Boolean)) {
+    if (OCR_TIME_TOKEN_PATTERN.test(token)) {
+      break;
+    }
+
+    const normalizedInteger = normalizeOcrIntegerToken(token);
+
+    tokens.push(normalizedInteger === null ? null : Number(normalizedInteger));
+  }
+
+  const totalIndex = tokens.indexOf(totalPoints);
+
+  if (totalIndex < 0) {
+    return null;
+  }
+
+  const megacredits = tokens[totalIndex + 1];
+
+  return typeof megacredits === 'number' &&
+    megacredits >= 0 &&
+    megacredits <= MAX_FINAL_MEGACREDITS
+    ? megacredits
+    : null;
+}
+
+/**
+ * The name cell is the whole prefix before the score digits, so its first one
+ * or two tokens hold the player name. `buildNameCandidates` cannot be used
+ * here: it stops at the first token containing a digit, and OCR routinely turns
+ * an underlined "Izzy" into "1z22y".
+ */
+function buildRawNameCandidates(line: string) {
+  const tokens = line.split(' ').filter(Boolean);
+
+  return buildUniqueLines(
+    [tokens[0], tokens.slice(0, 2).join(' '), line].filter(Boolean),
+  );
+}
+
+/**
+ * A located score table holds exactly one row per player, so the rows and the
+ * expected names can be matched as a whole. Assigning names globally recovers
+ * rows whose own OCR is too mangled to match on its own, because every other
+ * row claims its name first.
+ */
+function assignRowPlayerNames(input: {
+  expectedPlayerNames: string[];
+  rowCandidates: string[][];
+}) {
+  const matchKeys = buildPlayerNameMatchKeys(input.expectedPlayerNames);
+  const pairs = input.rowCandidates.flatMap((candidates, rowIndex) =>
+    matchKeys.map((player) => ({
+      distance: measureNameDistance(candidates, player.keys),
+      playerName: player.playerName,
+      rowIndex,
+    })),
+  );
+  const assignments = new Map<number, string>();
+  const takenNames = new Set<string>();
+
+  for (const pair of pairs.sort((left, right) => left.distance - right.distance)) {
+    if (
+      pair.distance > MAX_ASSIGNED_NAME_DISTANCE ||
+      assignments.has(pair.rowIndex) ||
+      takenNames.has(pair.playerName)
+    ) {
+      continue;
+    }
+
+    assignments.set(pair.rowIndex, pair.playerName);
+    takenNames.add(pair.playerName);
+  }
+
+  return assignments;
 }
 
 function normalizePlayerScoreLine(
@@ -405,6 +545,7 @@ function compactSynthesizedScoreLines(lines: string[]) {
 }
 
 function synthesizeRowScoreLines(input: {
+  assignedPlayerName?: string;
   expectedPlayerNames: string[];
   rowLines: RowOcrLines;
 }) {
@@ -416,16 +557,46 @@ function synthesizeRowScoreLines(input: {
 
     return normalizedLine ? [normalizedLine] : [];
   });
-  const resolvedPlayerName = resolveExpectedPlayerName(
-    [
-      ...input.rowLines.name.flatMap(buildNameCandidates),
-      ...input.rowLines.full.flatMap(buildNameCandidates),
-    ],
-    input.expectedPlayerNames,
-  );
+  const resolvedPlayerName =
+    input.assignedPlayerName ??
+    resolveExpectedPlayerName(
+      [
+        ...input.rowLines.name.flatMap(buildNameCandidates),
+        ...input.rowLines.full.flatMap(buildNameCandidates),
+      ],
+      input.expectedPlayerNames,
+    );
 
   if (!resolvedPlayerName) {
     return normalizedFullLines;
+  }
+
+  // A checksum-balanced reading of the isolated digits is strictly better than
+  // anything synthesized from the noisier whole-row crops, so it replaces them
+  // outright. Keeping the others around would let a line that misread the
+  // megacredits column win on field count alone.
+  const reconciledStats = reconcileScoreRowStats(input.rowLines.statsIsolated);
+
+  if (reconciledStats) {
+    const reconciledPrefix = `${resolvedPlayerName} ${[
+      ...reconciledStats.stats,
+      reconciledStats.totalPoints,
+    ].join(' ')}`;
+    // The megacredits column has no checksum of its own. It is only trusted
+    // when it sits immediately after a total that agrees with the reconciled
+    // one, which pins down which column was actually read.
+    const megacreditLines = input.rowLines.totalsSoft.flatMap((line) => {
+      const megacredits = extractMegacreditsAfterTotal(
+        line,
+        reconciledStats.totalPoints,
+      );
+
+      return megacredits === null ? [] : [`${reconciledPrefix} ${megacredits}`];
+    });
+
+    return buildUniqueLines(
+      megacreditLines.length > 0 ? megacreditLines : [reconciledPrefix],
+    );
   }
 
   const preferredBaseGroups = collectScoreTokenGroups([
@@ -503,25 +674,22 @@ function buildHelpfulGlobalLines(input: {
   return buildUniqueLines(helpfulLines);
 }
 
-async function buildRowPasses(input: {
+/**
+ * Splits a tightly cropped score table into evenly sized player rows. Used only
+ * when the caller could not locate the rows from the screenshot's pixels.
+ */
+function buildEvenRowRects(input: {
   height: number;
-  imageBuffer: OcrImageBytes;
-  ops: OcrOps;
   rowCount: number;
   width: number;
-}) {
-  const passes: OcrPass[] = [];
+}): OcrImageCrop[] {
   const left = Math.floor(input.width * 0.01);
-  const rowWidth = clamp(
-    Math.floor(input.width * 0.92),
-    1,
-    input.width - left,
-  );
+  const rowWidth = clamp(Math.floor(input.width * 0.92), 1, input.width - left);
   const rowStartTop = clamp(Math.floor(input.height * 0.39), 0, input.height - 1);
   const rowBottom = clamp(Math.floor(input.height * 0.98), 1, input.height);
   const rowAreaHeight = Math.max(1, rowBottom - rowStartTop);
 
-  for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex += 1) {
+  return Array.from({ length: input.rowCount }, (_, rowIndex) => {
     const top = clamp(
       rowStartTop + Math.floor((rowAreaHeight * rowIndex) / input.rowCount),
       0,
@@ -536,28 +704,100 @@ async function buildRowPasses(input: {
             top + 1,
             input.height,
           );
-    const rowHeight = Math.max(1, nextTop - top);
-    const nameWidth = clamp(Math.floor(rowWidth * 0.28), 1, rowWidth);
-    const statsLeft = clamp(
-      left + Math.floor(rowWidth * 0.23),
+
+    return {
+      height: Math.max(1, nextTop - top),
       left,
-      input.width - 1,
-    );
-    const statsWidth = clamp(
-      Math.floor(rowWidth * 0.68),
-      1,
-      input.width - statsLeft,
-    );
-    const totalsLeft = clamp(
-      left + Math.floor(rowWidth * 0.68),
-      left,
-      input.width - 1,
-    );
-    const totalsWidth = clamp(
-      Math.floor(rowWidth * 0.2),
-      1,
-      input.width - totalsLeft,
-    );
+      top,
+      width: rowWidth,
+    };
+  });
+}
+
+async function buildIsolatedStatsPasses(input: {
+  imageBuffer: OcrImageBytes;
+  ops: OcrOps;
+  rowIndex: number;
+  statsRect: OcrImageCrop;
+}) {
+  const passes: OcrPass[] = [];
+
+  for (const { scale, threshold } of ISOLATED_STATS_PASSES) {
+    passes.push({
+      buffer: await input.ops.transformImage(input.imageBuffer, {
+        crop: input.statsRect,
+        grayscale: true,
+        normalize: true,
+        resizeWidth: input.statsRect.width * scale,
+        sharpen: true,
+        ...(threshold === undefined ? {} : { threshold }),
+      }),
+      kind: 'row_stats_isolated',
+      rowIndex: input.rowIndex,
+    });
+  }
+
+  return passes;
+}
+
+async function buildRowPasses(input: {
+  height: number;
+  imageBuffer: OcrImageBytes;
+  ops: OcrOps;
+  rowRects: OcrImageCrop[];
+  statsLeft?: number;
+  width: number;
+}) {
+  const passes: OcrPass[] = [];
+
+  for (const [rowIndex, rowRect] of input.rowRects.entries()) {
+    if (
+      input.statsLeft !== undefined &&
+      input.statsLeft > rowRect.left &&
+      input.statsLeft < rowRect.left + rowRect.width
+    ) {
+      passes.push(
+        ...(await buildIsolatedStatsPasses({
+          imageBuffer: input.imageBuffer,
+          ops: input.ops,
+          rowIndex,
+          statsRect: {
+            height: rowRect.height,
+            left: input.statsLeft,
+            top: rowRect.top,
+            width: rowRect.left + rowRect.width - input.statsLeft,
+          },
+        })),
+      );
+    }
+
+    const left = rowRect.left;
+    const rowWidth = rowRect.width;
+    const top = rowRect.top;
+    const rowHeight = rowRect.height;
+    const rowRight = left + rowWidth;
+    const hasLocatedStats =
+      input.statsLeft !== undefined &&
+      input.statsLeft > left &&
+      input.statsLeft < rowRight;
+    const nameWidth = hasLocatedStats
+      ? clamp(input.statsLeft! - left, 1, rowWidth)
+      : clamp(Math.floor(rowWidth * 0.28), 1, rowWidth);
+    const statsLeft = hasLocatedStats
+      ? input.statsLeft!
+      : clamp(left + Math.floor(rowWidth * 0.23), left, input.width - 1);
+    const statsWidth = hasLocatedStats
+      ? clamp(rowRight - statsLeft, 1, input.width - statsLeft)
+      : clamp(Math.floor(rowWidth * 0.68), 1, input.width - statsLeft);
+    // The trailing columns (total, megacredits) start a little past the middle
+    // of the digits; anchoring them to the name boundary keeps the total inside
+    // the crop whatever the name column's width happens to be.
+    const totalsLeft = hasLocatedStats
+      ? clamp(statsLeft + Math.floor(statsWidth * 0.4), left, input.width - 1)
+      : clamp(left + Math.floor(rowWidth * 0.68), left, input.width - 1);
+    const totalsWidth = hasLocatedStats
+      ? clamp(rowRight - totalsLeft, 1, input.width - totalsLeft)
+      : clamp(Math.floor(rowWidth * 0.2), 1, input.width - totalsLeft);
 
     const fullBuffer = await input.ops.transformImage(input.imageBuffer, {
       crop: {
@@ -581,7 +821,7 @@ async function buildRowPasses(input: {
       },
       grayscale: true,
       normalize: true,
-      resizeWidth: nameWidth * 5,
+      resizeWidth: Math.min(nameWidth * 8, 1200),
       sharpen: true,
     });
     const statsBuffer = await input.ops.transformImage(input.imageBuffer, {
@@ -618,7 +858,7 @@ async function buildRowPasses(input: {
       },
       grayscale: true,
       normalize: true,
-      resizeWidth: totalsWidth * 8,
+      resizeWidth: Math.min(totalsWidth * 8, 1800),
       sharpen: true,
     });
 
@@ -665,8 +905,17 @@ async function buildOcrPasses(
   }
 
   const rowCount = getExpectedRowCount(options);
+  const rowRects = options?.rowRects?.length
+    ? options.rowRects
+    : rowCount
+      ? buildEvenRowRects({
+          height: size.height,
+          rowCount,
+          width: size.width,
+        })
+      : [];
 
-  if (!rowCount) {
+  if (rowRects.length === 0) {
     return passes;
   }
 
@@ -674,7 +923,8 @@ async function buildOcrPasses(
     height: size.height,
     imageBuffer,
     ops,
-    rowCount,
+    rowRects,
+    statsLeft: options?.statsLeft,
     width: size.width,
   });
 
@@ -709,6 +959,7 @@ export async function readEndgameScreenshot(
         full: [],
         name: [],
         statsHard: [],
+        statsIsolated: [],
         statsSoft: [],
         totalsSoft: [],
       };
@@ -719,6 +970,9 @@ export async function readEndgameScreenshot(
         existingRowLines.name.push(...lines);
       } else if (ocrPass.kind === 'row_stats_hard') {
         existingRowLines.statsHard.push(...lines);
+      } else if (ocrPass.kind === 'row_stats_isolated') {
+        // Each pass contributes one candidate reading of the digit row.
+        existingRowLines.statsIsolated.push(lines.join(' '));
       } else if (ocrPass.kind === 'row_stats_soft') {
         existingRowLines.statsSoft.push(...lines);
       } else {
@@ -737,17 +991,32 @@ export async function readEndgameScreenshot(
     expectedPlayerNames,
     globalLines,
   });
+  const orderedRows = [...rowLinesByIndex.entries()].sort(
+    ([leftIndex], [rightIndex]) => leftIndex - rightIndex,
+  );
+  // Rows located from pixels are one per player, which lets the names be
+  // matched as a set rather than row by row.
+  const assignedNames =
+    options?.rowRects?.length === expectedPlayerNames.length &&
+    expectedPlayerNames.length > 0
+      ? assignRowPlayerNames({
+          expectedPlayerNames,
+          rowCandidates: orderedRows.map(([, rowLines]) => [
+            ...rowLines.name.flatMap(buildRawNameCandidates),
+            ...rowLines.full.flatMap(buildRawNameCandidates),
+          ]),
+        })
+      : new Map<number, string>();
   const synthesizedRowLines =
     expectedPlayerNames.length === 0
       ? []
-      : [...rowLinesByIndex.entries()]
-          .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
-          .flatMap(([, rowLines]) =>
-            synthesizeRowScoreLines({
-              expectedPlayerNames,
-              rowLines,
-            }),
-          );
+      : orderedRows.flatMap(([, rowLines], position) =>
+          synthesizeRowScoreLines({
+            assignedPlayerName: assignedNames.get(position),
+            expectedPlayerNames,
+            rowLines,
+          }),
+        );
   const combinedLines = buildUniqueLines([
     ...helpfulGlobalLines,
     ...synthesizedRowLines,

@@ -101,6 +101,46 @@ function readStringArray(value: unknown) {
   return value.filter((entry): entry is string => typeof entry === 'string');
 }
 
+function readNumberField(source: Record<string, unknown>, key: string) {
+  const value = source[key];
+
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function readGlobalParameters(value: unknown) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const parsed = value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return [];
+    }
+
+    const source = entry as Record<string, unknown>;
+    const playerName = source.playerName;
+    const oceans = readNumberField(source, 'oceans');
+    const oxygen = readNumberField(source, 'oxygen');
+    const temperature = readNumberField(source, 'temperature');
+    const total = readNumberField(source, 'total');
+
+    if (
+      typeof playerName !== 'string' ||
+      !playerName ||
+      oceans === null ||
+      oxygen === null ||
+      temperature === null ||
+      total === null
+    ) {
+      return [];
+    }
+
+    return [{ oceans, oxygen, playerName, temperature, total }];
+  });
+
+  return parsed.length > 0 ? parsed : undefined;
+}
+
 function readScreenshotOcr(formData: FormData): ScreenshotOcrPayload | null {
   const rawValue = readTextField(formData, 'screenshotOcr');
 
@@ -143,7 +183,26 @@ function readScreenshotOcr(formData: FormData): ScreenshotOcrPayload | null {
       return null;
     }
 
-    return { endgameLines, scoreDetailsColumns };
+    const rawLayout = (parsedValue as { endgameLayout?: unknown }).endgameLayout;
+    const rawGenerationCount = (parsedValue as { generationCount?: unknown })
+      .generationCount;
+
+    return {
+      endgameLayout:
+        rawLayout === 'legacy' || rawLayout === 'victory_breakdown'
+          ? rawLayout
+          : undefined,
+      endgameLines,
+      generationCount:
+        typeof rawGenerationCount === 'number' &&
+        Number.isFinite(rawGenerationCount)
+          ? rawGenerationCount
+          : null,
+      globalParameters: readGlobalParameters(
+        (parsedValue as { globalParameters?: unknown }).globalParameters,
+      ),
+      scoreDetailsColumns,
+    };
   } catch {
     return null;
   }

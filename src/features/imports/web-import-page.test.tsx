@@ -119,7 +119,7 @@ describe('WebImportPage', () => {
       screen.getByLabelText(/participants/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/single upload mode/i)).toBeInTheDocument();
     expect(
@@ -338,6 +338,81 @@ describe('WebImportPage', () => {
     expect(submittedFormData.getAll('boardScreenshots')).toEqual([]);
   });
 
+  it('accepts a dropped game result PDF and submits it as the endgame evidence', async () => {
+    const user = userEvent.setup();
+    const droppedPdf = new File(['%PDF-1.4'], 'game-4.pdf', {
+      type: 'application/pdf',
+    });
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          playedOn: '2026-07-03',
+        }}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    fireEvent.drop(
+      screen.getByLabelText(/paste target for game result screenshot/i),
+      { dataTransfer: { files: [droppedPdf] } },
+    );
+
+    expect(
+      screen.getByText(/attached game result pdf: game-4\.pdf/i),
+    ).toBeInTheDocument();
+    // A PDF has no image preview, so the panel explains itself instead.
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText(/no ocr is needed/i)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    expect(
+      onAnalyzeImportEvidence.mock.calls[0]?.[0].get('endgameScreenshot'),
+    ).toBe(droppedPdf);
+  });
+
+  it('offers both images and PDFs in the file picker', async () => {
+    const user = userEvent.setup();
+    const pdf = new File(['%PDF-1.4'], 'game-4.pdf', {
+      type: 'application/pdf',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{
+          playedOn: '2026-07-03',
+        }}
+        onAnalyzeImportEvidence={vi.fn()}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    const fileInput = screen.getByLabelText(/^game result screenshot or pdf$/i);
+    const accept = fileInput.getAttribute('accept') ?? '';
+
+    expect(accept).toContain('image/*');
+    expect(accept).toContain('application/pdf');
+
+    await user.upload(fileInput, pdf);
+
+    expect(
+      screen.getByText(/attached game result pdf: game-4\.pdf/i),
+    ).toBeInTheDocument();
+  });
+
   it('analyzes the structured import payload and shows the review before confirmation', async () => {
     const user = userEvent.setup();
     const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
@@ -374,7 +449,7 @@ describe('WebImportPage', () => {
     });
 
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       screenshot,
     );
     await user.click(
@@ -445,7 +520,7 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Unknown Friend',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -516,7 +591,7 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Unknown Friend',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -587,7 +662,7 @@ describe('WebImportPage', () => {
       'Friday Mars played Commercial District.',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -669,7 +744,7 @@ describe('WebImportPage', () => {
       'Friday Mars played Earth Catapult.',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -734,7 +809,7 @@ describe('WebImportPage', () => {
       'Friday Mars played Earth Catapult.',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -845,7 +920,7 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Second Seat',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -888,7 +963,7 @@ describe('WebImportPage', () => {
       'Friday Mars{enter}Second Seat',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(

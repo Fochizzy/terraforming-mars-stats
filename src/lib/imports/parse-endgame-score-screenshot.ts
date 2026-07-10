@@ -25,7 +25,16 @@ type ParsedRowCandidate = {
   row: ParsedScreenshotPlayerRow;
 };
 
-type ScoreLayout = 'legacy' | 'victory_breakdown';
+export type EndgameScoreLayout = 'legacy' | 'victory_breakdown';
+
+type ScoreLayout = EndgameScoreLayout;
+
+export type ParseEndgameScoreScreenshotOptions = {
+  /** Used when the evidence states the count outside the score lines. */
+  generationCount?: number | null;
+  /** Skips heading-based detection when the evidence already fixes the layout. */
+  layout?: EndgameScoreLayout;
+};
 
 const CARD_BREAKDOWN_PATTERN =
   /^([A-Za-z][A-Za-z0-9 .'-]*?)\s+Microbes\s+(\d+)\s+Animals\s+(\d+)\s+Jovian\s+(\d+)$/i;
@@ -433,6 +442,7 @@ function parseScoreRow(input: {
 
 export function parseEndgameScoreScreenshot(
   ocrLines: string[],
+  options?: ParseEndgameScoreScreenshotOptions,
 ): ParsedEndgameScoreScreenshot {
   const playerRowsByKey = new Map<string, ParsedRowCandidate>();
   const rowCandidatesByKey = new Map<string, ParsedRowCandidate[]>();
@@ -445,8 +455,8 @@ export function parseEndgameScoreScreenshot(
   >();
   const rowOrder: string[] = [];
   let pendingPlayerName: string | null = null;
-  let scoreLayout: ScoreLayout = 'legacy';
-  let generationCount: number | null = null;
+  let scoreLayout: ScoreLayout = options?.layout ?? 'legacy';
+  let generationCount: number | null = options?.generationCount ?? null;
 
   for (const line of ocrLines) {
     const trimmedLine = normalizeOcrLine(line);

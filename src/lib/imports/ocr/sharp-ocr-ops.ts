@@ -20,6 +20,22 @@ export const sharpOcrOps: OcrOps = {
       width: metadata.width,
     };
   },
+  async readPixels(image) {
+    const { data, info } = await sharp(Buffer.from(image))
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    if (!info.width || !info.height) {
+      return null;
+    }
+
+    return {
+      data: new Uint8Array(data),
+      height: info.height,
+      width: info.width,
+    };
+  },
   async recognizeText(image, options) {
     const result = options?.singleLine
       ? await Tesseract.recognize(

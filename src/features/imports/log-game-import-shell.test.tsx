@@ -117,7 +117,7 @@ describe('LogGameImportShell', () => {
       'Friday Mars{enter}Second Seat{enter}Third Seat',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       screenshotFile,
     );
     await user.click(
@@ -229,7 +229,7 @@ describe('LogGameImportShell', () => {
       'Friday Mars{enter}Second Seat',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(
@@ -311,7 +311,7 @@ describe('LogGameImportShell', () => {
       'Imported Alias played Commercial District.',
     );
     await user.upload(
-      screen.getByLabelText(/^game result screenshot$/i),
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
       new File(['board'], 'board.png', { type: 'image/png' }),
     );
     await user.click(

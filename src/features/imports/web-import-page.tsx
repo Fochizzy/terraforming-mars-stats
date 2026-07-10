@@ -40,7 +40,19 @@ export type WebImportCreatePlayerResult = {
   status: 'error' | 'success';
 };
 
-function getClipboardImageFile(
+function isPdfFile(file: File) {
+  return (
+    file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+  );
+}
+
+function isSupportedGameResultFile(file: File) {
+  return file.type.startsWith('image/') || isPdfFile(file);
+}
+
+/** Pasted screenshots arrive as images; a PDF copied from the file manager
+ * arrives as a file entry, so both are accepted here. */
+function getClipboardGameResultFile(
   clipboardData: DataTransfer | null,
 ): File | null {
   if (!clipboardData) {
@@ -48,17 +60,21 @@ function getClipboardImageFile(
   }
 
   for (const file of Array.from(clipboardData.files ?? [])) {
-    if (file.type.startsWith('image/')) {
+    if (isSupportedGameResultFile(file)) {
       return file;
     }
   }
 
   for (const item of Array.from(clipboardData.items ?? [])) {
-    if (item.kind !== 'file' || !item.type.startsWith('image/')) {
+    if (item.kind !== 'file') {
       continue;
     }
 
-    return item.getAsFile();
+    const file = item.getAsFile();
+
+    if (file && isSupportedGameResultFile(file)) {
+      return file;
+    }
   }
 
   return null;
@@ -228,7 +244,7 @@ export function WebImportPage({
   const generationCount = null;
 
   useEffect(() => {
-    if (!endgameScreenshot) {
+    if (!endgameScreenshot || isPdfFile(endgameScreenshot)) {
       setScreenshotPreviewUrl(null);
       return;
     }
@@ -275,7 +291,7 @@ export function WebImportPage({
   }
 
   function handlePaste(event: React.ClipboardEvent<HTMLFormElement>) {
-    const pastedScreenshot = getClipboardImageFile(event.clipboardData);
+    const pastedScreenshot = getClipboardGameResultFile(event.clipboardData);
 
     if (!pastedScreenshot) {
       return;
@@ -288,7 +304,7 @@ export function WebImportPage({
   function handleScreenshotPaste(
     event: React.ClipboardEvent<HTMLDivElement>,
   ) {
-    const pastedScreenshot = getClipboardImageFile(event.clipboardData);
+    const pastedScreenshot = getClipboardGameResultFile(event.clipboardData);
 
     if (!pastedScreenshot) {
       return;
@@ -316,7 +332,7 @@ export function WebImportPage({
   function handleScreenshotDrop(event: React.DragEvent<HTMLDivElement>) {
     event.preventDefault();
     const droppedFile = Array.from(event.dataTransfer.files ?? []).find(
-      (file) => file.type.startsWith('image/'),
+      isSupportedGameResultFile,
     );
 
     if (droppedFile) {
@@ -634,9 +650,9 @@ export function WebImportPage({
         </div>
 
         <div className="flex flex-col gap-3">
-          <StepHeading step="03" title="Game Result Screenshot" />
+          <StepHeading step="03" title="Game Result Screenshot or PDF" />
           <div
-            aria-label="Paste Target for Game Result Screenshot"
+            aria-label="Paste Target for Game Result Screenshot or PDF"
             className="relative rounded-2xl border border-dashed px-4 py-6 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[rgba(214,135,66,0.45)]"
             onClick={(event) =>
               focusPasteTarget(event, screenshotPasteTargetRef)
@@ -656,15 +672,19 @@ export function WebImportPage({
                 src={screenshotPreviewUrl}
                 style={{ borderColor: 'var(--tm-panel-border)' }}
               />
+            ) : endgameScreenshot && isPdfFile(endgameScreenshot) ? (
+              <p className="text-sm tm-accent-copy">
+                PDF attached — its text is read directly, so no OCR is needed.
+              </p>
             ) : (
               <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
-                Click here and paste a copied image, drop it here, or choose a
-                file below.
+                Click here and paste a copied image, drop an image or PDF here,
+                or choose a file below.
               </p>
             )}
             <input
-              aria-label="Game Result Screenshot"
-              accept="image/*"
+              aria-label="Game Result Screenshot or PDF"
+              accept="image/*,application/pdf,.pdf"
               className="mx-auto mt-4 block max-w-xs text-xs file:mr-3 file:rounded-full file:border-0 file:bg-[var(--tm-copper-500)] file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-wide file:text-[#27150e]"
               onChange={(event) =>
                 attachEndgameScreenshot(event.target.files?.[0] ?? null)
@@ -673,18 +693,23 @@ export function WebImportPage({
             />
             <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
               Use the combined result image that includes the final victory
-              point breakdown and score details. Click this panel to paste, or
-              paste anywhere else in the form to attach it here automatically.
+              point breakdown and score details, or print the game result page
+              to PDF — a PDF is read exactly and skips OCR entirely. Click this
+              panel to paste, or paste anywhere else in the form to attach it
+              here automatically.
             </p>
             {endgameScreenshot ? (
               <p className="mt-1 text-xs tm-accent-copy">
-                Attached game result screenshot: {endgameScreenshot.name}
+                Attached game result{' '}
+                {isPdfFile(endgameScreenshot) ? 'PDF' : 'screenshot'}:{' '}
+                {endgameScreenshot.name}
               </p>
             ) : null}
             {isReadingScreenshot ? (
               <p className="mt-1 text-xs" style={{ color: 'var(--tm-muted)' }}>
-                Reading the screenshot in your browser… this can take a minute
-                on the first run.
+                {endgameScreenshot && isPdfFile(endgameScreenshot)
+                  ? 'Reading the PDF…'
+                  : 'Reading the screenshot in your browser… this can take a minute on the first run.'}
               </p>
             ) : null}
           </div>

@@ -58,6 +58,7 @@ import { parseGameLog } from '@/lib/imports/parse-game-log';
 import {
   parseImportPlayerScores,
 } from '@/lib/imports/parse-import-player-scores';
+import type { GameResultGlobalParameters } from '@/lib/imports/read-game-result-screenshot';
 import {
   parseScoreDetailsScreenshot,
   type ParsedScoreDetailsScreenshot,
@@ -80,20 +81,25 @@ const importScoreCandidateFields = [
   'trPoints',
 ] as const;
 const OCR_ENGINE_VERSION = 'tesseract.js-v7';
+const PDF_READER_VERSION = 'pdf-text-layer-v1';
 
-async function readGameResultScreenshotOnDemand(
+async function readGameResultEvidenceOnDemand(
   file: File,
   options?: {
     expectedPlayerCount?: number;
     expectedPlayerNames?: string[];
   },
 ) {
-  const [{ readGameResultScreenshot }, { sharpOcrOps }] = await Promise.all([
-    import('@/lib/imports/read-game-result-screenshot'),
-    import('@/lib/imports/ocr/sharp-ocr-ops'),
-  ]);
+  const { readGameResultEvidence } = await import(
+    '@/lib/imports/read-game-result-evidence'
+  );
 
-  return readGameResultScreenshot(file, options, sharpOcrOps);
+  return readGameResultEvidence({
+    file,
+    options,
+    resolveOcrOps: async () =>
+      (await import('@/lib/imports/ocr/sharp-ocr-ops')).sharpOcrOps,
+  });
 }
 
 function buildLogScoreCandidates(input: {
@@ -343,11 +349,15 @@ function resolveImportGenerationCount(input: {
 }
 
 function buildGameResultScreenshotParse(input: {
+  globalParameters: GameResultGlobalParameters[];
   parsedScoreDetails: ParsedScoreDetailsScreenshot;
   parsedScreenshot: ParsedEndgameScoreScreenshot;
 }) {
   const hasScoreRows = input.parsedScreenshot.playerRows.length > 0;
   const hasScoreDetails = input.parsedScoreDetails.cardScoring.length > 0;
+  // Only the PDF reader recovers the global parameter table, and it reads a
+  // text layer rather than pixels.
+  const readFromPdf = input.globalParameters.length > 0;
 
   return {
     detectedLayout: hasScoreDetails
@@ -360,9 +370,10 @@ function buildGameResultScreenshotParse(input: {
       detectedScoreDetailsPlayerNames:
         input.parsedScoreDetails.detectedPlayerNames,
       generationCount: input.parsedScreenshot.generationCount,
+      globalParameters: input.globalParameters,
       playerRows: input.parsedScreenshot.playerRows,
     },
-    ocrEngineVersion: OCR_ENGINE_VERSION,
+    ocrEngineVersion: readFromPdf ? PDF_READER_VERSION : OCR_ENGINE_VERSION,
     parseStatus: hasScoreRows || hasScoreDetails ? 'parsed' : 'score_extraction_skipped',
   } as const;
 }
@@ -423,19 +434,27 @@ async function parseGameResultEvidence(input: {
     efficiencies: [],
     milestoneClaims: [],
   };
+  let globalParameters: GameResultGlobalParameters[] = [];
 
   try {
     const screenshotRead =
       input.screenshotOcr ??
       (input.file
-        ? await readGameResultScreenshotOnDemand(input.file, {
+        ? await readGameResultEvidenceOnDemand(input.file, {
             expectedPlayerCount: input.expectedPlayerCount,
             expectedPlayerNames: input.expectedPlayerNames,
           })
         : null);
 
     if (screenshotRead) {
-      parsedScreenshot = parseEndgameScoreScreenshot(screenshotRead.endgameLines);
+      globalParameters = screenshotRead.globalParameters ?? [];
+      parsedScreenshot = parseEndgameScoreScreenshot(
+        screenshotRead.endgameLines,
+        {
+          generationCount: screenshotRead.generationCount,
+          layout: screenshotRead.endgameLayout,
+        },
+      );
       const initialImportedNames = buildUniquePlayerNames([
         ...input.expectedPlayerNames,
         ...parsedScreenshot.playerRows.map((row) => row.playerName),
@@ -491,6 +510,7 @@ async function parseGameResultEvidence(input: {
   ]);
 
   return {
+    globalParameters,
     importedNames,
     logScoreCandidates: buildLogScoreCandidates({
       playerNames: importedNames,
@@ -837,6 +857,7 @@ export default async function LogGameImportPage() {
                 file: values.endgameScreenshot,
                 kind: 'endgame_score' as const,
                 parse: buildGameResultScreenshotParse({
+                  globalParameters: screenshotEvidence.globalParameters,
                   parsedScoreDetails: screenshotEvidence.parsedScoreDetails,
                   parsedScreenshot: screenshotEvidence.parsedScreenshot,
                 }),

@@ -1,3 +1,4 @@
+import { buildPlayerNameMatchKeys } from './build-player-name-match-keys';
 import type { ImportPlayerCardScoringSummary } from './card-scoring/card-scoring-types';
 import { normalizePlayerAlias } from './normalize-player-alias';
 import type { ParsedGameLog } from './parse-game-log';
@@ -211,21 +212,23 @@ function resolveExpectedPlayerName(input: {
 
   let bestMatch: { distance: number; playerName: string } | null = null;
 
-  for (const playerName of input.unmatchedPlayers) {
-    const normalizedPlayerName = normalizeScoreDetailsText(playerName);
+  // The column header prints the in-game name, which may be the leading token
+  // of the participant name the caller passed in.
+  for (const player of buildPlayerNameMatchKeys(input.unmatchedPlayers)) {
+    for (const key of player.keys) {
+      for (const candidate of normalizedCandidates) {
+        const distance = levenshteinDistance(candidate, key);
 
-    for (const candidate of normalizedCandidates) {
-      const distance = levenshteinDistance(candidate, normalizedPlayerName);
+        if (distance > 2) {
+          continue;
+        }
 
-      if (distance > 2) {
-        continue;
-      }
-
-      if (!bestMatch || distance < bestMatch.distance) {
-        bestMatch = {
-          distance,
-          playerName,
-        };
+        if (!bestMatch || distance < bestMatch.distance) {
+          bestMatch = {
+            distance,
+            playerName: player.playerName,
+          };
+        }
       }
     }
   }
@@ -714,6 +717,20 @@ function buildPlayerSummary(input: {
   } satisfies ImportPlayerCardScoringSummary;
 }
 
+function findPlayedCards(input: {
+  playedCardsByPlayer: Map<string, PlayerCardCandidate[]>;
+  playerName: string;
+}) {
+  const normalizedName = normalizeScoreDetailsText(input.playerName);
+  const leadingToken = normalizedName.split(' ')[0] ?? '';
+
+  return (
+    input.playedCardsByPlayer.get(normalizedName) ??
+    input.playedCardsByPlayer.get(leadingToken) ??
+    []
+  );
+}
+
 export function parseScoreDetailsScreenshot(input: {
   awardReferences?: ScoreReference[];
   cardReferences: CardReference[];
@@ -747,8 +764,12 @@ export function parseScoreDetailsScreenshot(input: {
       continue;
     }
 
-    const playerKey = normalizeScoreDetailsText(playerName);
-    const playerCards = playedCardsByPlayer.get(playerKey) ?? [];
+    // Cards are keyed by the actor name the log uses ("Izzy"), which may be the
+    // leading token of the participant name ("Izzy Hodnett").
+    const playerCards = findPlayedCards({
+      playedCardsByPlayer,
+      playerName,
+    });
     const detailClaims = collectColumnDetailClaims({
       awardReferences: input.awardReferences ?? [],
       milestoneReferences: input.milestoneReferences ?? [],

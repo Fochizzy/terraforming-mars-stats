@@ -222,6 +222,30 @@ export const browserOcrOps: OcrOps = {
 
     return size.width && size.height ? size : null;
   },
+  async readPixels(image) {
+    const bitmap = await createImageBitmap(new Blob([image]));
+
+    try {
+      if (!bitmap.width || !bitmap.height) {
+        return null;
+      }
+
+      const canvas = createCanvas(bitmap.width, bitmap.height);
+      const context = getCanvasContext(canvas);
+
+      context.drawImage(bitmap, 0, 0);
+
+      const imageData = context.getImageData(0, 0, bitmap.width, bitmap.height);
+
+      return {
+        data: new Uint8Array(imageData.data),
+        height: bitmap.height,
+        width: bitmap.width,
+      };
+    } finally {
+      bitmap.close();
+    }
+  },
   async recognizeText(image) {
     const worker = await getRecognizeWorker();
     const result = await worker.recognize(

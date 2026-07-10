@@ -1,5 +1,10 @@
-import type { OcrImageBytes, OcrOps } from './ocr/ocr-ops';
+import {
+  locateGameResultRegions,
+  type GameResultRegions,
+} from './locate-game-result-regions';
+import type { OcrImageBytes, OcrImageCrop, OcrOps } from './ocr/ocr-ops';
 import { readOcrTextLinesWithOps } from './ocr/read-ocr-text-lines-with-ops';
+import type { EndgameScoreLayout } from './parse-endgame-score-screenshot';
 import { readEndgameScreenshot } from './read-endgame-screenshot';
 import { readScoreDetailsScreenshot } from './read-score-details-screenshot';
 
@@ -8,8 +13,31 @@ export type ReadGameResultScreenshotOptions = {
   expectedPlayerNames?: string[];
 };
 
+/**
+ * How many steps of each global parameter a player raised. In a finished game
+ * the columns sum to the full ranges: 19 temperature steps, 14 oxygen steps and
+ * 9 oceans.
+ */
+export type GameResultGlobalParameters = {
+  oceans: number;
+  oxygen: number;
+  playerName: string;
+  temperature: number;
+  /** Terraforming steps contributed in total; equals the three columns summed. */
+  total: number;
+};
+
 export type ReadGameResultScreenshotResult = {
+  /**
+   * Column order of `endgameLines`. Screenshot reads leave this unset so the
+   * layout keeps being detected from the heading; PDF reads know it up front.
+   */
+  endgameLayout?: EndgameScoreLayout;
   endgameLines: string[];
+  /** Set when the evidence states the generation count outside `endgameLines`. */
+  generationCount?: number | null;
+  /** Only the printed PDF carries this table; screenshots crop it away. */
+  globalParameters?: GameResultGlobalParameters[];
   scoreDetailsColumns: Array<{
     textLines: string[];
   }>;
@@ -44,6 +72,7 @@ const HEADING_STRIP_CROP: TopCropConfig = {
   topRatio: 0,
   widthRatio: 1,
 };
+const TABLE_CROP_PADDING = 3;
 
 function buildUniqueLines(lines: string[]) {
   return [...new Set(lines)];
@@ -93,21 +122,86 @@ function shouldRetryWithExpandedCrop(input: {
   return expectedPlayerCount > 1 && likelyScoreRowCount === 1;
 }
 
-export async function readGameResultScreenshot(
-  file: File,
-  options: ReadGameResultScreenshotOptions | undefined,
-  ops: OcrOps,
-): Promise<ReadGameResultScreenshotResult> {
-  const imageBuffer = new Uint8Array(await file.arrayBuffer());
-  const size = await ops.getImageSize(imageBuffer);
+function buildTableCrop(
+  regions: GameResultRegions,
+  size: { height: number; width: number },
+): OcrImageCrop {
+  const rows = regions.scoreTableRows;
+  const left = Math.min(...rows.map((row) => row.left));
+  const right = Math.max(...rows.map((row) => row.left + row.width));
+  const top = Math.min(...rows.map((row) => row.top));
+  const bottom = Math.max(...rows.map((row) => row.top + row.height));
+  const paddedLeft = Math.max(0, left - TABLE_CROP_PADDING);
+  const paddedTop = Math.max(0, top - TABLE_CROP_PADDING);
 
-  if (!size) {
-    return {
-      endgameLines: await readEndgameScreenshot(file, options, ops),
-      scoreDetailsColumns: [],
-    };
-  }
+  return {
+    height: Math.min(size.height - paddedTop, bottom - paddedTop + TABLE_CROP_PADDING),
+    left: paddedLeft,
+    top: paddedTop,
+    width: Math.min(size.width - paddedLeft, right - paddedLeft + TABLE_CROP_PADDING),
+  };
+}
 
+async function readLocatedRegions(input: {
+  imageBuffer: OcrImageBytes;
+  options: ReadGameResultScreenshotOptions | undefined;
+  ops: OcrOps;
+  regions: GameResultRegions;
+  size: { height: number; width: number };
+}): Promise<ReadGameResultScreenshotResult> {
+  const tableCrop = buildTableCrop(input.regions, input.size);
+  const [tableBuffer, headingBuffer] = await Promise.all([
+    input.ops.transformImage(input.imageBuffer, { crop: tableCrop }),
+    input.ops.transformImage(input.imageBuffer, {
+      crop: input.regions.scoreTableHeading,
+    }),
+  ]);
+  // The located rows are in full-image coordinates; the endgame reader receives
+  // the cropped table, so they have to be rebased onto it.
+  const rowRects = input.regions.scoreTableRows.map((row) => ({
+    height: row.height,
+    left: Math.max(0, row.left - tableCrop.left),
+    top: Math.max(0, row.top - tableCrop.top),
+    width: row.width,
+  }));
+  const statsLeft =
+    input.regions.scoreTableStatsLeft === null
+      ? undefined
+      : input.regions.scoreTableStatsLeft - tableCrop.left;
+  const [endgameLines, headingLines, scoreDetailsRead] = await Promise.all([
+    readEndgameScreenshot(
+      new File([tableBuffer], 'game-result-endgame.png', { type: 'image/png' }),
+      { ...input.options, rowRects, statsLeft },
+      input.ops,
+    ),
+    readOcrTextLinesWithOps(headingBuffer, input.ops),
+    input.regions.detailColumns.length > 0
+      ? readScoreDetailsScreenshot(
+          new File([input.imageBuffer], 'game-result-details.png', {
+            type: 'image/png',
+          }),
+          input.ops,
+          { columnRects: input.regions.detailColumns },
+        )
+      : Promise.resolve({ columns: [] }),
+  ]);
+
+  return {
+    endgameLines: buildUniqueLines([
+      ...headingLines.filter((line) => ENDGAME_HEADING_PATTERN.test(line)),
+      ...endgameLines,
+    ]),
+    scoreDetailsColumns: scoreDetailsRead.columns,
+  };
+}
+
+async function readRatioCrops(input: {
+  imageBuffer: OcrImageBytes;
+  options: ReadGameResultScreenshotOptions | undefined;
+  ops: OcrOps;
+  size: { height: number; width: number };
+}): Promise<ReadGameResultScreenshotResult> {
+  const { imageBuffer, options, ops, size } = input;
   const [
     focusedEndgameCropBuffer,
     expandedEndgameCropBuffer,
@@ -196,4 +290,35 @@ export async function readGameResultScreenshot(
     ]),
     scoreDetailsColumns: scoreDetailsRead.columns,
   };
+}
+
+export async function readGameResultScreenshot(
+  file: File,
+  options: ReadGameResultScreenshotOptions | undefined,
+  ops: OcrOps,
+): Promise<ReadGameResultScreenshotResult> {
+  const imageBuffer = new Uint8Array(await file.arrayBuffer());
+  const size = await ops.getImageSize(imageBuffer);
+
+  if (!size) {
+    return {
+      endgameLines: await readEndgameScreenshot(file, options, ops),
+      scoreDetailsColumns: [],
+    };
+  }
+
+  const pixels = await ops.readPixels(imageBuffer);
+  const regions = pixels ? locateGameResultRegions(pixels) : null;
+
+  if (regions && regions.scoreTableRows.length > 0) {
+    return readLocatedRegions({
+      imageBuffer,
+      options,
+      ops,
+      regions,
+      size,
+    });
+  }
+
+  return readRatioCrops({ imageBuffer, options, ops, size });
 }
