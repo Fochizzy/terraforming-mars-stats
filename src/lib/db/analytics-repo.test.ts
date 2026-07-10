@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { getProfileAnalytics, listGroupInteractions } from './analytics-repo';
+import {
+  getCrossGroupFocusData,
+  getProfileAnalytics,
+  listGroupInteractions,
+} from './analytics-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
@@ -140,6 +144,152 @@ describe('getProfileAnalytics', () => {
     expect(analyticsIn).toHaveBeenCalledWith('player_id', ['player-2']);
   });
 
+  it('collapses opponents that share a linked user into one head-to-head row', async () => {
+    const makeRow = (
+      overrides: Partial<Record<string, unknown>>,
+    ): Record<string, unknown> => ({
+      award_points: 0,
+      card_points_animals: null,
+      card_points_jovian: null,
+      card_points_microbes: null,
+      card_points_total: 0,
+      cities_points: 0,
+      declared_modifier_style_codes: null,
+      declared_primary_style_code: null,
+      greenery_points: 0,
+      has_full_card_breakdown: false,
+      inferred_primary_style_code: null,
+      inferred_style_confidence: null,
+      is_winner: false,
+      key_card_count: 0,
+      loss_gap_points: null,
+      milestone_points: 0,
+      other_card_points: null,
+      placement_score: 0,
+      signed_differential_points: 0,
+      tr_points: 0,
+      win_differential_points: null,
+      ...overrides,
+    });
+
+    // Izzy is linked to a player in each of two groups.
+    const ownRows = [
+      makeRow({
+        game_id: 'g1',
+        group_id: 'group-1',
+        player_id: 'me-1',
+        player_name: 'Izzy',
+        placement: '2',
+        total_points: '50',
+      }),
+      makeRow({
+        game_id: 'g2',
+        group_id: 'group-2',
+        player_id: 'me-2',
+        player_name: 'Izzy',
+        placement: '1',
+        total_points: '40',
+      }),
+    ];
+    // Corey appears as a distinct player row in each group's game.
+    const sharedRows = [
+      ...ownRows,
+      makeRow({
+        game_id: 'g1',
+        group_id: 'group-1',
+        player_id: 'corey-a',
+        player_name: 'Corey Jansen',
+        placement: '1',
+        total_points: '60',
+      }),
+      makeRow({
+        game_id: 'g2',
+        group_id: 'group-2',
+        player_id: 'corey-b',
+        player_name: 'Corey Jansen',
+        placement: '2',
+        total_points: '30',
+      }),
+    ];
+
+    const analyticsIn = vi.fn((column: string) => {
+      if (column === 'player_id') {
+        return Promise.resolve({ data: ownRows, error: null });
+      }
+
+      return Promise.resolve({ data: sharedRows, error: null });
+    });
+    const analyticsSelect = vi.fn().mockReturnValue({ in: analyticsIn });
+
+    const linkedPlayersResult = {
+      data: [
+        { display_name: 'Izzy', group_id: 'group-1', id: 'me-1' },
+        { display_name: 'Izzy', group_id: 'group-2', id: 'me-2' },
+      ],
+      error: null,
+    };
+    const playersOrderByDisplayName = vi.fn().mockResolvedValue(linkedPlayersResult);
+    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
+      order: playersOrderByDisplayName,
+    });
+    const playersEqLinkedUserId = vi.fn().mockReturnValue({
+      order: playersOrderByCreatedAt,
+    });
+    // Opponent identity lookup: both Corey rows resolve to the same user.
+    const opponentIdentityIn = vi.fn().mockResolvedValue({
+      data: [
+        { id: 'corey-a', linked_user_id: 'corey-user' },
+        { id: 'corey-b', linked_user_id: 'corey-user' },
+      ],
+      error: null,
+    });
+    const playersSelect = vi.fn((columns: string) => {
+      if (columns === 'id, linked_user_id') {
+        return { in: opponentIdentityIn };
+      }
+
+      return { eq: playersEqLinkedUserId };
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playersSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      schema: vi.fn((schemaName: string) => {
+        if (schemaName !== 'analytics') {
+          throw new Error(`Unexpected schema ${schemaName}`);
+        }
+
+        return {
+          from: vi.fn((table: string) => {
+            if (table === 'player_game_results') {
+              return { select: analyticsSelect };
+            }
+
+            throw new Error(`Unexpected analytics table ${table}`);
+          }),
+        };
+      }),
+    } as never);
+
+    const result = await getProfileAnalytics('user-1');
+
+    expect(result?.headToHeadRows).toEqual([
+      expect.objectContaining({
+        opponentName: 'Corey Jansen',
+        gamesPlayed: 2,
+        wins: 1,
+        losses: 1,
+        ties: 0,
+      }),
+    ]);
+    expect(opponentIdentityIn).toHaveBeenCalledWith('id', ['corey-a', 'corey-b']);
+  });
+
   it('filters expansion mix interactions out of group analytics rows', async () => {
     const eq = vi.fn().mockResolvedValue({
       data: [
@@ -197,5 +347,185 @@ describe('getProfileAnalytics', () => {
         wins: 2,
       },
     ]);
+  });
+});
+
+function buildFocusResultRow(overrides: Record<string, unknown>) {
+  return {
+    award_points: 0,
+    card_points_animals: null,
+    card_points_jovian: null,
+    card_points_microbes: null,
+    card_points_total: 0,
+    cities_points: 0,
+    declared_modifier_style_codes: null,
+    declared_primary_style_code: null,
+    game_id: 'game-1',
+    generation_count: 10,
+    greenery_points: 0,
+    group_id: 'group-1',
+    has_full_card_breakdown: false,
+    inferred_primary_style_code: null,
+    inferred_style_confidence: null,
+    is_winner: false,
+    key_card_count: 0,
+    loss_gap_points: null,
+    milestone_points: 0,
+    other_card_points: null,
+    placement: 1,
+    placement_score: 0,
+    played_on: '2026-06-01',
+    player_id: 'player-1',
+    player_name: 'Player One',
+    signed_differential_points: 0,
+    total_points: 0,
+    tr_points: 0,
+    win_differential_points: null,
+    ...overrides,
+  };
+}
+
+describe('getCrossGroupFocusData', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('lists every shared-game person, deduped by canonical identity, with a per-person bundle', async () => {
+    const izzyRow = buildFocusResultRow({
+      game_id: 'game-1',
+      group_id: 'group-1',
+      is_winner: true,
+      placement: 1,
+      player_id: 'izzy-1',
+      player_name: 'Izzy Hodnett',
+      total_points: 80,
+    });
+    const coletteRow = buildFocusResultRow({
+      game_id: 'game-1',
+      group_id: 'group-1',
+      is_winner: false,
+      placement: 2,
+      player_id: 'colette-1',
+      player_name: 'Colette LeRoux',
+      total_points: 70,
+    });
+
+    const playersOrderByDisplayName = vi.fn().mockResolvedValue({
+      data: [{ display_name: 'Izzy Hodnett', group_id: 'group-1', id: 'izzy-1' }],
+      error: null,
+    });
+    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
+      order: playersOrderByDisplayName,
+    });
+    const playersEqLinkedUserId = vi.fn().mockReturnValue({
+      order: playersOrderByCreatedAt,
+    });
+    const participantsIn = vi.fn().mockResolvedValue({
+      data: [
+        {
+          display_name: 'Izzy Hodnett',
+          id: 'izzy-1',
+          linked_user_id: 'user-1',
+          normalized_display_name: 'izzy hodnett',
+        },
+        {
+          display_name: 'Colette LeRoux',
+          id: 'colette-1',
+          linked_user_id: 'user-colette',
+          normalized_display_name: 'colette leroux',
+        },
+      ],
+      error: null,
+    });
+    const playersSelect = vi.fn().mockReturnValue({
+      eq: playersEqLinkedUserId,
+      in: participantsIn,
+    });
+
+    const analyticsIn = vi
+      .fn()
+      .mockResolvedValueOnce({ data: [izzyRow], error: null })
+      .mockResolvedValueOnce({ data: [izzyRow, coletteRow], error: null });
+    const analyticsSelect = vi.fn().mockReturnValue({ in: analyticsIn });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playersSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      schema: vi.fn((schemaName: string) => {
+        if (schemaName !== 'analytics') {
+          throw new Error(`Unexpected schema ${schemaName}`);
+        }
+
+        return {
+          from: vi.fn((table: string) => {
+            if (table === 'player_game_results') {
+              return { select: analyticsSelect };
+            }
+
+            throw new Error(`Unexpected analytics table ${table}`);
+          }),
+        };
+      }),
+    } as never);
+
+    const people = await getCrossGroupFocusData('user-1', 'group-1');
+
+    // The signed-in user is offered first, then their opponent.
+    expect(people.map((person) => person.displayName)).toEqual([
+      'Izzy Hodnett',
+      'Colette LeRoux',
+    ]);
+
+    const colette = people.find(
+      (person) => person.canonicalId === 'user:user-colette',
+    );
+    expect(colette).toMatchObject({
+      activeGroupPlayerId: 'colette-1',
+      inActiveGroup: true,
+      playerIds: ['colette-1'],
+    });
+    expect(colette?.bundle.headToHeadRows).toEqual([
+      {
+        averageScoreDifferential: -10,
+        gamesPlayed: 1,
+        label: 'Colette LeRoux vs Izzy Hodnett',
+        losses: 1,
+        ties: 0,
+        wins: 0,
+      },
+    ]);
+    expect(colette?.bundle.performance?.gamesPlayed).toBe(1);
+    expect(colette?.bundle.trendRows).toHaveLength(1);
+  });
+
+  it('returns an empty list when the user has no linked players', async () => {
+    const playersOrderByDisplayName = vi.fn().mockResolvedValue({
+      data: [],
+      error: null,
+    });
+    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
+      order: playersOrderByDisplayName,
+    });
+    const playersEqLinkedUserId = vi.fn().mockReturnValue({
+      order: playersOrderByCreatedAt,
+    });
+    const playersSelect = vi.fn().mockReturnValue({ eq: playersEqLinkedUserId });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playersSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    await expect(getCrossGroupFocusData('user-1', 'group-1')).resolves.toEqual([]);
   });
 });

@@ -181,6 +181,32 @@ export type TrendRow = {
   totalPoints: number;
 };
 
+export type FocusedHeadToHeadRow = {
+  averageScoreDifferential: number;
+  gamesPlayed: number;
+  label: string;
+  losses: number;
+  ties: number;
+  wins: number;
+};
+
+export type CrossGroupFocusBundle = {
+  coverage: CoverageRow | null;
+  headToHeadRows: FocusedHeadToHeadRow[];
+  performance: LeaderboardRow | null;
+  scoreAverages: ScoreSourceAverages | null;
+  trendRows: TrendRow[];
+};
+
+export type CrossGroupFocusPerson = {
+  activeGroupPlayerId: string | null;
+  bundle: CrossGroupFocusBundle;
+  canonicalId: string;
+  displayName: string;
+  inActiveGroup: boolean;
+  playerIds: string[];
+};
+
 type AnalyticsSupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
 type RawLeaderboardRow = {
@@ -684,6 +710,65 @@ function mapProfileGameResultRow(row: RawProfileGameResultRow): ProfileGameResul
   };
 }
 
+const PROFILE_RESULT_SELECT =
+  'award_points, card_points_animals, card_points_jovian, card_points_microbes, card_points_total, cities_points, declared_modifier_style_codes, declared_primary_style_code, game_id, greenery_points, group_id, has_full_card_breakdown, inferred_primary_style_code, inferred_style_confidence, is_winner, key_card_count, loss_gap_points, milestone_points, other_card_points, placement, placement_score, player_id, player_name, signed_differential_points, total_points, tr_points, win_differential_points';
+
+const FOCUS_RESULT_SELECT = `${PROFILE_RESULT_SELECT}, generation_count, played_on`;
+
+type RawFocusGameResultRow = RawProfileGameResultRow & {
+  generation_count: number | string;
+  played_on: string;
+};
+
+type FocusGameResultRow = ProfileGameResultRow & {
+  generationCount: number;
+  playedOn: string;
+};
+
+type PlayerIdentityRow = {
+  display_name: string;
+  id: string;
+  linked_user_id: null | string;
+  normalized_display_name: null | string;
+};
+
+function mapFocusGameResultRow(row: RawFocusGameResultRow): FocusGameResultRow {
+  return {
+    ...mapProfileGameResultRow(row),
+    generationCount: toNumber(row.generation_count),
+    playedOn: row.played_on,
+  };
+}
+
+function focusRowToTrendRow(row: FocusGameResultRow): TrendRow {
+  return {
+    gameId: row.gameId,
+    generationCount: row.generationCount,
+    groupId: row.groupId,
+    inferredPrimaryStyleCode: row.inferredPrimaryStyleCode,
+    isWinner: row.isWinner,
+    placement: row.placement,
+    playedOn: row.playedOn,
+    playerId: row.playerId,
+    playerName: row.playerName,
+    totalPoints: row.totalPoints,
+  };
+}
+
+function canonicalPersonId(identity: {
+  display_name: string;
+  linked_user_id: null | string;
+  normalized_display_name: null | string;
+}) {
+  if (identity.linked_user_id) {
+    return `user:${identity.linked_user_id}`;
+  }
+
+  const name = (identity.normalized_display_name ?? identity.display_name).trim().toLowerCase();
+
+  return `name:${name}`;
+}
+
 async function getLinkedPlayers(userId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -721,6 +806,7 @@ function resolveProfileLabel(
 
 function buildProfileAnalyticsFromRows(input: {
   linkedPlayers: LinkedPlayerRow[];
+  opponentIdentityByPlayerId?: Map<string, string>;
   ownRows: ProfileGameResultRow[];
   sharedRows: ProfileGameResultRow[];
 }): ProfileAnalytics {
@@ -926,7 +1012,11 @@ function buildProfileAnalyticsFromRows(input: {
         continue;
       }
 
-      const current = headToHeadByOpponent.get(opponentRow.playerId) ?? {
+      const opponentKey =
+        input.opponentIdentityByPlayerId?.get(opponentRow.playerId) ??
+        opponentRow.playerId;
+
+      const current = headToHeadByOpponent.get(opponentKey) ?? {
         averagePlacementEntries: [],
         averageScoreEntries: [],
         gamesPlayed: 0,
@@ -954,7 +1044,7 @@ function buildProfileAnalyticsFromRows(input: {
         current.ties += 1;
       }
 
-      headToHeadByOpponent.set(opponentRow.playerId, current);
+      headToHeadByOpponent.set(opponentKey, current);
     }
   }
 
@@ -1410,11 +1500,222 @@ export async function getProfileAnalytics(
     );
   }
 
+  // Opponents appear as a distinct player row per group, so head-to-head must
+  // collapse rows that belong to the same linked user account.
+  const opponentPlayerIds = [
+    ...new Set(
+      normalizedSharedRows
+        .map((row) => row.playerId)
+        .filter((playerId) => !linkedPlayerIds.includes(playerId)),
+    ),
+  ];
+  const opponentIdentityByPlayerId = new Map<string, string>();
+
+  if (opponentPlayerIds.length > 0) {
+    const { data: opponentPlayers, error: opponentPlayersError } = await supabase
+      .from('players')
+      .select('id, linked_user_id')
+      .in('id', opponentPlayerIds);
+
+    if (opponentPlayersError) {
+      throw opponentPlayersError;
+    }
+
+    for (const player of (opponentPlayers ?? []) as Array<{
+      id: string;
+      linked_user_id: null | string;
+    }>) {
+      opponentIdentityByPlayerId.set(player.id, player.linked_user_id ?? player.id);
+    }
+  }
+
   return buildProfileAnalyticsFromRows({
     linkedPlayers,
+    opponentIdentityByPlayerId,
     ownRows: normalizedOwnRows,
     sharedRows: normalizedSharedRows,
   });
+}
+
+/**
+ * Player Focus on Insights spans every person the signed-in user has shared a
+ * game with, across all of their groups (the group-split migration gives each
+ * person a distinct player row per group). For each such person this returns a
+ * bundle of their stats aggregated across those shared games so the dashboard
+ * can focus on opponents who aren't in the currently active group.
+ */
+export async function getCrossGroupFocusData(
+  userId: string,
+  activeGroupId: string | null,
+): Promise<CrossGroupFocusPerson[]> {
+  const linkedPlayers = await getLinkedPlayers(userId);
+
+  if (linkedPlayers.length === 0) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const linkedPlayerIds = linkedPlayers.map((player) => player.id);
+
+  const { data: ownData, error: ownError } = await getAnalyticsClient(supabase)
+    .from('player_game_results')
+    .select(FOCUS_RESULT_SELECT)
+    .in('player_id', linkedPlayerIds);
+
+  if (ownError) {
+    throw ownError;
+  }
+
+  const ownRows = ((ownData as RawFocusGameResultRow[] | null) ?? []).map(
+    mapFocusGameResultRow,
+  );
+  const gameIds = [...new Set(ownRows.map((row) => row.gameId))];
+
+  if (gameIds.length === 0) {
+    return [];
+  }
+
+  const { data: allData, error: allError } = await getAnalyticsClient(supabase)
+    .from('player_game_results')
+    .select(FOCUS_RESULT_SELECT)
+    .in('game_id', gameIds);
+
+  if (allError) {
+    throw allError;
+  }
+
+  const allRows = ((allData as RawFocusGameResultRow[] | null) ?? []).map(
+    mapFocusGameResultRow,
+  );
+
+  const participantIds = [...new Set(allRows.map((row) => row.playerId))];
+  const identityByPlayerId = new Map<string, { canonicalId: string; displayName: string }>();
+  const playerIdsByCanonical = new Map<string, Set<string>>();
+
+  if (participantIds.length > 0) {
+    const { data: participants, error: participantsError } = await supabase
+      .from('players')
+      .select('id, display_name, linked_user_id, normalized_display_name')
+      .in('id', participantIds);
+
+    if (participantsError) {
+      throw participantsError;
+    }
+
+    for (const player of (participants ?? []) as PlayerIdentityRow[]) {
+      const canonicalId = canonicalPersonId(player);
+      identityByPlayerId.set(player.id, { canonicalId, displayName: player.display_name });
+
+      const existing = playerIdsByCanonical.get(canonicalId) ?? new Set<string>();
+      existing.add(player.id);
+      playerIdsByCanonical.set(canonicalId, existing);
+    }
+  }
+
+  const opponentIdentityByPlayerId = new Map<string, string>();
+
+  for (const [playerId, identity] of identityByPlayerId) {
+    opponentIdentityByPlayerId.set(playerId, identity.canonicalId);
+  }
+
+  const rowsByCanonical = new Map<string, FocusGameResultRow[]>();
+
+  for (const row of allRows) {
+    const canonicalId = identityByPlayerId.get(row.playerId)?.canonicalId;
+
+    if (!canonicalId) {
+      continue;
+    }
+
+    const existing = rowsByCanonical.get(canonicalId) ?? [];
+    existing.push(row);
+    rowsByCanonical.set(canonicalId, existing);
+  }
+
+  const userCanonicalId = `user:${userId}`;
+  const people: CrossGroupFocusPerson[] = [];
+
+  for (const [canonicalId, personRows] of rowsByCanonical) {
+    const personPlayerIds = [
+      ...(playerIdsByCanonical.get(canonicalId) ?? new Set<string>()),
+    ].sort();
+    const displayName =
+      identityByPlayerId.get(personRows[0]?.playerId ?? '')?.displayName ??
+      personRows[0]?.playerName ??
+      'Unknown player';
+
+    const personLinkedPlayers: LinkedPlayerRow[] = personPlayerIds.map((id) => ({
+      id,
+      display_name: displayName,
+      group_id: personRows.find((row) => row.playerId === id)?.groupId ?? null,
+    }));
+
+    const profile = buildProfileAnalyticsFromRows({
+      linkedPlayers: personLinkedPlayers,
+      opponentIdentityByPlayerId,
+      ownRows: personRows,
+      sharedRows: allRows,
+    });
+
+    const activeGroupPlayerId =
+      activeGroupId == null
+        ? null
+        : personRows.find((row) => row.groupId === activeGroupId)?.playerId ?? null;
+
+    const bundle: CrossGroupFocusBundle = {
+      coverage: profile.coverage,
+      headToHeadRows: profile.headToHeadRows
+        .map((row) => ({
+          averageScoreDifferential: row.averageScoreDifferential,
+          gamesPlayed: row.gamesPlayed,
+          label: `${displayName} vs ${row.opponentName}`,
+          losses: row.losses,
+          ties: row.ties,
+          wins: row.wins,
+        }))
+        .sort(
+          (left, right) =>
+            right.gamesPlayed - left.gamesPlayed ||
+            right.wins - left.wins ||
+            left.label.localeCompare(right.label),
+        ),
+      performance: profile.performance,
+      scoreAverages: profile.scoreAverages,
+      trendRows: personRows
+        .map(focusRowToTrendRow)
+        .sort(
+          (left, right) =>
+            left.playedOn.localeCompare(right.playedOn) ||
+            left.gameId.localeCompare(right.gameId),
+        ),
+    };
+
+    people.push({
+      activeGroupPlayerId,
+      bundle,
+      canonicalId,
+      displayName,
+      inActiveGroup: activeGroupPlayerId !== null,
+      playerIds: personPlayerIds,
+    });
+  }
+
+  people.sort((left, right) => {
+    if (left.canonicalId === userCanonicalId) {
+      return -1;
+    }
+
+    if (right.canonicalId === userCanonicalId) {
+      return 1;
+    }
+
+    const leftGames = left.bundle.performance?.gamesPlayed ?? 0;
+    const rightGames = right.bundle.performance?.gamesPlayed ?? 0;
+
+    return rightGames - leftGames || left.displayName.localeCompare(right.displayName);
+  });
+
+  return people;
 }
 
 export async function getGroupAnalytics(groupId: string) {

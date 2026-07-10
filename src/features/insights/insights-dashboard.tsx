@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -23,14 +23,20 @@ import {
 } from '@/components/charts/chart-theme';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import type {
+  CoverageRow,
+  CrossGroupFocusBundle,
+  CrossGroupFocusPerson,
+  FocusedHeadToHeadRow,
   GroupAnalytics,
   GroupHeadToHeadRow,
   GroupInteractionRow,
   GroupStylePerformanceRow,
+  LeaderboardRow,
+  ScoreSourceAverages,
   TrendRow,
 } from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
-import { buildInsightCards } from './build-insight-cards';
+import { buildInsightCards, type InsightCard } from './build-insight-cards';
 import { BoardHeatmapSection } from './board-heatmap-section';
 import { CardOutcomesSection } from './card-outcomes-section';
 import { GameLengthSection } from './game-length-section';
@@ -45,24 +51,11 @@ import { ScoreSourceRadar } from './score-source-radar';
 import { TableSizeChart } from './table-size-chart';
 import { TagOutcomesSection } from './tag-outcomes-section';
 
-type PlayerOption = {
-  displayName: string;
-  id: string;
-};
-
 type InsightsDashboardProps = {
   analytics: GroupAnalytics;
+  children?: ReactNode;
   extended: ExtendedGroupAnalytics;
-  players: PlayerOption[];
-};
-
-type FocusedHeadToHeadRow = {
-  averageScoreDifferential: number;
-  gamesPlayed: number;
-  label: string;
-  losses: number;
-  ties: number;
-  wins: number;
+  focusPeople: CrossGroupFocusPerson[];
 };
 
 type ScoreSourceShape = {
@@ -91,6 +84,25 @@ type DashboardInteractionRow = GroupInteractionRow & {
   playerName?: string;
 };
 
+type FocusScope = 'group' | 'overall';
+
+type OverallLeaderboardRow = LeaderboardRow & {
+  canonicalId: string;
+};
+
+const scoreSourceKeys = [
+  'averageAnimalPoints',
+  'averageAwardPoints',
+  'averageCardPoints',
+  'averageCitiesPoints',
+  'averageGreeneryPoints',
+  'averageJovianPoints',
+  'averageMicrobePoints',
+  'averageMilestonePoints',
+  'averageOtherCardPoints',
+  'averageTrPoints',
+] as const satisfies ReadonlyArray<keyof ScoreSourceAverages>;
+
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
@@ -104,6 +116,251 @@ function formatAverage(value: number | null) {
     maximumFractionDigits: 2,
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
   }).format(value);
+}
+
+function roundNumber(value: number, digits = 3) {
+  return Number(value.toFixed(digits));
+}
+
+function weightedAverage(entries: Array<{ value: number; weight: number }>) {
+  const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+
+  if (totalWeight <= 0) {
+    return null;
+  }
+
+  return (
+    entries.reduce((sum, entry) => sum + entry.value * entry.weight, 0) /
+    totalWeight
+  );
+}
+
+function buildOverallLeaderboardRows(
+  people: CrossGroupFocusPerson[],
+): OverallLeaderboardRow[] {
+  return people
+    .flatMap((person) => {
+      if (!person.bundle.performance) {
+        return [];
+      }
+
+      return [
+        {
+          ...person.bundle.performance,
+          canonicalId: person.canonicalId,
+          playerId: person.canonicalId,
+          playerName: person.displayName,
+        },
+      ];
+    })
+    .sort(
+      (left, right) =>
+        right.weightedScore - left.weightedScore ||
+        right.gamesPlayed - left.gamesPlayed ||
+        left.playerName.localeCompare(right.playerName),
+    );
+}
+
+function buildOverallScoreAverages(
+  people: CrossGroupFocusPerson[],
+): ScoreSourceAverages | null {
+  const entries = people
+    .map((person) => ({
+      averages: person.bundle.scoreAverages,
+      weight: person.bundle.performance?.gamesPlayed ?? person.bundle.trendRows.length,
+    }))
+    .filter(
+      (entry): entry is { averages: ScoreSourceAverages; weight: number } =>
+        entry.averages !== null && entry.weight > 0,
+    );
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return scoreSourceKeys.reduce((averages, key) => {
+    averages[key] = roundNumber(
+      weightedAverage(
+        entries.map((entry) => ({
+          value: entry.averages[key],
+          weight: entry.weight,
+        })),
+      ) ?? 0,
+    );
+    return averages;
+  }, {} as ScoreSourceAverages);
+}
+
+function buildOverallCoverage(people: CrossGroupFocusPerson[]): CoverageRow | null {
+  const entries = people
+    .map((person) => ({
+      coverage: person.bundle.coverage,
+      weight:
+        person.bundle.coverage?.finalizedGames ??
+        person.bundle.performance?.gamesPlayed ??
+        person.bundle.trendRows.length,
+    }))
+    .filter(
+      (entry): entry is { coverage: CoverageRow; weight: number } =>
+        entry.coverage !== null && entry.weight > 0,
+    );
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const coverageKeys = [
+    'animalCoverage',
+    'cardBreakdownCoverage',
+    'declaredStyleCoverage',
+    'jovianCoverage',
+    'keyCardCoverage',
+    'microbeCoverage',
+  ] as const satisfies ReadonlyArray<
+    keyof Pick<
+      CoverageRow,
+      | 'animalCoverage'
+      | 'cardBreakdownCoverage'
+      | 'declaredStyleCoverage'
+      | 'jovianCoverage'
+      | 'keyCardCoverage'
+      | 'microbeCoverage'
+    >
+  >;
+
+  const finalizedGames = entries.reduce(
+    (sum, entry) => sum + entry.coverage.finalizedGames,
+    0,
+  );
+  const finalizedPlayerResults = entries.reduce(
+    (sum, entry) => sum + entry.coverage.finalizedPlayerResults,
+    0,
+  );
+  const aggregate: CoverageRow = {
+    animalCoverage: 0,
+    cardBreakdownCoverage: 0,
+    declaredStyleCoverage: 0,
+    finalizedGames,
+    finalizedPlayerResults,
+    groupId: 'all-shared-groups',
+    jovianCoverage: 0,
+    keyCardCoverage: 0,
+    microbeCoverage: 0,
+  };
+
+  for (const key of coverageKeys) {
+    aggregate[key] = roundNumber(
+      weightedAverage(
+        entries.map((entry) => ({
+          value: entry.coverage[key],
+          weight: entry.weight,
+        })),
+      ) ?? 0,
+      4,
+    );
+  }
+
+  return aggregate;
+}
+
+function buildOverallHeadToHeadRows(
+  people: CrossGroupFocusPerson[],
+): FocusedHeadToHeadRow[] {
+  const rowsByPair = new Map<
+    string,
+    {
+      differentialEntries: Array<{ value: number; weight: number }>;
+      gamesPlayed: number;
+      label: string;
+      losses: number;
+      ties: number;
+      wins: number;
+    }
+  >();
+
+  for (const person of people) {
+    for (const row of person.bundle.headToHeadRows) {
+      const labelParts = row.label.split(' vs ');
+      const sortedParts =
+        labelParts.length === 2 ? [...labelParts].sort() : [row.label];
+      const pairKey = sortedParts.join(' vs ');
+      const isReversed = labelParts.length === 2 && labelParts[0] !== sortedParts[0];
+
+      if (rowsByPair.has(pairKey)) {
+        continue;
+      }
+
+      const existing = rowsByPair.get(pairKey) ?? {
+        differentialEntries: [],
+        gamesPlayed: 0,
+        label: pairKey,
+        losses: 0,
+        ties: 0,
+        wins: 0,
+      };
+
+      existing.gamesPlayed += row.gamesPlayed;
+      existing.wins += isReversed ? row.losses : row.wins;
+      existing.losses += isReversed ? row.wins : row.losses;
+      existing.ties += row.ties;
+      existing.differentialEntries.push({
+        value: isReversed
+          ? row.averageScoreDifferential * -1
+          : row.averageScoreDifferential,
+        weight: row.gamesPlayed,
+      });
+      rowsByPair.set(pairKey, existing);
+    }
+  }
+
+  return [...rowsByPair.values()]
+    .map((row) => ({
+      averageScoreDifferential: roundNumber(
+        weightedAverage(row.differentialEntries) ?? 0,
+      ),
+      gamesPlayed: row.gamesPlayed,
+      label: row.label,
+      losses: row.losses,
+      ties: row.ties,
+      wins: row.wins,
+    }))
+    .sort(
+      (left, right) =>
+        right.gamesPlayed - left.gamesPlayed ||
+        Math.abs(right.averageScoreDifferential) -
+          Math.abs(left.averageScoreDifferential) ||
+        left.label.localeCompare(right.label),
+    );
+}
+
+function buildOverallFocusBundle(
+  people: CrossGroupFocusPerson[],
+): CrossGroupFocusBundle | null {
+  const trendRows = people
+    .flatMap((person) => person.bundle.trendRows)
+    .sort(
+      (left, right) =>
+        left.playedOn.localeCompare(right.playedOn) ||
+        left.playerName.localeCompare(right.playerName),
+    );
+  const bundle: CrossGroupFocusBundle = {
+    coverage: buildOverallCoverage(people),
+    headToHeadRows: buildOverallHeadToHeadRows(people),
+    performance: null,
+    scoreAverages: buildOverallScoreAverages(people),
+    trendRows,
+  };
+
+  if (
+    bundle.coverage ||
+    bundle.headToHeadRows.length > 0 ||
+    bundle.scoreAverages ||
+    bundle.trendRows.length > 0
+  ) {
+    return bundle;
+  }
+
+  return null;
 }
 
 function truncateLabel(value: string, length = 18) {
@@ -274,38 +531,169 @@ function normalizeHeadToHeadRows(
     .slice(0, 6);
 }
 
+function confidenceForSample(sampleSize: number): InsightCard['confidence'] {
+  if (sampleSize >= 5) {
+    return 'high';
+  }
+
+  if (sampleSize >= 2) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+// When a focused person lives outside the active group we can't reuse the
+// group-keyed insight cards, so build a small set straight from their
+// cross-group bundle instead.
+function buildCrossGroupFocusCards(person: CrossGroupFocusPerson): InsightCard[] {
+  const cards: InsightCard[] = [];
+  const performance = person.bundle.performance;
+
+  if (performance) {
+    cards.push({
+      body: `${performance.wins} wins in ${performance.gamesPlayed} games (${formatPercent(
+        performance.winRate,
+      )}), averaging ${formatAverage(performance.averageScore)} points and ${formatAverage(
+        performance.averagePlacement,
+      )} place across every shared group.`,
+      confidence: confidenceForSample(performance.gamesPlayed),
+      sampleSize: performance.gamesPlayed,
+      title: `${person.displayName} overall`,
+      tone: 'performance',
+    });
+  }
+
+  const topMatchup = person.bundle.headToHeadRows[0];
+
+  if (topMatchup) {
+    cards.push({
+      body: `${topMatchup.label}: ${topMatchup.wins}-${topMatchup.losses}-${topMatchup.ties} over ${topMatchup.gamesPlayed} games with a ${formatAverage(
+        topMatchup.averageScoreDifferential,
+      )} average point margin.`,
+      confidence: confidenceForSample(topMatchup.gamesPlayed),
+      sampleSize: topMatchup.gamesPlayed,
+      title: 'Most-played matchup',
+      tone: 'rivalry',
+    });
+  }
+
+  return cards;
+}
+
+function buildOverallFocusCards(
+  bundle: CrossGroupFocusBundle,
+  leaderboardRows: OverallLeaderboardRow[],
+): InsightCard[] {
+  const cards: InsightCard[] = [];
+  const topPlayer = leaderboardRows[0] ?? null;
+
+  if (topPlayer) {
+    cards.push({
+      body: `${topPlayer.playerName} leads your shared-game field with a ${formatPercent(
+        topPlayer.winRate,
+      )} win rate, ${formatAverage(
+        topPlayer.weightedScore,
+      )} weighted score, and ${formatAverage(
+        topPlayer.averageScore,
+      )} average points across ${topPlayer.gamesPlayed} finalized games.`,
+      confidence: confidenceForSample(topPlayer.gamesPlayed),
+      sampleSize: topPlayer.gamesPlayed,
+      title: 'Overall Leader',
+      tone: 'performance',
+    });
+  }
+
+  if (bundle.trendRows.length > 0) {
+    const sharedGames = new Set(bundle.trendRows.map((row) => row.gameId)).size;
+
+    cards.push({
+      body: `${bundle.trendRows.length} finalized player results across ${sharedGames} games are included in this overall view.`,
+      confidence: confidenceForSample(sharedGames),
+      sampleSize: sharedGames,
+      title: 'Shared Game Sample',
+      tone: 'coverage',
+    });
+  }
+
+  const topMatchup = bundle.headToHeadRows[0] ?? null;
+
+  if (topMatchup) {
+    cards.push({
+      body: `${topMatchup.label}: ${topMatchup.wins}-${topMatchup.losses}-${topMatchup.ties} over ${topMatchup.gamesPlayed} shared-game matchups with a ${formatAverage(
+        Math.abs(topMatchup.averageScoreDifferential),
+      )}-point average score swing.`,
+      confidence: confidenceForSample(topMatchup.gamesPlayed),
+      sampleSize: topMatchup.gamesPlayed,
+      title: 'Top Overall Matchup',
+      tone: 'rivalry',
+    });
+  }
+
+  return cards;
+}
+
 export function InsightsDashboard({
   analytics,
+  children: groupSwitcher,
   extended,
-  players,
+  focusPeople,
 }: InsightsDashboardProps) {
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string>('all');
+  const [selectedPersonId, setSelectedPersonId] = useState<string>('all');
+  const [focusScope, setFocusScope] = useState<FocusScope>('overall');
 
-  const selectedPlayer =
-    selectedPlayerId === 'all'
+  const selectedPerson =
+    selectedPersonId === 'all'
       ? null
-      : players.find((player) => player.id === selectedPlayerId) ?? null;
-  const focusedPlayerScoreAverages = selectedPlayer
-    ? analytics.playerScoreAverages.find(
-        (row) => row.playerId === selectedPlayer.id,
-      ) ?? null
+      : focusPeople.find((person) => person.canonicalId === selectedPersonId) ?? null;
+  const overallFocusBundle = useMemo(
+    () => buildOverallFocusBundle(focusPeople),
+    [focusPeople],
+  );
+  const overallLeaderboardRows = useMemo(
+    () => buildOverallLeaderboardRows(focusPeople),
+    [focusPeople],
+  );
+  const isGroupScope = focusScope === 'group';
+  const bundle = isGroupScope
+    ? null
+    : selectedPerson?.bundle ?? overallFocusBundle;
+  const focusPlayerName = selectedPerson?.displayName ?? null;
+  const showGroupContext =
+    isGroupScope && (!selectedPerson || selectedPerson.inActiveGroup);
+  const activeGroupPlayerId = isGroupScope
+    ? selectedPerson?.activeGroupPlayerId ?? null
+    : null;
+  const selectedPlayer = useMemo(
+    () =>
+      isGroupScope && selectedPerson && activeGroupPlayerId
+        ? { displayName: selectedPerson.displayName, id: activeGroupPlayerId }
+        : null,
+    [activeGroupPlayerId, isGroupScope, selectedPerson],
+  );
+
+  const groupPlayerScoreAverages = selectedPlayer
+    ? analytics.playerScoreAverages.find((row) => row.playerId === selectedPlayer.id) ??
+      null
     : null;
   const selectedStylePerformanceRows: GroupStylePerformanceRow[] = selectedPlayer
     ? analytics.playerStylePerformanceRows.filter(
         (row) => row.playerId === selectedPlayer.id,
       )
     : analytics.groupStylePerformanceRows;
-  const selectedTrendRows = selectedPlayer
-    ? analytics.playerTrendRows.filter((row) => row.playerId === selectedPlayer.id)
-    : analytics.playerTrendRows;
-  const selectedScoreProfile = selectedPlayer
-    ? analytics.playerScoreAverages.find((row) => row.playerId === selectedPlayer.id) ??
-      analytics.scoreAverages
-    : analytics.scoreAverages;
-  const selectedCoverage = selectedPlayer
-    ? analytics.playerCoverages.find((row) => row.playerId === selectedPlayer.id) ??
-      analytics.coverage
-    : analytics.coverage;
+  const selectedScoreProfile = isGroupScope
+    ? selectedPlayer
+      ? groupPlayerScoreAverages ?? analytics.scoreAverages
+      : analytics.scoreAverages
+    : bundle?.scoreAverages ?? null;
+  const groupPlayerCoverage = selectedPlayer
+    ? analytics.playerCoverages.find((row) => row.playerId === selectedPlayer.id) ?? null
+    : null;
+  const selectedCoverage = isGroupScope
+    ? selectedPlayer
+      ? groupPlayerCoverage ?? analytics.coverage
+      : analytics.coverage
+    : bundle?.coverage ?? null;
   const selectedStyleRows = selectedPlayer
     ? analytics.styleAgreementRows.filter((row) => row.playerId === selectedPlayer.id)
     : analytics.styleAgreementRows.slice(0, 6);
@@ -320,21 +708,40 @@ export function InsightsDashboard({
     .filter(isSupportedDashboardInteractionRow)
     .slice(0, 6);
   const focusedHeadToHeadRows = useMemo(
-    () =>
-      normalizeHeadToHeadRows(
+    () => {
+      if (!isGroupScope) {
+        return bundle?.headToHeadRows.slice(0, 6) ?? [];
+      }
+
+      return normalizeHeadToHeadRows(
         analytics.headToHeadRows,
         selectedPlayer?.id ?? null,
         selectedPlayer?.displayName ?? null,
-      ),
-    [analytics.headToHeadRows, selectedPlayer],
+      );
+    },
+    [analytics.headToHeadRows, bundle, isGroupScope, selectedPlayer],
   );
 
   const insightCards = useMemo(
-    () =>
-      buildInsightCards({
+    () => {
+      if (!isGroupScope) {
+        if (selectedPerson) {
+          return buildCrossGroupFocusCards(selectedPerson);
+        }
+
+        return overallFocusBundle
+          ? buildOverallFocusCards(overallFocusBundle, overallLeaderboardRows)
+          : [];
+      }
+
+      if (selectedPerson && !selectedPerson.inActiveGroup) {
+        return [];
+      }
+
+      return buildInsightCards({
         coverage: selectedCoverage,
-        focusPlayerId: selectedPlayer?.id ?? null,
-        focusPlayerName: selectedPlayer?.displayName ?? null,
+        focusPlayerId: activeGroupPlayerId,
+        focusPlayerName,
         headToHeadRows: analytics.headToHeadRows,
         interactionRows: selectedInteractionRows,
         leaderboardRows: analytics.leaderboardRows,
@@ -342,24 +749,35 @@ export function InsightsDashboard({
         stylePerformanceRows: selectedStylePerformanceRows,
         styleAgreementRows: analytics.styleAgreementRows,
         trendRows: analytics.playerTrendRows,
-      }),
+      });
+    },
     [
+      activeGroupPlayerId,
       analytics.headToHeadRows,
       analytics.leaderboardRows,
       analytics.lineupEffectRows,
       analytics.playerTrendRows,
       analytics.styleAgreementRows,
+      isGroupScope,
+      focusPlayerName,
+      overallFocusBundle,
+      overallLeaderboardRows,
       selectedCoverage,
       selectedInteractionRows,
-      selectedPlayer,
+      selectedPerson,
       selectedStylePerformanceRows,
     ],
   );
 
-  const leaderboardChartData = analytics.leaderboardRows.slice(0, 6).map((row) => ({
+  const leaderboardRows = isGroupScope ? analytics.leaderboardRows : overallLeaderboardRows;
+  const leaderboardChartData = leaderboardRows.slice(0, 6).map((row) => ({
     name: row.playerName,
     weightedScore: Number(row.weightedScore.toFixed(3)),
-    isFocused: row.playerId === selectedPlayer?.id,
+    isFocused: isGroupScope
+      ? row.playerId === activeGroupPlayerId
+      : selectedPerson
+        ? 'canonicalId' in row && row.canonicalId === selectedPerson.canonicalId
+        : false,
     winRate: Math.round(row.winRate * 100),
   }));
   const scoreSourceData = selectedScoreProfile
@@ -375,9 +793,14 @@ export function InsightsDashboard({
     playerName: row.playerName,
   }));
   const stylePerformanceData = buildStylePerformanceChartData(selectedStylePerformanceRows);
+  const trendRows = isGroupScope
+    ? selectedPlayer
+      ? analytics.playerTrendRows.filter((row) => row.playerId === selectedPlayer.id)
+      : analytics.playerTrendRows
+    : bundle?.trendRows ?? [];
   const trendChartData = buildTrendChartData(
-    selectedTrendRows,
-    Boolean(selectedPlayer),
+    trendRows,
+    isGroupScope ? Boolean(selectedPlayer) : Boolean(selectedPerson),
   );
   const coverageData = selectedCoverage
     ? [
@@ -395,8 +818,41 @@ export function InsightsDashboard({
         { label: 'Key Cards', value: Math.round(selectedCoverage.keyCardCoverage * 100) },
       ]
     : [];
+  const focusBadgeText = isGroupScope
+    ? focusPlayerName
+      ? selectedPerson?.inActiveGroup
+        ? `Focused on ${focusPlayerName} in selected group`
+        : `${focusPlayerName} is outside selected group`
+      : 'Focused on selected group'
+    : focusPlayerName
+      ? `Focused on ${focusPlayerName} overall`
+      : 'Focused on all shared players';
+  const scoreProfileTitle = focusPlayerName
+    ? isGroupScope
+      ? `Score Profile for ${focusPlayerName} in Selected Group`
+      : `Score Profile for ${focusPlayerName}`
+    : isGroupScope
+      ? 'Group Score Profile'
+      : 'Overall Score Profile';
+  const radarGroupAverages = isGroupScope
+    ? analytics.scoreAverages
+    : overallFocusBundle?.scoreAverages ?? selectedScoreProfile;
+  const radarPlayerAverages = isGroupScope
+    ? groupPlayerScoreAverages
+    : selectedPerson?.bundle.scoreAverages ?? null;
+  const leaderboardTitle = isGroupScope
+    ? 'Weighted Leaderboard Comparison'
+    : 'Overall Weighted Leaderboard';
+  const coverageTitle = focusPlayerName
+    ? isGroupScope
+      ? `Optional Data Coverage for ${focusPlayerName} in Selected Group`
+      : `Optional Data Coverage for ${focusPlayerName}`
+    : isGroupScope
+      ? 'Group Optional Data Coverage'
+      : 'Overall Optional Data Coverage';
 
   const hasAnalytics =
+    bundle !== null ||
     analytics.leaderboardRows.length > 0 ||
     analytics.headToHeadRows.length > 0 ||
     selectedInteractionRows.length > 0 ||
@@ -409,8 +865,8 @@ export function InsightsDashboard({
     <div className="flex flex-col gap-4">
       <ChartFrame title="Insights Lab">
         <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="relative min-w-[220px] flex-1">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]">
+            <div className="relative">
               <label className="tm-data-label" htmlFor="player-focus-select">
                 Player Focus
               </label>
@@ -418,13 +874,13 @@ export function InsightsDashboard({
                 aria-label="Player focus"
                 className="tm-input mt-2 w-full appearance-none pr-9"
                 id="player-focus-select"
-                onChange={(event) => setSelectedPlayerId(event.target.value)}
-                value={selectedPlayerId}
+                onChange={(event) => setSelectedPersonId(event.target.value)}
+                value={selectedPersonId}
               >
                 <option value="all">All players</option>
-                {players.map((player) => (
-                  <option key={player.id} value={player.id}>
-                    {player.displayName}
+                {focusPeople.map((person) => (
+                  <option key={person.canonicalId} value={person.canonicalId}>
+                    {person.displayName}
                   </option>
                 ))}
               </select>
@@ -432,11 +888,33 @@ export function InsightsDashboard({
                 <SelectChevron />
               </span>
             </div>
-            <span className="tm-coverage-badge">
-              {selectedPlayer
-                ? `Focused on ${selectedPlayer.displayName}`
-                : 'Focused on group-wide finalized results'}
-            </span>
+            <div className="relative">
+              <label className="tm-data-label" htmlFor="insight-scope-select">
+                Scope
+              </label>
+              <select
+                aria-label="Insight scope"
+                className="tm-input mt-2 w-full appearance-none pr-9"
+                id="insight-scope-select"
+                onChange={(event) => setFocusScope(event.target.value as FocusScope)}
+                value={focusScope}
+              >
+                <option value="overall">Overall</option>
+                <option value="group">Selected group</option>
+              </select>
+              <span className="mt-2 block">
+                <SelectChevron />
+              </span>
+            </div>
+            {groupSwitcher ? (
+              <div className="lg:col-span-2">
+                <p className="tm-data-label">Selected Group</p>
+                <div className="mt-2">{groupSwitcher}</div>
+              </div>
+            ) : null}
+            <div className="lg:col-span-2">
+              <span className="tm-coverage-badge">{focusBadgeText}</span>
+            </div>
           </div>
           <p className="tm-body-copy text-sm">
             Compare weighted leaderboard form, score-source patterns, style
@@ -503,55 +981,63 @@ export function InsightsDashboard({
             </div>
           </ChartFrame>
 
-          <ChartFrame title="Weighted Leaderboard Comparison">
-            {leaderboardChartData.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Finalized leaderboard rows will appear here once games are logged.
+          {isGroupScope && selectedPerson && !selectedPerson.inActiveGroup ? (
+            <ChartFrame title="Selected Group Unavailable">
+              <p className="tm-body-copy text-sm">
+                {focusPlayerName} doesn&apos;t have a player row in the selected
+                group, so group-only breakdowns are unavailable for that
+                combination.
               </p>
-            ) : (
-              <ResponsiveContainer height={260} width="100%">
-                <BarChart
-                  data={leaderboardChartData}
-                  margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                >
-                  <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                  <XAxis
-                    angle={-20}
-                    dataKey="name"
-                    height={60}
-                    textAnchor="end"
-                    tick={chartAxisTick}
-                  />
-                  <YAxis tick={chartAxisTick} />
-                  <Tooltip contentStyle={chartTooltipStyle} />
-                  <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
-                    {leaderboardChartData.map((row) => (
-                      <Cell
-                        fill={
-                          row.isFocused
-                            ? chartSeriesColors.accent
-                            : chartSeriesColors.default
-                        }
-                        key={row.name}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </ChartFrame>
+            </ChartFrame>
+          ) : null}
 
-          <PlacementDistributionChart
-            rows={extended.placementDistributionRows}
-          />
+          {!isGroupScope || showGroupContext ? (
+            <ChartFrame title={leaderboardTitle}>
+              {leaderboardChartData.length === 0 ? (
+                <p className="tm-muted-copy text-sm">
+                  Finalized leaderboard rows will appear here once games are logged.
+                </p>
+              ) : (
+                <ResponsiveContainer height={260} width="100%">
+                  <BarChart
+                    data={leaderboardChartData}
+                    margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
+                  >
+                    <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
+                    <XAxis
+                      angle={-20}
+                      dataKey="name"
+                      height={60}
+                      textAnchor="end"
+                      tick={chartAxisTick}
+                    />
+                    <YAxis tick={chartAxisTick} />
+                    <Tooltip contentStyle={chartTooltipStyle} />
+                    <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
+                      {leaderboardChartData.map((row) => (
+                        <Cell
+                          fill={
+                            row.isFocused
+                              ? chartSeriesColors.accent
+                              : chartSeriesColors.default
+                          }
+                          key={row.name}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </ChartFrame>
+          ) : null}
 
-          <ChartFrame
-            title={
-              selectedPlayer
-                ? `Score Profile for ${selectedPlayer.displayName}`
-                : 'Group Score Profile'
-            }
-          >
+          {showGroupContext ? (
+            <PlacementDistributionChart
+              rows={extended.placementDistributionRows}
+            />
+          ) : null}
+
+          <ChartFrame title={scoreProfileTitle}>
             {scoreSourceData.length === 0 ? (
               <p className="tm-muted-copy text-sm">
                 Score-source averages will appear here after finalized games exist.
@@ -579,11 +1065,12 @@ export function InsightsDashboard({
           </ChartFrame>
 
           <ScoreSourceRadar
-            focusPlayerName={selectedPlayer?.displayName ?? null}
-            groupAverages={analytics.scoreAverages}
-            playerAverages={focusedPlayerScoreAverages}
+            focusPlayerName={focusPlayerName}
+            groupAverages={radarGroupAverages}
+            playerAverages={radarPlayerAverages}
           />
 
+          {showGroupContext ? (
           <ChartFrame
             title={
               selectedPlayer
@@ -619,7 +1106,9 @@ export function InsightsDashboard({
               </ResponsiveContainer>
             )}
           </ChartFrame>
+          ) : null}
 
+          {showGroupContext ? (
           <ChartFrame title="Best Style Snapshot">
             {stylePerformanceData.length === 0 ? (
               <p className="tm-muted-copy text-sm">
@@ -670,6 +1159,7 @@ export function InsightsDashboard({
               </div>
             )}
           </ChartFrame>
+          ) : null}
 
           <ChartFrame title="Trend Over Time">
             {trendChartData.length === 0 ? (
@@ -722,25 +1212,29 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
-          <TableSizeChart
-            focusPlayerId={selectedPlayer?.id ?? null}
-            focusPlayerName={selectedPlayer?.displayName ?? null}
-            rows={extended.playerCountPerformanceRows}
-          />
+          {showGroupContext ? (
+            <>
+              <TableSizeChart
+                focusPlayerId={selectedPlayer?.id ?? null}
+                focusPlayerName={selectedPlayer?.displayName ?? null}
+                rows={extended.playerCountPerformanceRows}
+              />
 
-          <GameLengthSection
-            distributionRows={extended.generationDistributionRows}
-            focusPlayerId={selectedPlayer?.id ?? null}
-            focusPlayerName={selectedPlayer?.displayName ?? null}
-            performanceRows={extended.gameLengthPerformanceRows}
-          />
+              <GameLengthSection
+                distributionRows={extended.generationDistributionRows}
+                focusPlayerId={selectedPlayer?.id ?? null}
+                focusPlayerName={selectedPlayer?.displayName ?? null}
+                performanceRows={extended.gameLengthPerformanceRows}
+              />
 
-          <MapPerformanceSection
-            focusPlayerId={selectedPlayer?.id ?? null}
-            focusPlayerName={selectedPlayer?.displayName ?? null}
-            groupRows={extended.groupMapPerformanceRows}
-            playerRows={extended.playerMapPerformanceRows}
-          />
+              <MapPerformanceSection
+                focusPlayerId={selectedPlayer?.id ?? null}
+                focusPlayerName={selectedPlayer?.displayName ?? null}
+                groupRows={extended.groupMapPerformanceRows}
+                playerRows={extended.playerMapPerformanceRows}
+              />
+            </>
+          ) : null}
 
           <ChartFrame title="Head-to-Head Lens">
             {focusedHeadToHeadRows.length === 0 ? (
@@ -767,6 +1261,8 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
+          {showGroupContext ? (
+            <>
           <ChartFrame title="Lineup Effects">
             {selectedLineupRows.length === 0 ? (
               <p className="tm-muted-copy text-sm">
@@ -853,14 +1349,10 @@ export function InsightsDashboard({
               </div>
             </ChartFrame>
           ) : null}
+            </>
+          ) : null}
 
-          <ChartFrame
-            title={
-              selectedPlayer
-                ? `Optional Data Coverage for ${selectedPlayer.displayName}`
-                : 'Group Optional Data Coverage'
-            }
-          >
+          <ChartFrame title={coverageTitle}>
             {coverageData.length === 0 ? (
               <p className="tm-muted-copy text-sm">
                 Coverage metrics will appear after finalized games are logged.

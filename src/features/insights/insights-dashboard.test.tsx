@@ -1,8 +1,41 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import type { CrossGroupFocusPerson } from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { InsightsDashboard } from './insights-dashboard';
+
+const emptyScoreAverages = {
+  averageAnimalPoints: 1.1,
+  averageAwardPoints: 2.5,
+  averageCardPoints: 16.2,
+  averageCitiesPoints: 6.4,
+  averageGreeneryPoints: 10.2,
+  averageJovianPoints: 1.3,
+  averageMicrobePoints: 0.8,
+  averageMilestonePoints: 2.1,
+  averageOtherCardPoints: 12.1,
+  averageTrPoints: 24.3,
+};
+
+function buildFocusPerson(
+  overrides: Partial<CrossGroupFocusPerson> &
+    Pick<CrossGroupFocusPerson, 'canonicalId' | 'displayName'>,
+): CrossGroupFocusPerson {
+  return {
+    activeGroupPlayerId: null,
+    bundle: {
+      coverage: null,
+      headToHeadRows: [],
+      performance: null,
+      scoreAverages: null,
+      trendRows: [],
+    },
+    inActiveGroup: false,
+    playerIds: [],
+    ...overrides,
+  };
+}
 
 function buildExtendedFixture(
   overrides: Partial<ExtendedGroupAnalytics> = {},
@@ -27,6 +60,41 @@ function buildExtendedFixture(
 }
 
 describe('InsightsDashboard', () => {
+  it('places the selected group switcher below player focus controls', () => {
+    const { container } = render(
+      <InsightsDashboard
+        analytics={{
+          coverage: null,
+          groupInteractionRows: [],
+          groupStylePerformanceRows: [],
+          headToHeadRows: [],
+          importCoverageRows: [],
+          leaderboardRows: [],
+          lineupEffectRows: [],
+          playerCoverages: [],
+          playerInteractionRows: [],
+          playerScoreAverages: [],
+          playerStylePerformanceRows: [],
+          playerTrendRows: [],
+          scoreAverages: null,
+          styleAgreementRows: [],
+        } as never}
+        extended={buildExtendedFixture()}
+        focusPeople={[]}
+      >
+        <div>Group Switcher</div>
+      </InsightsDashboard>,
+    );
+    const labels = Array.from(container.querySelectorAll('.tm-data-label')).map(
+      (element) => element.textContent?.trim(),
+    );
+
+    expect(labels.indexOf('Player Focus')).toBeLessThan(
+      labels.indexOf('Selected Group'),
+    );
+    expect(screen.getByText('Group Switcher')).toBeInTheDocument();
+  });
+
   it('does not surface promo catalog or map expansion interactions as stats', () => {
     render(
       <InsightsDashboard
@@ -57,7 +125,7 @@ describe('InsightsDashboard', () => {
           styleAgreementRows: [],
         } as never}
         extended={buildExtendedFixture()}
-        players={[]}
+        focusPeople={[]}
       />,
     );
 
@@ -372,12 +440,58 @@ describe('InsightsDashboard', () => {
             },
           ],
         })}
-        players={[
-          { displayName: 'Friday Mars', id: 'p1' },
-          { displayName: 'Second Seat', id: 'p2' },
+        focusPeople={[
+          buildFocusPerson({
+            activeGroupPlayerId: 'p1',
+            canonicalId: 'name:friday mars',
+            displayName: 'Friday Mars',
+            inActiveGroup: true,
+            playerIds: ['p1'],
+          }),
+          buildFocusPerson({
+            activeGroupPlayerId: 'p2',
+            bundle: {
+              coverage: null,
+              headToHeadRows: [],
+              performance: null,
+              scoreAverages: emptyScoreAverages,
+              trendRows: [
+                {
+                  gameId: 'g3',
+                  generationCount: 10,
+                  groupId: 'group-1',
+                  inferredPrimaryStyleCode: 'jovian_payoff',
+                  isWinner: true,
+                  placement: 1,
+                  playedOn: '2026-06-20',
+                  playerId: 'p2',
+                  playerName: 'Second Seat',
+                  totalPoints: 84,
+                },
+                {
+                  gameId: 'g4',
+                  generationCount: 9,
+                  groupId: 'group-1',
+                  inferredPrimaryStyleCode: 'jovian_payoff',
+                  isWinner: true,
+                  placement: 1,
+                  playedOn: '2026-06-28',
+                  playerId: 'p2',
+                  playerName: 'Second Seat',
+                  totalPoints: 92,
+                },
+              ],
+            },
+            canonicalId: 'name:second seat',
+            displayName: 'Second Seat',
+            inActiveGroup: true,
+            playerIds: ['p2'],
+          }),
         ]}
       />,
     );
+
+    await user.selectOptions(screen.getByLabelText(/insight scope/i), 'group');
 
     expect(screen.getByText(/Friday Mars currently leads the group/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Group Score Profile/i })).toBeInTheDocument();
@@ -401,7 +515,10 @@ describe('InsightsDashboard', () => {
       screen.getByRole('heading', { name: /Tharsis Republic \| Allied Bank/i }),
     ).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText(/player focus/i), 'p2');
+    await user.selectOptions(
+      screen.getByLabelText(/player focus/i),
+      'name:second seat',
+    );
 
     expect(screen.getByText(/Focused on Second Seat/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Score Profile for Second Seat/i })).toBeInTheDocument();
@@ -417,5 +534,119 @@ describe('InsightsDashboard', () => {
     expect(
       screen.getByRole('heading', { name: /Tharsis Republic \| Allied Bank/i }),
     ).toBeInTheDocument();
+  });
+
+  it('surfaces a cross-group person and hides group-only breakdowns for them', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <InsightsDashboard
+        analytics={{
+          coverage: null,
+          groupInteractionRows: [],
+          groupStylePerformanceRows: [],
+          headToHeadRows: [],
+          importCoverageRows: [],
+          leaderboardRows: [
+            {
+              averageLossGap: 2.5,
+              averagePlacement: 1.25,
+              averageScore: 84.5,
+              averageWinMargin: 6.2,
+              differentialComponent: 0.067,
+              gamesPlayed: 4,
+              groupId: 'group-1',
+              placementComponent: 0.281,
+              playerId: 'p1',
+              playerName: 'Friday Mars',
+              weightedScore: 0.723,
+              winRate: 0.75,
+              winRateComponent: 0.375,
+              wins: 3,
+            },
+          ],
+          lineupEffectRows: [],
+          playerCoverages: [],
+          playerInteractionRows: [],
+          playerScoreAverages: [],
+          playerStylePerformanceRows: [],
+          playerTrendRows: [],
+          scoreAverages: emptyScoreAverages,
+          styleAgreementRows: [],
+        } as never}
+        extended={buildExtendedFixture()}
+        focusPeople={[
+          buildFocusPerson({
+            activeGroupPlayerId: null,
+            bundle: {
+              coverage: null,
+              headToHeadRows: [
+                {
+                  averageScoreDifferential: -8.5,
+                  gamesPlayed: 2,
+                  label: 'Colette LeRoux vs Izzy Hodnett',
+                  losses: 1,
+                  ties: 0,
+                  wins: 1,
+                },
+              ],
+              performance: {
+                averageLossGap: null,
+                averagePlacement: 2,
+                averageScore: 70,
+                averageWinMargin: null,
+                differentialComponent: 0,
+                gamesPlayed: 2,
+                groupId: 'other-group',
+                placementComponent: 0.15,
+                playerId: 'c1',
+                playerName: 'Colette LeRoux',
+                weightedScore: 0.4,
+                winRate: 0.5,
+                winRateComponent: 0.25,
+                wins: 1,
+              },
+              scoreAverages: emptyScoreAverages,
+              trendRows: [],
+            },
+            canonicalId: 'user:colette',
+            displayName: 'Colette LeRoux',
+            inActiveGroup: false,
+            playerIds: ['c1'],
+          }),
+        ]}
+      />,
+    );
+
+    // Overall is the default scope, so the leaderboard spans shared games.
+    expect(
+      screen.getByRole('heading', { name: /Overall Weighted Leaderboard/i }),
+    ).toBeInTheDocument();
+
+    await user.selectOptions(
+      screen.getByLabelText(/player focus/i),
+      'user:colette',
+    );
+
+    expect(screen.getByText(/Focused on Colette LeRoux overall/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Score Profile for Colette LeRoux/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Colette LeRoux vs Izzy Hodnett/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /Selected Group Unavailable/i }),
+    ).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/insight scope/i), 'group');
+
+    // Group-only breakdowns collapse into a single explanatory notice.
+    expect(
+      screen.getByRole('heading', { name: /Selected Group Unavailable/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /Weighted Leaderboard Comparison/i }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import InsightsPage from './page';
 
 type CapturedInsightsDashboardProps = {
-  players: Array<{ displayName: string; id: string }>;
+  children?: ReactNode;
+  focusPeople: Array<{ canonicalId: string; displayName: string }>;
 };
 
 const captureState = vi.hoisted(() => ({
@@ -13,11 +14,11 @@ const captureState = vi.hoisted(() => ({
 
 const mockState = vi.hoisted(() => ({
   getHeadToHeadStats: vi.fn(),
+  getCrossGroupFocusData: vi.fn(),
   getExtendedGroupAnalytics: vi.fn(),
   getGroupAnalytics: vi.fn(),
   getMergerImpactStats: vi.fn(),
   getSelectionStats: vi.fn(),
-  listPlayers: vi.fn(),
   listPromoCards: vi.fn(),
   listPromoSets: vi.fn(),
   requireGroupContextOrRedirect: vi.fn(),
@@ -60,8 +61,9 @@ vi.mock('@/features/insights/insights-dashboard', () => ({
 
     return (
       <div data-testid="insights-dashboard">
-        {props.players.map((player) => (
-          <span key={player.id}>{player.displayName}</span>
+        {props.children}
+        {props.focusPeople.map((person) => (
+          <span key={person.canonicalId}>{person.displayName}</span>
         ))}
       </div>
     );
@@ -69,15 +71,12 @@ vi.mock('@/features/insights/insights-dashboard', () => ({
 }));
 
 vi.mock('@/lib/db/analytics-repo', () => ({
+  getCrossGroupFocusData: mockState.getCrossGroupFocusData,
   getGroupAnalytics: mockState.getGroupAnalytics,
 }));
 
 vi.mock('@/lib/db/extended-analytics-repo', () => ({
   getExtendedGroupAnalytics: mockState.getExtendedGroupAnalytics,
-}));
-
-vi.mock('@/lib/db/player-repo', () => ({
-  listPlayers: mockState.listPlayers,
 }));
 
 vi.mock('@/lib/db/reference-repo', () => ({
@@ -149,26 +148,34 @@ describe('InsightsPage', () => {
       scoreAverages: null,
       styleAgreementRows: [],
     });
-    mockState.listPlayers.mockResolvedValue([
+    mockState.getCrossGroupFocusData.mockResolvedValue([
       {
-        display_name: 'Friday Mars',
-        id: 'player-self',
-        linked_user_id: 'user-1',
+        activeGroupPlayerId: 'player-self',
+        bundle: {
+          coverage: null,
+          headToHeadRows: [],
+          performance: null,
+          scoreAverages: null,
+          trendRows: [],
+        },
+        canonicalId: 'user:user-1',
+        displayName: 'Friday Mars',
+        inActiveGroup: true,
+        playerIds: ['player-self'],
       },
       {
-        display_name: 'Second Seat',
-        id: 'player-rival',
-        linked_user_id: null,
-      },
-      {
-        display_name: 'Third Seat',
-        id: 'player-other-a',
-        linked_user_id: null,
-      },
-      {
-        display_name: 'Fourth Seat',
-        id: 'player-other-b',
-        linked_user_id: null,
+        activeGroupPlayerId: null,
+        bundle: {
+          coverage: null,
+          headToHeadRows: [],
+          performance: null,
+          scoreAverages: null,
+          trendRows: [],
+        },
+        canonicalId: 'user:colette',
+        displayName: 'Colette LeRoux',
+        inActiveGroup: false,
+        playerIds: ['player-colette'],
       },
     ]);
     mockState.getExtendedGroupAnalytics.mockResolvedValue({
@@ -206,7 +213,7 @@ describe('InsightsPage', () => {
     });
   });
 
-  it('only forwards the signed-in player and shared-game opponents into player focus', async () => {
+  it('forwards the cross-group focus people into player focus', async () => {
     render(await InsightsPage());
 
     expect(screen.getByRole('heading', { name: /insights/i })).toBeInTheDocument();
@@ -215,14 +222,15 @@ describe('InsightsPage', () => {
       screen.getByRole('link', { name: /review saved games/i }),
     ).toHaveAttribute('href', '/log-game/review');
     expect(screen.getByTestId('insights-dashboard')).toBeInTheDocument();
-    expect(captureState.insightsDashboardProps?.players).toEqual([
-      { displayName: 'Friday Mars', id: 'player-self' },
-      { displayName: 'Second Seat', id: 'player-rival' },
-    ]);
+    expect(mockState.getCrossGroupFocusData).toHaveBeenCalledWith('user-1', 'group-1');
+    expect(
+      captureState.insightsDashboardProps?.focusPeople.map((person) => person.displayName),
+    ).toEqual(['Friday Mars', 'Colette LeRoux']);
+    // A player from another group is offered even though they aren't in the
+    // active group's analytics.
+    expect(screen.getByText('Colette LeRoux')).toBeInTheDocument();
     expect(mockState.listPromoCards).not.toHaveBeenCalled();
     expect(mockState.listPromoSets).not.toHaveBeenCalled();
-    expect(screen.queryByText('Third Seat')).not.toBeInTheDocument();
-    expect(screen.queryByText('Fourth Seat')).not.toBeInTheDocument();
   });
 
   it('keeps the insights page renderable when optional analytics fail', async () => {
