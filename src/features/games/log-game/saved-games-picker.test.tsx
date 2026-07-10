@@ -29,6 +29,17 @@ describe('SavedGamesPicker', () => {
     );
 
     expect(screen.getByRole('heading', { name: /saved games/i })).toBeInTheDocument();
+    const draftSection = screen
+      .getByRole('heading', { name: /in progress games/i })
+      .closest('section');
+    const finalizedSection = screen
+      .getByRole('heading', { name: /finished games/i })
+      .closest('section');
+
+    expect(draftSection).toHaveClass('tm-saved-game-section--draft');
+    expect(finalizedSection).toHaveClass('tm-saved-game-section--finalized');
+    expect(screen.getByLabelText(/in progress games count/i)).toHaveTextContent('1');
+    expect(screen.getByLabelText(/finished games count/i)).toHaveTextContent('1');
     expect(screen.getByRole('link', { name: /resume draft/i })).toHaveAttribute(
       'href',
       '/log-game/review?gameId=game-draft',
@@ -37,10 +48,25 @@ describe('SavedGamesPicker', () => {
       'href',
       '/log-game/review?gameId=game-final',
     );
+    expect(screen.getByRole('link', { name: /resume draft/i }).closest('article')).toHaveClass(
+      'tm-saved-game-card--draft',
+    );
+    expect(
+      screen.getByRole('link', { name: /correct players/i }).closest('article'),
+    ).toHaveClass('tm-saved-game-card--finalized');
     expect(screen.getByRole('button', { name: /delete draft/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /delete game/i })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /delete/i })).toHaveLength(2);
     expect(screen.getAllByText(/friday mars/i)).toHaveLength(2);
     expect(screen.getByText(/sam terraformer/i)).toBeInTheDocument();
+  });
+
+  it('keeps both saved game sections visible when they are empty', () => {
+    render(<SavedGamesPicker deleteGameAction={async () => {}} games={[]} />);
+
+    expect(screen.getByRole('heading', { name: /in progress games/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /finished games/i })).toBeInTheDocument();
+    expect(screen.getByText(/no in-progress games are available/i)).toBeInTheDocument();
+    expect(screen.getByText(/no finished games are available/i)).toBeInTheDocument();
   });
 });

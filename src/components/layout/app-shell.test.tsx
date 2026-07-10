@@ -10,6 +10,7 @@ describe('AppShell', () => {
       screen.getByRole('link', { name: /my profile/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /log game/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /saved games/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /group/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /cards/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /insights/i })).toBeInTheDocument();
@@ -31,6 +32,7 @@ describe('AppShell', () => {
     expect(
       screen.getByRole('link', { name: /my profile/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /saved games/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /log game/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /group/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /insights/i })).not.toBeInTheDocument();
