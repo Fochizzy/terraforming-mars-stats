@@ -10,7 +10,6 @@ describe('normalizeCardRecord', () => {
       expansion: 'Promo',
       expansionName: 'Promo',
       imageUrl: 'https://example.com/card.png',
-      sourceAttribution: 'https://tm.hadronikle.com/',
       sourceCardId: 'promo:P39',
     });
 
@@ -21,7 +20,9 @@ describe('normalizeCardRecord', () => {
     expect(record.expansion_code).toBe('Promo');
     expect(record.expansion_name).toBe('Promo');
     expect(record.image_url).toBe('https://example.com/card.png');
-    expect(record.source_attribution).toBe('https://tm.hadronikle.com/');
+    expect(record.source_attribution).toBe(
+      'https://terraforming-mars.herokuapp.com/cards#bio~trbgpcseCmalt',
+    );
     expect(record.sync_metadata).toEqual({
       expansion: 'Promo',
       name: 'Merger',

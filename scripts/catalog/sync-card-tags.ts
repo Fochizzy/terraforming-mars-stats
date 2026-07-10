@@ -3,33 +3,18 @@ import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import {
   CATALOG_NAME_ALIASES,
+  TFM_CARDS_PAGE_URL,
   TFM_CARDS_SOURCE_URL,
   TFM_CARD_TAGS_SNAPSHOT_PATH,
   extractTfmCardTags,
   normalizeCardName,
   type TfmCardTagRecord,
 } from './extract-tfm-card-tags';
-
-export const CATEGORY_TO_CARD_TYPE: Record<string, string> = {
-  corporationCards: 'Corporation',
-  preludeCards: 'Prelude',
-  projectCards: 'Project',
-};
-
-export const MODULE_TO_EXPANSION: Record<string, { code: string; name: string }> = {
-  ares: { code: 'ares', name: 'Ares' },
-  automa: { code: 'automa', name: 'Automa' },
-  base: { code: 'base', name: 'Base Game' },
-  community: { code: 'community', name: 'Community' },
-  'corp era': { code: 'corporate_era', name: 'Corporate Era' },
-  colonies: { code: 'colonies', name: 'Colonies' },
-  moon: { code: 'moon', name: 'Moon' },
-  prelude: { code: 'prelude', name: 'Prelude' },
-  'prelude 2': { code: 'prelude_2', name: 'Prelude 2' },
-  promo: { code: 'promo', name: 'Promo Cards' },
-  turmoil: { code: 'turmoil', name: 'Turmoil' },
-  venus: { code: 'venus_next', name: 'Venus Next' },
-};
+import {
+  buildMissingSelectionReferenceRows,
+  mapTfmRecordToCatalogSource,
+  type TfmCatalogSource,
+} from './tfm-reference-data';
 
 export type CatalogCardRow = {
   card_name: string;
@@ -43,74 +28,11 @@ export type CatalogCardRow = {
   victory_points_kind: string | null;
 };
 
-export type TfmCatalogSource = {
-  cardName: string;
-  cardNumber: string;
-  cardType: string;
-  expansionCode: string;
-  expansionName: string;
-  gameplayTags: string[];
-  printedVictoryPoints: number | null;
-  record: TfmCardTagRecord;
-  sourceCardId: string;
-  sourceKey: string;
-  victoryPointsKind: 'none' | 'static' | 'dynamic';
-};
-
-function slugifyName(name: string) {
-  return normalizeCardName(name).replace(/\s+/g, '-');
-}
-
 export function tagsEqual(left: string[], right: string[]) {
   return (
     left.length === right.length &&
     [...left].sort().join('|') === [...right].sort().join('|')
   );
-}
-
-function resolveCardType(record: TfmCardTagRecord) {
-  return record.category
-    ? CATEGORY_TO_CARD_TYPE[record.category]
-    : record.category === null && record.cardType === 'corporation'
-      ? 'Corporation'
-      : null;
-}
-
-function resolveExpansion(record: TfmCardTagRecord) {
-  return record.module
-    ? MODULE_TO_EXPANSION[record.module.toLowerCase()]
-    : undefined;
-}
-
-function readPrintedVictoryPoints(record: TfmCardTagRecord) {
-  return record.victoryPoints.kind === 'static'
-    ? record.victoryPoints.points
-    : null;
-}
-
-export function mapTfmRecordToCatalogSource(
-  record: TfmCardTagRecord,
-): TfmCatalogSource | null {
-  const cardType = resolveCardType(record);
-  const expansion = resolveExpansion(record);
-
-  if (!cardType || !expansion) {
-    return null;
-  }
-
-  return {
-    cardName: record.name,
-    cardNumber: record.cardNumber ?? '',
-    cardType,
-    expansionCode: expansion.code,
-    expansionName: expansion.name,
-    gameplayTags: record.tags,
-    printedVictoryPoints: readPrintedVictoryPoints(record),
-    record,
-    sourceCardId: `tfm:${cardType.toLowerCase()}:${slugifyName(record.name)}`,
-    sourceKey: `${normalizeCardName(record.name)}|${cardType}`,
-    victoryPointsKind: record.victoryPoints.kind,
-  };
 }
 
 export function buildCatalogCardPatch(
@@ -146,45 +68,6 @@ export function buildCatalogCardPatch(
   }
 
   return Object.keys(patch).length > 0 ? patch : null;
-}
-
-export type SelectionReferenceRow = {
-  code: string;
-  expansion_code: string;
-  name: string;
-  required_expansion_codes: string[];
-};
-
-export function buildMissingSelectionReferenceRows(input: {
-  existingNames: string[];
-  kind: 'Corporation' | 'Prelude';
-  sources: TfmCatalogSource[];
-}): SelectionReferenceRow[] {
-  // Existing rows may use catalog spellings that differ from the source
-  // bundle (e.g. "Allied Bank" vs "Allied Banks"), so compare through the
-  // same alias map the card sync uses to avoid seeding duplicates.
-  const existingNames = new Set(
-    input.existingNames.map((name) => {
-      const normalizedName = normalizeCardName(name);
-      return CATALOG_NAME_ALIASES[normalizedName] ?? normalizedName;
-    }),
-  );
-
-  return input.sources
-    .filter(
-      (source) =>
-        source.cardType === input.kind &&
-        // Automa bot mats are not selectable player corporations.
-        source.expansionCode !== 'automa' &&
-        !existingNames.has(normalizeCardName(source.cardName)),
-    )
-    .map((source) => ({
-      code: `${source.expansionCode}:${slugifyName(source.cardName)}`,
-      expansion_code: source.expansionCode,
-      name: source.cardName,
-      required_expansion_codes:
-        source.expansionCode === 'promo' ? [] : [source.expansionCode],
-    }));
 }
 
 async function loadBundleSource(useCachedSnapshot: boolean) {
@@ -348,17 +231,20 @@ async function main() {
       expansion_code: source.expansionCode,
       expansion_name: source.expansionName,
       gameplay_tags: source.gameplayTags,
-      image_url: '/file.svg',
+      image_url: source.fullImagePath,
       printed_victory_points: source.printedVictoryPoints,
-      source_attribution: TFM_CARDS_SOURCE_URL,
+      source_attribution: TFM_CARDS_PAGE_URL,
       source_card_id: source.sourceCardId,
       sync_metadata: {
+        promoSetSlug: source.promoSetSlug,
+        requiredExpansionCodes: source.requiredExpansionCodes,
         tfmCategory: source.record.category,
         tfmModule: source.record.module,
         tfmNameKey: source.record.nameKey,
         tfmVictoryPointsKind: source.victoryPointsKind,
       },
-      thumbnail_path: '/file.svg',
+      thumbnail_path: source.thumbnailPath,
+      full_image_path: source.fullImagePath,
       victory_points_kind: source.victoryPointsKind,
     });
   }
@@ -388,7 +274,12 @@ async function main() {
     if (corporationReferenceInserts.length > 0) {
       const { error: corporationInsertError } = await supabase
         .from('corporations')
-        .upsert(corporationReferenceInserts, { onConflict: 'code' });
+        .upsert(
+          corporationReferenceInserts.map(
+            ({ promo_set_slug: _promoSetSlug, ...row }) => row,
+          ),
+          { onConflict: 'code' },
+        );
 
       if (corporationInsertError) {
         throw corporationInsertError;
@@ -398,7 +289,12 @@ async function main() {
     if (preludeReferenceInserts.length > 0) {
       const { error: preludeInsertError } = await supabase
         .from('preludes')
-        .upsert(preludeReferenceInserts, { onConflict: 'code' });
+        .upsert(
+          preludeReferenceInserts.map(
+            ({ promo_set_slug: _promoSetSlug, ...row }) => row,
+          ),
+          { onConflict: 'code' },
+        );
 
       if (preludeInsertError) {
         throw preludeInsertError;

@@ -1,12 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { NormalizedCardRecord } from '../../src/features/catalog/catalog-record';
 import {
-  buildCatalogImportPayload,
-  extractHadronikleCardsFromHtml,
-  loadHadronikleSourceHtml,
   type CatalogCorporationSeed,
   type CatalogPreludeSeed,
-} from './import-reference-data';
+  buildTfmCatalogImportPayload,
+  loadTfmCardRecords,
+} from './tfm-reference-data';
 import { referenceDimensions, type PromoSetSeed } from './reference-data';
 
 type MinimalSupabaseClient = {
@@ -128,7 +127,7 @@ export async function publishReferenceData(input: {
     corporations = [],
     preludes = [],
     promoSets = [],
-    sourceName = 'tm-hadronikle-reference-publish',
+    sourceName = 'terraforming-mars-card-browser-publish',
     sourceVersion = new Date().toISOString().slice(0, 10),
     supabase,
   } = input;
@@ -257,10 +256,7 @@ async function main() {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
-  const html = await loadHadronikleSourceHtml();
-  const importPayload = buildCatalogImportPayload(
-    extractHadronikleCardsFromHtml(html),
-  );
+  const importPayload = buildTfmCatalogImportPayload(await loadTfmCardRecords());
   const summary = await publishReferenceData({
     cards: importPayload.cards,
     corporations: importPayload.corporations,

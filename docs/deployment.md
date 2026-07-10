@@ -22,7 +22,7 @@ The authenticated web import flow now requires `SUPABASE_SERVICE_ROLE_KEY` in th
 1. Create the new Supabase project.
 2. Apply the repo migrations with `npx.cmd supabase db push`.
 3. The seed migration now loads the stable expansion, map, and style dimensions automatically when you push schema changes.
-4. Run `npm.cmd run catalog:publish` to create a catalog snapshot row and upsert any richer corporation, prelude, promo-set, and card data you have prepared.
+4. Run `npm.cmd run catalog:publish` to create a catalog snapshot row and upsert the Terraforming Mars card-browser cards, corporations, preludes, tags, and promo-set links.
 5. Add the remaining corporation, prelude, promo-set, milestone, award, and card imports before inviting the first group.
 6. Set the Cloudflare runtime env vars and deploy the Worker.
 7. Set Supabase Auth Site URL to the live `workers.dev` domain and add the `/auth/callback` redirect.

@@ -1,7 +1,10 @@
 import * as acorn from 'acorn';
 import * as walk from 'acorn-walk';
 
-export const TFM_CARDS_SOURCE_URL = 'https://tfm-community.herokuapp.com/main.js';
+export const TFM_CARDS_PAGE_URL =
+  'https://terraforming-mars.herokuapp.com/cards#bio~trbgpcseCmalt';
+export const TFM_CARDS_SOURCE_URL =
+  'https://terraforming-mars.herokuapp.com/main.js';
 export const TFM_CARD_TAGS_SNAPSHOT_PATH =
   'scripts/catalog/source/tfm-card-tags.json';
 

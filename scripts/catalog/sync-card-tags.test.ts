@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCatalogCardPatch,
-  buildMissingSelectionReferenceRows,
-  mapTfmRecordToCatalogSource,
   type CatalogCardRow,
 } from './sync-card-tags';
+import {
+  buildMissingSelectionReferenceRows,
+  mapTfmRecordToCatalogSource,
+} from './tfm-reference-data';
 import type { TfmCardTagRecord } from './extract-tfm-card-tags';
 
 function sourceRecord(
@@ -141,6 +143,7 @@ describe('buildMissingSelectionReferenceRows', () => {
         code: 'community:project-workshop',
         expansion_code: 'community',
         name: 'Project Workshop',
+        promo_set_slug: null,
         required_expansion_codes: ['community'],
       },
     ]);
@@ -165,9 +168,10 @@ describe('buildMissingSelectionReferenceRows', () => {
       }),
     ).toEqual([
       {
-        code: 'moon:first-lunar-settlement',
+        code: 'MP1',
         expansion_code: 'moon',
         name: 'First Lunar Settlement',
+        promo_set_slug: null,
         required_expansion_codes: ['moon'],
       },
     ]);
