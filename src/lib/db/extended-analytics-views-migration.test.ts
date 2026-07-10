@@ -134,3 +134,40 @@ describe('tag summary alias resolution migration', () => {
     expect(migration).toContain('tsl.player_id = e.player_id');
   });
 });
+
+describe('Merger impact stats migration', () => {
+  const migration = getMigrationContaining('get_merger_impact_stats');
+
+  it('detects Merger from imported log events instead of manual selections', () => {
+    expect(migration).toContain(
+      'create or replace function public.get_merger_impact_stats',
+    );
+    expect(migration).toContain('latest_imports as');
+    expect(migration).toContain("btrim(gli.raw_log_text) <> ''");
+    expect(migration).toContain('join game_log_events gle');
+    expect(migration).toContain("gle.event_type = 'card_played'");
+    expect(migration).toContain("gle.payload->>'cardName'");
+    expect(migration).toContain(") = 'merger'");
+    expect(migration).not.toContain('join game_player_preludes');
+  });
+
+  it('resolves Merger log actors to saved players and compares non-Merger logs', () => {
+    expect(migration).toContain("gle.payload->>'actor'");
+    expect(migration).toContain('p.normalized_display_name');
+    expect(migration).toContain("pia.source_type = 'game_log'");
+    expect(migration).toContain('not rf.played_merger');
+    expect(migration).toContain('win_rate_delta');
+  });
+
+  it('keeps the Merger impact RPC executable only by authenticated callers', () => {
+    expect(migration).toContain(
+      'security invoker',
+    );
+    expect(migration).toContain(
+      'revoke all on function public.get_merger_impact_stats(uuid) from public;',
+    );
+    expect(migration).toContain(
+      'grant execute on function public.get_merger_impact_stats(uuid) to authenticated;',
+    );
+  });
+});

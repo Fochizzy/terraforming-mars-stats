@@ -79,6 +79,7 @@ vi.mock('@/lib/db/reference-repo', () => ({
 
 vi.mock('@/lib/db/selection-stats-repo', () => ({
   getHeadToHeadStats: vi.fn(async () => []),
+  getMergerImpactStats: vi.fn(async () => []),
   getSelectionStats: vi.fn(async () => []),
 }));
 

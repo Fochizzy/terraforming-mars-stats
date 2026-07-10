@@ -60,6 +60,7 @@ describe('SelectionStatsSection', () => {
           corporations: [corporationRow],
         }}
         headToHead={emptyHeadToHead}
+        mergerImpact={[]}
         personal={{
           ...emptyStats,
           cards: [
@@ -79,5 +80,37 @@ describe('SelectionStatsSection', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/Promo Asteroid/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Earth Catapult/i)).not.toBeInTheDocument();
+  });
+
+  it('shows log-derived Merger frequency and win-rate comparison by player', () => {
+    render(
+      <SelectionStatsSection
+        global={emptyStats}
+        headToHead={emptyHeadToHead}
+        mergerImpact={[
+          {
+            imported_games: 5,
+            merger_games: 2,
+            merger_play_rate: 0.4,
+            merger_win_rate: 0.5,
+            merger_wins: 1,
+            non_merger_games: 3,
+            non_merger_win_rate: 0.3333,
+            non_merger_wins: 1,
+            player_id: 'player-1',
+            player_name: 'Friday Mars',
+            win_rate_delta: 0.1667,
+          },
+        ]}
+        personal={emptyStats}
+      />,
+    );
+
+    expect(screen.getByText(/Merger Impact/i)).toBeInTheDocument();
+    expect(screen.getByText('Friday Mars')).toBeInTheDocument();
+    expect(screen.getByText('2 (40%)')).toBeInTheDocument();
+    expect(screen.getByText('50% (1 win)')).toBeInTheDocument();
+    expect(screen.getByText('33% (1 win)')).toBeInTheDocument();
+    expect(screen.getByText('+17%')).toBeInTheDocument();
   });
 });

@@ -95,6 +95,20 @@ export type HeadToHeadStats = {
   pairs: HeadToHeadPair[];
 };
 
+export type MergerImpactStat = {
+  imported_games: number;
+  merger_games: number;
+  merger_play_rate: number;
+  merger_win_rate: number | null;
+  merger_wins: number;
+  non_merger_games: number;
+  non_merger_win_rate: number | null;
+  non_merger_wins: number;
+  player_id: string;
+  player_name: string;
+  win_rate_delta: number | null;
+};
+
 export type SelectionStatsScope = 'global' | 'personal';
 
 function readArray<T>(value: unknown): T[] {
@@ -146,4 +160,19 @@ export async function getHeadToHeadStats(
     corporationMatchups: readArray(payload.corporationMatchups),
     pairs: readArray(payload.pairs),
   };
+}
+
+export async function getMergerImpactStats(
+  groupId: string,
+): Promise<MergerImpactStat[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('get_merger_impact_stats', {
+    target_group_id: groupId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return readArray(data);
 }

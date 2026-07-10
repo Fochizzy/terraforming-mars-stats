@@ -8,6 +8,7 @@ import { getGroupAnalytics } from '@/lib/db/analytics-repo';
 import { getExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import {
   getHeadToHeadStats,
+  getMergerImpactStats,
   getSelectionStats,
 } from '@/lib/db/selection-stats-repo';
 import { listPlayers } from '@/lib/db/player-repo';
@@ -67,6 +68,7 @@ export default async function InsightsPage() {
     personalSelectionStats,
     globalSelectionStats,
     headToHeadStats,
+    mergerImpactStats,
   ] = await Promise.all([
     getGroupAnalytics(context.groupId),
     getExtendedGroupAnalytics(context.groupId),
@@ -74,6 +76,7 @@ export default async function InsightsPage() {
     getSelectionStats('personal'),
     getSelectionStats('global'),
     getHeadToHeadStats(context.groupId),
+    getMergerImpactStats(context.groupId),
   ]);
   const selectablePlayers = buildSelectableInsightPlayers({
     headToHeadRows: analytics.headToHeadRows,
@@ -97,6 +100,7 @@ export default async function InsightsPage() {
       <SelectionStatsSection
         global={globalSelectionStats}
         headToHead={headToHeadStats}
+        mergerImpact={mergerImpactStats}
         personal={personalSelectionStats}
       />
     </AppShell>

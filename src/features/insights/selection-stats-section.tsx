@@ -1,6 +1,7 @@
 import type {
   CorporationSelectionStat,
   HeadToHeadStats,
+  MergerImpactStat,
   PreludeSelectionStat,
   SelectionStats,
 } from '@/lib/db/selection-stats-repo';
@@ -9,11 +10,33 @@ import { SelectionOriginChart } from './selection-origin-chart';
 type SelectionStatsSectionProps = {
   global: SelectionStats;
   headToHead: HeadToHeadStats;
+  mergerImpact: MergerImpactStat[];
   personal: SelectionStats;
 };
 
 function formatWinRate(winRate: number) {
   return `${Math.round(winRate * 100)}%`;
+}
+
+function formatNullableWinRate(winRate: number | null) {
+  return winRate === null ? '-' : formatWinRate(winRate);
+}
+
+function formatWinRateDelta(winRateDelta: number | null) {
+  if (winRateDelta === null) {
+    return '-';
+  }
+
+  const formatted = formatWinRate(Math.abs(winRateDelta));
+  if (winRateDelta === 0) {
+    return formatted;
+  }
+
+  return winRateDelta > 0 ? `+${formatted}` : `-${formatted}`;
+}
+
+function formatWins(wins: number) {
+  return `${wins} ${wins === 1 ? 'win' : 'wins'}`;
 }
 
 function SelectionStatRows(props: {
@@ -256,15 +279,69 @@ function HeadToHeadBlock(props: { headToHead: HeadToHeadStats }) {
   );
 }
 
+function MergerImpactBlock(props: { rows: MergerImpactStat[] }) {
+  if (props.rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="tm-data-label text-xs">Merger Impact (Imported Logs)</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="tm-data-label">
+              <th className="py-1 pr-3">Player</th>
+              <th className="py-1 pr-3">Imported games</th>
+              <th className="py-1 pr-3">Merger games</th>
+              <th className="py-1 pr-3">Merger win rate</th>
+              <th className="py-1 pr-3">Non-Merger win rate</th>
+              <th className="py-1 pr-3">Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {props.rows.map((row) => (
+              <tr className="border-t border-white/5" key={row.player_id}>
+                <td className="py-1 pr-3 font-semibold text-stone-100">
+                  {row.player_name}
+                </td>
+                <td className="py-1 pr-3">{row.imported_games}</td>
+                <td className="py-1 pr-3">
+                  {row.merger_games} ({formatWinRate(row.merger_play_rate)})
+                </td>
+                <td className="py-1 pr-3">
+                  {formatNullableWinRate(row.merger_win_rate)}
+                  {row.merger_games > 0 ? ` (${formatWins(row.merger_wins)})` : ''}
+                </td>
+                <td className="py-1 pr-3">
+                  {formatNullableWinRate(row.non_merger_win_rate)}
+                  {row.non_merger_games > 0
+                    ? ` (${formatWins(row.non_merger_wins)})`
+                    : ''}
+                </td>
+                <td className="py-1 pr-3">
+                  {formatWinRateDelta(row.win_rate_delta)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function SelectionStatsSection({
   global,
   headToHead,
+  mergerImpact,
   personal,
 }: SelectionStatsSectionProps) {
   return (
     <section className="tm-panel flex flex-col gap-5">
       <h2 className="tm-panel-title text-lg">Corporation &amp; Prelude Stats</h2>
       <HeadToHeadBlock headToHead={headToHead} />
+      <MergerImpactBlock rows={mergerImpact} />
       <SelectionStatsScope heading="Your Games" stats={personal} />
       <SelectionStatsScope heading="All Recorded Games" stats={global} />
     </section>
