@@ -503,11 +503,19 @@ async function parseGameResultEvidence(input: {
     );
   }
 
-  const importedNames = buildUniquePlayerNames([
-    ...input.expectedPlayerNames,
+  // The evidence names the players as the game did ("Izzy"), while the
+  // participants field carries roster names ("Izzy Hodnett"). Unioning the two
+  // lists imports one row per spelling, and confirmation then rejects the draft
+  // because both rows resolve to the same roster player. The evidence wins when
+  // it names anyone; the participants field only supplies names when it cannot.
+  const evidencePlayerNames = buildUniquePlayerNames([
     ...parsedScreenshot.playerRows.map((row) => row.playerName),
     ...parsedScoreDetails.detectedPlayerNames,
   ]);
+  const importedNames =
+    evidencePlayerNames.length > 0
+      ? evidencePlayerNames
+      : buildUniquePlayerNames(input.expectedPlayerNames);
 
   return {
     globalParameters,

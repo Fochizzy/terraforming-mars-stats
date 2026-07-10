@@ -360,6 +360,71 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('imports one player per evidence name when the participants field uses roster names', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const gameResultScreenshot = new File(['screenshot'], 'game-result.png', {
+      type: 'image/png',
+    });
+    // The evidence names players as the game did; the participants field carries
+    // the roster spelling. Unioning them imported the same player twice.
+    ocrMocks.readGameResultScreenshot.mockResolvedValue({
+      endgameLines: [
+        'Victory points breakdown after 12 generations',
+        'Friday 18 5 2 0 0 1 26 8',
+      ],
+      scoreDetailsColumns: [{ textLines: ['Friday', 'Builder Hall 1'] }],
+    });
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: gameResultScreenshot,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    // toMatchObject compares array lengths, so a duplicated row fails here.
+    expect(result).toMatchObject({
+      review: {
+        playerLinks: [expect.objectContaining({ importedName: 'Friday' })],
+      },
+      status: 'success',
+    });
+  });
+
+  it('falls back to the participants field when the evidence names nobody', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+
+    ocrMocks.readGameResultScreenshot.mockResolvedValue({
+      endgameLines: [],
+      scoreDetailsColumns: [],
+    });
+
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      review: {
+        playerLinks: [expect.objectContaining({ importedName: 'Friday Mars' })],
+      },
+      status: 'success',
+    });
+  });
+
   it('keeps import analysis usable when card-scoring OCR crashes unexpectedly', async () => {
     vi.doMock('@/lib/imports/card-scoring/calculate-import-card-scores', () => ({
       calculateImportCardScores: vi.fn(async () => {
