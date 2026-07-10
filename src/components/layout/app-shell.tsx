@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { BottomNav, type BottomNavItem } from '@/components/navigation/bottom-nav';
+import { TopNav } from '@/components/navigation/top-nav';
 import { signOut } from '@/features/auth/sign-out';
 
 export function AppShell({
@@ -61,6 +62,7 @@ export function AppShell({
                 </form>
               </div>
             </div>
+            <TopNav />
           </div>
         </header>
         <section className="flex-1 px-5 py-5 lg:px-8 lg:py-8">{children}</section>
