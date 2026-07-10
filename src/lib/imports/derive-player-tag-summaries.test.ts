@@ -238,9 +238,50 @@ describe('derivePlayerTagSummaries', () => {
       expect.objectContaining({
         matchedCardCount: 1,
         playedCardCount: 1,
+        tagCounts: expect.objectContaining({ event: 1, space: 0 }),
+        totalTags: 1,
+        unresolvedCardCount: 0,
+      }),
+    ]);
+  });
+
+  it('counts only the event tag on a played event card', () => {
+    const summaries = derivePlayerTagSummaries({
+      cardReferences: [
+        {
+          cardName: 'Asteroid',
+          id: 'card-asteroid',
+          sourceTags: ['Event', 'Space'],
+        },
+        {
+          cardName: 'Interplanetary Trade',
+          id: 'card-interplanetary-trade',
+          sourceTags: ['Space'],
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Asteroid',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Asteroid',
+        },
+        {
+          actor: 'Friday Mars',
+          card: 'Interplanetary Trade',
+          eventType: 'card_played',
+          lineNumber: 2,
+          rawLine: 'Friday Mars played Interplanetary Trade',
+        },
+      ],
+    });
+
+    expect(summaries).toEqual([
+      expect.objectContaining({
+        matchedCardCount: 2,
         tagCounts: expect.objectContaining({ event: 1, space: 1 }),
         totalTags: 2,
-        unresolvedCardCount: 0,
       }),
     ]);
   });

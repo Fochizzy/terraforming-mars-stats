@@ -1,3 +1,4 @@
+import { countableCardTags } from '@/lib/imports/countable-card-tags';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 import type { ParsedGameLog } from '@/lib/imports/parse-game-log';
 import type {
@@ -63,13 +64,11 @@ function getTagCounts(cards: Iterable<CardScoringReference>) {
   const tagCounts: Record<string, number> = {};
 
   for (const card of cards) {
-    for (const tag of card.sourceTags) {
-      const normalizedTag = normalizeTagToken(tag);
+    const normalizedTags = card.sourceTags
+      .map(normalizeTagToken)
+      .filter((normalizedTag) => normalizedTag.length > 0);
 
-      if (!normalizedTag) {
-        continue;
-      }
-
+    for (const normalizedTag of countableCardTags(normalizedTags)) {
       tagCounts[normalizedTag] = (tagCounts[normalizedTag] ?? 0) + 1;
     }
   }

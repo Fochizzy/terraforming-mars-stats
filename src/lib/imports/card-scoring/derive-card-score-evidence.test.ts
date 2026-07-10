@@ -110,4 +110,64 @@ describe('deriveCardScoreEvidence', () => {
       ]),
     );
   });
+
+  it('excludes the non-event tags of a played event card from self tag counts', () => {
+    const evidence = deriveCardScoreEvidence({
+      cardReferences: [
+        {
+          cardName: 'Lagrange Observatory',
+          cardNumber: '004',
+          cardType: 'Project',
+          expansionCode: 'base',
+          fullImageUrl: 'https://example.com/lagrange-observatory.png',
+          id: 'card-lagrange-observatory',
+          imageUrl: 'https://example.com/lagrange-observatory.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+          sourceCardId: 'project:base:004',
+          sourceTags: ['Science', 'Space'],
+          thumbnailUrl: 'https://example.com/lagrange-observatory-thumb.png',
+        },
+        {
+          cardName: 'Large Convoy',
+          cardNumber: '005',
+          cardType: 'Project',
+          expansionCode: 'base',
+          fullImageUrl: 'https://example.com/large-convoy.png',
+          id: 'card-large-convoy',
+          imageUrl: 'https://example.com/large-convoy.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['base'],
+          sourceCardId: 'project:base:005',
+          sourceTags: ['Event', 'Space', 'Earth'],
+          thumbnailUrl: 'https://example.com/large-convoy-thumb.png',
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Lagrange Observatory',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Lagrange Observatory',
+        },
+        {
+          actor: 'Friday Mars',
+          card: 'Large Convoy',
+          eventType: 'card_played',
+          lineNumber: 2,
+          rawLine: 'Friday Mars played Large Convoy',
+        },
+      ],
+    });
+
+    expect(evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          cardId: 'card-lagrange-observatory',
+          selfTagCounts: { event: 1, science: 1, space: 1 },
+        }),
+      ]),
+    );
+  });
 });

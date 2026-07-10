@@ -1,4 +1,5 @@
 import type { CardScoringReference } from '@/lib/db/reference-repo';
+import { countableCardTags } from './countable-card-tags';
 import { normalizePlayerAlias } from './normalize-player-alias';
 import type { ParsedGameLog } from './parse-game-log';
 
@@ -196,7 +197,7 @@ export function derivePlayerTagSummaries(input: {
     const card = candidateCards[0]!;
     const sourceTags = normalizeSourceTags(card.sourceTags);
 
-    for (const sourceTag of sourceTags) {
+    for (const sourceTag of countableCardTags(sourceTags)) {
       playerSummary.tagCounts[sourceTag] += 1;
       playerSummary.totalTags += 1;
     }
