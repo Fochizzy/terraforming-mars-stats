@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import {
-  extractTfmCardTags,
+  fetchTfmCardRecords,
   TFM_CARDS_SOURCE_URL,
   TFM_CARD_TAGS_SNAPSHOT_PATH,
   type TfmCardTagRecord,
@@ -58,15 +58,7 @@ export function compareTfmCardSnapshots(input: {
 }
 
 async function fetchLiveSnapshot() {
-  const response = await fetch(process.env.TFM_CARDS_SOURCE_URL ?? TFM_CARDS_SOURCE_URL);
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch Terraforming Mars card source: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  return extractTfmCardTags(await response.text());
+  return fetchTfmCardRecords();
 }
 
 async function main() {

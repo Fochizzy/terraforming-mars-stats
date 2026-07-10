@@ -1,12 +1,38 @@
-import * as acorn from 'acorn';
-import * as walk from 'acorn-walk';
+/**
+ * Reads the card database out of the Terraforming Mars open-source web app,
+ * which is the source of truth for cards, tags, corporations and preludes.
+ *
+ * The app used to inline every card definition into `main.js`, and this module
+ * walked that bundle's AST. It has since been code-split: `main.js` now carries
+ * only the CardName enum and the webpack chunk map, while the card manifest
+ * lives in a lazily loaded chunk as a single `JSON.parse('[...]')` literal.
+ * Parsing that literal is both simpler and exact.
+ */
 
-export const TFM_CARDS_PAGE_URL =
-  'https://terraforming-mars.herokuapp.com/cards#bio~trbgpcseCmalt';
-export const TFM_CARDS_SOURCE_URL =
-  'https://terraforming-mars.herokuapp.com/main.js';
+export const TFM_CARDS_BASE_URL = 'https://terraforming-mars.herokuapp.com';
+export const TFM_CARDS_PAGE_URL = `${TFM_CARDS_BASE_URL}/cards#bio~trbgpcseCmalt`;
+export const TFM_CARDS_SOURCE_URL = `${TFM_CARDS_BASE_URL}/main.js`;
 export const TFM_CARD_TAGS_SNAPSHOT_PATH =
   'scripts/catalog/source/tfm-card-tags.json';
+
+/**
+ * The upstream manifest holds ~1000 cards. A refresh that yields far fewer has
+ * not found the manifest, and must fail rather than overwrite the snapshot.
+ */
+export const MIN_EXPECTED_CARD_RECORDS = 700;
+const REQUIRED_CATEGORIES = [
+  'corporationCards',
+  'preludeCards',
+  'projectCards',
+] as const;
+const MIN_EXPECTED_BY_CATEGORY: Record<
+  (typeof REQUIRED_CATEGORIES)[number],
+  number
+> = {
+  corporationCards: 60,
+  preludeCards: 50,
+  projectCards: 500,
+};
 
 export type TfmCardTagRecord = {
   cardNumber: string | null;
@@ -24,27 +50,6 @@ export type TfmCardVictoryPoints =
   | { kind: 'static'; points: number }
   | { kind: 'dynamic' };
 
-type AnyNode = acorn.Node & Record<string, any>;
-
-const MANIFEST_CATEGORIES = [
-  'projectCards',
-  'corporationCards',
-  'preludeCards',
-  'ceoCards',
-  'standardProjects',
-  'standardActions',
-  'globalEvents',
-] as const;
-
-// Cards the bundle parser cannot reach because their name flows through a
-// shared base-class constructor instead of an object literal or default
-// parameter. Tags here mirror the printed cards.
-export const KNOWN_TAG_FIXUPS: Record<string, string[]> = {
-  'Mining Area': ['building'],
-  'Mining Rights': ['building'],
-  'Pharmacy Union': ['microbe', 'microbe'],
-};
-
 // Catalog names that differ from the open-source project's spelling.
 export const CATALOG_NAME_ALIASES: Record<string, string> = {
   'allied bank': 'allied banks',
@@ -52,367 +57,287 @@ export const CATALOG_NAME_ALIASES: Record<string, string> = {
   'refugee camps': 'refugee camp',
 };
 
+/** Upstream module ids mapped onto the labels the catalog already stores. */
+const MODULE_LABELS: Record<string, string> = {
+  ares: 'Ares',
+  base: 'Base',
+  ceo: 'CEO',
+  colonies: 'Colonies',
+  community: 'Community',
+  corpera: 'Corp Era',
+  deltaProject: 'Delta Project',
+  moon: 'Moon',
+  pathfinders: 'Pathfinders',
+  prelude: 'Prelude',
+  prelude2: 'Prelude 2',
+  promo: 'Promo',
+  starwars: 'Star Wars',
+  turmoil: 'Turmoil',
+  underworld: 'Underworld',
+  venus: 'Venus',
+};
+
+/** Upstream card types mapped onto the catalog's manifest categories. */
+const CATEGORY_BY_TYPE: Record<string, string> = {
+  ceo: 'ceoCards',
+  corporation: 'corporationCards',
+  prelude: 'preludeCards',
+  standard_action: 'standardActions',
+  standard_project: 'standardProjects',
+};
+const CARD_TYPE_OVERRIDES: Record<string, string> = {
+  ceo: 'leader',
+};
+
 export function normalizeCardName(input: string) {
   return input.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-function mentionsEnum(node: AnyNode, enumName: string) {
-  let found = false;
-  walk.simple(node, {
-    MemberExpression(member: AnyNode) {
-      if (member.property.type === 'Identifier' && member.property.name === enumName) {
-        found = true;
-      }
-    },
-  });
-  return found;
-}
+type ManifestCard = {
+  metadata?: { cardNumber?: unknown };
+  module?: unknown;
+  name?: unknown;
+  tags?: unknown;
+  type?: unknown;
+  victoryPoints?: unknown;
+};
 
-function collectAssignments(
-  scopeNode: AnyNode,
-  varName: string,
-  map: Record<string, string>,
-) {
-  walk.simple(scopeNode, {
-    AssignmentExpression(assignment: AnyNode) {
-      if (
-        assignment.left.type === 'MemberExpression' &&
-        assignment.left.object.type === 'Identifier' &&
-        assignment.left.object.name === varName &&
-        assignment.left.property.type === 'Identifier' &&
-        assignment.right.type === 'Literal' &&
-        typeof assignment.right.value === 'string'
-      ) {
-        map[assignment.left.property.name] = assignment.right.value;
-      }
-    },
-  });
-}
+/**
+ * `main.js` declares the CardName enum as `e.BIO_SOL="Bio-Sol"`. The manifest
+ * only carries display names, so the enum supplies the stable key the catalog
+ * diffs against.
+ */
+export function extractCardNameKeys(mainSource: string) {
+  const nameKeysByName = new Map<string, string>();
+  const pattern = /\.([A-Z][A-Z0-9_]*)\s*=\s*"((?:[^"\\]|\\.)*)"/g;
+  let match: RegExpExecArray | null;
 
-// TypeScript enums appear in two minified shapes:
-//   A) !function(e){e.KEY="value",...}(t.EnumName||(t.EnumName={}))
-//   B) (a=t.EnumName||(t.EnumName={})).KEY="value",a.KEY2="value2",...
-function collectEnum(ast: AnyNode, enumName: string) {
-  const map: Record<string, string> = {};
+  while ((match = pattern.exec(mainSource))) {
+    const name = match[2].replace(/\\(.)/g, '$1');
 
-  walk.simple(ast, {
-    CallExpression(node: AnyNode) {
-      if (
-        node.arguments.length === 1 &&
-        (node.callee.type === 'FunctionExpression' ||
-          node.callee.type === 'ArrowFunctionExpression') &&
-        node.callee.params.length === 1 &&
-        node.callee.params[0].type === 'Identifier' &&
-        mentionsEnum(node.arguments[0], enumName)
-      ) {
-        collectAssignments(node.callee.body, node.callee.params[0].name, map);
-      }
-    },
-  });
-
-  walk.ancestor(ast, {
-    AssignmentExpression(node: AnyNode, _state: unknown, ancestors: AnyNode[]) {
-      if (
-        node.left.type === 'MemberExpression' &&
-        node.left.object.type === 'AssignmentExpression' &&
-        node.left.object.left.type === 'Identifier' &&
-        node.left.property.type === 'Identifier' &&
-        node.right.type === 'Literal' &&
-        typeof node.right.value === 'string' &&
-        mentionsEnum(node.left.object.right, enumName)
-      ) {
-        map[node.left.property.name] = node.right.value;
-        const tempVar = node.left.object.left.name;
-
-        for (let index = ancestors.length - 1; index >= 0; index--) {
-          const ancestor = ancestors[index]!;
-          if (
-            ancestor.type === 'FunctionExpression' ||
-            ancestor.type === 'ArrowFunctionExpression' ||
-            ancestor.type === 'FunctionDeclaration'
-          ) {
-            collectAssignments(ancestor.body, tempVar, map);
-            break;
-          }
-        }
-      }
-    },
-  });
-
-  return map;
-}
-
-function memberEnumKey(node: AnyNode | null | undefined, enumName: string) {
-  return node &&
-    node.type === 'MemberExpression' &&
-    node.object.type === 'MemberExpression' &&
-    node.object.property.type === 'Identifier' &&
-    node.object.property.name === enumName &&
-    node.property.type === 'Identifier'
-    ? (node.property.name as string)
-    : null;
-}
-
-function readLiteralString(node: AnyNode | null | undefined) {
-  return node?.type === 'Literal' && typeof node.value === 'string'
-    ? node.value
-    : null;
-}
-
-function readStaticNumber(node: AnyNode | null | undefined): number | null {
-  if (node?.type === 'Literal' && typeof node.value === 'number') {
-    return node.value;
+    if (name && !nameKeysByName.has(name)) {
+      nameKeysByName.set(name, match[1]);
+    }
   }
 
-  if (
-    node?.type === 'UnaryExpression' &&
-    node.operator === '-' &&
-    node.argument.type === 'Literal' &&
-    typeof node.argument.value === 'number'
-  ) {
-    return -node.argument.value;
-  }
-
-  return null;
+  return nameKeysByName;
 }
 
-function readVictoryPoints(node: AnyNode | null | undefined): TfmCardVictoryPoints {
-  if (!node) {
+/**
+ * Recovers the chunk file names the runtime can request, from the webpack
+ * filename helper `r.u=e=>"chunks/"+({22:"help",…}[e]||e)+".js"` plus the
+ * numeric chunk ids referenced by `r.e(<id>)`.
+ */
+export function extractChunkNames(mainSource: string) {
+  const nameById = new Map<string, string>();
+  const namedMap = /\.u\s*=\s*\w+\s*=>\s*"chunks\/"\s*\+\s*\(\{([^}]*)\}/.exec(
+    mainSource,
+  );
+
+  if (namedMap) {
+    for (const entry of namedMap[1].matchAll(/(\d+)\s*:\s*"([^"]+)"/g)) {
+      nameById.set(entry[1], entry[2]);
+    }
+  }
+
+  const names = new Set<string>();
+
+  // The runtime resolves a chunk id through that map, falling back to the id
+  // itself. The manifest lives in a chunk that has no name.
+  for (const entry of mainSource.matchAll(/\.e\((\d{1,5})\)/g)) {
+    names.add(nameById.get(entry[1]) ?? entry[1]);
+  }
+
+  return [...names];
+}
+
+function readVictoryPoints(value: unknown): TfmCardVictoryPoints {
+  if (typeof value === 'number') {
+    return { kind: 'static', points: value };
+  }
+
+  if (value === undefined || value === null) {
     return { kind: 'none' };
   }
 
-  const staticPoints = readStaticNumber(node);
-  if (staticPoints !== null) {
-    return { kind: 'static', points: staticPoints };
-  }
-
+  // "special" and the resource-scaling objects both mean the printed value is
+  // not a fixed number.
   return { kind: 'dynamic' };
 }
 
-function readMetadataProperty(
-  metadataNode: AnyNode | null | undefined,
-  propertyName: string,
-) {
-  if (!metadataNode || metadataNode.type !== 'ObjectExpression') {
-    return null;
-  }
-
-  for (const property of metadataNode.properties) {
-    if (
-      property.type === 'Property' &&
-      property.key.type === 'Identifier' &&
-      property.key.name === propertyName
-    ) {
-      return property.value as AnyNode;
-    }
-  }
-
-  return null;
+function readTags(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((tag): tag is string => typeof tag === 'string')
+    : [];
 }
 
-function resolveNameKeyFromDefaultParam(
-  identifier: string,
-  ancestors: AnyNode[],
-) {
-  for (let index = ancestors.length - 1; index >= 0; index--) {
-    const ancestor = ancestors[index]!;
-    if (
-      ancestor.type !== 'FunctionExpression' &&
-      ancestor.type !== 'ArrowFunctionExpression' &&
-      ancestor.type !== 'FunctionDeclaration'
-    ) {
-      continue;
-    }
-
-    for (const param of ancestor.params) {
-      if (
-        param.type === 'AssignmentPattern' &&
-        param.left.type === 'Identifier' &&
-        param.left.name === identifier
-      ) {
-        return memberEnumKey(param.right, 'CardName');
-      }
-    }
-    return null;
-  }
-
-  return null;
-}
-
-export function extractTfmCardTags(bundleSource: string): TfmCardTagRecord[] {
-  const ast = acorn.parse(bundleSource, { ecmaVersion: 'latest' }) as AnyNode;
-
-  const cardNames = collectEnum(ast, 'CardName');
-  const tagValues = collectEnum(ast, 'Tags');
-  const cardTypeValues = collectEnum(ast, 'CardType');
-  const moduleValues = collectEnum(ast, 'GameModule');
-
-  // Card definitions are object literals containing name/tags/cardType that
-  // reference the CardName/Tags/CardType enums. Ares-variant cards pass the
-  // name through a constructor default parameter instead:
-  //   constructor(e = X.CardName.KEY) { super({name: e, ...}) }
-  const definitions = new Map<
-    string,
-    {
-      cardNumber: string | null;
-      cardType: string | null;
-      tags: string[] | null;
-      victoryPoints: TfmCardVictoryPoints | null;
-    }
-  >();
-
-  walk.ancestor(ast, {
-    ObjectExpression(node: AnyNode, _state: unknown, ancestors: AnyNode[]) {
-      let nameKey: string | null = null;
-      let cardNumber: string | null = null;
-      let tags: string[] | null = null;
-      let cardType: string | null = null;
-      let victoryPoints: TfmCardVictoryPoints | null = null;
-
-      for (const property of node.properties) {
-        if (property.type !== 'Property' || property.key.type !== 'Identifier') {
-          continue;
-        }
-
-        if (property.key.name === 'name') {
-          nameKey = memberEnumKey(property.value, 'CardName');
-          if (!nameKey && property.value.type === 'Identifier') {
-            nameKey = resolveNameKeyFromDefaultParam(
-              property.value.name,
-              ancestors,
-            );
-          }
-        } else if (property.key.name === 'cardType') {
-          cardType = memberEnumKey(property.value, 'CardType');
-        } else if (property.key.name === 'metadata') {
-          cardNumber = readLiteralString(
-            readMetadataProperty(property.value, 'cardNumber'),
-          );
-          victoryPoints = readVictoryPoints(
-            readMetadataProperty(property.value, 'victoryPoints'),
-          );
-        } else if (property.key.name === 'victoryPoints') {
-          victoryPoints = readVictoryPoints(property.value);
-        } else if (
-          property.key.name === 'tags' &&
-          property.value.type === 'ArrayExpression'
-        ) {
-          const keys = property.value.elements.map((element: AnyNode) =>
-            memberEnumKey(element, 'Tags'),
-          );
-          if (keys.every(Boolean)) {
-            tags = keys as string[];
-          }
-        }
-      }
-
-      if (nameKey && (tags !== null || cardType !== null)) {
-        const existing = definitions.get(nameKey);
-        definitions.set(nameKey, {
-          cardNumber: cardNumber ?? existing?.cardNumber ?? null,
-          tags: tags ?? existing?.tags ?? null,
-          cardType: cardType ?? existing?.cardType ?? null,
-          victoryPoints: victoryPoints ?? existing?.victoryPoints ?? null,
-        });
-      }
-    },
-  });
-
-  // Module manifests link cards to their expansion module and category.
-  const manifestInfo = new Map<string, { module: string; category: string }>();
-
-  walk.simple(ast, {
-    ObjectExpression(node: AnyNode) {
-      const properties = new Map<string, AnyNode>(
-        node.properties
-          .filter(
-            (property: AnyNode) =>
-              property.type === 'Property' && property.key.type === 'Identifier',
-          )
-          .map((property: AnyNode) => [property.key.name, property.value]),
-      );
-      const moduleKey = memberEnumKey(properties.get('module'), 'GameModule');
-
-      if (!moduleKey) {
-        return;
-      }
-
-      for (const category of MANIFEST_CATEGORIES) {
-        const cardList = properties.get(category);
-        if (!cardList || cardList.type !== 'ArrayExpression') {
-          continue;
-        }
-
-        for (const element of cardList.elements) {
-          if (!element || element.type !== 'ObjectExpression') {
-            continue;
-          }
-          for (const property of element.properties) {
-            if (
-              property.type === 'Property' &&
-              property.key.type === 'Identifier' &&
-              property.key.name === 'cardName'
-            ) {
-              const nameKey = memberEnumKey(property.value, 'CardName');
-              if (nameKey) {
-                manifestInfo.set(nameKey, { module: moduleKey, category });
-              }
-            }
-          }
-        }
-      }
-    },
-  });
-
+/**
+ * Pulls the manifest out of a chunk. Returns an empty list when the chunk does
+ * not contain one, so callers can probe several chunks.
+ */
+export function extractTfmCardManifest(input: {
+  chunkSource: string;
+  nameKeysByName: Map<string, string>;
+}): TfmCardTagRecord[] {
+  const pattern = /JSON\.parse\('((?:[^'\\]|\\.)*)'\)/g;
   const records: TfmCardTagRecord[] = [];
+  let match: RegExpExecArray | null;
 
-  for (const [nameKey, definition] of definitions) {
-    const displayName = cardNames[nameKey];
-    if (!displayName) {
+  while ((match = pattern.exec(input.chunkSource))) {
+    // Undo the JavaScript string escaping so JSON.parse sees the original text.
+    const source = match[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(source);
+    } catch {
       continue;
     }
 
-    const info = manifestInfo.get(nameKey);
-    const tags = (definition.tags ?? [])
-      .map((tagKey) => tagValues[tagKey])
-      .filter((tag): tag is string => Boolean(tag));
-
-    // Physical event cards carry the printed Event tag; the open-source data
-    // encodes it through cardType instead, so add it back.
-    if (definition.cardType === 'EVENT' && !tags.includes('event')) {
-      tags.push('event');
+    if (!Array.isArray(parsed)) {
+      continue;
     }
 
-    const fixupTags = KNOWN_TAG_FIXUPS[displayName];
+    for (const entry of parsed as ManifestCard[]) {
+      // Other chunks embed milestones, awards, colonies and global events the
+      // same way. Only cards carry a `type`, which keeps them out.
+      if (
+        !entry ||
+        typeof entry.name !== 'string' ||
+        !entry.name ||
+        typeof entry.type !== 'string' ||
+        !entry.type
+      ) {
+        continue;
+      }
 
-    records.push({
-      cardNumber: definition.cardNumber,
-      name: displayName,
-      nameKey,
-      cardType: definition.cardType
-        ? cardTypeValues[definition.cardType] ?? definition.cardType
-        : null,
-      tags: tags.length === 0 && fixupTags ? [...fixupTags] : tags,
-      module: info ? moduleValues[info.module] ?? info.module : null,
-      category: info?.category ?? null,
-      victoryPoints: definition.victoryPoints ?? { kind: 'none' },
-    });
-  }
+      const type = entry.type;
+      const moduleId = typeof entry.module === 'string' ? entry.module : null;
+      const cardNumber =
+        typeof entry.metadata?.cardNumber === 'string'
+          ? entry.metadata.cardNumber
+          : null;
 
-  for (const [displayName, fixupTags] of Object.entries(KNOWN_TAG_FIXUPS)) {
-    if (!records.some((record) => record.name === displayName)) {
       records.push({
-        cardNumber: null,
-        name: displayName,
-        nameKey: displayName.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
-        cardType: null,
-        tags: [...fixupTags],
-        module: null,
-        category: 'projectCards',
-        victoryPoints: { kind: 'none' },
+        cardNumber,
+        cardType: CARD_TYPE_OVERRIDES[type] ?? type,
+        category: CATEGORY_BY_TYPE[type] ?? 'projectCards',
+        module: moduleId ? (MODULE_LABELS[moduleId] ?? moduleId) : null,
+        name: entry.name,
+        nameKey: input.nameKeysByName.get(entry.name) ?? '',
+        tags: readTags(entry.tags),
+        victoryPoints: readVictoryPoints(entry.victoryPoints),
       });
     }
   }
 
-  return records.sort((left, right) => left.name.localeCompare(right.name));
+  return records;
+}
+
+/**
+ * Guards the snapshot against a silently truncated refresh. The extractor
+ * previously read a bundle that no longer held the manifest, produced three
+ * cards and exited successfully, which would have wiped the card catalog.
+ */
+export function assertUsableTfmCardRecords(records: TfmCardTagRecord[]) {
+  if (records.length < MIN_EXPECTED_CARD_RECORDS) {
+    throw new Error(
+      `Extracted only ${records.length} Terraforming Mars cards, expected at least ${MIN_EXPECTED_CARD_RECORDS}. The upstream bundle layout has probably changed; refusing to overwrite the snapshot.`,
+    );
+  }
+
+  for (const category of REQUIRED_CATEGORIES) {
+    const count = records.filter(
+      (record) => record.category === category,
+    ).length;
+
+    if (count < MIN_EXPECTED_BY_CATEGORY[category]) {
+      throw new Error(
+        `Extracted only ${count} ${category}, expected at least ${MIN_EXPECTED_BY_CATEGORY[category]}. Refusing to overwrite the snapshot.`,
+      );
+    }
+  }
+
+  const missingNameKeys = records.filter((record) => !record.nameKey).length;
+
+  if (missingNameKeys > records.length / 2) {
+    throw new Error(
+      `Could not resolve a CardName key for ${missingNameKeys} of ${records.length} cards. The CardName enum was not found in the bundle entry point.`,
+    );
+  }
+
+  return records;
+}
+
+async function fetchText(url: string) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return response.text();
+}
+
+/**
+ * Merges manifest records from several chunks, keeping the first definition of
+ * each card. The upstream bundle spreads the manifest across chunks -- the bulk
+ * of the cards in one, with expansion modules and the create-game screen's own
+ * copy in others -- so every chunk has to be read, not just the largest.
+ */
+export function mergeTfmCardRecords(recordGroups: TfmCardTagRecord[][]) {
+  const recordsByName = new Map<string, TfmCardTagRecord>();
+
+  for (const records of recordGroups) {
+    for (const record of records) {
+      if (!recordsByName.has(record.name)) {
+        recordsByName.set(record.name, record);
+      }
+    }
+  }
+
+  return [...recordsByName.values()].sort((left, right) =>
+    left.name.localeCompare(right.name),
+  );
+}
+
+/**
+ * Fetches the entry point, then reads the card manifest out of every chunk it
+ * references. Throws when the result looks truncated, rather than returning a
+ * partial list that would overwrite the snapshot.
+ */
+export async function fetchTfmCardRecords(): Promise<TfmCardTagRecord[]> {
+  const mainSource = await fetchText(TFM_CARDS_SOURCE_URL);
+  const nameKeysByName = extractCardNameKeys(mainSource);
+  const chunkNames = extractChunkNames(mainSource);
+  const recordGroups: TfmCardTagRecord[][] = [];
+
+  for (const chunkName of chunkNames) {
+    let chunkSource: string;
+
+    try {
+      chunkSource = await fetchText(
+        `${TFM_CARDS_BASE_URL}/chunks/${chunkName}.js`,
+      );
+    } catch {
+      // Not every referenced chunk is served; skip the ones that 404 or 500.
+      continue;
+    }
+
+    const records = extractTfmCardManifest({ chunkSource, nameKeysByName });
+
+    if (records.length > 0) {
+      recordGroups.push(records);
+    }
+  }
+
+  if (recordGroups.length === 0) {
+    throw new Error(
+      `Could not find the card manifest in any of the ${chunkNames.length} chunks referenced by ${TFM_CARDS_SOURCE_URL}. The upstream bundle layout has changed.`,
+    );
+  }
+
+  return assertUsableTfmCardRecords(mergeTfmCardRecords(recordGroups));
 }

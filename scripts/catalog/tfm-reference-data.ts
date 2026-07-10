@@ -6,7 +6,7 @@ import {
 } from '../../src/features/catalog/catalog-record';
 import {
   CATALOG_NAME_ALIASES,
-  extractTfmCardTags,
+  fetchTfmCardRecords,
   normalizeCardName,
   TFM_CARDS_PAGE_URL,
   TFM_CARDS_SOURCE_URL,
@@ -27,14 +27,19 @@ export const MODULE_TO_EXPANSION: Record<string, { code: string; name: string }>
   ares: { code: 'ares', name: 'Ares' },
   automa: { code: 'automa', name: 'Automa' },
   base: { code: 'base', name: 'Base Game' },
+  ceo: { code: 'ceo', name: 'CEOs' },
   colonies: { code: 'colonies', name: 'Colonies' },
   community: { code: 'community', name: 'Community' },
   'corp era': { code: 'corporate_era', name: 'Corporate Era' },
+  'delta project': { code: 'delta_project', name: 'The Delta Project' },
   moon: { code: 'moon', name: 'Moon' },
+  pathfinders: { code: 'pathfinders', name: 'Pathfinders' },
   prelude: { code: 'prelude', name: 'Prelude' },
   'prelude 2': { code: 'prelude_2', name: 'Prelude 2' },
   promo: { code: 'promo', name: 'Promo Cards' },
+  'star wars': { code: 'star_wars', name: 'Star Wars' },
   turmoil: { code: 'turmoil', name: 'Turmoil' },
+  underworld: { code: 'underworld', name: 'Underworld' },
   venus: { code: 'venus_next', name: 'Venus Next' },
 };
 
@@ -325,15 +330,7 @@ export async function loadTfmCardRecords(options?: {
     }
   }
 
-  const response = await fetch(TFM_CARDS_SOURCE_URL);
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch Terraforming Mars card source: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const records = extractTfmCardTags(await response.text());
+  const records = await fetchTfmCardRecords();
   await mkdir(path.dirname(snapshotPath), { recursive: true });
   await writeFile(snapshotPath, `${JSON.stringify(records, null, 1)}\n`, 'utf8');
   return records;

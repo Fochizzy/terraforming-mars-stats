@@ -4,9 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 import {
   CATALOG_NAME_ALIASES,
   TFM_CARDS_PAGE_URL,
-  TFM_CARDS_SOURCE_URL,
   TFM_CARD_TAGS_SNAPSHOT_PATH,
-  extractTfmCardTags,
+  fetchTfmCardRecords,
   normalizeCardName,
   type TfmCardTagRecord,
 } from './extract-tfm-card-tags';
@@ -79,15 +78,7 @@ async function loadBundleSource(useCachedSnapshot: boolean) {
     return { records: JSON.parse(snapshot) as TfmCardTagRecord[], fetched: false };
   }
 
-  const response = await fetch(process.env.TFM_CARDS_SOURCE_URL ?? TFM_CARDS_SOURCE_URL);
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch the terraforming-mars client bundle: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const records = extractTfmCardTags(await response.text());
+  const records = await fetchTfmCardRecords();
   await mkdir(path.dirname(snapshotPath), { recursive: true });
   await writeFile(snapshotPath, `${JSON.stringify(records, null, 1)}\n`, 'utf8');
   return { records, fetched: true };
