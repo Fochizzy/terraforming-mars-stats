@@ -69,6 +69,7 @@ export default async function GroupPage({ searchParams }: GroupPageProps) {
           </Link>
         </div>
       }
+      showReviewSavedGamesLink
       title="Group"
       wide
     >

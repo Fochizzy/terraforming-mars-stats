@@ -185,6 +185,7 @@ export default async function InsightsPage() {
       headerActions={
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/insights" />
       }
+      showReviewSavedGamesLink
       title="Insights"
       wide
     >

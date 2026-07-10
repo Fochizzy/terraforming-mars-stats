@@ -29,7 +29,12 @@ export default async function ProfilePage(props: ProfilePageProps) {
 
   if (!context) {
     return (
-      <AppShell navItems={[...noGroupNavItems]} title="My Profile" wide>
+      <AppShell
+        navItems={[...noGroupNavItems]}
+        showReviewSavedGamesLink
+        title="My Profile"
+        wide
+      >
         <ChartFrame title="Claim Your Saved Player">
           <p className="text-sm text-stone-300">
             Claim a saved player profile to join the group that already has your
@@ -78,7 +83,7 @@ export default async function ProfilePage(props: ProfilePageProps) {
   }
 
   return (
-    <AppShell title="My Profile" wide>
+    <AppShell showReviewSavedGamesLink title="My Profile" wide>
       {profileAnalyticsUnavailable ? (
         <ChartFrame title="Profile Analytics Unavailable">
           <p className="text-sm text-stone-300">

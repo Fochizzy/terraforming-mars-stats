@@ -723,7 +723,7 @@ function buildProfileAnalyticsFromRows(input: {
   linkedPlayers: LinkedPlayerRow[];
   ownRows: ProfileGameResultRow[];
   sharedRows: ProfileGameResultRow[];
-}) {
+}): ProfileAnalytics {
   const ownPlayerIds = new Set(input.linkedPlayers.map((player) => player.id));
   const profileGroupId =
     input.ownRows.length === 1
@@ -1361,7 +1361,7 @@ export async function listImportCoverage(groupId: string) {
 export async function getProfileAnalytics(
   userId: string,
   options: { groupId?: string | null } = {},
-) {
+): Promise<ProfileAnalytics | null> {
   const allLinkedPlayers = await getLinkedPlayers(userId);
   const linkedPlayers = options.groupId
     ? allLinkedPlayers.filter((player) => player.group_id === options.groupId)

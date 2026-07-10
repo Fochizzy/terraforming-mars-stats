@@ -49,6 +49,26 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
   });
 
+  it('renders review saved games immediately before log out when requested', () => {
+    const { container } = render(
+      <AppShell showReviewSavedGamesLink title="My Profile">
+        content
+      </AppShell>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: /review saved games/i }),
+    ).toHaveAttribute('href', '/log-game/review');
+
+    const actionLabels = Array.from(
+      container.querySelectorAll(
+        '.tm-app-header__actions a, .tm-app-header__actions button',
+      ),
+    ).map((element) => element.textContent?.trim());
+
+    expect(actionLabels).toEqual(['Review Saved Games', 'Log Out']);
+  });
+
   it('renders the shared header with the login-style cropped banner', () => {
     const { container } = render(<AppShell title="My Profile">content</AppShell>);
 

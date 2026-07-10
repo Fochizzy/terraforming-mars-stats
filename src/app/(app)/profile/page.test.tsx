@@ -21,11 +21,13 @@ vi.mock('@/components/layout/app-shell', () => ({
     children,
     headerActions,
     navItems,
+    showReviewSavedGamesLink,
     title,
   }: {
     children: ReactNode;
     headerActions?: ReactNode;
     navItems?: Array<{ href: string; label: string }>;
+    showReviewSavedGamesLink?: boolean;
     title: string;
   }) => (
     <div>
@@ -38,6 +40,9 @@ vi.mock('@/components/layout/app-shell', () => ({
         ))}
       </nav>
       <div>{headerActions}</div>
+      {showReviewSavedGamesLink ? (
+        <a href="/log-game/review">Review Saved Games</a>
+      ) : null}
       {children}
     </div>
   ),
@@ -82,6 +87,9 @@ describe('ProfilePage', () => {
       'href',
       '/log-game',
     );
+    expect(
+      screen.getByRole('link', { name: /review saved games/i }),
+    ).toHaveAttribute('href', '/log-game/review');
     expect(
       screen.queryByRole('link', { name: /^group$/i }),
     ).not.toBeInTheDocument();
@@ -135,6 +143,9 @@ describe('ProfilePage', () => {
     expect(screen.queryByText(/group switcher/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/profile group/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/view group stats/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /review saved games/i }),
+    ).toHaveAttribute('href', '/log-game/review');
     expect(screen.getByText(/10 finalized games overall/i)).toBeInTheDocument();
   });
 

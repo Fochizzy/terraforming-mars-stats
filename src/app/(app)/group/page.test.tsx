@@ -15,15 +15,20 @@ vi.mock('@/components/layout/app-shell', () => ({
   AppShell: ({
     children,
     headerActions,
+    showReviewSavedGamesLink,
     title,
   }: {
     children: ReactNode;
     headerActions?: ReactNode;
+    showReviewSavedGamesLink?: boolean;
     title: string;
   }) => (
     <div>
       <h1>{title}</h1>
       <div>{headerActions}</div>
+      {showReviewSavedGamesLink ? (
+        <a href="/log-game/review">Review Saved Games</a>
+      ) : null}
       {children}
     </div>
   ),
@@ -132,6 +137,9 @@ describe('GroupPage', () => {
     expect(
       screen.getByRole('link', { name: /group settings/i }),
     ).toHaveAttribute('href', '/group/settings');
+    expect(
+      screen.getByRole('link', { name: /review saved games/i }),
+    ).toHaveAttribute('href', '/log-game/review');
     expect(screen.getByTestId('group-dashboard')).toBeInTheDocument();
   });
 

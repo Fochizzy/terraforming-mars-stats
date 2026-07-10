@@ -27,15 +27,20 @@ vi.mock('@/components/layout/app-shell', () => ({
   AppShell: ({
     children,
     headerActions,
+    showReviewSavedGamesLink,
     title,
   }: {
     children: ReactNode;
     headerActions?: ReactNode;
+    showReviewSavedGamesLink?: boolean;
     title: string;
   }) => (
     <div>
       <h1>{title}</h1>
       <div>{headerActions}</div>
+      {showReviewSavedGamesLink ? (
+        <a href="/log-game/review">Review Saved Games</a>
+      ) : null}
       {children}
     </div>
   ),
@@ -205,6 +210,9 @@ describe('InsightsPage', () => {
 
     expect(screen.getByRole('heading', { name: /insights/i })).toBeInTheDocument();
     expect(screen.getByText('Group Switcher')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /review saved games/i }),
+    ).toHaveAttribute('href', '/log-game/review');
     expect(screen.getByTestId('insights-dashboard')).toBeInTheDocument();
     expect(captureState.insightsDashboardProps?.players).toEqual([
       { displayName: 'Friday Mars', id: 'player-self' },
