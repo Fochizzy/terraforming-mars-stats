@@ -97,11 +97,11 @@ export function GroupPlayComparison({
   unavailable = false,
 }: GroupPlayComparisonProps) {
   return (
-    <ChartFrame title="My Play vs Overall">
+    <ChartFrame title="Group Comparison">
       <div className="grid gap-4">
         {groups.length > 0 ? (
           <form
-            action="/group"
+            action="/profile/comparison"
             className="flex flex-wrap items-center gap-2"
             method="get"
           >
@@ -112,7 +112,7 @@ export function GroupPlayComparison({
               className="tm-input min-w-44"
               defaultValue={selectedGroupId}
               id="compare-group"
-              name="compareGroupId"
+              name="groupId"
             >
               {groups.map((group) => (
                 <option key={group.groupId} value={group.groupId}>

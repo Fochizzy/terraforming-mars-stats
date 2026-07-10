@@ -1,15 +1,9 @@
 import Link from 'next/link';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { AppShell } from '@/components/layout/app-shell';
-import {
-  ProfileDashboard,
-  type ProfileGroupComparison,
-} from '@/features/analytics/profile-dashboard';
+import { ProfileDashboard } from '@/features/analytics/profile-dashboard';
 import { getProfileAnalytics } from '@/lib/db/analytics-repo';
-import {
-  getCurrentGroupContext,
-  listCurrentUserGroups,
-} from '@/lib/db/group-context-repo';
+import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 
 const noGroupNavItems = [
   { href: '/profile', label: 'My Profile' },
@@ -22,8 +16,8 @@ type ProfilePageProps = {
   }>;
 };
 
-export default async function ProfilePage(props: ProfilePageProps) {
-  void props;
+export default async function ProfilePage(_props: ProfilePageProps) {
+  void _props;
 
   const context = await getCurrentGroupContext();
 
@@ -49,34 +43,10 @@ export default async function ProfilePage(props: ProfilePageProps) {
   }
 
   let profileAnalytics = null;
-  let groupComparisons: ProfileGroupComparison[] = [];
   let profileAnalyticsUnavailable = false;
 
   try {
-    const groups = await listCurrentUserGroups();
-    const [overallAnalytics, ...groupAnalytics] = await Promise.all([
-      getProfileAnalytics(context.userId),
-      ...groups.map((group) =>
-        getProfileAnalytics(context.userId, { groupId: group.groupId }),
-      ),
-    ]);
-
-    profileAnalytics = overallAnalytics;
-    groupComparisons = groups.flatMap((group, index) => {
-      const performance = groupAnalytics[index]?.performance ?? null;
-
-      if (!performance) {
-        return [];
-      }
-
-      return [
-        {
-          groupId: group.groupId,
-          groupName: group.groupName,
-          performance,
-        },
-      ];
-    });
+    profileAnalytics = await getProfileAnalytics(context.userId);
   } catch (error) {
     profileAnalyticsUnavailable = true;
     console.error('Profile analytics load failed', error);
@@ -97,7 +67,6 @@ export default async function ProfilePage(props: ProfilePageProps) {
       ) : (
         <ProfileDashboard
           coverage={profileAnalytics?.coverage ?? null}
-          groupComparisons={groupComparisons}
           headToHeadRows={profileAnalytics?.headToHeadRows ?? []}
           linkHref="/group/players"
           performance={profileAnalytics?.performance ?? null}

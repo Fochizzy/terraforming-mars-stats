@@ -8,22 +8,11 @@ import type {
   ScoreSourceAverages,
   StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
-import {
-  buildGroupStatEntries,
-  formatAverage,
-  formatPercent,
-} from './performance-delta';
+import { formatAverage, formatPercent } from './performance-delta';
 import { ScoreSourceList } from './score-source-list';
-
-export type ProfileGroupComparison = {
-  groupId: string;
-  groupName: string;
-  performance: LeaderboardRow;
-};
 
 type ProfileDashboardProps = {
   coverage?: CoverageRow | null;
-  groupComparisons?: ProfileGroupComparison[];
   headToHeadRows?: ProfileHeadToHeadRow[];
   performance?: LeaderboardRow | null;
   playerName: string | null;
@@ -37,7 +26,6 @@ type ProfileDashboardProps = {
 
 export function ProfileDashboard({
   coverage = null,
-  groupComparisons = [],
   headToHeadRows = [],
   linkHref,
   performance = null,
@@ -116,46 +104,16 @@ export function ProfileDashboard({
         )}
       </ChartFrame>
       <ChartFrame title="Group Comparisons">
-        {groupComparisons.length === 0 ? (
-          <p className="text-sm text-stone-400">
-            Groups you have played in appear here automatically once your
-            linked player has finalized games in them.
-          </p>
-        ) : (
-          <div className="grid gap-3">
-            {groupComparisons.map((comparison) => (
-              <article className="tm-stat-card grid gap-3" key={comparison.groupId}>
-                <div>
-                  <p className="font-semibold text-stone-100">
-                    {comparison.groupName}
-                  </p>
-                  <p className="tm-muted-copy mt-1 text-sm">
-                    {comparison.performance.gamesPlayed} finalized games in this
-                    group
-                  </p>
-                </div>
-                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {buildGroupStatEntries({
-                    overallPerformance: performance,
-                    performance: comparison.performance,
-                  }).map((entry) => (
-                    <div className="tm-stat-card" key={entry.label}>
-                      <dt className="tm-data-label">{entry.label}</dt>
-                      <dd className="mt-2 text-lg font-semibold text-stone-100">
-                        {entry.value}
-                      </dd>
-                      {entry.delta !== null ? (
-                        <dd className="tm-muted-copy mt-1 text-xs">
-                          {entry.delta} vs overall
-                        </dd>
-                      ) : null}
-                    </div>
-                  ))}
-                </dl>
-              </article>
-            ))}
-          </div>
-        )}
+        <p className="text-sm text-stone-300">
+          Compare your play in any group you have played against your overall
+          record.
+        </p>
+        <Link
+          className="tm-button-primary mt-4 inline-flex w-fit"
+          href="/profile/comparison"
+        >
+          Open My Play vs Overall
+        </Link>
       </ChartFrame>
       <ChartFrame title="Score Source Averages">
         <ScoreSourceList scoreAverages={scoreAverages} />
