@@ -612,8 +612,48 @@ function scoreCardMatch(input: {
   return similarity;
 }
 
+/**
+ * A card another player played can still score in this column: Vermin, for
+ * example, deducts victory points from its owner's opponents, so it is listed
+ * under each of them. Those lines only match on a near-exact name, because the
+ * fuzzy threshold used for a player's own cards would let noise pull in an
+ * unrelated card from the far larger cross-player pool.
+ */
+const OPPONENT_CARD_MATCH_MIN_CONFIDENCE = 0.9;
+
+function findBestCardMatch(input: {
+  minimumConfidence: number;
+  normalizedLineName: string;
+  playerCards: PlayerCardCandidate[];
+  points: number;
+}) {
+  let bestMatch: ParsedColumnCardLine | null = null;
+
+  for (const playerCard of input.playerCards) {
+    const confidence = scoreCardMatch({
+      candidate: playerCard,
+      normalizedLineName: input.normalizedLineName,
+    });
+
+    if (confidence < input.minimumConfidence) {
+      continue;
+    }
+
+    if (!bestMatch || confidence > bestMatch.confidence) {
+      bestMatch = {
+        card: playerCard,
+        confidence,
+        points: input.points,
+      };
+    }
+  }
+
+  return bestMatch;
+}
+
 function resolveCardFromLine(input: {
   line: string;
+  opponentCards: PlayerCardCandidate[];
   playerCards: PlayerCardCandidate[];
 }) {
   if (isNonCardLine(input.line)) {
@@ -632,28 +672,34 @@ function resolveCardFromLine(input: {
     return null;
   }
 
-  let bestMatch: ParsedColumnCardLine | null = null;
+  const ownMatch = findBestCardMatch({
+    minimumConfidence: 0.5,
+    normalizedLineName,
+    playerCards: input.playerCards,
+    points: scoreLineParts.points,
+  });
 
-  for (const playerCard of input.playerCards) {
-    const confidence = scoreCardMatch({
-      candidate: playerCard,
-      normalizedLineName,
-    });
-
-    if (confidence < 0.5) {
-      continue;
-    }
-
-    if (!bestMatch || confidence > bestMatch.confidence) {
-      bestMatch = {
-        card: playerCard,
-        confidence,
-        points: scoreLineParts.points,
-      };
-    }
+  if (ownMatch) {
+    return ownMatch;
   }
 
-  return bestMatch;
+  const opponentMatch = findBestCardMatch({
+    minimumConfidence: OPPONENT_CARD_MATCH_MIN_CONFIDENCE,
+    normalizedLineName,
+    playerCards: input.opponentCards,
+    points: scoreLineParts.points,
+  });
+
+  if (!opponentMatch) {
+    return null;
+  }
+
+  // The points come from another player's card, so they never belong in this
+  // player's microbe/animal/jovian buckets even when that card carries the tag.
+  return {
+    ...opponentMatch,
+    card: { ...opponentMatch.card, category: 'other' as const },
+  };
 }
 
 function buildPlayerSummary(input: {
@@ -821,9 +867,14 @@ export function parseScoreDetailsScreenshot(input: {
       unmatchedPlayers.splice(unmatchedPlayerIndex, 1);
     }
 
+    const ownCardIds = new Set(playerCards.map((card) => card.id));
+    const opponentCards = [...playedCardsByPlayer.values()]
+      .flat()
+      .filter((card) => !ownCardIds.has(card.id));
     const matchedCards = column.textLines.flatMap((line) => {
       const matchedCard = resolveCardFromLine({
         line,
+        opponentCards,
         playerCards,
       });
 

@@ -360,6 +360,65 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('scores the corporation from the score details even though it is not a project card', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    // Corporations live in their own table, not in the project card catalog.
+    mockState.listCorporations.mockResolvedValue([
+      {
+        expansionCode: 'community',
+        id: 'corp-agricola-inc',
+        name: 'Agricola Inc',
+        promoSetSlug: null,
+        requiredExpansionCodes: [],
+      },
+    ]);
+    ocrMocks.readGameResultScreenshot.mockResolvedValue({
+      endgameLines: [
+        'Victory points breakdown after 12 generations',
+        'Friday Mars 18 5 2 0 0 2 27 8',
+      ],
+      scoreDetailsColumns: [
+        { textLines: ['Friday Mars', 'Builder Hall 1', 'Agricola Inc 1'] },
+      ],
+    });
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: new File(['screenshot'], 'game-result.png', {
+        type: 'image/png',
+      }),
+      exportedGameLog: [EXPORTED_GAME_LOG, 'Friday Mars played Agricola Inc'].join(
+        '\n',
+      ),
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      review: {
+        cardScoring: [
+          {
+            autoScoredCards: expect.arrayContaining([
+              expect.objectContaining({
+                cardId: 'corp-agricola-inc',
+                cardName: 'Agricola Inc',
+                category: 'other',
+                points: 1,
+              }),
+            ]),
+            playerName: 'Friday Mars',
+            totals: expect.objectContaining({ complete: true, total: 2 }),
+          },
+        ],
+      },
+      status: 'success',
+    });
+  });
+
   it('imports one player per evidence name when the participants field uses roster names', async () => {
     const shellProps = await renderPageAndCaptureShellProps();
     const gameResultScreenshot = new File(['screenshot'], 'game-result.png', {

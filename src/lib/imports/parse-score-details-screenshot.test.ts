@@ -326,4 +326,106 @@ describe('parseScoreDetailsScreenshot', () => {
       ]),
     );
   });
+
+  describe('cards that score outside a player’s own project cards', () => {
+    const corporationAwareReferences = [
+      { cardName: 'Space Elevator', id: 'card-space-elevator' },
+      { cardName: 'Decomposers', id: 'card-decomposers', sourceTags: ['microbe'] },
+      // Vermin deducts points from its owner's opponents.
+      { cardName: 'Vermin', id: 'card-vermin', sourceTags: ['microbe', 'animal'] },
+      // Corporations carry no tags in the catalog.
+      { cardName: 'Agricola Inc', id: 'corp-agricola-inc', sourceTags: [] },
+    ];
+    const events = parseGameLog(
+      [
+        'Izzy played Space Elevator',
+        'Colette played Agricola Inc',
+        'Corey played Decomposers',
+        'Corey played Vermin',
+      ].join('\n'),
+    ).events;
+
+    it('scores a corporation listed in a player’s score details', () => {
+      const parsed = parseScoreDetailsScreenshot({
+        cardReferences: corporationAwareReferences,
+        events,
+        expectedCardPointTotalsByPlayerName: { Colette: 1 },
+        expectedPlayerNames: ['Colette'],
+        ocrColumns: [{ textLines: ['Colette', 'Agricola Inc 1'] }],
+      });
+
+      expect(parsed.cardScoring[0].autoScoredCards).toEqual([
+        expect.objectContaining({
+          cardId: 'corp-agricola-inc',
+          cardName: 'Agricola Inc',
+          category: 'other',
+          points: 1,
+        }),
+      ]);
+      expect(parsed.cardScoring[0].totals).toMatchObject({
+        complete: true,
+        other: 1,
+        total: 1,
+      });
+    });
+
+    it('scores an opponent’s card that penalises this player, outside the tag buckets', () => {
+      const parsed = parseScoreDetailsScreenshot({
+        cardReferences: corporationAwareReferences,
+        events,
+        expectedCardPointTotalsByPlayerName: { Izzy: -3 },
+        expectedPlayerNames: ['Izzy'],
+        ocrColumns: [{ textLines: ['Izzy', 'Space Elevator 2', 'Vermin -5'] }],
+      });
+
+      const izzy = parsed.cardScoring[0];
+
+      expect(izzy.autoScoredCards).toContainEqual(
+        expect.objectContaining({
+          cardName: 'Vermin',
+          // Vermin is tagged microbe+animal, but the penalty is not this
+          // player's microbe scoring.
+          category: 'other',
+          points: -5,
+        }),
+      );
+      expect(izzy.totals).toMatchObject({
+        animals: 0,
+        complete: true,
+        microbes: 0,
+        total: -3,
+      });
+    });
+
+    it('keeps the owner’s own copy in its tag bucket', () => {
+      const parsed = parseScoreDetailsScreenshot({
+        cardReferences: corporationAwareReferences,
+        events,
+        expectedCardPointTotalsByPlayerName: { Corey: 5 },
+        expectedPlayerNames: ['Corey'],
+        ocrColumns: [{ textLines: ['Corey', 'Decomposers 5', 'Vermin 0'] }],
+      });
+
+      expect(parsed.cardScoring[0].totals).toMatchObject({
+        complete: true,
+        microbes: 5,
+        total: 5,
+      });
+    });
+
+    it('does not pull in an opponent card on a loose name match', () => {
+      const parsed = parseScoreDetailsScreenshot({
+        cardReferences: corporationAwareReferences,
+        events,
+        expectedPlayerNames: ['Izzy'],
+        // "Verminous" is close enough for the own-card threshold but must not
+        // reach across players.
+        ocrColumns: [{ textLines: ['Izzy', 'Space Elevator 2', 'Verminous Growth -5'] }],
+      });
+
+      expect(
+        parsed.cardScoring[0].autoScoredCards.map((card) => card.cardName),
+      ).toEqual(['Space Elevator']);
+    });
+  });
 });

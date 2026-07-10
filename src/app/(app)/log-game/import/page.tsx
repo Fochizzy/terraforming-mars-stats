@@ -412,9 +412,33 @@ function buildUniquePlayerNames(names: string[]) {
   return [...new Set(names.map((name) => name.trim()).filter(Boolean))];
 }
 
+/**
+ * The score details list every card that scored for a player, including their
+ * corporation and prelude. Those are catalogued separately from project cards,
+ * so they are folded in here or their points are silently dropped and the card
+ * total no longer reconciles against the score table.
+ */
+function buildScoreDetailCardReferences(input: {
+  cardReferences: Awaited<ReturnType<typeof listCardScoringReferences>>;
+  corporationOptions: Array<{ id: string; name: string }>;
+  preludeOptions: Array<{ id: string; name: string }>;
+}) {
+  return [
+    ...input.cardReferences,
+    ...[...input.corporationOptions, ...input.preludeOptions].map((option) => ({
+      cardName: option.name,
+      id: option.id,
+      // Corporation and prelude points are never bucketed by resource category.
+      sourceTags: [] as string[],
+    })),
+  ];
+}
+
 async function parseGameResultEvidence(input: {
   awardReferences: Array<{ id: string; name: string }>;
-  cardReferences: Awaited<ReturnType<typeof listCardScoringReferences>>;
+  // Corporations score endgame victory points but live outside the project-card
+  // catalog, so this accepts any name-bearing reference rather than only cards.
+  cardReferences: Array<{ cardName: string; id: string; sourceTags?: string[] }>;
   expectedPlayerCount: number;
   expectedPlayerNames: string[];
   file: File | null;
@@ -573,11 +597,15 @@ export default async function LogGameImportPage() {
         cardTagReferences,
         analyzeAwardOptions,
         analyzeMilestoneOptions,
+        analyzeCorporationOptions,
+        analyzePreludeOptions,
       ] = await Promise.all([
         listCardScoringReferences(),
         listCardTagReferences(),
         listMapAwards(),
         listMapMilestones(),
+        listCorporations(),
+        listPreludes(),
       ]);
 
       if (cardTagReferences.length === 0) {
@@ -596,7 +624,11 @@ export default async function LogGameImportPage() {
           mapId: analyzeMapSelection.draftMapId,
           milestoneOptions: analyzeMilestoneOptions,
         }),
-        cardReferences,
+        cardReferences: buildScoreDetailCardReferences({
+          cardReferences,
+          corporationOptions: analyzeCorporationOptions,
+          preludeOptions: analyzePreludeOptions,
+        }),
         expectedPlayerCount: Math.max(
           values.playerCount,
           detectedParticipantNames.length,
@@ -737,7 +769,11 @@ export default async function LogGameImportPage() {
           mapId: resolvedMapSelection.draftMapId,
           milestoneOptions,
         }),
-        cardReferences: cardScoringReferences,
+        cardReferences: buildScoreDetailCardReferences({
+          cardReferences: cardScoringReferences,
+          corporationOptions,
+          preludeOptions,
+        }),
         expectedPlayerCount: Math.max(
           values.playerCount,
           detectedParticipantNames.length,
