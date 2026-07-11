@@ -107,15 +107,9 @@ export function findExactGroupRosterMatch(
 }
 
 export function buildImportGroupName(participantNames: string[]) {
-  const sortedNames = [...participantNames].sort((left, right) =>
-    left.localeCompare(right),
-  );
-
-  if (sortedNames.length <= 3) {
-    return sortedNames.join(' / ');
-  }
-
-  return `${sortedNames[0]} / ${sortedNames[1]} / +${sortedNames.length - 2} more`;
+  return [...participantNames]
+    .sort((left, right) => left.localeCompare(right))
+    .join(' / ');
 }
 
 export type ImportGroupReconciliationPlan = {

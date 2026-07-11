@@ -17,7 +17,7 @@ describe('auth complete route', () => {
     });
 
     const response = await GET(
-      new Request('https://terraforming-mars-stats.workers.dev/auth/complete?next=%2Fprofile'),
+      new Request('https://tm-stats.com/auth/complete?next=%2Fprofile'),
     );
 
     expect(completeAuthSession).toHaveBeenCalledWith({
@@ -25,7 +25,7 @@ describe('auth complete route', () => {
     });
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'https://terraforming-mars-stats.workers.dev/claim-player?next=%2Fprofile',
+      'https://tm-stats.com/claim-player?next=%2Fprofile',
     );
   });
 });

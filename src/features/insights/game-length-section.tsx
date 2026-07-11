@@ -104,6 +104,7 @@ export function GameLengthSection(props: {
 
   return (
     <ChartFrame
+      description="How games break down by number of generations, and how results shift between shorter and longer games."
       title={
         props.focusPlayerName
           ? `Game Length for ${props.focusPlayerName}`

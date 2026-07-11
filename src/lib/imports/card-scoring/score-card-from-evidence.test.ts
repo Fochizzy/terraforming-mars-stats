@@ -41,7 +41,7 @@ describe('scoreCardFromEvidence', () => {
       boardSnapshot: {
         mapId: 'tharsis',
         spaces: {
-          '20': {
+          '14': {
             confidence: 'high',
             notes: [],
             ownerPlayerName: 'Friday',
@@ -160,8 +160,8 @@ describe('scoreCardFromEvidence', () => {
       }),
     ).toEqual({
       reason:
-        'Commercial Harbor still needs board confirmation for spaces 20, 22, 29, 30.',
-      requestedSpaceIds: ['20', '22', '29', '30'],
+        'Commercial Harbor still needs board confirmation for spaces 14, 22, 29, 30.',
+      requestedSpaceIds: ['14', '22', '29', '30'],
       reviewKind: 'board_evidence',
       status: 'review',
     });

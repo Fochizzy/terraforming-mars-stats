@@ -26,14 +26,14 @@ describe('requestPinReset', () => {
     const result = await requestPinReset({
       client: createClient(),
       email: ' Friday.Mars@Example.com ',
-      emailRedirectTo: 'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Fprofile',
+      emailRedirectTo: 'https://tm-stats.com/auth/callback?next=%2Fprofile',
     });
 
     expect(authMocks.resetPasswordForEmail).toHaveBeenCalledWith(
       'friday.mars@example.com',
       {
         redirectTo:
-          'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Fprofile',
+          'https://tm-stats.com/auth/callback?next=%2Fprofile',
       },
     );
     expect(result).toEqual({

@@ -1,114 +1,73 @@
 import { describe, expect, it } from 'vitest';
 import { buildImportBoardSnapshot } from './build-import-board-snapshot';
 import { scoreCuratedBoardImportItems } from './score-curated-board-import-items';
+import type { ParsedActionGameLogEvent } from './parse-game-log';
+
+// Space "21" borders "14", "22", "29", and "30" on the shared Mars geometry.
+function commercialDistrictEvents(input: {
+  neighbor14?: { actor: string; tile: string };
+  neighbor22?: { actor: string; tile: string };
+  neighbor29?: { actor: string; tile: string };
+  neighbor30?: { actor: string; tile: string };
+}): ParsedActionGameLogEvent[] {
+  const events: ParsedActionGameLogEvent[] = [];
+  let lineNumber = 10;
+
+  const placeNeighbor = (
+    space: string,
+    detail: { actor: string; tile: string } | undefined,
+  ) => {
+    if (!detail) {
+      return;
+    }
+    lineNumber += 1;
+    events.push({
+      actor: detail.actor,
+      eventType: 'tile_placed',
+      lineNumber,
+      rawLine: `${detail.actor} placed ${detail.tile} tile at ${space}`,
+      space,
+      tile: detail.tile,
+    });
+  };
+
+  placeNeighbor('14', input.neighbor14);
+  placeNeighbor('22', input.neighbor22);
+  placeNeighbor('29', input.neighbor29);
+  placeNeighbor('30', input.neighbor30);
+
+  events.push({
+    actor: 'Izzy',
+    card: 'Commercial District',
+    eventType: 'card_played',
+    lineNumber: (lineNumber += 1),
+    rawLine: 'Izzy played Commercial District',
+  });
+  events.push({
+    actor: 'Izzy',
+    eventType: 'tile_placed',
+    lineNumber: (lineNumber += 1),
+    rawLine: 'Izzy placed city tile at 21',
+    space: '21',
+    tile: 'city',
+  });
+
+  return events;
+}
 
 describe('scoreCuratedBoardImportItems', () => {
   it('scores Commercial District from adjacent cities when its placement is provable', () => {
-    const boardSnapshot = buildImportBoardSnapshot({
-      events: [
-        {
-          actor: 'Izzy',
-          eventType: 'tile_placed',
-          lineNumber: 11,
-          rawLine: 'Izzy placed city tile at 20',
-          space: '20',
-          tile: 'city',
-        },
-        {
-          actor: 'Corey',
-          eventType: 'tile_placed',
-          lineNumber: 12,
-          rawLine: 'Corey placed city tile at 22',
-          space: '22',
-          tile: 'city',
-        },
-        {
-          actor: 'Izzy',
-          card: 'Commercial District',
-          eventType: 'card_played',
-          lineNumber: 13,
-          rawLine: 'Izzy played Commercial District',
-        },
-        {
-          actor: 'Izzy',
-          eventType: 'tile_placed',
-          lineNumber: 14,
-          rawLine: 'Izzy placed city tile at 21',
-          space: '21',
-          tile: 'city',
-        },
-        {
-          actor: 'Friday',
-          eventType: 'tile_placed',
-          lineNumber: 15,
-          rawLine: 'Friday placed greenery tile at 29',
-          space: '29',
-          tile: 'greenery',
-        },
-        {
-          actor: 'Friday',
-          eventType: 'tile_placed',
-          lineNumber: 16,
-          rawLine: 'Friday placed ocean tile at 30',
-          space: '30',
-          tile: 'ocean',
-        },
-      ],
-      mapId: 'tharsis',
+    const events = commercialDistrictEvents({
+      neighbor14: { actor: 'Izzy', tile: 'city' },
+      neighbor22: { actor: 'Corey', tile: 'city' },
+      neighbor29: { actor: 'Friday', tile: 'greenery' },
+      neighbor30: { actor: 'Friday', tile: 'ocean' },
     });
 
     expect(
       scoreCuratedBoardImportItems({
-        boardSnapshot,
-        events: [
-          {
-            actor: 'Izzy',
-            eventType: 'tile_placed',
-            lineNumber: 11,
-            rawLine: 'Izzy placed city tile at 20',
-            space: '20',
-            tile: 'city',
-          },
-          {
-            actor: 'Corey',
-            eventType: 'tile_placed',
-            lineNumber: 12,
-            rawLine: 'Corey placed city tile at 22',
-            space: '22',
-            tile: 'city',
-          },
-          {
-            actor: 'Izzy',
-            card: 'Commercial District',
-            eventType: 'card_played',
-            lineNumber: 13,
-            rawLine: 'Izzy played Commercial District',
-          },
-          {
-            actor: 'Izzy',
-            eventType: 'tile_placed',
-            lineNumber: 14,
-            rawLine: 'Izzy placed city tile at 21',
-            space: '21',
-            tile: 'city',
-          },
-          {
-            actor: 'Friday',
-            eventType: 'tile_placed',
-            lineNumber: 15,
-            rawLine: 'Friday placed greenery tile at 29',
-            space: '29',
-            tile: 'greenery',
-          },
-          {
-            actor: 'Friday',
-            eventType: 'tile_placed',
-            lineNumber: 16,
-            rawLine: 'Friday placed ocean tile at 30',
-            space: '30',
-            tile: 'ocean',
-          },
-        ],
+        boardSnapshot: buildImportBoardSnapshot({ events, mapId: 'tharsis' }),
+        events,
         mapId: 'tharsis',
       }),
     ).toContainEqual(
@@ -123,111 +82,17 @@ describe('scoreCuratedBoardImportItems', () => {
   });
 
   it('counts named city tiles as cities for Commercial District adjacency', () => {
-    const boardSnapshot = buildImportBoardSnapshot({
-      events: [
-        {
-          actor: 'Corey',
-          eventType: 'tile_placed',
-          lineNumber: 11,
-          rawLine: 'Corey placed Capital tile at 20',
-          space: '20',
-          tile: 'Capital',
-        },
-        {
-          actor: 'Friday',
-          eventType: 'tile_placed',
-          lineNumber: 12,
-          rawLine: 'Friday placed Noctis City tile at 22',
-          space: '22',
-          tile: 'Noctis City',
-        },
-        {
-          actor: 'Izzy',
-          card: 'Commercial District',
-          eventType: 'card_played',
-          lineNumber: 13,
-          rawLine: 'Izzy played Commercial District',
-        },
-        {
-          actor: 'Izzy',
-          eventType: 'tile_placed',
-          lineNumber: 14,
-          rawLine: 'Izzy placed city tile at 21',
-          space: '21',
-          tile: 'city',
-        },
-        {
-          actor: 'Friday',
-          eventType: 'tile_placed',
-          lineNumber: 15,
-          rawLine: 'Friday placed greenery tile at 29',
-          space: '29',
-          tile: 'greenery',
-        },
-        {
-          actor: 'Friday',
-          eventType: 'tile_placed',
-          lineNumber: 16,
-          rawLine: 'Friday placed ocean tile at 30',
-          space: '30',
-          tile: 'ocean',
-        },
-      ],
-      mapId: 'tharsis',
+    const events = commercialDistrictEvents({
+      neighbor14: { actor: 'Corey', tile: 'Capital' },
+      neighbor22: { actor: 'Friday', tile: 'Noctis City' },
+      neighbor29: { actor: 'Friday', tile: 'greenery' },
+      neighbor30: { actor: 'Friday', tile: 'ocean' },
     });
 
     expect(
       scoreCuratedBoardImportItems({
-        boardSnapshot,
-        events: [
-          {
-            actor: 'Corey',
-            eventType: 'tile_placed',
-            lineNumber: 11,
-            rawLine: 'Corey placed Capital tile at 20',
-            space: '20',
-            tile: 'Capital',
-          },
-          {
-            actor: 'Friday',
-            eventType: 'tile_placed',
-            lineNumber: 12,
-            rawLine: 'Friday placed Noctis City tile at 22',
-            space: '22',
-            tile: 'Noctis City',
-          },
-          {
-            actor: 'Izzy',
-            card: 'Commercial District',
-            eventType: 'card_played',
-            lineNumber: 13,
-            rawLine: 'Izzy played Commercial District',
-          },
-          {
-            actor: 'Izzy',
-            eventType: 'tile_placed',
-            lineNumber: 14,
-            rawLine: 'Izzy placed city tile at 21',
-            space: '21',
-            tile: 'city',
-          },
-          {
-            actor: 'Friday',
-            eventType: 'tile_placed',
-            lineNumber: 15,
-            rawLine: 'Friday placed greenery tile at 29',
-            space: '29',
-            tile: 'greenery',
-          },
-          {
-            actor: 'Friday',
-            eventType: 'tile_placed',
-            lineNumber: 16,
-            rawLine: 'Friday placed ocean tile at 30',
-            space: '30',
-            tile: 'ocean',
-          },
-        ],
+        boardSnapshot: buildImportBoardSnapshot({ events, mapId: 'tharsis' }),
+        events,
         mapId: 'tharsis',
       }),
     ).toContainEqual(
@@ -242,61 +107,35 @@ describe('scoreCuratedBoardImportItems', () => {
   });
 
   it('returns review_needed when Commercial District was played but placement is not provable', () => {
-    const boardSnapshot = buildImportBoardSnapshot({
-      events: [
-        {
-          actor: 'Izzy',
-          card: 'Commercial District',
-          eventType: 'card_played',
-          lineNumber: 13,
-          rawLine: 'Izzy played Commercial District',
-        },
-        {
-          actor: 'Friday',
-          card: 'Mining Area',
-          eventType: 'card_played',
-          lineNumber: 14,
-          rawLine: 'Friday played Mining Area',
-        },
-        {
-          actor: 'Izzy',
-          eventType: 'tile_placed',
-          lineNumber: 15,
-          rawLine: 'Izzy placed city tile at 21',
-          space: '21',
-          tile: 'city',
-        },
-      ],
-      mapId: 'tharsis',
-    });
+    const events: ParsedActionGameLogEvent[] = [
+      {
+        actor: 'Izzy',
+        card: 'Commercial District',
+        eventType: 'card_played',
+        lineNumber: 13,
+        rawLine: 'Izzy played Commercial District',
+      },
+      {
+        actor: 'Friday',
+        card: 'Mining Area',
+        eventType: 'card_played',
+        lineNumber: 14,
+        rawLine: 'Friday played Mining Area',
+      },
+      {
+        actor: 'Izzy',
+        eventType: 'tile_placed',
+        lineNumber: 15,
+        rawLine: 'Izzy placed city tile at 21',
+        space: '21',
+        tile: 'city',
+      },
+    ];
 
     expect(
       scoreCuratedBoardImportItems({
-        boardSnapshot,
-        events: [
-          {
-            actor: 'Izzy',
-            card: 'Commercial District',
-            eventType: 'card_played',
-            lineNumber: 13,
-            rawLine: 'Izzy played Commercial District',
-          },
-          {
-            actor: 'Friday',
-            card: 'Mining Area',
-            eventType: 'card_played',
-            lineNumber: 14,
-            rawLine: 'Friday played Mining Area',
-          },
-          {
-            actor: 'Izzy',
-            eventType: 'tile_placed',
-            lineNumber: 15,
-            rawLine: 'Izzy placed city tile at 21',
-            space: '21',
-            tile: 'city',
-          },
-        ],
+        boardSnapshot: buildImportBoardSnapshot({ events, mapId: 'tharsis' }),
+        events,
         mapId: 'tharsis',
       }),
     ).toContainEqual(
@@ -309,136 +148,43 @@ describe('scoreCuratedBoardImportItems', () => {
     );
   });
 
-  it('returns review_needed when Commercial District is linked to a known space without trusted adjacency coverage', () => {
-    const boardSnapshot = buildImportBoardSnapshot({
-      events: [
-        {
-          actor: 'Izzy',
-          card: 'Commercial District',
-          eventType: 'card_played',
-          lineNumber: 13,
-          rawLine: 'Izzy played Commercial District',
-        },
-        {
-          actor: 'Izzy',
-          eventType: 'tile_placed',
-          lineNumber: 14,
-          rawLine: 'Izzy placed city tile at 31',
-          space: '31',
-          tile: 'city',
-        },
-      ],
-      mapId: 'hellas',
-    });
+  it('requests confirmation for every neighbour the log does not resolve', () => {
+    const events = commercialDistrictEvents({});
 
     expect(
       scoreCuratedBoardImportItems({
-        boardSnapshot,
-        events: [
-          {
-            actor: 'Izzy',
-            card: 'Commercial District',
-            eventType: 'card_played',
-            lineNumber: 13,
-            rawLine: 'Izzy played Commercial District',
-          },
-          {
-            actor: 'Izzy',
-            eventType: 'tile_placed',
-            lineNumber: 14,
-            rawLine: 'Izzy placed city tile at 31',
-            space: '31',
-            tile: 'city',
-          },
-        ],
-        mapId: 'hellas',
+        boardSnapshot: buildImportBoardSnapshot({ events, mapId: 'tharsis' }),
+        events,
+        mapId: 'tharsis',
       }),
     ).toContainEqual(
       expect.objectContaining({
         cardName: 'Commercial District',
         itemType: 'card',
         notes: expect.arrayContaining([
-          'Commercial District was linked to space 31, but that space does not yet have trusted adjacency coverage for hellas.',
+          'Commercial District at space 21 still needs confirmation for adjacent spaces 14, 22, 29, 30.',
         ]),
         playerName: 'Izzy',
-        requestedSpaceIds: [],
+        requestedSpaceIds: ['14', '22', '29', '30'],
         status: 'review_needed',
       }),
     );
   });
 
   it('uses screenshot confirmations to prove Commercial District adjacency when the log-first snapshot leaves curated neighbors unresolved', () => {
-    const boardSnapshot = buildImportBoardSnapshot({
-      events: [
-        {
-          actor: 'Corey',
-          eventType: 'tile_placed',
-          lineNumber: 11,
-          rawLine: 'Corey placed city tile at 20',
-          space: '20',
-          tile: 'city',
-        },
-        {
-          actor: 'Izzy',
-          card: 'Commercial District',
-          eventType: 'card_played',
-          lineNumber: 13,
-          rawLine: 'Izzy played Commercial District',
-        },
-        {
-          actor: 'Izzy',
-          eventType: 'tile_placed',
-          lineNumber: 14,
-          rawLine: 'Izzy placed city tile at 21',
-          space: '21',
-          tile: 'city',
-        },
-      ],
-      mapId: 'tharsis',
+    const events = commercialDistrictEvents({
+      neighbor14: { actor: 'Corey', tile: 'city' },
     });
 
     expect(
       scoreCuratedBoardImportItems({
-        boardSnapshot,
-        events: [
-          {
-            actor: 'Corey',
-            eventType: 'tile_placed',
-            lineNumber: 11,
-            rawLine: 'Corey placed city tile at 20',
-            space: '20',
-            tile: 'city',
-          },
-          {
-            actor: 'Izzy',
-            card: 'Commercial District',
-            eventType: 'card_played',
-            lineNumber: 13,
-            rawLine: 'Izzy played Commercial District',
-          },
-          {
-            actor: 'Izzy',
-            eventType: 'tile_placed',
-            lineNumber: 14,
-            rawLine: 'Izzy placed city tile at 21',
-            space: '21',
-            tile: 'city',
-          },
-        ],
+        boardSnapshot: buildImportBoardSnapshot({ events, mapId: 'tharsis' }),
+        events,
         mapId: 'tharsis',
         screenshotConfirmations: {
-          '22': {
-            status: 'confirmed',
-            tileKind: 'city',
-          },
-          '29': {
-            status: 'confirmed',
-            tileKind: 'greenery',
-          },
-          '30': {
-            status: 'confirmed',
-            tileKind: 'occupied_other',
-          },
+          '22': { status: 'confirmed', tileKind: 'city' },
+          '29': { status: 'confirmed', tileKind: 'greenery' },
+          '30': { status: 'confirmed', tileKind: 'occupied_other' },
         },
       } satisfies Parameters<typeof scoreCuratedBoardImportItems>[0]),
     ).toContainEqual(
@@ -457,77 +203,19 @@ describe('scoreCuratedBoardImportItems', () => {
   });
 
   it('keeps Commercial District review-only and lists the remaining spaces when screenshot confirmation stays inconclusive', () => {
-    const boardSnapshot = buildImportBoardSnapshot({
-      events: [
-        {
-          actor: 'Corey',
-          eventType: 'tile_placed',
-          lineNumber: 11,
-          rawLine: 'Corey placed city tile at 20',
-          space: '20',
-          tile: 'city',
-        },
-        {
-          actor: 'Izzy',
-          card: 'Commercial District',
-          eventType: 'card_played',
-          lineNumber: 13,
-          rawLine: 'Izzy played Commercial District',
-        },
-        {
-          actor: 'Izzy',
-          eventType: 'tile_placed',
-          lineNumber: 14,
-          rawLine: 'Izzy placed city tile at 21',
-          space: '21',
-          tile: 'city',
-        },
-      ],
-      mapId: 'tharsis',
+    const events = commercialDistrictEvents({
+      neighbor14: { actor: 'Corey', tile: 'city' },
     });
 
     expect(
       scoreCuratedBoardImportItems({
-        boardSnapshot,
-        events: [
-          {
-            actor: 'Corey',
-            eventType: 'tile_placed',
-            lineNumber: 11,
-            rawLine: 'Corey placed city tile at 20',
-            space: '20',
-            tile: 'city',
-          },
-          {
-            actor: 'Izzy',
-            card: 'Commercial District',
-            eventType: 'card_played',
-            lineNumber: 13,
-            rawLine: 'Izzy played Commercial District',
-          },
-          {
-            actor: 'Izzy',
-            eventType: 'tile_placed',
-            lineNumber: 14,
-            rawLine: 'Izzy placed city tile at 21',
-            space: '21',
-            tile: 'city',
-          },
-        ],
+        boardSnapshot: buildImportBoardSnapshot({ events, mapId: 'tharsis' }),
+        events,
         mapId: 'tharsis',
         screenshotConfirmations: {
-          '22': {
-            status: 'inconclusive',
-            tileKind: 'unknown',
-          },
-          '29': {
-            status: 'confirmed',
-            tileKind: 'greenery',
-          },
-          '30': {
-            status: 'confirmed',
-            tileKind: 'empty',
-          },
+          '22': { status: 'inconclusive', tileKind: 'unknown' },
+          '29': { status: 'confirmed', tileKind: 'greenery' },
+          '30': { status: 'confirmed', tileKind: 'empty' },
         },
       } satisfies Parameters<typeof scoreCuratedBoardImportItems>[0]),
     ).toContainEqual(
@@ -545,72 +233,28 @@ describe('scoreCuratedBoardImportItems', () => {
   });
 
   it('does not emit runtime award items because the shared award scorer owns board-aware awards', () => {
-    const boardSnapshot = buildImportBoardSnapshot({
-      events: [
-        {
-          actor: 'Colette',
-          eventType: 'tile_placed',
-          lineNumber: 21,
-          rawLine: 'Colette placed greenery tile at 18',
-          space: '18',
-          tile: 'greenery',
-        },
-        {
-          actor: 'Colette',
-          eventType: 'tile_placed',
-          lineNumber: 22,
-          rawLine: 'Colette placed greenery tile at 19',
-          space: '19',
-          tile: 'greenery',
-        },
-        {
-          actor: 'Corey',
-          eventType: 'tile_placed',
-          lineNumber: 23,
-          rawLine: 'Corey placed greenery tile at 20',
-          space: '20',
-          tile: 'greenery',
-        },
-      ],
-      mapId: 'hellas',
-    });
+    const events: ParsedActionGameLogEvent[] = [
+      {
+        actor: 'Friday',
+        award: 'Cultivator',
+        eventType: 'award_funded',
+        lineNumber: 20,
+        rawLine: 'Friday funded Cultivator award',
+      },
+      {
+        actor: 'Colette',
+        eventType: 'tile_placed',
+        lineNumber: 21,
+        rawLine: 'Colette placed greenery tile at 18',
+        space: '18',
+        tile: 'greenery',
+      },
+    ];
 
     expect(
       scoreCuratedBoardImportItems({
-        boardSnapshot,
-        events: [
-          {
-            actor: 'Friday',
-            award: 'Cultivator',
-            eventType: 'award_funded',
-            lineNumber: 20,
-            rawLine: 'Friday funded Cultivator award',
-          },
-          {
-            actor: 'Colette',
-            eventType: 'tile_placed',
-            lineNumber: 21,
-            rawLine: 'Colette placed greenery tile at 18',
-            space: '18',
-            tile: 'greenery',
-          },
-          {
-            actor: 'Colette',
-            eventType: 'tile_placed',
-            lineNumber: 22,
-            rawLine: 'Colette placed greenery tile at 19',
-            space: '19',
-            tile: 'greenery',
-          },
-          {
-            actor: 'Corey',
-            eventType: 'tile_placed',
-            lineNumber: 23,
-            rawLine: 'Corey placed greenery tile at 20',
-            space: '20',
-            tile: 'greenery',
-          },
-        ],
+        boardSnapshot: buildImportBoardSnapshot({ events, mapId: 'hellas' }),
+        events,
         mapId: 'hellas',
       }),
     ).toEqual([]);

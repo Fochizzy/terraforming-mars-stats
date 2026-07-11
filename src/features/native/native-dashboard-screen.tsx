@@ -38,8 +38,7 @@ type HeroMetric = {
 type DashboardSectionKey = 'global' | 'group' | 'profile';
 
 const sectionOrder: DashboardSectionKey[] = ['profile', 'group', 'global'];
-const webInsightsUrl =
-  'https://terraforming-mars-stats.izzy-hodnett.workers.dev/insights';
+const webInsightsUrl = 'https://tm-stats.com/insights';
 
 const accentColors: Record<NativeDashboardAccent, string> = {
   copper: '#d97706',

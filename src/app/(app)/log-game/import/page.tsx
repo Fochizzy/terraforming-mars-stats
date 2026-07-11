@@ -39,6 +39,7 @@ import {
 } from '@/lib/errors/describe-unknown-error';
 import { buildConfirmedPlayerAliases } from '@/lib/imports/build-confirmed-player-aliases';
 import { buildImportDraft } from '@/lib/imports/build-import-draft';
+import { collectCuratedBoardImportItems } from '@/lib/imports/collect-curated-board-items';
 import { inferBoardMapFromImportEvidence } from '@/lib/imports/infer-supported-board-map';
 import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writes';
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
@@ -700,6 +701,11 @@ export default async function LogGameImportPage() {
           .filter(Boolean)
           .join(' '),
         review: buildImportReviewModel({
+          boardReviewItems: collectCuratedBoardImportItems({
+            events: parsedGameLog.events,
+            mapId: analyzeMapSelection.draftMapId,
+            participantNames: detectedParticipantNames,
+          }),
           cardScoring: screenshotEvidence.parsedScoreDetails.cardScoring,
           evidenceReadError: screenshotEvidence.readError,
           logScoreCandidates: screenshotEvidence.logScoreCandidates,
@@ -823,57 +829,59 @@ export default async function LogGameImportPage() {
 
       const activeContext = await getCurrentGroupContext();
       const confirmedPlayerLinks = values.confirmedPlayerLinks ?? [];
-      let importGroup: {
-        createdNewGroup: boolean;
-        createdProfileNames: string[];
-        groupId: string;
-        groupName: string;
-        selectedPlayerIds: string[];
-      };
 
-      if (activeContext) {
+      // Route the import to the group whose roster exactly matches these
+      // participants, creating it when none exists — never the active group.
+      // Reviewers confirm each imported name against the active group's
+      // roster, so prefer the confirmed player's canonical display name: that
+      // keeps a short nickname in the log (e.g. "Izzy") pointed at the linked
+      // profile ("Izzy Hodnett") instead of spinning up a mislabeled group.
+      const canonicalNameByImported = new Map<string, string>();
+
+      if (activeContext && confirmedPlayerLinks.length > 0) {
         const currentGroupPlayers = await listImportResolutionPlayers(
           activeContext.groupId,
         );
-        const playerById = new Map(
-          currentGroupPlayers.map((player) => [player.id, player]),
+        const displayNameById = new Map(
+          currentGroupPlayers.map((player) => [player.id, player.displayName]),
         );
-        const selectedPlayerIds = confirmedPlayerLinks.map((link) => link.playerId);
+        const selectedPlayerIds = confirmedPlayerLinks.map(
+          (link) => link.playerId,
+        );
+        const uniqueSelectedPlayerIds = new Set(selectedPlayerIds);
 
-        if (selectedPlayerIds.length > 0) {
-          const uniqueSelectedPlayerIds = new Set(selectedPlayerIds);
-
-          if (uniqueSelectedPlayerIds.size !== selectedPlayerIds.length) {
-            throw new Error(
-              'Each imported player must map to a different roster player.',
-            );
-          }
-
-          const missingPlayerId = selectedPlayerIds.find(
-            (playerId) => !playerById.has(playerId),
+        if (uniqueSelectedPlayerIds.size !== selectedPlayerIds.length) {
+          throw new Error(
+            'Each imported player must map to a different roster player.',
           );
-
-          if (missingPlayerId) {
-            throw new Error('One confirmed player match is no longer available.');
-          }
         }
 
-        importGroup = {
-          createdNewGroup: false,
-          createdProfileNames: [],
-          groupId: activeContext.groupId,
-          groupName: activeContext.groupName,
-          selectedPlayerIds:
-            confirmedPlayerLinks.length > 0
-              ? confirmedPlayerLinks.map((link) => link.playerId)
-              : [],
-        };
-      } else {
-        importGroup = await resolveOrCreateImportGroup({
-          importingUserId: activeUser.id,
-          participantNames: resolvedParticipantNames,
-        });
+        for (const link of confirmedPlayerLinks) {
+          const displayName = displayNameById.get(link.playerId);
+
+          if (!displayName) {
+            throw new Error('One confirmed player match is no longer available.');
+          }
+
+          canonicalNameByImported.set(link.importedName, displayName);
+        }
       }
+
+      const rosterNames = resolvedParticipantNames.map(
+        (name) => canonicalNameByImported.get(name) ?? name,
+      );
+      const importGroup = await resolveOrCreateImportGroup({
+        importingUserId: activeUser.id,
+        participantNames: rosterNames,
+      });
+      // Re-point the confirmed links onto the routed group's roster players so
+      // the draft and any saved aliases reference the right group.
+      const rosterPlayerLinks = resolvedParticipantNames.map(
+        (importedName, index) => ({
+          importedName,
+          playerId: importGroup.selectedPlayerIds[index]!,
+        }),
+      );
 
       const activeGroupSettings = await getGroupSettings(importGroup.groupId);
       const resolvedGenerationCount = resolveImportGenerationCount({
@@ -886,7 +894,11 @@ export default async function LogGameImportPage() {
         cardScoring: screenshotEvidence.parsedScoreDetails.cardScoring,
         cardOptions: cards,
         corporationOptions,
-        curatedBoardItems: [],
+        curatedBoardItems: collectCuratedBoardImportItems({
+          events: parsedGameLog.events,
+          mapId: resolvedMapSelection.draftMapId,
+          participantNames: resolvedParticipantNames,
+        }),
         defaultExpansionCodes: activeGroupSettings.defaultExpansionCodes,
         defaultPromoSetSlugs: activeGroupSettings.defaultPromoSetSlugs,
         groupId: importGroup.groupId,
@@ -898,7 +910,7 @@ export default async function LogGameImportPage() {
         },
         milestoneOptions,
         parsedGameLog,
-        playerSelections: confirmedPlayerLinks,
+        playerSelections: rosterPlayerLinks,
         preludeOptions,
         scoreCandidates: screenshotEvidence.parsedScreenshot.playerRows,
         screenshotScoreDetails: {
@@ -949,10 +961,10 @@ export default async function LogGameImportPage() {
         tagSummaries,
       });
 
-      if (confirmedPlayerLinks.length > 0) {
+      if (rosterPlayerLinks.length > 0) {
         const aliasPlayers = await listImportResolutionPlayers(importGroup.groupId);
         const aliasesToSave = buildConfirmedPlayerAliases({
-          confirmedPlayerLinks,
+          confirmedPlayerLinks: rosterPlayerLinks,
           participantNames: resolvedParticipantNames,
           players: aliasPlayers,
           screenshotPlayerNames: screenshotEvidence.parsedScreenshot.playerRows.map(

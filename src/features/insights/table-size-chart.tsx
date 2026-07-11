@@ -78,6 +78,7 @@ export function TableSizeChart(props: {
 
   return (
     <ChartFrame
+      description="How win rate and average score change with the number of players at the table."
       title={
         props.focusPlayerName
           ? `Table Size Performance for ${props.focusPlayerName}`

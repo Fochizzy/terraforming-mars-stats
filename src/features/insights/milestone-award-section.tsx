@@ -94,6 +94,7 @@ export function MilestoneEconomicsSection(props: {
 
   return (
     <ChartFrame
+      description="Who claims which milestones, how often, and how claiming them relates to winning."
       title={
         props.focusPlayerName
           ? `Milestone Economics for ${props.focusPlayerName}`
@@ -287,6 +288,7 @@ export function AwardEconomicsSection(props: {
 
   return (
     <ChartFrame
+      description="Who funds which awards and who ends up winning them — showing whether paying to fund an award tends to pay off."
       title={
         props.focusPlayerName
           ? `Award Economics for ${props.focusPlayerName} as Funder`

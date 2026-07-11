@@ -85,7 +85,10 @@ export function PlacementDistributionChart(props: {
   const data = buildPlacementShareData(props.rows);
 
   return (
-    <ChartFrame title="Placement Spread">
+    <ChartFrame
+      description="How finishing positions are distributed — the share of games ending in first, second, and so on."
+      title="Placement Spread"
+    >
       {data.length === 0 ? (
         <p className="tm-muted-copy text-sm">
           Placement spreads will appear after finalized games are logged.

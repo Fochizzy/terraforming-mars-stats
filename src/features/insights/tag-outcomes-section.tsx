@@ -263,6 +263,7 @@ export function TagOutcomesSection(props: {
 
   return (
     <ChartFrame
+      description="Win rate and average score grouped by card tag, showing which tag-heavy strategies tend to pay off."
       title={
         props.focusPlayerName
           ? `Tag Outcomes for ${props.focusPlayerName}`

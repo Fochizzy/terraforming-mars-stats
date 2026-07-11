@@ -48,6 +48,30 @@ describe('classifyGameLogLine', () => {
     });
   });
 
+  it('classifies row/position tile placements into source space ids', () => {
+    // Newer logs phrase placements as "on row R position P". Row 3 position 7 is
+    // the 18th on-planet hex, so its source space id is "20" (18 + 2 off-planet).
+    expect(
+      classifyGameLogLine('James placed city tile on row 3 position 7'),
+    ).toEqual({
+      event: {
+        actor: 'James',
+        eventType: 'tile_placed',
+        space: '20',
+        tile: 'city',
+      },
+      kind: 'event',
+    });
+
+    // Row 1 position 1 is the first on-planet hex, stored zero-padded as "03".
+    expect(
+      classifyGameLogLine('Izzy placed ocean tile on row 1 position 1'),
+    ).toMatchObject({
+      event: { space: '03', tile: 'ocean' },
+      kind: 'event',
+    });
+  });
+
   it('classifies tracked resource changes on cards', () => {
     expect(
       classifyGameLogLine('Izzy added 2 microbes to Tardigrades'),

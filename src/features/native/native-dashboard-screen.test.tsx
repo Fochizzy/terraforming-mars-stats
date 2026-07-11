@@ -270,7 +270,7 @@ describe('NativeDashboardScreen', () => {
     await user.click(screen.getByRole('button', { name: /open insights/i }));
 
     expect(nativeHarness.openURLMock).toHaveBeenCalledWith(
-      'https://terraforming-mars-stats.izzy-hodnett.workers.dev/insights',
+      'https://tm-stats.com/insights',
     );
   });
 

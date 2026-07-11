@@ -225,8 +225,8 @@ describe('calculateImportCardScores', () => {
             cardName: 'Commercial Harbor',
             imageUrl: 'https://example.com/commercial-harbor.png',
             reason:
-              'Commercial Harbor still needs board confirmation for spaces 20, 22, 29, 30.',
-            requestedSpaceIds: ['20', '22', '29', '30'],
+              'Commercial Harbor still needs board confirmation for spaces 14, 22, 29, 30.',
+            requestedSpaceIds: ['14', '22', '29', '30'],
             reviewKind: 'board_evidence',
           },
         ],

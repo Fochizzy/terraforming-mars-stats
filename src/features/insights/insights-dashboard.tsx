@@ -863,7 +863,10 @@ export function InsightsDashboard({
 
   return (
     <div className="flex flex-col gap-4">
-      <ChartFrame title="Insights Lab">
+      <ChartFrame
+        description="Pick a player and a scope to refocus every chart below. All figures are built from finalized games only."
+        title="Insights Lab"
+      >
         <div className="flex flex-col gap-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]">
             <div className="relative">
@@ -924,7 +927,10 @@ export function InsightsDashboard({
         </div>
       </ChartFrame>
 
-      <ChartFrame title="What These Metrics Mean">
+      <ChartFrame
+        description="Plain-language definitions for the recurring terms used across the charts below."
+        title="What These Metrics Mean"
+      >
         <dl className="grid gap-4">
           <div>
             <dt className="tm-data-label">Weighted Score</dt>
@@ -962,7 +968,10 @@ export function InsightsDashboard({
 
       {hasAnalytics ? (
         <>
-          <ChartFrame title="Insight Cards">
+          <ChartFrame
+            description="Auto-generated highlights — the strongest signals for the current focus, each tagged with its sample size and confidence."
+            title="Insight Cards"
+          >
             <div className="grid gap-3 md:grid-cols-2">
               {insightCards.map((card) => (
                 <article className="tm-stat-card" key={`${card.title}-${card.body}`}>
@@ -992,7 +1001,10 @@ export function InsightsDashboard({
           ) : null}
 
           {!isGroupScope || showGroupContext ? (
-            <ChartFrame title={leaderboardTitle}>
+            <ChartFrame
+              description="Players ranked by weighted score, which blends win rate, average placement, and score margin. Taller bars rank higher; the highlighted bar is the current focus."
+              title={leaderboardTitle}
+            >
               {leaderboardChartData.length === 0 ? (
                 <p className="tm-muted-copy text-sm">
                   Finalized leaderboard rows will appear here once games are logged.
@@ -1037,7 +1049,10 @@ export function InsightsDashboard({
             />
           ) : null}
 
-          <ChartFrame title={scoreProfileTitle}>
+          <ChartFrame
+            description="Average victory points broken out by where they came from, showing which sources drive the scores."
+            title={scoreProfileTitle}
+          >
             {scoreSourceData.length === 0 ? (
               <p className="tm-muted-copy text-sm">
                 Score-source averages will appear here after finalized games exist.
@@ -1072,6 +1087,7 @@ export function InsightsDashboard({
 
           {showGroupContext ? (
           <ChartFrame
+            description="How often each player's declared play style matched the style inferred from their actual scoring — exact, partial, or mismatched."
             title={
               selectedPlayer
                 ? `Style Agreement for ${selectedPlayer.displayName}`
@@ -1109,7 +1125,10 @@ export function InsightsDashboard({
           ) : null}
 
           {showGroupContext ? (
-          <ChartFrame title="Best Style Snapshot">
+          <ChartFrame
+            description="Win rate by inferred play style, with the three best-performing styles broken out below the chart."
+            title="Best Style Snapshot"
+          >
             {stylePerformanceData.length === 0 ? (
               <p className="tm-muted-copy text-sm">
                 Best-style snapshots will appear once inferred styles have been
@@ -1161,7 +1180,10 @@ export function InsightsDashboard({
           </ChartFrame>
           ) : null}
 
-          <ChartFrame title="Trend Over Time">
+          <ChartFrame
+            description="Average score by game date, tracing how form moves over time. The most recent results are listed under the line."
+            title="Trend Over Time"
+          >
             {trendChartData.length === 0 ? (
               <p className="tm-muted-copy text-sm">
                 Trend evidence will appear after finalized games are logged.
@@ -1236,7 +1258,10 @@ export function InsightsDashboard({
             </>
           ) : null}
 
-          <ChartFrame title="Head-to-Head Lens">
+          <ChartFrame
+            description="Direct matchup records between players — wins-losses-ties and the average point margin across their shared games."
+            title="Head-to-Head Lens"
+          >
             {focusedHeadToHeadRows.length === 0 ? (
               <p className="tm-muted-copy text-sm">
                 Head-to-head comparisons will appear after repeated finalized
@@ -1263,7 +1288,10 @@ export function InsightsDashboard({
 
           {showGroupContext ? (
             <>
-          <ChartFrame title="Lineup Effects">
+          <ChartFrame
+            description="How win rate and average score shift depending on which players are at the table together."
+            title="Lineup Effects"
+          >
             {selectedLineupRows.length === 0 ? (
               <p className="tm-muted-copy text-sm">
                 Lineup effects will appear after repeated finalized group mixes are
@@ -1326,7 +1354,10 @@ export function InsightsDashboard({
           <BoardHeatmapSection rows={extended.tilePlacementRows} />
 
           {selectedInteractionRows.length > 0 ? (
-            <ChartFrame title="Interaction Insights">
+            <ChartFrame
+              description="Win rates for specific corporation-and-prelude pairings, ranked by how often they show up."
+              title="Interaction Insights"
+            >
               <div className="grid gap-3">
                 {selectedInteractionRows.map((row) => (
                   <article
@@ -1352,7 +1383,10 @@ export function InsightsDashboard({
             </>
           ) : null}
 
-          <ChartFrame title={coverageTitle}>
+          <ChartFrame
+            description="Share of finalized games that recorded each optional breakdown detail. Low bars mean the detail is missing from those games, not that it was zero."
+            title={coverageTitle}
+          >
             {coverageData.length === 0 ? (
               <p className="tm-muted-copy text-sm">
                 Coverage metrics will appear after finalized games are logged.

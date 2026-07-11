@@ -16,4 +16,27 @@ describe('ChartFrame', () => {
     expect(panel).toHaveClass('tm-panel');
     expect(screen.getByText(/chart content/i)).toBeInTheDocument();
   });
+
+  it('renders an optional description caption under the title', () => {
+    render(
+      <ChartFrame
+        description="Ranked by weighted score across finalized games."
+        title="Weighted Leaderboard"
+      >
+        Chart content
+      </ChartFrame>,
+    );
+
+    expect(
+      screen.getByText(/ranked by weighted score across finalized games/i),
+    ).toHaveClass('tm-panel-caption');
+  });
+
+  it('omits the caption when no description is provided', () => {
+    const { container } = render(
+      <ChartFrame title="Weighted Leaderboard">Chart content</ChartFrame>,
+    );
+
+    expect(container.querySelector('.tm-panel-caption')).toBeNull();
+  });
 });

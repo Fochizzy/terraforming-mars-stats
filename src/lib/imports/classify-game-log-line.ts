@@ -46,6 +46,8 @@ export type GameLogEvent =
       placement: 'first' | 'second';
     };
 
+import { boardSpaceFromRowPosition } from './board-space-from-row-position';
+
 export type GameLogLineClassification =
   | {
       kind: 'chatty_filler';
@@ -108,6 +110,32 @@ export function classifyGameLogLine(line: string): GameLogLineClassification {
       },
       kind: 'event',
     };
+  }
+
+  const tileRowPositionMatch =
+    /^(.+) placed (.+) tile on row (\d+) position (\d+)$/i.exec(trimmedLine);
+  if (
+    tileRowPositionMatch?.[1] &&
+    tileRowPositionMatch[2] &&
+    tileRowPositionMatch[3] &&
+    tileRowPositionMatch[4]
+  ) {
+    const space = boardSpaceFromRowPosition(
+      Number(tileRowPositionMatch[3]),
+      Number(tileRowPositionMatch[4]),
+    );
+
+    if (space) {
+      return {
+        event: {
+          actor: tileRowPositionMatch[1].trim(),
+          eventType: 'tile_placed',
+          space,
+          tile: tileRowPositionMatch[2].trim(),
+        },
+        kind: 'event',
+      };
+    }
   }
 
   const resourceMatch =

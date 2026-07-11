@@ -260,6 +260,13 @@ describe('LogGameImportPage', () => {
       },
     ]);
     mockState.listPlayerImportAliasesForGroup.mockResolvedValue([]);
+    mockState.resolveOrCreateImportGroup.mockResolvedValue({
+      createdNewGroup: false,
+      createdProfileNames: [],
+      groupId: 'group-1',
+      groupName: 'Mars Club',
+      selectedPlayerIds: ['player-1'],
+    });
     mockState.saveDraftGame.mockResolvedValue({ gameId: 'game-1' });
     mockState.saveGameLogImport.mockResolvedValue({ id: 'import-1' });
     mockState.saveGameLogEvents.mockResolvedValue([]);

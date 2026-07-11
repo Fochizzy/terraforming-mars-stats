@@ -20,6 +20,7 @@ vi.mock('@/components/layout/app-shell', () => ({
 }));
 
 vi.mock('@/lib/db/player-claim-repo', () => ({
+  claimAllExactPlayerProfiles: vi.fn(),
   claimSavedPlayerProfile: vi.fn(),
   listClaimablePlayerProfiles: vi.fn(),
 }));
@@ -55,6 +56,43 @@ describe('ClaimPlayerPage', () => {
     expect(
       screen.getByRole('button', { name: /skip for now/i }),
     ).toBeInTheDocument();
+  });
+
+  it('groups multiple exact matches into a single claim-all action', async () => {
+    vi.mocked(listClaimablePlayerProfiles).mockResolvedValue([
+      {
+        exactMatch: true,
+        groupId: 'group-1',
+        groupName: 'Mars Club',
+        matchReason: 'exact',
+        playerId: 'player-1',
+        playerName: 'Friday Mars',
+      },
+      {
+        exactMatch: true,
+        groupId: 'group-2',
+        groupName: 'Second Table',
+        matchReason: 'exact',
+        playerId: 'player-2',
+        playerName: 'Friday Mars',
+      },
+    ]);
+
+    render(
+      await ClaimPlayerPage({
+        searchParams: Promise.resolve({ next: '/profile' }),
+      }),
+    );
+
+    expect(screen.getByText(/across 2 groups/i)).toBeInTheDocument();
+    expect(screen.getByText(/mars club/i)).toBeInTheDocument();
+    expect(screen.getByText(/second table/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /claim all my profiles/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^claim this profile$/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders a keep-account message when no claimable profiles exist yet', async () => {

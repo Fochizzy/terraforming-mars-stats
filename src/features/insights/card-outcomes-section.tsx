@@ -244,7 +244,10 @@ export function CardOutcomesSection(props: {
   const personalSummary = summarizeMostPlayedCards(personalData);
 
   return (
-    <ChartFrame title="Most-Played Card Outcomes">
+    <ChartFrame
+      description="Win rate and average score for the cards played most often, drawn from imported game logs."
+      title="Most-Played Card Outcomes"
+    >
       {props.rows.length === 0 ? (
         <p className="tm-muted-copy text-sm">
           Card outcomes will appear once imported game logs record the cards

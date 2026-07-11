@@ -37,7 +37,7 @@ describe('buildBoardEvidenceContext', () => {
       boardSnapshot: {
         mapId: 'tharsis',
         spaces: {
-          '20': {
+          '14': {
             confidence: 'high',
             notes: [],
             ownerPlayerName: 'Friday',
@@ -75,7 +75,7 @@ describe('buildBoardEvidenceContext', () => {
       boardSnapshot: {
         mapId: 'tharsis',
         spaces: {
-          '20': {
+          '14': {
             confidence: 'high',
             notes: [],
             ownerPlayerName: 'Friday',
@@ -120,7 +120,7 @@ describe('buildBoardEvidenceContext', () => {
       boardSnapshot: {
         mapId: 'tharsis',
         spaces: {
-          '20': {
+          '14': {
             confidence: 'high',
             notes: [],
             ownerPlayerName: 'Corey',
@@ -177,18 +177,18 @@ describe('buildBoardEvidenceContext', () => {
     });
   });
 
-  it('keeps reserved or otherwise known spaces review-only when their adjacency map is not trusted yet', () => {
+  it('requests every neighbour when the log resolves none of them', () => {
     const context = buildBoardEvidenceContext({
       boardSnapshot: {
         mapId: 'tharsis',
         spaces: {
-          '31': {
+          '21': {
             confidence: 'high',
             notes: [],
             ownerPlayerName: 'Colette',
-            sourceCardName: 'Noctis City',
-            sourceType: 'log_explicit',
-            tileKind: 'Noctis City',
+            sourceCardName: 'Commercial District',
+            sourceType: 'log_inferred',
+            tileKind: 'city',
           },
         },
       },
@@ -196,15 +196,13 @@ describe('buildBoardEvidenceContext', () => {
 
     expect(
       context.countAdjacentMatchingTiles({
-        spaceId: '31',
+        spaceId: '21',
         tileKinds: ['ocean'],
       }),
     ).toEqual({
       count: 0,
-      notes: [
-        'Space 31 does not yet have trusted adjacency coverage for tharsis.',
-      ],
-      requestedSpaceIds: [],
+      notes: ['Adjacent spaces 14, 22, 29, 30 still need confirmation.'],
+      requestedSpaceIds: ['14', '22', '29', '30'],
       status: 'review_needed',
     });
   });
@@ -214,7 +212,7 @@ describe('buildBoardEvidenceContext', () => {
       boardSnapshot: {
         mapId: 'tharsis',
         spaces: {
-          '20': {
+          '14': {
             confidence: 'high',
             notes: [],
             ownerPlayerName: 'Friday',

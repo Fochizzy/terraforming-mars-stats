@@ -12,17 +12,17 @@ describe('buildAuthCallbackUrl', () => {
 
   it('routes magic links through the auth callback with a next param', () => {
     expect(
-      buildAuthCallbackUrl('https://terraforming-mars-stats.workers.dev', '/log-game/import'),
+      buildAuthCallbackUrl('https://tm-stats.com', '/log-game/import'),
     ).toBe(
-      'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Flog-game%2Fimport',
+      'https://tm-stats.com/auth/callback?next=%2Flog-game%2Fimport',
     );
   });
 
   it('falls back to /log-game/import-single when the requested next path is unsafe', () => {
     expect(
-      buildAuthCallbackUrl('https://terraforming-mars-stats.workers.dev', 'https://evil.test'),
+      buildAuthCallbackUrl('https://tm-stats.com', 'https://evil.test'),
     ).toBe(
-      'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Flog-game%2Fimport-single',
+      'https://tm-stats.com/auth/callback?next=%2Flog-game%2Fimport-single',
     );
   });
 

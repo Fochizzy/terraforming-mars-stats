@@ -56,7 +56,10 @@ export function ScoreSourceRadar(props: {
   playerAverages: ScoreSourceAverages | null;
 }) {
   return (
-    <ChartFrame title="Score Source Radar">
+    <ChartFrame
+      description="The same score sources plotted as a shape, so the focused player's point mix can be compared against the group average at a glance."
+      title="Score Source Radar"
+    >
       {!props.groupAverages ? (
         <p className="tm-muted-copy text-sm">
           The score-source radar will appear after finalized games exist.

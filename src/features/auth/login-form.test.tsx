@@ -41,7 +41,7 @@ describe('LoginForm', () => {
       configurable: true,
       value: {
         assign: vi.fn(),
-        origin: 'https://terraforming-mars-stats.workers.dev',
+        origin: 'https://tm-stats.com',
       },
     });
   });
@@ -109,7 +109,7 @@ describe('LoginForm', () => {
             username: 'friday-mars',
           },
           emailRedirectTo: buildAuthCallbackUrl(
-            'https://terraforming-mars-stats.workers.dev',
+            'https://tm-stats.com',
             '/profile',
           ),
         },
@@ -152,7 +152,7 @@ describe('LoginForm', () => {
             username: 'friday-mars',
           },
           emailRedirectTo: buildAuthCallbackUrl(
-            'https://terraforming-mars-stats.workers.dev',
+            'https://tm-stats.com',
             '/profile',
           ),
         },
@@ -254,7 +254,7 @@ describe('LoginForm', () => {
         'friday.mars@example.com',
         {
           redirectTo: buildAuthCallbackUrl(
-            'https://terraforming-mars-stats.workers.dev',
+            'https://tm-stats.com',
             buildAuthResetPinPath('/profile'),
           ),
         },

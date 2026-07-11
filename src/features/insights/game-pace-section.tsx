@@ -159,7 +159,10 @@ export function GamePaceSection(props: { rows: GenerationPaceRow[] }) {
   const totals = activeGameId ? buildPaceTotals(props.rows, activeGameId) : [];
 
   return (
-    <ChartFrame title="Game Pace Replay">
+    <ChartFrame
+      description="Replay how a single finalized game unfolded generation by generation — pick a game to watch each player's score build up."
+      title="Game Pace Replay"
+    >
       {games.length === 0 || !chartModel ? (
         <p className="tm-muted-copy text-sm">
           Pace replays unlock for finalized games imported from a game log.

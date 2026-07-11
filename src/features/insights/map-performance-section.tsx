@@ -69,6 +69,7 @@ export function MapPerformanceSection(props: {
 
   return (
     <ChartFrame
+      description="Win rate and average score split out by the board map each game was played on."
       title={
         props.focusPlayerName
           ? `Map Performance for ${props.focusPlayerName}`

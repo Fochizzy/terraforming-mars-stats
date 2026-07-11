@@ -92,7 +92,7 @@ describe('buildBoardScreenshotConfirmationRequests', () => {
         cardScoring: [],
       }),
     ).toEqual([
-      { spaceId: '20' },
+      { spaceId: '14' },
       { spaceId: '22' },
       { spaceId: '29' },
       { spaceId: '30' },

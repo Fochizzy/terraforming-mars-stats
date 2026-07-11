@@ -27,6 +27,11 @@ describe('referenceDimensions', () => {
       'tharsis',
       'hellas',
       'elysium',
+      'amazonis_planitia',
+      'arabia_terra',
+      'terra_cimmeria',
+      'vastitas_borealis',
+      'utopia_planitia',
     ]);
   });
 
@@ -97,6 +102,26 @@ describe('referenceDimensions', () => {
       'ecologist',
       'tycoon',
       'legend',
+      'colonizer',
+      'forester',
+      'minimalist',
+      'terran',
+      'tropicalist',
+      'economizer',
+      'pioneer',
+      'land_specialist',
+      'martian',
+      't_collector',
+      'firestarter',
+      'terra_pioneer',
+      'spacefarer',
+      'gambler',
+      'v_electrician',
+      'smith',
+      'tradesman',
+      'irrigator',
+      'capitalist',
+      'researcher',
     ]);
 
     expect(referenceDimensions.awards.map((entry) => entry.code)).toEqual([
@@ -115,6 +140,27 @@ describe('referenceDimensions', () => {
       'desert_settler',
       'estate_dealer',
       'benefactor',
+      'curator',
+      'a_engineer',
+      'promoter',
+      'tourist',
+      'a_zoologist',
+      'cosmic_settler',
+      'botanist',
+      'zoologist',
+      'a_manufacturer',
+      'biologist',
+      'incorporator',
+      't_politician',
+      'urbanist',
+      'warmonger',
+      'forecaster',
+      'edgedancer',
+      'visionary',
+      'naturalist',
+      'voyager',
+      'investor',
+      'metropolist',
     ]);
 
     const milestoneCountsByMap = Object.fromEntries(
@@ -136,12 +182,44 @@ describe('referenceDimensions', () => {
       elysium: 5,
       hellas: 5,
       tharsis: 5,
+      amazonis_planitia: 5,
+      arabia_terra: 5,
+      terra_cimmeria: 5,
+      vastitas_borealis: 5,
+      utopia_planitia: 5,
     });
 
     expect(awardCountsByMap).toEqual({
       elysium: 5,
       hellas: 5,
       tharsis: 5,
+      amazonis_planitia: 5,
+      arabia_terra: 5,
+      terra_cimmeria: 5,
+      vastitas_borealis: 5,
+      utopia_planitia: 5,
     });
+  });
+
+  it('links only map, milestone, and award codes that are actually defined', () => {
+    const mapCodes = new Set(referenceDimensions.maps.map((entry) => entry.code));
+    const milestoneCodes = new Set(
+      referenceDimensions.milestones.map((entry) => entry.code),
+    );
+    const awardCodes = new Set(referenceDimensions.awards.map((entry) => entry.code));
+
+    for (const entry of referenceDimensions.mapMilestones) {
+      expect(mapCodes).toContain(entry.mapCode);
+      expect(milestoneCodes).toContain(entry.milestoneCode);
+    }
+
+    for (const entry of referenceDimensions.mapAwards) {
+      expect(mapCodes).toContain(entry.mapCode);
+      expect(awardCodes).toContain(entry.awardCode);
+    }
+
+    // No duplicate codes slipped into the dimension lists.
+    expect(milestoneCodes.size).toBe(referenceDimensions.milestones.length);
+    expect(awardCodes.size).toBe(referenceDimensions.awards.length);
   });
 });

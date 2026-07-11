@@ -84,7 +84,7 @@ describe('submitUsernameAuth', () => {
     const result = await submitUsernameAuth({
       client: createClient(),
       email: 'friday@example.com',
-      emailRedirectTo: 'https://terraforming-mars-stats.workers.dev/auth/callback?next=%2Fprofile',
+      emailRedirectTo: 'https://tm-stats.com/auth/callback?next=%2Fprofile',
       fullName: 'Friday Mars',
       mode: 'sign-up',
       pin: '123456',

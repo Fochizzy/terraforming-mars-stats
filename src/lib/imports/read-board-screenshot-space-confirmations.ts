@@ -132,6 +132,43 @@ const boardScreenshotRegistries: Record<
     mapId: 'elysium',
     spaces: sharedCuratedSpaceSamples,
   },
+  // The additional maps share the standard board geometry, so they reuse the
+  // same curated sample layout until map-specific screenshot data is captured.
+  amazonis_planitia: {
+    boardCenterX: 244 / FIXTURE_WIDTH,
+    boardCenterY: 239 / FIXTURE_HEIGHT,
+    boardRadius: 158 / FIXTURE_MIN_DIMENSION,
+    mapId: 'amazonis_planitia',
+    spaces: sharedCuratedSpaceSamples,
+  },
+  arabia_terra: {
+    boardCenterX: 244 / FIXTURE_WIDTH,
+    boardCenterY: 239 / FIXTURE_HEIGHT,
+    boardRadius: 158 / FIXTURE_MIN_DIMENSION,
+    mapId: 'arabia_terra',
+    spaces: sharedCuratedSpaceSamples,
+  },
+  terra_cimmeria: {
+    boardCenterX: 244 / FIXTURE_WIDTH,
+    boardCenterY: 239 / FIXTURE_HEIGHT,
+    boardRadius: 158 / FIXTURE_MIN_DIMENSION,
+    mapId: 'terra_cimmeria',
+    spaces: sharedCuratedSpaceSamples,
+  },
+  vastitas_borealis: {
+    boardCenterX: 244 / FIXTURE_WIDTH,
+    boardCenterY: 239 / FIXTURE_HEIGHT,
+    boardRadius: 158 / FIXTURE_MIN_DIMENSION,
+    mapId: 'vastitas_borealis',
+    spaces: sharedCuratedSpaceSamples,
+  },
+  utopia_planitia: {
+    boardCenterX: 244 / FIXTURE_WIDTH,
+    boardCenterY: 239 / FIXTURE_HEIGHT,
+    boardRadius: 158 / FIXTURE_MIN_DIMENSION,
+    mapId: 'utopia_planitia',
+    spaces: sharedCuratedSpaceSamples,
+  },
 };
 
 function clamp(value: number, minimum: number, maximum: number) {

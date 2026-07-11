@@ -4,11 +4,19 @@ import { useMemo, useState } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import type { TilePlacementRow } from '@/lib/db/extended-analytics-repo';
+import {
+  BOARD_ROW_LENGTHS,
+  OFF_PLANET_SPACE_COUNT,
+} from '@/lib/imports/board-space-from-row-position';
+
+export { BOARD_ROW_LENGTHS };
 
 // Official Mars board: nine staggered rows of 61 on-planet hexes, numbered
-// left-to-right, top-to-bottom. Spaces beyond 61 (Phobos/Ganymede colonies)
-// surface in the off-board list instead of the grid.
-export const BOARD_ROW_LENGTHS = [5, 6, 7, 8, 9, 8, 7, 6, 5] as const;
+// left-to-right, top-to-bottom. The source app's space ids start at "03" (the
+// first two ids are the off-planet Phobos/Ganymede spaces), so on-planet hex
+// numbering begins at OFF_PLANET_SPACE_COUNT + 1. Ids beyond the grid surface
+// in the off-board list instead.
+const FIRST_ON_PLANET_SPACE_ID = OFF_PLANET_SPACE_COUNT + 1;
 
 const HEX_WIDTH = 44;
 const HEX_RADIUS = 21;
@@ -32,7 +40,7 @@ export type BoardCell = {
 
 export function buildBoardGrid(): BoardCell[] {
   const cells: BoardCell[] = [];
-  let spaceNumber = 1;
+  let spaceNumber = FIRST_ON_PLANET_SPACE_ID;
 
   BOARD_ROW_LENGTHS.forEach((rowLength, rowIndex) => {
     const rowStartX =
@@ -49,6 +57,14 @@ export function buildBoardGrid(): BoardCell[] {
   });
 
   return cells;
+}
+
+// Game logs zero-pad single-digit spaces ("03"), but the grid numbers spaces
+// "1".."61" without padding. Normalize all-numeric ids to their unpadded form
+// so low spaces (which skew heavily toward ocean tiles) match the grid instead
+// of spilling into the off-board bucket.
+function normalizeBoardSpace(boardSpace: string): string {
+  return /^\d+$/.test(boardSpace) ? String(Number(boardSpace)) : boardSpace;
 }
 
 function buildHexPoints(cx: number, cy: number) {
@@ -93,15 +109,17 @@ export function aggregateBoardSpaces(
       continue;
     }
 
-    if (knownSpaces.has(row.boardSpace)) {
-      const next = (countsBySpace.get(row.boardSpace) ?? 0) + row.placements;
+    const boardSpace = normalizeBoardSpace(row.boardSpace);
 
-      countsBySpace.set(row.boardSpace, next);
+    if (knownSpaces.has(boardSpace)) {
+      const next = (countsBySpace.get(boardSpace) ?? 0) + row.placements;
+
+      countsBySpace.set(boardSpace, next);
       maxCount = Math.max(maxCount, next);
     } else {
       offBoardBySpace.set(
-        row.boardSpace,
-        (offBoardBySpace.get(row.boardSpace) ?? 0) + row.placements,
+        boardSpace,
+        (offBoardBySpace.get(boardSpace) ?? 0) + row.placements,
       );
     }
   }
@@ -172,7 +190,10 @@ export function BoardHeatmapSection(props: { rows: TilePlacementRow[] }) {
     : 'var(--tm-copper-500)';
 
   return (
-    <ChartFrame title="Board Heatmap">
+    <ChartFrame
+      description="Which board hexes get built on most often, with warmer tiles marking the most-used spaces across imported games."
+      title="Board Heatmap"
+    >
       {props.rows.length === 0 ? (
         <p className="tm-muted-copy text-sm">
           The board heatmap unlocks for finalized games imported from a game

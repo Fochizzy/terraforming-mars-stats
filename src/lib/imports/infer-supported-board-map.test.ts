@@ -59,6 +59,58 @@ describe('inferSupportedBoardMapId', () => {
       ]),
     ).toBe('tharsis');
   });
+
+  it('recognizes each additional official map from its name and milestones', () => {
+    expect(
+      inferSupportedBoardMapId([
+        'Amazonis Planitia',
+        'Milestones: Colonizer, Tropicalist',
+      ]),
+    ).toBe('amazonis_planitia');
+    expect(
+      inferSupportedBoardMapId([
+        'Arabia Terra',
+        'Milestones: Economizer, Martian',
+      ]),
+    ).toBe('arabia_terra');
+    expect(
+      inferSupportedBoardMapId([
+        'Terra Cimmeria',
+        'Awards: Warmonger, Urbanist',
+      ]),
+    ).toBe('terra_cimmeria');
+    expect(
+      inferSupportedBoardMapId([
+        'Vastitas Borealis',
+        'Awards: Forecaster, Voyager',
+      ]),
+    ).toBe('vastitas_borealis');
+    expect(
+      inferSupportedBoardMapId([
+        'Utopia Planitia',
+        'Awards: Metropolist, Investor',
+      ]),
+    ).toBe('utopia_planitia');
+  });
+
+  it('breaks shared-milestone ties between newer maps using the map name', () => {
+    // Terran (milestone) and Promoter (award) belong to both Amazonis Planitia
+    // and Arabia Terra, so on their own they tie to null.
+    expect(
+      inferSupportedBoardMapId([
+        'Claimed Terran milestone',
+        'Funded Promoter award',
+      ]),
+    ).toBeNull();
+
+    expect(
+      inferSupportedBoardMapId([
+        'Amazonis Planitia',
+        'Claimed Terran milestone',
+        'Funded Promoter award',
+      ]),
+    ).toBe('amazonis_planitia');
+  });
 });
 
 describe('inferBoardMapFromImportEvidence', () => {

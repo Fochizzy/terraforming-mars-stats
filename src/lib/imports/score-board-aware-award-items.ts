@@ -56,6 +56,18 @@ const boardAwareAwardRulesByMap: Record<
         'Estate Dealer still needs targeted ocean-adjacency confirmation before importing winners.',
     },
   ],
+  // The additional maps have no tile-count-by-kind awards: their board-relevant
+  // awards use position or adjacency-VP semantics (e.g. Edgedancer = edge tiles,
+  // Tourist = empty spaces adjacent to your tiles, Urbanist = city-adjacency VP)
+  // that fall outside this schema, and the rest are production/card/colony based
+  // (e.g. Botanist = plant production, Cosmic Settler = cities off Mars). All of
+  // these are read from the endgame score table instead, so no board-aware rule
+  // applies here. (Commercial District card scoring still runs on every map.)
+  amazonis_planitia: [],
+  arabia_terra: [],
+  terra_cimmeria: [],
+  vastitas_borealis: [],
+  utopia_planitia: [],
 };
 
 function normalizeName(value: string) {

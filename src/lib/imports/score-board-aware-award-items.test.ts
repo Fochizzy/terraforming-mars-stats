@@ -49,7 +49,7 @@ describe('scoreBoardAwareAwardItems', () => {
         notes: expect.arrayContaining([
           'Landlord still needs targeted ocean-adjacency confirmation before importing winners.',
         ]),
-        requestedSpaceIds: ['20', '22', '29', '30'],
+        requestedSpaceIds: ['14', '22', '29', '30'],
         status: 'review_needed',
       }),
     );
@@ -98,7 +98,7 @@ describe('scoreBoardAwareAwardItems', () => {
     ).toContainEqual(
       expect.objectContaining({
         awardName: 'Estate Dealer',
-        requestedSpaceIds: [],
+        requestedSpaceIds: ['22', '23', '30', '32', '39', '40'],
         status: 'review_needed',
       }),
     );

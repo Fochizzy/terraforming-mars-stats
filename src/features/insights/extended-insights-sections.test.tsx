@@ -615,12 +615,14 @@ describe('game pace builders', () => {
 });
 
 describe('board heatmap helpers', () => {
-  it('builds the official 61-hex staggered planet grid', () => {
+  it('builds the official 61-hex staggered planet grid using source space ids', () => {
     const grid = buildBoardGrid();
 
+    // The source app numbers on-planet hexes "03".."63" (ids 01/02 are the
+    // off-planet spaces), so the grid starts at 3, not 1.
     expect(grid).toHaveLength(61);
-    expect(grid[0].spaceId).toBe('1');
-    expect(grid[60].spaceId).toBe('61');
+    expect(grid[0].spaceId).toBe('3');
+    expect(grid[60].spaceId).toBe('63');
   });
 
   it('aggregates placements per space and separates off-board spaces', () => {
@@ -636,6 +638,19 @@ describe('board heatmap helpers', () => {
     expect(model.countsBySpace.get('21')).toBe(3);
     expect(model.maxCount).toBe(3);
     expect(model.offBoardCounts).toEqual([{ count: 1, spaceId: 'Ganymede' }]);
+  });
+
+  it('matches zero-padded log spaces to their unpadded grid space', () => {
+    const model = aggregateBoardSpaces(
+      [
+        buildTileRow({ boardSpace: '03', tileType: 'ocean' }),
+        buildTileRow({ boardSpace: '3', tileType: 'ocean' }),
+      ],
+      { gameId: null, mapName: 'Tharsis', tileType: null },
+    );
+
+    expect(model.countsBySpace.get('3')).toBe(2);
+    expect(model.offBoardCounts).toEqual([]);
   });
 
   it('applies tile type and game filters', () => {

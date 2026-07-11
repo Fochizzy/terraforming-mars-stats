@@ -18,14 +18,14 @@ describe('middleware', () => {
 
   it('redirects the legacy web import route to the single-upload route before auth handling', async () => {
     const request = new NextRequest(
-      'https://terraforming-mars-stats.workers.dev/log-game/import?source=manual',
+      'https://tm-stats.com/log-game/import?source=manual',
     );
 
     const response = await middleware(request);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'https://terraforming-mars-stats.workers.dev/log-game/import-single?source=manual',
+      'https://tm-stats.com/log-game/import-single?source=manual',
     );
     expect(middlewareMocks.updateSupabaseSession).not.toHaveBeenCalled();
   });

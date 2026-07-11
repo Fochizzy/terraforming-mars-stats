@@ -15,6 +15,12 @@ type ClaimResultRow = {
   player_name: string;
 };
 
+type BulkClaimResultRow = {
+  group_id: string;
+  group_name: string;
+  player_name: string;
+};
+
 export type ClaimablePlayerProfile = {
   exactMatch: boolean;
   groupId: string;
@@ -31,8 +37,14 @@ export type SavedPlayerClaimResult = {
   status: 'claimed-and-joined';
 };
 
+export type SavedPlayerBulkClaimResult = {
+  groups: { groupId: string; groupName: string }[];
+  playerName: string;
+  status: 'claimed-and-joined';
+};
+
 export type SavedPlayerAutoClaimResult =
-  | SavedPlayerClaimResult
+  | SavedPlayerBulkClaimResult
   | {
       candidates: ClaimablePlayerProfile[];
       status: 'needs-manual-claim';
@@ -84,16 +96,51 @@ export async function claimSavedPlayerProfile(
   };
 }
 
+export async function claimAllExactPlayerProfiles(): Promise<SavedPlayerBulkClaimResult | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('claim_player_profiles_by_name');
+
+  if (error) {
+    throw error;
+  }
+
+  const rows = (data ?? []) as BulkClaimResultRow[];
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return {
+    groups: rows.map((row) => ({
+      groupId: row.group_id,
+      groupName: row.group_name,
+    })),
+    playerName: rows[0].player_name,
+    status: 'claimed-and-joined',
+  };
+}
+
 export async function resolveSavedPlayerAutoClaim(): Promise<SavedPlayerAutoClaimResult> {
   const candidates = await listClaimablePlayerProfiles();
-  const exactMatches = candidates.filter((candidate) => candidate.exactMatch);
+  const hasExactMatch = candidates.some((candidate) => candidate.exactMatch);
 
-  if (exactMatches.length !== 1) {
+  if (!hasExactMatch) {
     return {
       candidates,
       status: 'needs-manual-claim',
     };
   }
 
-  return claimSavedPlayerProfile(exactMatches[0].playerId);
+  const claimed = await claimAllExactPlayerProfiles();
+
+  // A concurrent claim can empty the exact matches between listing and claiming;
+  // fall back to whatever remains for a manual decision.
+  if (!claimed) {
+    return {
+      candidates: await listClaimablePlayerProfiles(),
+      status: 'needs-manual-claim',
+    };
+  }
+
+  return claimed;
 }

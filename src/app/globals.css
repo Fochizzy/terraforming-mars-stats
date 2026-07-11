@@ -160,6 +160,12 @@ a {
     text-transform: uppercase;
   }
 
+  .tm-panel-caption {
+    color: var(--tm-muted);
+    line-height: 1.5;
+    max-width: 68ch;
+  }
+
   .tm-stat-card {
     @apply rounded-2xl border p-3;
     background:

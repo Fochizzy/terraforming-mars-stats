@@ -1,3 +1,5 @@
+import { buildBoardHexAdjacency } from './board-hex-adjacency';
+
 export type BoardSpaceDefinition = {
   id: string;
   neighbors?: string[];
@@ -8,6 +10,11 @@ export const supportedBoardMapIds = [
   'tharsis',
   'hellas',
   'elysium',
+  'amazonis_planitia',
+  'arabia_terra',
+  'terra_cimmeria',
+  'vastitas_borealis',
+  'utopia_planitia',
 ] as const;
 
 export type SupportedBoardMapId = (typeof supportedBoardMapIds)[number];
@@ -22,19 +29,21 @@ export type BoardSpaceMap = {
   spaces: BoardSpaceRegistry;
 };
 
-const sharedBoardGeometry = {
-  '21': ['20', '22', '29', '30'],
-} as const;
+// Tharsis reserves the Noctis City hex. Its app-space id (zero-padded) — this
+// is informational only (surfaced in snapshot notes), not used for scoring.
+const NOCTIS_CITY_SPACE_ID = '31';
 
-const OFFICIAL_BOARD_SPACE_COUNT = 63;
+// Spaces are keyed by the source app's zero-padded on-planet ids ("03".."63"),
+// matching the ids parsed from game logs, with the full shared-geometry
+// adjacency graph attached to every hex.
+function createKnownBoardSpaceRegistry(): BoardSpaceRegistry {
+  const adjacency = buildBoardHexAdjacency();
 
-function createKnownBoardSpaceRegistry() {
   return Object.fromEntries(
-    Array.from({ length: OFFICIAL_BOARD_SPACE_COUNT }, (_, index) => {
-      const id = String(index + 1);
-
-      return [id, { id } satisfies BoardSpaceDefinition];
-    }),
+    Object.entries(adjacency).map(([id, neighbors]) => [
+      id,
+      { id, neighbors } satisfies BoardSpaceDefinition,
+    ]),
   ) as BoardSpaceRegistry;
 }
 
@@ -43,14 +52,12 @@ function createBoardSpaces(
 ): BoardSpaceRegistry {
   const spaces = createKnownBoardSpaceRegistry();
 
-  spaces['21'] = {
-    id: '21',
-    neighbors: [...sharedBoardGeometry['21']],
-  };
-  spaces['31'] = {
-    id: '31',
-    ...(reservedTile ? { reservedTile } : {}),
-  };
+  if (reservedTile) {
+    const noctis = spaces[NOCTIS_CITY_SPACE_ID];
+    if (noctis) {
+      spaces[NOCTIS_CITY_SPACE_ID] = { ...noctis, reservedTile };
+    }
+  }
 
   return spaces;
 }
@@ -68,6 +75,35 @@ const boardSpaceMaps: Record<SupportedBoardMapId, BoardSpaceMap> = {
   },
   elysium: {
     mapId: 'elysium',
+    regions: {},
+    spaces: createBoardSpaces(),
+  },
+  // Additional official maps share the standard 61-hex geometry. Their map-
+  // specific reserved tiles differ from Tharsis's Noctis City, but that only
+  // matters to the (currently unwired) curated board-adjacency scoring, so the
+  // generic registry is sufficient for detection and stats.
+  amazonis_planitia: {
+    mapId: 'amazonis_planitia',
+    regions: {},
+    spaces: createBoardSpaces(),
+  },
+  arabia_terra: {
+    mapId: 'arabia_terra',
+    regions: {},
+    spaces: createBoardSpaces(),
+  },
+  terra_cimmeria: {
+    mapId: 'terra_cimmeria',
+    regions: {},
+    spaces: createBoardSpaces(),
+  },
+  vastitas_borealis: {
+    mapId: 'vastitas_borealis',
+    regions: {},
+    spaces: createBoardSpaces(),
+  },
+  utopia_planitia: {
+    mapId: 'utopia_planitia',
     regions: {},
     spaces: createBoardSpaces(),
   },
