@@ -707,19 +707,21 @@ export async function findDuplicateGameLogImport(input: {
     return false;
   }
 
+  // Match through an RPC so the full log travels in the POST body. Filtering
+  // `.eq('raw_log_text', ...)` puts the entire multi-KB log in the request URL,
+  // which the Supabase edge rejects with a bare 400 "Bad Request" once a large
+  // export pushes the URL past its length limit.
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('game_log_imports')
-    .select('id, games!inner(group_id)')
-    .eq('raw_log_text', normalizedRawLogText)
-    .eq('games.group_id', input.groupId)
-    .limit(1);
+  const { data, error } = await supabase.rpc('find_duplicate_game_log_import', {
+    p_group_id: input.groupId,
+    p_raw_log_text: normalizedRawLogText,
+  });
 
   if (error) {
     throw error;
   }
 
-  return (data ?? []).length > 0;
+  return data === true;
 }
 
 export async function getLatestGameLogImportSummary(input: {
