@@ -402,6 +402,10 @@ export function WebImportPage({
       return null;
     }
 
+    if (input.intent === 'analyze' && input.screenshotOcr) {
+      return null;
+    }
+
     if (
       input.intent === 'confirm' &&
       isPdfFile(endgameScreenshot) &&

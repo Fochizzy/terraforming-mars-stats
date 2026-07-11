@@ -402,7 +402,7 @@ describe('WebImportPage', () => {
     ).toBe(droppedPdf);
   });
 
-  it('keeps a parsed PDF out of the confirmation payload after analysis', async () => {
+  it('keeps a parsed PDF out of action payloads after browser analysis', async () => {
     const user = userEvent.setup();
     const parsedPdfPayload = {
       endgameLayout: 'victory_breakdown' as const,
@@ -466,7 +466,7 @@ describe('WebImportPage', () => {
     await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
 
     const analyzedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0] as FormData;
-    expect(analyzedFormData.get('endgameScreenshot')).toBe(pdf);
+    expect(analyzedFormData.get('endgameScreenshot')).toBeNull();
     expect(JSON.parse(String(analyzedFormData.get('screenshotOcr')))).toMatchObject({
       endgameLines: parsedPdfPayload.endgameLines,
     });
