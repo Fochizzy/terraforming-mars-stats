@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/layout/app-shell';
+import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { AwardEconomicsSection } from '@/features/insights/milestone-award-section';
 import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
 import { WinningCardsSection } from '@/features/insights/winning-cards-section';
@@ -55,10 +56,14 @@ export default async function GlobalStatisticsPage() {
     <AppShell showReviewSavedGamesLink title="Global Statistics" wide>
       <section className="tm-panel flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <h2 className="tm-panel-title text-lg">All Recorded Games</h2>
+          <h2 className="tm-panel-title text-lg">
+            <GlossaryLink slug="personal-vs-global">All Recorded Games</GlossaryLink>
+          </h2>
           <p className="tm-muted-copy text-sm">
-            Corporation, prelude, and card performance across every recorded game
-            — including games you didn&apos;t play in.
+            <GlossaryLink slug="corporation">Corporation</GlossaryLink>,{' '}
+            <GlossaryLink slug="prelude">prelude</GlossaryLink>, and{' '}
+            <GlossaryLink slug="card-outcomes">card</GlossaryLink> performance
+            across every recorded game — including games you didn&apos;t play in.
           </p>
         </div>
         <SelectionStatsScope
@@ -69,10 +74,14 @@ export default async function GlobalStatisticsPage() {
       </section>
       <section className="tm-panel flex flex-col gap-5">
         <div className="flex flex-col gap-1">
-          <h2 className="tm-panel-title text-lg">Your Award Funding</h2>
+          <h2 className="tm-panel-title text-lg">
+            <GlossaryLink slug="award-economics">Your Award Funding</GlossaryLink>
+          </h2>
           <p className="tm-muted-copy text-sm">
-            Who profits from whose award funding, across every game you&apos;ve
-            played in — spanning all your groups, not just the active one.
+            Who profits from whose{' '}
+            <GlossaryLink slug="award-funding-roi">award funding</GlossaryLink>,
+            across every game you&apos;ve played in — spanning all your groups,
+            not just the active one.
           </p>
         </div>
         <AwardEconomicsSection

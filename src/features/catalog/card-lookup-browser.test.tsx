@@ -1,11 +1,20 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CardLookupBrowser,
   filterCardLookupEntries,
   type CardLookupEntry,
 } from './card-lookup-browser';
+
+vi.mock('./card-stats-actions', () => ({
+  getCardWinStats: vi.fn().mockResolvedValue({
+    globalGames: 0,
+    globalWins: 0,
+    personalGames: 0,
+    personalWins: 0,
+  }),
+}));
 
 const cards: CardLookupEntry[] = [
   {
@@ -122,7 +131,7 @@ describe('filterCardLookupEntries', () => {
 });
 
 describe('CardLookupBrowser', () => {
-  it('renders a searchable card database with full-image links', async () => {
+  it('renders a searchable card database with a stats dialog per card', async () => {
     const user = userEvent.setup();
 
     render(<CardLookupBrowser cards={cards} />);
@@ -131,10 +140,22 @@ describe('CardLookupBrowser', () => {
       screen.getByRole('heading', { name: /card database/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/3 cards/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /open full image for asteroid/i }),
-    ).toHaveAttribute('href', 'https://example.com/asteroid.png');
     expect(screen.getByText(/2 VP/i)).toBeInTheDocument();
+
+    const asteroidButton = screen.getByRole('button', {
+      name: /show statistics for asteroid/i,
+    });
+
+    await user.click(asteroidButton);
+
+    const dialog = await screen.findByRole('dialog', {
+      name: /asteroid statistics/i,
+    });
+    expect(
+      within(dialog).getByRole('link', { name: /open full image/i }),
+    ).toHaveAttribute('href', 'https://example.com/asteroid.png');
+
+    await user.keyboard('{Escape}');
 
     await user.type(screen.getByLabelText(/search card database/i), 'space');
 

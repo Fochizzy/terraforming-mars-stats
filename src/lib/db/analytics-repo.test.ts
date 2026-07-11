@@ -39,6 +39,7 @@ describe('getProfileAnalytics', () => {
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return {
@@ -109,6 +110,7 @@ describe('getProfileAnalytics', () => {
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return {
@@ -259,6 +261,7 @@ describe('getProfileAnalytics', () => {
     const playersSelect = vi.fn().mockReturnValue({ eq: playersEqLinkedUserId });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };
@@ -449,6 +452,7 @@ describe('getProfileAnalytics', () => {
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };
@@ -481,7 +485,8 @@ describe('getProfileAnalytics', () => {
 
     expect(result?.headToHeadRows).toEqual([
       expect.objectContaining({
-        opponentName: 'Corey Jansen',
+        // personLabel shows unregistered opponents by first name only (privacy).
+        opponentName: 'Corey',
         gamesPlayed: 2,
         wins: 1,
         losses: 1,
@@ -527,6 +532,7 @@ describe('getProfileAnalytics', () => {
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
       schema: vi.fn((schemaName: string) => {
         if (schemaName !== 'analytics') {
           throw new Error(`Unexpected schema ${schemaName}`);
@@ -650,6 +656,7 @@ describe('getCrossGroupFocusData', () => {
     const analyticsSelect = vi.fn().mockReturnValue({ in: analyticsIn });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };
@@ -676,10 +683,11 @@ describe('getCrossGroupFocusData', () => {
 
     const people = await getCrossGroupFocusData('user-1', 'group-1');
 
-    // The signed-in user is offered first, then their opponent.
+    // The signed-in user is offered first, then their opponent. Unregistered
+    // people are labelled by first name only (personLabel privacy rule).
     expect(people.map((person) => person.displayName)).toEqual([
-      'Izzy Hodnett',
-      'Colette LeRoux',
+      'Izzy',
+      'Colette',
     ]);
 
     const colette = people.find(
@@ -694,7 +702,7 @@ describe('getCrossGroupFocusData', () => {
       {
         averageScoreDifferential: -10,
         gamesPlayed: 1,
-        label: 'Colette LeRoux vs Izzy Hodnett',
+        label: 'Colette vs Izzy',
         losses: 1,
         ties: 0,
         wins: 0,
@@ -718,6 +726,7 @@ describe('getCrossGroupFocusData', () => {
     const playersSelect = vi.fn().mockReturnValue({ eq: playersEqLinkedUserId });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };

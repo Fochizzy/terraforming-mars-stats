@@ -1,26 +1,33 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { AppShell } from './app-shell';
+
+function getBottomNav(container: HTMLElement) {
+  const bottomNav = container.querySelector<HTMLElement>('.tm-bottom-nav');
+  if (!bottomNav) {
+    throw new Error('bottom navigation not found');
+  }
+  return within(bottomNav);
+}
 
 describe('AppShell', () => {
   it('renders the default bottom navigation items', () => {
     const { container } = render(<AppShell title="My Profile">content</AppShell>);
+    const nav = getBottomNav(container);
 
-    expect(
-      screen.getByRole('link', { name: /my profile/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /log game/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /saved games/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /group/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /cards/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /insights/i })).toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /my profile/i })).toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /log game/i })).toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /global/i })).toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /cards/i })).toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /glossary/i })).toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /insights/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');
-    expect(screen.getByRole('navigation')).toHaveClass('tm-bottom-nav');
+    expect(container.querySelector('.tm-bottom-nav')).toBeInTheDocument();
   });
 
   it('accepts a reduced navigation set for profile-only access', () => {
-    render(
+    const { container } = render(
       <AppShell
         navItems={[{ href: '/profile', label: 'My Profile' }]}
         title="My Profile"
@@ -28,14 +35,12 @@ describe('AppShell', () => {
         content
       </AppShell>,
     );
+    const nav = getBottomNav(container);
 
-    expect(
-      screen.getByRole('link', { name: /my profile/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /saved games/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /log game/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /group/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /insights/i })).not.toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /my profile/i })).toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: /log game/i })).not.toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: /global/i })).not.toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: /insights/i })).not.toBeInTheDocument();
   });
 
   it('renders header controls when provided', () => {

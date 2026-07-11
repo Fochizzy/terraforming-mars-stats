@@ -1,59 +1,25 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { LandingSectionList } from './landing-section-list';
+import { homepageSections } from './landing-sections';
+import {
+  emptyPublicLandingStats,
+  getPublicLandingStats,
+  type PublicLandingStats,
+} from '@/lib/db/public-landing-stats-repo';
 
-const homepageSections = [
-  {
-    id: 'overview',
-    title: 'Overview',
-    description:
-      "Track finished games, maps, winners, and your group's shifting meta in one place.",
-    highlights: ['Finished games', 'Player rosters', 'Meta snapshots'],
-  },
-  {
-    id: 'corporations',
-    title: 'Corporations',
-    description:
-      'Compare corporation results, favorite picks, and the matchups that keep showing up at your table.',
-    highlights: ['Win rates', 'Favorite picks', 'Table trends'],
-  },
-  {
-    id: 'cards',
-    title: 'Cards',
-    description:
-      'Explore imported card evidence, pattern-heavy plays, and the engines that keep deciding close games.',
-    highlights: ['Imported evidence', 'Key cards', 'Engine patterns'],
-  },
-  {
-    id: 'projects',
-    title: 'Projects',
-    description:
-      'Jump from clean game logging into saved drafts, reopened results, and shared group workflows.',
-    highlights: ['Draft saves', 'Result edits', 'Group logging'],
-  },
-  {
-    id: 'milestones',
-    title: 'Milestones',
-    description:
-      'See who closes maps best with milestone timing, award pressure, and map-aware scoring swings.',
-    highlights: ['Map-aware awards', 'Milestone timing', 'Scoring swings'],
-  },
-  {
-    id: 'stats',
-    title: 'Stats',
-    description:
-      'Read score trends, leaderboard movement, and long-term group patterns without leaving the theme.',
-    highlights: ['Trend lines', 'Leaderboards', 'Group patterns'],
-  },
-  {
-    id: 'tools',
-    title: 'Tools',
-    description:
-      'Use imports, roster tools, and admin helpers that make the app practical for a recurring play group.',
-    highlights: ['Imports', 'Roster tools', 'Group settings'],
-  },
-] as const;
+async function loadLandingStatsOrDefault(): Promise<PublicLandingStats> {
+  try {
+    return await getPublicLandingStats();
+  } catch (error) {
+    console.error('[landing] Failed to load public landing stats', error);
+    return emptyPublicLandingStats;
+  }
+}
 
-export default function HomePage() {
+export default async function HomePage() {
+  const stats = await loadLandingStatsOrDefault();
+
   return (
     <main className="tm-app-shell tm-landing-page">
       <section className="tm-landing-hero-shell">
@@ -98,33 +64,7 @@ export default function HomePage() {
           Sign in to your group
         </Link>
       </section>
-      <section className="tm-landing-section-list">
-        {homepageSections.map((section) => (
-          <section
-            id={section.id}
-            key={section.id}
-            className="tm-panel tm-landing-section-card"
-          >
-            <p className="tm-display-eyebrow">Mission Control</p>
-            <h2 className="tm-display-title tm-landing-section-title">
-              {section.title}
-            </h2>
-            <p className="tm-body-copy tm-landing-section-copy">
-              {section.description}
-            </p>
-            <div className="tm-landing-highlight-row">
-              {section.highlights.map((highlight) => (
-                <span
-                  key={highlight}
-                  className="tm-landing-highlight-chip"
-                >
-                  {highlight}
-                </span>
-              ))}
-            </div>
-          </section>
-        ))}
-      </section>
+      <LandingSectionList stats={stats} />
     </main>
   );
 }

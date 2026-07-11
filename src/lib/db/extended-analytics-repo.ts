@@ -15,6 +15,7 @@ import {
   remapTagOutcomes,
   remapTilePlacements,
 } from '@/lib/db/overall-analytics-aggregators';
+import { resolvePlayerLabelsInRows } from '@/lib/db/player-label-resolution';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type PlacementDistributionRow = {
@@ -602,7 +603,8 @@ async function listView<TRaw, TRow>(
     throw error;
   }
 
-  return ((data ?? []) as TRaw[]).map(mapRow);
+  const rows = await resolvePlayerLabelsInRows(supabase, (data ?? []) as TRaw[]);
+  return rows.map(mapRow);
 }
 
 export async function listPlacementDistribution(groupId: string) {
@@ -873,8 +875,10 @@ export async function getAwardEconomics(
     outcomes?: Omit<RawAwardOutcomeRow, 'group_id'>[];
   };
 
+  const matrixRows = await resolvePlayerLabelsInRows(supabase, payload.matrix ?? []);
+
   return {
-    awardFunderWinnerRows: (payload.matrix ?? []).map((row) =>
+    awardFunderWinnerRows: matrixRows.map((row) =>
       mapAwardFunderWinnerRow({ ...row, group_id: 'global' }),
     ),
     awardOutcomeRows: (payload.outcomes ?? []).map((row) =>

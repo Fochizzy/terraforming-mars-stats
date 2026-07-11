@@ -1,21 +1,116 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import type {
   CoverageRow,
   LeaderboardRow,
+  ProfileCardStat,
   ProfileHeadToHeadRow,
   ProfileStyleBreakdownRow,
   ProfileStyleInsight,
   ScoreSourceAverages,
   StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
+import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
+import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { formatAverage, formatPercent } from './performance-delta';
+import { ProfileCardPanels } from './profile-card-panels';
 import { ScoreSourceList } from './score-source-list';
 
+/**
+ * Split a sentence around named tokens and swap each one for a link node,
+ * keeping the surrounding prose as plain text. Tokens are matched at their
+ * earliest position and each is replaced once, so a style name and a card name
+ * in the same sentence both become links without disturbing the wording.
+ */
+function renderLinkedText(
+  text: string,
+  links: Array<{ match: string; render: (key: string) => ReactNode }>,
+): ReactNode[] {
+  const segments: ReactNode[] = [];
+  const remainingLinks = links.filter((link) => link.match);
+  let rest = text;
+  let key = 0;
+
+  while (remainingLinks.length > 0) {
+    let bestIndex = -1;
+    let bestPosition = Infinity;
+
+    remainingLinks.forEach((link, index) => {
+      const position = rest.indexOf(link.match);
+
+      if (position !== -1 && position < bestPosition) {
+        bestPosition = position;
+        bestIndex = index;
+      }
+    });
+
+    if (bestIndex === -1) {
+      break;
+    }
+
+    const [link] = remainingLinks.splice(bestIndex, 1);
+
+    if (bestPosition > 0) {
+      segments.push(rest.slice(0, bestPosition));
+    }
+
+    segments.push(link.render(`lnk-${key}`));
+    key += 1;
+    rest = rest.slice(bestPosition + link.match.length);
+  }
+
+  if (rest) {
+    segments.push(rest);
+  }
+
+  return segments;
+}
+
+/** The glossary deep-link slug for an inferred style code (e.g. `style-balanced`). */
+function styleGlossarySlug(styleCode: string) {
+  return `style-${styleCode.replaceAll('_', '-')}`;
+}
+
+function renderStyleInsightBody(insight: ProfileStyleInsight): ReactNode[] {
+  const links: Array<{ match: string; render: (key: string) => ReactNode }> = [];
+
+  if (insight.styleName && insight.styleCode) {
+    const slug = styleGlossarySlug(insight.styleCode);
+    const styleName = insight.styleName;
+
+    links.push({
+      match: styleName,
+      render: (key) => (
+        <GlossaryLink key={key} slug={slug}>
+          {styleName}
+        </GlossaryLink>
+      ),
+    });
+  }
+
+  if (insight.card) {
+    const card = insight.card;
+
+    links.push({
+      match: card.cardName,
+      render: (key) => (
+        <CardStatsButton card={card} className="tm-glossary-link" key={key}>
+          {card.cardName}
+        </CardStatsButton>
+      ),
+    });
+  }
+
+  return renderLinkedText(insight.body, links);
+}
+
 type ProfileDashboardProps = {
+  cardOutcomes?: ProfileCardStat[];
   coverage?: CoverageRow | null;
   headToHeadRows?: ProfileHeadToHeadRow[];
+  keyCards?: ProfileCardStat[];
   performance?: LeaderboardRow | null;
   playerName: string | null;
   scoreAverages?: ScoreSourceAverages | null;
@@ -214,8 +309,10 @@ function buildPlayAnalysis({
 }
 
 export function ProfileDashboard({
+  cardOutcomes = [],
   coverage = null,
   headToHeadRows = [],
+  keyCards = [],
   linkHref,
   performance = null,
   playerName,
@@ -266,7 +363,7 @@ export function ProfileDashboard({
             <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="tm-stat-card">
                 <dt className="tm-data-label">
-                  Weighted Score
+                  <GlossaryLink slug="weighted-score">Weighted Score</GlossaryLink>
                 </dt>
                 <dd className="mt-2 text-lg font-semibold text-stone-100">
                   {formatAverage(performance.weightedScore)}
@@ -274,7 +371,7 @@ export function ProfileDashboard({
               </div>
               <div className="tm-stat-card">
                 <dt className="tm-data-label">
-                  Win Rate
+                  <GlossaryLink slug="win-rate">Win Rate</GlossaryLink>
                 </dt>
                 <dd className="mt-2 text-lg font-semibold text-stone-100">
                   {formatPercent(performance.winRate)}
@@ -282,7 +379,7 @@ export function ProfileDashboard({
               </div>
               <div className="tm-stat-card">
                 <dt className="tm-data-label">
-                  Average Placement
+                  <GlossaryLink slug="average-placement">Average Placement</GlossaryLink>
                 </dt>
                 <dd className="mt-2 text-lg font-semibold text-stone-100">
                   {formatAverage(performance.averagePlacement)}
@@ -290,7 +387,7 @@ export function ProfileDashboard({
               </div>
               <div className="tm-stat-card">
                 <dt className="tm-data-label">
-                  Average Score
+                  <GlossaryLink slug="average-score">Average Score</GlossaryLink>
                 </dt>
                 <dd className="mt-2 text-lg font-semibold text-stone-100">
                   {formatAverage(performance.averageScore)}
@@ -336,8 +433,8 @@ export function ProfileDashboard({
       </ChartFrame>
       <ChartFrame title="Group Comparisons">
         <p className="text-sm text-stone-300">
-          Compare your play in any group you have played against your overall
-          record.
+          Compare your play in any group you have played against your{' '}
+          <GlossaryLink slug="overall-view">overall</GlossaryLink> record.
         </p>
         <Link
           className="tm-button-primary mt-4 inline-flex w-fit"
@@ -349,7 +446,17 @@ export function ProfileDashboard({
       <ChartFrame title="Score Source Averages">
         <ScoreSourceList scoreAverages={scoreAverages} />
       </ChartFrame>
+      <ProfileCardPanels
+        cardOutcomes={cardOutcomes}
+        keyCards={keyCards}
+        playerName={playerName}
+      />
       <ChartFrame title="Styles Breakdown">
+        <p className="tm-muted-copy mb-3 text-sm">
+          How each{' '}
+          <GlossaryLink slug="inferred-style">inferred play style</GlossaryLink>{' '}
+          you have used has performed across your finalized games.
+        </p>
         {styleBreakdownRows.length === 0 ? (
           <p className="text-sm text-stone-400">
             No inferred style results are available for {playerName} yet.
@@ -416,7 +523,9 @@ export function ProfileDashboard({
                     {insight.confidence} confidence
                   </p>
                 </div>
-                <p className="mt-2 text-sm text-stone-300">{insight.body}</p>
+                <p className="mt-2 text-sm text-stone-300">
+                  {renderStyleInsightBody(insight)}
+                </p>
                 <p className="tm-muted-copy mt-2 text-xs">
                   Evidence: {insight.evidenceLabel}
                 </p>
@@ -426,6 +535,13 @@ export function ProfileDashboard({
         </ChartFrame>
       ) : null}
       <ChartFrame title="Head-to-Head Snapshot">
+        <p className="tm-muted-copy mb-3 text-sm">
+          Your direct{' '}
+          <GlossaryLink slug="head-to-head">head-to-head</GlossaryLink> records
+          against opponents you have shared{' '}
+          <GlossaryLink slug="finalized-game">finalized games</GlossaryLink>{' '}
+          with.
+        </p>
         {headToHeadRows.length === 0 ? (
           <p className="text-sm text-stone-400">
             No finalized head-to-head matchups are available yet.
@@ -479,8 +595,13 @@ export function ProfileDashboard({
               </p>
             </div>
             <p className="tm-muted-copy text-sm sm:col-span-3">
-              Based on {styleAgreement.comparedGames} finalized games that have
-              both declared and inferred styles recorded.
+              Your{' '}
+              <GlossaryLink slug="style-agreement">style agreement</GlossaryLink>{' '}
+              is based on {styleAgreement.comparedGames} finalized games that
+              have both a{' '}
+              <GlossaryLink slug="declared-style">declared</GlossaryLink> and an{' '}
+              <GlossaryLink slug="inferred-style">inferred</GlossaryLink> style
+              recorded.
             </p>
           </div>
         ) : (
@@ -490,14 +611,34 @@ export function ProfileDashboard({
         )}
       </ChartFrame>
       <ChartFrame title="Optional Data Coverage">
+        <p className="tm-muted-copy mb-3 text-sm">
+          How complete the{' '}
+          <GlossaryLink slug="optional-data-coverage">
+            optional data coverage
+          </GlossaryLink>{' '}
+          behind these charts is — a low value means a detail was not recorded,
+          not that it was zero.
+        </p>
         {coverage ? (
           <div className="flex flex-wrap gap-2">
-            <CoverageBadge label="Full card breakdown" value={coverage.cardBreakdownCoverage} />
-            <CoverageBadge label="Microbe coverage" value={coverage.microbeCoverage} />
-            <CoverageBadge label="Animal coverage" value={coverage.animalCoverage} />
-            <CoverageBadge label="Jovian coverage" value={coverage.jovianCoverage} />
-            <CoverageBadge label="Declared style coverage" value={coverage.declaredStyleCoverage} />
-            <CoverageBadge label="Key-card coverage" value={coverage.keyCardCoverage} />
+            <GlossaryLink slug="full-card-breakdown-coverage">
+              <CoverageBadge label="Full card breakdown" value={coverage.cardBreakdownCoverage} />
+            </GlossaryLink>
+            <GlossaryLink slug="microbe-coverage">
+              <CoverageBadge label="Microbe coverage" value={coverage.microbeCoverage} />
+            </GlossaryLink>
+            <GlossaryLink slug="animal-coverage">
+              <CoverageBadge label="Animal coverage" value={coverage.animalCoverage} />
+            </GlossaryLink>
+            <GlossaryLink slug="jovian-coverage">
+              <CoverageBadge label="Jovian coverage" value={coverage.jovianCoverage} />
+            </GlossaryLink>
+            <GlossaryLink slug="declared-style-coverage">
+              <CoverageBadge label="Declared style coverage" value={coverage.declaredStyleCoverage} />
+            </GlossaryLink>
+            <GlossaryLink slug="key-card-coverage">
+              <CoverageBadge label="Key-card coverage" value={coverage.keyCardCoverage} />
+            </GlossaryLink>
           </div>
         ) : (
           <p className="text-sm text-stone-400">

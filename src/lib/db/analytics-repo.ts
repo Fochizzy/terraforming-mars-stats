@@ -13,6 +13,11 @@ import {
   mergePlayerStylePerformance,
   mergeStyleAgreement,
 } from '@/lib/db/overall-analytics-aggregators';
+import {
+  fetchUsernamesByPlayerId,
+  resolvePlayerLabelsInRows,
+} from '@/lib/db/player-label-resolution';
+import { personLabel } from '@/lib/people/person-label';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type LeaderboardRow = {
@@ -177,11 +182,25 @@ export type ProfileStyleBreakdownRow = {
   wins: number;
 };
 
+export type ProfileStyleInsightCard = {
+  cardName: string;
+  fullImageUrl: string | null;
+  id: string;
+  thumbnailUrl: string | null;
+};
+
 export type ProfileStyleInsight = {
   body: string;
+  // The card referenced by name in `body` (Game Log Signal only), so the
+  // renderer can turn its mention into a stats link.
+  card?: ProfileStyleInsightCard | null;
   confidence: 'high' | 'low' | 'medium';
   evidenceLabel: string;
   sampleSize: number;
+  // The play style referenced by name in `body`, so the renderer can deep-link
+  // its mention to the glossary. `styleCode` drives the `style-<code>` slug.
+  styleCode?: string;
+  styleName?: string;
   title: string;
 };
 
@@ -1389,7 +1408,8 @@ export async function listGroupLeaderboard(groupId: string) {
     throw error;
   }
 
-  return sortLeaderboardRows((data as RawLeaderboardRow[]).map(mapLeaderboardRow));
+  const rows = await resolvePlayerLabelsInRows(supabase, data as RawLeaderboardRow[]);
+  return sortLeaderboardRows(rows.map(mapLeaderboardRow));
 }
 
 export async function getGroupScoreSourceAverages(groupId: string) {
@@ -1434,7 +1454,11 @@ export async function listGroupPlayerScoreAverages(groupId: string) {
     throw error;
   }
 
-  return (data as RawPlayerScoreSourceAveragesRow[])
+  const rows = await resolvePlayerLabelsInRows(
+    supabase,
+    data as RawPlayerScoreSourceAveragesRow[],
+  );
+  return rows
     .map(mapPlayerScoreSourceAveragesRow)
     .sort((left, right) => left.playerName.localeCompare(right.playerName));
 }
@@ -1450,7 +1474,8 @@ export async function listGroupHeadToHead(groupId: string) {
     throw error;
   }
 
-  return sortHeadToHeadRows((data as RawHeadToHeadRow[]).map(mapHeadToHeadRow));
+  const rows = await resolvePlayerLabelsInRows(supabase, data as RawHeadToHeadRow[]);
+  return sortHeadToHeadRows(rows.map(mapHeadToHeadRow));
 }
 
 export async function listGroupStylePerformance(groupId: string) {
@@ -1480,9 +1505,11 @@ export async function listPlayerStylePerformance(groupId: string) {
     throw error;
   }
 
-  return sortStylePerformanceRows(
-    (data as RawPlayerStylePerformanceRow[]).map(mapPlayerStylePerformanceRow),
+  const rows = await resolvePlayerLabelsInRows(
+    supabase,
+    data as RawPlayerStylePerformanceRow[],
   );
+  return sortStylePerformanceRows(rows.map(mapPlayerStylePerformanceRow));
 }
 
 export async function listGroupInteractions(groupId: string) {
@@ -1512,9 +1539,11 @@ export async function listPlayerInteractions(groupId: string) {
     throw error;
   }
 
-  return sortInteractionRows(
-    compactRows((data as RawPlayerInteractionRow[]).map(mapPlayerInteractionRow)),
+  const rows = await resolvePlayerLabelsInRows(
+    supabase,
+    data as RawPlayerInteractionRow[],
   );
+  return sortInteractionRows(compactRows(rows.map(mapPlayerInteractionRow)));
 }
 
 export async function listGroupLineupEffects(groupId: string) {
@@ -1528,7 +1557,8 @@ export async function listGroupLineupEffects(groupId: string) {
     throw error;
   }
 
-  return sortLineupEffectRows((data as RawLineupEffectRow[]).map(mapLineupEffectRow));
+  const rows = await resolvePlayerLabelsInRows(supabase, data as RawLineupEffectRow[]);
+  return sortLineupEffectRows(rows.map(mapLineupEffectRow));
 }
 
 export async function listPlayerTrendRows(groupId: string) {
@@ -1542,7 +1572,8 @@ export async function listPlayerTrendRows(groupId: string) {
     throw error;
   }
 
-  return sortTrendRows((data as RawTrendRow[]).map(mapTrendRow));
+  const rows = await resolvePlayerLabelsInRows(supabase, data as RawTrendRow[]);
+  return sortTrendRows(rows.map(mapTrendRow));
 }
 
 export async function listGroupStyleAgreement(groupId: string) {
@@ -1557,9 +1588,11 @@ export async function listGroupStyleAgreement(groupId: string) {
     throw error;
   }
 
-  return sortStyleAgreementRows(
-    (data as RawStyleAgreementRow[]).map(mapStyleAgreementRow),
+  const rows = await resolvePlayerLabelsInRows(
+    supabase,
+    data as RawStyleAgreementRow[],
   );
+  return sortStyleAgreementRows(rows.map(mapStyleAgreementRow));
 }
 
 export async function getGroupCoverage(groupId: string) {
@@ -1590,7 +1623,11 @@ export async function getPlayerCoverage(groupId: string, playerId: string) {
     throw error;
   }
 
-  return data ? mapCoverageRow(data as RawCoverageRow) : null;
+  const [row] = await resolvePlayerLabelsInRows(
+    supabase,
+    data ? [data as RawCoverageRow] : [],
+  );
+  return row ? mapCoverageRow(row) : null;
 }
 
 export async function listGroupPlayerCoverage(groupId: string) {
@@ -1604,7 +1641,8 @@ export async function listGroupPlayerCoverage(groupId: string) {
     throw error;
   }
 
-  return (data as RawCoverageRow[])
+  const rows = await resolvePlayerLabelsInRows(supabase, data as RawCoverageRow[]);
+  return rows
     .map(mapCoverageRow)
     .sort(
       (left, right) =>
@@ -1737,6 +1775,8 @@ function buildProfileStyleInsights({
       mostPlayedStyle.gamesPlayed,
       'finalized style read',
     ),
+    styleCode: mostPlayedStyle.styleCode,
+    styleName: mostPlayedStyle.styleName,
     body: `Your most logged style is ${mostPlayedStyle.styleName}: ${formatCount(mostPlayedStyle.gamesPlayed, 'finish', 'finishes')} out of ${formatCount(totalStyleGames, 'finalized style read')} (${formatInsightPercent(mostPlayedStyle.playRate)}), averaging place ${formatInsightNumber(mostPlayedStyle.averagePlacement)} and ${formatInsightNumber(mostPlayedStyle.averageScore)} points.`,
   });
 
@@ -1758,6 +1798,8 @@ function buildProfileStyleInsights({
         bestPlacementStyle.gamesPlayed,
         'finalized style read',
       ),
+      styleCode: bestPlacementStyle.styleCode,
+      styleName: bestPlacementStyle.styleName,
       body: `Your strongest final placements are coming from ${bestPlacementStyle.styleName}: average place ${formatInsightNumber(bestPlacementStyle.averagePlacement)}, ${formatCount(bestPlacementStyle.wins, 'win')} in ${formatCount(bestPlacementStyle.gamesPlayed, 'finish', 'finishes')}, and a ${formatInsightPercent(bestPlacementStyle.winRate)} win rate.`,
     });
   }
@@ -1778,9 +1820,12 @@ function buildProfileStyleInsights({
   const loggedCardTotals = new Map<
     string,
     {
+      cardId: string;
       cardName: string;
+      fullImageUrl: string | null;
       plays: number;
       styleCode: string;
+      thumbnailUrl: string | null;
       wins: number;
     }
   >();
@@ -1794,9 +1839,12 @@ function buildProfileStyleInsights({
 
     const key = `${styleCode}|${row.card_id}`;
     const current = loggedCardTotals.get(key) ?? {
+      cardId: row.card_id,
       cardName: row.card_name,
+      fullImageUrl: row.full_image_url ?? null,
       plays: 0,
       styleCode,
+      thumbnailUrl: row.thumbnail_url ?? null,
       wins: 0,
     };
 
@@ -1823,6 +1871,14 @@ function buildProfileStyleInsights({
       sampleSize: loggedCardSignal.plays,
       confidence: getProfileInsightConfidence(loggedCardSignal.plays),
       evidenceLabel: formatCount(loggedCardSignal.plays, 'logged card play'),
+      styleCode: styleRow?.styleCode ?? loggedCardSignal.styleCode,
+      styleName: styleRow?.styleName ?? formatStyleName(loggedCardSignal.styleCode),
+      card: {
+        cardName: loggedCardSignal.cardName,
+        fullImageUrl: loggedCardSignal.fullImageUrl,
+        id: loggedCardSignal.cardId,
+        thumbnailUrl: loggedCardSignal.thumbnailUrl,
+      },
       body: `Imported game logs add texture to your ${styleRow?.styleName ?? formatStyleName(loggedCardSignal.styleCode)} games: ${loggedCardSignal.cardName} is your most repeated logged card there, appearing in ${formatCount(loggedCardSignal.plays, 'play')} with a ${formatInsightPercent(loggedCardSignal.wins / loggedCardSignal.plays)} win rate.`,
     });
   }
@@ -1830,12 +1886,14 @@ function buildProfileStyleInsights({
   return insights.slice(0, 3);
 }
 
-// Fetch a player's logged card plays from the matching analytics view. The raw
-// game/card rows feed style sentence insights, and the lookup is optional so a
-// missing live analytics view cannot break the rest of My Profile.
+// Fetch a player's flagged key cards or logged card plays from the matching
+// analytics view. The raw game/card rows feed both the aggregated profile card
+// lists and the style sentence insights. Image URLs ride along so each card can
+// link to its full art. The lookup is optional so a missing live analytics view
+// cannot break the rest of My Profile.
 async function listProfileCardRows(
   supabase: AnalyticsSupabaseClient,
-  view: 'player_card_outcomes',
+  view: 'player_card_outcomes' | 'player_key_cards',
   playerIds: string[],
 ): Promise<RawProfileCardRow[]> {
   if (playerIds.length === 0) {
@@ -1844,7 +1902,9 @@ async function listProfileCardRows(
 
   const { data, error } = await getAnalyticsClient(supabase)
     .from(view)
-    .select('card_id, card_name, game_id, is_winner, player_id')
+    .select(
+      'card_id, card_name, full_image_url, game_id, is_winner, player_id, thumbnail_url',
+    )
     .in('player_id', playerIds);
 
   if (error) {
@@ -1881,9 +1941,12 @@ export async function getProfileAnalytics(
     throw ownRowsError;
   }
 
-  const normalizedOwnRows = ((ownRows as RawProfileGameResultRow[] | null) ?? []).map(
-    mapProfileGameResultRow,
-  );
+  const normalizedOwnRows = (
+    await resolvePlayerLabelsInRows(
+      supabase,
+      (ownRows as RawProfileGameResultRow[] | null) ?? [],
+    )
+  ).map(mapProfileGameResultRow);
 
   if (normalizedOwnRows.length === 0) {
     return buildProfileAnalyticsFromRows({
@@ -1911,9 +1974,12 @@ export async function getProfileAnalytics(
       throw sharedRowsError;
     }
 
-    normalizedSharedRows = ((sharedRows as RawProfileGameResultRow[] | null) ?? []).map(
-      mapProfileGameResultRow,
-    );
+    normalizedSharedRows = (
+      await resolvePlayerLabelsInRows(
+        supabase,
+        (sharedRows as RawProfileGameResultRow[] | null) ?? [],
+      )
+    ).map(mapProfileGameResultRow);
   }
 
   // Opponents appear as a distinct player row per group, so head-to-head must
@@ -1945,11 +2011,10 @@ export async function getProfileAnalytics(
     }
   }
 
-  const cardOutcomeRows = await listProfileCardRows(
-    supabase,
-    'player_card_outcomes',
-    linkedPlayerIds,
-  );
+  const [cardOutcomeRows, keyCardRows] = await Promise.all([
+    listProfileCardRows(supabase, 'player_card_outcomes', linkedPlayerIds),
+    listProfileCardRows(supabase, 'player_key_cards', linkedPlayerIds),
+  ]);
 
   return {
     ...buildProfileAnalyticsFromRows({
@@ -1959,7 +2024,7 @@ export async function getProfileAnalytics(
       ownRows: normalizedOwnRows,
       sharedRows: normalizedSharedRows,
     }),
-    keyCards: [],
+    keyCards: aggregateProfileCardRows(keyCardRows),
     cardOutcomes: aggregateProfileCardRows(cardOutcomeRows),
   };
 }
@@ -1993,9 +2058,12 @@ export async function getCrossGroupFocusData(
     throw ownError;
   }
 
-  const ownRows = ((ownData as RawFocusGameResultRow[] | null) ?? []).map(
-    mapFocusGameResultRow,
-  );
+  const ownRows = (
+    await resolvePlayerLabelsInRows(
+      supabase,
+      (ownData as RawFocusGameResultRow[] | null) ?? [],
+    )
+  ).map(mapFocusGameResultRow);
   const gameIds = [...new Set(ownRows.map((row) => row.gameId))];
 
   if (gameIds.length === 0) {
@@ -2011,9 +2079,12 @@ export async function getCrossGroupFocusData(
     throw allError;
   }
 
-  const allRows = ((allData as RawFocusGameResultRow[] | null) ?? []).map(
-    mapFocusGameResultRow,
-  );
+  const allRows = (
+    await resolvePlayerLabelsInRows(
+      supabase,
+      (allData as RawFocusGameResultRow[] | null) ?? [],
+    )
+  ).map(mapFocusGameResultRow);
 
   const participantIds = [...new Set(allRows.map((row) => row.playerId))];
   const identityByPlayerId = new Map<string, { canonicalId: string; displayName: string }>();
@@ -2029,9 +2100,20 @@ export async function getCrossGroupFocusData(
       throw participantsError;
     }
 
+    const usernameByPlayerId = await fetchUsernamesByPlayerId(
+      supabase,
+      ((participants ?? []) as PlayerIdentityRow[]).map((player) => player.id),
+    );
+
     for (const player of (participants ?? []) as PlayerIdentityRow[]) {
       const canonicalId = canonicalPersonId(player);
-      identityByPlayerId.set(player.id, { canonicalId, displayName: player.display_name });
+      identityByPlayerId.set(player.id, {
+        canonicalId,
+        displayName: personLabel({
+          username: usernameByPlayerId.get(player.id),
+          displayName: player.display_name,
+        }),
+      });
 
       const existing = playerIdsByCanonical.get(canonicalId) ?? new Set<string>();
       existing.add(player.id);
@@ -2378,11 +2460,20 @@ export async function getOverallAnalytics(
   const displayNameByCanonical = new Map<string, string>();
   const linkedPreferredCanonicals = new Set<string>();
 
+  const usernameByPlayerId = await fetchUsernamesByPlayerId(
+    supabase,
+    ((players ?? []) as PlayerIdentityRow[]).map((player) => player.id),
+  );
+
   for (const player of (players ?? []) as PlayerIdentityRow[]) {
     const canonicalId = canonicalPersonId(player);
+    const label = personLabel({
+      username: usernameByPlayerId.get(player.id),
+      displayName: player.display_name,
+    });
     identityByPlayerId.set(player.id, {
       canonicalId,
-      displayName: player.display_name,
+      displayName: label,
     });
 
     const isLinked = Boolean(player.linked_user_id);
@@ -2391,7 +2482,7 @@ export async function getOverallAnalytics(
       (isLinked && !linkedPreferredCanonicals.has(canonicalId));
 
     if (shouldPreferName) {
-      displayNameByCanonical.set(canonicalId, player.display_name);
+      displayNameByCanonical.set(canonicalId, label);
 
       if (isLinked) {
         linkedPreferredCanonicals.add(canonicalId);

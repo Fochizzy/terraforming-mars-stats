@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { SelectChevron } from '@/components/ui/select-chevron';
+import { CardStatsButton } from './card-stats-dialog';
 
 export type CardLookupEntry = {
   cardName: string;
@@ -241,13 +242,15 @@ export function CardLookupBrowser({ cards }: { cards: CardLookupEntry[] }) {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {visibleCards.map((card) => (
-              <a
-                aria-label={`Open full image for ${card.cardName}`}
-                className="tm-stat-card grid min-w-0 grid-cols-[82px_minmax(0,1fr)] gap-3 transition hover:border-[rgba(221,161,93,0.52)]"
-                href={card.fullImageUrl}
+              <CardStatsButton
+                card={{
+                  cardName: card.cardName,
+                  fullImageUrl: card.fullImageUrl,
+                  id: card.id,
+                  thumbnailUrl: card.thumbnailUrl,
+                }}
+                className="tm-stat-card grid min-w-0 grid-cols-[82px_minmax(0,1fr)] gap-3 text-left transition hover:border-[rgba(221,161,93,0.52)]"
                 key={card.id}
-                rel="noreferrer"
-                target="_blank"
               >
                 <Image
                   alt={`${card.cardName} thumbnail`}
@@ -278,7 +281,7 @@ export function CardLookupBrowser({ cards }: { cards: CardLookupEntry[] }) {
                     ))}
                   </div>
                 </div>
-              </a>
+              </CardStatsButton>
             ))}
           </div>
         )}

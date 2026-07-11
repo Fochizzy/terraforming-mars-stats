@@ -1,4 +1,19 @@
 import { buildScoreSourceEntries, type ScoreSourceAverages } from '@/lib/db/analytics-repo';
+import { GlossaryLink } from '@/features/glossary/glossary-link';
+
+/** Maps each score-source row label to its glossary term anchor. */
+const scoreSourceSlugs: Record<string, string> = {
+  'Terraform Rating': 'terraform-rating',
+  'Card Points': 'card-points',
+  'Other Card': 'other-card-points',
+  Greenery: 'greenery-points',
+  Cities: 'city-points',
+  Milestones: 'milestone-points',
+  Awards: 'award-points',
+  Jovian: 'jovian-points',
+  Microbe: 'microbe-points',
+  Animal: 'animal-points',
+};
 
 function formatAverage(value: number) {
   return new Intl.NumberFormat('en-US', {
@@ -28,7 +43,15 @@ export function ScoreSourceList({
       {entries.map((entry) => (
         <div className="grid gap-1" key={entry.label}>
           <div className="flex items-center justify-between text-sm text-stone-200">
-            <span>{entry.label}</span>
+            <span>
+              {scoreSourceSlugs[entry.label] ? (
+                <GlossaryLink slug={scoreSourceSlugs[entry.label]}>
+                  {entry.label}
+                </GlossaryLink>
+              ) : (
+                entry.label
+              )}
+            </span>
             <span>{formatAverage(entry.value)}</span>
           </div>
           <div className="tm-score-track">

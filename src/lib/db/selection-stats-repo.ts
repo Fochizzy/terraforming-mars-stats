@@ -1,3 +1,4 @@
+import { resolvePlayerLabelsInRows } from '@/lib/db/player-label-resolution';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type SelectionStatRow = {
@@ -77,8 +78,10 @@ export type HeadToHeadPair = {
   avg_margin: number;
   games: number;
   player_a: string;
+  player_a_id: string;
   player_a_wins: number;
   player_b: string;
+  player_b_id: string;
   player_b_wins: number;
 };
 
@@ -156,9 +159,18 @@ export async function getHeadToHeadStats(
 
   const payload = (data ?? {}) as Record<string, unknown>;
 
+  const pairs = await resolvePlayerLabelsInRows(
+    supabase,
+    readArray<HeadToHeadPair>(payload.pairs),
+    [
+      ['player_a_id', 'player_a'],
+      ['player_b_id', 'player_b'],
+    ],
+  );
+
   return {
     corporationMatchups: readArray(payload.corporationMatchups),
-    pairs: readArray(payload.pairs),
+    pairs,
   };
 }
 
@@ -174,5 +186,5 @@ export async function getMergerImpactStats(
     throw error;
   }
 
-  return readArray(data);
+  return resolvePlayerLabelsInRows(supabase, readArray<MergerImpactStat>(data));
 }

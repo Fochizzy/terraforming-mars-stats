@@ -66,8 +66,10 @@ export default async function ProfilePage(_props: ProfilePageProps) {
         </ChartFrame>
       ) : (
         <ProfileDashboard
+          cardOutcomes={profileAnalytics?.cardOutcomes ?? []}
           coverage={profileAnalytics?.coverage ?? null}
           headToHeadRows={profileAnalytics?.headToHeadRows ?? []}
+          keyCards={profileAnalytics?.keyCards ?? []}
           linkHref="/group/players"
           performance={profileAnalytics?.performance ?? null}
           playerName={profileAnalytics?.playerName ?? null}
