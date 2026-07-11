@@ -1,7 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getImportErrorMessage, WebImportPage } from './web-import-page';
+
+const browserReadMocks = vi.hoisted(() => ({
+  readGameResultScreenshotInBrowser: vi.fn(),
+}));
+
+vi.mock('@/lib/imports/ocr/read-game-result-screenshot-in-browser', () => ({
+  readGameResultScreenshotInBrowser:
+    browserReadMocks.readGameResultScreenshotInBrowser,
+}));
 
 const review = {
   boardReviewItems: [
@@ -97,6 +106,13 @@ const review = {
 };
 
 describe('WebImportPage', () => {
+  beforeEach(() => {
+    browserReadMocks.readGameResultScreenshotInBrowser.mockReset();
+    browserReadMocks.readGameResultScreenshotInBrowser.mockRejectedValue(
+      new Error('The file could not be read.'),
+    );
+  });
+
   it('renders the protected import workflow fields', () => {
     render(
       <WebImportPage
@@ -384,6 +400,91 @@ describe('WebImportPage', () => {
     expect(
       onAnalyzeImportEvidence.mock.calls[0]?.[0].get('endgameScreenshot'),
     ).toBe(droppedPdf);
+  });
+
+  it('keeps a parsed PDF out of the confirmation payload after analysis', async () => {
+    const user = userEvent.setup();
+    const parsedPdfPayload = {
+      endgameLayout: 'victory_breakdown' as const,
+      endgameLines: [
+        'Victory points breakdown after 10 generations',
+        'Friday Mars 18 5 2 0 0 1 26 8',
+      ],
+      generationCount: 10,
+      globalParameters: [],
+      scoreDetailsColumns: [
+        {
+          textLines: ['Friday Mars', 'Builder Hall 1'],
+        },
+      ],
+    };
+    const pdf = new File(['%PDF-1.4'], 'game-4.pdf', {
+      type: 'application/pdf',
+    });
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        ...review,
+        playerLinks: [review.playerLinks[0]],
+        requiresPlayerConfirmation: false,
+      },
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    browserReadMocks.readGameResultScreenshotInBrowser.mockResolvedValue(
+      parsedPdfPayload,
+    );
+
+    render(
+      <WebImportPage
+        initialValues={{
+          playedOn: '2026-07-03',
+        }}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars played Builder Hall.',
+    );
+    await user.type(screen.getByLabelText(/participants/i), 'Friday Mars');
+    await user.upload(
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
+      pdf,
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    const analyzedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0] as FormData;
+    expect(analyzedFormData.get('endgameScreenshot')).toBe(pdf);
+    expect(JSON.parse(String(analyzedFormData.get('screenshotOcr')))).toMatchObject({
+      endgameLines: parsedPdfPayload.endgameLines,
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: /confirm import draft/i }),
+    );
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    const confirmedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
+    expect(confirmedFormData.get('endgameScreenshot')).toBeNull();
+    expect(JSON.parse(String(confirmedFormData.get('screenshotOcr')))).toMatchObject({
+      endgameLines: parsedPdfPayload.endgameLines,
+    });
+    expect(
+      browserReadMocks.readGameResultScreenshotInBrowser,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it('offers both images and PDFs in the file picker', async () => {

@@ -394,7 +394,29 @@ export function WebImportPage({
     );
   }
 
-  function buildCurrentFormData(screenshotOcr: ScreenshotOcrPayload | null) {
+  function getSubmittedEndgameEvidenceFile(input: {
+    intent: 'analyze' | 'confirm';
+    screenshotOcr: ScreenshotOcrPayload | null;
+  }) {
+    if (!endgameScreenshot) {
+      return null;
+    }
+
+    if (
+      input.intent === 'confirm' &&
+      isPdfFile(endgameScreenshot) &&
+      input.screenshotOcr
+    ) {
+      return null;
+    }
+
+    return endgameScreenshot;
+  }
+
+  function buildCurrentFormData(
+    screenshotOcr: ScreenshotOcrPayload | null,
+    intent: 'analyze' | 'confirm' = 'analyze',
+  ) {
     return buildCreateImportDraftFormData({
       boardScreenshots: [],
       confirmedPlayerLinks: review
@@ -403,7 +425,10 @@ export function WebImportPage({
             return playerId ? [{ importedName: link.importedName, playerId }] : [];
           })
         : [],
-      endgameScreenshot,
+      endgameScreenshot: getSubmittedEndgameEvidenceFile({
+        intent,
+        screenshotOcr,
+      }),
       exportedGameLog: exportedGameLog.trim(),
       generationCount,
       participants: participantsText,
@@ -519,7 +544,7 @@ export function WebImportPage({
     try {
       const screenshotOcr = await resolveScreenshotOcr();
       const result = await onConfirmImportReview(
-        buildCurrentFormData(screenshotOcr),
+        buildCurrentFormData(screenshotOcr, 'confirm'),
         resolveManualReviewJumpTargetWithPlayerSelection({
           playerSelections,
           target: manualReviewJumpTarget,
