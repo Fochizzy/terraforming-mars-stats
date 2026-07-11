@@ -2,7 +2,6 @@ import { AppShell } from '@/components/layout/app-shell';
 import { buildFinalizedGamePayload } from '@/features/games/finalize-game';
 import { LogGameWizard } from '@/features/games/log-game/log-game-wizard';
 import { SavedGamesPicker } from '@/features/games/log-game/saved-games-picker';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { ImportEvidenceSummary } from '@/features/imports/import-evidence-summary';
 import { mergeDraftIntoInitialValues } from '@/features/games/log-game/use-log-game-draft';
@@ -178,16 +177,13 @@ export default async function LogGameReviewPage({
     }
 
     return (
-      <AppShell
-        headerActions={
+      <AppShell title="Log Game Review" wide>
+        <div className="mb-4">
           <SavedGamesGroupFilter
             groups={groups}
             selectedGroupId={selectedGroupId}
           />
-        }
-        title="Log Game Review"
-        wide
-      >
+        </div>
         <SavedGamesPicker
           deleteGameAction={handleDeleteGame}
           emptyScopeLabel={selectedGroupId ? 'in this group' : 'in any group'}
@@ -358,16 +354,7 @@ export default async function LogGameReviewPage({
   }
 
   return (
-    <AppShell
-      headerActions={
-        <GroupSwitcher
-          currentGroupId={reviewGroupId}
-          returnPath="/log-game/review"
-        />
-      }
-      title="Log Game Review"
-      wide
-    >
+    <AppShell title="Log Game Review" wide>
       {importSummary ? (
         <ImportEvidenceSummary importSummary={importSummary} />
       ) : null}

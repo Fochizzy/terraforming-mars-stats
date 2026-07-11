@@ -188,6 +188,7 @@ describe('LogGameReviewPage', () => {
     expect(screen.getByRole('combobox', { name: /saved games group/i })).toHaveValue(
       'all',
     );
+    expect(screen.queryByText('Group Switcher')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /resume draft/i })).toHaveAttribute(
       'href',
       '/log-game/review?gameId=game-draft&groupId=group-1',
@@ -248,6 +249,7 @@ describe('LogGameReviewPage', () => {
     );
 
     expect(screen.getByTestId('log-game-wizard')).toBeInTheDocument();
+    expect(screen.queryByText('Group Switcher')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /saved games/i })).not.toBeInTheDocument();
     expect(mockState.getGroupSettings).toHaveBeenCalledWith('group-2');
     expect(mockState.listImportResolutionPlayers).toHaveBeenCalledWith('group-2');
