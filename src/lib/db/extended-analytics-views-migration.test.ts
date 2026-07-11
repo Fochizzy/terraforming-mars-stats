@@ -105,9 +105,11 @@ describe('extended analytics views migration', () => {
 });
 
 describe('tag summary alias resolution migration', () => {
-  const migration = getMigrationContaining('tag_summary_player_links');
+  const migration = getMigrationContaining(
+    "coalesce(c.name, 'Unknown Corporation') as corporation_name",
+  );
   const multipleCorporationsMigration = getMigrationContaining(
-    'game_player_corporations',
+    'create table if not exists public.game_player_corporations',
   );
 
   it('resolves tag outcomes through confirmed game-log aliases before display names', () => {
@@ -197,7 +199,9 @@ describe('Merger impact stats migration', () => {
 });
 
 describe('Award economics migration', () => {
-  const migration = getMigrationContaining('get_award_economics');
+  const migration = getMigrationContaining(
+    'create or replace function public.get_award_economics',
+  );
 
   it('aggregates award economics across groups with security definer', () => {
     expect(migration).toContain(
@@ -228,6 +232,27 @@ describe('Award economics migration', () => {
     );
     expect(migration).toContain(
       'grant execute on function public.get_award_economics(text) to authenticated;',
+    );
+  });
+});
+
+describe('Selection stats mid-game prelude migration', () => {
+  const migration = getMigrationContaining('prelude_entries as');
+
+  it('counts setup and in-game preludes in prelude selection stats', () => {
+    expect(migration).toContain('from game_player_preludes gpp');
+    expect(migration).toContain('from game_player_midgame_preludes gpmp');
+    expect(migration).toContain('join prelude_entries pe on pe.game_player_id = e.id');
+    expect(migration).toContain('join prelude_entries pe on pe.game_player_id = ce.id');
+    expect(migration).toContain('Board of Directors');
+  });
+
+  it('preserves the get_selection_stats grants after replacing the function', () => {
+    expect(migration).toContain(
+      'revoke all on function public.get_selection_stats(text) from public;',
+    );
+    expect(migration).toContain(
+      'grant execute on function public.get_selection_stats(text) to authenticated;',
     );
   });
 });

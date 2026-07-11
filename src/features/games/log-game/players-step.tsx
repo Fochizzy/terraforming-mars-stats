@@ -295,8 +295,8 @@ export function PlayersStep({
                 <div className="grid gap-3">
                   <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
                     Preludes played later in the game, by Valley Trust, Board of
-                    Directors or New Partner. These are kept apart from the
-                    preludes dealt at setup.
+                    Directors or New Partner. Enter them separately here; they
+                    still count under preludes in stats.
                   </p>
                   <div className="grid gap-3 lg:grid-cols-4">
                     {MIDGAME_PRELUDE_SLOT_INDEXES.map((slotIndex) => (

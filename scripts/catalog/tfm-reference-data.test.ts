@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   buildTfmCardBrowserUrl,
@@ -6,6 +7,7 @@ import {
   TFM_CARD_IMAGE_PLACEHOLDER_PATH,
 } from './tfm-reference-data';
 import {
+  TFM_CARD_TAGS_SNAPSHOT_PATH,
   TFM_CARDS_PAGE_URL,
   type TfmCardTagRecord,
 } from './extract-tfm-card-tags';
@@ -161,6 +163,37 @@ describe('mapTfmRecordToCatalogSource', () => {
         name: 'Project 10',
         sourceCardId: 'corporation:community:R51:project-10',
         gameplayTags: ['science'],
+      },
+    ]);
+  });
+
+  it('keeps Board of Directors in the prelude catalog', () => {
+    const records = JSON.parse(
+      readFileSync(TFM_CARD_TAGS_SNAPSHOT_PATH, 'utf8'),
+    ) as TfmCardTagRecord[];
+    const boardOfDirectors = records.find(
+      (record) => record.name === 'Board of Directors',
+    );
+
+    expect(boardOfDirectors).toBeDefined();
+    expect(mapTfmRecordToCatalogSource(boardOfDirectors as TfmCardTagRecord))
+      .toMatchObject({
+        cardName: 'Board of Directors',
+        cardNumber: 'P45',
+        cardType: 'Prelude',
+        expansionCode: 'prelude_2',
+      });
+
+    expect(
+      buildTfmCatalogImportPayload([boardOfDirectors as TfmCardTagRecord])
+        .preludes,
+    ).toEqual([
+      {
+        code: 'P45',
+        expansion_code: 'prelude_2',
+        name: 'Board of Directors',
+        promo_set_slug: null,
+        required_expansion_codes: ['prelude_2'],
       },
     ]);
   });
