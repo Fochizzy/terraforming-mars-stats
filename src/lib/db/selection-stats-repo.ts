@@ -72,6 +72,8 @@ export type SelectionStats = {
   pairs: SelectionPairStat[];
   preludes: PreludeSelectionStat[];
   tagWins: TagWinStat[];
+  /** Distinct finalized games in this scope; the denominator for playrate. */
+  totalGames: number;
 };
 
 export type HeadToHeadPair = {
@@ -142,6 +144,8 @@ export async function getSelectionStats(
     pairs: readArray(payload.pairs),
     preludes: readArray(payload.preludes),
     tagWins: readArray(payload.tagWins),
+    totalGames:
+      typeof payload.totalGames === 'number' ? payload.totalGames : 0,
   };
 }
 

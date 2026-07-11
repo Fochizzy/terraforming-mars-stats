@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { isRenderableCardImage } from './card-image';
 import { type CardWinStats, getCardWinStats } from './card-stats-actions';
 
 export type CardStatsCard = {
@@ -54,12 +55,14 @@ function CardStatsDialog({
   const [status, setStatus] = useState<'error' | 'loading' | 'ready'>(
     'loading',
   );
+  const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     setStatus('loading');
     setStats(null);
+    setImageFailed(false);
 
     getCardWinStats(card.id)
       .then((result) => {
@@ -91,7 +94,11 @@ function CardStatsDialog({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
-  const image = card.fullImageUrl ?? card.thumbnailUrl ?? null;
+  const candidateImage = card.fullImageUrl ?? card.thumbnailUrl ?? null;
+  const image =
+    !imageFailed && isRenderableCardImage(candidateImage)
+      ? candidateImage
+      : null;
 
   return (
     <div
@@ -125,6 +132,7 @@ function CardStatsDialog({
               alt={`${card.cardName} card`}
               className="max-h-[320px] w-auto rounded-md object-contain"
               height={440}
+              onError={() => setImageFailed(true)}
               src={image}
               unoptimized
               width={315}
@@ -159,7 +167,7 @@ function CardStatsDialog({
           ) : null}
         </div>
 
-        {card.fullImageUrl ? (
+        {isRenderableCardImage(card.fullImageUrl) ? (
           <a
             className="tm-button-secondary mt-4 inline-flex w-fit px-4 py-2 text-sm"
             href={card.fullImageUrl}

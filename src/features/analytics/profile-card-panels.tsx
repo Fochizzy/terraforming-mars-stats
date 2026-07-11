@@ -1,11 +1,15 @@
 import Image from 'next/image';
 import { ChartFrame } from '@/components/charts/chart-frame';
+import { isRenderableCardImage } from '@/features/catalog/card-image';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
 import type { ProfileCardStat } from '@/lib/db/analytics-repo';
 import { formatPercent } from './performance-delta';
 
 function CardCell({ card }: { card: ProfileCardStat }) {
-  const thumbnail = card.thumbnailUrl ? (
+  // Cards whose art hasn't been backfilled into Supabase Storage carry the
+  // `/file.svg` placeholder or a Heroku search-page URL, which would render as a
+  // generic document icon. Show a neutral tile for those instead.
+  const thumbnail = isRenderableCardImage(card.thumbnailUrl) ? (
     <Image
       alt={`${card.cardName} thumbnail`}
       className="h-[56px] w-[41px] shrink-0 rounded-sm object-cover"
@@ -14,7 +18,12 @@ function CardCell({ card }: { card: ProfileCardStat }) {
       unoptimized
       width={41}
     />
-  ) : null;
+  ) : (
+    <span
+      aria-hidden="true"
+      className="h-[56px] w-[41px] shrink-0 rounded-sm border border-white/10 bg-white/5"
+    />
+  );
 
   return (
     <CardStatsButton

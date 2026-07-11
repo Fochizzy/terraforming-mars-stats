@@ -21,6 +21,7 @@ const emptySelectionStats: SelectionStats = {
   pairs: [],
   preludes: [],
   tagWins: [],
+  totalGames: 0,
 };
 
 const emptyAwardEconomics: AwardEconomics = {
@@ -37,6 +38,15 @@ async function loadGlobalStatsOrDefault(): Promise<SelectionStats> {
   }
 }
 
+async function loadPersonalStatsOrDefault(): Promise<SelectionStats> {
+  try {
+    return await getSelectionStats('personal');
+  } catch (error) {
+    console.error('[global] Failed to load personal selection stats', error);
+    return emptySelectionStats;
+  }
+}
+
 async function loadAwardEconomicsOrDefault(): Promise<AwardEconomics> {
   try {
     return await getAwardEconomics('personal');
@@ -47,10 +57,15 @@ async function loadAwardEconomicsOrDefault(): Promise<AwardEconomics> {
 }
 
 export default async function GlobalStatisticsPage() {
-  const [globalStats, awardEconomics] = await Promise.all([
+  const [globalStats, personalStats, awardEconomics] = await Promise.all([
     loadGlobalStatsOrDefault(),
+    loadPersonalStatsOrDefault(),
     loadAwardEconomicsOrDefault(),
   ]);
+
+  const personalCardPlaysByName = new Map(
+    personalStats.cards.map((card) => [card.card_name, card.plays]),
+  );
 
   return (
     <AppShell showReviewSavedGamesLink title="Global Statistics" wide>
@@ -70,7 +85,12 @@ export default async function GlobalStatisticsPage() {
           heading="Corporation &amp; Prelude Performance"
           stats={globalStats}
         />
-        <WinningCardsSection cards={globalStats.cards} />
+        <WinningCardsSection
+          cards={globalStats.cards}
+          globalTotalGames={globalStats.totalGames}
+          personalTotalGames={personalStats.totalGames}
+          personalPlaysByCardName={personalCardPlaysByName}
+        />
       </section>
       <section className="tm-panel flex flex-col gap-5">
         <div className="flex flex-col gap-1">

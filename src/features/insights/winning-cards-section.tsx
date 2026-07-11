@@ -40,8 +40,29 @@ export function buildWinningCardData(
     .slice(0, limit);
 }
 
-export function WinningCardsSection(props: { cards: CardWinStat[] }) {
+// Playrate = share of finalized games in the scope that featured this card.
+// Each project card is a single copy per game, so plays never exceeds games.
+function formatPlayrate(plays: number, totalGames: number) {
+  if (!totalGames || totalGames <= 0) {
+    return '-';
+  }
+  return `${Math.round((plays / totalGames) * 100)}%`;
+}
+
+export function WinningCardsSection(props: {
+  cards: CardWinStat[];
+  /** Denominator for the "Global playrate" column (all recorded games). */
+  globalTotalGames?: number;
+  /** The caller's own game count, denominator for "Your playrate". */
+  personalTotalGames?: number;
+  /** cardName -> plays across the caller's own games. */
+  personalPlaysByCardName?: Map<string, number>;
+}) {
   const data = buildWinningCardData(props.cards);
+  const globalTotalGames = props.globalTotalGames ?? 0;
+  const personalTotalGames = props.personalTotalGames ?? 0;
+  const personalPlaysByCardName = props.personalPlaysByCardName ?? new Map();
+  const showPersonal = personalTotalGames > 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -59,6 +80,10 @@ export function WinningCardsSection(props: { cards: CardWinStat[] }) {
                 <th className="py-1 pr-3">Card</th>
                 <th className="py-1 pr-3">Wins</th>
                 <th className="py-1 pr-3">Plays</th>
+                {showPersonal ? (
+                  <th className="py-1 pr-3">Your playrate</th>
+                ) : null}
+                <th className="py-1 pr-3">Global playrate</th>
                 <th className="py-1 pr-3">Win rate</th>
               </tr>
             </thead>
@@ -72,6 +97,17 @@ export function WinningCardsSection(props: { cards: CardWinStat[] }) {
                     {card.wins}/{card.plays}
                   </td>
                   <td className="py-1 pr-3">{card.plays}</td>
+                  {showPersonal ? (
+                    <td className="py-1 pr-3">
+                      {formatPlayrate(
+                        personalPlaysByCardName.get(card.cardName) ?? 0,
+                        personalTotalGames,
+                      )}
+                    </td>
+                  ) : null}
+                  <td className="py-1 pr-3">
+                    {formatPlayrate(card.plays, globalTotalGames)}
+                  </td>
                   <td className="py-1 pr-3">{card.winRate}%</td>
                 </tr>
               ))}

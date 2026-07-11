@@ -237,6 +237,44 @@ describe('readGameResultPdf', () => {
     ]);
   });
 
+  // A player who merges corporations (Merger / Double Down) prints several
+  // corporation names, and the numeric cells centre against that stack, so a
+  // corporation prints between the player name and the cells. The nearest text
+  // above the cells is then the corporation, not the player.
+  it('names a merged-corporation row from the known player names', async () => {
+    const nameY = 514;
+    const pdf = buildTestPdf([
+      {
+        runs: [
+          { size: 40, text: 'Izzy', x: 194, y: nameY },
+          // First corporation lands above the numeric cells.
+          { text: 'PolderTECH Dutch', x: 140, y: nameY + 30 },
+          ...[36, 5, 9, 7, 14, 12].map((value, index) => ({
+            text: String(value),
+            x: SCORE_CELL_X[index],
+            y: nameY + 43,
+          })),
+          { size: 20, text: '83', x: SCORE_TOTAL_X, y: nameY + 46 },
+          // The remaining corporations land below, as usual.
+          { text: 'Steelaris', x: 140, y: nameY + 60 },
+          { text: 'Curiosity II', x: 140, y: nameY + 90 },
+        ],
+      },
+    ]);
+
+    // Without the log's names the nearest text above the cells wins, which is
+    // the corporation printed between the name and the numbers.
+    const withoutHints = await readGameResultPdf(pdf);
+    expect(withoutHints.endgameLines).toEqual([
+      'PolderTECH Dutch 36 5 9 7 14 12 83',
+    ]);
+
+    const withHints = await readGameResultPdf(pdf, {
+      expectedPlayerNames: ['Izzy', 'Colette', 'Corey'],
+    });
+    expect(withHints.endgameLines).toEqual(['Izzy 36 5 9 7 14 12 83']);
+  });
+
   it('reads the megacredits the table dims after the total', async () => {
     const read = await readGameResultPdf(
       buildGameResultPdf({ withDimmedColumns: true }),

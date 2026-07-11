@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { SelectChevron } from '@/components/ui/select-chevron';
+import { isRenderableCardImage } from './card-image';
 import { CardStatsButton } from './card-stats-dialog';
 
 export type CardLookupEntry = {
@@ -252,14 +253,23 @@ export function CardLookupBrowser({ cards }: { cards: CardLookupEntry[] }) {
                 className="tm-stat-card grid min-w-0 grid-cols-[82px_minmax(0,1fr)] gap-3 text-left transition hover:border-[rgba(221,161,93,0.52)]"
                 key={card.id}
               >
-                <Image
-                  alt={`${card.cardName} thumbnail`}
-                  className="h-[112px] w-[82px] rounded-md object-cover"
-                  height={112}
-                  src={card.thumbnailUrl}
-                  unoptimized
-                  width={82}
-                />
+                {isRenderableCardImage(card.thumbnailUrl) ? (
+                  <Image
+                    alt={`${card.cardName} thumbnail`}
+                    className="h-[112px] w-[82px] rounded-md object-cover"
+                    height={112}
+                    src={card.thumbnailUrl}
+                    unoptimized
+                    width={82}
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-[112px] w-[82px] items-center justify-center rounded-md border border-white/10 bg-white/5 text-center text-[10px] leading-tight text-stone-500"
+                  >
+                    No image
+                  </span>
+                )}
                 <div className="min-w-0">
                   <p className="tm-data-label">{card.cardNumber || 'No number'}</p>
                   <h3 className="mt-1 break-words font-semibold text-stone-100">

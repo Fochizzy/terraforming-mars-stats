@@ -71,6 +71,7 @@ const sampleStats: SelectionStats = {
   pairs: [],
   preludes: [],
   tagWins: [],
+  totalGames: 0,
 };
 
 describe('GlobalStatisticsPage', () => {

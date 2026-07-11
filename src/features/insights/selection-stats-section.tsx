@@ -39,10 +39,23 @@ function formatWins(wins: number) {
   return `${wins} ${wins === 1 ? 'win' : 'wins'}`;
 }
 
+// Playrate = share of finalized games in the scope that featured this
+// selection. Each corporation, prelude, and project card is a unique copy per
+// game, so plays never exceeds games and the ratio is a clean 0-100%.
+function formatPlayrate(plays: number, totalGames: number) {
+  if (!totalGames || totalGames <= 0) {
+    return '-';
+  }
+  return `${Math.round((plays / totalGames) * 100)}%`;
+}
+
 function SelectionStatRows(props: {
   rows: Array<
     (CorporationSelectionStat | PreludeSelectionStat) & { name: string }
   >;
+  scopeTotalGames: number;
+  globalTotalGames: number;
+  globalPlaysByName: Map<string, number>;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -51,6 +64,8 @@ function SelectionStatRows(props: {
           <tr className="tm-data-label">
             <th className="py-1 pr-3">Name</th>
             <th className="py-1 pr-3">Plays</th>
+            <th className="py-1 pr-3">Playrate</th>
+            <th className="py-1 pr-3">Global playrate</th>
             <th className="py-1 pr-3">Win rate</th>
             <th className="py-1 pr-3">Avg place</th>
             <th className="py-1 pr-3">1st/2nd/3rd+</th>
@@ -72,6 +87,15 @@ function SelectionStatRows(props: {
                 {row.name}
               </td>
               <td className="py-1 pr-3">{row.plays}</td>
+              <td className="py-1 pr-3">
+                {formatPlayrate(row.plays, props.scopeTotalGames)}
+              </td>
+              <td className="py-1 pr-3">
+                {formatPlayrate(
+                  props.globalPlaysByName.get(row.name) ?? 0,
+                  props.globalTotalGames,
+                )}
+              </td>
               <td className="py-1 pr-3">{formatWinRate(row.win_rate)}</td>
               <td className="py-1 pr-3">{row.avg_placement}</td>
               <td className="py-1 pr-3">
@@ -102,7 +126,20 @@ function SelectionStatRows(props: {
 export function SelectionStatsScope(props: {
   heading: string;
   stats: SelectionStats;
+  /**
+   * Global-scope stats used for the "Global playrate" column. Defaults to the
+   * displayed stats (e.g. on the standalone Global Statistics page, where the
+   * displayed scope already is global).
+   */
+  globalStats?: SelectionStats;
 }) {
+  const globalStats = props.globalStats ?? props.stats;
+  const globalCorpPlaysByName = new Map(
+    globalStats.corporations.map((row) => [row.corporation_name, row.plays]),
+  );
+  const globalPreludePlaysByName = new Map(
+    globalStats.preludes.map((row) => [row.prelude_name, row.plays]),
+  );
   const hasData =
     props.stats.corporations.length > 0 || props.stats.preludes.length > 0;
 
@@ -151,6 +188,9 @@ export function SelectionStatsScope(props: {
                   ...row,
                   name: row.corporation_name,
                 }))}
+                scopeTotalGames={props.stats.totalGames}
+                globalTotalGames={globalStats.totalGames}
+                globalPlaysByName={globalCorpPlaysByName}
               />
             </div>
           ) : null}
@@ -164,6 +204,9 @@ export function SelectionStatsScope(props: {
                   ...row,
                   name: row.prelude_name,
                 }))}
+                scopeTotalGames={props.stats.totalGames}
+                globalTotalGames={globalStats.totalGames}
+                globalPlaysByName={globalPreludePlaysByName}
               />
             </div>
           ) : null}
@@ -342,8 +385,16 @@ export function SelectionStatsSection({
       <h2 className="tm-panel-title text-lg">Corporation &amp; Prelude Stats</h2>
       <HeadToHeadBlock headToHead={headToHead} />
       <MergerImpactBlock rows={mergerImpact} />
-      <SelectionStatsScope heading="Your Games" stats={personal} />
-      <SelectionStatsScope heading="All Recorded Games" stats={global} />
+      <SelectionStatsScope
+        heading="Your Games"
+        stats={personal}
+        globalStats={global}
+      />
+      <SelectionStatsScope
+        heading="All Recorded Games"
+        stats={global}
+        globalStats={global}
+      />
     </section>
   );
 }

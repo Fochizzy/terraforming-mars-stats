@@ -15,6 +15,7 @@ const emptyStats: SelectionStats = {
   pairs: [],
   preludes: [],
   tagWins: [],
+  totalGames: 0,
 };
 
 const emptyHeadToHead: HeadToHeadStats = {

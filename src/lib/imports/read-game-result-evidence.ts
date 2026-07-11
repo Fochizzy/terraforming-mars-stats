@@ -20,7 +20,9 @@ export async function readGameResultEvidence(input: {
   const bytes = new Uint8Array(await input.file.arrayBuffer());
 
   if (isPdfBytes(bytes)) {
-    return readGameResultPdf(bytes);
+    return readGameResultPdf(bytes, {
+      expectedPlayerNames: input.options?.expectedPlayerNames,
+    });
   }
 
   return readGameResultScreenshot(

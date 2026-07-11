@@ -1,3 +1,5 @@
+import { buildPlayerNameMatchKeys } from './build-player-name-match-keys';
+import { normalizePlayerAlias } from './normalize-player-alias';
 import {
   extractPdfTextPages,
   type PdfTextItem,
@@ -147,13 +149,25 @@ type ScoreTableRow = {
 /**
  * Each table row draws its player name above a run of numeric cells, with the
  * corporation names below. Clustering the numeric cells and then reaching for
- * the nearest text above them keeps multi-corporation rows from being mistaken
- * for the player.
+ * the nearest text above them normally lands on the player.
+ *
+ * A player who merged corporations (Merger / Double Down) prints several
+ * corporation names, and the numeric cells centre against that stack, so a
+ * corporation can sit between the player name and the numbers -- the nearest
+ * text above is then the corporation, not the player. When the log's player
+ * names are known, prefer the nearest text above that matches one of them and
+ * fall back to the nearest text above otherwise.
  */
-function readScoreTable(page: PdfTextPage): ScoreTableRow[] {
+function readScoreTable(
+  page: PdfTextPage,
+  knownPlayerNames: string[],
+): ScoreTableRow[] {
   const tokens = buildTokens(page.items);
   const numberRows = buildRows(tokens.filter(isNumberToken), SCORE_ROW_TOLERANCE)
     .filter((row) => row.tokens.length >= SCORE_COLUMN_COUNT);
+  const knownNameKeys = new Set(
+    buildPlayerNameMatchKeys(knownPlayerNames).flatMap((entry) => entry.keys),
+  );
 
   return numberRows.flatMap((row) => {
     const cells = row.tokens.slice(
@@ -162,14 +176,17 @@ function readScoreTable(page: PdfTextPage): ScoreTableRow[] {
     );
     const firstCellX = Math.min(...cells.map((cell) => cell.x));
     const rowTop = Math.min(...cells.map((cell) => cell.y));
-    const nameToken = tokens
-      .filter(
-        (token) =>
-          !isNumberToken(token) &&
-          token.x < firstCellX &&
-          token.y < rowTop - NAME_ABOVE_MARGIN,
-      )
-      .at(-1);
+    const nameCandidates = tokens.filter(
+      (token) =>
+        !isNumberToken(token) &&
+        token.x < firstCellX &&
+        token.y < rowTop - NAME_ABOVE_MARGIN,
+    );
+    // Candidates are sorted top-to-bottom, so the last one is nearest above.
+    const nameToken =
+      nameCandidates
+        .filter((token) => knownNameKeys.has(normalizePlayerAlias(token.text)))
+        .at(-1) ?? nameCandidates.at(-1);
 
     if (!nameToken) {
       return [];
@@ -514,6 +531,7 @@ function readGlobalParameters(input: {
 
 export async function readGameResultPdf(
   bytes: Uint8Array,
+  options?: { expectedPlayerNames?: string[] },
 ): Promise<ReadGameResultScreenshotResult> {
   const pages = await extractPdfTextPages(bytes);
   const [scorePage, ...remainingPages] = pages;
@@ -522,7 +540,10 @@ export async function readGameResultPdf(
     throw new Error('This PDF has no pages to read.');
   }
 
-  const scoreTable = readScoreTable(scorePage);
+  const scoreTable = readScoreTable(
+    scorePage,
+    options?.expectedPlayerNames ?? [],
+  );
 
   if (scoreTable.length === 0) {
     throw new Error(
