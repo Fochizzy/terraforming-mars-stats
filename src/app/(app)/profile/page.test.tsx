@@ -108,8 +108,10 @@ describe('ProfilePage', () => {
       userId: 'user-1',
     });
     vi.mocked(getProfileAnalytics).mockResolvedValue({
+      cardOutcomes: [],
       coverage: null,
       headToHeadRows: [],
+      keyCards: [],
       performance: {
         averageLossGap: 2,
         averagePlacement: 1.5,
@@ -130,6 +132,8 @@ describe('ProfilePage', () => {
       playerName: 'Friday Mars',
       scoreAverages: null,
       styleAgreement: null,
+      styleBreakdownRows: [],
+      styleInsights: [],
     });
 
     render(
@@ -157,8 +161,10 @@ describe('ProfilePage', () => {
       userId: 'user-1',
     });
     vi.mocked(getProfileAnalytics).mockResolvedValue({
+      cardOutcomes: [],
       coverage: null,
       headToHeadRows: [],
+      keyCards: [],
       performance: {
         averageLossGap: 2,
         averagePlacement: 1.5,
@@ -179,6 +185,8 @@ describe('ProfilePage', () => {
       playerName: 'Friday Mars',
       scoreAverages: null,
       styleAgreement: null,
+      styleBreakdownRows: [],
+      styleInsights: [],
     });
 
     render(await ProfilePage({}));

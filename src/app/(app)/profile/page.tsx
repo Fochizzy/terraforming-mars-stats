@@ -73,6 +73,8 @@ export default async function ProfilePage(_props: ProfilePageProps) {
           playerName={profileAnalytics?.playerName ?? null}
           scoreAverages={profileAnalytics?.scoreAverages ?? null}
           styleAgreement={profileAnalytics?.styleAgreement ?? null}
+          styleBreakdownRows={profileAnalytics?.styleBreakdownRows ?? []}
+          styleInsights={profileAnalytics?.styleInsights ?? []}
         />
       )}
     </AppShell>

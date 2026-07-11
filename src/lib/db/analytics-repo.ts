@@ -156,14 +156,47 @@ export type ImportCoverageRow = {
   unparsedLineCount: number;
 };
 
+export type ProfileCardStat = {
+  cardId: string;
+  cardName: string;
+  fullImageUrl: string | null;
+  plays: number;
+  thumbnailUrl: string | null;
+  winRate: number;
+  wins: number;
+};
+
+export type ProfileStyleBreakdownRow = {
+  averagePlacement: number;
+  averageScore: number;
+  gamesPlayed: number;
+  playRate: number;
+  styleCode: string;
+  styleName: string;
+  winRate: number;
+  wins: number;
+};
+
+export type ProfileStyleInsight = {
+  body: string;
+  confidence: 'high' | 'low' | 'medium';
+  evidenceLabel: string;
+  sampleSize: number;
+  title: string;
+};
+
 export type ProfileAnalytics = {
+  cardOutcomes: ProfileCardStat[];
   coverage: CoverageRow | null;
   headToHeadRows: ProfileHeadToHeadRow[];
+  keyCards: ProfileCardStat[];
   performance: LeaderboardRow | null;
   playerId: string;
   playerName: string;
   scoreAverages: ScoreSourceAverages | null;
   styleAgreement: StyleAgreementRow | null;
+  styleBreakdownRows: ProfileStyleBreakdownRow[];
+  styleInsights: ProfileStyleInsight[];
 };
 
 export type GroupAnalytics = {
@@ -478,6 +511,67 @@ function weightedAverage(entries: Array<{ value: number; weight: number }>) {
   );
 
   return weightedTotal / totalWeight;
+}
+
+const STYLE_LABELS: Record<string, string> = {
+  award_closer: 'Award Closer',
+  award_pressure: 'Award Pressure',
+  balanced: 'Balanced',
+  board_control: 'Board Control',
+  card_combo: 'Card Combo',
+  card_vp_engine: 'Card VP Engine',
+  city_building: 'City Building',
+  economy_engine: 'Economy Engine',
+  engine_builder: 'Engine Builder',
+  engine_building: 'Engine Building',
+  jovian_payoff: 'Jovian Payoff',
+  milestone_aggression: 'Milestone Aggression',
+  milestone_race: 'Milestone Race',
+  plant_greenery: 'Plant Greenery',
+  science_combo: 'Science Combo',
+  space_economy: 'Space Economy',
+  terraform_rush: 'Terraform Rush',
+  terraforming_rush: 'Terraforming Rush',
+};
+
+function formatStyleName(styleCode: string) {
+  return (
+    STYLE_LABELS[styleCode] ??
+    styleCode
+      .split('_')
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  );
+}
+
+function formatInsightNumber(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+  }).format(value);
+}
+
+function formatInsightPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatCount(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function getProfileInsightConfidence(
+  sampleSize: number,
+): ProfileStyleInsight['confidence'] {
+  if (sampleSize >= 6) {
+    return 'high';
+  }
+
+  if (sampleSize >= 3) {
+    return 'medium';
+  }
+
+  return 'low';
 }
 
 function getWeightedScore(row: Record<string, unknown>) {
@@ -820,6 +914,7 @@ function resolveProfileLabel(
 }
 
 function buildProfileAnalyticsFromRows(input: {
+  cardOutcomeRows?: RawProfileCardRow[];
   linkedPlayers: LinkedPlayerRow[];
   opponentIdentityByPlayerId?: Map<string, string>;
   ownRows: ProfileGameResultRow[];
@@ -843,8 +938,12 @@ function buildProfileAnalyticsFromRows(input: {
       performance: null,
       scoreAverages: null,
       styleAgreement: null,
+      styleBreakdownRows: [],
+      styleInsights: [],
       coverage: null,
       headToHeadRows: [],
+      keyCards: [],
+      cardOutcomes: [],
     } satisfies ProfileAnalytics;
   }
 
@@ -953,6 +1052,66 @@ function buildProfileAnalyticsFromRows(input: {
           ),
         }
       : null;
+
+  const styleTotals = new Map<
+    string,
+    {
+      gamesPlayed: number;
+      placementTotal: number;
+      scoreTotal: number;
+      wins: number;
+    }
+  >();
+  const styleDenominator = input.ownRows.filter(
+    (row) => row.inferredPrimaryStyleCode !== null,
+  ).length;
+
+  for (const row of input.ownRows) {
+    if (!row.inferredPrimaryStyleCode) {
+      continue;
+    }
+
+    const current = styleTotals.get(row.inferredPrimaryStyleCode) ?? {
+      gamesPlayed: 0,
+      placementTotal: 0,
+      scoreTotal: 0,
+      wins: 0,
+    };
+
+    current.gamesPlayed += 1;
+    current.placementTotal += row.placement;
+    current.scoreTotal += row.totalPoints;
+    current.wins += row.isWinner ? 1 : 0;
+    styleTotals.set(row.inferredPrimaryStyleCode, current);
+  }
+
+  const styleBreakdownRows = [...styleTotals.entries()]
+    .map(([styleCode, total]) => ({
+      averagePlacement: roundNumber(total.placementTotal / total.gamesPlayed, 3),
+      averageScore: roundNumber(total.scoreTotal / total.gamesPlayed, 3),
+      gamesPlayed: total.gamesPlayed,
+      playRate: roundNumber(
+        styleDenominator > 0 ? total.gamesPlayed / styleDenominator : 0,
+        4,
+      ),
+      styleCode,
+      styleName: formatStyleName(styleCode),
+      winRate: roundNumber(total.wins / total.gamesPlayed, 4),
+      wins: total.wins,
+    }))
+    .sort(
+      (left, right) =>
+        right.gamesPlayed - left.gamesPlayed ||
+        right.wins - left.wins ||
+        right.winRate - left.winRate ||
+        left.styleName.localeCompare(right.styleName),
+    );
+
+  const styleInsights = buildProfileStyleInsights({
+    cardOutcomeRows: input.cardOutcomeRows ?? [],
+    ownRows: input.ownRows,
+    styleBreakdownRows,
+  });
 
   const coverage = {
     groupId: profileGroupId,
@@ -1112,8 +1271,14 @@ function buildProfileAnalyticsFromRows(input: {
     },
     scoreAverages,
     styleAgreement,
+    styleBreakdownRows,
+    styleInsights,
     coverage,
     headToHeadRows,
+    // Card lists come from dedicated analytics views, filled in by
+    // getProfileAnalytics; row-derived callers leave them empty.
+    keyCards: [],
+    cardOutcomes: [],
   } satisfies ProfileAnalytics;
 }
 
@@ -1463,6 +1628,233 @@ export async function listImportCoverage(groupId: string) {
   return (data as RawImportCoverageRow[]).map(mapImportCoverageRow);
 }
 
+// How many cards each profile card list shows before truncating. Enough to
+// surface a player's signature cards without turning the profile into a table
+// dump.
+export const PROFILE_CARD_LIMIT = 12;
+
+type RawProfileCardRow = {
+  card_id: string;
+  card_name: string;
+  full_image_url?: string | null;
+  game_id: string;
+  is_winner: boolean;
+  player_id: string;
+  thumbnail_url?: string | null;
+};
+
+function uniqueProfileCardRows(rows: RawProfileCardRow[]) {
+  const seen = new Set<string>();
+  const uniqueRows: RawProfileCardRow[] = [];
+
+  for (const row of rows) {
+    const dedupeKey = `${row.game_id}|${row.player_id}|${row.card_id}`;
+
+    if (seen.has(dedupeKey)) {
+      continue;
+    }
+
+    seen.add(dedupeKey);
+    uniqueRows.push(row);
+  }
+
+  return uniqueRows;
+}
+
+// Collapse per-(game, player, card) rows into one entry per card carrying how
+// often it appeared and the win rate across those games. Keyed on the trio so a
+// future import path that emits the same play twice can't inflate the counts.
+function aggregateProfileCardRows(rows: RawProfileCardRow[]): ProfileCardStat[] {
+  const totals = new Map<
+    string,
+    {
+      cardName: string;
+      fullImageUrl: string | null;
+      plays: number;
+      thumbnailUrl: string | null;
+      wins: number;
+    }
+  >();
+
+  for (const row of uniqueProfileCardRows(rows)) {
+    const entry = totals.get(row.card_id) ?? {
+      cardName: row.card_name,
+      fullImageUrl: row.full_image_url ?? null,
+      plays: 0,
+      thumbnailUrl: row.thumbnail_url ?? null,
+      wins: 0,
+    };
+
+    entry.plays += 1;
+    entry.wins += row.is_winner ? 1 : 0;
+    totals.set(row.card_id, entry);
+  }
+
+  return [...totals.entries()]
+    .map(([cardId, entry]) => ({
+      cardId,
+      cardName: entry.cardName,
+      fullImageUrl: entry.fullImageUrl,
+      plays: entry.plays,
+      thumbnailUrl: entry.thumbnailUrl,
+      winRate: roundNumber(entry.wins / entry.plays, 4),
+      wins: entry.wins,
+    }))
+    .sort(
+      (left, right) =>
+        right.plays - left.plays ||
+        right.winRate - left.winRate ||
+        left.cardName.localeCompare(right.cardName),
+    )
+    .slice(0, PROFILE_CARD_LIMIT);
+}
+
+function buildProfileStyleInsights({
+  cardOutcomeRows,
+  ownRows,
+  styleBreakdownRows,
+}: {
+  cardOutcomeRows: RawProfileCardRow[];
+  ownRows: ProfileGameResultRow[];
+  styleBreakdownRows: ProfileStyleBreakdownRow[];
+}): ProfileStyleInsight[] {
+  if (styleBreakdownRows.length === 0) {
+    return [];
+  }
+
+  const totalStyleGames = styleBreakdownRows.reduce(
+    (sum, row) => sum + row.gamesPlayed,
+    0,
+  );
+  const insights: ProfileStyleInsight[] = [];
+  const mostPlayedStyle = styleBreakdownRows[0];
+
+  insights.push({
+    title: 'Style Identity',
+    sampleSize: mostPlayedStyle.gamesPlayed,
+    confidence: getProfileInsightConfidence(mostPlayedStyle.gamesPlayed),
+    evidenceLabel: formatCount(
+      mostPlayedStyle.gamesPlayed,
+      'finalized style read',
+    ),
+    body: `Your most logged style is ${mostPlayedStyle.styleName}: ${formatCount(mostPlayedStyle.gamesPlayed, 'finish', 'finishes')} out of ${formatCount(totalStyleGames, 'finalized style read')} (${formatInsightPercent(mostPlayedStyle.playRate)}), averaging place ${formatInsightNumber(mostPlayedStyle.averagePlacement)} and ${formatInsightNumber(mostPlayedStyle.averageScore)} points.`,
+  });
+
+  const bestPlacementStyle =
+    [...styleBreakdownRows].sort(
+      (left, right) =>
+        left.averagePlacement - right.averagePlacement ||
+        right.wins - left.wins ||
+        right.gamesPlayed - left.gamesPlayed ||
+        left.styleName.localeCompare(right.styleName),
+    )[0] ?? null;
+
+  if (bestPlacementStyle) {
+    insights.push({
+      title: 'Final Placement Read',
+      sampleSize: bestPlacementStyle.gamesPlayed,
+      confidence: getProfileInsightConfidence(bestPlacementStyle.gamesPlayed),
+      evidenceLabel: formatCount(
+        bestPlacementStyle.gamesPlayed,
+        'finalized style read',
+      ),
+      body: `Your strongest final placements are coming from ${bestPlacementStyle.styleName}: average place ${formatInsightNumber(bestPlacementStyle.averagePlacement)}, ${formatCount(bestPlacementStyle.wins, 'win')} in ${formatCount(bestPlacementStyle.gamesPlayed, 'finish', 'finishes')}, and a ${formatInsightPercent(bestPlacementStyle.winRate)} win rate.`,
+    });
+  }
+
+  const styleByGamePlayer = new Map<string, string>();
+
+  for (const row of ownRows) {
+    if (!row.inferredPrimaryStyleCode) {
+      continue;
+    }
+
+    styleByGamePlayer.set(
+      `${row.gameId}|${row.playerId}`,
+      row.inferredPrimaryStyleCode,
+    );
+  }
+
+  const loggedCardTotals = new Map<
+    string,
+    {
+      cardName: string;
+      plays: number;
+      styleCode: string;
+      wins: number;
+    }
+  >();
+
+  for (const row of uniqueProfileCardRows(cardOutcomeRows)) {
+    const styleCode = styleByGamePlayer.get(`${row.game_id}|${row.player_id}`);
+
+    if (!styleCode) {
+      continue;
+    }
+
+    const key = `${styleCode}|${row.card_id}`;
+    const current = loggedCardTotals.get(key) ?? {
+      cardName: row.card_name,
+      plays: 0,
+      styleCode,
+      wins: 0,
+    };
+
+    current.plays += 1;
+    current.wins += row.is_winner ? 1 : 0;
+    loggedCardTotals.set(key, current);
+  }
+
+  const loggedCardSignal =
+    [...loggedCardTotals.values()].sort(
+      (left, right) =>
+        right.plays - left.plays ||
+        right.wins - left.wins ||
+        left.cardName.localeCompare(right.cardName),
+    )[0] ?? null;
+
+  if (loggedCardSignal) {
+    const styleRow = styleBreakdownRows.find(
+      (row) => row.styleCode === loggedCardSignal.styleCode,
+    );
+
+    insights.push({
+      title: 'Game Log Signal',
+      sampleSize: loggedCardSignal.plays,
+      confidence: getProfileInsightConfidence(loggedCardSignal.plays),
+      evidenceLabel: formatCount(loggedCardSignal.plays, 'logged card play'),
+      body: `Imported game logs add texture to your ${styleRow?.styleName ?? formatStyleName(loggedCardSignal.styleCode)} games: ${loggedCardSignal.cardName} is your most repeated logged card there, appearing in ${formatCount(loggedCardSignal.plays, 'play')} with a ${formatInsightPercent(loggedCardSignal.wins / loggedCardSignal.plays)} win rate.`,
+    });
+  }
+
+  return insights.slice(0, 3);
+}
+
+// Fetch a player's logged card plays from the matching analytics view. The raw
+// game/card rows feed style sentence insights, and the lookup is optional so a
+// missing live analytics view cannot break the rest of My Profile.
+async function listProfileCardRows(
+  supabase: AnalyticsSupabaseClient,
+  view: 'player_card_outcomes',
+  playerIds: string[],
+): Promise<RawProfileCardRow[]> {
+  if (playerIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await getAnalyticsClient(supabase)
+    .from(view)
+    .select('card_id, card_name, game_id, is_winner, player_id')
+    .in('player_id', playerIds);
+
+  if (error) {
+    console.warn(`[profile] Optional ${view} lookup failed`, error);
+    return [];
+  }
+
+  return (data as RawProfileCardRow[] | null) ?? [];
+}
+
 export async function getProfileAnalytics(
   userId: string,
   options: { groupId?: string | null } = {},
@@ -1492,6 +1884,15 @@ export async function getProfileAnalytics(
   const normalizedOwnRows = ((ownRows as RawProfileGameResultRow[] | null) ?? []).map(
     mapProfileGameResultRow,
   );
+
+  if (normalizedOwnRows.length === 0) {
+    return buildProfileAnalyticsFromRows({
+      linkedPlayers,
+      ownRows: normalizedOwnRows,
+      sharedRows: [],
+    });
+  }
+
   const sharedGameIds = [...new Set(normalizedOwnRows.map((row) => row.gameId))];
 
   let normalizedSharedRows: ProfileGameResultRow[] = [];
@@ -1544,12 +1945,23 @@ export async function getProfileAnalytics(
     }
   }
 
-  return buildProfileAnalyticsFromRows({
-    linkedPlayers,
-    opponentIdentityByPlayerId,
-    ownRows: normalizedOwnRows,
-    sharedRows: normalizedSharedRows,
-  });
+  const cardOutcomeRows = await listProfileCardRows(
+    supabase,
+    'player_card_outcomes',
+    linkedPlayerIds,
+  );
+
+  return {
+    ...buildProfileAnalyticsFromRows({
+      cardOutcomeRows,
+      linkedPlayers,
+      opponentIdentityByPlayerId,
+      ownRows: normalizedOwnRows,
+      sharedRows: normalizedSharedRows,
+    }),
+    keyCards: [],
+    cardOutcomes: aggregateProfileCardRows(cardOutcomeRows),
+  };
 }
 
 /**

@@ -5,6 +5,8 @@ import type {
   CoverageRow,
   LeaderboardRow,
   ProfileHeadToHeadRow,
+  ProfileStyleBreakdownRow,
+  ProfileStyleInsight,
   ScoreSourceAverages,
   StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
@@ -21,8 +23,20 @@ type ProfileDashboardProps = {
     StyleAgreementRow,
     'comparedGames' | 'exactMatchRate' | 'mismatchRate' | 'partialMatchRate'
   > | null;
+  styleBreakdownRows?: ProfileStyleBreakdownRow[];
+  styleInsights?: ProfileStyleInsight[];
   linkHref?: string;
 };
+
+function getWinningStyle(rows: ProfileStyleBreakdownRow[]) {
+  return [...rows].sort(
+    (left, right) =>
+      right.wins - left.wins ||
+      right.winRate - left.winRate ||
+      right.gamesPlayed - left.gamesPlayed ||
+      left.styleName.localeCompare(right.styleName),
+  )[0] ?? null;
+}
 
 export function ProfileDashboard({
   coverage = null,
@@ -32,6 +46,8 @@ export function ProfileDashboard({
   playerName,
   scoreAverages = null,
   styleAgreement = null,
+  styleBreakdownRows = [],
+  styleInsights = [],
 }: ProfileDashboardProps) {
   if (!playerName) {
     return (
@@ -48,6 +64,9 @@ export function ProfileDashboard({
       </ChartFrame>
     );
   }
+
+  const mostPlayedStyle = styleBreakdownRows[0] ?? null;
+  const winningStyle = getWinningStyle(styleBreakdownRows);
 
   return (
     <div className="flex flex-col gap-4">
@@ -118,6 +137,82 @@ export function ProfileDashboard({
       <ChartFrame title="Score Source Averages">
         <ScoreSourceList scoreAverages={scoreAverages} />
       </ChartFrame>
+      <ChartFrame title="Styles Breakdown">
+        {styleBreakdownRows.length === 0 ? (
+          <p className="text-sm text-stone-400">
+            No inferred style results are available for {playerName} yet.
+          </p>
+        ) : (
+          <div className="grid gap-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {mostPlayedStyle ? (
+                <div className="tm-stat-card">
+                  <p className="tm-data-label">Most Played</p>
+                  <p className="mt-2 text-lg font-semibold text-stone-100">
+                    {mostPlayedStyle.styleName}
+                  </p>
+                  <p className="tm-muted-copy mt-1 text-sm">
+                    {mostPlayedStyle.gamesPlayed} games | {formatPercent(mostPlayedStyle.playRate)}
+                  </p>
+                </div>
+              ) : null}
+              {winningStyle ? (
+                <div className="tm-stat-card">
+                  <p className="tm-data-label">Most Wins</p>
+                  <p className="mt-2 text-lg font-semibold text-stone-100">
+                    {winningStyle.styleName}
+                  </p>
+                  <p className="tm-muted-copy mt-1 text-sm">
+                    {winningStyle.wins} wins | {formatPercent(winningStyle.winRate)} win rate
+                  </p>
+                </div>
+              ) : null}
+            </div>
+            <div className="grid gap-3">
+              {styleBreakdownRows.map((row) => (
+                <article className="tm-stat-card" key={row.styleCode}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-stone-100">
+                        {row.styleName}
+                      </p>
+                      <p className="tm-muted-copy mt-1 text-sm">
+                        {row.gamesPlayed} games | {row.wins} wins
+                      </p>
+                    </div>
+                    <p className="tm-accent-copy text-sm">
+                      {formatPercent(row.playRate)} played
+                    </p>
+                  </div>
+                  <p className="tm-muted-copy mt-2 text-sm">
+                    {formatPercent(row.winRate)} win rate | avg place {formatAverage(row.averagePlacement)} | avg score {formatAverage(row.averageScore)}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
+      </ChartFrame>
+      {styleInsights.length > 0 ? (
+        <ChartFrame title="Style Insights">
+          <div className="grid gap-3">
+            {styleInsights.map((insight) => (
+              <article className="tm-stat-card" key={insight.title}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <p className="font-semibold text-stone-100">{insight.title}</p>
+                  <p className="tm-data-label">
+                    {insight.confidence} confidence
+                  </p>
+                </div>
+                <p className="mt-2 text-sm text-stone-300">{insight.body}</p>
+                <p className="tm-muted-copy mt-2 text-xs">
+                  Evidence: {insight.evidenceLabel}
+                </p>
+              </article>
+            ))}
+          </div>
+        </ChartFrame>
+      ) : null}
       <ChartFrame title="Head-to-Head Snapshot">
         {headToHeadRows.length === 0 ? (
           <p className="text-sm text-stone-400">

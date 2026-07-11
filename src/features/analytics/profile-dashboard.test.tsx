@@ -65,6 +65,44 @@ describe('ProfileDashboard', () => {
         mismatchRate: 0.25,
         partialMatchRate: 0.25,
       },
+      styleBreakdownRows: [
+        {
+          averagePlacement: 1.5,
+          averageScore: 82,
+          gamesPlayed: 3,
+          playRate: 0.75,
+          styleCode: 'board_control',
+          styleName: 'Board Control',
+          winRate: 0.667,
+          wins: 2,
+        },
+        {
+          averagePlacement: 2,
+          averageScore: 88,
+          gamesPlayed: 1,
+          playRate: 0.25,
+          styleCode: 'jovian_payoff',
+          styleName: 'Jovian Payoff',
+          winRate: 1,
+          wins: 1,
+        },
+      ],
+      styleInsights: [
+        {
+          body: 'Your most logged style is Board Control: 3 finishes out of 4 finalized style reads (75%), averaging place 1.5 and 82 points.',
+          confidence: 'medium',
+          evidenceLabel: '3 finalized style reads',
+          sampleSize: 3,
+          title: 'Style Identity',
+        },
+        {
+          body: 'Imported game logs add texture to your Board Control games: Commercial District is your most repeated logged card there, appearing in 2 plays with a 50% win rate.',
+          confidence: 'low',
+          evidenceLabel: '2 logged card plays',
+          sampleSize: 2,
+          title: 'Game Log Signal',
+        },
+      ],
     };
 
     render(
@@ -79,6 +117,15 @@ describe('ProfileDashboard', () => {
     expect(screen.getAllByText(/friday mars/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/second seat/i)).toBeInTheDocument();
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
+    expect(screen.getByText(/styles breakdown/i)).toBeInTheDocument();
+    expect(screen.getByText(/most played/i)).toBeInTheDocument();
+    expect(screen.getByText(/most wins/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/board control/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/jovian payoff/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/style insights/i)).toBeInTheDocument();
+    expect(screen.getByText(/style identity/i)).toBeInTheDocument();
+    expect(screen.getByText(/game log signal/i)).toBeInTheDocument();
+    expect(screen.getByText(/commercial district/i)).toBeInTheDocument();
     expect(screen.getByText(/declared vs inferred style/i)).toBeInTheDocument();
     expect(screen.getByText(/based on 4 finalized games/i)).toBeInTheDocument();
   });

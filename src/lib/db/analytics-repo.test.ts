@@ -68,13 +68,17 @@ describe('getProfileAnalytics', () => {
     } as never);
 
     await expect(getProfileAnalytics('user-1')).resolves.toEqual({
+      cardOutcomes: [],
       coverage: null,
       headToHeadRows: [],
+      keyCards: [],
       performance: null,
       playerId: 'player-1',
       playerName: 'Friday Mars',
       scoreAverages: null,
       styleAgreement: null,
+      styleBreakdownRows: [],
+      styleInsights: [],
     });
   });
 
@@ -142,6 +146,197 @@ describe('getProfileAnalytics', () => {
 
     expect(playersSelect).toHaveBeenCalledWith('id, display_name, group_id');
     expect(analyticsIn).toHaveBeenCalledWith('player_id', ['player-2']);
+  });
+
+  it('aggregates profile style frequency and wins from inferred styles', async () => {
+    const makeRow = (
+      overrides: Partial<Record<string, unknown>>,
+    ): Record<string, unknown> => ({
+      award_points: 0,
+      card_points_animals: null,
+      card_points_jovian: null,
+      card_points_microbes: null,
+      card_points_total: 0,
+      cities_points: 0,
+      declared_modifier_style_codes: null,
+      declared_primary_style_code: null,
+      game_id: 'g1',
+      greenery_points: 0,
+      group_id: 'group-1',
+      has_full_card_breakdown: false,
+      inferred_primary_style_code: null,
+      inferred_style_confidence: null,
+      is_winner: false,
+      key_card_count: 0,
+      loss_gap_points: null,
+      milestone_points: 0,
+      other_card_points: null,
+      placement: 1,
+      placement_score: 1,
+      player_id: 'me-1',
+      player_name: 'Friday Mars',
+      signed_differential_points: 0,
+      total_points: 0,
+      tr_points: 0,
+      win_differential_points: null,
+      ...overrides,
+    });
+
+    const ownRows = [
+      makeRow({
+        game_id: 'g1',
+        inferred_primary_style_code: 'board_control',
+        is_winner: true,
+        total_points: 80,
+      }),
+      makeRow({
+        game_id: 'g2',
+        inferred_primary_style_code: 'board_control',
+        placement: 2,
+        total_points: 70,
+      }),
+      makeRow({
+        game_id: 'g3',
+        inferred_primary_style_code: 'jovian_payoff',
+        is_winner: true,
+        total_points: 92,
+      }),
+    ];
+    const playerResultsIn = vi.fn((column: string) => {
+      if (column === 'player_id') {
+        return Promise.resolve({ data: ownRows, error: null });
+      }
+
+      return Promise.resolve({ data: ownRows, error: null });
+    });
+    const playerResultsSelect = vi.fn().mockReturnValue({ in: playerResultsIn });
+    const keyCardsIn = vi.fn().mockResolvedValue({ data: [], error: null });
+    const keyCardsSelect = vi.fn().mockReturnValue({ in: keyCardsIn });
+    const cardOutcomesIn = vi.fn().mockResolvedValue({
+      data: [
+        {
+          card_id: 'card-1',
+          card_name: 'Commercial District',
+          full_image_url: null,
+          game_id: 'g1',
+          is_winner: true,
+          player_id: 'me-1',
+          thumbnail_url: null,
+        },
+        {
+          card_id: 'card-1',
+          card_name: 'Commercial District',
+          full_image_url: null,
+          game_id: 'g2',
+          is_winner: false,
+          player_id: 'me-1',
+          thumbnail_url: null,
+        },
+        {
+          card_id: 'card-2',
+          card_name: 'Io Mining Industries',
+          full_image_url: null,
+          game_id: 'g3',
+          is_winner: true,
+          player_id: 'me-1',
+          thumbnail_url: null,
+        },
+      ],
+      error: null,
+    });
+    const cardOutcomesSelect = vi.fn().mockReturnValue({ in: cardOutcomesIn });
+
+    const playersOrderByDisplayName = vi.fn().mockResolvedValue({
+      data: [{ display_name: 'Friday Mars', group_id: 'group-1', id: 'me-1' }],
+      error: null,
+    });
+    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
+      order: playersOrderByDisplayName,
+    });
+    const playersEqLinkedUserId = vi.fn().mockReturnValue({
+      order: playersOrderByCreatedAt,
+    });
+    const playersSelect = vi.fn().mockReturnValue({ eq: playersEqLinkedUserId });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playersSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      schema: vi.fn((schemaName: string) => {
+        if (schemaName !== 'analytics') {
+          throw new Error(`Unexpected schema ${schemaName}`);
+        }
+
+        return {
+          from: vi.fn((table: string) => {
+            if (table === 'player_game_results') {
+              return { select: playerResultsSelect };
+            }
+
+            if (table === 'player_key_cards') {
+              return { select: keyCardsSelect };
+            }
+
+            if (table === 'player_card_outcomes') {
+              return { select: cardOutcomesSelect };
+            }
+
+            throw new Error(`Unexpected analytics table ${table}`);
+          }),
+        };
+      }),
+    } as never);
+
+    await expect(getProfileAnalytics('user-1')).resolves.toMatchObject({
+      styleBreakdownRows: [
+        {
+          averagePlacement: 1.5,
+          averageScore: 75,
+          gamesPlayed: 2,
+          playRate: 0.6667,
+          styleCode: 'board_control',
+          styleName: 'Board Control',
+          winRate: 0.5,
+          wins: 1,
+        },
+        {
+          averagePlacement: 1,
+          averageScore: 92,
+          gamesPlayed: 1,
+          playRate: 0.3333,
+          styleCode: 'jovian_payoff',
+          styleName: 'Jovian Payoff',
+          winRate: 1,
+          wins: 1,
+        },
+      ],
+      styleInsights: [
+        expect.objectContaining({
+          body: expect.stringMatching(
+            /Your most logged style is Board Control: 2 finishes out of 3 finalized style reads/i,
+          ),
+          evidenceLabel: '2 finalized style reads',
+          title: 'Style Identity',
+        }),
+        expect.objectContaining({
+          body: expect.stringMatching(
+            /strongest final placements are coming from Jovian Payoff/i,
+          ),
+          title: 'Final Placement Read',
+        }),
+        expect.objectContaining({
+          body: expect.stringMatching(
+            /Imported game logs add texture to your Board Control games: Commercial District/i,
+          ),
+          evidenceLabel: '2 logged card plays',
+          title: 'Game Log Signal',
+        }),
+      ],
+    });
   });
 
   it('collapses opponents that share a linked user into one head-to-head row', async () => {
@@ -220,6 +415,8 @@ describe('getProfileAnalytics', () => {
       return Promise.resolve({ data: sharedRows, error: null });
     });
     const analyticsSelect = vi.fn().mockReturnValue({ in: analyticsIn });
+    const cardStatsIn = vi.fn().mockResolvedValue({ data: [], error: null });
+    const cardStatsSelect = vi.fn().mockReturnValue({ in: cardStatsIn });
 
     const linkedPlayersResult = {
       data: [
@@ -268,6 +465,10 @@ describe('getProfileAnalytics', () => {
           from: vi.fn((table: string) => {
             if (table === 'player_game_results') {
               return { select: analyticsSelect };
+            }
+
+            if (table === 'player_key_cards' || table === 'player_card_outcomes') {
+              return { select: cardStatsSelect };
             }
 
             throw new Error(`Unexpected analytics table ${table}`);
