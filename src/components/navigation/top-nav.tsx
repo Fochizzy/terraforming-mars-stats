@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 export type TopNavItem = {
   href: string;
   label: string;
+  align?: 'start' | 'end';
 };
 
 export const defaultTopNavItems: TopNavItem[] = [
@@ -14,8 +15,8 @@ export const defaultTopNavItems: TopNavItem[] = [
   { href: '/log-game/review', label: 'Saved Games' },
   { href: '/group', label: 'Global' },
   { href: '/insights', label: 'Insights' },
-  { href: '/cards', label: 'Cards' },
-  { href: '/glossary', label: 'Glossary' },
+  { href: '/cards', label: 'Cards', align: 'end' },
+  { href: '/glossary', label: 'Glossary', align: 'end' },
 ];
 
 function isItemActive(pathname: string, href: string): boolean {
@@ -37,14 +38,17 @@ export function TopNav({
 }) {
   const pathname = usePathname() ?? '';
 
+  const firstEndHref = items.find((item) => item.align === 'end')?.href;
+
   return (
     <nav aria-label="Primary" className="tm-top-nav">
       {items.map((item) => {
         const active = isItemActive(pathname, item.href);
+        const spacer = item.href === firstEndHref;
         return (
           <Link
             aria-current={active ? 'page' : undefined}
-            className={`tm-top-nav__link${active ? ' tm-top-nav__link--active' : ''}`}
+            className={`tm-top-nav__link${active ? ' tm-top-nav__link--active' : ''}${spacer ? ' tm-top-nav__link--end' : ''}`}
             href={item.href}
             key={item.href}
           >

@@ -96,6 +96,10 @@ a {
     text-transform: uppercase;
   }
 
+  .tm-top-nav__link--end {
+    margin-left: auto;
+  }
+
   .tm-top-nav__link:hover {
     background: rgba(214, 130, 66, 0.12);
     color: var(--tm-dust-300);

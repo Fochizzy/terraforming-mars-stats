@@ -8,17 +8,11 @@ export type BottomNavItem = {
 export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/profile', label: 'My Profile' },
   { href: '/log-game', label: 'Log Game' },
-  { href: '/log-game/review', label: 'Saved Games' },
   { href: '/group', label: 'Global' },
   { href: '/cards', label: 'Cards' },
   { href: '/glossary', label: 'Glossary' },
   { href: '/insights', label: 'Insights' },
 ];
-
-const savedGamesNavItem: BottomNavItem = {
-  href: '/log-game/review',
-  label: 'Saved Games',
-};
 
 function HomeIcon() {
   return (
@@ -51,9 +45,7 @@ export function BottomNav({
 }: {
   items?: BottomNavItem[];
 }) {
-  const navigationItems = items.some((item) => item.href === savedGamesNavItem.href)
-    ? items
-    : [...items, savedGamesNavItem];
+  const navigationItems = items;
   const cardsItem = navigationItems.find((item) => item.href === '/cards');
   const glossaryItem = navigationItems.find((item) => item.href === '/glossary');
   const edgeItems = [cardsItem, glossaryItem].filter(
