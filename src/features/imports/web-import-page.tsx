@@ -125,12 +125,20 @@ async function readDroppedGameLog(
   return droppedText ? droppedText : null;
 }
 
-function getImportErrorMessage(error: unknown) {
+export function getImportErrorMessage(error: unknown) {
   if (
     error instanceof Error &&
     error.message.includes('Server Components render')
   ) {
     return 'The import save failed on the server. If this only happens in the deployed app, the web import server configuration may be incomplete.';
+  }
+
+  if (
+    error instanceof Error &&
+    (error.message.includes('ON CONFLICT DO UPDATE command cannot affect row') ||
+      error.message.includes('21000'))
+  ) {
+    return "You can't upload the same game twice.";
   }
 
   return describeUnknownError(error, 'Unable to save this import draft right now.');

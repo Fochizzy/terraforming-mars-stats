@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { WebImportPage } from './web-import-page';
+import { getImportErrorMessage, WebImportPage } from './web-import-page';
 
 const review = {
   boardReviewItems: [
@@ -1075,5 +1075,35 @@ describe('WebImportPage', () => {
     expect(
       screen.queryByText(/unable to save this import draft right now\./i),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('getImportErrorMessage', () => {
+  it('maps the duplicate-game ON CONFLICT violation to a friendly message', () => {
+    const error = new Error(
+      'ON CONFLICT DO UPDATE command cannot affect row a second time Hint: Ensure that no rows proposed for insertion within the same command have duplicate constrained values. Code: 21000',
+    );
+
+    expect(getImportErrorMessage(error)).toBe(
+      "You can't upload the same game twice.",
+    );
+  });
+
+  it('maps a bare 21000 cardinality violation to the duplicate message', () => {
+    expect(getImportErrorMessage(new Error('Something failed. Code: 21000'))).toBe(
+      "You can't upload the same game twice.",
+    );
+  });
+
+  it('passes unrelated Error messages through unchanged', () => {
+    expect(getImportErrorMessage(new Error('network unavailable'))).toBe(
+      'network unavailable',
+    );
+  });
+
+  it('falls back to the generic message for non-Error values', () => {
+    expect(getImportErrorMessage(undefined)).toBe(
+      'Unable to save this import draft right now.',
+    );
   });
 });
