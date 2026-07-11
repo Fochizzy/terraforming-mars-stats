@@ -1,3 +1,18 @@
+import {
+  buildEmptyExtendedAnalytics,
+  type ExtendedGroupAnalytics,
+  getOverallExtendedAnalytics,
+} from '@/lib/db/extended-analytics-repo';
+import {
+  type CanonicalIdentity,
+  type IdentityLookup,
+  mergeGroupInteractions,
+  mergeGroupStylePerformance,
+  mergeLineupEffects,
+  mergePlayerInteractions,
+  mergePlayerStylePerformance,
+  mergeStyleAgreement,
+} from '@/lib/db/overall-analytics-aggregators';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type LeaderboardRow = {
@@ -1767,4 +1782,243 @@ export async function getGroupAnalytics(groupId: string) {
     playerCoverages,
     importCoverageRows,
   } satisfies GroupAnalytics;
+}
+
+export function buildEmptyGroupAnalytics(): GroupAnalytics {
+  return {
+    coverage: null,
+    groupInteractionRows: [],
+    groupStylePerformanceRows: [],
+    headToHeadRows: [],
+    importCoverageRows: [],
+    leaderboardRows: [],
+    lineupEffectRows: [],
+    playerCoverages: [],
+    playerInteractionRows: [],
+    playerScoreAverages: [],
+    playerStylePerformanceRows: [],
+    playerTrendRows: [],
+    scoreAverages: null,
+    styleAgreementRows: [],
+  };
+}
+
+export type OverallAnalytics = {
+  analytics: GroupAnalytics;
+  extended: ExtendedGroupAnalytics;
+};
+
+/**
+ * Cross-group ("Overall") slice of GroupAnalytics: only the sections the Insights
+ * dashboard renders in Overall scope that aren't already covered by the
+ * cross-group focus bundle (style, interaction and lineup breakdowns). Every
+ * per-group player row is collapsed to a canonical person via `lookup`; the
+ * leaderboard / score / coverage / head-to-head / trend fields stay empty
+ * because the dashboard sources those from the focus bundle in Overall scope.
+ */
+export async function getOverallGroupAnalytics(
+  groupIds: string[],
+  lookup: IdentityLookup,
+): Promise<GroupAnalytics> {
+  if (groupIds.length === 0) {
+    return buildEmptyGroupAnalytics();
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const client = getAnalyticsClient(supabase);
+  const fetchRows = async (view: string) => {
+    const { data, error } = await client
+      .from(view)
+      .select('*')
+      .in('group_id', groupIds);
+
+    if (error) {
+      throw error;
+    }
+
+    return data ?? [];
+  };
+
+  const [
+    groupStyleRaw,
+    playerStyleRaw,
+    groupInteractionRaw,
+    playerInteractionRaw,
+    lineupRaw,
+    styleAgreementRaw,
+  ] = await Promise.all([
+    fetchRows('group_style_performance'),
+    fetchRows('player_style_performance'),
+    fetchRows('group_interactions'),
+    fetchRows('player_interactions'),
+    fetchRows('lineup_effects'),
+    fetchRows('style_agreement'),
+  ]);
+
+  return {
+    ...buildEmptyGroupAnalytics(),
+    groupStylePerformanceRows: sortStylePerformanceRows(
+      mergeGroupStylePerformance(
+        (groupStyleRaw as RawGroupStylePerformanceRow[]).map(
+          mapGroupStylePerformanceRow,
+        ),
+      ),
+    ),
+    playerStylePerformanceRows: sortStylePerformanceRows(
+      mergePlayerStylePerformance(
+        (playerStyleRaw as RawPlayerStylePerformanceRow[]).map(
+          mapPlayerStylePerformanceRow,
+        ),
+        lookup,
+      ),
+    ),
+    groupInteractionRows: sortInteractionRows(
+      mergeGroupInteractions(
+        compactRows(
+          (groupInteractionRaw as RawGroupInteractionRow[]).map(
+            mapGroupInteractionRow,
+          ),
+        ),
+      ),
+    ),
+    playerInteractionRows: sortInteractionRows(
+      mergePlayerInteractions(
+        compactRows(
+          (playerInteractionRaw as RawPlayerInteractionRow[]).map(
+            mapPlayerInteractionRow,
+          ),
+        ),
+        lookup,
+      ),
+    ),
+    lineupEffectRows: sortLineupEffectRows(
+      mergeLineupEffects(
+        (lineupRaw as RawLineupEffectRow[]).map(mapLineupEffectRow),
+        lookup,
+      ),
+    ),
+    styleAgreementRows: sortStyleAgreementRows(
+      mergeStyleAgreement(
+        (styleAgreementRaw as RawStyleAgreementRow[])
+          .map(mapStyleAgreementRow)
+          .filter((row) => row.comparedGames > 0),
+        lookup,
+      ),
+    ),
+  };
+}
+
+/**
+ * Everything the Insights "Overall" scope needs, aggregated across every group
+ * the signed-in user has played in and collapsed to canonical persons. Returns
+ * both the GroupAnalytics slice and the ExtendedGroupAnalytics so the dashboard
+ * can render the full section set for "all the people you have played".
+ */
+export async function getOverallAnalytics(
+  userId: string,
+): Promise<OverallAnalytics> {
+  const linkedPlayers = await getLinkedPlayers(userId);
+
+  if (linkedPlayers.length === 0) {
+    return {
+      analytics: buildEmptyGroupAnalytics(),
+      extended: buildEmptyExtendedAnalytics(),
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const linkedPlayerIds = linkedPlayers.map((player) => player.id);
+
+  const { data: ownRows, error: ownError } = await getAnalyticsClient(supabase)
+    .from('player_game_results')
+    .select('group_id')
+    .in('player_id', linkedPlayerIds);
+
+  if (ownError) {
+    throw ownError;
+  }
+
+  const groupIds = [
+    ...new Set(
+      ((ownRows as Array<{ group_id: string | null }> | null) ?? [])
+        .map((row) => row.group_id)
+        .filter((groupId): groupId is string => Boolean(groupId)),
+    ),
+  ];
+
+  if (groupIds.length === 0) {
+    return {
+      analytics: buildEmptyGroupAnalytics(),
+      extended: buildEmptyExtendedAnalytics(),
+    };
+  }
+
+  const { data: players, error: playersError } = await supabase
+    .from('players')
+    .select('id, display_name, linked_user_id, normalized_display_name')
+    .in('group_id', groupIds);
+
+  if (playersError) {
+    throw playersError;
+  }
+
+  const identityByPlayerId = new Map<string, CanonicalIdentity>();
+  const displayNameByCanonical = new Map<string, string>();
+  const linkedPreferredCanonicals = new Set<string>();
+
+  for (const player of (players ?? []) as PlayerIdentityRow[]) {
+    const canonicalId = canonicalPersonId(player);
+    identityByPlayerId.set(player.id, {
+      canonicalId,
+      displayName: player.display_name,
+    });
+
+    const isLinked = Boolean(player.linked_user_id);
+    const shouldPreferName =
+      !displayNameByCanonical.has(canonicalId) ||
+      (isLinked && !linkedPreferredCanonicals.has(canonicalId));
+
+    if (shouldPreferName) {
+      displayNameByCanonical.set(canonicalId, player.display_name);
+
+      if (isLinked) {
+        linkedPreferredCanonicals.add(canonicalId);
+      }
+    }
+  }
+
+  const lookup: IdentityLookup = (playerId, fallbackName) => {
+    const identity = identityByPlayerId.get(playerId);
+    const canonicalId = identity?.canonicalId ?? playerId;
+
+    return {
+      canonicalId,
+      displayName:
+        displayNameByCanonical.get(canonicalId) ??
+        identity?.displayName ??
+        fallbackName,
+    };
+  };
+
+  const { data: coverageRows, error: coverageError } = await getAnalyticsClient(
+    supabase,
+  )
+    .from('data_coverage')
+    .select('group_id, finalized_games')
+    .in('group_id', groupIds);
+
+  if (coverageError) {
+    throw coverageError;
+  }
+
+  const totalFinalizedGames = (
+    (coverageRows as Array<{ finalized_games: number | null }> | null) ?? []
+  ).reduce((sum, row) => sum + (row.finalized_games ?? 0), 0);
+
+  const [analytics, extended] = await Promise.all([
+    getOverallGroupAnalytics(groupIds, lookup),
+    getOverallExtendedAnalytics(groupIds, lookup, totalFinalizedGames),
+  ]);
+
+  return { analytics, extended };
 }

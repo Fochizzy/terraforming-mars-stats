@@ -11,6 +11,7 @@ export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/log-game/review', label: 'Saved Games' },
   { href: '/group', label: 'Global' },
   { href: '/cards', label: 'Cards' },
+  { href: '/glossary', label: 'Glossary' },
   { href: '/insights', label: 'Insights' },
 ];
 
@@ -54,9 +55,11 @@ export function BottomNav({
     ? items
     : [...items, savedGamesNavItem];
   const cardsItem = navigationItems.find((item) => item.href === '/cards');
-  const stripItems = cardsItem
-    ? navigationItems.filter((item) => item !== cardsItem)
-    : navigationItems;
+  const glossaryItem = navigationItems.find((item) => item.href === '/glossary');
+  const edgeItems = [cardsItem, glossaryItem].filter(
+    (item): item is BottomNavItem => Boolean(item),
+  );
+  const stripItems = navigationItems.filter((item) => !edgeItems.includes(item));
 
   return (
     <nav aria-label="Primary" className="tm-bottom-nav">
@@ -78,14 +81,15 @@ export function BottomNav({
           </Link>
         ))}
       </div>
-      {cardsItem ? (
+      {edgeItems.map((item) => (
         <Link
           className="tm-bottom-nav__link tm-bottom-nav__link--edge"
-          href={cardsItem.href}
+          href={item.href}
+          key={item.href}
         >
-          {cardsItem.label}
+          {item.label}
         </Link>
-      ) : null}
+      ))}
       <span aria-hidden className="tm-bottom-nav__icon">
         <ChartIcon />
       </span>

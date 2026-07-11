@@ -190,12 +190,16 @@ export type AwardMatrixModel = {
 export function buildAwardMatrixModel(
   rows: AwardFunderWinnerRow[],
 ): AwardMatrixModel {
-  const funderNames = [...new Set(rows.map((row) => row.funderPlayerName))].sort(
-    (left, right) => left.localeCompare(right),
-  );
-  const winnerNames = [...new Set(rows.map((row) => row.winnerPlayerName))].sort(
-    (left, right) => left.localeCompare(right),
-  );
+  // Use the union of funders and winners for both axes so the grid is always
+  // square: a player who funded but never won (or vice versa) still appears on
+  // both axes instead of dropping off one of them.
+  const names = [
+    ...new Set(
+      rows.flatMap((row) => [row.funderPlayerName, row.winnerPlayerName]),
+    ),
+  ].sort((left, right) => left.localeCompare(right));
+  const funderNames = names;
+  const winnerNames = names;
   const counts = new Map<string, number>();
   let maxCount = 0;
 

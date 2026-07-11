@@ -195,3 +195,39 @@ describe('Merger impact stats migration', () => {
     );
   });
 });
+
+describe('Award economics migration', () => {
+  const migration = getMigrationContaining('get_award_economics');
+
+  it('aggregates award economics across groups with security definer', () => {
+    expect(migration).toContain(
+      "create or replace function public.get_award_economics(scope text default 'personal')",
+    );
+    expect(migration).toContain('security definer');
+    expect(migration).toContain("g.status = 'finalized'");
+    expect(migration).toContain('ga.place = 1');
+    // No group_id in the select/grouping — that is what lets it span groups.
+    expect(migration).not.toContain('g.group_id');
+  });
+
+  it('scopes to the caller-played games unless the global scope is requested', () => {
+    expect(migration).toContain("scope = 'global'");
+    expect(migration).toContain('p.linked_user_id = auth.uid()');
+  });
+
+  it('returns both the funder/winner matrix and per-award outcomes', () => {
+    expect(migration).toContain("'outcomes'");
+    expect(migration).toContain("'matrix'");
+    expect(migration).toContain('funder.display_name as funder_player_name');
+    expect(migration).toContain('winner.display_name as winner_player_name');
+  });
+
+  it('keeps the RPC executable only by authenticated callers', () => {
+    expect(migration).toContain(
+      'revoke all on function public.get_award_economics(text) from public;',
+    );
+    expect(migration).toContain(
+      'grant execute on function public.get_award_economics(text) to authenticated;',
+    );
+  });
+});

@@ -280,10 +280,33 @@ describe('buildAwardMatrixModel', () => {
       },
     ]);
 
-    expect(model.funderNames).toEqual(['Ada']);
+    // Both axes are the union of funders and winners, so Brin (a winner who
+    // never funded) still appears as a funder row.
+    expect(model.funderNames).toEqual(['Ada', 'Brin']);
     expect(model.winnerNames).toEqual(['Ada', 'Brin']);
     expect(model.counts.get('Ada→Brin')).toBe(2);
     expect(model.maxCount).toBe(2);
+  });
+
+  it('keeps both axes square when a player only funds or only wins', () => {
+    const model = buildAwardMatrixModel([
+      {
+        awardId: 'a1',
+        awardName: 'Landlord',
+        firstPlaceAwards: 1,
+        funderPlayerId: 'p1',
+        funderPlayerName: 'Colette',
+        groupId: 'global',
+        winnerPlayerId: 'p2',
+        winnerPlayerName: 'Jenna',
+      },
+    ]);
+
+    // Colette only funds, Jenna only wins — both must appear on both axes.
+    expect(model.funderNames).toEqual(['Colette', 'Jenna']);
+    expect(model.winnerNames).toEqual(['Colette', 'Jenna']);
+    expect(model.counts.get('Colette→Jenna')).toBe(1);
+    expect(model.counts.get('Jenna→Colette') ?? 0).toBe(0);
   });
 });
 

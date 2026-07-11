@@ -59,6 +59,25 @@ function buildExtendedFixture(
   };
 }
 
+function buildEmptyGroupAnalyticsFixture() {
+  return {
+    coverage: null,
+    groupInteractionRows: [],
+    groupStylePerformanceRows: [],
+    headToHeadRows: [],
+    importCoverageRows: [],
+    leaderboardRows: [],
+    lineupEffectRows: [],
+    playerCoverages: [],
+    playerInteractionRows: [],
+    playerScoreAverages: [],
+    playerStylePerformanceRows: [],
+    playerTrendRows: [],
+    scoreAverages: null,
+    styleAgreementRows: [],
+  } as never;
+}
+
 describe('InsightsDashboard', () => {
   it('places the selected group switcher below player focus controls', () => {
     const { container } = render(
@@ -81,6 +100,8 @@ describe('InsightsDashboard', () => {
         } as never}
         extended={buildExtendedFixture()}
         focusPeople={[]}
+        overallAnalytics={buildEmptyGroupAnalyticsFixture()}
+        overallExtended={buildExtendedFixture()}
       >
         <div>Group Switcher</div>
       </InsightsDashboard>,
@@ -93,6 +114,55 @@ describe('InsightsDashboard', () => {
       labels.indexOf('Selected Group'),
     );
     expect(screen.getByText('Group Switcher')).toBeInTheDocument();
+  });
+
+  it('renders the cross-group sections in the default overall view', () => {
+    render(
+      <InsightsDashboard
+        analytics={buildEmptyGroupAnalyticsFixture()}
+        extended={buildExtendedFixture()}
+        focusPeople={[
+          buildFocusPerson({
+            bundle: {
+              coverage: null,
+              headToHeadRows: [],
+              performance: null,
+              scoreAverages: emptyScoreAverages,
+              trendRows: [
+                {
+                  gameId: 'g1',
+                  generationCount: 10,
+                  groupId: 'group-1',
+                  inferredPrimaryStyleCode: 'jovian_payoff',
+                  isWinner: true,
+                  placement: 1,
+                  playedOn: '2026-06-20',
+                  playerId: 'me-g1',
+                  playerName: 'Me',
+                  totalPoints: 88,
+                },
+              ],
+            },
+            canonicalId: 'user:me',
+            displayName: 'Me',
+          }),
+        ]}
+        overallAnalytics={buildEmptyGroupAnalyticsFixture()}
+        overallExtended={buildExtendedFixture()}
+      />,
+    );
+
+    // These extended sections used to be hidden in Overall scope; now that the
+    // default view aggregates everyone you've played, their frames render.
+    expect(
+      screen.getByRole('heading', { name: /Map Performance/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Milestone Economics/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Table Size Performance/i }),
+    ).toBeInTheDocument();
   });
 
   it('does not surface promo catalog or map expansion interactions as stats', () => {
@@ -126,6 +196,8 @@ describe('InsightsDashboard', () => {
         } as never}
         extended={buildExtendedFixture()}
         focusPeople={[]}
+        overallAnalytics={buildEmptyGroupAnalyticsFixture()}
+        overallExtended={buildExtendedFixture()}
       />,
     );
 
@@ -488,6 +560,8 @@ describe('InsightsDashboard', () => {
             playerIds: ['p2'],
           }),
         ]}
+        overallAnalytics={buildEmptyGroupAnalyticsFixture()}
+        overallExtended={buildExtendedFixture()}
       />,
     );
 
@@ -615,6 +689,8 @@ describe('InsightsDashboard', () => {
             playerIds: ['c1'],
           }),
         ]}
+        overallAnalytics={buildEmptyGroupAnalyticsFixture()}
+        overallExtended={buildExtendedFixture()}
       />,
     );
 

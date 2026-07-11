@@ -3,8 +3,17 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
 import { SelectionStatsSection } from '@/features/insights/selection-stats-section';
-import type { CrossGroupFocusPerson, GroupAnalytics } from '@/lib/db/analytics-repo';
-import { getCrossGroupFocusData, getGroupAnalytics } from '@/lib/db/analytics-repo';
+import type {
+  CrossGroupFocusPerson,
+  GroupAnalytics,
+  OverallAnalytics,
+} from '@/lib/db/analytics-repo';
+import {
+  buildEmptyGroupAnalytics,
+  getCrossGroupFocusData,
+  getGroupAnalytics,
+  getOverallAnalytics,
+} from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { getExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import {
@@ -50,6 +59,11 @@ const emptyExtendedAnalytics: ExtendedGroupAnalytics = {
   tilePlacementRows: [],
 };
 
+const emptyOverallAnalytics: OverallAnalytics = {
+  analytics: buildEmptyGroupAnalytics(),
+  extended: emptyExtendedAnalytics,
+};
+
 const emptySelectionStats: SelectionStats = {
   awardFunding: [],
   baselineWinRate: 0,
@@ -87,6 +101,7 @@ export default async function InsightsPage() {
     analytics,
     extendedAnalytics,
     focusPeople,
+    overallAnalytics,
     personalSelectionStats,
     globalSelectionStats,
     headToHeadStats,
@@ -106,6 +121,11 @@ export default async function InsightsPage() {
       'cross-group focus players',
       getCrossGroupFocusData(context.userId, context.groupId),
       [] as CrossGroupFocusPerson[],
+    ),
+    loadInsightsDataOrDefault(
+      'overall cross-group analytics',
+      getOverallAnalytics(context.userId),
+      emptyOverallAnalytics,
     ),
     loadInsightsDataOrDefault(
       'personal selection stats',
@@ -139,6 +159,8 @@ export default async function InsightsPage() {
         analytics={analytics}
         extended={extendedAnalytics}
         focusPeople={focusPeople}
+        overallAnalytics={overallAnalytics.analytics}
+        overallExtended={overallAnalytics.extended}
       >
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/insights" />
       </InsightsDashboard>

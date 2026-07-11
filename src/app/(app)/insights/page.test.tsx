@@ -18,10 +18,45 @@ const mockState = vi.hoisted(() => ({
   getExtendedGroupAnalytics: vi.fn(),
   getGroupAnalytics: vi.fn(),
   getMergerImpactStats: vi.fn(),
+  getOverallAnalytics: vi.fn(),
   getSelectionStats: vi.fn(),
   listPromoCards: vi.fn(),
   listPromoSets: vi.fn(),
   requireGroupContextOrRedirect: vi.fn(),
+}));
+
+const emptyGroupAnalyticsFixture = vi.hoisted(() => () => ({
+  coverage: null,
+  groupInteractionRows: [],
+  groupStylePerformanceRows: [],
+  headToHeadRows: [],
+  importCoverageRows: [],
+  leaderboardRows: [],
+  lineupEffectRows: [],
+  playerCoverages: [],
+  playerInteractionRows: [],
+  playerScoreAverages: [],
+  playerStylePerformanceRows: [],
+  playerTrendRows: [],
+  scoreAverages: null,
+  styleAgreementRows: [],
+}));
+
+const emptyExtendedAnalyticsFixture = vi.hoisted(() => () => ({
+  awardFunderWinnerRows: [],
+  awardOutcomeRows: [],
+  cardOutcomeRows: [],
+  gameLengthPerformanceRows: [],
+  generationDistributionRows: [],
+  generationPaceRows: [],
+  groupMapPerformanceRows: [],
+  milestoneEconomicsRows: [],
+  placementDistributionRows: [],
+  playerCountPerformanceRows: [],
+  playerMapPerformanceRows: [],
+  playerMilestoneClaimRows: [],
+  tagOutcomeRows: [],
+  tilePlacementRows: [],
 }));
 
 vi.mock('@/components/layout/app-shell', () => ({
@@ -71,8 +106,10 @@ vi.mock('@/features/insights/insights-dashboard', () => ({
 }));
 
 vi.mock('@/lib/db/analytics-repo', () => ({
+  buildEmptyGroupAnalytics: emptyGroupAnalyticsFixture,
   getCrossGroupFocusData: mockState.getCrossGroupFocusData,
   getGroupAnalytics: mockState.getGroupAnalytics,
+  getOverallAnalytics: mockState.getOverallAnalytics,
 }));
 
 vi.mock('@/lib/db/extended-analytics-repo', () => ({
@@ -193,6 +230,10 @@ describe('InsightsPage', () => {
       playerMilestoneClaimRows: [],
       tagOutcomeRows: [],
       tilePlacementRows: [],
+    });
+    mockState.getOverallAnalytics.mockResolvedValue({
+      analytics: emptyGroupAnalyticsFixture(),
+      extended: emptyExtendedAnalyticsFixture(),
     });
     mockState.listPromoCards.mockResolvedValue([]);
     mockState.listPromoSets.mockResolvedValue([]);

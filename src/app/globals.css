@@ -166,6 +166,58 @@ a {
     max-width: 68ch;
   }
 
+  .tm-glossary-link {
+    color: var(--tm-dust-300);
+    text-decoration: underline;
+    text-decoration-color: rgba(214, 130, 66, 0.55);
+    text-underline-offset: 0.15em;
+    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+  }
+
+  .tm-glossary-link:hover {
+    color: #f9efe2;
+    text-decoration-color: var(--tm-copper-400);
+  }
+
+  .tm-glossary-jump-nav {
+    @apply mt-4 flex flex-wrap items-center gap-1 border-t pt-4;
+    border-color: rgba(214, 130, 66, 0.22);
+  }
+
+  .tm-glossary-jump {
+    @apply inline-flex items-center rounded-md px-3 py-2 text-xs transition;
+    color: var(--tm-muted);
+    font-family: var(--tm-font-display);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tm-glossary-jump:hover {
+    background: rgba(214, 130, 66, 0.12);
+    color: var(--tm-dust-300);
+  }
+
+  .tm-glossary-term {
+    @apply rounded-xl border p-3;
+    border-color: rgba(192, 162, 127, 0.2);
+    background-color: rgba(12, 15, 20, 0.42);
+    scroll-margin-top: 1.5rem;
+    transition:
+      border-color 0.3s ease,
+      box-shadow 0.3s ease,
+      background-color 0.3s ease;
+  }
+
+  .tm-glossary-term.tm-glossary-term--active {
+    border-color: var(--tm-copper-400);
+    background-color: rgba(214, 130, 66, 0.14);
+    box-shadow: 0 0 0 1px rgba(221, 161, 93, 0.5), 0 12px 28px var(--tm-shadow);
+  }
+
+  .tm-panel[id] {
+    scroll-margin-top: 1.5rem;
+  }
+
   .tm-stat-card {
     @apply rounded-2xl border p-3;
     background:

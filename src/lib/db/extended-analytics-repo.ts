@@ -1,3 +1,20 @@
+import {
+  type IdentityLookup,
+  mergeAwardFunderWinnerMatrix,
+  mergeAwardOutcomes,
+  mergeGameLengthPerformance,
+  mergeGenerationDistribution,
+  mergeGroupMapPerformance,
+  mergeMilestoneEconomics,
+  mergePlacementDistribution,
+  mergePlayerCountPerformance,
+  mergePlayerMapPerformance,
+  mergePlayerMilestoneClaims,
+  remapCardOutcomes,
+  remapGenerationPace,
+  remapTagOutcomes,
+  remapTilePlacements,
+} from '@/lib/db/overall-analytics-aggregators';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type PlacementDistributionRow = {
@@ -572,14 +589,14 @@ export function sortGenerationPaceRows(rows: GenerationPaceRow[]) {
 
 async function listView<TRaw, TRow>(
   view: string,
-  groupId: string,
+  groupId: string | string[],
   mapRow: (row: TRaw) => TRow,
 ) {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await getAnalyticsClient(supabase)
-    .from(view)
-    .select('*')
-    .eq('group_id', groupId);
+  const base = getAnalyticsClient(supabase).from(view).select('*');
+  const { data, error } = await (Array.isArray(groupId)
+    ? base.in('group_id', groupId)
+    : base.eq('group_id', groupId));
 
   if (error) {
     throw error;
@@ -825,5 +842,266 @@ export async function getExtendedGroupAnalytics(
     playerMilestoneClaimRows,
     tagOutcomeRows,
     tilePlacementRows,
+  };
+}
+
+export type AwardEconomicsScope = 'global' | 'personal';
+
+export type AwardEconomics = {
+  awardFunderWinnerRows: AwardFunderWinnerRow[];
+  awardOutcomeRows: AwardOutcomeRow[];
+};
+
+/**
+ * Award funding economics aggregated across many games at once, independent of
+ * the active group. Backed by the SECURITY DEFINER `get_award_economics` RPC.
+ * scope = 'personal' (default) covers games a player linked to the caller played
+ * in; scope = 'global' covers every finalized game.
+ */
+export async function getAwardEconomics(
+  scope: AwardEconomicsScope = 'personal',
+): Promise<AwardEconomics> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('get_award_economics', { scope });
+
+  if (error) {
+    throw error;
+  }
+
+  const payload = (data ?? {}) as {
+    matrix?: Omit<RawAwardFunderWinnerRow, 'group_id'>[];
+    outcomes?: Omit<RawAwardOutcomeRow, 'group_id'>[];
+  };
+
+  return {
+    awardFunderWinnerRows: (payload.matrix ?? []).map((row) =>
+      mapAwardFunderWinnerRow({ ...row, group_id: 'global' }),
+    ),
+    awardOutcomeRows: (payload.outcomes ?? []).map((row) =>
+      mapAwardOutcomeRow({ ...row, group_id: 'global' }),
+    ),
+  };
+}
+
+export function buildEmptyExtendedAnalytics(): ExtendedGroupAnalytics {
+  return {
+    awardFunderWinnerRows: [],
+    awardOutcomeRows: [],
+    cardOutcomeRows: [],
+    gameLengthPerformanceRows: [],
+    generationDistributionRows: [],
+    generationPaceRows: [],
+    groupMapPerformanceRows: [],
+    milestoneEconomicsRows: [],
+    placementDistributionRows: [],
+    playerCountPerformanceRows: [],
+    playerMapPerformanceRows: [],
+    playerMilestoneClaimRows: [],
+    tagOutcomeRows: [],
+    tilePlacementRows: [],
+  };
+}
+
+const GAME_LENGTH_BUCKET_ORDER: Record<GameLengthBucket, number> = {
+  long: 2,
+  short: 0,
+  standard: 1,
+};
+
+/**
+ * Cross-group ("Overall") extended analytics: every extended view fetched across
+ * the caller's whole group set and re-aggregated to canonical persons via the
+ * helpers in overall-analytics-aggregators. `lookup` maps each per-group player
+ * id to a stable identity; `totalFinalizedGames` is the denominator for the
+ * milestone claim-rate. Output is shaped exactly like getExtendedGroupAnalytics
+ * so the dashboard sections consume it unchanged.
+ */
+export async function getOverallExtendedAnalytics(
+  groupIds: string[],
+  lookup: IdentityLookup,
+  totalFinalizedGames: number,
+): Promise<ExtendedGroupAnalytics> {
+  if (groupIds.length === 0) {
+    return buildEmptyExtendedAnalytics();
+  }
+
+  const [
+    placementRows,
+    playerCountRows,
+    generationDistributionRaw,
+    gameLengthRows,
+    groupMapRows,
+    playerMapRows,
+    milestoneEconomicsRaw,
+    playerMilestoneRows,
+    awardOutcomeRaw,
+    awardMatrixRows,
+    generationPaceRaw,
+    tilePlacementRaw,
+    tagOutcomeRaw,
+    cardOutcomeRaw,
+  ] = await Promise.all([
+    listView<RawPlacementDistributionRow, PlacementDistributionRow>(
+      'player_placement_distribution',
+      groupIds,
+      mapPlacementDistributionRow,
+    ),
+    listView<RawPlayerCountPerformanceRow, PlayerCountPerformanceRow>(
+      'player_count_performance',
+      groupIds,
+      mapPlayerCountPerformanceRow,
+    ),
+    listView<RawGenerationDistributionRow, GenerationDistributionRow>(
+      'group_generation_distribution',
+      groupIds,
+      mapGenerationDistributionRow,
+    ),
+    listView<RawGameLengthPerformanceRow, GameLengthPerformanceRow>(
+      'player_game_length_performance',
+      groupIds,
+      mapGameLengthPerformanceRow,
+    ),
+    listView<RawGroupMapPerformanceRow, GroupMapPerformanceRow>(
+      'group_map_performance',
+      groupIds,
+      mapGroupMapPerformanceRow,
+    ),
+    listView<RawPlayerMapPerformanceRow, PlayerMapPerformanceRow>(
+      'player_map_performance',
+      groupIds,
+      mapPlayerMapPerformanceRow,
+    ),
+    listView<RawMilestoneEconomicsRow, MilestoneEconomicsRow>(
+      'group_milestone_economics',
+      groupIds,
+      mapMilestoneEconomicsRow,
+    ),
+    listView<RawPlayerMilestoneClaimRow, PlayerMilestoneClaimRow>(
+      'player_milestone_claims',
+      groupIds,
+      mapPlayerMilestoneClaimRow,
+    ),
+    listView<RawAwardOutcomeRow, AwardOutcomeRow>(
+      'group_award_outcomes',
+      groupIds,
+      mapAwardOutcomeRow,
+    ),
+    listView<RawAwardFunderWinnerRow, AwardFunderWinnerRow>(
+      'award_funder_winner_matrix',
+      groupIds,
+      mapAwardFunderWinnerRow,
+    ),
+    listView<RawGenerationPaceRow, GenerationPaceRow>(
+      'game_generation_pace',
+      groupIds,
+      mapGenerationPaceRow,
+    ),
+    listView<RawTilePlacementRow, TilePlacementRow>(
+      'game_tile_placements',
+      groupIds,
+      mapTilePlacementRow,
+    ),
+    listView<RawTagOutcomeRow, TagOutcomeRow>(
+      'player_tag_outcomes',
+      groupIds,
+      mapTagOutcomeRow,
+    ),
+    listView<RawCardOutcomeRow, CardOutcomeRow>(
+      'player_card_outcomes',
+      groupIds,
+      mapCardOutcomeRow,
+    ),
+  ]);
+
+  return {
+    placementDistributionRows: sortPlacementDistributionRows(
+      mergePlacementDistribution(placementRows, lookup),
+    ),
+    playerCountPerformanceRows: mergePlayerCountPerformance(
+      playerCountRows,
+      lookup,
+    ).sort(
+      (left, right) =>
+        left.playerName.localeCompare(right.playerName) ||
+        left.playerCount - right.playerCount,
+    ),
+    generationDistributionRows: mergeGenerationDistribution(
+      generationDistributionRaw,
+    ).sort((left, right) => left.generationCount - right.generationCount),
+    gameLengthPerformanceRows: mergeGameLengthPerformance(
+      gameLengthRows,
+      lookup,
+    ).sort(
+      (left, right) =>
+        left.playerName.localeCompare(right.playerName) ||
+        GAME_LENGTH_BUCKET_ORDER[left.lengthBucket] -
+          GAME_LENGTH_BUCKET_ORDER[right.lengthBucket],
+    ),
+    groupMapPerformanceRows: mergeGroupMapPerformance(groupMapRows).sort(
+      (left, right) =>
+        right.gamesPlayed - left.gamesPlayed ||
+        left.mapName.localeCompare(right.mapName),
+    ),
+    playerMapPerformanceRows: mergePlayerMapPerformance(
+      playerMapRows,
+      lookup,
+    ).sort(
+      (left, right) =>
+        left.playerName.localeCompare(right.playerName) ||
+        right.gamesPlayed - left.gamesPlayed ||
+        left.mapName.localeCompare(right.mapName),
+    ),
+    milestoneEconomicsRows: mergeMilestoneEconomics(
+      milestoneEconomicsRaw,
+      totalFinalizedGames,
+    ).sort(
+      (left, right) =>
+        right.claims - left.claims ||
+        left.milestoneName.localeCompare(right.milestoneName),
+    ),
+    playerMilestoneClaimRows: mergePlayerMilestoneClaims(
+      playerMilestoneRows,
+      lookup,
+    ).sort(
+      (left, right) =>
+        right.claims - left.claims ||
+        left.playerName.localeCompare(right.playerName) ||
+        left.milestoneName.localeCompare(right.milestoneName),
+    ),
+    awardOutcomeRows: mergeAwardOutcomes(awardOutcomeRaw).sort(
+      (left, right) =>
+        right.fundedCount - left.fundedCount ||
+        left.awardName.localeCompare(right.awardName),
+    ),
+    awardFunderWinnerRows: mergeAwardFunderWinnerMatrix(
+      awardMatrixRows,
+      lookup,
+    ).sort(
+      (left, right) =>
+        left.funderPlayerName.localeCompare(right.funderPlayerName) ||
+        left.winnerPlayerName.localeCompare(right.winnerPlayerName) ||
+        left.awardName.localeCompare(right.awardName),
+    ),
+    generationPaceRows: sortGenerationPaceRows(
+      remapGenerationPace(generationPaceRaw, lookup),
+    ),
+    tilePlacementRows: remapTilePlacements(tilePlacementRaw, lookup).sort(
+      (left, right) =>
+        left.playedOn.localeCompare(right.playedOn) ||
+        left.gameId.localeCompare(right.gameId) ||
+        Number(left.boardSpace) - Number(right.boardSpace),
+    ),
+    tagOutcomeRows: remapTagOutcomes(tagOutcomeRaw, lookup).sort(
+      (left, right) =>
+        left.playerName.localeCompare(right.playerName) ||
+        left.playedOn.localeCompare(right.playedOn) ||
+        left.tagCode.localeCompare(right.tagCode),
+    ),
+    cardOutcomeRows: remapCardOutcomes(cardOutcomeRaw, lookup).sort(
+      (left, right) =>
+        left.playerName.localeCompare(right.playerName) ||
+        left.playedOn.localeCompare(right.playedOn) ||
+        left.cardName.localeCompare(right.cardName),
+    ),
   };
 }

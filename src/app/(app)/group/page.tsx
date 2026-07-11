@@ -1,6 +1,11 @@
 import { AppShell } from '@/components/layout/app-shell';
+import { AwardEconomicsSection } from '@/features/insights/milestone-award-section';
 import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
 import { WinningCardsSection } from '@/features/insights/winning-cards-section';
+import {
+  getAwardEconomics,
+  type AwardEconomics,
+} from '@/lib/db/extended-analytics-repo';
 import {
   getSelectionStats,
   type SelectionStats,
@@ -17,6 +22,11 @@ const emptySelectionStats: SelectionStats = {
   tagWins: [],
 };
 
+const emptyAwardEconomics: AwardEconomics = {
+  awardFunderWinnerRows: [],
+  awardOutcomeRows: [],
+};
+
 async function loadGlobalStatsOrDefault(): Promise<SelectionStats> {
   try {
     return await getSelectionStats('global');
@@ -26,8 +36,20 @@ async function loadGlobalStatsOrDefault(): Promise<SelectionStats> {
   }
 }
 
+async function loadAwardEconomicsOrDefault(): Promise<AwardEconomics> {
+  try {
+    return await getAwardEconomics('personal');
+  } catch (error) {
+    console.error('[global] Failed to load award economics', error);
+    return emptyAwardEconomics;
+  }
+}
+
 export default async function GlobalStatisticsPage() {
-  const globalStats = await loadGlobalStatsOrDefault();
+  const [globalStats, awardEconomics] = await Promise.all([
+    loadGlobalStatsOrDefault(),
+    loadAwardEconomicsOrDefault(),
+  ]);
 
   return (
     <AppShell showReviewSavedGamesLink title="Global Statistics" wide>
@@ -44,6 +66,21 @@ export default async function GlobalStatisticsPage() {
           stats={globalStats}
         />
         <WinningCardsSection cards={globalStats.cards} />
+      </section>
+      <section className="tm-panel flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <h2 className="tm-panel-title text-lg">Your Award Funding</h2>
+          <p className="tm-muted-copy text-sm">
+            Who profits from whose award funding, across every game you&apos;ve
+            played in — spanning all your groups, not just the active one.
+          </p>
+        </div>
+        <AwardEconomicsSection
+          focusPlayerId={null}
+          focusPlayerName={null}
+          matrixRows={awardEconomics.awardFunderWinnerRows}
+          outcomeRows={awardEconomics.awardOutcomeRows}
+        />
       </section>
     </AppShell>
   );

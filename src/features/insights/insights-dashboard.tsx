@@ -36,6 +36,7 @@ import type {
   TrendRow,
 } from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
+import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { buildInsightCards, type InsightCard } from './build-insight-cards';
 import { BoardHeatmapSection } from './board-heatmap-section';
 import { CardOutcomesSection } from './card-outcomes-section';
@@ -56,6 +57,8 @@ type InsightsDashboardProps = {
   children?: ReactNode;
   extended: ExtendedGroupAnalytics;
   focusPeople: CrossGroupFocusPerson[];
+  overallAnalytics: GroupAnalytics;
+  overallExtended: ExtendedGroupAnalytics;
 };
 
 type ScoreSourceShape = {
@@ -638,6 +641,8 @@ export function InsightsDashboard({
   children: groupSwitcher,
   extended,
   focusPeople,
+  overallAnalytics,
+  overallExtended,
 }: InsightsDashboardProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string>('all');
   const [focusScope, setFocusScope] = useState<FocusScope>('overall');
@@ -672,15 +677,30 @@ export function InsightsDashboard({
     [activeGroupPlayerId, isGroupScope, selectedPerson],
   );
 
+  // The extended / style / lineup / interaction sections render from a
+  // scope-aware source: the active group's analytics in Selected-group scope, or
+  // the canonical-merged cross-group analytics ("everyone you've played") in
+  // Overall scope. In Overall scope a focused person is keyed by canonical id,
+  // matching how the overall datasets collapse each person's per-group rows.
+  const sectionAnalytics = isGroupScope ? analytics : overallAnalytics;
+  const sectionExtended = isGroupScope ? extended : overallExtended;
+  const sectionFocusPlayerId = isGroupScope
+    ? selectedPlayer?.id ?? null
+    : selectedPerson?.canonicalId ?? null;
+  const sectionFocusPlayerName = isGroupScope
+    ? selectedPlayer?.displayName ?? null
+    : selectedPerson?.displayName ?? null;
+  const showExtendedSections = isGroupScope ? showGroupContext : true;
+
   const groupPlayerScoreAverages = selectedPlayer
     ? analytics.playerScoreAverages.find((row) => row.playerId === selectedPlayer.id) ??
       null
     : null;
-  const selectedStylePerformanceRows: GroupStylePerformanceRow[] = selectedPlayer
-    ? analytics.playerStylePerformanceRows.filter(
-        (row) => row.playerId === selectedPlayer.id,
+  const selectedStylePerformanceRows: GroupStylePerformanceRow[] = sectionFocusPlayerId
+    ? sectionAnalytics.playerStylePerformanceRows.filter(
+        (row) => row.playerId === sectionFocusPlayerId,
       )
-    : analytics.groupStylePerformanceRows;
+    : sectionAnalytics.groupStylePerformanceRows;
   const selectedScoreProfile = isGroupScope
     ? selectedPlayer
       ? groupPlayerScoreAverages ?? analytics.scoreAverages
@@ -694,16 +714,22 @@ export function InsightsDashboard({
       ? groupPlayerCoverage ?? analytics.coverage
       : analytics.coverage
     : bundle?.coverage ?? null;
-  const selectedStyleRows = selectedPlayer
-    ? analytics.styleAgreementRows.filter((row) => row.playerId === selectedPlayer.id)
-    : analytics.styleAgreementRows.slice(0, 6);
-  const selectedLineupRows = selectedPlayer
-    ? analytics.lineupEffectRows.filter((row) => row.playerId === selectedPlayer.id)
-    : analytics.lineupEffectRows.slice(0, 6);
+  const selectedStyleRows = sectionFocusPlayerId
+    ? sectionAnalytics.styleAgreementRows.filter(
+        (row) => row.playerId === sectionFocusPlayerId,
+      )
+    : sectionAnalytics.styleAgreementRows.slice(0, 6);
+  const selectedLineupRows = sectionFocusPlayerId
+    ? sectionAnalytics.lineupEffectRows.filter(
+        (row) => row.playerId === sectionFocusPlayerId,
+      )
+    : sectionAnalytics.lineupEffectRows.slice(0, 6);
   const selectedInteractionRows: DashboardInteractionRow[] = (
-    selectedPlayer
-      ? analytics.playerInteractionRows.filter((row) => row.playerId === selectedPlayer.id)
-      : analytics.groupInteractionRows
+    sectionFocusPlayerId
+      ? sectionAnalytics.playerInteractionRows.filter(
+          (row) => row.playerId === sectionFocusPlayerId,
+        )
+      : sectionAnalytics.groupInteractionRows
   )
     .filter(isSupportedDashboardInteractionRow)
     .slice(0, 6);
@@ -920,50 +946,23 @@ export function InsightsDashboard({
             </div>
           </div>
           <p className="tm-body-copy text-sm">
-            Compare weighted leaderboard form, score-source patterns, style
-            agreement, head-to-head edges, lineup effects, interaction pairings,
-            and coverage signals from finalized games only.
+            Compare{' '}
+            <GlossaryLink slug="weighted-score">weighted leaderboard</GlossaryLink>{' '}
+            form,{' '}
+            <GlossaryLink slug="score-sources">score-source</GlossaryLink>{' '}
+            patterns,{' '}
+            <GlossaryLink slug="style-agreement">style agreement</GlossaryLink>,{' '}
+            <GlossaryLink slug="head-to-head">head-to-head</GlossaryLink> edges,{' '}
+            <GlossaryLink slug="lineup-effects">lineup effects</GlossaryLink>,{' '}
+            <GlossaryLink slug="interaction-insights">
+              interaction pairings
+            </GlossaryLink>
+            , and{' '}
+            <GlossaryLink slug="optional-data-coverage">coverage</GlossaryLink>{' '}
+            signals from finalized games only. New to a term?{' '}
+            <GlossaryLink>Browse the full glossary</GlossaryLink>.
           </p>
         </div>
-      </ChartFrame>
-
-      <ChartFrame
-        description="Plain-language definitions for the recurring terms used across the charts below."
-        title="What These Metrics Mean"
-      >
-        <dl className="grid gap-4">
-          <div>
-            <dt className="tm-data-label">Weighted Score</dt>
-            <dd className="tm-muted-copy mt-1 text-sm">
-              A single ranking number that blends how a player finishes rather
-              than just their raw points: 50% win rate, 30% average finishing
-              placement, and 20% average score margin against opponents (capped
-              at ±20 points). Higher is better, and it drives the weighted
-              leaderboard order.
-            </dd>
-          </div>
-          <div>
-            <dt className="tm-data-label">Optional Data Coverage</dt>
-            <dd className="tm-muted-copy mt-1 text-sm">
-              The share of a player&apos;s or group&apos;s finalized games that
-              recorded the optional breakdown details — full card-point
-              breakdowns, microbe / animal / Jovian points, declared play style,
-              and key cards. A low value means that detail is simply missing from
-              those games, not that the value was zero, so treat the dependent
-              charts as partial samples.
-            </dd>
-          </div>
-          <div>
-            <dt className="tm-data-label">Play Style</dt>
-            <dd className="tm-muted-copy mt-1 text-sm">
-              A game&apos;s strategic archetype (for example greenery-heavy,
-              card-engine, or milestone-and-award focused). Each game can carry a
-              declared style the player chose up front and an inferred style
-              derived from how their points actually came together; the style
-              sections compare the two and track which styles win most.
-            </dd>
-          </div>
-        </dl>
       </ChartFrame>
 
       {hasAnalytics ? (
@@ -1043,9 +1042,9 @@ export function InsightsDashboard({
             </ChartFrame>
           ) : null}
 
-          {showGroupContext ? (
+          {showExtendedSections ? (
             <PlacementDistributionChart
-              rows={extended.placementDistributionRows}
+              rows={sectionExtended.placementDistributionRows}
             />
           ) : null}
 
@@ -1085,13 +1084,13 @@ export function InsightsDashboard({
             playerAverages={radarPlayerAverages}
           />
 
-          {showGroupContext ? (
+          {showExtendedSections ? (
           <ChartFrame
             description="How often each player's declared play style matched the style inferred from their actual scoring — exact, partial, or mismatched."
             title={
-              selectedPlayer
-                ? `Style Agreement for ${selectedPlayer.displayName}`
-                : 'Group Style Agreement'
+              sectionFocusPlayerName
+                ? `Style Agreement for ${sectionFocusPlayerName}`
+                : 'Style Agreement'
             }
           >
             {styleAgreementData.length === 0 ? (
@@ -1124,7 +1123,7 @@ export function InsightsDashboard({
           </ChartFrame>
           ) : null}
 
-          {showGroupContext ? (
+          {showExtendedSections ? (
           <ChartFrame
             description="Win rate by inferred play style, with the three best-performing styles broken out below the chart."
             title="Best Style Snapshot"
@@ -1234,26 +1233,26 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
-          {showGroupContext ? (
+          {showExtendedSections ? (
             <>
               <TableSizeChart
-                focusPlayerId={selectedPlayer?.id ?? null}
-                focusPlayerName={selectedPlayer?.displayName ?? null}
-                rows={extended.playerCountPerformanceRows}
+                focusPlayerId={sectionFocusPlayerId}
+                focusPlayerName={sectionFocusPlayerName}
+                rows={sectionExtended.playerCountPerformanceRows}
               />
 
               <GameLengthSection
-                distributionRows={extended.generationDistributionRows}
-                focusPlayerId={selectedPlayer?.id ?? null}
-                focusPlayerName={selectedPlayer?.displayName ?? null}
-                performanceRows={extended.gameLengthPerformanceRows}
+                distributionRows={sectionExtended.generationDistributionRows}
+                focusPlayerId={sectionFocusPlayerId}
+                focusPlayerName={sectionFocusPlayerName}
+                performanceRows={sectionExtended.gameLengthPerformanceRows}
               />
 
               <MapPerformanceSection
-                focusPlayerId={selectedPlayer?.id ?? null}
-                focusPlayerName={selectedPlayer?.displayName ?? null}
-                groupRows={extended.groupMapPerformanceRows}
-                playerRows={extended.playerMapPerformanceRows}
+                focusPlayerId={sectionFocusPlayerId}
+                focusPlayerName={sectionFocusPlayerName}
+                groupRows={sectionExtended.groupMapPerformanceRows}
+                playerRows={sectionExtended.playerMapPerformanceRows}
               />
             </>
           ) : null}
@@ -1286,7 +1285,7 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
-          {showGroupContext ? (
+          {showExtendedSections ? (
             <>
           <ChartFrame
             description="How win rate and average score shift depending on which players are at the table together."
@@ -1306,14 +1305,14 @@ export function InsightsDashboard({
                   >
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="font-semibold text-stone-100">
-                        {selectedPlayer ? row.lineupLabel : row.playerName}
+                        {sectionFocusPlayerId ? row.lineupLabel : row.playerName}
                       </h3>
                       <p className="tm-accent-copy text-sm">
                         {formatPercent(row.winRate)}
                       </p>
                     </div>
                     <p className="tm-muted-copy mt-2 text-sm">
-                      {selectedPlayer
+                      {sectionFocusPlayerId
                         ? `${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points | ${formatAverage(row.averageGenerationCount)} gens`
                         : `${truncateLabel(row.lineupLabel)} | ${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points`}
                     </p>
@@ -1324,34 +1323,34 @@ export function InsightsDashboard({
           </ChartFrame>
 
           <MilestoneEconomicsSection
-            focusPlayerId={selectedPlayer?.id ?? null}
-            focusPlayerName={selectedPlayer?.displayName ?? null}
-            groupRows={extended.milestoneEconomicsRows}
-            playerRows={extended.playerMilestoneClaimRows}
+            focusPlayerId={sectionFocusPlayerId}
+            focusPlayerName={sectionFocusPlayerName}
+            groupRows={sectionExtended.milestoneEconomicsRows}
+            playerRows={sectionExtended.playerMilestoneClaimRows}
           />
 
           <AwardEconomicsSection
-            focusPlayerId={selectedPlayer?.id ?? null}
-            focusPlayerName={selectedPlayer?.displayName ?? null}
-            matrixRows={extended.awardFunderWinnerRows}
-            outcomeRows={extended.awardOutcomeRows}
+            focusPlayerId={sectionFocusPlayerId}
+            focusPlayerName={sectionFocusPlayerName}
+            matrixRows={sectionExtended.awardFunderWinnerRows}
+            outcomeRows={sectionExtended.awardOutcomeRows}
           />
 
           <CardOutcomesSection
-            focusPlayerId={selectedPlayer?.id ?? null}
-            focusPlayerName={selectedPlayer?.displayName ?? null}
-            rows={extended.cardOutcomeRows}
+            focusPlayerId={sectionFocusPlayerId}
+            focusPlayerName={sectionFocusPlayerName}
+            rows={sectionExtended.cardOutcomeRows}
           />
 
           <TagOutcomesSection
-            focusPlayerId={selectedPlayer?.id ?? null}
-            focusPlayerName={selectedPlayer?.displayName ?? null}
-            rows={extended.tagOutcomeRows}
+            focusPlayerId={sectionFocusPlayerId}
+            focusPlayerName={sectionFocusPlayerName}
+            rows={sectionExtended.tagOutcomeRows}
           />
 
-          <GamePaceSection rows={extended.generationPaceRows} />
+          <GamePaceSection rows={sectionExtended.generationPaceRows} />
 
-          <BoardHeatmapSection rows={extended.tilePlacementRows} />
+          <BoardHeatmapSection rows={sectionExtended.tilePlacementRows} />
 
           {selectedInteractionRows.length > 0 ? (
             <ChartFrame

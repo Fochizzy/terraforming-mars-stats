@@ -14,6 +14,8 @@ export const defaultTopNavItems: TopNavItem[] = [
   { href: '/log-game/review', label: 'Saved Games' },
   { href: '/group', label: 'Global' },
   { href: '/insights', label: 'Insights' },
+  { href: '/cards', label: 'Cards' },
+  { href: '/glossary', label: 'Glossary' },
 ];
 
 function isItemActive(pathname: string, href: string): boolean {
