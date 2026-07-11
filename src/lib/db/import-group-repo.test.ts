@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import {
+  buildImportGroupMemberRows,
   buildGroupRosterSignature,
   buildImportGroupName,
   findExactGroupRosterMatch,
@@ -115,6 +116,35 @@ describe('findExactGroupRosterMatch', () => {
     expect(
       buildGroupRosterSignature(importedParticipants.map((participant) => participant.token)),
     ).toBe('user:user-1|user:user-2');
+  });
+});
+
+describe('buildImportGroupMemberRows', () => {
+  it('dedupes the importing user when they are also a linked participant', () => {
+    expect(
+      buildImportGroupMemberRows({
+        groupId: 'group-1',
+        importingUserId: 'user-izzy',
+        participantIdentities: [
+          {
+            linkedUserId: 'user-james',
+          },
+          {
+            linkedUserId: 'user-izzy',
+          },
+          {
+            linkedUserId: null,
+          },
+          {
+            linkedUserId: 'user-corey',
+          },
+        ],
+      }),
+    ).toEqual([
+      { group_id: 'group-1', role: 'editor', user_id: 'user-izzy' },
+      { group_id: 'group-1', role: 'editor', user_id: 'user-james' },
+      { group_id: 'group-1', role: 'editor', user_id: 'user-corey' },
+    ]);
   });
 });
 

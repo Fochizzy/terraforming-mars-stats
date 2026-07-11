@@ -80,6 +80,7 @@ const mockState = vi.hoisted(() => ({
   listCards: vi.fn(),
   listCorporations: vi.fn(),
   listImportResolutionPlayers: vi.fn(),
+  listImportResolutionPlayersForCurrentUser: vi.fn(),
   listMapAwards: vi.fn(),
   listMapMilestones: vi.fn(),
   listMaps: vi.fn(),
@@ -157,6 +158,8 @@ vi.mock('@/lib/db/group-settings-repo', () => ({
 
 vi.mock('@/lib/db/import-player-resolution-repo', () => ({
   listImportResolutionPlayers: mockState.listImportResolutionPlayers,
+  listImportResolutionPlayersForCurrentUser:
+    mockState.listImportResolutionPlayersForCurrentUser,
 }));
 
 vi.mock('@/lib/db/player-repo', () => ({
@@ -251,6 +254,15 @@ describe('LogGameImportPage', () => {
     mockState.listPreludes.mockResolvedValue([]);
     mockState.listStyles.mockResolvedValue([]);
     mockState.listImportResolutionPlayers.mockResolvedValue([
+      {
+        displayName: 'Friday Mars',
+        gamesPlayed: 11,
+        id: 'player-1',
+        linkedFullName: 'Friday Mars',
+        linkedUsername: 'friday-mars',
+      },
+    ]);
+    mockState.listImportResolutionPlayersForCurrentUser.mockResolvedValue([
       {
         displayName: 'Friday Mars',
         gamesPlayed: 11,

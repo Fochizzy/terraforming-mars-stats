@@ -112,6 +112,27 @@ export function buildImportGroupName(participantNames: string[]) {
     .join(' / ');
 }
 
+export function buildImportGroupMemberRows(input: {
+  groupId: string;
+  importingUserId: string;
+  participantIdentities: Array<Pick<ImportParticipantIdentity, 'linkedUserId'>>;
+}) {
+  const uniqueUserIds = [
+    ...new Set([
+      input.importingUserId,
+      ...input.participantIdentities
+        .map((participant) => participant.linkedUserId)
+        .filter((value): value is string => Boolean(value)),
+    ]),
+  ];
+
+  return uniqueUserIds.map((userId) => ({
+    group_id: input.groupId,
+    role: 'editor' as const,
+    user_id: userId,
+  }));
+}
+
 export type ImportGroupReconciliationPlan = {
   playerIdsToRemove: string[];
   updatedGroupName: string | null;
@@ -412,16 +433,11 @@ export async function resolveOrCreateImportGroup(input: {
       throw groupError;
     }
 
-    const existingMemberRows = [
-      input.importingUserId,
-      ...participantIdentities
-        .map((participant) => participant.linkedUserId)
-        .filter((value): value is string => Boolean(value)),
-    ].map((userId) => ({
-      group_id: matchingGroupId,
-      role: 'editor' as const,
-      user_id: userId,
-    }));
+    const existingMemberRows = buildImportGroupMemberRows({
+      groupId: matchingGroupId,
+      importingUserId: input.importingUserId,
+      participantIdentities,
+    });
 
     const { error: membershipError } = await admin
       .from('group_members')
@@ -455,16 +471,11 @@ export async function resolveOrCreateImportGroup(input: {
     throw groupError;
   }
 
-  const memberRows = [
-    input.importingUserId,
-    ...participantIdentities
-      .map((participant) => participant.linkedUserId)
-      .filter((value): value is string => Boolean(value)),
-  ].map((userId) => ({
-    group_id: group.id,
-    role: 'editor' as const,
-    user_id: userId,
-  }));
+  const memberRows = buildImportGroupMemberRows({
+    groupId: group.id,
+    importingUserId: input.importingUserId,
+    participantIdentities,
+  });
 
   const { error: memberInsertError } = await admin
     .from('group_members')
