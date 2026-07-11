@@ -881,6 +881,115 @@ describe('saveGameLogTagSummaries', () => {
       { id: 'tag-row-2', tagCode: 'science' },
     ]);
   });
+
+  it('retries tag summary inserts with legacy tag codes when the database constraint is older', async () => {
+    const eq = vi.fn().mockResolvedValue({
+      error: null,
+    });
+    const deleteFn = vi.fn(() => ({
+      eq,
+    }));
+    const select = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '23514',
+          details:
+            'Failing row contains a tag_code that is not accepted by game_log_tag_summaries_tag_code_check.',
+          message:
+            'new row for relation "game_log_tag_summaries" violates check constraint "game_log_tag_summaries_tag_code_check"',
+        },
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: 'legacy-row-1', tag_code: 'building' }],
+        error: null,
+      });
+    const insert = vi.fn((rows: Array<Record<string, unknown>>) => ({
+      select,
+      rows,
+    }));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_tag_summaries') {
+          return {
+            delete: deleteFn,
+            insert,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const result = await repo.saveGameLogTagSummaries({
+      gameLogImportId: 'import-1',
+      tagSummaries: [
+        {
+          matchedCardCount: 2,
+          matchedCards: [],
+          playedCardCount: 2,
+          playerName: 'Friday Mars',
+          tagCounts: {
+            animal: 0,
+            building: 1,
+            city: 0,
+            earth: 0,
+            event: 0,
+            jovian: 0,
+            microbe: 0,
+            moon: 2,
+            plant: 0,
+            power: 0,
+            science: 0,
+            space: 1,
+            venus: 0,
+            wild: 0,
+          },
+          totalTags: 4,
+          unresolvedCardCount: 0,
+          unresolvedCards: [],
+        },
+      ],
+    });
+
+    expect(insert).toHaveBeenCalledTimes(2);
+
+    const firstRows = insert.mock.calls[0]?.[0] ?? [];
+    const retryRows = insert.mock.calls[1]?.[0] ?? [];
+
+    expect(firstRows).toHaveLength(14);
+    expect(firstRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tag_code: 'moon', tag_count: 2 }),
+        expect.objectContaining({ tag_code: 'venus' }),
+        expect.objectContaining({ tag_code: 'wild' }),
+      ]),
+    );
+    expect(retryRows).toHaveLength(11);
+    expect(retryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tag_code: 'building', tag_count: 1 }),
+        expect.objectContaining({ tag_code: 'event', tag_count: 0 }),
+      ]),
+    );
+    expect(retryRows).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tag_code: 'moon' }),
+        expect.objectContaining({ tag_code: 'venus' }),
+        expect.objectContaining({ tag_code: 'wild' }),
+      ]),
+    );
+    expect(warn).toHaveBeenCalledWith(
+      'Game log tag summary schema rejected newer tag codes; retrying with legacy tag set.',
+      expect.any(Object),
+    );
+    expect(result).toEqual([{ id: 'legacy-row-1', tagCode: 'building' }]);
+
+    warn.mockRestore();
+  });
 });
 
 describe('getLatestGameLogImportSummary', () => {

@@ -4,8 +4,23 @@ import { buildImportEvidencePath } from '@/lib/imports/build-import-evidence-pat
 import {
   PLAYER_TAG_CODES,
   type ImportPlayerTagSummary,
+  type PlayerTagCode,
 } from '@/lib/imports/derive-player-tag-summaries';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+
+const LEGACY_PLAYER_TAG_CODES = [
+  'building',
+  'space',
+  'power',
+  'science',
+  'jovian',
+  'earth',
+  'plant',
+  'microbe',
+  'animal',
+  'city',
+  'event',
+] as const satisfies readonly PlayerTagCode[];
 
 export type GameLogImportSummary = {
   createdAt: string;
@@ -350,6 +365,75 @@ async function saveLegacyScreenshotMetadata(input: {
   }
 }
 
+function readSupabaseErrorString(error: unknown, key: string) {
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+
+  const value = (error as Record<string, unknown>)[key];
+
+  return typeof value === 'string' ? value : null;
+}
+
+function isTagSummaryCodeConstraintError(error: unknown) {
+  const code = readSupabaseErrorString(error, 'code');
+  const haystack = [
+    readSupabaseErrorString(error, 'message'),
+    readSupabaseErrorString(error, 'details'),
+    readSupabaseErrorString(error, 'hint'),
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(' ');
+
+  return (
+    code === '23514' &&
+    haystack.includes('game_log_tag_summaries_tag_code_check')
+  );
+}
+
+function buildGameLogTagSummaryRows(input: {
+  gameLogImportId: string;
+  tagCodes: readonly PlayerTagCode[];
+  tagSummaries: ImportPlayerTagSummary[];
+}) {
+  return input.tagSummaries.flatMap((summary) =>
+    input.tagCodes.map((tagCode) => ({
+      game_log_import_id: input.gameLogImportId,
+      matched_card_count: summary.matchedCardCount,
+      normalized_player_name: normalizePlayerAlias(summary.playerName),
+      player_name: summary.playerName,
+      played_card_count: summary.playedCardCount,
+      tag_code: tagCode,
+      tag_count: summary.tagCounts[tagCode] ?? 0,
+      total_tag_count: summary.totalTags,
+      unresolved_card_count: summary.unresolvedCardCount,
+    })),
+  );
+}
+
+async function insertGameLogTagSummaryRows(input: {
+  rows: ReturnType<typeof buildGameLogTagSummaryRows>;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+}) {
+  if (input.rows.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await input.supabase
+    .from('game_log_tag_summaries')
+    .insert(input.rows)
+    .select('id, tag_code');
+
+  if (error) {
+    throw error;
+  }
+
+  return ((data ?? []) as RawSavedGameLogTagSummaryRow[]).map((row) => ({
+    id: row.id,
+    tagCode: row.tag_code,
+  }));
+}
+
 export async function saveGameLogImport(input: {
   gameId: string;
   logParseSummary?: {
@@ -578,37 +662,37 @@ export async function saveGameLogTagSummaries(input: {
     throw deleteError;
   }
 
-  const rows = input.tagSummaries.flatMap((summary) =>
-    PLAYER_TAG_CODES.map((tagCode) => ({
-      game_log_import_id: input.gameLogImportId,
-      matched_card_count: summary.matchedCardCount,
-      normalized_player_name: normalizePlayerAlias(summary.playerName),
-      player_name: summary.playerName,
-      played_card_count: summary.playedCardCount,
-      tag_code: tagCode,
-      tag_count: summary.tagCounts[tagCode] ?? 0,
-      total_tag_count: summary.totalTags,
-      unresolved_card_count: summary.unresolvedCardCount,
-    })),
-  );
+  const rows = buildGameLogTagSummaryRows({
+    gameLogImportId: input.gameLogImportId,
+    tagCodes: PLAYER_TAG_CODES,
+    tagSummaries: input.tagSummaries,
+  });
 
-  if (rows.length === 0) {
-    return [];
+  try {
+    return await insertGameLogTagSummaryRows({ rows, supabase });
+  } catch (error) {
+    if (!isTagSummaryCodeConstraintError(error)) {
+      throw error;
+    }
+
+    console.warn(
+      'Game log tag summary schema rejected newer tag codes; retrying with legacy tag set.',
+      {
+        code: readSupabaseErrorString(error, 'code'),
+        details: readSupabaseErrorString(error, 'details'),
+        message: readSupabaseErrorString(error, 'message'),
+      },
+    );
   }
 
-  const { data, error } = await supabase
-    .from('game_log_tag_summaries')
-    .insert(rows)
-    .select('id, tag_code');
-
-  if (error) {
-    throw error;
-  }
-
-  return ((data ?? []) as RawSavedGameLogTagSummaryRow[]).map((row) => ({
-    id: row.id,
-    tagCode: row.tag_code,
-  }));
+  return insertGameLogTagSummaryRows({
+    rows: buildGameLogTagSummaryRows({
+      gameLogImportId: input.gameLogImportId,
+      tagCodes: LEGACY_PLAYER_TAG_CODES,
+      tagSummaries: input.tagSummaries,
+    }),
+    supabase,
+  });
 }
 
 export async function findDuplicateGameLogImport(input: {
