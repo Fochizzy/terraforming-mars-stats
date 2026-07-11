@@ -357,15 +357,9 @@ describe('WebImportPage', () => {
     expect(submittedFormData.getAll('boardScreenshots')).toEqual([]);
   });
 
-  it('accepts a dropped game result PDF and submits it as the endgame evidence', async () => {
-    const user = userEvent.setup();
+  it('accepts a dropped game result PDF without image preview', async () => {
     const droppedPdf = new File(['%PDF-1.4'], 'game-4.pdf', {
       type: 'application/pdf',
-    });
-    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
-      status: 'success' as const,
-      message: 'Import evidence analyzed.',
-      review,
     });
 
     render(
@@ -373,7 +367,7 @@ describe('WebImportPage', () => {
         initialValues={{
           playedOn: '2026-07-03',
         }}
-        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onAnalyzeImportEvidence={vi.fn()}
         onCreateImportPlayer={vi.fn()}
         onConfirmImportReview={vi.fn()}
       />,
@@ -390,16 +384,6 @@ describe('WebImportPage', () => {
     // A PDF has no image preview, so the panel explains itself instead.
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByText(/no ocr is needed/i)).toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: /analyze import evidence/i }),
-    );
-
-    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
-
-    expect(
-      onAnalyzeImportEvidence.mock.calls[0]?.[0].get('endgameScreenshot'),
-    ).toBe(droppedPdf);
   });
 
   it('keeps a parsed PDF out of action payloads after browser analysis', async () => {
@@ -487,6 +471,79 @@ describe('WebImportPage', () => {
     ).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps parsed screenshot files in action payloads for evidence storage', async () => {
+    const user = userEvent.setup();
+    const parsedScreenshotPayload = {
+      endgameLines: [
+        'Victory points breakdown after 10 generations',
+        'Friday Mars 18 5 2 0 0 1 26 8',
+      ],
+      generationCount: 10,
+      scoreDetailsColumns: [],
+    };
+    const screenshot = new File(['image-bits'], 'game-4.png', {
+      type: 'image/png',
+    });
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review: {
+        ...review,
+        playerLinks: [review.playerLinks[0]],
+        requiresPlayerConfirmation: false,
+      },
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    browserReadMocks.readGameResultScreenshotInBrowser.mockResolvedValue(
+      parsedScreenshotPayload,
+    );
+
+    render(
+      <WebImportPage
+        initialValues={{
+          playedOn: '2026-07-03',
+        }}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars played Builder Hall.',
+    );
+    await user.type(screen.getByLabelText(/participants/i), 'Friday Mars');
+    await user.upload(
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
+      screenshot,
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    await waitFor(() => expect(onAnalyzeImportEvidence).toHaveBeenCalledTimes(1));
+
+    const analyzedFormData = onAnalyzeImportEvidence.mock.calls[0]?.[0] as FormData;
+    expect(analyzedFormData.get('endgameScreenshot')).toBe(screenshot);
+
+    await user.click(
+      await screen.findByRole('button', { name: /confirm import draft/i }),
+    );
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    const confirmedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
+    expect(confirmedFormData.get('endgameScreenshot')).toBe(screenshot);
+    expect(JSON.parse(String(confirmedFormData.get('screenshotOcr')))).toMatchObject({
+      endgameLines: parsedScreenshotPayload.endgameLines,
+    });
+  });
+
   it('offers both images and PDFs in the file picker', async () => {
     const user = userEvent.setup();
     const pdf = new File(['%PDF-1.4'], 'game-4.pdf', {
@@ -517,7 +574,7 @@ describe('WebImportPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('reports a game result file the browser cannot read, and still submits it', async () => {
+  it('reports an unreadable PDF locally instead of submitting it', async () => {
     const user = userEvent.setup();
     // Not a readable PDF, so the in-browser read throws the way a corrupt or
     // unsupported export does.
@@ -560,11 +617,10 @@ describe('WebImportPage', () => {
     expect(screen.getByTestId('screenshot-read-error')).toHaveTextContent(
       /reading this file in your browser failed/i,
     );
-
-    // The server retries the read, so the file still travels with the form.
     expect(
-      onAnalyzeImportEvidence.mock.calls[0]?.[0].get('endgameScreenshot'),
-    ).toBe(unreadablePdf);
+      screen.getByText(/pdf could not be read in your browser/i),
+    ).toBeInTheDocument();
+    expect(onAnalyzeImportEvidence).not.toHaveBeenCalled();
   });
 
   it('clears a previous read failure when another file is attached', async () => {

@@ -394,33 +394,15 @@ export function WebImportPage({
     );
   }
 
-  function getSubmittedEndgameEvidenceFile(input: {
-    intent: 'analyze' | 'confirm';
-    screenshotOcr: ScreenshotOcrPayload | null;
-  }) {
-    if (!endgameScreenshot) {
-      return null;
-    }
-
-    if (input.intent === 'analyze' && input.screenshotOcr) {
-      return null;
-    }
-
-    if (
-      input.intent === 'confirm' &&
-      isPdfFile(endgameScreenshot) &&
-      input.screenshotOcr
-    ) {
+  function getSubmittedEndgameEvidenceFile() {
+    if (!endgameScreenshot || isPdfFile(endgameScreenshot)) {
       return null;
     }
 
     return endgameScreenshot;
   }
 
-  function buildCurrentFormData(
-    screenshotOcr: ScreenshotOcrPayload | null,
-    intent: 'analyze' | 'confirm' = 'analyze',
-  ) {
+  function buildCurrentFormData(screenshotOcr: ScreenshotOcrPayload | null) {
     return buildCreateImportDraftFormData({
       boardScreenshots: [],
       confirmedPlayerLinks: review
@@ -429,10 +411,7 @@ export function WebImportPage({
             return playerId ? [{ importedName: link.importedName, playerId }] : [];
           })
         : [],
-      endgameScreenshot: getSubmittedEndgameEvidenceFile({
-        intent,
-        screenshotOcr,
-      }),
+      endgameScreenshot: getSubmittedEndgameEvidenceFile(),
       exportedGameLog: exportedGameLog.trim(),
       generationCount,
       participants: participantsText,
@@ -477,11 +456,18 @@ export function WebImportPage({
 
       return payload;
     } catch (error) {
-      // The server retries the read, but a silent failure here is
-      // indistinguishable from attaching nothing when the retry also fails.
-      setScreenshotReadError(
-        describeUnknownError(error, 'The file could not be read.'),
+      const message = describeUnknownError(
+        error,
+        'The file could not be read.',
       );
+
+      setScreenshotReadError(message);
+
+      if (isPdfFile(endgameScreenshot)) {
+        throw new Error(
+          `The PDF could not be read in your browser: ${message}`,
+        );
+      }
 
       return null;
     } finally {
@@ -548,7 +534,7 @@ export function WebImportPage({
     try {
       const screenshotOcr = await resolveScreenshotOcr();
       const result = await onConfirmImportReview(
-        buildCurrentFormData(screenshotOcr, 'confirm'),
+        buildCurrentFormData(screenshotOcr),
         resolveManualReviewJumpTargetWithPlayerSelection({
           playerSelections,
           target: manualReviewJumpTarget,
