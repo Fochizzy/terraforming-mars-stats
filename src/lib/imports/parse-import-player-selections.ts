@@ -118,28 +118,39 @@ export function parseImportPlayerSelections(input: {
         continue;
       }
 
-      if (lineMentionsCorporation(line)) {
-        const corporationMatches = findMatchingIds(line, input.corporationOptions);
+      const corporationMatches = lineMentionsCorporation(line)
+        ? findMatchingIds(line, input.corporationOptions)
+        : [];
 
-        // A player can control several corporations (e.g. after the Merger
-        // prelude), so confident single-corp lines accumulate. A line naming two
-        // corporations is ambiguous — we cannot tell which one the player took —
-        // so it is skipped rather than discarding the corporations that earlier
-        // "<player> played <corporation>" lines already established.
-        if (corporationMatches.length === 1) {
-          entry.corporationIds.add(corporationMatches[0]!);
-        }
+      // A player can control several corporations (e.g. after the Merger
+      // prelude), so confident single-corp lines accumulate. A line naming two
+      // corporations is ambiguous — we cannot tell which one the player took —
+      // so it is skipped rather than discarding the corporations that earlier
+      // "<player> played <corporation>" lines already established.
+      if (corporationMatches.length === 1) {
+        entry.corporationIds.add(corporationMatches[0]!);
       }
 
-      if (lineEndsPreludePhase(line)) {
+      const preludeMatches = lineMentionsPrelude(line)
+        ? findMatchingIds(line, input.preludeOptions)
+        : [];
+
+      // The opening phase ends at a player's first action. Besides the explicit
+      // markers, a "<player> played <card>" whose card is neither a corporation
+      // nor a prelude is a project play — the action phase has begun — because
+      // preludes are always resolved before projects. Any preludes named after
+      // this (Board of Directors, New Partner, Valley Trust, Double Down) are
+      // recorded as mid-game rather than setup selections.
+      const playsProject =
+        extractPlayedName(line) !== null &&
+        corporationMatches.length === 0 &&
+        preludeMatches.length === 0;
+
+      if (lineEndsPreludePhase(line) || playsProject) {
         entry.preludePhaseOver = true;
       }
 
-      if (lineMentionsPrelude(line)) {
-        const preludeMatches = findMatchingIds(line, input.preludeOptions);
-
-        // A single line naming more than three preludes is a parse we do not
-        // trust, so the opening selection is discarded rather than guessed at.
+      if (preludeMatches.length > 0) {
         if (entry.preludePhaseOver) {
           // The number of preludes a player can play mid-game is unbounded —
           // Board of Directors plays one per director — so these are never
@@ -150,6 +161,8 @@ export function parseImportPlayerSelections(input: {
             }
           }
         } else if (preludeMatches.length > 3) {
+          // A single line naming more than three preludes is a parse we do not
+          // trust, so that line's opening selection is discarded.
           entry.preludeIds.clear();
         } else {
           for (const preludeId of preludeMatches) {
@@ -167,11 +180,20 @@ export function parseImportPlayerSelections(input: {
           ? [...selection.corporationIds]
           : [];
       const corporationId = corporationIds[0] ?? '';
-      const preludeIds =
-        selection.preludeIds.size > 0 && selection.preludeIds.size <= 3
-          ? [...selection.preludeIds]
-          : [];
-      const midgamePreludeIds = [...selection.midgamePreludeIds];
+      // Opening preludes are trusted only up to three. Any beyond that were
+      // almost certainly played later in the game (a player whose opening phase
+      // was never detected as over), so they overflow into mid-game rather than
+      // being dropped entirely — losing them is what hid mid-game preludes.
+      const openingPreludeCandidates = [...selection.preludeIds];
+      const preludeIds = openingPreludeCandidates.slice(0, 3);
+      const openingPreludeSet = new Set(preludeIds);
+      const midgamePreludeIds = [
+        ...openingPreludeCandidates.slice(3),
+        ...selection.midgamePreludeIds,
+      ].filter(
+        (preludeId, index, all) =>
+          !openingPreludeSet.has(preludeId) && all.indexOf(preludeId) === index,
+      );
 
       if (
         corporationIds.length === 0 &&

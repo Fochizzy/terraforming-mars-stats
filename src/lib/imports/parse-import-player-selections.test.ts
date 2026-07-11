@@ -259,6 +259,69 @@ describe('parseImportPlayerSelections', () => {
     });
   });
 
+  it('treats preludes played after a project as mid-game without an explicit action marker', () => {
+    expect(
+      parseImportPlayerSelections({
+        corporationOptions: corporations,
+        participants: [{ importedName: 'Nyx', playerId: 'p1' }],
+        preludeOptions: preludes,
+        // There is no "used"/"passed"/"took the first action" line here — the
+        // opening phase ends when Nyx plays a project card, so the preludes
+        // played afterward are recorded as mid-game rather than being lost.
+        rawLogText: [
+          'Nyx played Tharsis Republic',
+          'Nyx played Allied Bank',
+          'Nyx played Corporate Archives',
+          'Nyx played Space Elevator',
+          'Nyx played Donation',
+        ].join('\n'),
+      }),
+    ).toEqual({
+      p1: {
+        corporationId: 'corp1',
+        corporationIds: ['corp1'],
+        midgamePreludeIds: ['prelude3'],
+        preludeIds: ['prelude1', 'prelude2'],
+      },
+    });
+  });
+
+  it('overflows opening preludes beyond three into mid-game instead of dropping them', () => {
+    expect(
+      parseImportPlayerSelections({
+        corporationOptions: corporations,
+        participants: [{ importedName: 'Zed', playerId: 'p1' }],
+        preludeOptions: [
+          ...preludes,
+          {
+            expansionCode: 'prelude',
+            id: 'prelude4',
+            name: 'Experimental Forest',
+            promoSetSlug: null,
+            requiredExpansionCodes: ['prelude'],
+          },
+        ],
+        // Four preludes accumulate as opening selections with no detected end to
+        // the opening phase; the fourth overflows to mid-game rather than the
+        // whole prelude set being discarded.
+        rawLogText: [
+          'Zed played Tharsis Republic',
+          'Zed played Allied Bank',
+          'Zed played Corporate Archives',
+          'Zed played Donation',
+          'Zed played Experimental Forest',
+        ].join('\n'),
+      }),
+    ).toEqual({
+      p1: {
+        corporationId: 'corp1',
+        corporationIds: ['corp1'],
+        midgamePreludeIds: ['prelude4'],
+        preludeIds: ['prelude1', 'prelude2', 'prelude3'],
+      },
+    });
+  });
+
   it('extracts corporations and preludes from real TM export play lines', () => {
     expect(
       parseImportPlayerSelections({
