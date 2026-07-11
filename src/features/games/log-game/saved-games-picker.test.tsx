@@ -11,6 +11,7 @@ describe('SavedGamesPicker', () => {
         games={[
           {
             gameId: 'game-draft',
+            groupId: 'group-1',
             playedOn: '2026-07-07',
             playerCount: 2,
             playerNames: ['Friday Mars', 'Izzy Hodnett'],
@@ -19,6 +20,7 @@ describe('SavedGamesPicker', () => {
           },
           {
             gameId: 'game-final',
+            groupId: 'group-2',
             playedOn: '2026-07-06',
             playerCount: 4,
             playerNames: ['Friday Mars', 'Sam Terraformer'],
@@ -26,6 +28,11 @@ describe('SavedGamesPicker', () => {
             updatedAt: '2026-07-08T08:00:00.000Z',
           },
         ]}
+        groups={[
+          { groupId: 'group-1', groupName: 'Mars Club' },
+          { groupId: 'group-2', groupName: 'Second Table' },
+        ]}
+        showGroupNames
       />,
     );
 
@@ -43,11 +50,11 @@ describe('SavedGamesPicker', () => {
     expect(screen.getByLabelText(/finished games count/i)).toHaveTextContent('1');
     expect(screen.getByRole('link', { name: /resume draft/i })).toHaveAttribute(
       'href',
-      '/log-game/review?gameId=game-draft',
+      '/log-game/review?gameId=game-draft&groupId=group-1',
     );
     expect(screen.getByRole('link', { name: /correct players/i })).toHaveAttribute(
       'href',
-      '/log-game/review?gameId=game-final',
+      '/log-game/review?gameId=game-final&groupId=group-2',
     );
     expect(screen.getByRole('link', { name: /resume draft/i }).closest('article')).toHaveClass(
       'tm-saved-game-card--draft',
@@ -60,6 +67,8 @@ describe('SavedGamesPicker', () => {
     expect(screen.getAllByRole('button', { name: /delete/i })).toHaveLength(2);
     expect(screen.getAllByText(/friday mars/i)).toHaveLength(2);
     expect(screen.getByText(/sam terraformer/i)).toBeInTheDocument();
+    expect(screen.getByText(/mars club/i)).toBeInTheDocument();
+    expect(screen.getByText(/second table/i)).toBeInTheDocument();
   });
 
   it('offers reopen only on finished games', () => {
@@ -70,6 +79,7 @@ describe('SavedGamesPicker', () => {
         games={[
           {
             gameId: 'game-draft',
+            groupId: 'group-1',
             playedOn: '2026-07-07',
             playerCount: 2,
             playerNames: ['Friday Mars'],
@@ -78,6 +88,7 @@ describe('SavedGamesPicker', () => {
           },
           {
             gameId: 'game-final',
+            groupId: 'group-1',
             playedOn: '2026-07-06',
             playerCount: 4,
             playerNames: ['Sam Terraformer'],

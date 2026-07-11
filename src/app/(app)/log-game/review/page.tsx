@@ -6,7 +6,11 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { ImportEvidenceSummary } from '@/features/imports/import-evidence-summary';
 import { mergeDraftIntoInitialValues } from '@/features/games/log-game/use-log-game-draft';
-import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
+import {
+  listCurrentUserGroups,
+  requireCurrentGroupContext,
+  type CurrentUserGroup,
+} from '@/lib/db/group-context-repo';
 import {
   finalizeGameLog,
   deleteSavedGame,
@@ -38,45 +42,114 @@ import {
 import { revalidatePath } from 'next/cache';
 import { normalizeSelectedExpansionCodes } from '@/features/games/log-game/reference-filters';
 
+const ALL_GROUPS_FILTER_VALUE = 'all';
+
+function getFirstSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getKnownGroupId(
+  value: string | string[] | undefined,
+  groups: CurrentUserGroup[],
+) {
+  const groupId = getFirstSearchParam(value);
+
+  if (!groupId || groupId === ALL_GROUPS_FILTER_VALUE) {
+    return null;
+  }
+
+  return groups.some((group) => group.groupId === groupId) ? groupId : null;
+}
+
+function readRequiredFormValue(formData: FormData, key: string, label: string) {
+  const value = String(formData.get(key) ?? '').trim();
+
+  if (!value) {
+    throw new Error(`Missing ${label}.`);
+  }
+
+  return value;
+}
+
+async function requireCurrentUserAccessToGroup(groupId: string) {
+  const context = await requireCurrentGroupContext();
+  const groups = await listCurrentUserGroups();
+
+  if (!groups.some((group) => group.groupId === groupId)) {
+    throw new Error('Saved game not found or you do not have permission to edit it.');
+  }
+
+  return { groupId, userId: context.userId };
+}
+
+function SavedGamesGroupFilter({
+  groups,
+  selectedGroupId,
+}: {
+  groups: CurrentUserGroup[];
+  selectedGroupId: string | null;
+}) {
+  if (groups.length < 2) {
+    return null;
+  }
+
+  return (
+    <form action="/log-game/review" className="flex items-center gap-2" method="get">
+      <label className="sr-only" htmlFor="saved-games-group-filter">
+        Saved Games Group
+      </label>
+      <select
+        className="tm-input min-w-44"
+        defaultValue={selectedGroupId ?? ALL_GROUPS_FILTER_VALUE}
+        id="saved-games-group-filter"
+        name="groupId"
+      >
+        <option value={ALL_GROUPS_FILTER_VALUE}>All Groups</option>
+        {groups.map((group) => (
+          <option key={group.groupId} value={group.groupId}>
+            {group.groupName}
+          </option>
+        ))}
+      </select>
+      <button className="tm-button-secondary px-4 py-2 text-xs" type="submit">
+        Show
+      </button>
+    </form>
+  );
+}
+
 export default async function LogGameReviewPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ gameId?: string | string[] | undefined }>;
+  searchParams?: Promise<{
+    gameId?: string | string[] | undefined;
+    groupId?: string | string[] | undefined;
+  }>;
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const context = await requireGroupContextOrRedirect();
-  const draftGameId = Array.isArray(resolvedSearchParams.gameId)
-    ? resolvedSearchParams.gameId[0]
-    : resolvedSearchParams.gameId;
-  const [
-    groupSettings,
-    mapOptions,
-    playerOptions,
-  ] = await Promise.all([
-    getGroupSettings(context.groupId),
-    listMaps(),
-    listImportResolutionPlayers(context.groupId),
-  ]);
+  const groups = await listCurrentUserGroups();
+  const selectedGroupId = getKnownGroupId(resolvedSearchParams.groupId, groups);
+  const draftGameId = getFirstSearchParam(resolvedSearchParams.gameId);
 
   if (!draftGameId) {
     const savedGames = await listSavedGames({
-      groupId: context.groupId,
+      groupIds: selectedGroupId
+        ? [selectedGroupId]
+        : groups.map((group) => group.groupId),
       limit: 12,
     });
 
     async function handleDeleteGame(formData: FormData) {
       'use server';
 
-      const activeContext = await requireCurrentGroupContext();
-      const gameId = String(formData.get('gameId') ?? '').trim();
-
-      if (!gameId) {
-        throw new Error('Missing game id.');
-      }
+      const gameId = readRequiredFormValue(formData, 'gameId', 'game id');
+      const groupId = readRequiredFormValue(formData, 'groupId', 'group id');
+      await requireCurrentUserAccessToGroup(groupId);
 
       await deleteSavedGame({
         gameId,
-        groupId: activeContext.groupId,
+        groupId,
       });
       revalidatePath('/group');
       revalidatePath('/group/players');
@@ -88,16 +161,13 @@ export default async function LogGameReviewPage({
     async function handleReopenGame(formData: FormData) {
       'use server';
 
-      const activeContext = await requireCurrentGroupContext();
-      const gameId = String(formData.get('gameId') ?? '').trim();
-
-      if (!gameId) {
-        throw new Error('Missing game id.');
-      }
+      const gameId = readRequiredFormValue(formData, 'gameId', 'game id');
+      const groupId = readRequiredFormValue(formData, 'groupId', 'group id');
+      const activeContext = await requireCurrentUserAccessToGroup(groupId);
 
       await reopenSavedGame({
         gameId,
-        groupId: activeContext.groupId,
+        groupId,
         userId: activeContext.userId,
       });
       revalidatePath('/group');
@@ -110,9 +180,9 @@ export default async function LogGameReviewPage({
     return (
       <AppShell
         headerActions={
-          <GroupSwitcher
-            currentGroupId={context.groupId}
-            returnPath="/log-game/review"
+          <SavedGamesGroupFilter
+            groups={groups}
+            selectedGroupId={selectedGroupId}
           />
         }
         title="Log Game Review"
@@ -120,31 +190,49 @@ export default async function LogGameReviewPage({
       >
         <SavedGamesPicker
           deleteGameAction={handleDeleteGame}
+          emptyScopeLabel={selectedGroupId ? 'in this group' : 'in any group'}
           games={savedGames}
+          groups={groups}
           reopenGameAction={handleReopenGame}
+          showGroupNames={!selectedGroupId}
         />
       </AppShell>
     );
   }
 
-  const [savedGame, corporationOptions, preludeOptions, milestoneOptions, awardOptions, styleOptions, cardOptions, latestCatalogSnapshotId] =
-    await Promise.all([
-      getSavedGameForm({
-        gameId: draftGameId,
-        groupId: context.groupId,
-      }),
-      listCorporations(),
-      listPreludes(),
-      listMapMilestones(),
-      listMapAwards(),
-      listStyles(),
-      listCards(),
-      getLatestCatalogSnapshotId(),
-    ]);
+  const reviewGroupId = selectedGroupId ?? context.groupId;
+  const [
+    savedGame,
+    groupSettings,
+    mapOptions,
+    playerOptions,
+    corporationOptions,
+    preludeOptions,
+    milestoneOptions,
+    awardOptions,
+    styleOptions,
+    cardOptions,
+    latestCatalogSnapshotId,
+  ] = await Promise.all([
+    getSavedGameForm({
+      gameId: draftGameId,
+      groupId: reviewGroupId,
+    }),
+    getGroupSettings(reviewGroupId),
+    listMaps(),
+    listImportResolutionPlayers(reviewGroupId),
+    listCorporations(),
+    listPreludes(),
+    listMapMilestones(),
+    listMapAwards(),
+    listStyles(),
+    listCards(),
+    getLatestCatalogSnapshotId(),
+  ]);
   const defaultInitialValues: LogGameDraftInput = {
     awardClaims: {},
     gameId: undefined,
-    groupId: context.groupId,
+    groupId: reviewGroupId,
     playedOn: new Date().toISOString().slice(0, 10),
     mapId: groupSettings.defaultMapId ?? mapOptions[0]?.id ?? '',
     milestoneClaims: {},
@@ -174,11 +262,8 @@ export default async function LogGameReviewPage({
   async function handleSaveDraft(values: LogGameDraftInput) {
     'use server';
 
-    const activeContext = await requireCurrentGroupContext();
-    const parsed = logGameDraftSchema.parse({
-      ...values,
-      groupId: activeContext.groupId,
-    });
+    const parsed = logGameDraftSchema.parse(values);
+    const activeContext = await requireCurrentUserAccessToGroup(parsed.groupId);
     const resolved = await resolveLogGamePlayerReferences(parsed);
     const draft = await saveDraftGame({
       form: resolved,
@@ -197,11 +282,8 @@ export default async function LogGameReviewPage({
   async function handleFinalizeGame(values: LogGameDraftInput) {
     'use server';
 
-    const activeContext = await requireCurrentGroupContext();
-    const parsed = logGameDraftSchema.parse({
-      ...values,
-      groupId: activeContext.groupId,
-    });
+    const parsed = logGameDraftSchema.parse(values);
+    const activeContext = await requireCurrentUserAccessToGroup(parsed.groupId);
 
     try {
       const resolved = await resolveLogGamePlayerReferences(parsed);
@@ -234,7 +316,7 @@ export default async function LogGameReviewPage({
       try {
         const reconciliation = await reconcileImportGroupAfterFinalize({
           gameId: finalized.gameId,
-          groupId: activeContext.groupId,
+          groupId: parsed.groupId,
         });
         reconciledGroupName = reconciliation.updatedGroupName;
       } catch (reconcileError) {
@@ -279,7 +361,7 @@ export default async function LogGameReviewPage({
     <AppShell
       headerActions={
         <GroupSwitcher
-          currentGroupId={context.groupId}
+          currentGroupId={reviewGroupId}
           returnPath="/log-game/review"
         />
       }

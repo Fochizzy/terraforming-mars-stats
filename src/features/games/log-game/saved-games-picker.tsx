@@ -5,6 +5,11 @@ import { StepHeading } from '@/components/ui/step-heading';
 type DeleteGameAction = (formData: FormData) => Promise<void>;
 type ReopenGameAction = (formData: FormData) => Promise<void>;
 
+type SavedGamesPickerGroup = {
+  groupId: string;
+  groupName: string;
+};
+
 function formatGameStatus(status: SavedGameListItem['status']) {
   return status === 'draft' ? 'In progress' : 'Finished';
 }
@@ -12,10 +17,12 @@ function formatGameStatus(status: SavedGameListItem['status']) {
 function SavedGameCard({
   deleteGameAction,
   game,
+  groupName,
   reopenGameAction,
 }: {
   deleteGameAction: DeleteGameAction;
   game: SavedGameListItem;
+  groupName?: string;
   reopenGameAction: ReopenGameAction;
 }) {
   const playerNames =
@@ -25,6 +32,9 @@ function SavedGameCard({
   const playerCountLabel = `${game.playerCount} ${
     game.playerCount === 1 ? 'player' : 'players'
   }`;
+  const reviewHref = `/log-game/review?gameId=${encodeURIComponent(
+    game.gameId,
+  )}&groupId=${encodeURIComponent(game.groupId)}`;
 
   return (
     <article
@@ -32,6 +42,9 @@ function SavedGameCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
+          {groupName ? (
+            <p className="tm-data-label uppercase">{groupName}</p>
+          ) : null}
           <p className="tm-data-label uppercase">{formatGameStatus(game.status)}</p>
           <p className="font-semibold text-stone-100">{playerNames}</p>
           <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
@@ -44,13 +57,14 @@ function SavedGameCard({
         <div className="flex flex-wrap justify-end gap-2">
           <Link
             className="tm-button-secondary px-4 py-2 text-xs"
-            href={`/log-game/review?gameId=${game.gameId}`}
+            href={reviewHref}
           >
             {game.status === 'draft' ? 'Resume Draft' : 'Correct Players'}
           </Link>
           {game.status === 'finalized' ? (
             <form action={reopenGameAction}>
               <input name="gameId" type="hidden" value={game.gameId} />
+              <input name="groupId" type="hidden" value={game.groupId} />
               <button
                 aria-label={`Reopen game ${
                   game.playerNames.join(', ') || game.gameId
@@ -64,6 +78,7 @@ function SavedGameCard({
           ) : null}
           <form action={deleteGameAction}>
             <input name="gameId" type="hidden" value={game.gameId} />
+            <input name="groupId" type="hidden" value={game.groupId} />
             <button
               aria-label={`Delete ${game.status === 'draft' ? 'draft' : 'game'} ${
                 game.playerNames.join(', ') || game.gameId
@@ -82,20 +97,26 @@ function SavedGameCard({
 
 function SavedGameSection({
   deleteGameAction,
+  emptyScopeLabel,
   games,
+  groupNameById,
   reopenGameAction,
+  showGroupNames,
   status,
 }: {
   deleteGameAction: DeleteGameAction;
+  emptyScopeLabel: string;
   games: SavedGameListItem[];
+  groupNameById: Map<string, string>;
   reopenGameAction: ReopenGameAction;
+  showGroupNames: boolean;
   status: SavedGameListItem['status'];
 }) {
   const title = status === 'draft' ? 'In Progress Games' : 'Finished Games';
   const emptyLabel =
     status === 'draft'
-      ? 'No in-progress games are available in this group.'
-      : 'No finished games are available in this group.';
+      ? `No in-progress games are available ${emptyScopeLabel}.`
+      : `No finished games are available ${emptyScopeLabel}.`;
 
   return (
     <section
@@ -117,6 +138,7 @@ function SavedGameSection({
             <SavedGameCard
               deleteGameAction={deleteGameAction}
               game={game}
+              groupName={showGroupNames ? groupNameById.get(game.groupId) : undefined}
               key={game.gameId}
               reopenGameAction={reopenGameAction}
             />
@@ -129,15 +151,24 @@ function SavedGameSection({
 
 export function SavedGamesPicker({
   deleteGameAction,
+  emptyScopeLabel = 'in this group',
   games,
+  groups = [],
   reopenGameAction,
+  showGroupNames = false,
 }: {
   deleteGameAction: DeleteGameAction;
+  emptyScopeLabel?: string;
   games: SavedGameListItem[];
+  groups?: SavedGamesPickerGroup[];
   reopenGameAction: ReopenGameAction;
+  showGroupNames?: boolean;
 }) {
   const draftGames = games.filter((game) => game.status === 'draft');
   const finalizedGames = games.filter((game) => game.status === 'finalized');
+  const groupNameById = new Map(
+    groups.map((group) => [group.groupId, group.groupName]),
+  );
 
   return (
     <section className="tm-panel flex flex-col gap-4">
@@ -150,14 +181,20 @@ export function SavedGamesPicker({
       <div className="grid gap-4">
         <SavedGameSection
           deleteGameAction={deleteGameAction}
+          emptyScopeLabel={emptyScopeLabel}
           games={draftGames}
+          groupNameById={groupNameById}
           reopenGameAction={reopenGameAction}
+          showGroupNames={showGroupNames}
           status="draft"
         />
         <SavedGameSection
           deleteGameAction={deleteGameAction}
+          emptyScopeLabel={emptyScopeLabel}
           games={finalizedGames}
+          groupNameById={groupNameById}
           reopenGameAction={reopenGameAction}
+          showGroupNames={showGroupNames}
           status="finalized"
         />
       </div>

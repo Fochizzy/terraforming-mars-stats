@@ -874,6 +874,7 @@ describe('listSavedGames', () => {
       limit: vi.fn().mockResolvedValue({
         data: [
           {
+            group_id: '11111111-1111-4111-8111-111111111111',
             id: 'game-draft',
             player_count: 2,
             played_on: '2026-07-07',
@@ -881,6 +882,7 @@ describe('listSavedGames', () => {
             updated_at: '2026-07-08T09:00:00.000Z',
           },
           {
+            group_id: '11111111-1111-4111-8111-111111111111',
             id: 'game-final',
             player_count: 2,
             played_on: '2026-07-06',
@@ -963,6 +965,7 @@ describe('listSavedGames', () => {
     ).resolves.toEqual([
       {
         gameId: 'game-draft',
+        groupId: '11111111-1111-4111-8111-111111111111',
         playerCount: 2,
         playerNames: ['Friday Mars', 'Izzy Hodnett'],
         playedOn: '2026-07-07',
@@ -971,6 +974,7 @@ describe('listSavedGames', () => {
       },
       {
         gameId: 'game-final',
+        groupId: '11111111-1111-4111-8111-111111111111',
         playerCount: 2,
         playerNames: ['Friday Mars', 'Typed Player'],
         playedOn: '2026-07-06',
@@ -991,6 +995,121 @@ describe('listSavedGames', () => {
       'group_id',
       '11111111-1111-4111-8111-111111111111',
     );
+  });
+
+  it('can list saved games across multiple accessible groups', async () => {
+    const gamesQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: [
+          {
+            group_id: 'group-1',
+            id: 'game-1',
+            player_count: 2,
+            played_on: '2026-07-07',
+            status: 'draft',
+            updated_at: '2026-07-08T09:00:00.000Z',
+          },
+          {
+            group_id: 'group-2',
+            id: 'game-2',
+            player_count: 2,
+            played_on: '2026-07-06',
+            status: 'finalized',
+            updated_at: '2026-07-08T08:00:00.000Z',
+          },
+        ],
+        error: null,
+      }),
+    };
+    const revisionsQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [
+          {
+            created_at: '2026-07-08T09:00:00.000Z',
+            game_id: 'game-1',
+            snapshot: {
+              selectedPlayerIds: ['player-1'],
+            },
+          },
+          {
+            created_at: '2026-07-08T08:00:00.000Z',
+            game_id: 'game-2',
+            snapshot: {
+              selectedPlayerIds: ['player-2'],
+            },
+          },
+        ],
+        error: null,
+      }),
+    };
+    const playersQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [
+          { display_name: 'Friday Mars', id: 'player-1' },
+          { display_name: 'Sam Terraformer', id: 'player-2' },
+        ],
+        error: null,
+      }),
+    };
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'games') {
+          return gamesQuery;
+        }
+
+        if (table === 'game_revisions') {
+          return revisionsQuery;
+        }
+
+        if (table === 'players') {
+          return playersQuery;
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    await expect(
+      repo.listSavedGames({
+        groupIds: ['group-1', 'group-2'],
+        limit: 12,
+      }),
+    ).resolves.toEqual([
+      {
+        gameId: 'game-1',
+        groupId: 'group-1',
+        playerCount: 2,
+        playerNames: ['Friday Mars'],
+        playedOn: '2026-07-07',
+        status: 'draft',
+        updatedAt: '2026-07-08T09:00:00.000Z',
+      },
+      {
+        gameId: 'game-2',
+        groupId: 'group-2',
+        playerCount: 2,
+        playerNames: ['Sam Terraformer'],
+        playedOn: '2026-07-06',
+        status: 'finalized',
+        updatedAt: '2026-07-08T08:00:00.000Z',
+      },
+    ]);
+
+    expect(gamesQuery.in).toHaveBeenCalledWith('group_id', [
+      'group-1',
+      'group-2',
+    ]);
+    expect(playersQuery.in).toHaveBeenCalledWith('group_id', [
+      'group-1',
+      'group-2',
+    ]);
   });
 });
 

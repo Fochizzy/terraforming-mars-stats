@@ -13,6 +13,7 @@ const mockState = vi.hoisted(() => ({
   listCards: vi.fn(),
   listCorporations: vi.fn(),
   listExpansions: vi.fn(),
+  listCurrentUserGroups: vi.fn(),
   listImportResolutionPlayers: vi.fn(),
   listMapAwards: vi.fn(),
   listMapMilestones: vi.fn(),
@@ -82,6 +83,7 @@ vi.mock('@/lib/db/log-game-player-resolution', () => ({
 }));
 
 vi.mock('@/lib/db/group-context-repo', () => ({
+  listCurrentUserGroups: mockState.listCurrentUserGroups,
   requireCurrentGroupContext: vi.fn(),
 }));
 
@@ -113,6 +115,18 @@ describe('LogGameReviewPage', () => {
       role: 'owner',
       userId: 'user-1',
     });
+    mockState.listCurrentUserGroups.mockResolvedValue([
+      {
+        groupId: 'group-1',
+        groupName: 'Mars Club',
+        role: 'owner',
+      },
+      {
+        groupId: 'group-2',
+        groupName: 'Second Table',
+        role: 'editor',
+      },
+    ]);
     mockState.getGroupSettings.mockResolvedValue({
       defaultExpansionCodes: ['base'],
       defaultMapId: 'tharsis',
@@ -143,6 +157,7 @@ describe('LogGameReviewPage', () => {
     mockState.listSavedGames.mockResolvedValue([
       {
         gameId: 'game-draft',
+        groupId: 'group-1',
         playedOn: '2026-07-07',
         playerCount: 2,
         playerNames: ['Friday Mars', 'Izzy Hodnett'],
@@ -151,6 +166,7 @@ describe('LogGameReviewPage', () => {
       },
       {
         gameId: 'game-final',
+        groupId: 'group-2',
         playedOn: '2026-07-06',
         playerCount: 4,
         playerNames: ['Friday Mars', 'Sam Terraformer'],
@@ -165,16 +181,39 @@ describe('LogGameReviewPage', () => {
     render(await LogGameReviewPage({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByRole('heading', { name: /saved games/i })).toBeInTheDocument();
+    expect(mockState.listSavedGames).toHaveBeenCalledWith({
+      groupIds: ['group-1', 'group-2'],
+      limit: 12,
+    });
+    expect(screen.getByRole('combobox', { name: /saved games group/i })).toHaveValue(
+      'all',
+    );
     expect(screen.getByRole('link', { name: /resume draft/i })).toHaveAttribute(
       'href',
-      '/log-game/review?gameId=game-draft',
+      '/log-game/review?gameId=game-draft&groupId=group-1',
     );
     expect(screen.getByRole('link', { name: /correct players/i })).toHaveAttribute(
       'href',
-      '/log-game/review?gameId=game-final',
+      '/log-game/review?gameId=game-final&groupId=group-2',
     );
     expect(screen.getByRole('button', { name: /delete game/i })).toBeInTheDocument();
     expect(screen.queryByTestId('log-game-wizard')).not.toBeInTheDocument();
+  });
+
+  it('filters saved games when a group is selected', async () => {
+    render(
+      await LogGameReviewPage({
+        searchParams: Promise.resolve({ groupId: 'group-2' }),
+      }),
+    );
+
+    expect(mockState.listSavedGames).toHaveBeenCalledWith({
+      groupIds: ['group-2'],
+      limit: 12,
+    });
+    expect(screen.getByRole('combobox', { name: /saved games group/i })).toHaveValue(
+      'group-2',
+    );
   });
 
   it('renders the log game wizard when review opens with a game id', async () => {
@@ -184,7 +223,7 @@ describe('LogGameReviewPage', () => {
         expansionCodes: ['base'],
         gameId: 'game-final',
         generationCount: 11,
-        groupId: 'group-1',
+        groupId: 'group-2',
         mapId: 'tharsis',
         milestoneClaims: {},
         notes: '',
@@ -201,12 +240,17 @@ describe('LogGameReviewPage', () => {
 
     render(
       await LogGameReviewPage({
-        searchParams: Promise.resolve({ gameId: 'game-final' }),
+        searchParams: Promise.resolve({
+          gameId: 'game-final',
+          groupId: 'group-2',
+        }),
       }),
     );
 
     expect(screen.getByTestId('log-game-wizard')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /saved games/i })).not.toBeInTheDocument();
+    expect(mockState.getGroupSettings).toHaveBeenCalledWith('group-2');
+    expect(mockState.listImportResolutionPlayers).toHaveBeenCalledWith('group-2');
   });
 
   it('seeds the wizard with the requested game id even when the saved snapshot lacks one', async () => {

@@ -10,6 +10,7 @@ type SavedGameStatus = 'draft' | 'finalized';
 const RECENT_REVISION_SCAN_LIMIT = 20;
 
 type SavedGameRow = {
+  group_id: string;
   id: string;
   player_count: number;
   played_on: string;
@@ -58,6 +59,7 @@ export type SavedGameFormResult = {
 
 export type SavedGameListItem = {
   gameId: string;
+  groupId: string;
   status: SavedGameStatus;
   playedOn: string;
   updatedAt: string;
@@ -357,14 +359,31 @@ export async function getSavedGameForm(payload: {
 }
 
 export async function listSavedGames(payload: {
-  groupId: string;
+  groupId?: string;
+  groupIds?: string[];
   limit?: number;
 }): Promise<SavedGameListItem[]> {
+  const groupIds = [
+    ...new Set(
+      (payload.groupIds ?? (payload.groupId ? [payload.groupId] : []))
+        .map((groupId) => groupId.trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  if (groupIds.length === 0) {
+    return [];
+  }
+
   const supabase = await createSupabaseServerClient();
-  const { data: games, error: gamesError } = await supabase
+  const gamesQuery = supabase
     .from('games')
-    .select('id, player_count, played_on, status, updated_at')
-    .eq('group_id', payload.groupId)
+    .select('id, group_id, player_count, played_on, status, updated_at');
+  const scopedGamesQuery =
+    groupIds.length === 1
+      ? gamesQuery.eq('group_id', groupIds[0])
+      : gamesQuery.in('group_id', groupIds);
+  const { data: games, error: gamesError } = await scopedGamesQuery
     .order('updated_at', { ascending: false })
     .limit(payload.limit ?? 12);
 
@@ -389,10 +408,13 @@ export async function listSavedGames(payload: {
     throw revisionsError;
   }
 
-  const { data: players, error: playersError } = await supabase
+  const playersQuery = supabase
     .from('players')
-    .select('id, display_name')
-    .eq('group_id', payload.groupId);
+    .select('id, display_name');
+  const { data: players, error: playersError } =
+    groupIds.length === 1
+      ? await playersQuery.eq('group_id', groupIds[0])
+      : await playersQuery.in('group_id', groupIds);
 
   if (playersError) {
     throw playersError;
@@ -418,6 +440,7 @@ export async function listSavedGames(payload: {
 
     return {
       gameId: game.id,
+      groupId: game.group_id,
       playerCount: game.player_count,
       playerNames: selectedPlayerIds.map(
         (playerId) => playerNameById.get(playerId) ?? playerId,
