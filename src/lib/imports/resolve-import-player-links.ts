@@ -1,4 +1,4 @@
-import { normalizePlayerAlias } from './normalize-player-alias';
+import { compactPlayerAlias, normalizePlayerAlias } from './normalize-player-alias';
 
 type ImportGroupPlayer = {
   displayName: string;
@@ -123,24 +123,45 @@ function buildPlayerCandidate(input: {
   const displayName = normalizePlayerAlias(input.player.displayName);
   const fullName = normalizePlayerAlias(input.player.linkedFullName ?? '');
   const username = normalizePlayerAlias(input.player.linkedUsername ?? '');
+  const compactImportedName = compactPlayerAlias(input.importedName);
+
+  // A name is an exact match when its space-preserving form is identical, or —
+  // to bridge a spaced handle against the concatenated username it came from —
+  // when its separator-free form is identical.
+  const isExactMatchFor = (rawFieldValue: string) => {
+    const normalizedField = normalizePlayerAlias(rawFieldValue);
+
+    if (!normalizedField) {
+      return false;
+    }
+
+    if (normalizedField === input.normalizedImportedName) {
+      return true;
+    }
+
+    return (
+      Boolean(compactImportedName) &&
+      compactPlayerAlias(rawFieldValue) === compactImportedName
+    );
+  };
 
   let candidate = fallbackCandidate;
 
-  if (displayName === input.normalizedImportedName && displayName) {
+  if (isExactMatchFor(input.player.displayName)) {
     candidate = chooseHigherScore(candidate, {
       ...fallbackCandidate,
       ...exactReasonOrder.get('display_name_exact')!,
     });
   }
 
-  if (fullName === input.normalizedImportedName && fullName) {
+  if (isExactMatchFor(input.player.linkedFullName ?? '')) {
     candidate = chooseHigherScore(candidate, {
       ...fallbackCandidate,
       ...exactReasonOrder.get('full_name_exact')!,
     });
   }
 
-  if (username === input.normalizedImportedName && username) {
+  if (isExactMatchFor(input.player.linkedUsername ?? '')) {
     candidate = chooseHigherScore(candidate, {
       ...fallbackCandidate,
       ...exactReasonOrder.get('username_exact')!,

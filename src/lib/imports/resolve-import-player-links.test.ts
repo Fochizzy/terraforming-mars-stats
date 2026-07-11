@@ -91,6 +91,34 @@ describe('resolveImportPlayerLinks', () => {
     });
   });
 
+  it('matches a spaced handle against its concatenated username', () => {
+    const result = resolveImportPlayerLinks(
+      ['Suzy the Gnat'],
+      [
+        {
+          displayName: 'Colette LeRoux',
+          gamesPlayed: 4,
+          id: 'player-colette',
+          linkedFullName: 'Colette LeRoux',
+          linkedUsername: 'Suzythegnat',
+        },
+      ],
+      [],
+    );
+
+    expect(result.unresolvedCount).toBe(0);
+    expect(result.matches[0]).toMatchObject({
+      importedName: 'Suzy the Gnat',
+      requiresConfirmation: false,
+      selectedPlayerId: 'player-colette',
+      status: 'exact',
+    });
+    expect(result.matches[0]?.candidates[0]).toMatchObject({
+      id: 'player-colette',
+      matchReason: 'username_exact',
+    });
+  });
+
   it('suggests alias-backed matches without requiring exact display names', () => {
     const result = resolveImportPlayerLinks(
       ['Izzy H.'],

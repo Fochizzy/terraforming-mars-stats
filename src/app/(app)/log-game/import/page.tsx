@@ -15,7 +15,10 @@ import {
   saveGameLogImport,
   saveGameLogTagSummaries,
 } from '@/lib/db/game-import-repo';
-import { listImportResolutionPlayers } from '@/lib/db/import-player-resolution-repo';
+import {
+  listImportResolutionPlayers,
+  listImportResolutionPlayersForCurrentUser,
+} from '@/lib/db/import-player-resolution-repo';
 import {
   listPlayerImportAliasesForGroup,
   savePlayerImportAlias,
@@ -682,7 +685,7 @@ export default async function LogGameImportPage() {
       const playerLinks = activeContext
         ? resolveImportPlayerLinks(
             screenshotEvidence.importedNames,
-            await listImportResolutionPlayers(activeContext.groupId),
+            await listImportResolutionPlayersForCurrentUser(),
             await listPlayerImportAliasesForGroup(activeContext.groupId),
           )
         : { matches: [], unresolvedCount: 0 };
@@ -839,11 +842,12 @@ export default async function LogGameImportPage() {
       const canonicalNameByImported = new Map<string, string>();
 
       if (activeContext && confirmedPlayerLinks.length > 0) {
-        const currentGroupPlayers = await listImportResolutionPlayers(
-          activeContext.groupId,
-        );
+        // The review dropdown offers people from every group the user plays in,
+        // so a confirmed selection can reference a player outside the active
+        // group. Resolve display names from that same cross-group pool.
+        const selectablePlayers = await listImportResolutionPlayersForCurrentUser();
         const displayNameById = new Map(
-          currentGroupPlayers.map((player) => [player.id, player.displayName]),
+          selectablePlayers.map((player) => [player.id, player.displayName]),
         );
         const selectedPlayerIds = confirmedPlayerLinks.map(
           (link) => link.playerId,
