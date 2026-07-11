@@ -1007,6 +1007,7 @@ export default async function LogGameImportPage() {
       return {
         status: 'success' as const,
         gameId: draft.gameId,
+        groupId: importGroup.groupId,
         message: importGroup.createdNewGroup
           ? `Created ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. ${buildImportSuccessMessage({
               logEventCount: parsedGameLog.events.length,

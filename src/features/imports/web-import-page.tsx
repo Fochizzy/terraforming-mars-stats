@@ -27,6 +27,7 @@ export type WebImportDraftValues = {
 
 export type WebImportActionResult = {
   gameId?: string;
+  groupId?: string;
   message?: string;
   review?: ImportReviewModel;
   status: 'error' | 'idle' | 'success';

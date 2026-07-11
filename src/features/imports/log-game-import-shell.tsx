@@ -69,7 +69,15 @@ export function LogGameImportShell({
           });
         }
 
-        router.push(`/log-game/review?gameId=${result.gameId}`);
+        const reviewParams = new URLSearchParams({
+          gameId: result.gameId,
+        });
+
+        if (result.groupId) {
+          reviewParams.set('groupId', result.groupId);
+        }
+
+        router.push(`/log-game/review?${reviewParams.toString()}`);
       }
 
       return {

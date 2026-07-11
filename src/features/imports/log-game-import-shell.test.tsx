@@ -93,6 +93,7 @@ describe('LogGameImportShell', () => {
     const onCreateImportDraft = vi.fn().mockResolvedValue({
       status: 'success' as const,
       gameId: 'game-1',
+      groupId: 'group-import',
       message: 'Import draft saved.',
     });
 
@@ -170,7 +171,7 @@ describe('LogGameImportShell', () => {
 
     await waitFor(() =>
       expect(navigationMocks.push).toHaveBeenCalledWith(
-        '/log-game/review?gameId=game-1',
+        '/log-game/review?gameId=game-1&groupId=group-import',
       ),
     );
   });

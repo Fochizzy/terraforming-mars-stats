@@ -862,6 +862,7 @@ describe('LogGameImportPage', () => {
 
     expect(result).toMatchObject({
       gameId: 'game-1',
+      groupId: 'group-1',
       status: 'success',
     });
     expect(mockState.saveDraftGame).toHaveBeenCalledWith(
