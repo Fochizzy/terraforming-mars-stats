@@ -38,6 +38,181 @@ function getWinningStyle(rows: ProfileStyleBreakdownRow[]) {
   )[0] ?? null;
 }
 
+function pluralize(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function getScoreSourceHighlights(scoreAverages: ScoreSourceAverages | null) {
+  if (!scoreAverages) {
+    return { focus: null, top: null };
+  }
+
+  const entries = [
+    { label: 'Terraform Rating', value: scoreAverages.averageTrPoints },
+    { label: 'Card Points', value: scoreAverages.averageCardPoints },
+    { label: 'Greenery', value: scoreAverages.averageGreeneryPoints },
+    { label: 'Cities', value: scoreAverages.averageCitiesPoints },
+    { label: 'Milestones', value: scoreAverages.averageMilestonePoints },
+    { label: 'Awards', value: scoreAverages.averageAwardPoints },
+  ];
+  const top = [...entries]
+    .filter((entry) => entry.value > 0)
+    .sort(
+      (left, right) =>
+        right.value - left.value || left.label.localeCompare(right.label),
+    )[0] ?? null;
+  const focus = [...entries].sort(
+    (left, right) =>
+      left.value - right.value || left.label.localeCompare(right.label),
+  )[0] ?? null;
+
+  return { focus, top };
+}
+
+function getBestMatchup(rows: ProfileHeadToHeadRow[]) {
+  return [...rows]
+    .filter((row) => row.gamesPlayed >= 2 && row.wins > row.losses)
+    .sort((left, right) => {
+      const leftEdge = left.wins - left.losses;
+      const rightEdge = right.wins - right.losses;
+
+      return (
+        rightEdge - leftEdge ||
+        right.averageScoreDifferential - left.averageScoreDifferential ||
+        right.gamesPlayed - left.gamesPlayed ||
+        left.opponentName.localeCompare(right.opponentName)
+      );
+    })[0] ?? null;
+}
+
+function getStyleFocus(rows: ProfileStyleBreakdownRow[]) {
+  const repeatedRows = rows.filter((row) => row.gamesPlayed >= 2);
+  const candidates = repeatedRows.length > 0 ? repeatedRows : rows;
+
+  return [...candidates].sort(
+    (left, right) =>
+      left.winRate - right.winRate ||
+      right.averagePlacement - left.averagePlacement ||
+      right.gamesPlayed - left.gamesPlayed ||
+      left.styleName.localeCompare(right.styleName),
+  )[0] ?? null;
+}
+
+function buildPlayAnalysis({
+  headToHeadRows,
+  performance,
+  playerName,
+  scoreAverages,
+  styleBreakdownRows,
+}: {
+  headToHeadRows: ProfileHeadToHeadRow[];
+  performance: LeaderboardRow | null;
+  playerName: string;
+  scoreAverages: ScoreSourceAverages | null;
+  styleBreakdownRows: ProfileStyleBreakdownRow[];
+}) {
+  const strengths: string[] = [];
+  const improvements: string[] = [];
+  const mostPlayedStyle = styleBreakdownRows[0] ?? null;
+  const winningStyle = getWinningStyle(styleBreakdownRows);
+  const styleFocus = getStyleFocus(styleBreakdownRows);
+  const bestMatchup = getBestMatchup(headToHeadRows);
+  const scoreHighlights = getScoreSourceHighlights(scoreAverages);
+
+  if (performance) {
+    const gamesLabel = pluralize(performance.gamesPlayed, 'finalized game');
+
+    if (performance.winRate >= 0.5) {
+      strengths.push(
+        `${playerName} wins ${formatPercent(performance.winRate)} of ${gamesLabel}, so they are already turning a strong share of tables into wins.`,
+      );
+    } else if (performance.averagePlacement <= 2.5) {
+      strengths.push(
+        `${playerName} stays in the mix with an average placement of ${formatAverage(performance.averagePlacement)} across ${gamesLabel}.`,
+      );
+    } else {
+      strengths.push(
+        `${playerName} has ${gamesLabel} logged, which gives them a real baseline for spotting repeatable play patterns.`,
+      );
+    }
+  }
+
+  if (winningStyle && winningStyle.wins > 0) {
+    strengths.push(
+      `${winningStyle.styleName} is the clearest successful plan, producing ${pluralize(winningStyle.wins, 'win')} and a ${formatPercent(winningStyle.winRate)} win rate.`,
+    );
+  } else if (mostPlayedStyle) {
+    strengths.push(
+      `${playerName} has a defined style identity around ${mostPlayedStyle.styleName}, using it in ${formatPercent(mostPlayedStyle.playRate)} of inferred-style games.`,
+    );
+  }
+
+  if (scoreHighlights.top) {
+    strengths.push(
+      `${scoreHighlights.top.label} is the strongest scoring lane, averaging ${formatAverage(scoreHighlights.top.value)} points per finalized game.`,
+    );
+  }
+
+  if (bestMatchup && strengths.length < 3) {
+    strengths.push(
+      `In repeated head-to-head play, ${playerName} has the clearest edge against ${bestMatchup.opponentName} at ${bestMatchup.wins}-${bestMatchup.losses}-${bestMatchup.ties}.`,
+    );
+  }
+
+  while (strengths.length < 2) {
+    strengths.push(
+      strengths.length === 0
+        ? `${playerName}'s profile is ready to turn finalized games into a concrete play identity.`
+        : 'Complete score rows, style reads, and imported logs will make the strongest habits easier to call out.',
+    );
+  }
+
+  if (performance) {
+    if (performance.winRate < 0.5) {
+      improvements.push(
+        `Start by converting more competitive finishes into wins; the current win rate is ${formatPercent(performance.winRate)} over ${pluralize(performance.gamesPlayed, 'finalized game')}.`,
+      );
+    } else {
+      improvements.push(
+        `The next step is raising the floor in non-winning games so the ${formatPercent(performance.winRate)} win rate is backed by steadier finishes.`,
+      );
+    }
+
+    if (performance.averageLossGap !== null && performance.averageLossGap > 0) {
+      improvements.push(
+        `Losses are averaging a ${formatAverage(performance.averageLossGap)}-point gap, so plan for one more late-game scoring swing before the final generation.`,
+      );
+    }
+  }
+
+  if (styleFocus) {
+    improvements.push(
+      `Use ${styleFocus.styleName} as a review focus: it has a ${formatPercent(styleFocus.winRate)} win rate over ${pluralize(styleFocus.gamesPlayed, 'game')}, so compare its openings and endgame scoring against stronger results.`,
+    );
+  }
+
+  if (scoreHighlights.focus) {
+    improvements.push(
+      `${scoreHighlights.focus.label} is the lightest major score source at ${formatAverage(scoreHighlights.focus.value)} points on average; finding one more reliable route there would make low-variance games safer.`,
+    );
+  }
+
+  while (improvements.length < 3) {
+    const fallbacks = [
+      'Keep logging complete score-source rows so the weakest scoring lanes become easier to separate from one-off games.',
+      'Review one win and one loss after each session to compare tempo, card economy, and final-generation points.',
+      'Import game logs when possible so the profile can connect card choices to actual outcomes.',
+    ];
+
+    improvements.push(fallbacks[improvements.length % fallbacks.length]);
+  }
+
+  return {
+    improvements: improvements.slice(0, 4),
+    strengths: strengths.slice(0, 3),
+  };
+}
+
 export function ProfileDashboard({
   coverage = null,
   headToHeadRows = [],
@@ -67,6 +242,13 @@ export function ProfileDashboard({
 
   const mostPlayedStyle = styleBreakdownRows[0] ?? null;
   const winningStyle = getWinningStyle(styleBreakdownRows);
+  const playAnalysis = buildPlayAnalysis({
+    headToHeadRows,
+    performance,
+    playerName,
+    scoreAverages,
+    styleBreakdownRows,
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -121,6 +303,36 @@ export function ProfileDashboard({
             No finalized games are linked to {playerName} yet.
           </p>
         )}
+      </ChartFrame>
+      <ChartFrame title="Play Analysis">
+        <div className="grid gap-3 lg:grid-cols-2">
+          <article className="tm-stat-card">
+            <h3 className="font-semibold text-stone-100">
+              What {playerName} Does Well
+            </h3>
+            <ul
+              aria-label={`What ${playerName} does well`}
+              className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300"
+            >
+              {playAnalysis.strengths.map((sentence) => (
+                <li key={sentence}>{sentence}</li>
+              ))}
+            </ul>
+          </article>
+          <article className="tm-stat-card">
+            <h3 className="font-semibold text-stone-100">
+              How {playerName} Could Improve
+            </h3>
+            <ul
+              aria-label={`How ${playerName} could improve`}
+              className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300"
+            >
+              {playAnalysis.improvements.map((sentence) => (
+                <li key={sentence}>{sentence}</li>
+              ))}
+            </ul>
+          </article>
+        </div>
       </ChartFrame>
       <ChartFrame title="Group Comparisons">
         <p className="text-sm text-stone-300">

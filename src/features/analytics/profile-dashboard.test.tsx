@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ProfileDashboard } from './profile-dashboard';
@@ -116,6 +116,27 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/4 finalized games overall/i)).toBeInTheDocument();
     expect(screen.getAllByText(/friday mars/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/second seat/i)).toBeInTheDocument();
+    expect(screen.getByText(/play analysis/i)).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByRole('list', {
+          name: /what friday mars does well/i,
+        }),
+      ).getAllByRole('listitem'),
+    ).toHaveLength(3);
+    expect(
+      within(
+        screen.getByRole('list', {
+          name: /how friday mars could improve/i,
+        }),
+      ).getAllByRole('listitem'),
+    ).toHaveLength(4);
+    expect(
+      screen.getByText(/terraform rating is the strongest scoring lane/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/awards is the lightest major score source/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
     expect(screen.getByText(/styles breakdown/i)).toBeInTheDocument();
     expect(screen.getByText(/most played/i)).toBeInTheDocument();
@@ -133,6 +154,20 @@ describe('ProfileDashboard', () => {
   it('links out to the dedicated play comparison screen', () => {
     render(<ProfileDashboard playerName="Friday Mars" />);
 
+    expect(
+      within(
+        screen.getByRole('list', {
+          name: /what friday mars does well/i,
+        }),
+      ).getAllByRole('listitem'),
+    ).toHaveLength(2);
+    expect(
+      within(
+        screen.getByRole('list', {
+          name: /how friday mars could improve/i,
+        }),
+      ).getAllByRole('listitem'),
+    ).toHaveLength(3);
     expect(screen.getByText(/group comparisons/i)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open my play vs overall/i }),
