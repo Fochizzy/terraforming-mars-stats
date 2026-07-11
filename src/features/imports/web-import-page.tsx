@@ -136,10 +136,11 @@ export function getImportErrorMessage(error: unknown) {
 
   if (
     error instanceof Error &&
-    (error.message.includes('ON CONFLICT DO UPDATE command cannot affect row') ||
+    (error.message.includes('Cannot Upload a Game Twice') ||
+      error.message.includes('ON CONFLICT DO UPDATE command cannot affect row') ||
       error.message.includes('21000'))
   ) {
-    return "You can't upload the same game twice.";
+    return 'Cannot Upload a Game Twice';
   }
 
   return describeUnknownError(error, 'Unable to save this import draft right now.');

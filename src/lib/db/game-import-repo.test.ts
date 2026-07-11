@@ -1200,3 +1200,81 @@ describe('getLatestGameLogImportSummary', () => {
     });
   });
 });
+
+describe('findDuplicateGameLogImport', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('skips the query and returns false when the log text is blank', async () => {
+    const from = vi.fn();
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ from } as never);
+
+    const result = await repo.findDuplicateGameLogImport({
+      groupId: 'group-1',
+      rawLogText: '   ',
+    });
+
+    expect(result).toBe(false);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('reports a duplicate scoped to the group and trimmed log text', async () => {
+    const limit = vi
+      .fn()
+      .mockResolvedValue({ data: [{ id: 'import-1' }], error: null });
+    const eqGroup = vi.fn(() => ({ limit }));
+    const eqLog = vi.fn(() => ({ eq: eqGroup }));
+    const select = vi.fn(() => ({ eq: eqLog }));
+    const from = vi.fn(() => ({ select }));
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ from } as never);
+
+    const result = await repo.findDuplicateGameLogImport({
+      groupId: 'group-1',
+      rawLogText: '  Friday Mars won  ',
+    });
+
+    expect(result).toBe(true);
+    expect(from).toHaveBeenCalledWith('game_log_imports');
+    expect(select).toHaveBeenCalledWith('id, games!inner(group_id)');
+    expect(eqLog).toHaveBeenCalledWith('raw_log_text', 'Friday Mars won');
+    expect(eqGroup).toHaveBeenCalledWith('games.group_id', 'group-1');
+  });
+
+  it('returns false when no matching import exists in the group', async () => {
+    const limit = vi.fn().mockResolvedValue({ data: [], error: null });
+    const eqGroup = vi.fn(() => ({ limit }));
+    const eqLog = vi.fn(() => ({ eq: eqGroup }));
+    const select = vi.fn(() => ({ eq: eqLog }));
+    const from = vi.fn(() => ({ select }));
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ from } as never);
+
+    const result = await repo.findDuplicateGameLogImport({
+      groupId: 'group-1',
+      rawLogText: 'Unique log',
+    });
+
+    expect(result).toBe(false);
+  });
+
+  it('throws when the duplicate lookup query fails', async () => {
+    const limit = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: { message: 'boom' } });
+    const eqGroup = vi.fn(() => ({ limit }));
+    const eqLog = vi.fn(() => ({ eq: eqGroup }));
+    const select = vi.fn(() => ({ eq: eqLog }));
+    const from = vi.fn(() => ({ select }));
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ from } as never);
+
+    await expect(
+      repo.findDuplicateGameLogImport({
+        groupId: 'group-1',
+        rawLogText: 'Some log',
+      }),
+    ).rejects.toEqual({ message: 'boom' });
+  });
+});

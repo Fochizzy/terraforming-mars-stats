@@ -11,6 +11,7 @@ import {
   resolveOrCreateImportGroup,
 } from '@/lib/db/import-group-repo';
 import {
+  findDuplicateGameLogImport,
   saveGameLogEvents,
   saveGameLogImport,
   saveGameLogTagSummaries,
@@ -924,6 +925,17 @@ export default async function LogGameImportPage() {
         selectedPlayerIds: importGroup.selectedPlayerIds,
         styleOptions,
       });
+      // Block re-importing a game whose exported log already exists in this
+      // group's history so the same game can't be uploaded twice.
+      const isDuplicateUpload = await findDuplicateGameLogImport({
+        groupId: importGroup.groupId,
+        rawLogText: values.exportedGameLog,
+      });
+
+      if (isDuplicateUpload) {
+        throw new Error('Cannot Upload a Game Twice');
+      }
+
       const draft = await saveDraftGame({
         form: draftForm,
         userId: activeUser.id,

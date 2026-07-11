@@ -91,6 +91,7 @@ const mockState = vi.hoisted(() => ({
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
   resolveOrCreateImportGroup: vi.fn(),
+  findDuplicateGameLogImport: vi.fn(),
   saveDraftGame: vi.fn(),
   saveGameLogEvents: vi.fn(),
   saveGameLogImport: vi.fn(),
@@ -138,6 +139,7 @@ vi.mock('@/lib/db/game-draft-repo', () => ({
 }));
 
 vi.mock('@/lib/db/game-import-repo', () => ({
+  findDuplicateGameLogImport: mockState.findDuplicateGameLogImport,
   saveGameLogEvents: mockState.saveGameLogEvents,
   saveGameLogImport: mockState.saveGameLogImport,
   saveGameLogTagSummaries: mockState.saveGameLogTagSummaries,
@@ -279,6 +281,7 @@ describe('LogGameImportPage', () => {
       groupName: 'Mars Club',
       selectedPlayerIds: ['player-1'],
     });
+    mockState.findDuplicateGameLogImport.mockResolvedValue(false);
     mockState.saveDraftGame.mockResolvedValue({ gameId: 'game-1' });
     mockState.saveGameLogImport.mockResolvedValue({ id: 'import-1' });
     mockState.saveGameLogEvents.mockResolvedValue([]);
@@ -981,6 +984,38 @@ describe('LogGameImportPage', () => {
         }),
       ],
     });
+  });
+
+  it('blocks re-uploading a game whose log already exists in the group', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    mockState.findDuplicateGameLogImport.mockResolvedValue(true);
+    const createDraftFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [
+        {
+          importedName: 'Friday Mars',
+          playerId: 'player-1',
+        },
+      ],
+      endgameScreenshot: null,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onCreateImportDraft(createDraftFormData);
+
+    expect(result).toMatchObject({
+      status: 'error',
+      message: 'Cannot Upload a Game Twice',
+    });
+    expect(mockState.findDuplicateGameLogImport).toHaveBeenCalledWith({
+      groupId: 'group-1',
+      rawLogText: EXPORTED_GAME_LOG,
+    });
+    expect(mockState.saveDraftGame).not.toHaveBeenCalled();
   });
 
   it('uses the selected map and infers generation count from the uploaded game result screenshot before saving the draft', async () => {

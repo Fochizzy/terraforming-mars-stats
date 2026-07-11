@@ -611,6 +611,33 @@ export async function saveGameLogTagSummaries(input: {
   }));
 }
 
+export async function findDuplicateGameLogImport(input: {
+  groupId: string;
+  rawLogText: string;
+}): Promise<boolean> {
+  const normalizedRawLogText = input.rawLogText.trim();
+
+  // Screenshot-only imports have no log text; an empty match would wrongly
+  // collide with every other screenshot-only draft, so skip the guard there.
+  if (!normalizedRawLogText) {
+    return false;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('game_log_imports')
+    .select('id, games!inner(group_id)')
+    .eq('raw_log_text', normalizedRawLogText)
+    .eq('games.group_id', input.groupId)
+    .limit(1);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).length > 0;
+}
+
 export async function getLatestGameLogImportSummary(input: {
   gameId: string;
 }): Promise<GameLogImportSummary | null> {

@@ -1084,14 +1084,18 @@ describe('getImportErrorMessage', () => {
       'ON CONFLICT DO UPDATE command cannot affect row a second time Hint: Ensure that no rows proposed for insertion within the same command have duplicate constrained values. Code: 21000',
     );
 
-    expect(getImportErrorMessage(error)).toBe(
-      "You can't upload the same game twice.",
-    );
+    expect(getImportErrorMessage(error)).toBe('Cannot Upload a Game Twice');
   });
 
   it('maps a bare 21000 cardinality violation to the duplicate message', () => {
     expect(getImportErrorMessage(new Error('Something failed. Code: 21000'))).toBe(
-      "You can't upload the same game twice.",
+      'Cannot Upload a Game Twice',
+    );
+  });
+
+  it('maps the server duplicate-upload guard message through unchanged', () => {
+    expect(getImportErrorMessage(new Error('Cannot Upload a Game Twice'))).toBe(
+      'Cannot Upload a Game Twice',
     );
   });
 
