@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
+import { WinningCardsSection } from '@/features/insights/winning-cards-section';
 import {
   getSelectionStats,
   type SelectionStats,
@@ -42,6 +43,7 @@ export default async function GlobalStatisticsPage() {
           heading="Corporation &amp; Prelude Performance"
           stats={globalStats}
         />
+        <WinningCardsSection cards={globalStats.cards} />
       </section>
     </AppShell>
   );

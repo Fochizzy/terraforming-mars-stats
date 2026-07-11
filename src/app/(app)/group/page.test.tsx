@@ -37,6 +37,12 @@ vi.mock('@/features/insights/selection-stats-section', () => ({
   ),
 }));
 
+vi.mock('@/features/insights/winning-cards-section', () => ({
+  WinningCardsSection: ({ cards }: { cards: SelectionStats['cards'] }) => (
+    <div data-testid="winning-cards">{cards.length} cards</div>
+  ),
+}));
+
 vi.mock('@/lib/db/selection-stats-repo', () => ({
   getSelectionStats: mockState.getSelectionStats,
 }));
@@ -66,6 +72,7 @@ describe('GlobalStatisticsPage', () => {
       screen.getByRole('heading', { name: 'Global Statistics' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('global-selection-stats')).toBeInTheDocument();
+    expect(screen.getByTestId('winning-cards')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /review saved games/i }),
     ).toHaveAttribute('href', '/log-game/review');
