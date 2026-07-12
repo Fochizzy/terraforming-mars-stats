@@ -1,4 +1,9 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { type MouseEvent, useState } from 'react';
+import { InsightsLoadingPopup } from './insights-loading-popup';
 
 export type BottomNavItem = {
   href: string;
@@ -40,11 +45,29 @@ function ChartIcon() {
   );
 }
 
+function shouldShowInsightsLoading(
+  event: MouseEvent<HTMLAnchorElement>,
+  href: string,
+  pathname: string,
+) {
+  return (
+    href === '/insights' &&
+    pathname !== '/insights' &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
 export function BottomNav({
   items = defaultBottomNavItems,
 }: {
   items?: BottomNavItem[];
 }) {
+  const pathname = usePathname() ?? '';
+  const [showInsightsLoading, setShowInsightsLoading] = useState(false);
   const navigationItems = items;
   const cardsItem = navigationItems.find((item) => item.href === '/cards');
   const glossaryItem = navigationItems.find((item) => item.href === '/glossary');
@@ -54,37 +77,54 @@ export function BottomNav({
   const stripItems = navigationItems.filter((item) => !edgeItems.includes(item));
 
   return (
-    <nav aria-label="Primary" className="tm-bottom-nav">
-      <Link
-        aria-label="Home"
-        className="tm-bottom-nav__icon"
-        href={navigationItems[0]?.href ?? '/'}
-      >
-        <HomeIcon />
-      </Link>
-      <div className="tm-bottom-nav__links">
-        {stripItems.map((item) => (
+    <>
+      <nav aria-label="Primary" className="tm-bottom-nav">
+        <Link
+          aria-label="Home"
+          className="tm-bottom-nav__icon"
+          href={navigationItems[0]?.href ?? '/'}
+        >
+          <HomeIcon />
+        </Link>
+        <div className="tm-bottom-nav__links">
+          {stripItems.map((item) => (
+            <Link
+              className="tm-bottom-nav__link"
+              href={item.href}
+              key={item.href}
+              onClick={(event) => {
+                if (shouldShowInsightsLoading(event, item.href, pathname)) {
+                  setShowInsightsLoading(true);
+                }
+              }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+        {edgeItems.map((item) => (
           <Link
-            className="tm-bottom-nav__link"
+            className="tm-bottom-nav__link tm-bottom-nav__link--edge"
             href={item.href}
             key={item.href}
           >
             {item.label}
           </Link>
         ))}
-      </div>
-      {edgeItems.map((item) => (
         <Link
-          className="tm-bottom-nav__link tm-bottom-nav__link--edge"
-          href={item.href}
-          key={item.href}
+          aria-label="Open Insights"
+          className="tm-bottom-nav__icon"
+          href="/insights"
+          onClick={(event) => {
+            if (shouldShowInsightsLoading(event, '/insights', pathname)) {
+              setShowInsightsLoading(true);
+            }
+          }}
         >
-          {item.label}
+          <ChartIcon />
         </Link>
-      ))}
-      <span aria-hidden className="tm-bottom-nav__icon">
-        <ChartIcon />
-      </span>
-    </nav>
+      </nav>
+      {showInsightsLoading ? <InsightsLoadingPopup /> : null}
+    </>
   );
 }

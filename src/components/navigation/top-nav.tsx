@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { type MouseEvent, useState } from 'react';
+import { InsightsLoadingPopup } from './insights-loading-popup';
 
 export type TopNavItem = {
   href: string;
@@ -30,31 +32,56 @@ function isItemActive(pathname: string, href: string): boolean {
   return pathname.startsWith(`${href}/`);
 }
 
+function shouldShowInsightsLoading(
+  event: MouseEvent<HTMLAnchorElement>,
+  href: string,
+  pathname: string,
+) {
+  return (
+    href === '/insights' &&
+    pathname !== '/insights' &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
 export function TopNav({
   items = defaultTopNavItems,
 }: {
   items?: TopNavItem[];
 }) {
   const pathname = usePathname() ?? '';
+  const [showInsightsLoading, setShowInsightsLoading] = useState(false);
 
   const firstEndHref = items.find((item) => item.align === 'end')?.href;
 
   return (
-    <nav aria-label="Primary" className="tm-top-nav">
-      {items.map((item) => {
-        const active = isItemActive(pathname, item.href);
-        const spacer = item.href === firstEndHref;
-        return (
-          <Link
-            aria-current={active ? 'page' : undefined}
-            className={`tm-top-nav__link${active ? ' tm-top-nav__link--active' : ''}${spacer ? ' tm-top-nav__link--end' : ''}`}
-            href={item.href}
-            key={item.href}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <>
+      <nav aria-label="Primary" className="tm-top-nav">
+        {items.map((item) => {
+          const active = isItemActive(pathname, item.href);
+          const spacer = item.href === firstEndHref;
+          return (
+            <Link
+              aria-current={active ? 'page' : undefined}
+              className={`tm-top-nav__link${active ? ' tm-top-nav__link--active' : ''}${spacer ? ' tm-top-nav__link--end' : ''}`}
+              href={item.href}
+              key={item.href}
+              onClick={(event) => {
+                if (shouldShowInsightsLoading(event, item.href, pathname)) {
+                  setShowInsightsLoading(true);
+                }
+              }}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+      {showInsightsLoading ? <InsightsLoadingPopup /> : null}
+    </>
   );
 }
