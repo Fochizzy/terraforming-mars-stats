@@ -115,4 +115,47 @@ describe('resolveLogGamePlayerReferences', () => {
       linkedUserId: null,
     });
   });
+
+  it('creates a single guest for a username reference with no last name', async () => {
+    const createPlayerIfMissing = vi.fn().mockResolvedValue({
+      display_name: 'Revloki',
+      id: 'player-revloki',
+      linked_user_id: null,
+    });
+    const listPlayers = vi.fn().mockResolvedValue([]);
+
+    await expect(
+      resolveLogGamePlayerReferences(
+        buildDraft({ selectedPlayerIds: ['Revloki'] }),
+        { createPlayerIfMissing, listPlayers },
+      ),
+    ).resolves.toMatchObject({
+      selectedPlayerIds: ['player-revloki'],
+    });
+
+    expect(createPlayerIfMissing).toHaveBeenCalledTimes(1);
+    expect(createPlayerIfMissing).toHaveBeenCalledWith({
+      displayName: 'Revloki',
+      groupId: '11111111-1111-4111-8111-111111111111',
+      linkedUserId: null,
+    });
+  });
+
+  it('reuses an already-saved guest instead of generating a duplicate', async () => {
+    const createPlayerIfMissing = vi.fn();
+    const listPlayers = vi.fn().mockResolvedValue([
+      { display_name: 'Revloki', id: 'player-revloki', linked_user_id: null },
+    ]);
+
+    await expect(
+      resolveLogGamePlayerReferences(
+        buildDraft({ selectedPlayerIds: ['revloki'] }),
+        { createPlayerIfMissing, listPlayers },
+      ),
+    ).resolves.toMatchObject({
+      selectedPlayerIds: ['player-revloki'],
+    });
+
+    expect(createPlayerIfMissing).not.toHaveBeenCalled();
+  });
 });

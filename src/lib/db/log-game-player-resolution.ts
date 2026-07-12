@@ -1,4 +1,7 @@
-import { signupFullNameSchema } from '@/features/auth/username-auth';
+import {
+  signupFullNameSchema,
+  usernameHandleSchema,
+} from '@/features/auth/username-auth';
 import { type LogGameDraftInput } from '@/lib/validation/log-game';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 import {
@@ -55,6 +58,27 @@ function remapAwardClaims(
   );
 }
 
+// A new-player reference is a display name typed in the players step. It can be
+// a real name ("James Hodnett") or a username handle ("Revloki"), matching the
+// two ways a player is created there, so accept either.
+function parsePlayerReferenceName(reference: string) {
+  const fullName = signupFullNameSchema.safeParse(reference);
+
+  if (fullName.success) {
+    return fullName.data;
+  }
+
+  const handle = usernameHandleSchema.safeParse(reference);
+
+  if (handle.success) {
+    return handle.data;
+  }
+
+  throw new Error(
+    fullName.error.issues[0]?.message ?? 'Enter a player name or username.',
+  );
+}
+
 function buildRosterMaps(players: PlayerRow[]) {
   return {
     byId: new Map(players.map((player) => [player.id, player])),
@@ -89,7 +113,7 @@ export async function resolveLogGamePlayerReferences(
       continue;
     }
 
-    const displayName = signupFullNameSchema.parse(reference);
+    const displayName = parsePlayerReferenceName(reference);
     const normalizedName = normalizePlayerAlias(displayName);
     const existingByName = byNormalizedName.get(normalizedName);
 
