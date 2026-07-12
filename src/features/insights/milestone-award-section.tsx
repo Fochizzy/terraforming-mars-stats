@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -279,16 +280,34 @@ function findTopEntry(totals: Map<string, number>) {
 }
 
 export function AwardEconomicsSection(props: {
-  focusPlayerId: string | null;
   focusPlayerName: string | null;
-  matrixRows: AwardFunderWinnerRow[];
-  outcomeRows: AwardOutcomeRow[];
+  groupFocusPlayerId: string | null;
+  groupMatrixRows: AwardFunderWinnerRow[];
+  groupOutcomeRows: AwardOutcomeRow[];
+  overallFocusPlayerId: string | null;
+  overallMatrixRows: AwardFunderWinnerRow[];
+  overallOutcomeRows: AwardOutcomeRow[];
 }) {
-  const matrixRows = props.focusPlayerId
-    ? props.matrixRows.filter((row) => row.funderPlayerId === props.focusPlayerId)
-    : props.matrixRows;
+  // Default to the active group's matrix so every member of a group sees the
+  // same numbers. "All my groups" is an explicit opt-in to the caller's own
+  // cross-group aggregate, which is inherently viewer-relative.
+  const [scope, setScope] = useState<'all' | 'group'>('group');
+  const isAllGroups = scope === 'all';
+  const activeFocusPlayerId = isAllGroups
+    ? props.overallFocusPlayerId
+    : props.groupFocusPlayerId;
+  const sourceMatrixRows = isAllGroups
+    ? props.overallMatrixRows
+    : props.groupMatrixRows;
+  const outcomeRows = isAllGroups
+    ? props.overallOutcomeRows
+    : props.groupOutcomeRows;
+
+  const matrixRows = activeFocusPlayerId
+    ? sourceMatrixRows.filter((row) => row.funderPlayerId === activeFocusPlayerId)
+    : sourceMatrixRows;
   const matrix = buildAwardMatrixModel(matrixRows);
-  const awardLeaders = findAwardLeaders(props.matrixRows);
+  const awardLeaders = findAwardLeaders(sourceMatrixRows);
 
   return (
     <ChartFrame
@@ -299,15 +318,47 @@ export function AwardEconomicsSection(props: {
           : 'Award Economics'
       }
     >
-      {props.outcomeRows.length === 0 ? (
-        <p className="tm-muted-copy text-sm">
-          Award funding outcomes will appear once finalized games record them.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            {props.outcomeRows.map((row) => {
-              const leaders = awardLeaders.get(row.awardId);
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="tm-data-label text-xs">Games</span>
+          <div
+            aria-label="Award economics scope"
+            className="inline-flex overflow-hidden rounded-lg border border-white/10"
+            role="group"
+          >
+            <button
+              aria-pressed={!isAllGroups}
+              className={`px-3 py-1 text-xs transition ${
+                isAllGroups ? 'tm-muted-copy' : 'bg-white/10 text-stone-100'
+              }`}
+              onClick={() => setScope('group')}
+              type="button"
+            >
+              This group
+            </button>
+            <button
+              aria-pressed={isAllGroups}
+              className={`px-3 py-1 text-xs transition ${
+                isAllGroups ? 'bg-white/10 text-stone-100' : 'tm-muted-copy'
+              }`}
+              onClick={() => setScope('all')}
+              type="button"
+            >
+              All my groups
+            </button>
+          </div>
+        </div>
+        {outcomeRows.length === 0 ? (
+          <p className="tm-muted-copy text-sm">
+            {isAllGroups
+              ? 'Award funding outcomes will appear once finalized games across your groups record them.'
+              : 'Award funding outcomes will appear once finalized games record them.'}
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              {outcomeRows.map((row) => {
+                const leaders = awardLeaders.get(row.awardId);
 
               return (
                 <article className="tm-stat-card" key={row.awardId}>
@@ -389,8 +440,9 @@ export function AwardEconomicsSection(props: {
               </p>
             </div>
           ) : null}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </ChartFrame>
   );
 }

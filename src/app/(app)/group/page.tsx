@@ -1,13 +1,8 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { GlobalKeyCardsSection } from '@/features/insights/global-key-cards-section';
-import { AwardEconomicsSection } from '@/features/insights/milestone-award-section';
 import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
 import { WinningCardsSection } from '@/features/insights/winning-cards-section';
-import {
-  getAwardEconomics,
-  type AwardEconomics,
-} from '@/lib/db/extended-analytics-repo';
 import {
   getSelectionStats,
   type SelectionStats,
@@ -23,11 +18,6 @@ const emptySelectionStats: SelectionStats = {
   preludes: [],
   tagWins: [],
   totalGames: 0,
-};
-
-const emptyAwardEconomics: AwardEconomics = {
-  awardFunderWinnerRows: [],
-  awardOutcomeRows: [],
 };
 
 async function loadGlobalStatsOrDefault(): Promise<SelectionStats> {
@@ -48,20 +38,10 @@ async function loadPersonalStatsOrDefault(): Promise<SelectionStats> {
   }
 }
 
-async function loadAwardEconomicsOrDefault(): Promise<AwardEconomics> {
-  try {
-    return await getAwardEconomics('personal');
-  } catch (error) {
-    console.error('[global] Failed to load award economics', error);
-    return emptyAwardEconomics;
-  }
-}
-
 export default async function GlobalStatisticsPage() {
-  const [globalStats, personalStats, awardEconomics] = await Promise.all([
+  const [globalStats, personalStats] = await Promise.all([
     loadGlobalStatsOrDefault(),
     loadPersonalStatsOrDefault(),
-    loadAwardEconomicsOrDefault(),
   ]);
 
   const personalCardPlaysByName = new Map(
@@ -95,25 +75,6 @@ export default async function GlobalStatisticsPage() {
           globalTotalGames={globalStats.totalGames}
           personalTotalGames={personalStats.totalGames}
           personalPlaysByCardName={personalCardPlaysByName}
-        />
-      </section>
-      <section className="tm-panel flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="tm-panel-title text-lg">
-            <GlossaryLink slug="award-economics">Your Award Funding</GlossaryLink>
-          </h2>
-          <p className="tm-muted-copy text-sm">
-            Who profits from whose{' '}
-            <GlossaryLink slug="award-funding-roi">award funding</GlossaryLink>,
-            across every game you&apos;ve played in — spanning all your groups,
-            not just the active one.
-          </p>
-        </div>
-        <AwardEconomicsSection
-          focusPlayerId={null}
-          focusPlayerName={null}
-          matrixRows={awardEconomics.awardFunderWinnerRows}
-          outcomeRows={awardEconomics.awardOutcomeRows}
         />
       </section>
     </AppShell>

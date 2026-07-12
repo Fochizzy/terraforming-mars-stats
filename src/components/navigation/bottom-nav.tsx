@@ -71,10 +71,16 @@ export function BottomNav({
   const navigationItems = items;
   const cardsItem = navigationItems.find((item) => item.href === '/cards');
   const glossaryItem = navigationItems.find((item) => item.href === '/glossary');
+  // Insights has its own dedicated icon at the end of the strip, so keep it out
+  // of the text links to avoid a duplicate, and only surface the icon when the
+  // active navigation set actually includes it (e.g. hidden for profile-only).
+  const insightsItem = navigationItems.find((item) => item.href === '/insights');
   const edgeItems = [cardsItem, glossaryItem].filter(
     (item): item is BottomNavItem => Boolean(item),
   );
-  const stripItems = navigationItems.filter((item) => !edgeItems.includes(item));
+  const stripItems = navigationItems.filter(
+    (item) => !edgeItems.includes(item) && item !== insightsItem,
+  );
 
   return (
     <>
@@ -111,18 +117,20 @@ export function BottomNav({
             {item.label}
           </Link>
         ))}
-        <Link
-          aria-label="Open Insights"
-          className="tm-bottom-nav__icon"
-          href="/insights"
-          onClick={(event) => {
-            if (shouldShowInsightsLoading(event, '/insights', pathname)) {
-              setShowInsightsLoading(true);
-            }
-          }}
-        >
-          <ChartIcon />
-        </Link>
+        {insightsItem ? (
+          <Link
+            aria-label="Open Insights"
+            className="tm-bottom-nav__icon"
+            href="/insights"
+            onClick={(event) => {
+              if (shouldShowInsightsLoading(event, '/insights', pathname)) {
+                setShowInsightsLoading(true);
+              }
+            }}
+          >
+            <ChartIcon />
+          </Link>
+        ) : null}
       </nav>
       {showInsightsLoading ? <InsightsLoadingPopup /> : null}
     </>

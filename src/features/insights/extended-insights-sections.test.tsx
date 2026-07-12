@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type {
   GenerationPaceRow,
@@ -380,9 +380,9 @@ describe('AwardEconomicsSection', () => {
   it('shows who funded and who won each award on its card', () => {
     render(
       <AwardEconomicsSection
-        focusPlayerId={null}
         focusPlayerName={null}
-        matrixRows={[
+        groupFocusPlayerId={null}
+        groupMatrixRows={[
           {
             awardId: 'a1',
             awardName: 'Excentric',
@@ -394,7 +394,7 @@ describe('AwardEconomicsSection', () => {
             winnerPlayerName: 'James Hodnett',
           },
         ]}
-        outcomeRows={[
+        groupOutcomeRows={[
           {
             awardId: 'a1',
             awardName: 'Excentric',
@@ -405,6 +405,9 @@ describe('AwardEconomicsSection', () => {
             snipedCount: 1,
           },
         ]}
+        overallFocusPlayerId={null}
+        overallMatrixRows={[]}
+        overallOutcomeRows={[]}
       />,
     );
 
@@ -413,6 +416,49 @@ describe('AwardEconomicsSection', () => {
         /Most funded by Izzy Hodnett \(1×\) \| most won by James Hodnett \(1×\)/,
       ),
     ).toBeInTheDocument();
+  });
+
+  it('defaults to this-group data and swaps to all-my-groups on toggle', () => {
+    render(
+      <AwardEconomicsSection
+        focusPlayerName={null}
+        groupFocusPlayerId={null}
+        groupMatrixRows={[]}
+        groupOutcomeRows={[
+          {
+            awardId: 'a1',
+            awardName: 'Group Only Award',
+            fundedCount: 1,
+            funderWonCount: 1,
+            funderWonRate: 1,
+            groupId: 'group-1',
+            snipedCount: 0,
+          },
+        ]}
+        overallFocusPlayerId={null}
+        overallMatrixRows={[]}
+        overallOutcomeRows={[
+          {
+            awardId: 'a2',
+            awardName: 'Cross Group Award',
+            fundedCount: 3,
+            funderWonCount: 1,
+            funderWonRate: 0.33,
+            groupId: 'global',
+            snipedCount: 2,
+          },
+        ]}
+      />,
+    );
+
+    // Defaults to the active group's data so every member sees the same numbers.
+    expect(screen.getByText('Group Only Award')).toBeInTheDocument();
+    expect(screen.queryByText('Cross Group Award')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'All my groups' }));
+
+    expect(screen.getByText('Cross Group Award')).toBeInTheDocument();
+    expect(screen.queryByText('Group Only Award')).not.toBeInTheDocument();
   });
 });
 

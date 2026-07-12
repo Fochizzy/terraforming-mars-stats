@@ -1330,10 +1330,13 @@ export function InsightsDashboard({
           />
 
           <AwardEconomicsSection
-            focusPlayerId={sectionFocusPlayerId}
-            focusPlayerName={sectionFocusPlayerName}
-            matrixRows={sectionExtended.awardFunderWinnerRows}
-            outcomeRows={sectionExtended.awardOutcomeRows}
+            focusPlayerName={selectedPerson?.displayName ?? null}
+            groupFocusPlayerId={selectedPerson?.activeGroupPlayerId ?? null}
+            groupMatrixRows={extended.awardFunderWinnerRows}
+            groupOutcomeRows={extended.awardOutcomeRows}
+            overallFocusPlayerId={selectedPerson?.canonicalId ?? null}
+            overallMatrixRows={overallExtended.awardFunderWinnerRows}
+            overallOutcomeRows={overallExtended.awardOutcomeRows}
           />
 
           <CardOutcomesSection

@@ -5,7 +5,6 @@ import GlobalStatisticsPage from './page';
 import type { SelectionStats } from '@/lib/db/selection-stats-repo';
 
 const mockState = vi.hoisted(() => ({
-  getAwardEconomics: vi.fn(),
   getSelectionStats: vi.fn(),
 }));
 
@@ -44,20 +43,6 @@ vi.mock('@/features/insights/winning-cards-section', () => ({
   ),
 }));
 
-vi.mock('@/features/insights/milestone-award-section', () => ({
-  AwardEconomicsSection: ({
-    matrixRows,
-  }: {
-    matrixRows: unknown[];
-  }) => (
-    <div data-testid="award-economics">{matrixRows.length} matrix rows</div>
-  ),
-}));
-
-vi.mock('@/lib/db/extended-analytics-repo', () => ({
-  getAwardEconomics: mockState.getAwardEconomics,
-}));
-
 vi.mock('@/lib/db/selection-stats-repo', () => ({
   getSelectionStats: mockState.getSelectionStats,
 }));
@@ -78,10 +63,6 @@ describe('GlobalStatisticsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.getSelectionStats.mockResolvedValue(sampleStats);
-    mockState.getAwardEconomics.mockResolvedValue({
-      awardFunderWinnerRows: [],
-      awardOutcomeRows: [],
-    });
   });
 
   it('renders global statistics from all recorded games', async () => {
@@ -93,11 +74,16 @@ describe('GlobalStatisticsPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('global-selection-stats')).toBeInTheDocument();
     expect(screen.getByTestId('winning-cards')).toBeInTheDocument();
-    expect(mockState.getAwardEconomics).toHaveBeenCalledWith('personal');
-    expect(screen.getByTestId('award-economics')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /review saved games/i }),
     ).toHaveAttribute('href', '/log-game/review');
+  });
+
+  it('does not render the named award-funding matrix', async () => {
+    render(await GlobalStatisticsPage());
+
+    expect(screen.queryByTestId('award-economics')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Award Funding/i)).not.toBeInTheDocument();
   });
 
   it('does not render group-scoped affordances', async () => {
