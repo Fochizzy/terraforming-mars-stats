@@ -39,3 +39,12 @@ export const signupFullNameSchema = z
       message: 'Enter both a first and last name (e.g. James Hodnett).',
     },
   );
+
+// A username/handle is a single label (e.g. "Revloki"): case is preserved for
+// display, and it only has to contain something that normalizes to a slug.
+export const usernameHandleSchema = z
+  .string()
+  .transform(collapseWhitespace)
+  .refine((value) => normalizeUsername(value).length > 0, {
+    message: 'Enter a username using letters or numbers.',
+  });

@@ -5,6 +5,7 @@ import { SelectChevron } from '@/components/ui/select-chevron';
 import { StepHeading } from '@/components/ui/step-heading';
 import {
   signupFullNameSchema,
+  usernameHandleSchema,
 } from '@/features/auth/username-auth';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 import type {
@@ -45,6 +46,9 @@ export function PlayersStep({
 }: PlayersStepProps) {
   const [playerEntry, setPlayerEntry] = useState('');
   const [playerEntryError, setPlayerEntryError] = useState('');
+  const [newPlayerKind, setNewPlayerKind] = useState<'name' | 'username'>(
+    'name',
+  );
   const matchingPlayerOptions = useMemo(
     () =>
       findMatchingPlayerOptions({
@@ -124,7 +128,10 @@ export function PlayersStep({
         return;
       }
 
-      const nextReference = signupFullNameSchema.parse(rawValue);
+      const nextReference =
+        newPlayerKind === 'username'
+          ? usernameHandleSchema.parse(rawValue)
+          : signupFullNameSchema.parse(rawValue);
       addPlayerReference(nextReference);
     } catch (error) {
       setPlayerEntryError(
@@ -159,6 +166,46 @@ export function PlayersStep({
       <p className="tm-data-label">
         {selectedPlayers.length} of {playerCount} seats filled
       </p>
+      <div className="flex flex-col gap-2">
+        <span className="tm-data-label">New player is a</span>
+        <div className="flex gap-2" role="group" aria-label="New player type">
+          <button
+            aria-pressed={newPlayerKind === 'name'}
+            className={
+              newPlayerKind === 'name'
+                ? 'tm-button-primary flex-1 px-3 py-2 text-xs'
+                : 'tm-button-secondary flex-1 px-3 py-2 text-xs'
+            }
+            onClick={() => {
+              setNewPlayerKind('name');
+              setPlayerEntryError('');
+            }}
+            type="button"
+          >
+            Real Name
+          </button>
+          <button
+            aria-pressed={newPlayerKind === 'username'}
+            className={
+              newPlayerKind === 'username'
+                ? 'tm-button-primary flex-1 px-3 py-2 text-xs'
+                : 'tm-button-secondary flex-1 px-3 py-2 text-xs'
+            }
+            onClick={() => {
+              setNewPlayerKind('username');
+              setPlayerEntryError('');
+            }}
+            type="button"
+          >
+            Username
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+          {newPlayerKind === 'name'
+            ? 'Real names need a first and last name (e.g. James Hodnett).'
+            : 'A username is a single handle (e.g. Revloki).'}
+        </p>
+      </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
         <label className="flex flex-col gap-2 text-sm">
           <span className="tm-data-label">Add Or Select Player</span>
@@ -166,8 +213,11 @@ export function PlayersStep({
             aria-label="Add Or Select Player"
             className="tm-input"
             autoComplete="off"
+            autoCapitalize={newPlayerKind === 'username' ? 'none' : undefined}
             onChange={(event) => setPlayerEntry(event.target.value)}
-            placeholder="Username or First Name Last Name"
+            placeholder={
+              newPlayerKind === 'username' ? 'Revloki' : 'First Name Last Name'
+            }
             value={playerEntry}
           />
         </label>

@@ -5,6 +5,7 @@ import {
   normalizeUsername,
   pinSchema,
   signupFullNameSchema,
+  usernameHandleSchema,
 } from './username-auth';
 
 describe('username auth helpers', () => {
@@ -46,6 +47,16 @@ describe('username auth helpers', () => {
   it('accepts a first and last name for signup', () => {
     expect(signupFullNameSchema.parse('  James   Hodnett  ')).toBe(
       'James Hodnett',
+    );
+  });
+
+  it('accepts a single-word username handle and preserves its casing', () => {
+    expect(usernameHandleSchema.parse('  Revloki  ')).toBe('Revloki');
+  });
+
+  it('rejects a username handle with no letters or numbers', () => {
+    expect(() => usernameHandleSchema.parse('!!!')).toThrow(
+      /letters or numbers/i,
     );
   });
 });
