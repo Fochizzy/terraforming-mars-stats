@@ -25,6 +25,14 @@ import {
 // are editable, so a longer run needs another slot adding here.
 const MIDGAME_PRELUDE_SLOT_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7];
 
+// A roster player is "registered" once it is linked to an account, which is the
+// only time the linked profile fields are populated.
+function isRegisteredPlayer(player: LogGamePlayerOption) {
+  return Boolean(
+    player.linked_username?.trim() || player.linked_full_name?.trim(),
+  );
+}
+
 type PlayersStepProps = {
   corporationOptions: CorporationOption[];
   playerCount: number;
@@ -68,6 +76,17 @@ export function PlayersStep({
   const availableMatches = matchingPlayerOptions.filter(
     (match) => !selectedPlayerIds.includes(match.player.id),
   );
+  const previouslyEnteredMatches = availableMatches.filter(
+    (match) => !isRegisteredPlayer(match.player),
+  );
+  const registeredMatches = availableMatches.filter((match) =>
+    isRegisteredPlayer(match.player),
+  );
+  const hasExactNameMatch = availableMatches.some(
+    (match) =>
+      normalizePlayerAlias(match.player.display_name) ===
+      normalizePlayerAlias(playerEntry.trim()),
+  );
 
   function addPlayerReference(nextReference: string) {
     setValue('selectedPlayerIds', [...selectedPlayerIds, nextReference], {
@@ -102,29 +121,13 @@ export function PlayersStep({
         return;
       }
 
-      const topScore = matchingPlayerOptions[0]?.score ?? 0;
-      const topMatches = matchingPlayerOptions.filter(
-        (match) => match.score === topScore,
-      );
-
-      if (topMatches.length === 1) {
-        const resolvedPlayer = topMatches[0]?.player;
-
-        if (!resolvedPlayer) {
-          return;
-        }
-
-        if (selectedPlayerIds.includes(resolvedPlayer.id)) {
-          setPlayerEntryError('That player is already selected for this game.');
-          return;
-        }
-
-        addPlayerReference(resolvedPlayer.id);
-        return;
-      }
-
-      if (availableMatches.length > 0) {
-        setPlayerEntryError('Pick a saved player from the list below.');
+      // Matches are never merged silently: when the typed name matches players
+      // already on the roster, the chooser below lets the user pick one of them
+      // instead. "Add Player" only ever creates a brand-new player.
+      if (hasExactNameMatch) {
+        setPlayerEntryError(
+          'A player with that exact name is listed below — pick them, or change the name to create a new player.',
+        );
         return;
       }
 
@@ -227,27 +230,55 @@ export function PlayersStep({
           onClick={handleAddPlayer}
           type="button"
         >
-          Add Player
+          {availableMatches.length > 0 ? 'Create New Player' : 'Add Player'}
         </button>
       </div>
       {availableMatches.length > 0 ? (
-        <div
-          className="rounded-2xl border border-white/10 bg-black/20 p-3"
-          role="list"
-        >
-          <p className="tm-data-label text-[10px]">Matching Roster Players</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {availableMatches.map((match) => (
-              <button
-                className="tm-button-secondary px-3 py-2 text-xs"
-                key={match.player.id}
-                onClick={() => addPlayerReference(match.player.id)}
-                type="button"
-              >
-                {formatSelectedPlayerLabel(match.player)}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+          <p className="tm-data-label text-[10px]">
+            Match a player you have entered before
+          </p>
+          {previouslyEnteredMatches.length > 0 ? (
+            <div role="list">
+              <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+                Previously entered
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {previouslyEnteredMatches.map((match) => (
+                  <button
+                    className="tm-button-secondary px-3 py-2 text-xs"
+                    key={match.player.id}
+                    onClick={() => addPlayerReference(match.player.id)}
+                    type="button"
+                  >
+                    {formatSelectedPlayerLabel(match.player)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {registeredMatches.length > 0 ? (
+            <div role="list">
+              <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+                Registered players
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {registeredMatches.map((match) => (
+                  <button
+                    className="tm-button-secondary px-3 py-2 text-xs"
+                    key={match.player.id}
+                    onClick={() => addPlayerReference(match.player.id)}
+                    type="button"
+                  >
+                    {formatSelectedPlayerLabel(match.player)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
+            None of these? Use “Create New Player” to add someone new.
+          </p>
         </div>
       ) : null}
       {playerEntryError ? (
