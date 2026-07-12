@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   buildAuthCallbackUrl,
@@ -29,6 +29,7 @@ export function LoginForm({
     state: 'idle',
   });
   const [username, setUsername] = useState('');
+  const usernameInputRef = useRef<HTMLInputElement>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,6 +55,12 @@ export function LoginForm({
         }
 
         setStatus(result.status);
+
+        if (result.focusField === 'username') {
+          usernameInputRef.current?.focus();
+          usernameInputRef.current?.select();
+        }
+
         return;
       }
 
@@ -165,6 +172,7 @@ export function LoginForm({
             className="tm-input"
             onChange={(event) => setUsername(event.target.value)}
             placeholder="friday-mars"
+            ref={usernameInputRef}
             required
             type="text"
             value={username}

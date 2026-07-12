@@ -10,6 +10,7 @@ import { LoginForm } from './login-form';
 
 const authMocks = vi.hoisted(() => ({
   resetPasswordForEmail: vi.fn(),
+  rpc: vi.fn(),
   select: vi.fn(),
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock('@/lib/supabase/browser', () => ({
       signInWithPassword: authMocks.signInWithPassword,
       signUp: authMocks.signUp,
     },
+    rpc: authMocks.rpc,
   }),
 }));
 
@@ -37,6 +39,7 @@ describe('LoginForm', () => {
       error: null,
     });
     authMocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
+    authMocks.rpc.mockResolvedValue({ data: true, error: null });
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: {
@@ -119,6 +122,37 @@ describe('LoginForm', () => {
     expect(window.location.assign).toHaveBeenCalledWith(
       buildAuthCompletePath('/profile'),
     );
+  });
+
+  it('keeps a new user on the username box when the chosen name is taken', async () => {
+    const user = userEvent.setup();
+
+    authMocks.rpc.mockResolvedValueOnce({ data: false, error: null });
+
+    render(<LoginForm nextPath="/profile" />);
+
+    await user.click(
+      screen.getByRole('button', { name: /use create account/i }),
+    );
+    await user.type(screen.getByLabelText(/full name/i), 'Friday Mars');
+    await user.type(screen.getByLabelText(/username/i), 'revloki');
+    await user.type(screen.getByLabelText(/^email$/i), 'friday@example.com');
+    await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
+    await user.click(screen.getByRole('button', { name: /^create account$/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          /that username is already taken\. choose a different one\./i,
+        ),
+      ).toBeInTheDocument(),
+    );
+
+    expect(authMocks.signUp).not.toHaveBeenCalled();
+    const usernameInput = screen.getByLabelText(/username/i);
+    expect(usernameInput).toBeInTheDocument();
+    expect(usernameInput).toHaveFocus();
+    expect(window.location.assign).not.toHaveBeenCalled();
   });
 
   it('waits for the Supabase email link when sign up does not create a session yet', async () => {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { submitUsernameAuth } from './submit-username-auth';
 
 const authMocks = vi.hoisted(() => ({
+  rpc: vi.fn(),
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
 }));
@@ -12,12 +13,14 @@ function createClient() {
       signInWithPassword: authMocks.signInWithPassword,
       signUp: authMocks.signUp,
     },
+    rpc: authMocks.rpc,
   };
 }
 
 describe('submitUsernameAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.rpc.mockResolvedValue({ data: true, error: null });
     authMocks.signInWithPassword.mockResolvedValue({ error: null });
     authMocks.signUp.mockResolvedValue({
       data: {
@@ -56,6 +59,9 @@ describe('submitUsernameAuth', () => {
       username: 'Friday Mars',
     });
 
+    expect(authMocks.rpc).toHaveBeenCalledWith('is_username_available', {
+      p_username: 'friday-mars',
+    });
     expect(authMocks.signUp).toHaveBeenCalledWith({
       email: 'friday.mars@example.com',
       options: {
@@ -69,6 +75,76 @@ describe('submitUsernameAuth', () => {
     expect(result).toEqual({
       action: 'signed-in',
       ok: true,
+    });
+  });
+
+  it('blocks sign up when the chosen username is already taken', async () => {
+    authMocks.rpc.mockResolvedValueOnce({ data: false, error: null });
+
+    const result = await submitUsernameAuth({
+      client: createClient(),
+      email: 'friday@example.com',
+      fullName: 'Friday Mars',
+      mode: 'sign-up',
+      pin: '123456',
+      username: 'RevLoki',
+    });
+
+    expect(authMocks.rpc).toHaveBeenCalledWith('is_username_available', {
+      p_username: 'revloki',
+    });
+    expect(authMocks.signUp).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      focusField: 'username',
+      ok: false,
+      status: {
+        message: 'That username is already taken. Choose a different one.',
+        state: 'error',
+      },
+    });
+  });
+
+  it('proceeds with sign up when the availability check itself errors', async () => {
+    authMocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'network down' },
+    });
+
+    const result = await submitUsernameAuth({
+      client: createClient(),
+      email: 'friday@example.com',
+      fullName: 'Friday Mars',
+      mode: 'sign-up',
+      pin: '123456',
+      username: 'friday-mars',
+    });
+
+    expect(authMocks.signUp).toHaveBeenCalled();
+    expect(result).toEqual({
+      action: 'signed-in',
+      ok: true,
+    });
+  });
+
+  it('rejects a username with no letters or numbers before checking availability', async () => {
+    const result = await submitUsernameAuth({
+      client: createClient(),
+      email: 'friday@example.com',
+      fullName: 'Friday Mars',
+      mode: 'sign-up',
+      pin: '123456',
+      username: '!!!',
+    });
+
+    expect(authMocks.rpc).not.toHaveBeenCalled();
+    expect(authMocks.signUp).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      focusField: 'username',
+      ok: false,
+      status: {
+        message: 'Enter a username using letters or numbers.',
+        state: 'error',
+      },
     });
   });
 

@@ -25,6 +25,7 @@ export type UsernameAuthResult =
       status: UsernameAuthStatus;
     }
   | {
+      focusField?: 'username';
       nextMode?: UsernameAuthMode;
       ok: false;
       status: UsernameAuthStatus;
@@ -58,6 +59,10 @@ type UsernameAuthClient = {
       password: string;
     }): Awaitable<SignupResponse>;
   };
+  rpc(
+    fn: string,
+    args?: Record<string, unknown>,
+  ): Awaitable<{ data: unknown; error: unknown | null }>;
 };
 
 function getSignupErrorMessage(error: { message?: string | null } | null) {
@@ -133,6 +138,35 @@ export async function submitUsernameAuth(input: {
     const parsedPin = pinSchema.parse(input.pin);
     const parsedFullName = signupFullNameSchema.parse(input.fullName ?? '');
     const normalizedUsername = normalizeUsername(input.username ?? '');
+
+    if (!normalizedUsername) {
+      return {
+        focusField: 'username',
+        ok: false,
+        status: {
+          message: 'Enter a username using letters or numbers.',
+          state: 'error',
+        },
+      };
+    }
+
+    const availability = await input.client.rpc('is_username_available', {
+      p_username: normalizedUsername,
+    });
+
+    // Best-effort pre-check: only block on a definitive "taken". If the check
+    // itself errors, fall through to signUp so the unique constraint still guards.
+    if (!availability.error && availability.data === false) {
+      return {
+        focusField: 'username',
+        ok: false,
+        status: {
+          message: 'That username is already taken. Choose a different one.',
+          state: 'error',
+        },
+      };
+    }
+
     const signupResult = await input.client.auth.signUp({
       email: parsedEmail,
       options: {
