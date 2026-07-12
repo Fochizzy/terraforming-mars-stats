@@ -1702,7 +1702,10 @@ function uniqueProfileCardRows(rows: RawProfileCardRow[]) {
 // Collapse per-(game, player, card) rows into one entry per card carrying how
 // often it appeared and the win rate across those games. Keyed on the trio so a
 // future import path that emits the same play twice can't inflate the counts.
-function aggregateProfileCardRows(rows: RawProfileCardRow[]): ProfileCardStat[] {
+function aggregateProfileCardRows(
+  rows: RawProfileCardRow[],
+  sortBy: 'plays' | 'winRate' = 'plays',
+): ProfileCardStat[] {
   const totals = new Map<
     string,
     {
@@ -1738,11 +1741,14 @@ function aggregateProfileCardRows(rows: RawProfileCardRow[]): ProfileCardStat[] 
       winRate: roundNumber(entry.wins / entry.plays, 4),
       wins: entry.wins,
     }))
-    .sort(
-      (left, right) =>
-        right.plays - left.plays ||
-        right.winRate - left.winRate ||
-        left.cardName.localeCompare(right.cardName),
+    .sort((left, right) =>
+      sortBy === 'winRate'
+        ? right.winRate - left.winRate ||
+          right.plays - left.plays ||
+          left.cardName.localeCompare(right.cardName)
+        : right.plays - left.plays ||
+          right.winRate - left.winRate ||
+          left.cardName.localeCompare(right.cardName),
     )
     .slice(0, PROFILE_CARD_LIMIT);
 }
@@ -2024,7 +2030,7 @@ export async function getProfileAnalytics(
       ownRows: normalizedOwnRows,
       sharedRows: normalizedSharedRows,
     }),
-    keyCards: aggregateProfileCardRows(keyCardRows),
+    keyCards: aggregateProfileCardRows(keyCardRows, 'winRate'),
     cardOutcomes: aggregateProfileCardRows(cardOutcomeRows),
   };
 }

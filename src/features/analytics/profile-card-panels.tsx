@@ -99,7 +99,7 @@ export function ProfileCardPanels({
   return (
     <>
       <ChartFrame
-        description="The cards you flagged as pivotal when logging games, ranked by how often you flagged them, with your win rate in those games. Click a card to open its full image."
+        description="The cards you flagged as pivotal when logging games, ranked by your win rate in the games where you flagged them. Click a card to open its full image."
         title="My Key Cards"
       >
         <ProfileCardTable
@@ -107,6 +107,12 @@ export function ProfileCardPanels({
           countLabel="Games"
           emptyCopy={`No key cards are recorded for ${playerName} yet. Flag the cards that shaped a game when you log it to build this list.`}
         />
+        {keyCards.length > 0 ? (
+          <p className="tm-muted-copy mt-3 text-xs">
+            Key cards are the ones you singled out as pivotal when logging a
+            game — the plays you felt shaped how it turned out, win or lose.
+          </p>
+        ) : null}
       </ChartFrame>
       <ChartFrame
         description="Your most-played cards drawn from imported game logs, with your win rate when they were in play. Click a card to open its full image."
