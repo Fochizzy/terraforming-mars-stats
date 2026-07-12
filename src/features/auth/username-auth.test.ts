@@ -30,7 +30,22 @@ describe('username auth helpers', () => {
     expect(() => pinSchema.parse('1234')).toThrow(/6 digits/i);
   });
 
-  it('requires first and last name for signup', () => {
-    expect(() => signupFullNameSchema.parse('Friday')).toThrow(/full name/i);
+  it('requires both a first and last name for signup', () => {
+    expect(() => signupFullNameSchema.parse('James')).toThrow(
+      /first and last name/i,
+    );
+    expect(() => signupFullNameSchema.parse('Revloki')).toThrow(
+      /first and last name/i,
+    );
+    // A second token with no letters is not a last name.
+    expect(() => signupFullNameSchema.parse('James .')).toThrow(
+      /first and last name/i,
+    );
+  });
+
+  it('accepts a first and last name for signup', () => {
+    expect(signupFullNameSchema.parse('  James   Hodnett  ')).toBe(
+      'James Hodnett',
+    );
   });
 });

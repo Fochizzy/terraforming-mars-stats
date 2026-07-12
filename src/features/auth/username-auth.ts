@@ -32,6 +32,10 @@ export const signInPinSchema = pinSchema;
 export const signupFullNameSchema = z
   .string()
   .transform(collapseWhitespace)
-  .refine((value) => value.split(' ').filter(Boolean).length >= 2, {
-    message: 'Enter a full name in First Name Last Name format.',
-  });
+  .refine(
+    (value) =>
+      value.split(' ').filter((part) => /\p{L}/u.test(part)).length >= 2,
+    {
+      message: 'Enter both a first and last name (e.g. James Hodnett).',
+    },
+  );
