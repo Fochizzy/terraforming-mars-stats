@@ -4,8 +4,15 @@ import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 export type PlayerRow = {
   id: string;
   display_name: string;
+  full_name?: string | null;
   linked_user_id?: string | null;
+  username?: string | null;
 };
+
+function normalizeOptionalText(value: string | null | undefined) {
+  const trimmed = value?.trim() ?? '';
+  return trimmed ? trimmed : null;
+}
 
 export async function listPlayers(groupId: string) {
   const supabase = await createSupabaseServerClient();
@@ -24,14 +31,16 @@ export async function listPlayers(groupId: string) {
 
 export async function createPlayerIfMissing(input: {
   displayName: string;
+  fullName?: string | null;
   groupId: string;
   linkedUserId?: string | null;
+  username?: string | null;
 }) {
   const supabase = await createSupabaseServerClient();
   const normalizedDisplayName = normalizePlayerAlias(input.displayName);
   const { data: existingPlayer, error: existingPlayerError } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id')
+    .select('id, display_name, linked_user_id, username, full_name')
     .eq('group_id', input.groupId)
     .eq('normalized_display_name', normalizedDisplayName)
     .maybeSingle();
@@ -48,10 +57,12 @@ export async function createPlayerIfMissing(input: {
     .from('players')
     .insert({
       display_name: input.displayName,
+      full_name: normalizeOptionalText(input.fullName),
       group_id: input.groupId,
       linked_user_id: input.linkedUserId ?? null,
+      username: normalizeOptionalText(input.username),
     })
-    .select('id, display_name, linked_user_id')
+    .select('id, display_name, linked_user_id, username, full_name')
     .single();
 
   if (!error) {
@@ -60,7 +71,7 @@ export async function createPlayerIfMissing(input: {
 
   const { data: retryPlayer, error: retryPlayerError } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id')
+    .select('id, display_name, linked_user_id, username, full_name')
     .eq('group_id', input.groupId)
     .eq('normalized_display_name', normalizedDisplayName)
     .maybeSingle();
@@ -74,6 +85,33 @@ export async function createPlayerIfMissing(input: {
   }
 
   return retryPlayer;
+}
+
+/**
+ * Set a roster player's username + full name. Used when an import is confirmed
+ * so the identity typed in review lands on the routed group's player. Account-
+ * linked players keep their canonical values in `user_profiles`, so their link
+ * is left untouched here — only these supplementary player columns are written.
+ */
+export async function updatePlayerIdentity(input: {
+  fullName?: string | null;
+  groupId: string;
+  playerId: string;
+  username?: string | null;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from('players')
+    .update({
+      full_name: normalizeOptionalText(input.fullName),
+      username: normalizeOptionalText(input.username),
+    })
+    .eq('group_id', input.groupId)
+    .eq('id', input.playerId);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function linkPlayerToUser(input: {

@@ -17,12 +17,20 @@ export type CreateImportDraftFormValues = {
   participants: string;
   playedOn: string;
   playerCount: number;
+  playerIdentities?: PlayerIdentityInput[];
   scoreDetailsScreenshot?: File | null;
   screenshotOcr?: ScreenshotOcrPayload | null;
 };
 
+export type PlayerIdentityInput = {
+  fullName: string;
+  importedName: string;
+  username: string;
+};
+
 export type ParsedCreateImportDraftFormData = CreateImportDraftInput & {
   boardScreenshots: File[];
+  playerIdentities: PlayerIdentityInput[];
   scoreDetailsScreenshot: File | null;
   screenshotOcr: ScreenshotOcrPayload | null;
 };
@@ -59,6 +67,50 @@ function readConfirmedPlayerLinks(formData: FormData) {
     }
 
     return [{ importedName, playerId }];
+  });
+}
+
+function readPlayerIdentities(formData: FormData): PlayerIdentityInput[] {
+  const rawValue = readTextField(formData, 'playerIdentities');
+
+  if (!rawValue) {
+    return [];
+  }
+
+  const parsedValue = JSON.parse(rawValue);
+
+  if (!Array.isArray(parsedValue)) {
+    throw new Error('Expected playerIdentities to be an array.');
+  }
+
+  return parsedValue.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return [];
+    }
+
+    const importedName =
+      'importedName' in entry && typeof entry.importedName === 'string'
+        ? entry.importedName.trim()
+        : '';
+
+    if (!importedName) {
+      return [];
+    }
+
+    const username =
+      'username' in entry && typeof entry.username === 'string'
+        ? entry.username.trim()
+        : '';
+    const fullName =
+      'fullName' in entry && typeof entry.fullName === 'string'
+        ? entry.fullName.trim()
+        : '';
+
+    if (!username && !fullName) {
+      return [];
+    }
+
+    return [{ fullName, importedName, username }];
   });
 }
 
@@ -249,6 +301,10 @@ export function buildCreateImportDraftFormData(
     'confirmedPlayerLinks',
     JSON.stringify(values.confirmedPlayerLinks ?? []),
   );
+  formData.set(
+    'playerIdentities',
+    JSON.stringify(values.playerIdentities ?? []),
+  );
 
   if (values.mapId?.trim()) {
     formData.set('mapId', values.mapId);
@@ -300,6 +356,7 @@ export function parseCreateImportDraftFormData(
     participantNames: parseImportParticipants(readTextField(formData, 'participants')),
     playedOn: readTextField(formData, 'playedOn'),
     playerCount: readIntegerField(formData, 'playerCount'),
+    playerIdentities: readPlayerIdentities(formData),
     scoreDetailsScreenshot,
     screenshotOcr: readScreenshotOcr(formData),
   };

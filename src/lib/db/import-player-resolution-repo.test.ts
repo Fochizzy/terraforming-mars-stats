@@ -116,6 +116,53 @@ describe('listImportResolutionPlayers', () => {
     ]);
   });
 
+  it('surfaces a non-account player’s own username and full name columns', async () => {
+    const playerOrder = vi.fn().mockResolvedValue({
+      data: [
+        {
+          display_name: 'Corey',
+          full_name: 'Corey Carter',
+          id: 'player-3',
+          linked_user_id: null,
+          username: 'coreyc',
+        },
+      ],
+      error: null,
+    });
+    const playerEq = vi.fn().mockReturnValue({ order: playerOrder });
+    const playerSelect = vi.fn().mockReturnValue({ eq: playerEq });
+    const leaderboardEq = vi.fn().mockResolvedValue({ data: [], error: null });
+    const leaderboardSelect = vi.fn().mockReturnValue({ eq: leaderboardEq });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playerSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      schema: vi.fn(() => ({
+        from: vi.fn(() => ({ eq: leaderboardEq, select: leaderboardSelect })),
+      })),
+    } as never);
+
+    // No linked accounts, so the admin client is never consulted.
+    vi.mocked(createSupabaseAdminClient).mockImplementation(() => {
+      throw new Error('admin client should not be called for unlinked players');
+    });
+
+    await expect(listImportResolutionPlayers('group-1')).resolves.toEqual([
+      {
+        displayName: 'Corey',
+        gamesPlayed: 0,
+        id: 'player-3',
+        linkedFullName: 'Corey Carter',
+        linkedUsername: 'coreyc',
+      },
+    ]);
+  });
+
   it('falls back to roster names and play counts when the admin client is unavailable', async () => {
     const playerOrder = vi.fn().mockResolvedValue({
       data: [

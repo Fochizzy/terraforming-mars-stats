@@ -862,7 +862,11 @@ describe('WebImportPage', () => {
     );
 
     await waitFor(() =>
-      expect(onCreateImportPlayer).toHaveBeenCalledWith('Unknown Friend'),
+      expect(onCreateImportPlayer).toHaveBeenCalledWith(
+        'Unknown Friend',
+        'Unknown Friend',
+        '',
+      ),
     );
 
     expect(
@@ -882,6 +886,79 @@ describe('WebImportPage', () => {
       { importedName: 'Friday Mars', playerId: 'player-1' },
       { importedName: 'Unknown Friend', playerId: 'player-new' },
     ]);
+    // The matched row carries the candidate's username/full name by default; the
+    // created row carries the identity that was created for it.
+    expect(JSON.parse(String(submittedFormData.get('playerIdentities')))).toEqual([
+      { fullName: 'Friday Mars', importedName: 'Friday Mars', username: 'friday-mars' },
+      { fullName: '', importedName: 'Unknown Friend', username: 'Unknown Friend' },
+    ]);
+  });
+
+  it('lets the reviewer override a matched player username and full name', async () => {
+    const user = userEvent.setup();
+    const onAnalyzeImportEvidence = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import evidence analyzed.',
+      review,
+    });
+    const onConfirmImportReview = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+
+    render(
+      <WebImportPage
+        initialValues={{ playedOn: '2026-07-03' }}
+        onAnalyzeImportEvidence={onAnalyzeImportEvidence}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={onConfirmImportReview}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/exported game log/i),
+      'Friday Mars won by 6 points.',
+    );
+    await user.type(
+      screen.getByLabelText(/participants/i),
+      'Friday Mars{enter}Unknown Friend',
+    );
+    await user.upload(
+      screen.getByLabelText(/^game result screenshot or pdf$/i),
+      new File(['board'], 'board.png', { type: 'image/png' }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: /analyze import evidence/i }),
+    );
+
+    const usernameInput = await screen.findByLabelText(
+      /username for friday mars/i,
+    );
+    expect(usernameInput).toHaveValue('friday-mars');
+    await user.clear(usernameInput);
+    await user.type(usernameInput, 'friday-2');
+
+    // Match the unmatched row so confirm is enabled.
+    await user.selectOptions(
+      screen.getByLabelText(/match imported player unknown friend/i),
+      'player-2',
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /confirm import draft/i }),
+    );
+
+    await waitFor(() => expect(onConfirmImportReview).toHaveBeenCalledTimes(1));
+
+    const submittedFormData = onConfirmImportReview.mock.calls[0]?.[0] as FormData;
+    const submittedIdentities = JSON.parse(
+      String(submittedFormData.get('playerIdentities')),
+    );
+    expect(submittedIdentities).toContainEqual({
+      fullName: 'Friday Mars',
+      importedName: 'Friday Mars',
+      username: 'friday-2',
+    });
   });
 
   it('shows unresolved curated board items and lets the user select a manual fill jump target', async () => {
