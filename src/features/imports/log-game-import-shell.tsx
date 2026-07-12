@@ -21,6 +21,8 @@ type LogGameImportShellProps = {
   ) => Promise<WebImportActionResult>;
   onCreateImportPlayer?: (
     importedName: string,
+    username?: string,
+    fullName?: string,
   ) => Promise<WebImportCreatePlayerResult>;
   onCreateImportDraft: (formData: FormData) => Promise<WebImportActionResult>;
 };
@@ -97,6 +99,8 @@ export function LogGameImportShell({
 
   async function handleCreateImportPlayer(
     importedName: string,
+    username?: string,
+    fullName?: string,
   ): Promise<WebImportCreatePlayerResult> {
     if (!onCreateImportPlayer) {
       return {
@@ -106,7 +110,7 @@ export function LogGameImportShell({
     }
 
     try {
-      const result = await onCreateImportPlayer(importedName);
+      const result = await onCreateImportPlayer(importedName, username, fullName);
 
       return {
         ...result,

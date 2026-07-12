@@ -33,6 +33,7 @@ describe('parseCreateImportDraftFormData', () => {
       participantNames: ['Friday Mars', 'Second Seat', 'Third Seat'],
       playedOn: '2026-07-04',
       playerCount: 3,
+      playerIdentities: [],
       scoreDetailsScreenshot: null,
       screenshotOcr: null,
     });

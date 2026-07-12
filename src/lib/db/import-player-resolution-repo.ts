@@ -5,8 +5,10 @@ import { listCurrentUserGroups } from './group-context-repo';
 
 type RawPlayerRow = {
   display_name: string;
+  full_name: string | null;
   id: string;
   linked_user_id: string | null;
+  username: string | null;
 };
 
 type RawGroupPlayerRow = RawPlayerRow & {
@@ -71,7 +73,7 @@ export async function listImportResolutionPlayers(groupId: string) {
     await Promise.all([
       supabase
         .from('players')
-        .select('id, display_name, linked_user_id')
+        .select('id, display_name, linked_user_id, username, full_name')
         .eq('group_id', groupId)
         .order('display_name'),
       supabase
@@ -117,8 +119,10 @@ export async function listImportResolutionPlayers(groupId: string) {
       displayName: player.display_name,
       gamesPlayed: gamesPlayedByPlayerId.get(player.id) ?? 0,
       id: player.id,
-      linkedFullName: profile?.full_name ?? null,
-      linkedUsername: profile?.username ?? null,
+      // A linked account's own profile is canonical; unlinked roster players
+      // carry their username/full name on the player row itself.
+      linkedFullName: profile?.full_name ?? player.full_name ?? null,
+      linkedUsername: profile?.username ?? player.username ?? null,
     } satisfies ImportResolutionPlayer;
   });
 }
@@ -158,7 +162,7 @@ export async function listImportResolutionPlayersForCurrentUser(): Promise<
   ] = await Promise.all([
     supabase
       .from('players')
-      .select('id, display_name, linked_user_id, group_id')
+      .select('id, display_name, linked_user_id, group_id, username, full_name')
       .in('group_id', groupIds)
       .order('display_name'),
     supabase
@@ -210,8 +214,8 @@ export async function listImportResolutionPlayersForCurrentUser(): Promise<
         displayName: player.display_name,
         gamesPlayed,
         id: player.id,
-        linkedFullName: profile?.full_name ?? null,
-        linkedUsername: profile?.username ?? null,
+        linkedFullName: profile?.full_name ?? player.full_name ?? null,
+        linkedUsername: profile?.username ?? player.username ?? null,
       });
       continue;
     }
@@ -222,8 +226,10 @@ export async function listImportResolutionPlayersForCurrentUser(): Promise<
       displayName: existing.displayName,
       gamesPlayed: existing.gamesPlayed + gamesPlayed,
       id: gamesPlayed > existing.gamesPlayed ? player.id : existing.id,
-      linkedFullName: existing.linkedFullName ?? profile?.full_name ?? null,
-      linkedUsername: existing.linkedUsername ?? profile?.username ?? null,
+      linkedFullName:
+        existing.linkedFullName ?? profile?.full_name ?? player.full_name ?? null,
+      linkedUsername:
+        existing.linkedUsername ?? profile?.username ?? player.username ?? null,
     });
   }
 

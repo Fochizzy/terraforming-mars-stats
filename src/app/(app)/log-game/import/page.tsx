@@ -24,7 +24,7 @@ import {
   listPlayerImportAliasesForGroup,
   savePlayerImportAlias,
 } from '@/lib/db/player-import-alias-repo';
-import { createPlayerIfMissing } from '@/lib/db/player-repo';
+import { createPlayerIfMissing, updatePlayerIdentity } from '@/lib/db/player-repo';
 import {
   listCardScoringReferences,
   listCardTagReferences,
@@ -1007,6 +1007,44 @@ export default async function LogGameImportPage() {
         if (aliasFailures.length > 0) {
           console.warn('Import alias save failed', aliasFailures);
         }
+
+        // Persist the username + full name typed in review onto the routed
+        // group's roster players. Keyed by imported name so a created player or
+        // a matched one both land their identity on the right row. Best-effort:
+        // a failure here must not sink an otherwise-valid import.
+        const identityByImportedName = new Map(
+          (values.playerIdentities ?? []).map((identity) => [
+            identity.importedName,
+            identity,
+          ]),
+        );
+        const identitySaveResults = await Promise.allSettled(
+          rosterPlayerLinks.flatMap((link) => {
+            const identity = identityByImportedName.get(link.importedName);
+
+            if (!identity) {
+              return [];
+            }
+
+            return [
+              updatePlayerIdentity({
+                fullName: identity.fullName,
+                groupId: importGroup.groupId,
+                playerId: link.playerId,
+                username: identity.username,
+              }),
+            ];
+          }),
+        );
+        const identityFailures = identitySaveResults.flatMap((result) =>
+          result.status === 'rejected'
+            ? [serializeUnknownError(result.reason)]
+            : [],
+        );
+
+        if (identityFailures.length > 0) {
+          console.warn('Import player identity save failed', identityFailures);
+        }
       }
 
       revalidatePath('/group');
@@ -1047,7 +1085,11 @@ export default async function LogGameImportPage() {
     }
   }
 
-  async function handleCreateImportPlayer(importedName: string) {
+  async function handleCreateImportPlayer(
+    importedName: string,
+    username?: string,
+    fullName?: string,
+  ) {
     'use server';
 
     try {
@@ -1065,10 +1107,14 @@ export default async function LogGameImportPage() {
         throw new Error('Choose an imported name before creating a player.');
       }
 
+      const resolvedUsername = username?.trim() || displayName;
+      const resolvedFullName = fullName?.trim() || null;
       const createdPlayer = await createPlayerIfMissing({
         displayName,
+        fullName: resolvedFullName,
         groupId: activeContext.groupId,
         linkedUserId: null,
+        username: resolvedUsername,
       });
 
       revalidatePath('/group');
@@ -1080,7 +1126,9 @@ export default async function LogGameImportPage() {
         message: 'Player added to the shared roster.',
         createdPlayer: {
           displayName: createdPlayer.display_name,
+          fullName: createdPlayer.full_name ?? resolvedFullName,
           id: createdPlayer.id,
+          username: createdPlayer.username ?? resolvedUsername,
         },
       };
     } catch (error) {

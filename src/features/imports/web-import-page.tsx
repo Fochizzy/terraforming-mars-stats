@@ -13,6 +13,10 @@ import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
 import { StatusBanner } from '@/components/ui/status-banner';
 import { StepHeading } from '@/components/ui/step-heading';
 import { applyCreatedImportPlayerToReview } from '@/lib/imports/apply-created-import-player-to-review';
+import {
+  resolveEffectivePlayerIdentity,
+  type PlayerIdentity,
+} from '@/lib/imports/resolve-player-identity';
 import type { ImportReviewModel } from '@/lib/imports/build-import-review-model';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
 import { ImportReviewPanel } from './import-review-panel';
@@ -36,7 +40,9 @@ export type WebImportActionResult = {
 export type WebImportCreatePlayerResult = {
   createdPlayer?: {
     displayName: string;
+    fullName?: string | null;
     id: string;
+    username?: string | null;
   };
   message?: string;
   status: 'error' | 'success';
@@ -211,6 +217,8 @@ type WebImportPageProps = {
   ) => Promise<WebImportActionResult>;
   onCreateImportPlayer?: (
     importedName: string,
+    username?: string,
+    fullName?: string,
   ) => Promise<WebImportCreatePlayerResult>;
   onConfirmImportReview: (
     formData: FormData,
@@ -237,6 +245,11 @@ export function WebImportPage({
   const [playerSelections, setPlayerSelections] = useState<Record<string, string>>(
     {},
   );
+  // Reviewer-typed username/full-name overrides, keyed by imported name. Absent
+  // entries fall back to the selected candidate's values at read time.
+  const [playerIdentities, setPlayerIdentities] = useState<
+    Record<string, PlayerIdentity>
+  >({});
   const [creatingImportedName, setCreatingImportedName] = useState<string | null>(
     null,
   );
@@ -272,6 +285,7 @@ export function WebImportPage({
   useEffect(() => {
     if (!review) {
       setPlayerSelections({});
+      setPlayerIdentities({});
       setManualReviewJumpTarget(null);
       return;
     }
@@ -402,6 +416,21 @@ export function WebImportPage({
     return endgameScreenshot;
   }
 
+  function getEffectivePlayerIdentity(importedName: string): PlayerIdentity {
+    const link = review?.playerLinks.find(
+      (candidate) => candidate.importedName === importedName,
+    );
+    const selectedId = playerSelections[importedName]?.trim() ?? '';
+    const selectedCandidate =
+      link?.candidates.find((candidate) => candidate.id === selectedId) ?? null;
+
+    return resolveEffectivePlayerIdentity({
+      candidate: selectedCandidate,
+      importedName,
+      override: playerIdentities[importedName],
+    });
+  }
+
   function buildCurrentFormData(screenshotOcr: ScreenshotOcrPayload | null) {
     return buildCreateImportDraftFormData({
       boardScreenshots: [],
@@ -409,6 +438,16 @@ export function WebImportPage({
         ? review.playerLinks.flatMap((link) => {
             const playerId = playerSelections[link.importedName]?.trim() ?? '';
             return playerId ? [{ importedName: link.importedName, playerId }] : [];
+          })
+        : [],
+      playerIdentities: review
+        ? review.playerLinks.map((link) => {
+            const identity = getEffectivePlayerIdentity(link.importedName);
+            return {
+              fullName: identity.fullName,
+              importedName: link.importedName,
+              username: identity.username,
+            };
           })
         : [],
       endgameScreenshot: getSubmittedEndgameEvidenceFile(),
@@ -560,7 +599,12 @@ export function WebImportPage({
     setCreatingImportedName(importedName);
 
     try {
-      const result = await onCreateImportPlayer(importedName);
+      const identity = getEffectivePlayerIdentity(importedName);
+      const result = await onCreateImportPlayer(
+        importedName,
+        identity.username,
+        identity.fullName,
+      );
 
       setFeedback({
         message: result.message,
@@ -572,19 +616,30 @@ export function WebImportPage({
       }
 
       const createdPlayer = result.createdPlayer;
+      const createdUsername = createdPlayer.username ?? identity.username;
+      const createdFullName = createdPlayer.fullName ?? identity.fullName;
 
       setReview((current) =>
         current
           ? applyCreatedImportPlayerToReview(current, {
               createdPlayerId: createdPlayer.id,
               displayName: createdPlayer.displayName,
+              fullName: createdFullName,
               importedName,
+              username: createdUsername,
             })
           : current,
       );
       setPlayerSelections((current) => ({
         ...current,
         [importedName]: createdPlayer.id,
+      }));
+      setPlayerIdentities((current) => ({
+        ...current,
+        [importedName]: {
+          fullName: createdFullName ?? '',
+          username: createdUsername ?? importedName,
+        },
       }));
     } catch (error) {
       setFeedback({
@@ -805,6 +860,12 @@ export function WebImportPage({
       <ImportReviewPanel
         creatingImportedName={creatingImportedName}
         onCreatePlayer={handleCreatePlayer}
+        onIdentityChange={(importedName, identity) =>
+          setPlayerIdentities((current) => ({
+            ...current,
+            [importedName]: identity,
+          }))
+        }
         onSelectionChange={(importedName, playerId) =>
           setPlayerSelections((current) => ({
             ...current,
@@ -812,6 +873,7 @@ export function WebImportPage({
           }))
         }
         onSelectManualReviewJumpTarget={setManualReviewJumpTarget}
+        playerIdentities={playerIdentities}
         playerSelections={playerSelections}
         review={review}
         selectedManualReviewJumpTarget={manualReviewJumpTarget}

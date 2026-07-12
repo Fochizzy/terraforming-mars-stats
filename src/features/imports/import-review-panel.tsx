@@ -4,6 +4,7 @@ import type {
 } from '@/lib/imports/build-import-review-model';
 import type { CuratedBoardImportItem } from '@/lib/imports/score-curated-board-import-items';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
+import type { PlayerIdentity } from '@/lib/imports/resolve-player-identity';
 import { ImportCardScoringPanel } from './import-card-scoring-panel';
 import { ImportPlayerResolutionPanel } from './import-player-resolution-panel';
 import { ImportScoreCandidatesPanel } from './import-score-candidates-panel';
@@ -117,9 +118,15 @@ function buildBoardReviewJumpTarget(
 
 type ImportReviewPanelProps = {
   creatingImportedName?: string | null;
-  onCreatePlayer?: (importedName: string) => Promise<void>;
+  onCreatePlayer?: (
+    importedName: string,
+    username?: string,
+    fullName?: string,
+  ) => Promise<void>;
+  onIdentityChange?: (importedName: string, identity: PlayerIdentity) => void;
   onSelectionChange: (importedName: string, playerId: string) => void;
   onSelectManualReviewJumpTarget?: (target: ImportReviewJumpTarget) => void;
+  playerIdentities?: Record<string, PlayerIdentity>;
   review: ImportReviewModel | null;
   selectedManualReviewJumpTarget?: ImportReviewJumpTarget | null;
   playerSelections: Record<string, string>;
@@ -128,8 +135,10 @@ type ImportReviewPanelProps = {
 export function ImportReviewPanel({
   creatingImportedName,
   onCreatePlayer,
+  onIdentityChange,
   onSelectionChange,
   onSelectManualReviewJumpTarget,
+  playerIdentities,
   review,
   selectedManualReviewJumpTarget,
   playerSelections,
@@ -336,7 +345,9 @@ export function ImportReviewPanel({
       <ImportPlayerResolutionPanel
         creatingImportedName={creatingImportedName}
         onCreatePlayer={onCreatePlayer}
+        onIdentityChange={onIdentityChange}
         onSelectionChange={onSelectionChange}
+        playerIdentities={playerIdentities}
         playerLinks={review.playerLinks}
         playerSelections={playerSelections}
       />
