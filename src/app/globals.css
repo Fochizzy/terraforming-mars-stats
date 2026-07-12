@@ -55,6 +55,17 @@ a {
       linear-gradient(180deg, #411911 0%, #161b22 24%, #090c11 100%);
   }
 
+  .tm-login-shell {
+    background:
+      linear-gradient(180deg, rgba(9, 12, 17, 0.2) 0%, rgba(9, 12, 17, 0.56) 100%),
+      linear-gradient(90deg, rgba(9, 12, 17, 0.42) 0%, rgba(9, 12, 17, 0.24) 48%, rgba(9, 12, 17, 0.5) 100%),
+      url("/background.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
   .tm-app-header {
     @apply border-b px-5 py-5 lg:px-8 lg:py-8;
     border-color: var(--tm-panel-border);

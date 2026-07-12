@@ -10,7 +10,7 @@ export default async function LoginPage({
   const nextPath = normalizeNextPath(resolvedSearchParams?.next);
 
   return (
-    <main className="tm-app-shell">
+    <main className="tm-app-shell tm-login-shell">
       <section className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12 text-stone-100">
         <p className="tm-display-eyebrow">Mission Access</p>
         <h1 className="tm-display-title text-3xl font-bold">Join Your Group</h1>
