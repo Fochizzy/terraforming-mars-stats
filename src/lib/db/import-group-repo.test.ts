@@ -120,11 +120,10 @@ describe('findExactGroupRosterMatch', () => {
 });
 
 describe('buildImportGroupMemberRows', () => {
-  it('dedupes the importing user when they are also a linked participant', () => {
+  it('adds one member per distinct linked participant', () => {
     expect(
       buildImportGroupMemberRows({
         groupId: 'group-1',
-        importingUserId: 'user-izzy',
         participantIdentities: [
           {
             linkedUserId: 'user-james',
@@ -136,13 +135,34 @@ describe('buildImportGroupMemberRows', () => {
             linkedUserId: null,
           },
           {
+            linkedUserId: 'user-izzy',
+          },
+          {
             linkedUserId: 'user-corey',
           },
         ],
       }),
     ).toEqual([
-      { group_id: 'group-1', role: 'editor', user_id: 'user-izzy' },
       { group_id: 'group-1', role: 'editor', user_id: 'user-james' },
+      { group_id: 'group-1', role: 'editor', user_id: 'user-izzy' },
+      { group_id: 'group-1', role: 'editor', user_id: 'user-corey' },
+    ]);
+  });
+
+  it('does not add the importing user when they are not a linked participant', () => {
+    // Importing a game for a roster you did not play in must not make you a
+    // member of that group — membership derives from participation only.
+    expect(
+      buildImportGroupMemberRows({
+        groupId: 'group-1',
+        participantIdentities: [
+          { linkedUserId: 'user-colette' },
+          { linkedUserId: 'user-corey' },
+          { linkedUserId: null },
+        ],
+      }),
+    ).toEqual([
+      { group_id: 'group-1', role: 'editor', user_id: 'user-colette' },
       { group_id: 'group-1', role: 'editor', user_id: 'user-corey' },
     ]);
   });

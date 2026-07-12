@@ -114,16 +114,18 @@ export function buildImportGroupName(participantNames: string[]) {
 
 export function buildImportGroupMemberRows(input: {
   groupId: string;
-  importingUserId: string;
   participantIdentities: Array<Pick<ImportParticipantIdentity, 'linkedUserId'>>;
 }) {
+  // Membership derives from participation: a user becomes a group member only
+  // when they have a linked player in the roster. The importing user is added
+  // here iff they are one of those linked participants — importing a game you
+  // didn't play in must not add you to that group.
   const uniqueUserIds = [
-    ...new Set([
-      input.importingUserId,
-      ...input.participantIdentities
+    ...new Set(
+      input.participantIdentities
         .map((participant) => participant.linkedUserId)
         .filter((value): value is string => Boolean(value)),
-    ]),
+    ),
   ];
 
   return uniqueUserIds.map((userId) => ({
@@ -392,7 +394,6 @@ export function selectCurrentGroupPlayerIds(
 }
 
 export async function resolveOrCreateImportGroup(input: {
-  importingUserId: string;
   participantNames: string[];
 }) {
   const admin = createSupabaseAdminClient();
@@ -435,7 +436,6 @@ export async function resolveOrCreateImportGroup(input: {
 
     const existingMemberRows = buildImportGroupMemberRows({
       groupId: matchingGroupId,
-      importingUserId: input.importingUserId,
       participantIdentities,
     });
 
@@ -473,7 +473,6 @@ export async function resolveOrCreateImportGroup(input: {
 
   const memberRows = buildImportGroupMemberRows({
     groupId: group.id,
-    importingUserId: input.importingUserId,
     participantIdentities,
   });
 

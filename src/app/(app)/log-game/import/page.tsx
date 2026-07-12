@@ -876,7 +876,6 @@ export default async function LogGameImportPage() {
         (name) => canonicalNameByImported.get(name) ?? name,
       );
       const importGroup = await resolveOrCreateImportGroup({
-        importingUserId: activeUser.id,
         participantNames: rosterNames,
       });
       // Re-point the confirmed links onto the routed group's roster players so
