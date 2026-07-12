@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
+import { GlobalKeyCardsSection } from '@/features/insights/global-key-cards-section';
 import { AwardEconomicsSection } from '@/features/insights/milestone-award-section';
 import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
 import { WinningCardsSection } from '@/features/insights/winning-cards-section';
@@ -84,6 +85,10 @@ export default async function GlobalStatisticsPage() {
         <SelectionStatsScope
           heading="Corporation &amp; Prelude Performance"
           stats={globalStats}
+        />
+        <GlobalKeyCardsSection
+          baselineWinRate={globalStats.baselineWinRate}
+          cards={globalStats.cards}
         />
         <WinningCardsSection
           cards={globalStats.cards}

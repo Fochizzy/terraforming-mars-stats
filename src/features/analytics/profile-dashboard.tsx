@@ -10,7 +10,6 @@ import type {
   ProfileStyleBreakdownRow,
   ProfileStyleInsight,
   ScoreSourceAverages,
-  StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
@@ -114,10 +113,6 @@ type ProfileDashboardProps = {
   performance?: LeaderboardRow | null;
   playerName: string | null;
   scoreAverages?: ScoreSourceAverages | null;
-  styleAgreement?: Pick<
-    StyleAgreementRow,
-    'comparedGames' | 'exactMatchRate' | 'mismatchRate' | 'partialMatchRate'
-  > | null;
   styleBreakdownRows?: ProfileStyleBreakdownRow[];
   styleInsights?: ProfileStyleInsight[];
   linkHref?: string;
@@ -317,7 +312,6 @@ export function ProfileDashboard({
   performance = null,
   playerName,
   scoreAverages = null,
-  styleAgreement = null,
   styleBreakdownRows = [],
   styleInsights = [],
 }: ProfileDashboardProps) {
@@ -567,49 +561,6 @@ export function ProfileDashboard({
           </div>
         )}
       </ChartFrame>
-      <ChartFrame title="Declared vs Inferred Style">
-        {styleAgreement ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="tm-stat-card">
-              <p className="tm-data-label">
-                Exact Match
-              </p>
-              <p className="mt-2 text-lg font-semibold text-stone-100">
-                {formatPercent(styleAgreement.exactMatchRate)}
-              </p>
-            </div>
-            <div className="tm-stat-card">
-              <p className="tm-data-label">
-                Partial Match
-              </p>
-              <p className="mt-2 text-lg font-semibold text-stone-100">
-                {formatPercent(styleAgreement.partialMatchRate)}
-              </p>
-            </div>
-            <div className="tm-stat-card">
-              <p className="tm-data-label">
-                Mismatch
-              </p>
-              <p className="mt-2 text-lg font-semibold text-stone-100">
-                {formatPercent(styleAgreement.mismatchRate)}
-              </p>
-            </div>
-            <p className="tm-muted-copy text-sm sm:col-span-3">
-              Your{' '}
-              <GlossaryLink slug="style-agreement">style agreement</GlossaryLink>{' '}
-              is based on {styleAgreement.comparedGames} finalized games that
-              have both a{' '}
-              <GlossaryLink slug="declared-style">declared</GlossaryLink> and an{' '}
-              <GlossaryLink slug="inferred-style">inferred</GlossaryLink> style
-              recorded.
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-stone-400">
-            No declared-versus-inferred style comparisons are available yet.
-          </p>
-        )}
-      </ChartFrame>
       <ChartFrame title="Optional Data Coverage">
         <p className="tm-muted-copy mb-3 text-sm">
           How complete the{' '}
@@ -632,9 +583,6 @@ export function ProfileDashboard({
             </GlossaryLink>
             <GlossaryLink slug="jovian-coverage">
               <CoverageBadge label="Jovian coverage" value={coverage.jovianCoverage} />
-            </GlossaryLink>
-            <GlossaryLink slug="declared-style-coverage">
-              <CoverageBadge label="Declared style coverage" value={coverage.declaredStyleCoverage} />
             </GlossaryLink>
             <GlossaryLink slug="key-card-coverage">
               <CoverageBadge label="Key-card coverage" value={coverage.keyCardCoverage} />

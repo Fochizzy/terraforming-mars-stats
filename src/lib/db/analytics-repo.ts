@@ -17,6 +17,7 @@ import {
   fetchUsernamesByPlayerId,
   resolvePlayerLabelsInRows,
 } from '@/lib/db/player-label-resolution';
+import { getSelectionStats } from '@/lib/db/selection-stats-repo';
 import { personLabel } from '@/lib/people/person-label';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -169,6 +170,11 @@ export type ProfileCardStat = {
   thumbnailUrl: string | null;
   winRate: number;
   wins: number;
+  // Set on victory-impact key cards only: how much this card lifts the player's
+  // win chances above their baseline (blended personal + global win rate), and
+  // the global win rate it was blended toward. Undefined on most-played cards.
+  globalWinRate?: number;
+  victoryImpact?: number;
 };
 
 export type ProfileStyleBreakdownRow = {
@@ -1702,10 +1708,7 @@ function uniqueProfileCardRows(rows: RawProfileCardRow[]) {
 // Collapse per-(game, player, card) rows into one entry per card carrying how
 // often it appeared and the win rate across those games. Keyed on the trio so a
 // future import path that emits the same play twice can't inflate the counts.
-function aggregateProfileCardRows(
-  rows: RawProfileCardRow[],
-  sortBy: 'plays' | 'winRate' = 'plays',
-): ProfileCardStat[] {
+function aggregateProfileCardRows(rows: RawProfileCardRow[]): ProfileCardStat[] {
   const totals = new Map<
     string,
     {
@@ -1741,16 +1744,111 @@ function aggregateProfileCardRows(
       winRate: roundNumber(entry.wins / entry.plays, 4),
       wins: entry.wins,
     }))
-    .sort((left, right) =>
-      sortBy === 'winRate'
-        ? right.winRate - left.winRate ||
-          right.plays - left.plays ||
-          left.cardName.localeCompare(right.cardName)
-        : right.plays - left.plays ||
-          right.winRate - left.winRate ||
-          left.cardName.localeCompare(right.cardName),
+    .sort(
+      (left, right) =>
+        right.plays - left.plays ||
+        right.winRate - left.winRate ||
+        left.cardName.localeCompare(right.cardName),
     )
     .slice(0, PROFILE_CARD_LIMIT);
+}
+
+// Pseudo-games of the global rate mixed into each personal sample so a card the
+// player has only won once or twice can't leap to the top of their key cards.
+const KEY_CARD_SHRINKAGE = 5;
+
+/**
+ * Victory-impact key cards: rather than cards a player flagged, surface the ones
+ * that most raise their odds of winning. For every card the player has a logged
+ * play of, blend their personal win rate toward the global win rate for that
+ * card (empirical-Bayes shrinkage, so small samples lean on the global signal),
+ * then rank by the lift that blended rate has over the player's baseline win
+ * rate. Cards that consistently show up in wins — for this player and everyone —
+ * rise to the top.
+ */
+function buildVictoryImpactKeyCards(
+  cardOutcomeRows: RawProfileCardRow[],
+  globalWinRateByCardName: Map<string, number>,
+  globalBaselineWinRate: number,
+  personalBaselineWinRate: number,
+): ProfileCardStat[] {
+  const totals = new Map<
+    string,
+    {
+      cardName: string;
+      fullImageUrl: string | null;
+      plays: number;
+      thumbnailUrl: string | null;
+      wins: number;
+    }
+  >();
+
+  for (const row of uniqueProfileCardRows(cardOutcomeRows)) {
+    const entry = totals.get(row.card_id) ?? {
+      cardName: row.card_name,
+      fullImageUrl: row.full_image_url ?? null,
+      plays: 0,
+      thumbnailUrl: row.thumbnail_url ?? null,
+      wins: 0,
+    };
+
+    entry.plays += 1;
+    entry.wins += row.is_winner ? 1 : 0;
+    totals.set(row.card_id, entry);
+  }
+
+  return [...totals.entries()]
+    .map(([cardId, entry]) => {
+      // Fall back to the global baseline when this card isn't in the global
+      // top-cards payload, so a rare card leans on the overall win rate.
+      const globalWinRate =
+        globalWinRateByCardName.get(entry.cardName) ?? globalBaselineWinRate;
+      const blendedWinRate =
+        (entry.wins + KEY_CARD_SHRINKAGE * globalWinRate) /
+        (entry.plays + KEY_CARD_SHRINKAGE);
+
+      return {
+        cardId,
+        cardName: entry.cardName,
+        fullImageUrl: entry.fullImageUrl,
+        globalWinRate: roundNumber(globalWinRate, 4),
+        plays: entry.plays,
+        thumbnailUrl: entry.thumbnailUrl,
+        victoryImpact: roundNumber(blendedWinRate - personalBaselineWinRate, 4),
+        winRate: roundNumber(entry.wins / entry.plays, 4),
+        wins: entry.wins,
+      };
+    })
+    .sort(
+      (left, right) =>
+        (right.victoryImpact ?? 0) - (left.victoryImpact ?? 0) ||
+        right.plays - left.plays ||
+        left.cardName.localeCompare(right.cardName),
+    )
+    .slice(0, PROFILE_CARD_LIMIT);
+}
+
+// The signed-in player's key cards blend their own win rate with how the card
+// performs globally, so we pull the global per-card win rates once. Optional:
+// on failure the profile still renders, just without the global blend.
+async function loadGlobalCardWinRates(): Promise<{
+  baselineWinRate: number;
+  winRateByCardName: Map<string, number>;
+}> {
+  try {
+    const stats = await getSelectionStats('global');
+
+    return {
+      baselineWinRate: stats.baselineWinRate,
+      winRateByCardName: new Map(
+        stats.cards.map((card) => [card.card_name, card.win_rate_when_played]),
+      ),
+    };
+  } catch (error) {
+    console.warn('[profile] Optional global card win-rate lookup failed', error);
+
+    return { baselineWinRate: 0, winRateByCardName: new Map() };
+  }
 }
 
 function buildProfileStyleInsights({
@@ -2017,20 +2115,27 @@ export async function getProfileAnalytics(
     }
   }
 
-  const [cardOutcomeRows, keyCardRows] = await Promise.all([
+  const [cardOutcomeRows, globalCardWinRates] = await Promise.all([
     listProfileCardRows(supabase, 'player_card_outcomes', linkedPlayerIds),
-    listProfileCardRows(supabase, 'player_key_cards', linkedPlayerIds),
+    loadGlobalCardWinRates(),
   ]);
 
+  const built = buildProfileAnalyticsFromRows({
+    cardOutcomeRows,
+    linkedPlayers,
+    opponentIdentityByPlayerId,
+    ownRows: normalizedOwnRows,
+    sharedRows: normalizedSharedRows,
+  });
+
   return {
-    ...buildProfileAnalyticsFromRows({
+    ...built,
+    keyCards: buildVictoryImpactKeyCards(
       cardOutcomeRows,
-      linkedPlayers,
-      opponentIdentityByPlayerId,
-      ownRows: normalizedOwnRows,
-      sharedRows: normalizedSharedRows,
-    }),
-    keyCards: aggregateProfileCardRows(keyCardRows, 'winRate'),
+      globalCardWinRates.winRateByCardName,
+      globalCardWinRates.baselineWinRate,
+      built.performance?.winRate ?? globalCardWinRates.baselineWinRate,
+    ),
     cardOutcomes: aggregateProfileCardRows(cardOutcomeRows),
   };
 }

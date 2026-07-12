@@ -43,18 +43,40 @@ function CardCell({ card }: { card: ProfileCardStat }) {
   );
 }
 
+// Victory impact is a signed win-rate lift stored as a fraction; show it as
+// whole percentage points with an explicit sign so a boost reads as "+12 pts".
+function formatImpactPoints(impact: number | undefined) {
+  if (impact === undefined) {
+    return '—';
+  }
+
+  const points = Math.round(impact * 100);
+  return `${points > 0 ? '+' : points < 0 ? '−' : ''}${Math.abs(points)} pts`;
+}
+
+function impactToneClass(impact: number | undefined) {
+  if (impact === undefined || Math.round(impact * 100) === 0) {
+    return 'text-stone-300';
+  }
+  return impact > 0 ? 'text-emerald-400' : 'text-rose-400';
+}
+
 function ProfileCardTable({
   cards,
   countLabel,
   emptyCopy,
+  variant = 'plays',
 }: {
   cards: ProfileCardStat[];
   countLabel: string;
   emptyCopy: string;
+  variant?: 'impact' | 'plays';
 }) {
   if (cards.length === 0) {
     return <p className="tm-muted-copy text-sm">{emptyCopy}</p>;
   }
+
+  const showImpact = variant === 'impact';
 
   return (
     <div className="overflow-x-auto">
@@ -62,6 +84,9 @@ function ProfileCardTable({
         <thead>
           <tr className="tm-data-label">
             <th className="py-1 pr-3">Card</th>
+            {showImpact ? (
+              <th className="py-1 pr-3">Victory impact</th>
+            ) : null}
             <th className="py-1 pr-3">{countLabel}</th>
             <th className="py-1 pr-3">Win rate</th>
           </tr>
@@ -72,6 +97,13 @@ function ProfileCardTable({
               <td className="py-2 pr-3">
                 <CardCell card={card} />
               </td>
+              {showImpact ? (
+                <td
+                  className={`py-2 pr-3 align-middle font-semibold ${impactToneClass(card.victoryImpact)}`}
+                >
+                  {formatImpactPoints(card.victoryImpact)}
+                </td>
+              ) : null}
               <td className="py-2 pr-3 align-middle">{card.plays}</td>
               <td className="py-2 pr-3 align-middle">
                 {formatPercent(card.winRate)}
@@ -99,18 +131,21 @@ export function ProfileCardPanels({
   return (
     <>
       <ChartFrame
-        description="The cards you flagged as pivotal when logging games, ranked by your win rate in the games where you flagged them. Click a card to open its full image."
+        description="The cards that most raise your odds of winning — ranked by how much your win rate with each card, blended with how it performs across every recorded game, beats your baseline win rate. Click a card to open its full image."
         title="My Key Cards"
       >
         <ProfileCardTable
           cards={keyCards}
           countLabel="Games"
-          emptyCopy={`No key cards are recorded for ${playerName} yet. Flag the cards that shaped a game when you log it to build this list.`}
+          emptyCopy={`No key cards yet for ${playerName}. Import a finalized game log so we can measure which cards lift your win rate the most.`}
+          variant="impact"
         />
         {keyCards.length > 0 ? (
           <p className="tm-muted-copy mt-3 text-xs">
-            Key cards are the ones you singled out as pivotal when logging a
-            game — the plays you felt shaped how it turned out, win or lose.
+            Key cards aren&apos;t picked by hand. Victory impact is how many
+            points a card adds to your win rate above your baseline, blending
+            your own games with global play data so one lucky game can&apos;t
+            crown a card.
           </p>
         ) : null}
       </ChartFrame>

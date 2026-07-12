@@ -59,12 +59,6 @@ describe('ProfileDashboard', () => {
         averageOtherCardPoints: 11.2,
         averageTrPoints: 25.3,
       },
-      styleAgreement: {
-        comparedGames: 4,
-        exactMatchRate: 0.5,
-        mismatchRate: 0.25,
-        partialMatchRate: 0.25,
-      },
       styleBreakdownRows: [
         {
           averagePlacement: 1.5,
@@ -147,8 +141,6 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/style identity/i)).toBeInTheDocument();
     expect(screen.getByText(/game log signal/i)).toBeInTheDocument();
     expect(screen.getByText(/commercial district/i)).toBeInTheDocument();
-    expect(screen.getByText(/declared vs inferred style/i)).toBeInTheDocument();
-    expect(screen.getByText(/based on 4 finalized games/i)).toBeInTheDocument();
   });
 
   it('links out to the dedicated play comparison screen', () => {

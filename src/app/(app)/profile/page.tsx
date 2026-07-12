@@ -74,7 +74,6 @@ export default async function ProfilePage(_props: ProfilePageProps) {
           performance={profileAnalytics?.performance ?? null}
           playerName={profileAnalytics?.playerName ?? null}
           scoreAverages={profileAnalytics?.scoreAverages ?? null}
-          styleAgreement={profileAnalytics?.styleAgreement ?? null}
           styleBreakdownRows={profileAnalytics?.styleBreakdownRows ?? []}
           styleInsights={profileAnalytics?.styleInsights ?? []}
         />
