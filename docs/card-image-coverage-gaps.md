@@ -1,0 +1,503 @@
+# Card image coverage gaps
+
+Cards with **no Hadronikle image source** after exact + release-fallback + number-fallback matching.
+
+Needing images: 986 | matched: 523 (exact 513, release-fallback 7, number-fallback 3) | **uncovered: 463**
+
+Generated 2026-07-12.
+
+## Underworld (124)
+
+- Acidizing  `U098`
+- Aeron Genomics  `UC07`
+- Anti-trust Crackdown  `U064`
+- Anubis Securities  `UC11`
+- Arborist Collective  `UC05`
+- Artesian Aquifer  `U059`
+- Battery Factory  `U075`
+- Battery Shipment  `UP10`
+- Behemoth Excavator  `U030`
+- Biobatteries  `U096`
+- Canyon Survey  `U081`
+- Casino  `U020`
+- Cave City  `U027`
+- Central Reservoir  `UP09`
+- Chemical Factory  `U060`
+- Class-action Lawsuit  `U082`
+- Cloud Vortex Outpost  `UP15`
+- Corporate Blackmail  `U039`
+- Corporate Theft  `U061`
+- Crater Survey  `U069`
+- Cut-throat Budgeting  `U080`
+- Deep Foundations  `U100`
+- Deepmining  `U029`
+- Deepnuking  `U006`
+- Deepwater Dome  `UP11`
+- Demetron Labs  `UC02`
+- Detective TV Series  `U091`
+- Earthquake Machine  `U055`
+- Election Sponsorship  `UP14`
+- Excavator Leasing  `U035`
+- Expedition Vehicles  `U079`
+- Exploitation Of Venus  `U099`
+- Export Convoy  `U097`
+- Fabricated Scandal  `U013`
+- Family Connections  `U095`
+- Forest Tunnels  `U016`
+- Free Trade Port  `UP01`
+- Friends in High Places  `U041`
+- Gaia City  `U005`
+- Ganymede Trading Company  `UP08`
+- Gas Trust  `U093`
+- Geological Expertise  `UP06`
+- Geologist Team  `U001`
+- Geoscan Satellite  `U002`
+- Geothermal Network  `U024`
+- Global Audit  `U025`
+- Grey Market Exploitation  `U034`
+- Guerilla Ecologists  `U089`
+- Hadesphere  `UC01`
+- Hecate Speditions  `UC12`
+- Henkei Genetics  `UC04`
+- Hyperspace Drive Prototype  `U052`
+- Imported Heavy Machinery  `U021`
+- Induced Tremor  `U070`
+- Infrastructure Overload  `U068`
+- Inherited Fortune  `U0P03`
+- Investigative Journalism  `U087`
+- Investor Plaza  `UP02`
+- Jenson-Boyle & Co  `UC03`
+- Keplertec  `UC08`
+- Kingdom of Tauraro  `UC06`
+- Labor Trafficking  `U014`
+- Landfill  `U036`
+- Lobbying Network  `U031`
+- Man-made Volcano  `U017`
+- Martian Express  `U078`
+- Media Frenzy  `U086`
+- Mercenary Squad  `U083`
+- Micro-Geodesics  `U056`
+- Microgravimetry  `U042`
+- Microprobing Technology  `U022`
+- Mining Market Insider  `U046`
+- Monopoly  `U065`
+- Nanofoundry  `U074`
+- Narrative Spin  `U037`
+- Neutrinograph  `U057`
+- Nightclubs  `U008`
+- Off-World Tax Haven  `U010`
+- Old World Mafia  `U007`
+- Orbital Laser Drill  `U033`
+- Patent Manipulation  `U026`
+- Personal Spacecruiser  `U051`
+- Planetary Rights Buyout  `U085`
+- Plant Tax  `U067`
+- Price Wars  `U063`
+- Private Investigator  `U038`
+- Private Military Contractor  `U049`
+- Private Resorts  `U054`
+- Prospecting  `UP13`
+- Public Spaceline  `U077`
+- Racketeering  `U092`
+- Reckless Detonation  `U009`
+- Research & Development Hub  `U084`
+- Robot Moles  `U045`
+- Scapegoat  `U040`
+- Search for Life Underground  `U023`
+- Secret Research  `UP12`
+- Server Sabotage  `U047`
+- Soil Export  `U058`
+- Space Privateers  `U050`
+- Space Wargames  `U048`
+- Staged Protests  `U066`
+- Star Vegas  `U053`
+- Stem Field Subsidies  `U043`
+- Sting Operation  `U094`
+- Subnautic Pirates  `U011`
+- Subterranean Sea  `U015`
+- Thiolava Vents  `U090`
+- Titan Manufacturing Colony  `U044`
+- Tunnel Boring Machine  `U003`
+- Tunneling Loophole  `U032`
+- Tunneling Operation  `UP05`
+- Tunneling Subcontractor  `U018`
+- Underground Amusement Park  `U019`
+- Underground Habitat  `U071`
+- Underground Railway  `U004`
+- Underground Research Center  `U062`
+- Underground Settlement  `UP07`
+- Underground Shelters  `U072`
+- Underground Smuggling Ring  `U028`
+- Voltagon  `UC09`
+- Voltaic Metallurgy  `U076`
+- Volunteer Mining Initiative  `U073`
+- Whales  `U088`
+
+## The Moon (91)
+
+- AI Controlled Mine Network  `M32`
+- Algae Bioreactors  `M47`
+- An Offer You Can't Refuse  `M62`
+- Ancient Shipyards  `M19`
+- Archimedes Hydroponics Station  `M27`
+- Aristarchus Road Network  `M10`
+- Basic Infrastructure  `MP3`
+- Colonist Shuttles  `M16`
+- Copernicus Solar Arrays  `M44`
+- Copernicus Tower  `M72`
+- Core Mine  `MP2`
+- Cosmic Radiation  `M52`
+- Darkside Incubation Plant  `M45`
+- Darkside Meteor Bombardment  `M33`
+- Darkside Mining Syndicate  `M66`
+- Darkside Observatory  `M75`
+- Darkside Smugglers' Union  `M80`
+- Deep Lunar Mining  `M18`
+- Earth Embassy  `M77`
+- First Lunar Settlement  `MP1`
+- Geodesic Tents  `M06`
+- Grand Luna Academy  `M83`
+- Habitat 14  `M05`
+- HE3 Fusion Plant  `M48`
+- HE3 Lobbyists  `M50`
+- HE3 Production Quotas  `M57`
+- HE3 Refinery  `M49`
+- Heavy Duty Rovers  `M39`
+- Heliostat Mirror Array  `M41`
+- Hypersensitive Silicon Chip Factory  `M43`
+- Improved Moon Concrete  `M37`
+- Iron Extraction Center  `M25`
+- L.T.F. Headquarters  `M79`
+- L.T.F. Privileges  `M82`
+- Luna Archives  `M70`
+- Luna Conference  `M58`
+- Luna Ecumenopolis  `M84`
+- Luna Mining Hub  `M14`
+- Luna Political Institute  `M71`
+- Luna Project Office  `M20`
+- Luna Resort  `M21`
+- Luna Senate  `M70`
+- Luna Staging Station  `M30`
+- Luna Trade Station  `M13`
+- Luna Train Station  `M15`
+- Lunar Dust Processing Plant  `M17`
+- Lunar Industry Complex  `M74`
+- Lunar Mine Urbanization  `M55`
+- Lunar Observation Post  `M22`
+- Lunar Planning Office  `MP4`
+- Lunar Security Stations  `M42`
+- Lunar Steel  `M87`
+- Lunar Trade Fleet  `M35`
+- Mare Imbrium Mine  `M03`
+- Mare Nectaris Mine  `M01`
+- Mare Nubium Mine  `M02`
+- Mare Serenitatis Mine  `M04`
+- Microsingularity Plant  `M40`
+- Mining Complex  `MP5`
+- Mining Robots Manuf. Center  `M23`
+- Momentum Virium Habitat  `M12`
+- Moon Tether  `M90`
+- Mooncrate Block Factory  `M38`
+- Mooncrate Convoys To Mars  `M60`
+- New Colony Planning Initiatives  `M31`
+- Off-World City Living  `M53`
+- Orbital Power Grid  `M85`
+- Preliminary Darkside  `M63`
+- Pride of the Earth Arkship  `M24`
+- Processor Factory  `M86`
+- Revolting Colonists  `M51`
+- Road Piracy  `M54`
+- Rover Drivers Union  `M78`
+- Rust Eating Bacteria  `M88`
+- Sinus Iridium Road Network  `M11`
+- Small Duty Rovers  `M73`
+- Solar Panel Foundry  `M89`
+- Sphere Habitats  `M07`
+- Staging Station "Behemoth"  `M68`
+- Steel Market Monopolists  `M28`
+- Subterranean Habitats  `M36`
+- Syndicate Pirate Raids  `M65`
+- The Womb  `M08`
+- Thorium Rush  `M56`
+- Titanium Extraction Center  `M26`
+- Titanium Market Monopolists  `M29`
+- Tycho Road Network  `M09`
+- Underground Detonators  `M34`
+- Undermoon Drug Lords Network  `M81`
+- Water Treatment Complex  `M46`
+- We Grow As One  `M59`
+
+## The Moon (corporations) (9)
+
+- Crescent Research Association  `MC5`
+- Intragen Sanctuary Headquarters  `MC8`
+- Luna First Incorporated  `MC6`
+- Luna Hyperloop Corporation  `MC4`
+- Nanotech Industries  `MC1`
+- Tempest Consultancy  `MC2`
+- The Archaic Foundation Institute  `MC10`
+- The Darkside of The Moon Syndicate  `MC3`
+- The Grand Luna Capital Group  `MC7`
+
+## Pathfinders (101)
+
+- Adhai High Orbit Constructions  `PfC23`
+- Advanced Power Grid  `Pf56`
+- Agro-Drones  `Pf04`
+- Ambient  `PfC3`
+- Anthozoa  `Pf55`
+- Asteroid Resources  `Pf40`
+- Aurorai  `PfC15`
+- Bio-Sol  `PfC14`
+- Botanical Experience  `Pf50`
+- Breeding Farms  `Pf01`
+- Cassini Station  `Pf62`
+- Ceres Spaceport  `Pf14`
+- Charity Donation  `Pf58`
+- Chimera  `PfC5`
+- CO² Reducers  `PfP03`
+- Collegium Copernicus  `PfC16`
+- Communication Center  `Pf28`
+- Controlled Bloom  `PFTmp`
+- Coordinated Raid  `Pf64`
+- Crashlanding  `Pf48`
+- Crew Training  `PfP06`
+- Cryptocurrency  `Pf51`
+- Cultivation of Venus  `Pf45`
+- Cyanobacteria  `Pf27`
+- Data Leak  `Pf30`
+- Declaration of Independence  `Pf34`
+- Deep Space Operations  `PfP12`
+- Design Company  `PfP08`
+- Designed Organisms  `Pf23`
+- Dust Storm  `Pf08`
+- Dyson Screens  `Pf15`
+- Early Expedition  `Pf18`
+- Economic Espionage  `Pf38`
+- Economic Help  `Pf42`
+- Expedition to the Surface - Venus  `Pf46`
+- Flat Mars Theory  `Pf39`
+- Floater-Urbanism  `Pf59`
+- Gagarin Mobile Base  `PfC19`
+- Geological Expedition  `Pf17`
+- Habitat Marte  `PfC22`
+- High Temp. Superconductors  `PfTMP`
+- Huygens Observatory  `Pf61`
+- Hydrogen Processing Plant  `Pf19`
+- Interplanetary Transport  `Pf43`
+- Kickstarter  `Pf41`
+- Last Resort Ingenuity  `Pf47`
+- Lobby Halls  `PfT1`
+- Lunar Embassy  `Pf16`
+- Luxury Estate  `Pf21`
+- Mars Direct  `PFC11`
+- Mars Maths  `PfC10`
+- Martian Culture  `Pf35`
+- Martian Dust Processing Plant  `Pf44`
+- Martian Insurance Group  `PfC12`
+- Martian Monuments  `Pf09`
+- Martian Nature Wonders  `Pf10`
+- Martian Repository  `Pf29`
+- Microbiology Patents  `Pf63`
+- Mind Set Mars  `PfC21`
+- Museum of Early Colonisation  `Pf11`
+- New Venice  `Pf3`
+- Nobel Labs  `Pf60`
+- Odyssey  `PfC18`
+- Orbital Laboratories  `Pf07`
+- Oumuamua Type Object Survey  `Pf53`
+- Ozone Generators  `Pf36`
+- Personal Agenda  `PfP10`
+- Polaris  `PfC1`
+- Pollinators  `PfT9`
+- Prefabrication of Human Habitats  `Pf02`
+- Private Security  `Pf25`
+- Public Sponsored Grant  `PfTVD`
+- Rare-Earth Elements  `Pf06`
+- Red City  `PFT2`
+- Research Grant:Pathfinders  `PfP05`
+- Return to Abandoned Technology  `Pf22`
+- Rich Deposits  `Pf52`
+- Ringcom  `PfC4`
+- Robin Haulings  `PfC17`
+- Secret Labs  `Pf26`
+- Small Comet  `Pf37`
+- Small Open Pit Mine  `Pf31`
+- Social Events  `PfT10`
+- Soil Detoxification  `PfTmp`
+- Solar Storm  `Pf32`
+- Solarpedia  `Pf54`
+- SolBank  `PfC13`
+- Soylent Seedling Systems  `PfC8`
+- Space Debris Cleaning Operation  `Pf24`
+- Space Relay  `Pf33`
+- Specialized Settlement  `PF57`
+- Steelaris  `PfC9`
+- Survey Mission  `PfP07`
+- Terraforming Control Station  `Pf12`
+- Terraforming Robots  `PfT12`
+- The New Space Race  `PfP14`
+- Think Tank  `Pf49`
+- Valuable Gases:Pathfinders  `PfP02`
+- Venera Base  `Pf67`
+- Vital Colony  `PfP11`
+- Wetlands  `Pf03`
+
+## Corporations (R##) (23)
+
+- Aerotech  `R59`
+- Agricola Inc  `R36`
+- Aristarchus  `R62`
+- Athena  `R52`
+- Bentenmaru  `R58`
+- Colonial One  `R42`
+- Curiosity II  `R61`
+- Eris  `R47`
+- Faux News  `R60`
+- Hotsprings  `R48`
+- Incite  `R37`
+- Junk Ventures  `R49`
+- Labour Union  `R51`
+- Marabout Shiritori  `R56`
+- Mars Coalition  `R53`
+- Midas  `R41`
+- Playwrights  `R40`
+- Project 10  `R51`
+- Project Workshop  `R45`
+- Secret Santa Society  `R57`
+- Spaceways  `R55`
+- Tempest Inc  `R54`
+- United Nations Mission One  `R50`
+
+## Prelude 2 / Ares-era (Y##) (29)
+
+- Accumulated Knowledge  `Y08`
+- Aerospace Mission  `Y01`
+- Allied Research  `Y44`
+- Botanical Harvest  `Y09`
+- By-Election  `Y02`
+- Corporate Alliance  `Y40`
+- Cyanobacteria Pods  `Y43`
+- Ecology Lake  `Y32`
+- Energy Beam  `Y34`
+- Experienced Martians  `Y10`
+- Fortified Outpost  `Y11`
+- Green Mars Initiative  `Y41`
+- Groundwater Mohole  `Y24`
+- Hydrogen Bombardment  `Y13`
+- Intellectualist Movement  `Y42`
+- Laser Factory  `Y22`
+- Martian Lumber Yard  `Y14`
+- Martian Republic  `Y38`
+- Microalgae  `Y27`
+- Mining Improvements  `Y28`
+- Nitrate Reducers  `Y15`
+- Research Grant  `Y04`
+- Solar Batteries  `Y21`
+- Tharsis Prototype City  `Y23`
+- Trade Advance  `Y05`
+- Trade Infrastructure  `Y17`
+- Valuable Gases  `Y06`
+- Venus First  `Y07`
+- Wildlife Sponsors  `Y30`
+
+## Ares-era (A##) (12)
+
+- Bio-Fertilizer Facility  `A02`
+- Bioengineering Enclosure  `A01`
+- Butterfly Effect  `A03`
+- Desperate Measures  `A04`
+- Ecological Survey  `A07`
+- Geological Survey  `A09`
+- Marketing Experts  `A12`
+- Metallic Asteroid  `A13`
+- Ocean City  `A20`
+- Ocean Farm  `A21`
+- Ocean Sanctuary  `A22`
+- Solar Farm  `A17`
+
+## Misinformation / other promo (62)
+
+- Delta Project  `DP01`
+- Misinformation:1  `Z02`
+- Misinformation:10  `Z02`
+- Misinformation:11  `Z02`
+- Misinformation:12  `Z02`
+- Misinformation:13  `Z02`
+- Misinformation:14  `Z02`
+- Misinformation:15  `Z02`
+- Misinformation:16  `Z02`
+- Misinformation:17  `Z02`
+- Misinformation:18  `Z02`
+- Misinformation:19  `Z02`
+- Misinformation:2  `Z02`
+- Misinformation:20  `Z02`
+- Misinformation:21  `Z02`
+- Misinformation:22  `Z02`
+- Misinformation:23  `Z02`
+- Misinformation:24  `Z02`
+- Misinformation:25  `Z02`
+- Misinformation:26  `Z02`
+- Misinformation:27  `Z02`
+- Misinformation:28  `Z02`
+- Misinformation:29  `Z02`
+- Misinformation:3  `Z02`
+- Misinformation:30  `Z02`
+- Misinformation:31  `Z02`
+- Misinformation:32  `Z02`
+- Misinformation:33  `Z02`
+- Misinformation:34  `Z02`
+- Misinformation:35  `Z02`
+- Misinformation:36  `Z02`
+- Misinformation:37  `Z02`
+- Misinformation:38  `Z02`
+- Misinformation:39  `Z02`
+- Misinformation:4  `Z02`
+- Misinformation:40  `Z02`
+- Misinformation:41  `Z02`
+- Misinformation:42  `Z02`
+- Misinformation:43  `Z02`
+- Misinformation:44  `Z02`
+- Misinformation:45  `Z02`
+- Misinformation:46  `Z02`
+- Misinformation:47  `Z02`
+- Misinformation:48  `Z02`
+- Misinformation:49  `Z02`
+- Misinformation:5  `Z02`
+- Misinformation:50  `Z02`
+- Misinformation:51  `Z02`
+- Misinformation:52  `Z02`
+- Misinformation:53  `Z02`
+- Misinformation:54  `Z02`
+- Misinformation:55  `Z02`
+- Misinformation:56  `Z02`
+- Misinformation:57  `Z02`
+- Misinformation:58  `Z02`
+- Misinformation:59  `Z02`
+- Misinformation:6  `Z02`
+- Misinformation:60  `Z02`
+- Misinformation:7  `Z02`
+- Misinformation:8  `Z02`
+- Misinformation:9  `Z02`
+- Perseverance Landing  `Z01`
+
+## Star Wars promo (9)
+
+- Behold The Emperor! (III)  `SW03`
+- Clone Troopers (II)  `SW02`
+- Cloud City (V)  `SW05`
+- Forest Moon (VI)  `SW06`
+- Rey ... Skywalker?! (IX)  `SW09`
+- Takonda Castle (VII)  `SW07`
+- Tool with the First Order (VIII)  `SW08`
+- Tosche Station (IV)  `SW04`
+- Trade Embargo (I)  `SW01`
+
+## Other older-expansion name mismatch (1)
+
+- Refugee Camp  `C33`
+
+## No / unknown number (2)
+
+- Floyd Continuum  `??`
+- New Holland  `X??`

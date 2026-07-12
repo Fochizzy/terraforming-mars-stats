@@ -1,9 +1,23 @@
+import { existsSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
+import { getPublicEnv } from '../../src/lib/env';
 import {
   extractHadronikleCardsFromHtml,
   loadHadronikleSourceHtml,
 } from './import-reference-data';
+
+// Load .env.local / .env so the service-role key can live in a gitignored file
+// instead of being exported in the shell on every run. Shell env still wins.
+for (const file of ['.env', '.env.local']) {
+  if (existsSync(file)) {
+    try {
+      process.loadEnvFile(file);
+    } catch {
+      // Ignore malformed or unreadable env files; env vars remain optional.
+    }
+  }
+}
 
 // Backfill self-hosted card art into Supabase Storage.
 //
@@ -83,43 +97,97 @@ function encodeSourceUrl(url: string): string {
   }
 }
 
-function buildHadronikleIndex(entries: HadronikleEntry[]) {
+type HadronikleIndex = {
+  byName: Map<string, HadronikleEntry[]>;
+  byNum: Map<string, HadronikleEntry[]>;
+};
+
+// Same card, different printing: the catalog suffixes alternate releases with a
+// colon qualifier, e.g. "Great Dam:promo", "Hackers:u", "Power Plant:Pathfinders".
+// Stripping it lets a reprint fall back to the base card's art.
+function stripReleaseQualifier(name: string): string {
+  const colon = name.indexOf(':');
+  return colon >= 0 ? name.slice(0, colon) : name;
+}
+
+function buildHadronikleIndex(entries: HadronikleEntry[]): HadronikleIndex {
   const byName = new Map<string, HadronikleEntry[]>();
+  const byNum = new Map<string, HadronikleEntry[]>();
+
+  const push = (map: Map<string, HadronikleEntry[]>, key: string, entry: HadronikleEntry) => {
+    const bucket = map.get(key);
+    if (bucket) {
+      bucket.push(entry);
+    } else {
+      map.set(key, [entry]);
+    }
+  };
 
   for (const entry of entries) {
     if (!entry.img) {
       continue;
     }
-    const key = normalizeName(entry.name);
-    const bucket = byName.get(key);
-    if (bucket) {
-      bucket.push(entry);
-    } else {
-      byName.set(key, [entry]);
+    push(byName, normalizeName(entry.name), entry);
+    const num = (entry.num ?? '').trim();
+    if (num) {
+      push(byNum, num, entry);
     }
   }
 
-  return byName;
+  return { byName, byNum };
 }
 
-function matchEntry(
+// Prefer the entry whose printed number matches, to disambiguate reprints.
+function preferByNumber(
+  candidates: HadronikleEntry[],
   card: CardRow,
-  index: Map<string, HadronikleEntry[]>,
-): HadronikleEntry | null {
-  const candidates = index.get(normalizeName(card.card_name));
-  if (!candidates || candidates.length === 0) {
-    return null;
-  }
+): HadronikleEntry {
   if (candidates.length === 1) {
     return candidates[0];
   }
-  // Prefer the entry whose printed number matches, to disambiguate reprints.
   const numbered = candidates.find(
     (candidate) =>
       candidate.num.trim() !== '' &&
       candidate.num.trim() === (card.card_number ?? '').trim(),
   );
   return numbered ?? candidates[0];
+}
+
+function matchEntry(
+  card: CardRow,
+  index: HadronikleIndex,
+): HadronikleEntry | null {
+  // 1. Exact name.
+  const exact = index.byName.get(normalizeName(card.card_name));
+  if (exact && exact.length > 0) {
+    return preferByNumber(exact, card);
+  }
+
+  // 2. Release fallback — reuse the base card's art for alternate printings.
+  const base = stripReleaseQualifier(card.card_name);
+  if (base !== card.card_name) {
+    const baseMatch = index.byName.get(normalizeName(base));
+    if (baseMatch && baseMatch.length > 0) {
+      return preferByNumber(baseMatch, card);
+    }
+  }
+
+  // 3. Card-number fallback for spelling/plural variants ("Stanford Torus" vs
+  //    Hadronikle's "Stanford Tours"). Guarded by a shared leading word and a
+  //    unique number so it can't attach a different card's art.
+  const num = (card.card_number ?? '').trim();
+  if (num) {
+    const byNum = index.byNum.get(num);
+    if (byNum && byNum.length === 1) {
+      const cardWord = normalizeName(card.card_name).split(' ')[0];
+      const entryWord = normalizeName(byNum[0].name).split(' ')[0];
+      if (cardWord && cardWord === entryWord) {
+        return byNum[0];
+      }
+    }
+  }
+
+  return null;
 }
 
 async function downloadSource(url: string): Promise<Buffer> {
@@ -166,12 +234,17 @@ async function runPool<T>(
 async function main() {
   const { dryRun, force, limit } = parseArgs(process.argv.slice(2));
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // The project URL is baked into the app (env.ts bundled default), so only the
+  // secret service-role key needs to be supplied to run this backfill.
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    getPublicEnv().NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!serviceRoleKey) {
     throw new Error(
-      'Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY before running catalog:backfill-images.',
+      'Set SUPABASE_SERVICE_ROLE_KEY before running catalog:backfill-images. ' +
+        'Find it in Supabase → Project Settings → API → service_role key.',
     );
   }
 
@@ -181,7 +254,7 @@ async function main() {
   const entries = extractHadronikleCardsFromHtml(html) as HadronikleEntry[];
   const index = buildHadronikleIndex(entries);
   console.log(
-    `Loaded ${entries.length} Hadronikle entries (${index.size} unique names).`,
+    `Loaded ${entries.length} Hadronikle entries (${index.byName.size} unique names).`,
   );
 
   const { data: cardRows, error: cardError } = await supabase
