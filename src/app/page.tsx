@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { LandingSectionList } from './landing-section-list';
-import { homepageSections } from './landing-sections';
 import {
   emptyPublicLandingStats,
   getPublicLandingStats,
@@ -37,20 +36,6 @@ export default async function HomePage() {
                 width={1983}
               />
             </div>
-            <nav
-              aria-label="Homepage sections"
-              className="tm-landing-tab-strip tm-landing-tab-strip--banner-width"
-            >
-              {homepageSections.map((section) => (
-                <a
-                  key={section.id}
-                  className="tm-landing-tab-link"
-                  href={`#${section.id}`}
-                >
-                  {section.title}
-                </a>
-              ))}
-            </nav>
           </div>
         </div>
         <p className="tm-body-copy tm-landing-hero-copy">

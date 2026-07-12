@@ -12,7 +12,6 @@ export type TopNavItem = {
 export const defaultTopNavItems: TopNavItem[] = [
   { href: '/profile', label: 'My Profile' },
   { href: '/log-game', label: 'Log a Game' },
-  { href: '/log-game/review', label: 'Saved Games' },
   { href: '/group', label: 'Global' },
   { href: '/insights', label: 'Insights' },
   { href: '/cards', label: 'Cards', align: 'end' },
