@@ -122,10 +122,12 @@ function ProfileCardTable({
 export function ProfileCardPanels({
   cardOutcomes,
   keyCards,
+  lossCards,
   playerName,
 }: {
   cardOutcomes: ProfileCardStat[];
   keyCards: ProfileCardStat[];
+  lossCards: ProfileCardStat[];
   playerName: string;
 }) {
   return (
@@ -146,6 +148,25 @@ export function ProfileCardPanels({
             points a card adds to your win rate above your baseline, blending
             your own games with global play data so one lucky game can&apos;t
             crown a card.
+          </p>
+        ) : null}
+      </ChartFrame>
+      <ChartFrame
+        description="The cards most correlated with your losses — ranked by how much your win rate with each card, blended with how it performs across every recorded game, falls below your baseline win rate. Click a card to open its full image with your win rate and the global win rate."
+        title="My Loss-Correlated Cards"
+      >
+        <ProfileCardTable
+          cards={lossCards}
+          countLabel="Games"
+          emptyCopy={`No loss-correlated cards yet for ${playerName}. Import a finalized game log so we can measure which cards drag your win rate down the most.`}
+          variant="impact"
+        />
+        {lossCards.length > 0 ? (
+          <p className="tm-muted-copy mt-3 text-xs">
+            Loss-correlated cards aren&apos;t picked by hand. Victory impact is
+            how many points a card subtracts from your win rate below your
+            baseline, blending your own games with global play data so one bad
+            game can&apos;t condemn a card.
           </p>
         ) : null}
       </ChartFrame>

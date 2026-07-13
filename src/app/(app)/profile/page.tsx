@@ -71,6 +71,7 @@ export default async function ProfilePage(_props: ProfilePageProps) {
           headToHeadRows={profileAnalytics?.headToHeadRows ?? []}
           keyCards={profileAnalytics?.keyCards ?? []}
           linkHref="/group/players"
+          lossCards={profileAnalytics?.lossCards ?? []}
           performance={profileAnalytics?.performance ?? null}
           playerName={profileAnalytics?.playerName ?? null}
           scoreAverages={profileAnalytics?.scoreAverages ?? null}

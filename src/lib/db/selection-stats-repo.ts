@@ -56,6 +56,12 @@ export type CardWinStat = {
   win_rate_when_played: number;
 };
 
+export type CardImageMeta = {
+  fullImageUrl: string | null;
+  id: string;
+  thumbnailUrl: string | null;
+};
+
 export type TagWinStat = {
   avg_tags_in_losses: number | null;
   avg_tags_in_wins: number | null;
@@ -147,6 +153,53 @@ export async function getSelectionStats(
     totalGames:
       typeof payload.totalGames === 'number' ? payload.totalGames : 0,
   };
+}
+
+// The global card win stats carry only names, so the Global Statistics page
+// looks up catalog id + art by name to let each loss-correlated card open its
+// stats dialog. Image URLs mirror the analytics views' coalesce order. First
+// row wins per name; a couple of cards sharing a name resolve to one entry.
+export async function getCardImageMetaByNames(
+  cardNames: string[],
+): Promise<Map<string, CardImageMeta>> {
+  const uniqueNames = [...new Set(cardNames)];
+
+  if (uniqueNames.length === 0) {
+    return new Map();
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('cards')
+    .select('id, card_name, full_image_path, thumbnail_path, image_url')
+    .in('card_name', uniqueNames);
+
+  if (error) {
+    throw error;
+  }
+
+  const meta = new Map<string, CardImageMeta>();
+
+  for (const row of (data ?? []) as Array<{
+    card_name: string;
+    full_image_path: string | null;
+    id: string;
+    image_url: string | null;
+    thumbnail_path: string | null;
+  }>) {
+    if (meta.has(row.card_name)) {
+      continue;
+    }
+
+    meta.set(row.card_name, {
+      fullImageUrl: row.full_image_path ?? row.image_url ?? null,
+      id: row.id,
+      thumbnailUrl:
+        row.thumbnail_path ?? row.full_image_path ?? row.image_url ?? null,
+    });
+  }
+
+  return meta;
 }
 
 export async function getHeadToHeadStats(

@@ -73,6 +73,7 @@ describe('getProfileAnalytics', () => {
       coverage: null,
       headToHeadRows: [],
       keyCards: [],
+      lossCards: [],
       performance: null,
       playerId: 'player-1',
       playerName: 'Friday Mars',

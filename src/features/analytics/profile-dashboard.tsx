@@ -110,6 +110,7 @@ type ProfileDashboardProps = {
   coverage?: CoverageRow | null;
   headToHeadRows?: ProfileHeadToHeadRow[];
   keyCards?: ProfileCardStat[];
+  lossCards?: ProfileCardStat[];
   performance?: LeaderboardRow | null;
   playerName: string | null;
   scoreAverages?: ScoreSourceAverages | null;
@@ -309,6 +310,7 @@ export function ProfileDashboard({
   headToHeadRows = [],
   keyCards = [],
   linkHref,
+  lossCards = [],
   performance = null,
   playerName,
   scoreAverages = null,
@@ -443,6 +445,7 @@ export function ProfileDashboard({
       <ProfileCardPanels
         cardOutcomes={cardOutcomes}
         keyCards={keyCards}
+        lossCards={lossCards}
         playerName={playerName}
       />
       <ChartFrame title="Styles Breakdown">

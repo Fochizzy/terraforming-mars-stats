@@ -215,6 +215,7 @@ export type ProfileAnalytics = {
   coverage: CoverageRow | null;
   headToHeadRows: ProfileHeadToHeadRow[];
   keyCards: ProfileCardStat[];
+  lossCards: ProfileCardStat[];
   performance: LeaderboardRow | null;
   playerId: string;
   playerName: string;
@@ -968,6 +969,7 @@ function buildProfileAnalyticsFromRows(input: {
       coverage: null,
       headToHeadRows: [],
       keyCards: [],
+      lossCards: [],
       cardOutcomes: [],
     } satisfies ProfileAnalytics;
   }
@@ -1303,6 +1305,7 @@ function buildProfileAnalyticsFromRows(input: {
     // Card lists come from dedicated analytics views, filled in by
     // getProfileAnalytics; row-derived callers leave them empty.
     keyCards: [],
+    lossCards: [],
     cardOutcomes: [],
   } satisfies ProfileAnalytics;
 }
@@ -1757,16 +1760,16 @@ function aggregateProfileCardRows(rows: RawProfileCardRow[]): ProfileCardStat[] 
 // player has only won once or twice can't leap to the top of their key cards.
 const KEY_CARD_SHRINKAGE = 5;
 
-/**
- * Victory-impact key cards: rather than cards a player flagged, surface the ones
- * that most raise their odds of winning. For every card the player has a logged
- * play of, blend their personal win rate toward the global win rate for that
- * card (empirical-Bayes shrinkage, so small samples lean on the global signal),
- * then rank by the lift that blended rate has over the player's baseline win
- * rate. Cards that consistently show up in wins — for this player and everyone —
- * rise to the top.
- */
-function buildVictoryImpactKeyCards(
+// The profile loss-correlated list mirrors "top 5 cards correlated with losses"
+// on the Global Statistics page, so it is capped tighter than the key cards.
+const PROFILE_LOSS_CARD_LIMIT = 5;
+
+// Blend each played card's personal win rate toward its global win rate
+// (empirical-Bayes shrinkage, so small samples lean on the global signal) and
+// carry the signed lift that blended rate has over the player's baseline. The
+// key-card and loss-card lists just rank this shared shape in opposite
+// directions.
+function buildBlendedImpactCards(
   cardOutcomeRows: RawProfileCardRow[],
   globalWinRateByCardName: Map<string, number>,
   globalBaselineWinRate: number,
@@ -1797,28 +1800,47 @@ function buildVictoryImpactKeyCards(
     totals.set(row.card_id, entry);
   }
 
-  return [...totals.entries()]
-    .map(([cardId, entry]) => {
-      // Fall back to the global baseline when this card isn't in the global
-      // top-cards payload, so a rare card leans on the overall win rate.
-      const globalWinRate =
-        globalWinRateByCardName.get(entry.cardName) ?? globalBaselineWinRate;
-      const blendedWinRate =
-        (entry.wins + KEY_CARD_SHRINKAGE * globalWinRate) /
-        (entry.plays + KEY_CARD_SHRINKAGE);
+  return [...totals.entries()].map(([cardId, entry]) => {
+    // Fall back to the global baseline when this card isn't in the global
+    // top-cards payload, so a rare card leans on the overall win rate.
+    const globalWinRate =
+      globalWinRateByCardName.get(entry.cardName) ?? globalBaselineWinRate;
+    const blendedWinRate =
+      (entry.wins + KEY_CARD_SHRINKAGE * globalWinRate) /
+      (entry.plays + KEY_CARD_SHRINKAGE);
 
-      return {
-        cardId,
-        cardName: entry.cardName,
-        fullImageUrl: entry.fullImageUrl,
-        globalWinRate: roundNumber(globalWinRate, 4),
-        plays: entry.plays,
-        thumbnailUrl: entry.thumbnailUrl,
-        victoryImpact: roundNumber(blendedWinRate - personalBaselineWinRate, 4),
-        winRate: roundNumber(entry.wins / entry.plays, 4),
-        wins: entry.wins,
-      };
-    })
+    return {
+      cardId,
+      cardName: entry.cardName,
+      fullImageUrl: entry.fullImageUrl,
+      globalWinRate: roundNumber(globalWinRate, 4),
+      plays: entry.plays,
+      thumbnailUrl: entry.thumbnailUrl,
+      victoryImpact: roundNumber(blendedWinRate - personalBaselineWinRate, 4),
+      winRate: roundNumber(entry.wins / entry.plays, 4),
+      wins: entry.wins,
+    };
+  });
+}
+
+/**
+ * Victory-impact key cards: rather than cards a player flagged, surface the ones
+ * that most raise their odds of winning. Rank the blended per-card win-rate lift
+ * (see buildBlendedImpactCards) so cards that consistently show up in wins — for
+ * this player and everyone — rise to the top.
+ */
+function buildVictoryImpactKeyCards(
+  cardOutcomeRows: RawProfileCardRow[],
+  globalWinRateByCardName: Map<string, number>,
+  globalBaselineWinRate: number,
+  personalBaselineWinRate: number,
+): ProfileCardStat[] {
+  return buildBlendedImpactCards(
+    cardOutcomeRows,
+    globalWinRateByCardName,
+    globalBaselineWinRate,
+    personalBaselineWinRate,
+  )
     .sort(
       (left, right) =>
         (right.victoryImpact ?? 0) - (left.victoryImpact ?? 0) ||
@@ -1826,6 +1848,34 @@ function buildVictoryImpactKeyCards(
         left.cardName.localeCompare(right.cardName),
     )
     .slice(0, PROFILE_CARD_LIMIT);
+}
+
+/**
+ * Loss-correlated cards: the mirror of the key cards — the cards whose blended
+ * win-rate lift sits furthest below the player's baseline. Only cards that
+ * genuinely drag the win rate down (negative impact) are kept, so a player with
+ * few cards never sees neutral cards padded in as "losses".
+ */
+function buildLossImpactCards(
+  cardOutcomeRows: RawProfileCardRow[],
+  globalWinRateByCardName: Map<string, number>,
+  globalBaselineWinRate: number,
+  personalBaselineWinRate: number,
+): ProfileCardStat[] {
+  return buildBlendedImpactCards(
+    cardOutcomeRows,
+    globalWinRateByCardName,
+    globalBaselineWinRate,
+    personalBaselineWinRate,
+  )
+    .filter((card) => (card.victoryImpact ?? 0) < 0)
+    .sort(
+      (left, right) =>
+        (left.victoryImpact ?? 0) - (right.victoryImpact ?? 0) ||
+        right.plays - left.plays ||
+        left.cardName.localeCompare(right.cardName),
+    )
+    .slice(0, PROFILE_LOSS_CARD_LIMIT);
 }
 
 // The signed-in player's key cards blend their own win rate with how the card
@@ -2131,6 +2181,12 @@ export async function getProfileAnalytics(
   return {
     ...built,
     keyCards: buildVictoryImpactKeyCards(
+      cardOutcomeRows,
+      globalCardWinRates.winRateByCardName,
+      globalCardWinRates.baselineWinRate,
+      built.performance?.winRate ?? globalCardWinRates.baselineWinRate,
+    ),
+    lossCards: buildLossImpactCards(
       cardOutcomeRows,
       globalCardWinRates.winRateByCardName,
       globalCardWinRates.baselineWinRate,

@@ -5,6 +5,7 @@ import GlobalStatisticsPage from './page';
 import type { SelectionStats } from '@/lib/db/selection-stats-repo';
 
 const mockState = vi.hoisted(() => ({
+  getCardImageMetaByNames: vi.fn(),
   getSelectionStats: vi.fn(),
 }));
 
@@ -44,6 +45,7 @@ vi.mock('@/features/insights/winning-cards-section', () => ({
 }));
 
 vi.mock('@/lib/db/selection-stats-repo', () => ({
+  getCardImageMetaByNames: mockState.getCardImageMetaByNames,
   getSelectionStats: mockState.getSelectionStats,
 }));
 
@@ -63,6 +65,7 @@ describe('GlobalStatisticsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.getSelectionStats.mockResolvedValue(sampleStats);
+    mockState.getCardImageMetaByNames.mockResolvedValue(new Map());
   });
 
   it('renders global statistics from all recorded games', async () => {

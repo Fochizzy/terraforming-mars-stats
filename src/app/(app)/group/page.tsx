@@ -1,9 +1,15 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { GlobalKeyCardsSection } from '@/features/insights/global-key-cards-section';
+import {
+  buildGlobalLossCardData,
+  GlobalLossCardsSection,
+  type GlobalLossCardMeta,
+} from '@/features/insights/global-loss-cards-section';
 import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
 import { WinningCardsSection } from '@/features/insights/winning-cards-section';
 import {
+  getCardImageMetaByNames,
   getSelectionStats,
   type SelectionStats,
 } from '@/lib/db/selection-stats-repo';
@@ -48,6 +54,21 @@ export default async function GlobalStatisticsPage() {
     personalStats.cards.map((card) => [card.card_name, card.plays]),
   );
 
+  // The stats loaded above carry card names only, so look up catalog art for
+  // just the loss-correlated cards on show. Optional: on failure the cards still
+  // list, just without the click-to-open-image link.
+  const lossCardNames = buildGlobalLossCardData(
+    globalStats.cards,
+    globalStats.baselineWinRate,
+  ).map((card) => card.cardName);
+  let lossCardMeta = new Map<string, GlobalLossCardMeta>();
+
+  try {
+    lossCardMeta = await getCardImageMetaByNames(lossCardNames);
+  } catch (error) {
+    console.error('[global] Failed to load loss-card images', error);
+  }
+
   return (
     <AppShell showReviewSavedGamesLink title="Global Statistics" wide>
       <section className="tm-panel flex flex-col gap-5">
@@ -68,6 +89,11 @@ export default async function GlobalStatisticsPage() {
         />
         <GlobalKeyCardsSection
           baselineWinRate={globalStats.baselineWinRate}
+          cards={globalStats.cards}
+        />
+        <GlobalLossCardsSection
+          baselineWinRate={globalStats.baselineWinRate}
+          cardMetaByName={lossCardMeta}
           cards={globalStats.cards}
         />
         <WinningCardsSection
