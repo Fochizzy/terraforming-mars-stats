@@ -66,6 +66,28 @@ function compactRows<T>(rows: T[], limit: number) {
   return rows.slice(0, limit);
 }
 
+const META_SIGNAL_PRIOR_PLAYS = 5;
+
+export function rankMetaSignals(rows: GlobalMetaSignal[]) {
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort((left, right) => {
+      const leftWeight =
+        left.row.sampleSize / (left.row.sampleSize + META_SIGNAL_PRIOR_PLAYS);
+      const rightWeight =
+        right.row.sampleSize / (right.row.sampleSize + META_SIGNAL_PRIOR_PLAYS);
+      const leftScore = Math.abs(left.row.winRateDelta) * leftWeight;
+      const rightScore = Math.abs(right.row.winRateDelta) * rightWeight;
+
+      return (
+        rightScore - leftScore ||
+        right.row.sampleSize - left.row.sampleSize ||
+        left.index - right.index
+      );
+    })
+    .map(({ row }) => row);
+}
+
 function SectionHeading({ children }: { children: string }) {
   return (
     <h3 className="tm-data-label text-xs">
@@ -133,7 +155,7 @@ function MetaSignalCards({ rows }: { rows: GlobalMetaSignal[] }) {
         </EmptyMetric>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {compactRows(rows, 8).map((row) => (
+          {compactRows(rankMetaSignals(rows), 8).map((row) => (
             <article
               className="tm-stat-card"
               key={`${row.direction}-${row.sourceType}-${row.label}`}
