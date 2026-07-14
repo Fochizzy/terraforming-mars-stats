@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { buildAuthCallbackUrl } from './build-auth-callback-url';
 import { emailSchema } from './username-auth';
 
 export function ForgotPinForm() {
@@ -19,7 +20,10 @@ export function ForgotPinForm() {
     try {
       const parsedEmail = emailSchema.parse(email);
       const supabase = createSupabaseBrowserClient();
-      const redirectTo = new URL('/reset-pin', window.location.origin).toString();
+      const redirectTo = buildAuthCallbackUrl(
+        window.location.origin,
+        '/reset-pin',
+      );
       const { error } = await supabase.auth.resetPasswordForEmail(parsedEmail, {
         redirectTo,
       });
@@ -30,34 +34,3 @@ export function ForgotPinForm() {
 
       setMessage('Check your email for a secure PIN reset link.');
     } catch (error) {
-      setIsError(true);
-      setMessage(error instanceof Error ? error.message : 'Could not send the reset email.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  return (
-    <form className="tm-panel flex flex-col gap-4" onSubmit={onSubmit}>
-      <label className="flex flex-col gap-2 text-sm">
-        <span className="tm-data-label">Email</span>
-        <input
-          aria-label="Email"
-          autoComplete="email"
-          className="tm-input"
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
-          required
-          type="email"
-          value={email}
-        />
-      </label>
-      <button className="tm-button-primary disabled:opacity-60" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Sending...' : 'Send Reset Email'}
-      </button>
-      {message ? (
-        <p className={isError ? 'text-sm text-red-300' : 'text-sm text-green-300'}>{message}</p>
-      ) : null}
-    </form>
-  );
-}
