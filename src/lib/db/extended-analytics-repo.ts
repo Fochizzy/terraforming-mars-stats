@@ -188,12 +188,14 @@ export type TagOutcomeRow = {
 export type CardOutcomeRow = {
   cardId: string;
   cardName: string;
+  fullImageUrl: string | null;
   gameId: string;
   groupId: string;
   isWinner: boolean;
   playedOn: string;
   playerId: string;
   playerName: string;
+  thumbnailUrl: string | null;
 };
 
 export type ExtendedGroupAnalytics = {
@@ -385,12 +387,14 @@ type RawTagOutcomeRow = {
 type RawCardOutcomeRow = {
   card_id: string;
   card_name: string;
+  full_image_url: string | null;
   game_id: string;
   group_id: string;
   is_winner: boolean;
   played_on: string;
   player_id: string;
   player_name: string;
+  thumbnail_url: string | null;
 };
 
 function toNumber(value: number | string | null | undefined) {
@@ -630,12 +634,14 @@ function mapCardOutcomeRow(row: RawCardOutcomeRow): CardOutcomeRow {
   return {
     cardId: row.card_id,
     cardName: row.card_name,
+    fullImageUrl: row.full_image_url ?? null,
     gameId: row.game_id,
     groupId: row.group_id,
     isWinner: row.is_winner,
     playedOn: row.played_on,
     playerId: row.player_id,
     playerName: row.player_name,
+    thumbnailUrl: row.thumbnail_url ?? null,
   };
 }
 
