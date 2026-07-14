@@ -26,30 +26,35 @@ export const glossaryCategories: GlossaryCategory[] = [
       {
         slug: 'weighted-score',
         term: 'Weighted Score',
+        aliases: ['weighted leaderboard', 'weighted leaderboard form'],
         definition:
           'A single ranking number that blends how a player finishes rather than just their raw points: 50% win rate, 30% average finishing placement, and 20% average score margin against opponents (capped at ±20 points). Higher is better, and it drives the weighted leaderboard order. It exists so a player who wins often but by small margins can still rank above one who piles up points in games they lose.',
       },
       {
         slug: 'win-rate',
         term: 'Win Rate',
+        aliases: ['win rates'],
         definition:
           "The share of a player's finalized games that ended in a win, shown as a percentage. A player who won 3 of 12 games has a 25% win rate. Ties for first count as wins.",
       },
       {
         slug: 'average-placement',
         term: 'Average Placement',
+        aliases: ['avg place', 'average place'],
         definition:
           "The mean finishing position across a player's finalized games, where 1 is first place. Lower is better — an average placement of 1.8 means the player typically finishes second or better. Shown as 'Avg place' in tables.",
       },
       {
         slug: 'average-score',
         term: 'Average Score',
+        aliases: ['avg score', 'average VP', 'avg VP'],
         definition:
           "The mean number of victory points a player scores per finalized game, added up from every scoring source (terraform rating, cards, board tiles, milestones, and awards). Shown as 'Avg VP' in tables.",
       },
       {
         slug: 'score-margin',
         term: 'Score Margin',
+        aliases: ['average point margin', 'avg margin', 'score edge', 'score differential'],
         definition:
           "The average point gap between a player and the people they played against, also called the score differential. A positive margin means they usually out-score opponents; a negative margin means they trail. In head-to-head views this is the average differential between the two named players — a '+8' means the first player wins by 8 points on average.",
       },
@@ -62,6 +67,7 @@ export const glossaryCategories: GlossaryCategory[] = [
       {
         slug: 'sample-size',
         term: 'Sample Size',
+        aliases: ['samples', 'sample floor'],
         definition:
           'How many finalized games (or player results) a figure is built from. Small samples swing wildly, so every insight is tagged with its sample size to show how much weight it deserves — a 100% win rate over two games says far less than 60% over thirty.',
       },
@@ -74,8 +80,30 @@ export const glossaryCategories: GlossaryCategory[] = [
       {
         slug: 'trend-over-time',
         term: 'Trend Over Time',
+        aliases: ['trend lines', 'trend line', 'score trends'],
         definition:
           "Average score plotted against the date each game was played, tracing how a player or group's form moves across the season. Rising lines mean improving results; the most recent games are listed beneath the chart.",
+      },
+      {
+        slug: 'play-rate',
+        term: 'Play Rate',
+        aliases: ['playrate', 'global playrate', 'your playrate', 'played rate'],
+        definition:
+          'The share of games in a scope where a card, corporation, prelude, play style, or other tracked item appeared. It is different from raw plays because it uses the current game count as the denominator.',
+      },
+      {
+        slug: 'win-rate-delta',
+        term: 'Win Rate Delta',
+        aliases: ['delta', 'win-rate lift', 'win rate lift', 'victory impact', 'loss impact'],
+        definition:
+          'The gap between one win rate and the comparison baseline. Positive deltas show an item outperforming its baseline; negative deltas show it trailing that baseline.',
+      },
+      {
+        slug: 'score-deviation',
+        term: 'Score Deviation',
+        aliases: ['Score SD', 'score SD'],
+        definition:
+          'How widely scores vary around their average for a corporation, prelude, pairing, or other selection. Higher deviation means results are swingier and less predictable.',
       },
     ],
   },
@@ -88,8 +116,9 @@ export const glossaryCategories: GlossaryCategory[] = [
       {
         slug: 'scope',
         term: 'Scope (Overall vs Selected Group)',
+        aliases: ['Insight scope', 'Selected Group'],
         definition:
-          "The toggle at the top of the Insights Lab that switches every chart between two lenses. Overall pools all the games you share with each player across every group, so you see a player's complete record. Selected Group narrows to just the group chosen below, so you can study one table's dynamics in isolation.",
+          "The control at the top of Insights that switches charts between lenses. Overall pools all the games you share with each player across every group, so you see a player's complete record. Selected Group narrows to just the group chosen below, so you can study one table's dynamics in isolation.",
       },
       {
         slug: 'player-focus',
@@ -100,6 +129,7 @@ export const glossaryCategories: GlossaryCategory[] = [
       {
         slug: 'overall-view',
         term: 'Overall',
+        aliases: ['overall record', 'cross-group lens'],
         definition:
           'The cross-group lens: it combines every finalized game a player appears in, regardless of which group it was logged under, so you see their complete record rather than one group\'s slice. Chosen with the Scope toggle.',
       },
@@ -112,14 +142,16 @@ export const glossaryCategories: GlossaryCategory[] = [
       {
         slug: 'personal-vs-global',
         term: 'Your Games vs All Recorded Games',
+        aliases: ['Your Games', 'All Recorded Games', 'personal games'],
         definition:
           "The two scopes in the Corporation & Prelude stats. 'Your Games' counts only games you personally played, while 'All Recorded Games' pools every finalized game in the database. Comparing them shows whether your corporation results line up with the wider trend or are unique to your table.",
       },
       {
         slug: 'global-statistics',
         term: 'Global Statistics',
+        aliases: ['Global Meta Snapshot', 'global meta', 'app-wide page'],
         definition:
-          "The app-wide page (previously labelled 'Group') that reports insights across every recorded game rather than a single player or group. It is the widest view of the data.",
+          'The app-wide page that reports insights across every recorded game rather than a single player or group. It is the widest view of the data.',
       },
       {
         slug: 'insight-card',
@@ -130,6 +162,7 @@ export const glossaryCategories: GlossaryCategory[] = [
       {
         slug: 'score-source-radar',
         term: 'Score Source Radar',
+        aliases: ['score-source radar', 'score source patterns'],
         definition:
           "The spider (radar) chart that plots a player's average points from each scoring source against the group average. It makes it easy to see at a glance which sources a player over- or under-relies on compared with everyone else.",
       },
