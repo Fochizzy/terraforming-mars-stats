@@ -198,6 +198,9 @@ describe('ProfilePage', () => {
     expect(getProfileAnalytics).toHaveBeenCalledTimes(1);
     expect(getProfileAnalytics).toHaveBeenCalledWith('user-1');
     expect(
+      screen.getByRole('link', { name: /compare players/i }),
+    ).toHaveAttribute('href', '/profile/compare');
+    expect(
       screen.getByRole('link', { name: /open my play vs overall/i }),
     ).toHaveAttribute('href', '/profile/comparison');
   });

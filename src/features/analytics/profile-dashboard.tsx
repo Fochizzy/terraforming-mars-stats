@@ -461,12 +461,20 @@ export function ProfileDashboard({
           Compare your play in any group you have played against your{' '}
           <GlossaryLink slug="overall-view">overall</GlossaryLink> record.
         </p>
-        <Link
-          className="tm-button-primary mt-4 inline-flex w-fit"
-          href="/profile/comparison"
-        >
-          Open My Play vs Overall
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            className="tm-button-primary inline-flex w-fit"
+            href="/profile/compare"
+          >
+            Compare Players
+          </Link>
+          <Link
+            className="tm-button-secondary inline-flex w-fit px-4 py-2 text-xs"
+            href="/profile/comparison"
+          >
+            Open My Play vs Overall
+          </Link>
+        </div>
       </ChartFrame>
       <ChartFrame title="Score Source Averages">
         <ScoreSourceList scoreAverages={scoreAverages} />

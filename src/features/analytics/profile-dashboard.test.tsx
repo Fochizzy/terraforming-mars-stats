@@ -162,6 +162,9 @@ describe('ProfileDashboard', () => {
     ).toHaveLength(3);
     expect(screen.getByText(/group comparisons/i)).toBeInTheDocument();
     expect(
+      screen.getByRole('link', { name: /compare players/i }),
+    ).toHaveAttribute('href', '/profile/compare');
+    expect(
       screen.getByRole('link', { name: /open my play vs overall/i }),
     ).toHaveAttribute('href', '/profile/comparison');
   });
