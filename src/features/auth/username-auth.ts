@@ -17,16 +17,13 @@ export const emailSchema = z
   .toLowerCase()
   .email('Enter a valid email address.');
 
-export const passwordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters.')
-  .max(72, 'Password must be 72 characters or fewer.')
-  .regex(/[A-Za-z]/, 'Password must include at least one letter.')
-  .regex(/\d/, 'Password must include at least one number.');
-
 export const pinSchema = z
   .string()
-  .regex(/^\d{4}$/, 'PIN must be exactly 4 digits.');
+  .regex(/^\d{6}$/, 'PIN must be exactly 6 digits.');
+
+export const legacyPinSchema = z
+  .string()
+  .regex(/^\d{4}$/, 'Legacy PIN must be exactly 4 digits.');
 
 export const signupFullNameSchema = z
   .string()
