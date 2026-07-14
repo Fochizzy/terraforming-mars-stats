@@ -132,6 +132,20 @@ describe('PlayerComparison', () => {
             wins: 2,
           },
         ],
+        trendRows: [
+          {
+            gameId: 'game-1',
+            generationCount: 10,
+            groupId: 'overall',
+            inferredPrimaryStyleCode: null,
+            isWinner: true,
+            placement: 1,
+            playedOn: '2026-07-01',
+            playerId: 'user:user-1',
+            playerName: 'Izzy Mars',
+            totalPoints: 84,
+          },
+        ],
       },
     });
     const opponent = person({
@@ -164,7 +178,20 @@ describe('PlayerComparison', () => {
             wins: 1,
           },
         ],
-        trendRows: [],
+        trendRows: [
+          {
+            gameId: 'game-2',
+            generationCount: 10,
+            groupId: 'overall',
+            inferredPrimaryStyleCode: null,
+            isWinner: false,
+            placement: 2,
+            playedOn: '2026-07-02',
+            playerId: 'name:alex-green',
+            playerName: 'Alex Green',
+            totalPoints: 74,
+          },
+        ],
       },
       canonicalId: 'name:alex-green',
       displayName: 'Alex Green',
@@ -224,5 +251,112 @@ describe('PlayerComparison', () => {
     ).toBeGreaterThan(0);
     expect(screen.getByText(/additional compare points/i)).toBeInTheDocument();
     expect(screen.getByText(/style clash/i)).toBeInTheDocument();
+  });
+
+  it('dedupes multi-corporation tag rows and scopes tag profiles to the compared games', () => {
+    const self = person({
+      bundle: {
+        ...person().bundle,
+        trendRows: [
+          {
+            gameId: 'shared-game',
+            generationCount: 10,
+            groupId: 'overall',
+            inferredPrimaryStyleCode: null,
+            isWinner: false,
+            placement: 2,
+            playedOn: '2026-07-01',
+            playerId: 'user:user-1',
+            playerName: 'Izzy Mars',
+            totalPoints: 72,
+          },
+        ],
+      },
+    });
+    const opponent = person({
+      activeGroupPlayerId: 'player-2',
+      bundle: {
+        ...person().bundle,
+        performance: performance({
+          playerId: 'player-2',
+          playerName: 'James Hodnett',
+          winRate: 1,
+          wins: 1,
+        }),
+        trendRows: [
+          {
+            gameId: 'shared-game',
+            generationCount: 10,
+            groupId: 'overall',
+            inferredPrimaryStyleCode: null,
+            isWinner: true,
+            placement: 1,
+            playedOn: '2026-07-01',
+            playerId: 'user:rev-loki',
+            playerName: 'RevLoki',
+            totalPoints: 88,
+          },
+        ],
+      },
+      canonicalId: 'user:rev-loki',
+      displayName: 'RevLoki',
+      playerIds: ['player-2'],
+    });
+
+    render(
+      <PlayerComparison
+        overallAnalytics={{
+          playerInteractionRows: [],
+        }}
+        overallExtended={{
+          tagOutcomeRows: [
+            tagOutcome({
+              corporationId: 'corp-1',
+              corporationName: 'Arklight',
+              gameId: 'shared-game',
+              isWinner: true,
+              playerId: 'user:rev-loki',
+              playerName: 'RevLoki',
+              tagCode: 'building',
+              tagCount: 4,
+            }),
+            tagOutcome({
+              corporationId: 'corp-2',
+              corporationName: 'Vitor',
+              gameId: 'shared-game',
+              isWinner: true,
+              playerId: 'user:rev-loki',
+              playerName: 'RevLoki',
+              tagCode: 'building',
+              tagCount: 4,
+            }),
+            tagOutcome({
+              gameId: 'other-game',
+              isWinner: false,
+              playerId: 'user:rev-loki',
+              playerName: 'RevLoki',
+              tagCode: 'building',
+              tagCount: 20,
+            }),
+            tagOutcome({
+              gameId: 'shared-game',
+              isWinner: true,
+              playerId: 'user:rev-loki',
+              playerName: 'RevLoki',
+              tagCode: 'science',
+              tagCount: 0,
+            }),
+          ],
+        }}
+        people={[self, opponent]}
+        selectedOpponentId="user:rev-loki"
+        selfCanonicalId="user:user-1"
+      />,
+    );
+
+    expect(screen.getByText(/4 \/ game \| 100% wins with tag/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/24 \/ game|20 \/ game|science/i),
+    ).not.toBeInTheDocument();
   });
 });

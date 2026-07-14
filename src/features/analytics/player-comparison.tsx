@@ -32,7 +32,6 @@ type PlayerComparisonProps = {
 
 type TagSummary = {
   averageTagCount: number;
-  games: number;
   tagCode: string;
   totalTagCount: number;
   winRate: number;
@@ -78,35 +77,62 @@ function getTopInteractions(rows: GroupInteractionRow[], playerId: string) {
     .slice(0, 3);
 }
 
-function summarizeTags(rows: TagOutcomeRow[], playerId: string): TagSummary[] {
-  const byTag = new Map<
-    string,
-    { games: number; totalTagCount: number; wins: number }
-  >();
+function summarizeTags(
+  rows: TagOutcomeRow[],
+  playerId: string,
+  gameIds: string[],
+): TagSummary[] {
+  const scopedGameIds = new Set(gameIds);
+  const playerResultRows = new Map<string, TagOutcomeRow>();
 
   for (const row of rows) {
-    if (row.playerId !== playerId) {
+    if (row.playerId !== playerId || !scopedGameIds.has(row.gameId)) {
       continue;
     }
 
+    // player_tag_outcomes emits one row per selected corporation. Collapse
+    // multi-corporation games back to one player/game/tag result here.
+    const key = `${row.gameId}|${row.tagCode}`;
+    if (!playerResultRows.has(key)) {
+      playerResultRows.set(key, row);
+    }
+  }
+
+  const gamesWithTagData = new Set(
+    [...playerResultRows.values()].map((row) => row.gameId),
+  );
+
+  if (gamesWithTagData.size === 0) {
+    return [];
+  }
+
+  const byTag = new Map<
+    string,
+    { gamesWithTag: number; totalTagCount: number; winsWithTag: number }
+  >();
+
+  for (const row of playerResultRows.values()) {
     const current = byTag.get(row.tagCode) ?? {
-      games: 0,
+      gamesWithTag: 0,
       totalTagCount: 0,
-      wins: 0,
+      winsWithTag: 0,
     };
-    current.games += 1;
     current.totalTagCount += row.tagCount;
-    current.wins += row.isWinner ? 1 : 0;
+    if (row.tagCount > 0) {
+      current.gamesWithTag += 1;
+      current.winsWithTag += row.isWinner ? 1 : 0;
+    }
     byTag.set(row.tagCode, current);
   }
 
   return [...byTag.entries()]
+    .filter(([, total]) => total.totalTagCount > 0)
     .map(([tagCode, total]) => ({
-      averageTagCount: total.totalTagCount / total.games,
-      games: total.games,
+      averageTagCount: total.totalTagCount / gamesWithTagData.size,
       tagCode,
       totalTagCount: total.totalTagCount,
-      winRate: total.wins / total.games,
+      winRate:
+        total.gamesWithTag > 0 ? total.winsWithTag / total.gamesWithTag : 0,
     }))
     .sort(
       (left, right) =>
@@ -317,7 +343,7 @@ function TagSummaryList({
               <TagLabel code={row.tagCode} />
               <span className="tm-muted-copy text-right">
                 {formatAverage(row.averageTagCount)} / game |{' '}
-                {formatPercent(row.winRate)}
+                {formatPercent(row.winRate)} wins with tag
               </span>
             </li>
           ))}
@@ -484,10 +510,15 @@ export function PlayerComparison({
   const opponentStyle = getPrimaryStyle(
     selectedOpponent.bundle.styleBreakdownRows,
   );
-  const selfTags = summarizeTags(overallExtended.tagOutcomeRows, selfCanonicalId);
+  const selfTags = summarizeTags(
+    overallExtended.tagOutcomeRows,
+    selfCanonicalId,
+    self.bundle.trendRows.map((row) => row.gameId),
+  );
   const opponentTags = summarizeTags(
     overallExtended.tagOutcomeRows,
     selectedOpponent.canonicalId,
+    selectedOpponent.bundle.trendRows.map((row) => row.gameId),
   );
   const selfInteractions = getTopInteractions(
     overallAnalytics.playerInteractionRows,
