@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type MouseEvent, useState } from 'react';
 import { InsightsLoadingPopup } from './insights-loading-popup';
+import { ProfileLoadingPopup } from './profile-loading-popup';
 
 export type TopNavItem = {
   href: string;
@@ -17,7 +18,6 @@ export const defaultTopNavItems: TopNavItem[] = [
   { href: '/group', label: 'Global' },
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
-  { href: '/comparisons', label: 'Comparisons' },
   { href: '/cards', label: 'Cards', align: 'end' },
   { href: '/glossary', label: 'Glossary', align: 'end' },
 ];
@@ -50,6 +50,22 @@ function shouldShowInsightsLoading(
   );
 }
 
+function shouldShowProfileLoading(
+  event: MouseEvent<HTMLAnchorElement>,
+  href: string,
+  pathname: string,
+) {
+  return (
+    href === '/profile' &&
+    pathname !== href &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
 export function TopNav({
   items = defaultTopNavItems,
 }: {
@@ -57,6 +73,7 @@ export function TopNav({
 }) {
   const pathname = usePathname() ?? '';
   const [showInsightsLoading, setShowInsightsLoading] = useState(false);
+  const [showProfileLoading, setShowProfileLoading] = useState(false);
 
   const firstEndHref = items.find((item) => item.align === 'end')?.href;
 
@@ -76,6 +93,9 @@ export function TopNav({
                 if (shouldShowInsightsLoading(event, item.href, pathname)) {
                   setShowInsightsLoading(true);
                 }
+                if (shouldShowProfileLoading(event, item.href, pathname)) {
+                  setShowProfileLoading(true);
+                }
               }}
             >
               {item.label}
@@ -84,6 +104,7 @@ export function TopNav({
         })}
       </nav>
       {showInsightsLoading ? <InsightsLoadingPopup /> : null}
+      {showProfileLoading ? <ProfileLoadingPopup /> : null}
     </>
   );
 }

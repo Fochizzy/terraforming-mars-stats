@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type MouseEvent, useState } from 'react';
 import { InsightsLoadingPopup } from './insights-loading-popup';
+import { ProfileLoadingPopup } from './profile-loading-popup';
 
 export type BottomNavItem = {
   href: string;
@@ -16,7 +17,6 @@ export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/group', label: 'Global' },
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
-  { href: '/comparisons', label: 'Comparisons' },
   { href: '/cards', label: 'Cards' },
   { href: '/glossary', label: 'Glossary' },
 ];
@@ -63,6 +63,22 @@ function shouldShowInsightsLoading(
   );
 }
 
+function shouldShowProfileLoading(
+  event: MouseEvent<HTMLAnchorElement>,
+  href: string,
+  pathname: string,
+) {
+  return (
+    href === '/profile' &&
+    pathname !== href &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
 export function BottomNav({
   items = defaultBottomNavItems,
 }: {
@@ -70,6 +86,7 @@ export function BottomNav({
 }) {
   const pathname = usePathname() ?? '';
   const [showInsightsLoading, setShowInsightsLoading] = useState(false);
+  const [showProfileLoading, setShowProfileLoading] = useState(false);
   const navigationItems = items;
   const cardsItem = navigationItems.find((item) => item.href === '/cards');
   const glossaryItem = navigationItems.find((item) => item.href === '/glossary');
@@ -94,6 +111,17 @@ export function BottomNav({
           aria-label="Home"
           className="tm-bottom-nav__icon"
           href={navigationItems[0]?.href ?? '/'}
+          onClick={(event) => {
+            if (
+              shouldShowProfileLoading(
+                event,
+                navigationItems[0]?.href ?? '/',
+                pathname,
+              )
+            ) {
+              setShowProfileLoading(true);
+            }
+          }}
         >
           <HomeIcon />
         </Link>
@@ -106,6 +134,9 @@ export function BottomNav({
               onClick={(event) => {
                 if (shouldShowInsightsLoading(event, item.href, pathname)) {
                   setShowInsightsLoading(true);
+                }
+                if (shouldShowProfileLoading(event, item.href, pathname)) {
+                  setShowProfileLoading(true);
                 }
               }}
             >
@@ -144,6 +175,7 @@ export function BottomNav({
         ) : null}
       </nav>
       {showInsightsLoading ? <InsightsLoadingPopup /> : null}
+      {showProfileLoading ? <ProfileLoadingPopup /> : null}
     </>
   );
 }
