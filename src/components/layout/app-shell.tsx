@@ -46,20 +46,28 @@ export function AppShell({
                 </h1>
               </div>
               <div className="tm-app-header__actions">
-                {headerActions}
-                {showReviewSavedGamesLink ? (
-                  <Link
-                    className="tm-button-secondary px-4 py-2 text-xs"
-                    href="/log-game/review"
-                  >
-                    Review Saved Games
-                  </Link>
-                ) : null}
-                <form action={signOut}>
-                  <button className="tm-button-secondary px-4 py-2 text-xs" type="submit">
-                    Log Out
-                  </button>
-                </form>
+                <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
+                  {headerActions}
+                  {showReviewSavedGamesLink ? (
+                    <Link
+                      className="tm-button-secondary px-4 py-2 text-xs"
+                      href="/log-game/review"
+                    >
+                      Review Saved Games
+                    </Link>
+                  ) : null}
+                  <form action={signOut}>
+                    <button className="tm-button-secondary px-4 py-2 text-xs" type="submit">
+                      Log Out
+                    </button>
+                  </form>
+                </div>
+                <Link
+                  className="tm-button-secondary px-4 py-2 text-xs"
+                  href="/leaderboard"
+                >
+                  Leaderboard
+                </Link>
               </div>
             </div>
             <TopNav />

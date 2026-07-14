@@ -129,8 +129,8 @@ describe('ProfileComparisonPage', () => {
     expect(
       screen.getByText('4 finalized games in this group | 10 overall'),
     ).toBeInTheDocument();
-    expect(screen.getByText('+10 vs overall')).toBeInTheDocument();
-    expect(screen.getByText('+25 pp vs overall')).toBeInTheDocument();
+    expect(screen.getByText('+10')).toBeInTheDocument();
+    expect(screen.getByText('+25 pp')).toBeInTheDocument();
   });
 
   it('compares the group selected through the groupId param', async () => {

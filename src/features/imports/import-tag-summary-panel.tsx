@@ -92,7 +92,7 @@ export function ImportTagSummaryPanel({
                       className="inline-flex items-center gap-1.5 rounded-full border border-sky-100/20 bg-black/20 px-2.5 py-1"
                       key={`${summary.playerName}-${tagCode}`}
                     >
-                      <TagIcon code={tagCode} size={16} />
+                      <TagIcon code={tagCode} size={20} />
                       {tagLabels[tagCode]} {summary.tagCounts[tagCode]}
                     </span>
                   ))}

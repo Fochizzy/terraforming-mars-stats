@@ -40,6 +40,8 @@ export default async function ProfileComparisonPage({
   let playerName: string | null = null;
   let overallPerformance = null;
   let selectedGroupPerformance = null;
+  let overallProfile = null;
+  let selectedGroupProfile = null;
   let comparisonUnavailable = false;
 
   try {
@@ -49,6 +51,8 @@ export default async function ProfileComparisonPage({
     ]);
 
     playerName = overallAnalytics?.playerName ?? null;
+    overallProfile = overallAnalytics;
+    selectedGroupProfile = selectedGroupAnalytics;
     overallPerformance = overallAnalytics?.performance ?? null;
     selectedGroupPerformance = selectedGroupAnalytics?.performance ?? null;
   } catch (error) {
@@ -70,9 +74,11 @@ export default async function ProfileComparisonPage({
       <GroupPlayComparison
         groups={compareGroups}
         overallPerformance={overallPerformance}
+        overallProfile={overallProfile}
         playerName={playerName}
         selectedGroupId={selectedGroupId}
         selectedGroupPerformance={selectedGroupPerformance}
+        selectedGroupProfile={selectedGroupProfile}
         unavailable={comparisonUnavailable}
       />
     </AppShell>

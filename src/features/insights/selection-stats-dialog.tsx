@@ -55,7 +55,7 @@ function SelectionStatsDialog({
   onClose,
 }: {
   entry: SelectionDialogEntry | undefined;
-  kind: 'Corporation' | 'Prelude';
+  kind: 'Card' | 'Corporation' | 'Prelude';
   meta: CardImageMeta | undefined;
   name: string;
   onClose: () => void;
@@ -148,7 +148,7 @@ export function SelectionStatsButton({
 }: {
   className?: string;
   entry: SelectionDialogEntry | undefined;
-  kind: 'Corporation' | 'Prelude';
+  kind: 'Card' | 'Corporation' | 'Prelude';
   meta: CardImageMeta | undefined;
   name: string;
 }) {

@@ -73,9 +73,14 @@ export function buildGroupStatEntries({
       label: 'Average Placement',
       value: formatAverage(performance.averagePlacement),
       delta: overallPerformance
-        ? formatSignedAverage(
-            performance.averagePlacement - overallPerformance.averagePlacement,
-          )
+        ? (() => {
+            const difference =
+              performance.averagePlacement - overallPerformance.averagePlacement;
+            if (difference === 0) return 'Same placement';
+            return `${formatAverage(Math.abs(difference))} places ${
+              difference < 0 ? 'better' : 'worse'
+            }`;
+          })()
         : null,
     },
     {

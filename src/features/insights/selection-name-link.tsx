@@ -6,7 +6,7 @@ import { SelectionStatsButton } from './selection-stats-dialog';
 export const SELECTION_NAME_LINK_CLASS =
   'font-semibold text-stone-100 underline decoration-dotted underline-offset-2 transition hover:text-[rgb(221,161,93)]';
 
-type SelectionKind = 'Corporation' | 'Prelude';
+type SelectionKind = 'Card' | 'Corporation' | 'Prelude';
 
 export function SelectionNameButton({
   className = SELECTION_NAME_LINK_CLASS,
@@ -19,8 +19,9 @@ export function SelectionNameButton({
   kind: SelectionKind;
   name: string;
 }) {
-  const winRates =
-    kind === 'Corporation'
+  const winRates = kind === 'Card'
+    ? dialogData?.cardWinRates
+    : kind === 'Corporation'
       ? dialogData?.corporationWinRates
       : dialogData?.preludeWinRates;
 
