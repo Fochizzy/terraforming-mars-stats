@@ -1,3 +1,4 @@
+-- Cleanup must run before the later reference-policy migration on fresh preview databases.
 drop policy if exists "authenticated users read expansions" on public.expansions;
 drop policy if exists "authenticated users read maps" on public.maps;
 drop policy if exists "authenticated users read promo sets" on public.promo_sets;
