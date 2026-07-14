@@ -2,8 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
-import type { EloLeaderboardRow } from '@/lib/db/elo-leaderboard-repo';
-import { buildLeaderboardHeatNarratives } from '@/lib/db/elo-leaderboard-repo';
+import { buildLeaderboardHeatNarratives, type EloLeaderboardRow } from '@/lib/elo-leaderboard-model';
 import { toggleSavedLeaderboardPlayer } from '@/app/(app)/leaderboard/actions';
 
 function RatingTable({ personal, rows, savedIds, onToggle }: {

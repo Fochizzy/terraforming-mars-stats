@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLeaderboardHeatNarratives, type EloLeaderboardRow } from './elo-leaderboard-repo';
+import { buildLeaderboardHeatNarratives, type EloLeaderboardRow } from '../elo-leaderboard-model';
 
 function row(overrides: Partial<EloLeaderboardRow>): EloLeaderboardRow {
   return { averageWinMargin: 4, eloRating: 1500, gamesPlayed: 10, lastChange: 0, playerId: 'p', playerName: 'Player', winRate: 0.5, wins: 5, ...overrides };
