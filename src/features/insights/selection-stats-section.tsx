@@ -425,7 +425,10 @@ export function SelectionStatsScope(props: {
           ) : null}
           {props.stats.pairs.length > 0 ? (
             <CorporationPreludePairings
+              baselineWinRate={props.stats.baselineWinRate}
+              corporationRows={props.stats.corporations}
               dialogData={props.dialogData}
+              preludeRows={props.stats.preludes}
               rows={props.stats.pairs}
             />
           ) : null}
@@ -635,12 +638,64 @@ function MergerImpactBlock(props: { rows: MergerImpactStat[] }) {
   );
 }
 
+export function buildFinalTerraformingActionNarratives(
+  rows: FinalTerraformingActionStat[],
+) {
+  const usableRows = rows.filter(
+    (row) => row.final_action_games > 0 && row.win_rate_delta !== null,
+  );
+  if (usableRows.length === 0) {
+    return ['More imported final-action logs are needed before a reliable finishing pattern can be identified.'];
+  }
+
+  const strongest = [...usableRows].sort(
+    (left, right) =>
+      (right.win_rate_delta ?? 0) - (left.win_rate_delta ?? 0) ||
+      right.final_action_games - left.final_action_games,
+  )[0];
+  const mostFrequent = [...usableRows].sort(
+    (left, right) =>
+      right.final_action_games - left.final_action_games ||
+      right.final_action_rate - left.final_action_rate,
+  )[0];
+  const actionCounts = new Map<string, number>();
+  for (const row of rows) {
+    if (row.most_common_action_type && row.most_common_action_count) {
+      actionCounts.set(
+        row.most_common_action_type,
+        (actionCounts.get(row.most_common_action_type) ?? 0) +
+          row.most_common_action_count,
+      );
+    }
+  }
+  const commonAction = [...actionCounts.entries()].sort(
+    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+  )[0];
+  const narratives = [
+    `${strongest.player_name} shows the strongest finishing association: taking the last parameter step coincided with a ${formatWinRateDelta(strongest.win_rate_delta)} win-rate change across ${strongest.final_action_games} recorded finishes.`,
+    `${mostFrequent.player_name} most often controlled the last terraforming step, doing so in ${formatWinRate(mostFrequent.final_action_rate)} of ${mostFrequent.imported_games} imported games.`,
+  ];
+
+  if (commonAction) {
+    narratives.push(
+      `${formatActionType(commonAction[0])} is the most repeated finisher in this slice (${commonAction[1]} recorded actions), suggesting that closing that global parameter is the most common endgame timing lever.`,
+    );
+  }
+  if (strongest.final_action_games < 5) {
+    narratives.push('The strongest delta is still a small-sample signal, so it should be treated as a pattern to watch rather than proof that the final action caused the wins.');
+  }
+
+  return narratives;
+}
+
 export function FinalTerraformingActionBlock(props: {
   rows: FinalTerraformingActionStat[];
 }) {
   if (props.rows.length === 0) {
     return null;
   }
+
+  const narratives = buildFinalTerraformingActionNarratives(props.rows);
 
   return (
     <div className="flex flex-col gap-3">
@@ -697,6 +752,14 @@ export function FinalTerraformingActionBlock(props: {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="rounded border border-[var(--tm-copper-700)]/50 bg-black/10 p-3 text-sm text-stone-200">
+        <p className="tm-data-label mb-2">What the finishing patterns suggest</p>
+        <div className="flex flex-col gap-1">
+          {narratives.map((narrative) => (
+            <p key={narrative}>{narrative}</p>
+          ))}
+        </div>
       </div>
     </div>
   );

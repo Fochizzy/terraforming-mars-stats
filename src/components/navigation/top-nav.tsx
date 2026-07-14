@@ -17,6 +17,7 @@ export const defaultTopNavItems: TopNavItem[] = [
   { href: '/group', label: 'Global' },
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
+  { href: '/comparisons', label: 'Comparisons' },
   { href: '/cards', label: 'Cards', align: 'end' },
   { href: '/glossary', label: 'Glossary', align: 'end' },
 ];

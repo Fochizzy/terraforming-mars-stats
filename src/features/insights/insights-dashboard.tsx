@@ -1997,7 +1997,7 @@ export function InsightsDashboard({
         : 'Insights Lab';
   const labDescription =
     scopeMode === 'group'
-      ? 'Choose players, run the combination lens, and compare finalized games containing that selected mix.'
+      ? 'Choose every player in the lineup, including yourself when applicable, then compare finalized games containing that exact selected mix.'
       : scopeMode === 'individual'
         ? 'Pick a player to refocus every individual chart below. All figures are built from finalized games only.'
         : 'Pick a player and a scope to refocus every chart below. All figures are built from finalized games only.';
@@ -2580,6 +2580,7 @@ export function InsightsDashboard({
                 groupRows={sectionExtended.groupMapPerformanceRows}
                 mapGroups={mapAwardGroups}
                 playerRows={sectionExtended.playerMapPerformanceRows}
+                tileRows={sectionExtended.tilePlacementRows}
               />
             </>
           ) : null}
@@ -2691,6 +2692,7 @@ export function InsightsDashboard({
           <BoardHeatmapSection
             mapGroups={mapAwardGroups}
             rows={sectionExtended.tilePlacementRows}
+            title={scopeMode === 'all' ? 'Global Board Heatmap' : 'Board Heatmap'}
           />
 
           {selectedInteractionRows.length > 0 ? (

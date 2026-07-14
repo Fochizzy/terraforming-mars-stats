@@ -2612,8 +2612,11 @@ export type RawProfileCardRow = {
   full_image_url?: string | null;
   game_id: string;
   is_winner: boolean;
+  map_name?: string | null;
   outcome_method?: string | null;
+  pace_bucket?: string | null;
   player_id: string;
+  player_count?: number | null;
   style_code?: string | null;
   thumbnail_url?: string | null;
 };
@@ -4805,7 +4808,13 @@ const PROFILE_LOSS_CARD_LIMIT = 5;
 // directions.
 const KEY_CARD_CONTEXT_SHRINKAGE = 3;
 
-type CardContextField = 'corporation_name' | 'outcome_method' | 'style_code';
+type CardContextField =
+  | 'corporation_name'
+  | 'map_name'
+  | 'outcome_method'
+  | 'pace_bucket'
+  | 'player_count'
+  | 'style_code';
 
 function contextWinRates(
   rows: RawProfileCardRow[],
@@ -4815,7 +4824,8 @@ function contextWinRates(
   const games = new Map<string, { isWinner: boolean; value: string }>();
 
   for (const row of rows) {
-    const value = row[field];
+    const rawValue = row[field];
+    const value = typeof rawValue === 'number' ? String(rawValue) : rawValue;
     if (value) {
       games.set(`${row.game_id}|${row.player_id}`, {
         isWinner: row.is_winner,
@@ -4844,7 +4854,8 @@ function contextWinRates(
 function mostCommonContext(rows: RawProfileCardRow[], field: CardContextField) {
   const counts = new Map<string, number>();
   for (const row of rows) {
-    const value = row[field];
+    const rawValue = row[field];
+    const value = typeof rawValue === 'number' ? String(rawValue) : rawValue;
     if (value) {
       counts.set(value, (counts.get(value) ?? 0) + 1);
     }
@@ -4882,9 +4893,20 @@ export function buildContextAdjustedImpactCards(
       'corporation_name',
       personalBaselineWinRate,
     ),
+    map_name: contextWinRates(uniqueRows, 'map_name', personalBaselineWinRate),
     outcome_method: contextWinRates(
       uniqueRows,
       'outcome_method',
+      personalBaselineWinRate,
+    ),
+    pace_bucket: contextWinRates(
+      uniqueRows,
+      'pace_bucket',
+      personalBaselineWinRate,
+    ),
+    player_count: contextWinRates(
+      uniqueRows,
+      'player_count',
       personalBaselineWinRate,
     ),
     style_code: contextWinRates(uniqueRows, 'style_code', personalBaselineWinRate),
@@ -4914,9 +4936,17 @@ export function buildContextAdjustedImpactCards(
     };
 
     const expectedRates = (
-      ['corporation_name', 'style_code', 'outcome_method'] as CardContextField[]
+      [
+        'corporation_name',
+        'style_code',
+        'outcome_method',
+        'pace_bucket',
+        'player_count',
+        'map_name',
+      ] as CardContextField[]
     ).flatMap((field) => {
-      const value = row[field];
+      const rawValue = row[field];
+      const value = typeof rawValue === 'number' ? String(rawValue) : rawValue;
       const rate = value ? contextRates[field].get(value) : undefined;
       return typeof rate === 'number' ? [rate] : [];
     });
@@ -4943,6 +4973,11 @@ export function buildContextAdjustedImpactCards(
       mostCommonContext(entry.rows, 'corporation_name'),
       mostCommonContext(entry.rows, 'style_code'),
       mostCommonContext(entry.rows, 'outcome_method'),
+      mostCommonContext(entry.rows, 'pace_bucket'),
+      mostCommonContext(entry.rows, 'player_count')
+        ? `${mostCommonContext(entry.rows, 'player_count')} players`
+        : undefined,
+      mostCommonContext(entry.rows, 'map_name'),
     ].filter((value): value is string => Boolean(value));
 
     return {
@@ -5201,7 +5236,7 @@ async function listProfileCardRows(
     .select(
       `card_id, card_name, full_image_url, game_id, is_winner, player_id, thumbnail_url${
         view === 'player_card_outcomes'
-          ? ', corporation_name, outcome_method, style_code'
+          ? ', corporation_name, map_name, outcome_method, pace_bucket, player_count, style_code'
           : ''
       }`,
     )
