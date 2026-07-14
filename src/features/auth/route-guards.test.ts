@@ -8,6 +8,7 @@ describe('isProtectedPath', () => {
     expect(isProtectedPath('/group')).toBe(true);
     expect(isProtectedPath('/log-game')).toBe(true);
     expect(isProtectedPath('/login')).toBe(false);
+    expect(isProtectedPath('/import-instructions')).toBe(false);
     expect(isProtectedPath('/')).toBe(false);
   });
 });

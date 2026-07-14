@@ -22,7 +22,7 @@ import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-st
 import { ImportReviewPanel } from './import-review-panel';
 
 const WEB_IMPORT_INSTRUCTIONS_URL =
-  'https://tm-import-instructions-20260714.izzy-hodnett-1470.chatgpt.site';
+  '/import-instructions';
 
 const WEB_IMPORT_INSTRUCTION_STEPS = [
   {

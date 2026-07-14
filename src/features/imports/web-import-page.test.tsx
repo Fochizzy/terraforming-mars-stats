@@ -146,7 +146,7 @@ describe('WebImportPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open full guide/i })).toHaveAttribute(
       'href',
-      'https://tm-import-instructions-20260714.izzy-hodnett-1470.chatgpt.site',
+      '/import-instructions',
     );
     expect(
       screen.getByText(
@@ -198,10 +198,7 @@ describe('WebImportPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open full guide in a new tab/i }),
-    ).toHaveAttribute(
-      'href',
-      'https://tm-import-instructions-20260714.izzy-hodnett-1470.chatgpt.site',
-    );
+    ).toHaveAttribute('href', '/import-instructions');
 
     await user.click(
       screen.getByRole('button', { name: /close upload instructions/i }),
