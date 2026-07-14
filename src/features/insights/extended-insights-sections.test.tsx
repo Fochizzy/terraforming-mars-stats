@@ -25,6 +25,7 @@ import {
   buildAwardMatrixModel,
   buildMilestoneChartData,
   findAwardLeaders,
+  MilestoneEconomicsSection,
 } from './milestone-award-section';
 import { buildPlacementShareData } from './placement-distribution-chart';
 import { buildRadarData } from './score-source-radar';
@@ -288,6 +289,50 @@ describe('buildMilestoneChartData', () => {
       { claimerWinRate: 67, claims: 3, milestoneName: 'Gardener' },
     ]);
   });
+
+  it('opens milestone definitions and claim stats from milestone cards', () => {
+    render(
+      <MilestoneEconomicsSection
+        focusPlayerId="p1"
+        focusPlayerName="Ada"
+        groupRows={[
+          {
+            averageClaimerPlacement: 1.5,
+            claimerWins: 2,
+            claimerWinRate: 0.5,
+            claimRate: 0.8,
+            claims: 4,
+            groupId: 'group-1',
+            milestoneId: 'terraformer',
+            milestoneName: 'Terraformer',
+          },
+        ]}
+        playerRows={[
+          {
+            claimerWins: 1,
+            claims: 2,
+            groupId: 'group-1',
+            milestoneId: 'terraformer',
+            milestoneName: 'Terraformer',
+            playerId: 'p1',
+            playerName: 'Ada',
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Show milestone details for Terraformer',
+      }),
+    );
+
+    expect(
+      screen.getByRole('dialog', { name: 'Terraformer milestone details' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/won when claimed/i)).toHaveLength(2);
+    expect(screen.getByText(/claimed when won/i)).toBeInTheDocument();
+  });
 });
 
 describe('buildAwardMatrixModel', () => {
@@ -433,11 +478,33 @@ describe('AwardEconomicsSection', () => {
           {
             awardId: 'a1',
             awardName: 'Excentric',
+            funderFirstPlaceCount: 0,
+            funderFirstPlaceRate: 0,
+            funderGameWonCount: 1,
+            funderGameWonRate: 1,
+            funderSecondPlaceCount: 1,
+            funderSecondPlaceRate: 1,
             fundedCount: 1,
             funderWonCount: 0,
             funderWonRate: 0,
             groupId: 'group-1',
             snipedCount: 1,
+          },
+        ]}
+        groupPlayerAwardRows={[
+          {
+            awardId: 'a1',
+            awardName: 'Excentric',
+            funderFirstPlaceCount: 0,
+            funderFirstPlaceRate: 0,
+            funderGameWonCount: 1,
+            funderGameWonRate: 1,
+            funderPlayerId: 'p1',
+            funderPlayerName: 'Izzy Hodnett',
+            funderSecondPlaceCount: 1,
+            funderSecondPlaceRate: 1,
+            fundedCount: 1,
+            groupId: 'group-1',
           },
         ]}
         overallFocusPlayerId={null}
@@ -451,6 +518,17 @@ describe('AwardEconomicsSection', () => {
         /Most funded by Izzy Hodnett \(1×\) \| most won by James Hodnett \(1×\)/,
       ),
     ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Show award details for Excentric' }),
+    );
+
+    expect(
+      screen.getByRole('dialog', { name: 'Excentric award details' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/funder won game/i)).toBeInTheDocument();
+    expect(screen.getByText(/funder came 1st/i)).toBeInTheDocument();
+    expect(screen.getByText(/funder came 2nd/i)).toBeInTheDocument();
   });
 
   it('defaults to this-group data and swaps to all-my-groups on toggle', () => {

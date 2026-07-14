@@ -47,6 +47,12 @@ export type CorporationTagStat = {
 export type AwardFundingStat = {
   award_name: string;
   funded_count: number;
+  funder_first_place_count?: number;
+  funder_first_place_rate?: number;
+  funder_game_won_count?: number;
+  funder_game_won_rate?: number;
+  funder_second_place_count?: number;
+  funder_second_place_rate?: number;
   funder_won_count: number;
 };
 

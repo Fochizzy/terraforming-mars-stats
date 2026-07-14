@@ -7,6 +7,7 @@ import {
   mergeGroupMapPerformance,
   mergeMilestoneEconomics,
   mergePlacementDistribution,
+  mergePlayerAwardFundingOutcomes,
   mergePlayerCountPerformance,
   mergePlayerMapPerformance,
   mergePlayerMilestoneClaims,
@@ -104,11 +105,32 @@ export type PlayerMilestoneClaimRow = {
 export type AwardOutcomeRow = {
   awardId: string;
   awardName: string;
+  funderFirstPlaceCount?: number;
+  funderFirstPlaceRate?: number;
+  funderGameWonCount?: number;
+  funderGameWonRate?: number;
+  funderSecondPlaceCount?: number;
+  funderSecondPlaceRate?: number;
   fundedCount: number;
   funderWonCount: number;
   funderWonRate: number;
   groupId: string;
   snipedCount: number;
+};
+
+export type PlayerAwardFundingOutcomeRow = {
+  awardId: string;
+  awardName: string;
+  funderFirstPlaceCount: number;
+  funderFirstPlaceRate: number;
+  funderGameWonCount: number;
+  funderGameWonRate: number;
+  funderPlayerId: string;
+  funderPlayerName: string;
+  funderSecondPlaceCount: number;
+  funderSecondPlaceRate: number;
+  fundedCount: number;
+  groupId: string;
 };
 
 export type AwardFunderWinnerRow = {
@@ -185,6 +207,7 @@ export type ExtendedGroupAnalytics = {
   milestoneEconomicsRows: MilestoneEconomicsRow[];
   placementDistributionRows: PlacementDistributionRow[];
   playerCountPerformanceRows: PlayerCountPerformanceRow[];
+  playerAwardFundingRows?: PlayerAwardFundingOutcomeRow[];
   playerMapPerformanceRows: PlayerMapPerformanceRow[];
   playerMilestoneClaimRows: PlayerMilestoneClaimRow[];
   tagOutcomeRows: TagOutcomeRow[];
@@ -279,11 +302,32 @@ type RawPlayerMilestoneClaimRow = {
 type RawAwardOutcomeRow = {
   award_id: string;
   award_name: string;
+  funder_first_place_count?: number;
+  funder_first_place_rate?: number | string;
+  funder_game_won_count?: number;
+  funder_game_won_rate?: number | string;
+  funder_second_place_count?: number;
+  funder_second_place_rate?: number | string;
   funded_count: number;
   funder_won_count: number;
   funder_won_rate: number | string;
   group_id: string;
   sniped_count: number;
+};
+
+type RawPlayerAwardFundingOutcomeRow = {
+  award_id: string;
+  award_name: string;
+  funder_first_place_count: number;
+  funder_first_place_rate: number | string;
+  funder_game_won_count: number;
+  funder_game_won_rate: number | string;
+  funder_player_id: string;
+  funder_player_name: string;
+  funder_second_place_count: number;
+  funder_second_place_rate: number | string;
+  funded_count: number;
+  group_id: string;
 };
 
 type RawAwardFunderWinnerRow = {
@@ -487,11 +531,36 @@ function mapAwardOutcomeRow(row: RawAwardOutcomeRow): AwardOutcomeRow {
   return {
     awardId: row.award_id,
     awardName: row.award_name,
+    funderFirstPlaceCount: row.funder_first_place_count,
+    funderFirstPlaceRate: toNumber(row.funder_first_place_rate),
+    funderGameWonCount: row.funder_game_won_count,
+    funderGameWonRate: toNumber(row.funder_game_won_rate),
+    funderSecondPlaceCount: row.funder_second_place_count,
+    funderSecondPlaceRate: toNumber(row.funder_second_place_rate),
     fundedCount: row.funded_count,
     funderWonCount: row.funder_won_count,
     funderWonRate: toNumber(row.funder_won_rate),
     groupId: row.group_id,
     snipedCount: row.sniped_count,
+  };
+}
+
+function mapPlayerAwardFundingOutcomeRow(
+  row: RawPlayerAwardFundingOutcomeRow,
+): PlayerAwardFundingOutcomeRow {
+  return {
+    awardId: row.award_id,
+    awardName: row.award_name,
+    funderFirstPlaceCount: row.funder_first_place_count,
+    funderFirstPlaceRate: toNumber(row.funder_first_place_rate),
+    funderGameWonCount: row.funder_game_won_count,
+    funderGameWonRate: toNumber(row.funder_game_won_rate),
+    funderPlayerId: row.funder_player_id,
+    funderPlayerName: row.funder_player_name,
+    funderSecondPlaceCount: row.funder_second_place_count,
+    funderSecondPlaceRate: toNumber(row.funder_second_place_rate),
+    fundedCount: row.funded_count,
+    groupId: row.group_id,
   };
 }
 
@@ -732,6 +801,21 @@ export async function listAwardOutcomes(groupId: string) {
   );
 }
 
+export async function listPlayerAwardFundingOutcomes(groupId: string) {
+  const rows = await listView(
+    'player_award_funding_outcomes',
+    groupId,
+    mapPlayerAwardFundingOutcomeRow,
+  );
+
+  return rows.sort(
+    (left, right) =>
+      left.funderPlayerName.localeCompare(right.funderPlayerName) ||
+      right.fundedCount - left.fundedCount ||
+      left.awardName.localeCompare(right.awardName),
+  );
+}
+
 export async function listAwardFunderWinnerMatrix(groupId: string) {
   const rows = await listView(
     'award_funder_winner_matrix',
@@ -807,6 +891,7 @@ export async function getExtendedGroupAnalytics(
     milestoneEconomicsRows,
     playerMilestoneClaimRows,
     awardOutcomeRows,
+    playerAwardFundingRows,
     awardFunderWinnerRows,
     generationPaceRows,
     tilePlacementRows,
@@ -822,6 +907,7 @@ export async function getExtendedGroupAnalytics(
     listMilestoneEconomics(groupId),
     listPlayerMilestoneClaims(groupId),
     listAwardOutcomes(groupId),
+    listPlayerAwardFundingOutcomes(groupId),
     listAwardFunderWinnerMatrix(groupId),
     listGenerationPace(groupId),
     listTilePlacements(groupId),
@@ -840,6 +926,7 @@ export async function getExtendedGroupAnalytics(
     milestoneEconomicsRows,
     placementDistributionRows,
     playerCountPerformanceRows,
+    playerAwardFundingRows,
     playerMapPerformanceRows,
     playerMilestoneClaimRows,
     tagOutcomeRows,
@@ -939,6 +1026,7 @@ export async function getOverallExtendedAnalytics(
     milestoneEconomicsRaw,
     playerMilestoneRows,
     awardOutcomeRaw,
+    playerAwardFundingRaw,
     awardMatrixRows,
     generationPaceRaw,
     tilePlacementRaw,
@@ -989,6 +1077,11 @@ export async function getOverallExtendedAnalytics(
       'group_award_outcomes',
       groupIds,
       mapAwardOutcomeRow,
+    ),
+    listView<RawPlayerAwardFundingOutcomeRow, PlayerAwardFundingOutcomeRow>(
+      'player_award_funding_outcomes',
+      groupIds,
+      mapPlayerAwardFundingOutcomeRow,
     ),
     listView<RawAwardFunderWinnerRow, AwardFunderWinnerRow>(
       'award_funder_winner_matrix',
@@ -1084,6 +1177,15 @@ export async function getOverallExtendedAnalytics(
       (left, right) =>
         left.funderPlayerName.localeCompare(right.funderPlayerName) ||
         left.winnerPlayerName.localeCompare(right.winnerPlayerName) ||
+        left.awardName.localeCompare(right.awardName),
+    ),
+    playerAwardFundingRows: mergePlayerAwardFundingOutcomes(
+      playerAwardFundingRaw,
+      lookup,
+    ).sort(
+      (left, right) =>
+        left.funderPlayerName.localeCompare(right.funderPlayerName) ||
+        right.fundedCount - left.fundedCount ||
         left.awardName.localeCompare(right.awardName),
     ),
     generationPaceRows: sortGenerationPaceRows(

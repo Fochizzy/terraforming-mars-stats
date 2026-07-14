@@ -1,4 +1,5 @@
 import { TagLabel } from '@/components/ui/tag-icon';
+import { ObjectiveInfoButton } from '@/components/ui/objective-info-button';
 import type { MapAwardGroup } from '@/lib/db/reference-repo';
 import type {
   CorporationSelectionStat,
@@ -49,6 +50,51 @@ function formatWins(wins: number) {
   return `${wins} ${wins === 1 ? 'win' : 'wins'}`;
 }
 
+function rate(count: number, denominator: number) {
+  return denominator > 0 ? count / denominator : 0;
+}
+
+function buildAwardStats(funding: {
+  funded_count: number;
+  funder_first_place_count?: number;
+  funder_first_place_rate?: number;
+  funder_game_won_count?: number;
+  funder_game_won_rate?: number;
+  funder_second_place_count?: number;
+  funder_second_place_rate?: number;
+  funder_won_count: number;
+}) {
+  const firstPlaceCount =
+    funding.funder_first_place_count ?? funding.funder_won_count;
+  const secondPlaceCount = funding.funder_second_place_count ?? 0;
+  const gameWonCount = funding.funder_game_won_count ?? 0;
+
+  return {
+    firstPlace: {
+      count: firstPlaceCount,
+      denominator: funding.funded_count,
+      rate:
+        funding.funder_first_place_rate ??
+        rate(firstPlaceCount, funding.funded_count),
+    },
+    fundedCount: funding.funded_count,
+    gameWins: {
+      count: gameWonCount,
+      denominator: funding.funded_count,
+      rate:
+        funding.funder_game_won_rate ??
+        rate(gameWonCount, funding.funded_count),
+    },
+    secondPlace: {
+      count: secondPlaceCount,
+      denominator: funding.funded_count,
+      rate:
+        funding.funder_second_place_rate ??
+        rate(secondPlaceCount, funding.funded_count),
+    },
+  };
+}
+
 function SelectionStatRows(props: {
   rows: Array<
     (CorporationSelectionStat | PreludeSelectionStat) & { name: string }
@@ -95,6 +141,10 @@ export function SelectionStatsScope(props: {
   );
   const globalPreludePlaysByName = new Map(
     globalStats.preludes.map((row) => [row.prelude_name, row.plays]),
+  );
+  const isGlobalScope = props.stats === globalStats;
+  const globalAwardFundingByName = new Map(
+    globalStats.awardFunding.map((row) => [row.award_name, row]),
   );
   const hasData =
     props.stats.corporations.length > 0 || props.stats.preludes.length > 0;
@@ -179,7 +229,9 @@ export function SelectionStatsScope(props: {
           {props.stats.awardFunding.length > 0 ? (
             props.mapAwardGroups && props.mapAwardGroups.length > 0 ? (
               <AwardFundingByMap
+                globalRows={globalStats.awardFunding}
                 mapGroups={props.mapAwardGroups}
+                personalRows={isGlobalScope ? undefined : props.stats.awardFunding}
                 rows={props.stats.awardFunding}
               />
             ) : (
@@ -190,7 +242,20 @@ export function SelectionStatsScope(props: {
                 <ul className="flex flex-col gap-1 text-xs">
                   {props.stats.awardFunding.map((funding) => (
                     <li key={funding.award_name}>
-                      {funding.award_name}: funded {funding.funded_count}×,
+                      <ObjectiveInfoButton
+                        awardStats={{
+                          global: buildAwardStats(
+                            globalAwardFundingByName.get(funding.award_name) ??
+                              funding,
+                          ),
+                          personal: isGlobalScope
+                            ? null
+                            : buildAwardStats(funding),
+                        }}
+                        kind="award"
+                        name={funding.award_name}
+                      />
+                      : funded {funding.funded_count}×,
                       funder took 1st {funding.funder_won_count}× (
                       {funding.funded_count > 0
                         ? Math.round(

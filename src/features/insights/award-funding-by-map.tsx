@@ -3,6 +3,10 @@
 import { useMemo, useState } from 'react';
 import { MapImage } from '@/components/ui/map-image';
 import { MapInfoButton } from '@/components/ui/map-info-button';
+import {
+  ObjectiveInfoButton,
+  type AwardObjectiveStats,
+} from '@/components/ui/objective-info-button';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import type { MapAwardGroup } from '@/lib/db/reference-repo';
 import type { AwardFundingStat } from '@/lib/db/selection-stats-repo';
@@ -28,6 +32,46 @@ function formatRoi(funding: AwardFundingStat) {
 
 function zeroFunding(awardName: string): AwardFundingStat {
   return { award_name: awardName, funded_count: 0, funder_won_count: 0 };
+}
+
+function rate(count: number, denominator: number) {
+  return denominator > 0 ? count / denominator : 0;
+}
+
+function mapAwardStats(
+  row: AwardFundingStat | null | undefined,
+): AwardObjectiveStats['personal'] {
+  if (!row) {
+    return null;
+  }
+
+  const firstPlaceCount =
+    row.funder_first_place_count ?? row.funder_won_count ?? 0;
+  const secondPlaceCount = row.funder_second_place_count ?? 0;
+  const gameWonCount = row.funder_game_won_count ?? 0;
+
+  return {
+    firstPlace: {
+      count: firstPlaceCount,
+      denominator: row.funded_count,
+      rate:
+        row.funder_first_place_rate ??
+        rate(firstPlaceCount, row.funded_count),
+    },
+    fundedCount: row.funded_count,
+    gameWins: {
+      count: gameWonCount,
+      denominator: row.funded_count,
+      rate: row.funder_game_won_rate ?? rate(gameWonCount, row.funded_count),
+    },
+    secondPlace: {
+      count: secondPlaceCount,
+      denominator: row.funded_count,
+      rate:
+        row.funder_second_place_rate ??
+        rate(secondPlaceCount, row.funded_count),
+    },
+  };
 }
 
 export function buildAwardFundingGroups(
@@ -81,10 +125,14 @@ export function buildAwardFundingGroups(
 }
 
 export function AwardFundingByMap({
+  globalRows,
   mapGroups,
+  personalRows,
   rows,
 }: {
+  globalRows?: AwardFundingStat[];
   mapGroups: MapAwardGroup[];
+  personalRows?: AwardFundingStat[];
   rows: AwardFundingStat[];
 }) {
   const groups = useMemo(
@@ -94,6 +142,14 @@ export function AwardFundingByMap({
   const [selectedMap, setSelectedMap] = useState('');
   const activeGroup =
     groups.find((group) => group.mapName === selectedMap) ?? groups[0] ?? null;
+  const globalRowsByName = useMemo(
+    () => new Map((globalRows ?? rows).map((row) => [row.award_name, row])),
+    [globalRows, rows],
+  );
+  const personalRowsByName = useMemo(
+    () => new Map((personalRows ?? []).map((row) => [row.award_name, row])),
+    [personalRows],
+  );
 
   if (groups.length === 0) {
     return null;
@@ -140,9 +196,16 @@ export function AwardFundingByMap({
             <ul className="flex flex-col gap-1 text-xs">
               {activeGroup.awards.map((funding) => (
                 <li key={funding.award_name}>
-                  <span className="font-semibold text-stone-100">
-                    {funding.award_name}
-                  </span>
+                  <ObjectiveInfoButton
+                    awardStats={{
+                      global: mapAwardStats(globalRowsByName.get(funding.award_name)),
+                      personal: mapAwardStats(
+                        personalRowsByName.get(funding.award_name),
+                      ),
+                    }}
+                    kind="award"
+                    name={funding.award_name}
+                  />
                   :{' '}
                   {funding.funded_count > 0 ? (
                     <>

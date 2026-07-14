@@ -16,6 +16,7 @@ import type {
   GroupMapPerformanceRow,
   MilestoneEconomicsRow,
   PlacementDistributionRow,
+  PlayerAwardFundingOutcomeRow,
   PlayerCountPerformanceRow,
   PlayerMapPerformanceRow,
   PlayerMilestoneClaimRow,
@@ -415,6 +416,9 @@ export function mergeAwardOutcomes(rows: AwardOutcomeRow[]): AwardOutcomeRow[] {
     const key = row.awardId;
 
     addCount(acc, `${key}|funded`, row.fundedCount);
+    addCount(acc, `${key}|funderFirst`, row.funderFirstPlaceCount ?? row.funderWonCount);
+    addCount(acc, `${key}|funderGameWon`, row.funderGameWonCount ?? 0);
+    addCount(acc, `${key}|funderSecond`, row.funderSecondPlaceCount ?? 0);
     addCount(acc, `${key}|funderWon`, row.funderWonCount);
     addCount(acc, `${key}|sniped`, row.snipedCount);
 
@@ -422,6 +426,12 @@ export function mergeAwardOutcomes(rows: AwardOutcomeRow[]): AwardOutcomeRow[] {
       base.set(key, {
         awardId: row.awardId,
         awardName: row.awardName,
+        funderFirstPlaceCount: 0,
+        funderFirstPlaceRate: 0,
+        funderGameWonCount: 0,
+        funderGameWonRate: 0,
+        funderSecondPlaceCount: 0,
+        funderSecondPlaceRate: 0,
         fundedCount: 0,
         funderWonCount: 0,
         funderWonRate: 0,
@@ -433,16 +443,59 @@ export function mergeAwardOutcomes(rows: AwardOutcomeRow[]): AwardOutcomeRow[] {
 
   return [...base.entries()].map(([key, row]) => {
     const fundedCount = readCount(acc, `${key}|funded`);
+    const funderFirstPlaceCount = readCount(acc, `${key}|funderFirst`);
+    const funderGameWonCount = readCount(acc, `${key}|funderGameWon`);
+    const funderSecondPlaceCount = readCount(acc, `${key}|funderSecond`);
     const funderWonCount = readCount(acc, `${key}|funderWon`);
 
     return {
       ...row,
+      funderFirstPlaceCount,
+      funderFirstPlaceRate: rate(funderFirstPlaceCount, fundedCount, 4),
+      funderGameWonCount,
+      funderGameWonRate: rate(funderGameWonCount, fundedCount, 4),
+      funderSecondPlaceCount,
+      funderSecondPlaceRate: rate(funderSecondPlaceCount, fundedCount, 4),
       fundedCount,
       funderWonCount,
       funderWonRate: rate(funderWonCount, fundedCount, 4),
       snipedCount: readCount(acc, `${key}|sniped`),
     };
   });
+}
+
+export function mergePlayerAwardFundingOutcomes(
+  rows: PlayerAwardFundingOutcomeRow[],
+  lookup: IdentityLookup,
+): PlayerAwardFundingOutcomeRow[] {
+  const merged = new Map<string, PlayerAwardFundingOutcomeRow>();
+
+  for (const row of rows) {
+    const funder = lookup(row.funderPlayerId, row.funderPlayerName);
+    const key = `${funder.canonicalId}|${row.awardId}`;
+    const existing = merged.get(key);
+
+    if (existing) {
+      existing.fundedCount += row.fundedCount;
+      existing.funderFirstPlaceCount += row.funderFirstPlaceCount;
+      existing.funderGameWonCount += row.funderGameWonCount;
+      existing.funderSecondPlaceCount += row.funderSecondPlaceCount;
+    } else {
+      merged.set(key, {
+        ...row,
+        funderPlayerId: funder.canonicalId,
+        funderPlayerName: funder.displayName,
+        groupId: OVERALL_GROUP_ID,
+      });
+    }
+  }
+
+  return [...merged.values()].map((row) => ({
+    ...row,
+    funderFirstPlaceRate: rate(row.funderFirstPlaceCount, row.fundedCount, 4),
+    funderGameWonRate: rate(row.funderGameWonCount, row.fundedCount, 4),
+    funderSecondPlaceRate: rate(row.funderSecondPlaceCount, row.fundedCount, 4),
+  }));
 }
 
 export function mergeAwardFunderWinnerMatrix(

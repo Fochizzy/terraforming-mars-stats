@@ -3,24 +3,13 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 function getExtendedAnalyticsViewsMigration() {
+  return getMigrationFile('20260708210000_add_extended_analytics_views.sql');
+}
+
+function getMigrationFile(fileName: string) {
   const migrationsDirectory = path.resolve(process.cwd(), 'supabase', 'migrations');
-  const migrationFileName = readdirSync(migrationsDirectory)
-    .filter((entry) => entry.endsWith('.sql'))
-    .sort()
-    .reverse()
-    .find((entry) =>
-      readFileSync(path.join(migrationsDirectory, entry), 'utf8').includes(
-        'create or replace view analytics.game_log_event_facts',
-      ),
-    );
 
-  if (!migrationFileName) {
-    throw new Error(
-      'Expected an extended analytics views migration in supabase/migrations.',
-    );
-  }
-
-  return readFileSync(path.join(migrationsDirectory, migrationFileName), 'utf8');
+  return readFileSync(path.join(migrationsDirectory, fileName), 'utf8');
 }
 
 function getMigrationContaining(fragment: string) {
@@ -105,8 +94,8 @@ describe('extended analytics views migration', () => {
 });
 
 describe('tag summary alias resolution migration', () => {
-  const migration = getMigrationContaining(
-    "coalesce(c.name, 'Unknown Corporation') as corporation_name",
+  const migration = getMigrationFile(
+    '20260710002854_resolve_tag_summary_aliases.sql',
   );
   const multipleCorporationsMigration = getMigrationContaining(
     'create table if not exists public.game_player_corporations',
@@ -124,14 +113,16 @@ describe('tag summary alias resolution migration', () => {
   });
 
   it('exposes the selected corporation on tag outcome rows', () => {
-    expect(migration).toContain('corporation_selections.corporation_id');
-    expect(migration).toContain(
+    expect(multipleCorporationsMigration).toContain(
+      'corporation_selections.corporation_id',
+    );
+    expect(multipleCorporationsMigration).toContain(
       "coalesce(c.name, 'Unknown Corporation') as corporation_name",
     );
-    expect(migration).toContain(
+    expect(multipleCorporationsMigration).toContain(
       'from public.game_player_corporations gpc',
     );
-    expect(migration).toContain(
+    expect(multipleCorporationsMigration).toContain(
       'left join public.corporations c on c.id = corporation_selections.corporation_id',
     );
   });
@@ -199,8 +190,8 @@ describe('Merger impact stats migration', () => {
 });
 
 describe('Award economics migration', () => {
-  const migration = getMigrationContaining(
-    'create or replace function public.get_award_economics',
+  const migration = getMigrationFile(
+    '20260711130000_add_award_economics_function.sql',
   );
 
   it('aggregates award economics across groups with security definer', () => {
@@ -237,7 +228,9 @@ describe('Award economics migration', () => {
 });
 
 describe('Selection stats mid-game prelude migration', () => {
-  const migration = getMigrationContaining('prelude_entries as');
+  const migration = getMigrationFile(
+    '20260711194358_include_midgame_preludes_in_selection_stats.sql',
+  );
 
   it('counts setup and in-game preludes in prelude selection stats', () => {
     expect(migration).toContain('from game_player_preludes gpp');

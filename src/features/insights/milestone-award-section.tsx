@@ -19,15 +19,25 @@ import {
   chartSeriesColors,
   chartTooltipStyle,
 } from '@/components/charts/chart-theme';
+import {
+  ObjectiveInfoButton,
+  type AwardObjectiveStats,
+  type MilestoneObjectiveStats,
+} from '@/components/ui/objective-info-button';
 import type {
   AwardFunderWinnerRow,
   AwardOutcomeRow,
   MilestoneEconomicsRow,
+  PlayerAwardFundingOutcomeRow,
   PlayerMilestoneClaimRow,
 } from '@/lib/db/extended-analytics-repo';
 
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
+}
+
+function rate(count: number, denominator: number) {
+  return denominator > 0 ? count / denominator : 0;
 }
 
 export type MilestoneChartDatum = {
@@ -80,6 +90,43 @@ export function findTopClaimers(rows: PlayerMilestoneClaimRow[]) {
   return topByMilestone;
 }
 
+function buildMilestoneStats({
+  focusPlayerId,
+  groupRow,
+  playerRows,
+}: {
+  focusPlayerId: string | null;
+  groupRow: MilestoneEconomicsRow;
+  playerRows: PlayerMilestoneClaimRow[];
+}): MilestoneObjectiveStats {
+  const personalRow = focusPlayerId
+    ? playerRows.find(
+        (row) =>
+          row.playerId === focusPlayerId &&
+          row.milestoneId === groupRow.milestoneId,
+      )
+    : null;
+  const totalGames =
+    groupRow.claimRate > 0 ? groupRow.claims / groupRow.claimRate : 0;
+
+  return {
+    global: {
+      claimedWhenWonRate: rate(groupRow.claimerWins, totalGames),
+      claimRate: groupRow.claimRate,
+      claims: groupRow.claims,
+      winRateWhenClaimed: groupRow.claimerWinRate,
+      winsWhenClaimed: groupRow.claimerWins,
+    },
+    personal: personalRow
+      ? {
+          claims: personalRow.claims,
+          winRateWhenClaimed: rate(personalRow.claimerWins, personalRow.claims),
+          winsWhenClaimed: personalRow.claimerWins,
+        }
+      : null,
+  };
+}
+
 export function MilestoneEconomicsSection(props: {
   focusPlayerId: string | null;
   focusPlayerName: string | null;
@@ -92,6 +139,12 @@ export function MilestoneEconomicsSection(props: {
     playerRows: props.playerRows,
   });
   const topClaimers = findTopClaimers(props.playerRows);
+  const groupRowsById = new Map(
+    props.groupRows.map((row) => [row.milestoneId, row]),
+  );
+  const focusedPlayerRows = props.focusPlayerId
+    ? props.playerRows.filter((row) => row.playerId === props.focusPlayerId)
+    : [];
 
   return (
     <ChartFrame
@@ -149,7 +202,41 @@ export function MilestoneEconomicsSection(props: {
               />
             </ComposedChart>
           </ResponsiveContainer>
-          {!props.focusPlayerId ? (
+          {props.focusPlayerId ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {focusedPlayerRows.slice(0, 6).map((row) => {
+                const groupRow = groupRowsById.get(row.milestoneId);
+
+                if (!groupRow) {
+                  return null;
+                }
+
+                return (
+                  <article className="tm-stat-card" key={row.milestoneId}>
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-semibold text-stone-100">
+                        <ObjectiveInfoButton
+                          kind="milestone"
+                          milestoneStats={buildMilestoneStats({
+                            focusPlayerId: props.focusPlayerId,
+                            groupRow,
+                            playerRows: props.playerRows,
+                          })}
+                          name={row.milestoneName}
+                        />
+                      </h3>
+                      <p className="tm-accent-copy text-sm">
+                        {formatPercent(rate(row.claimerWins, row.claims))} wins
+                      </p>
+                    </div>
+                    <p className="tm-muted-copy mt-2 text-sm">
+                      Claimed {row.claims} time{row.claims === 1 ? '' : 's'}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {props.groupRows.slice(0, 6).map((row) => {
                 const topClaimer = topClaimers.get(row.milestoneName);
@@ -158,7 +245,15 @@ export function MilestoneEconomicsSection(props: {
                   <article className="tm-stat-card" key={row.milestoneId}>
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="font-semibold text-stone-100">
-                        {row.milestoneName}
+                        <ObjectiveInfoButton
+                          kind="milestone"
+                          milestoneStats={buildMilestoneStats({
+                            focusPlayerId: props.focusPlayerId,
+                            groupRow: row,
+                            playerRows: props.playerRows,
+                          })}
+                          name={row.milestoneName}
+                        />
                       </h3>
                       <p className="tm-accent-copy text-sm">
                         {formatPercent(row.claimerWinRate)} claimer wins
@@ -174,7 +269,7 @@ export function MilestoneEconomicsSection(props: {
                 );
               })}
             </div>
-          ) : null}
+          )}
         </div>
       )}
     </ChartFrame>
@@ -279,14 +374,72 @@ function findTopEntry(totals: Map<string, number>) {
   return top;
 }
 
+type AwardFundingStatsSource = {
+  awardId: string;
+  awardName: string;
+  funderFirstPlaceCount?: number;
+  funderFirstPlaceRate?: number;
+  funderGameWonCount?: number;
+  funderGameWonRate?: number;
+  funderSecondPlaceCount?: number;
+  funderSecondPlaceRate?: number;
+  fundedCount: number;
+  funderWonCount?: number;
+  funderWonRate?: number;
+};
+
+function buildAwardStats(
+  personal: AwardFundingStatsSource | null | undefined,
+  global: AwardFundingStatsSource | null | undefined,
+): AwardObjectiveStats {
+  const mapStats = (row: AwardFundingStatsSource | null | undefined) => {
+    if (!row) {
+      return null;
+    }
+
+    const firstPlaceCount = row.funderFirstPlaceCount ?? row.funderWonCount ?? 0;
+    const secondPlaceCount = row.funderSecondPlaceCount ?? 0;
+    const gameWonCount = row.funderGameWonCount ?? 0;
+
+    return {
+      firstPlace: {
+        count: firstPlaceCount,
+        denominator: row.fundedCount,
+        rate:
+          row.funderFirstPlaceRate ??
+          row.funderWonRate ??
+          rate(firstPlaceCount, row.fundedCount),
+      },
+      fundedCount: row.fundedCount,
+      gameWins: {
+        count: gameWonCount,
+        denominator: row.fundedCount,
+        rate: row.funderGameWonRate ?? rate(gameWonCount, row.fundedCount),
+      },
+      secondPlace: {
+        count: secondPlaceCount,
+        denominator: row.fundedCount,
+        rate: row.funderSecondPlaceRate ?? rate(secondPlaceCount, row.fundedCount),
+      },
+    };
+  };
+
+  return {
+    global: mapStats(global),
+    personal: mapStats(personal),
+  };
+}
+
 export function AwardEconomicsSection(props: {
   focusPlayerName: string | null;
   groupFocusPlayerId: string | null;
   groupMatrixRows: AwardFunderWinnerRow[];
   groupOutcomeRows: AwardOutcomeRow[];
+  groupPlayerAwardRows?: PlayerAwardFundingOutcomeRow[];
   overallFocusPlayerId: string | null;
   overallMatrixRows: AwardFunderWinnerRow[];
   overallOutcomeRows: AwardOutcomeRow[];
+  overallPlayerAwardRows?: PlayerAwardFundingOutcomeRow[];
 }) {
   // Default to the active group's matrix so every member of a group sees the
   // same numbers. "All my groups" is an explicit opt-in to the caller's own
@@ -302,10 +455,20 @@ export function AwardEconomicsSection(props: {
   const outcomeRows = isAllGroups
     ? props.overallOutcomeRows
     : props.groupOutcomeRows;
+  const sourcePlayerAwardRows = isAllGroups
+    ? props.overallPlayerAwardRows ?? []
+    : props.groupPlayerAwardRows ?? [];
 
   const matrixRows = activeFocusPlayerId
     ? sourceMatrixRows.filter((row) => row.funderPlayerId === activeFocusPlayerId)
     : sourceMatrixRows;
+  const personalAwardRowsById = new Map(
+    activeFocusPlayerId
+      ? sourcePlayerAwardRows
+          .filter((row) => row.funderPlayerId === activeFocusPlayerId)
+          .map((row) => [row.awardId, row])
+      : [],
+  );
   const matrix = buildAwardMatrixModel(matrixRows);
   const awardLeaders = findAwardLeaders(sourceMatrixRows);
 
@@ -364,7 +527,14 @@ export function AwardEconomicsSection(props: {
                 <article className="tm-stat-card" key={row.awardId}>
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="font-semibold text-stone-100">
-                      {row.awardName}
+                      <ObjectiveInfoButton
+                        awardStats={buildAwardStats(
+                          personalAwardRowsById.get(row.awardId),
+                          row,
+                        )}
+                        kind="award"
+                        name={row.awardName}
+                      />
                     </h3>
                     <p className="tm-accent-copy text-sm">
                       {formatPercent(row.funderWonRate)} funder ROI

@@ -1292,9 +1292,11 @@ export function InsightsDashboard({
             groupFocusPlayerId={selectedPerson?.activeGroupPlayerId ?? null}
             groupMatrixRows={extended.awardFunderWinnerRows}
             groupOutcomeRows={extended.awardOutcomeRows}
+            groupPlayerAwardRows={extended.playerAwardFundingRows}
             overallFocusPlayerId={selectedPerson?.canonicalId ?? null}
             overallMatrixRows={overallExtended.awardFunderWinnerRows}
             overallOutcomeRows={overallExtended.awardOutcomeRows}
+            overallPlayerAwardRows={overallExtended.playerAwardFundingRows}
           />
 
           <CardOutcomesSection
