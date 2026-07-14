@@ -189,6 +189,51 @@ describe('Merger impact stats migration', () => {
   });
 });
 
+describe('final terraforming action stats migration', () => {
+  const migration = getMigrationContaining('get_final_terraforming_action_stats');
+
+  it('detects the final terraforming action from the latest imported log', () => {
+    expect(migration).toContain(
+      'create or replace function public.get_final_terraforming_action_stats',
+    );
+    expect(migration).toContain('latest_imports as');
+    expect(migration).toContain("btrim(gli.raw_log_text) <> ''");
+    expect(migration).toContain("gle.event_type = 'global_parameter_changed'");
+    expect(migration).toContain(
+      "lower(coalesce(gle.tile_type, '')) in ('greenery', 'ocean')",
+    );
+    expect(migration).toContain('row_number() over');
+    expect(migration).toContain('order by te.event_order desc');
+  });
+
+  it('resolves final terraforming actors and compares win-rate baselines', () => {
+    expect(migration).toContain("gle.payload->>'actor'");
+    expect(migration).toContain('p.normalized_display_name');
+    expect(migration).toContain("pia.source_type = 'game_log'");
+    expect(migration).toContain('final_action_win_rate');
+    expect(migration).toContain('overall_win_rate');
+    expect(migration).toContain('win_rate_delta');
+  });
+
+  it('supports global, personal, and active-group scopes', () => {
+    expect(migration).toContain("scope = 'global'");
+    expect(migration).toContain("scope = 'personal'");
+    expect(migration).toContain("scope = 'group'");
+    expect(migration).toContain('p_self.linked_user_id = auth.uid()');
+    expect(migration).toContain('public.can_read_game(g.id)');
+  });
+
+  it('keeps the final terraforming RPC executable only by authenticated callers', () => {
+    expect(migration).toContain('security definer');
+    expect(migration).toContain(
+      'revoke all on function public.get_final_terraforming_action_stats(text, uuid) from public;',
+    );
+    expect(migration).toContain(
+      'grant execute on function public.get_final_terraforming_action_stats(text, uuid) to authenticated;',
+    );
+  });
+});
+
 describe('Award economics migration', () => {
   const migration = getMigrationFile(
     '20260711130000_add_award_economics_function.sql',

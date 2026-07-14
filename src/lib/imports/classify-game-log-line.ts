@@ -16,6 +16,11 @@ export type GameLogEvent =
     }
   | {
       actor: string;
+      eventType: 'global_parameter_changed';
+      parameter: 'ocean' | 'oxygen' | 'temperature';
+    }
+  | {
+      actor: string;
       card: string;
       eventType: 'resource_changed';
       operation: 'added' | 'removed';
@@ -67,6 +72,22 @@ export type GameLogLineClassification =
   | {
       kind: 'ignored_noise';
     };
+
+function normalizeGlobalParameter(
+  value: string,
+): 'ocean' | 'oxygen' | 'temperature' {
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized.startsWith('oxygen')) {
+    return 'oxygen';
+  }
+
+  if (normalized.startsWith('ocean')) {
+    return 'ocean';
+  }
+
+  return 'temperature';
+}
 
 export function classifyGameLogLine(line: string): GameLogLineClassification {
   const trimmedLine = line.trim();
@@ -136,6 +157,34 @@ export function classifyGameLogLine(line: string): GameLogLineClassification {
         kind: 'event',
       };
     }
+  }
+
+  const oceanPlacementMatch =
+    /^(.+) placed (?:an? )?ocean(?: tile)?$/i.exec(trimmedLine);
+  if (oceanPlacementMatch?.[1]) {
+    return {
+      event: {
+        actor: oceanPlacementMatch[1].trim(),
+        eventType: 'global_parameter_changed',
+        parameter: 'ocean',
+      },
+      kind: 'event',
+    };
+  }
+
+  const globalParameterMatch =
+    /^(.+?) (?:raised|increased) (?:the )?(temperature|oxygen(?: level)?|oceans?|ocean(?: level)?)(?: (?:by|to) .+)?$/i.exec(
+      trimmedLine,
+    );
+  if (globalParameterMatch?.[1] && globalParameterMatch[2]) {
+    return {
+      event: {
+        actor: globalParameterMatch[1].trim(),
+        eventType: 'global_parameter_changed',
+        parameter: normalizeGlobalParameter(globalParameterMatch[2]),
+      },
+      kind: 'event',
+    };
   }
 
   const resourceMatch =

@@ -72,6 +72,19 @@ function buildParsedEventWrite(input: {
         rawLine: input.event.rawLine,
         tileType: input.event.tile,
       };
+    case 'global_parameter_changed':
+      return {
+        confidenceLevel: 'high',
+        eventOrder: input.event.lineNumber,
+        eventType: input.event.eventType,
+        lineClassification: 'event',
+        payload: {
+          actor: input.event.actor,
+          parameterType: input.event.parameter,
+        },
+        rawLine: input.event.rawLine,
+        resourceType: input.event.parameter,
+      };
     case 'resource_changed':
       return {
         cardId:

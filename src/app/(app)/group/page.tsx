@@ -8,7 +8,10 @@ import {
   buildGlobalLossCardData,
   GlobalLossCardsSection,
 } from '@/features/insights/global-loss-cards-section';
-import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
+import {
+  FinalTerraformingActionBlock,
+  SelectionStatsScope,
+} from '@/features/insights/selection-stats-section';
 import { StyleEffectivenessPanel } from '@/features/insights/style-effectiveness';
 import {
   buildStyleScope,
@@ -29,9 +32,11 @@ import {
 } from '@/lib/db/reference-repo';
 import {
   type CardImageMeta,
+  getFinalTerraformingActionStats,
   getCardImageMetaByNames,
   getSelectionDialogData,
   getSelectionStats,
+  type FinalTerraformingActionStat,
   type SelectionDialogData,
   type SelectionStats,
 } from '@/lib/db/selection-stats-repo';
@@ -47,6 +52,8 @@ const emptySelectionStats: SelectionStats = {
   tagWins: [],
   totalGames: 0,
 };
+
+const emptyFinalTerraformingActionStats: FinalTerraformingActionStat[] = [];
 
 const emptyStyleEffectiveness: StyleEffectivenessData = {
   scoreAverages: null,
@@ -70,6 +77,17 @@ async function loadPersonalStatsOrDefault(): Promise<SelectionStats> {
   } catch (error) {
     console.error('[global] Failed to load personal selection stats', error);
     return emptySelectionStats;
+  }
+}
+
+async function loadFinalTerraformingActionStatsOrDefault(): Promise<
+  FinalTerraformingActionStat[]
+> {
+  try {
+    return await getFinalTerraformingActionStats({ scope: 'global' });
+  } catch (error) {
+    console.error('[global] Failed to load final terraforming action stats', error);
+    return emptyFinalTerraformingActionStats;
   }
 }
 
@@ -97,12 +115,14 @@ export default async function GlobalStatisticsPage() {
   const [
     globalStats,
     personalStats,
+    finalTerraformingActionStats,
     mapAwardGroups,
     globalStyleEffectiveness,
     personalStyleEffectiveness,
   ] = await Promise.all([
     loadGlobalStatsOrDefault(),
     loadPersonalStatsOrDefault(),
+    loadFinalTerraformingActionStatsOrDefault(),
     loadMapAwardGroupsOrDefault(),
     loadStyleEffectivenessOrDefault('global'),
     loadStyleEffectivenessOrDefault('personal'),
@@ -178,6 +198,7 @@ export default async function GlobalStatisticsPage() {
           mapAwardGroups={mapAwardGroups}
           stats={globalStats}
         />
+        <FinalTerraformingActionBlock rows={finalTerraformingActionStats} />
         <StyleEffectivenessPanel scopes={styleEffectivenessScopes} />
         <GlobalKeyCardsSection
           baselineWinRate={globalStats.baselineWinRate}

@@ -72,6 +72,35 @@ describe('classifyGameLogLine', () => {
     });
   });
 
+  it('classifies explicit global-parameter terraforming actions', () => {
+    expect(classifyGameLogLine('Izzy raised temperature to -24 C')).toEqual({
+      event: {
+        actor: 'Izzy',
+        eventType: 'global_parameter_changed',
+        parameter: 'temperature',
+      },
+      kind: 'event',
+    });
+
+    expect(classifyGameLogLine('Corey increased oxygen level to 8%')).toEqual({
+      event: {
+        actor: 'Corey',
+        eventType: 'global_parameter_changed',
+        parameter: 'oxygen',
+      },
+      kind: 'event',
+    });
+
+    expect(classifyGameLogLine('James placed an ocean')).toEqual({
+      event: {
+        actor: 'James',
+        eventType: 'global_parameter_changed',
+        parameter: 'ocean',
+      },
+      kind: 'event',
+    });
+  });
+
   it('classifies tracked resource changes on cards', () => {
     expect(
       classifyGameLogLine('Izzy added 2 microbes to Tardigrades'),

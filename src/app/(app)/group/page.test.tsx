@@ -6,8 +6,10 @@ import type { SelectionStats } from '@/lib/db/selection-stats-repo';
 
 const mockState = vi.hoisted(() => ({
   getCardImageMetaByNames: vi.fn(),
+  getFinalTerraformingActionStats: vi.fn(),
   getSelectionDialogData: vi.fn(),
   getSelectionStats: vi.fn(),
+  getStyleEffectiveness: vi.fn(),
   listMapAwardGroups: vi.fn(),
 }));
 
@@ -35,6 +37,9 @@ vi.mock('@/components/layout/app-shell', () => ({
 }));
 
 vi.mock('@/features/insights/selection-stats-section', () => ({
+  FinalTerraformingActionBlock: ({ rows }: { rows: unknown[] }) => (
+    <div data-testid="final-terraforming-actions">{rows.length} rows</div>
+  ),
   SelectionStatsScope: ({ heading }: { heading: string; stats: SelectionStats }) => (
     <div data-testid="global-selection-stats">{heading}</div>
   ),
@@ -49,12 +54,17 @@ vi.mock('@/features/insights/winning-cards-section', async (importOriginal) => (
   ),
 }));
 
+vi.mock('@/lib/db/analytics-repo', () => ({
+  getStyleEffectiveness: mockState.getStyleEffectiveness,
+}));
+
 vi.mock('@/lib/db/reference-repo', () => ({
   listMapAwardGroups: mockState.listMapAwardGroups,
 }));
 
 vi.mock('@/lib/db/selection-stats-repo', () => ({
   getCardImageMetaByNames: mockState.getCardImageMetaByNames,
+  getFinalTerraformingActionStats: mockState.getFinalTerraformingActionStats,
   getSelectionDialogData: mockState.getSelectionDialogData,
   getSelectionStats: mockState.getSelectionStats,
 }));
@@ -76,6 +86,11 @@ describe('GlobalStatisticsPage', () => {
     vi.clearAllMocks();
     mockState.getSelectionStats.mockResolvedValue(sampleStats);
     mockState.getCardImageMetaByNames.mockResolvedValue(new Map());
+    mockState.getFinalTerraformingActionStats.mockResolvedValue([]);
+    mockState.getStyleEffectiveness.mockResolvedValue({
+      scoreAverages: null,
+      styleRows: [],
+    });
     mockState.getSelectionDialogData.mockResolvedValue({
       cardMetaByName: new Map(),
       corporationWinRates: new Map(),
@@ -88,10 +103,16 @@ describe('GlobalStatisticsPage', () => {
     render(await GlobalStatisticsPage());
 
     expect(mockState.getSelectionStats).toHaveBeenCalledWith('global');
+    expect(mockState.getFinalTerraformingActionStats).toHaveBeenCalledWith({
+      scope: 'global',
+    });
     expect(
       screen.getByRole('heading', { name: 'Global Statistics' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('global-selection-stats')).toBeInTheDocument();
+    expect(screen.getByTestId('final-terraforming-actions')).toHaveTextContent(
+      '0 rows',
+    );
     expect(screen.getByTestId('winning-cards')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /review saved games/i }),

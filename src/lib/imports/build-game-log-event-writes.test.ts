@@ -50,6 +50,13 @@ describe('buildGameLogEventWrites', () => {
               placement: 'first',
               rawLine: 'Izzy won first place on Landlord award',
             },
+            {
+              actor: 'Corey',
+              eventType: 'global_parameter_changed',
+              lineNumber: 9,
+              parameter: 'temperature',
+              rawLine: 'Corey raised temperature to 8 C',
+            },
           ],
         },
       }),
@@ -114,6 +121,18 @@ describe('buildGameLogEventWrites', () => {
           placement: 'first',
         },
         rawLine: 'Izzy won first place on Landlord award',
+      },
+      {
+        confidenceLevel: 'high',
+        eventOrder: 9,
+        eventType: 'global_parameter_changed',
+        lineClassification: 'event',
+        payload: {
+          actor: 'Corey',
+          parameterType: 'temperature',
+        },
+        rawLine: 'Corey raised temperature to 8 C',
+        resourceType: 'temperature',
       },
     ]);
   });
