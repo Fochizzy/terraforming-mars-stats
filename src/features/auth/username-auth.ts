@@ -21,10 +21,6 @@ export const pinSchema = z
   .string()
   .regex(/^\d{6}$/, 'PIN must be exactly 6 digits.');
 
-export const legacyPinSchema = z
-  .string()
-  .regex(/^\d{4}$/, 'Legacy PIN must be exactly 4 digits.');
-
 export const signupFullNameSchema = z
   .string()
   .transform(collapseWhitespace)
@@ -41,18 +37,3 @@ export const signupUsernameSchema = z
   .refine((value) => value.length <= 32, {
     message: 'Username must be 32 characters or fewer.',
   });
-
-export function buildSyntheticAuthEmail(username: string) {
-  return `${normalizeUsername(username)}@users.tmstats.local`;
-}
-
-export function resolveSignInEmail(identifier: string) {
-  const trimmedIdentifier = identifier.trim();
-
-  if (trimmedIdentifier.includes('@')) {
-    return emailSchema.parse(trimmedIdentifier);
-  }
-
-  const normalizedUsername = signupUsernameSchema.parse(trimmedIdentifier);
-  return buildSyntheticAuthEmail(normalizedUsername);
-}
