@@ -30,10 +30,10 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(209, 104, 54, 0.26), transparent 32%),
-    radial-gradient(circle at 18% 14%, rgba(99, 175, 214, 0.12), transparent 18%),
-    linear-gradient(180deg, #35150e 0%, #11161d 24%, #090c11 100%);
+  background-image: url('/mars-background.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: var(--tm-text);
   font-family: var(--tm-font-body);
 }
@@ -49,10 +49,7 @@ a {
 
 @layer components {
   .tm-app-shell {
-    @apply min-h-screen text-stone-100;
-    background:
-      radial-gradient(circle at top, rgba(213, 105, 53, 0.24), transparent 30%),
-      linear-gradient(180deg, #411911 0%, #161b22 24%, #090c11 100%);
+    @apply min-h-screen w-full text-stone-100;
   }
 
   .tm-app-header {
