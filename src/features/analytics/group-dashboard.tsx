@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import type {
@@ -79,6 +80,19 @@ function getPlayerName(playerId: string, leaderboardRows: LeaderboardRow[]) {
   );
 }
 
+function getLaurelImageForRank(rank: number): { path: string; alt: string } | null {
+  switch (rank) {
+    case 0:
+      return { path: '/laurel-gold.png', alt: '1st place' };
+    case 1:
+      return { path: '/laurel-silver.png', alt: '2nd place' };
+    case 2:
+      return { path: '/laurel-bronze.png', alt: '3rd place' };
+    default:
+      return null;
+  }
+}
+
 export function GroupDashboard({
   coverage = null,
   globalAwardMetricRows = [],
@@ -136,22 +150,40 @@ export function GroupDashboard({
           </p>
         ) : (
           <div className="grid gap-3">
-            {leaderboardRows.slice(0, 6).map((row) => (
-              <article
-                className="tm-stat-card"
-                key={row.playerId}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-stone-100">{row.playerName}</p>
-                  <p className="tm-accent-copy text-sm">
-                    {formatAverage(row.weightedScore)}
+            {leaderboardRows.slice(0, 6).map((row, index) => {
+              const laurel = getLaurelImageForRank(index);
+              return (
+                <article
+                  className="tm-stat-card"
+                  key={row.playerId}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {laurel ? (
+                        <div className="relative h-12 w-12 flex-shrink-0">
+                          <Image
+                            alt={laurel.alt}
+                            fill
+                            src={laurel.path}
+                            className="object-contain"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-12 w-12 flex-shrink-0" />
+                      )}
+                      <p className="font-semibold text-stone-100">{row.playerName}</p>
+                    </div>
+                    <p className="tm-accent-copy text-sm">
+                      {formatAverage(row.weightedScore)}
+                    </p>
+                  </div>
+                  <p className="tm-muted-copy mt-2 text-sm">
+                    {formatPercent(row.winRate)} win rate | avg place {formatAverage(row.averagePlacement)}
                   </p>
-                </div>
-                <p className="tm-muted-copy mt-2 text-sm">
-                  {formatPercent(row.winRate)} win rate | avg place {formatAverage(row.averagePlacement)}
-                </p>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </ChartFrame>
