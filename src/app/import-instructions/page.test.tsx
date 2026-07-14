@@ -18,6 +18,11 @@ describe('ImportInstructionsPage', () => {
       'href',
       '/log-game',
     );
+    expect(
+      screen.getByRole('link', {
+        name: 'https://terraforming-mars.herokuapp.com',
+      }),
+    ).toHaveAttribute('href', 'https://terraforming-mars.herokuapp.com');
     expect(screen.getAllByRole('img')).toHaveLength(12);
   });
 });

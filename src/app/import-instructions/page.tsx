@@ -23,8 +23,13 @@ type Step = {
 };
 
 type Callout = {
+  bodyAfter?: string;
   body: string;
   kind: CalloutKind;
+  link?: {
+    href: string;
+    label: string;
+  };
   title: string;
 };
 
@@ -189,7 +194,12 @@ const callouts: Record<number, Callout[]> = {
     {
       kind: 'note',
       title: 'Compatibility note',
-      body: 'This workflow is only compatible with games played on terraforming-mars.herokuapp.com.',
+      body: 'This workflow is only compatible with games played on ',
+      link: {
+        href: 'https://terraforming-mars.herokuapp.com',
+        label: 'https://terraforming-mars.herokuapp.com',
+      },
+      bodyAfter: '.',
     },
     {
       kind: 'alert',
@@ -250,7 +260,15 @@ function CalloutBubble({ callout }: { callout: Callout }) {
   return (
     <aside className={calloutClass(callout.kind)}>
       <span className={styles.calloutLabel}>{callout.title}</span>
-      <p className={styles.calloutBody}>{callout.body}</p>
+      <p className={styles.calloutBody}>
+        {callout.body}
+        {callout.link ? (
+          <a href={callout.link.href} rel="noreferrer" target="_blank">
+            {callout.link.label}
+          </a>
+        ) : null}
+        {callout.bodyAfter}
+      </p>
     </aside>
   );
 }
