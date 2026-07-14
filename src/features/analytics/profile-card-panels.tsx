@@ -39,6 +39,11 @@ function CardCell({ card }: { card: ProfileCardStat }) {
       {thumbnail}
       <span className="min-w-0 break-words font-semibold text-stone-100">
         {card.cardName}
+        {card.contextLabel ? (
+          <span className="tm-muted-copy mt-1 block text-xs font-normal">
+            {card.contextLabel} · {card.evidenceConfidence} confidence
+          </span>
+        ) : null}
       </span>
     </CardStatsButton>
   );
@@ -134,7 +139,7 @@ export function ProfileCardPanels({
   return (
     <>
       <ChartFrame
-        description="The cards that most raise your odds of winning — ranked by how much your win rate with each card, blended with how it performs across every recorded game, beats your baseline win rate. Click a card to open its full image."
+        description="The cards that most raise your odds of winning after accounting for play count, corporation, play style, and whether your scoring came primarily from terraforming, board position, cards, or objectives. Click a card to open its full image."
         title="My Key Cards"
       >
         <ProfileCardTable
@@ -146,13 +151,13 @@ export function ProfileCardPanels({
         {keyCards.length > 0 ? (
           <p className="tm-muted-copy mt-3 text-xs">
             <GlossaryRichText>
-              Key cards are not picked by hand. Victory impact is how many points a card adds to your win rate above your baseline, blending your own games with global play data so one lucky game cannot crown a card.
+              Key cards are not picked by hand. Context-adjusted victory impact compares each result with your normal performance using that corporation, play style, and scoring method, then blends in global card performance and play-count confidence.
             </GlossaryRichText>
           </p>
         ) : null}
       </ChartFrame>
       <ChartFrame
-        description="The cards most correlated with your losses — ranked by how much your win rate with each card, blended with how it performs across every recorded game, falls below your baseline win rate. Click a card to open its full image with your win rate and the global win rate."
+        description="The cards most correlated with losses after accounting for play count, corporation, play style, and whether your scoring came primarily from terraforming, board position, cards, or objectives."
         title="My Loss-Correlated Cards"
       >
         <ProfileCardTable
@@ -164,7 +169,7 @@ export function ProfileCardPanels({
         {lossCards.length > 0 ? (
           <p className="tm-muted-copy mt-3 text-xs">
             <GlossaryRichText>
-              Loss-correlated cards are not picked by hand. Victory impact is how many points a card subtracts from your win rate below your baseline, blending your own games with global play data so one bad game cannot condemn a card.
+              Loss-correlated cards use the same context adjustment and play-count confidence, so one bad game or a naturally difficult corporation/style combination cannot condemn a card.
             </GlossaryRichText>
           </p>
         ) : null}
