@@ -17,6 +17,8 @@ import {
   chartSeriesColors,
   chartTooltipStyle,
 } from '@/components/charts/chart-theme';
+import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
+import type { CardWinStats } from '@/features/catalog/card-stats-actions';
 import type { CardOutcomeRow } from '@/lib/db/extended-analytics-repo';
 
 export const MOST_PLAYED_CARD_LIMIT = 8;
@@ -60,7 +62,9 @@ function getScopedResultRows(
 export type MostPlayedCardDatum = {
   cardId: string;
   cardName: string;
+  fullImageUrl: string | null;
   plays: number;
+  thumbnailUrl: string | null;
   winRate: number;
   wins: number;
 };
@@ -72,18 +76,28 @@ export function buildMostPlayedCardData(
 ): MostPlayedCardDatum[] {
   const totals = new Map<
     string,
-    { cardName: string; plays: number; wins: number }
+    {
+      cardName: string;
+      fullImageUrl: string | null;
+      plays: number;
+      thumbnailUrl: string | null;
+      wins: number;
+    }
   >();
 
   for (const row of getScopedResultRows(rows, focusPlayerId)) {
     const entry = totals.get(row.cardId) ?? {
       cardName: row.cardName,
+      fullImageUrl: row.fullImageUrl,
       plays: 0,
+      thumbnailUrl: row.thumbnailUrl,
       wins: 0,
     };
 
     entry.plays += 1;
     entry.wins += row.isWinner ? 1 : 0;
+    entry.fullImageUrl ??= row.fullImageUrl;
+    entry.thumbnailUrl ??= row.thumbnailUrl;
     totals.set(row.cardId, entry);
   }
 
@@ -91,7 +105,9 @@ export function buildMostPlayedCardData(
     .map(([cardId, entry]) => ({
       cardId,
       cardName: entry.cardName,
+      fullImageUrl: entry.fullImageUrl,
       plays: entry.plays,
+      thumbnailUrl: entry.thumbnailUrl,
       winRate: roundPercent(entry.wins / entry.plays),
       wins: entry.wins,
     }))
@@ -110,6 +126,26 @@ export type MostPlayedCardSummary = {
   winRate: number;
   wins: number;
 };
+
+function indexMostPlayedCards(data: MostPlayedCardDatum[]) {
+  return new Map(data.map((entry) => [entry.cardId, entry]));
+}
+
+function buildKnownCardStats(
+  globalEntry: MostPlayedCardDatum | undefined,
+  personalEntry: MostPlayedCardDatum | undefined,
+): CardWinStats | undefined {
+  if (!globalEntry && !personalEntry) {
+    return undefined;
+  }
+
+  return {
+    globalGames: globalEntry?.plays ?? 0,
+    globalWins: globalEntry?.wins ?? 0,
+    personalGames: personalEntry?.plays ?? 0,
+    personalWins: personalEntry?.wins ?? 0,
+  };
+}
 
 // The headline "win with your most-played cards" statistic: pool every result
 // across the top cards and take the combined win rate, so a single low-sample
@@ -140,6 +176,7 @@ function CardOutcomePanel(props: {
   data: MostPlayedCardDatum[];
   emptyCopy: string;
   headline: string;
+  knownStatsByCardId?: Map<string, CardWinStats>;
   summary: MostPlayedCardSummary | null;
 }) {
   const chartData = props.data.map((entry) => ({
@@ -206,7 +243,18 @@ function CardOutcomePanel(props: {
                 {props.data.map((entry) => (
                   <tr className="border-t border-white/5" key={entry.cardId}>
                     <td className="py-1 pr-3 font-semibold text-stone-100">
-                      {entry.cardName}
+                      <CardStatsButton
+                        card={{
+                          cardName: entry.cardName,
+                          fullImageUrl: entry.fullImageUrl,
+                          id: entry.cardId,
+                          thumbnailUrl: entry.thumbnailUrl,
+                        }}
+                        className="font-semibold text-stone-100 underline decoration-dotted underline-offset-2 transition hover:text-[rgb(221,161,93)]"
+                        knownStats={props.knownStatsByCardId?.get(entry.cardId)}
+                      >
+                        {entry.cardName}
+                      </CardStatsButton>
                     </td>
                     <td className="py-1 pr-3">{entry.plays}</td>
                     <td className="py-1 pr-3">{entry.winRate}%</td>
@@ -242,10 +290,33 @@ export function CardOutcomesSection(props: {
   );
   const globalSummary = summarizeMostPlayedCards(globalData);
   const personalSummary = summarizeMostPlayedCards(personalData);
+  const knownStatsByCardId = useMemo(() => {
+    if (!props.focusPlayerId) {
+      return undefined;
+    }
+
+    const globalByCardId = indexMostPlayedCards(globalData);
+    const personalByCardId = indexMostPlayedCards(personalData);
+    const cardIds = new Set([
+      ...globalByCardId.keys(),
+      ...personalByCardId.keys(),
+    ]);
+
+    return new Map(
+      [...cardIds].flatMap((cardId) => {
+        const stats = buildKnownCardStats(
+          globalByCardId.get(cardId),
+          personalByCardId.get(cardId),
+        );
+
+        return stats ? [[cardId, stats] as const] : [];
+      }),
+    );
+  }, [globalData, personalData, props.focusPlayerId]);
 
   return (
     <ChartFrame
-      description="Win rate and average score for the cards played most often, drawn from imported game logs."
+      description="Win rate and average score for the cards played most often, drawn from imported game logs. Select a card to open its image with your win rate and the global win rate."
       title="Most-Played Card Outcomes"
     >
       {props.rows.length === 0 ? (
@@ -259,6 +330,7 @@ export function CardOutcomesSection(props: {
             data={globalData}
             emptyCopy="Group-wide card plays will appear once finalized game logs are imported."
             headline="Group — most-played cards"
+            knownStatsByCardId={knownStatsByCardId}
             summary={globalSummary}
           />
           <CardOutcomePanel
@@ -273,6 +345,7 @@ export function CardOutcomesSection(props: {
                 ? `${props.focusPlayerName} — most-played cards`
                 : 'Personal — most-played cards'
             }
+            knownStatsByCardId={knownStatsByCardId}
             summary={personalSummary}
           />
         </div>

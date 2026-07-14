@@ -98,4 +98,38 @@ describe('CardStatsButton dialog image', () => {
       within(dialog).queryByRole('link', { name: /open full image/i }),
     ).not.toBeInTheDocument();
   });
+
+  it('renders supplied win-rate stats in the dialog', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <CardStatsButton
+        card={{
+          cardName: 'Research',
+          fullImageUrl: 'https://example.com/research.png',
+          id: 'card-3',
+          thumbnailUrl: null,
+        }}
+        knownStats={{
+          globalGames: 9,
+          globalWins: 6,
+          personalGames: 5,
+          personalWins: 2,
+        }}
+      >
+        open
+      </CardStatsButton>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /show statistics/i }));
+
+    const dialog = await screen.findByRole('dialog', {
+      name: /research statistics/i,
+    });
+
+    expect(within(dialog).getByText('40%')).toBeInTheDocument();
+    expect(within(dialog).getByText('2/5 games')).toBeInTheDocument();
+    expect(within(dialog).getByText('67%')).toBeInTheDocument();
+    expect(within(dialog).getByText('6/9 games')).toBeInTheDocument();
+  });
 });

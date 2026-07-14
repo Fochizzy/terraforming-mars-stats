@@ -9,12 +9,14 @@ function buildRow(overrides: Partial<CardOutcomeRow>): CardOutcomeRow {
   return {
     cardId: 'card-tharsis',
     cardName: 'Tharsis Republic',
+    fullImageUrl: null,
     gameId: 'game-1',
     groupId: 'group-1',
     isWinner: true,
     playedOn: '2026-07-09',
     playerId: 'player-1',
     playerName: 'Izzy',
+    thumbnailUrl: null,
     ...overrides,
   };
 }
@@ -41,14 +43,18 @@ describe('buildMostPlayedCardData', () => {
       {
         cardId: 'card-tharsis',
         cardName: 'Tharsis Republic',
+        fullImageUrl: null,
         plays: 3,
+        thumbnailUrl: null,
         winRate: 33,
         wins: 1,
       },
       {
         cardId: 'card-ants',
         cardName: 'Ants',
+        fullImageUrl: null,
         plays: 1,
+        thumbnailUrl: null,
         winRate: 100,
         wins: 1,
       },
@@ -60,14 +66,18 @@ describe('buildMostPlayedCardData', () => {
       {
         cardId: 'card-tharsis',
         cardName: 'Tharsis Republic',
+        fullImageUrl: null,
         plays: 2,
+        thumbnailUrl: null,
         winRate: 50,
         wins: 1,
       },
       {
         cardId: 'card-ants',
         cardName: 'Ants',
+        fullImageUrl: null,
         plays: 1,
+        thumbnailUrl: null,
         winRate: 100,
         wins: 1,
       },
@@ -76,6 +86,26 @@ describe('buildMostPlayedCardData', () => {
 
   it('honors the limit', () => {
     expect(buildMostPlayedCardData(rows, null, 1)).toHaveLength(1);
+  });
+
+  it('keeps card image URLs for the stats dialog link', () => {
+    expect(
+      buildMostPlayedCardData(
+        [
+          buildRow({ fullImageUrl: null, thumbnailUrl: null }),
+          buildRow({
+            fullImageUrl: 'https://example.com/tharsis.png',
+            gameId: 'game-2',
+            isWinner: false,
+            thumbnailUrl: 'https://example.com/tharsis-thumb.png',
+          }),
+        ],
+        null,
+      )[0],
+    ).toMatchObject({
+      fullImageUrl: 'https://example.com/tharsis.png',
+      thumbnailUrl: 'https://example.com/tharsis-thumb.png',
+    });
   });
 });
 

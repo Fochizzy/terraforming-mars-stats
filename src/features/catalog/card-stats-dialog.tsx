@@ -46,23 +46,35 @@ function StatBlock({
 
 function CardStatsDialog({
   card,
+  knownStats,
   onClose,
 }: {
   card: CardStatsCard;
+  knownStats?: CardWinStats;
   onClose: () => void;
 }) {
-  const [stats, setStats] = useState<CardWinStats | null>(null);
+  const [stats, setStats] = useState<CardWinStats | null>(knownStats ?? null);
   const [status, setStatus] = useState<'error' | 'loading' | 'ready'>(
-    'loading',
+    knownStats ? 'ready' : 'loading',
   );
   const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
 
+    setImageFailed(false);
+
+    if (knownStats) {
+      setStats(knownStats);
+      setStatus('ready');
+
+      return () => {
+        active = false;
+      };
+    }
+
     setStatus('loading');
     setStats(null);
-    setImageFailed(false);
 
     getCardWinStats(card.id)
       .then((result) => {
@@ -80,7 +92,7 @@ function CardStatsDialog({
     return () => {
       active = false;
     };
-  }, [card.id]);
+  }, [card.id, knownStats]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -186,10 +198,12 @@ export function CardStatsButton({
   card,
   children,
   className,
+  knownStats,
 }: {
   card: CardStatsCard;
   children: React.ReactNode;
   className?: string;
+  knownStats?: CardWinStats;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -204,7 +218,11 @@ export function CardStatsButton({
         {children}
       </button>
       {open ? (
-        <CardStatsDialog card={card} onClose={() => setOpen(false)} />
+        <CardStatsDialog
+          card={card}
+          knownStats={knownStats}
+          onClose={() => setOpen(false)}
+        />
       ) : null}
     </>
   );
