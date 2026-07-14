@@ -83,8 +83,11 @@ export const referenceDimensions: {
     { code: 'amazonis_planitia', name: 'Amazonis Planitia' },
     { code: 'arabia_terra', name: 'Arabia Terra' },
     { code: 'terra_cimmeria', name: 'Terra Cimmeria' },
+    { code: 'terra_cimmeria_nova', name: 'Terra Cimmeria Nova' },
     { code: 'vastitas_borealis', name: 'Vastitas Borealis' },
+    { code: 'vastitas_borealis_nova', name: 'Vastitas Borealis Nova' },
     { code: 'utopia_planitia', name: 'Utopia Planitia' },
+    { code: 'hollandia', name: 'Hollandia' },
   ],
   promoSets: fandomPromoSets,
   milestones: [
@@ -128,6 +131,18 @@ export const referenceDimensions: {
     { code: 'capitalist', name: 'Capitalist' },
     // Utopia Planitia
     { code: 'researcher', name: 'Researcher' },
+    // Terra Cimmeria Nova
+    { code: 'planetologist', name: 'Planetologist' },
+    { code: 'architect', name: 'Architect' },
+    { code: 'coastguard', name: 'Coastguard' },
+    { code: 'c_forester', name: 'C. Forester' },
+    { code: 'fundraiser', name: 'Fundraiser' },
+    // Vastitas Borealis Nova
+    { code: 'agronomist', name: 'Agronomist' },
+    { code: 'v_spacefarer', name: 'V. Spacefarer' },
+    { code: 'geologist', name: 'Geologist' },
+    { code: 'engineer', name: 'Engineer' },
+    { code: 'farmer', name: 'Farmer' },
   ],
   awards: [
     { code: 'landlord', name: 'Landlord' },
@@ -171,6 +186,15 @@ export const referenceDimensions: {
     // Utopia Planitia
     { code: 'investor', name: 'Investor' },
     { code: 'metropolist', name: 'Metropolist' },
+    // Terra Cimmeria Nova
+    { code: 'electrician', name: 'Electrician' },
+    { code: 'founder', name: 'Founder' },
+    { code: 'mogul', name: 'Mogul' },
+    // Vastitas Borealis Nova
+    { code: 'traveller', name: 'Traveller' },
+    { code: 'landscaper', name: 'Landscaper' },
+    { code: 'highlander', name: 'Highlander' },
+    { code: 'blacksmith', name: 'Blacksmith' },
   ],
   mapMilestones: [
     { mapCode: 'tharsis', milestoneCode: 'terraformer' },
@@ -213,6 +237,16 @@ export const referenceDimensions: {
     { mapCode: 'utopia_planitia', milestoneCode: 'tradesman' },
     { mapCode: 'utopia_planitia', milestoneCode: 'smith' },
     { mapCode: 'utopia_planitia', milestoneCode: 'researcher' },
+    { mapCode: 'terra_cimmeria_nova', milestoneCode: 'planetologist' },
+    { mapCode: 'terra_cimmeria_nova', milestoneCode: 'architect' },
+    { mapCode: 'terra_cimmeria_nova', milestoneCode: 'coastguard' },
+    { mapCode: 'terra_cimmeria_nova', milestoneCode: 'c_forester' },
+    { mapCode: 'terra_cimmeria_nova', milestoneCode: 'fundraiser' },
+    { mapCode: 'vastitas_borealis_nova', milestoneCode: 'agronomist' },
+    { mapCode: 'vastitas_borealis_nova', milestoneCode: 'v_spacefarer' },
+    { mapCode: 'vastitas_borealis_nova', milestoneCode: 'geologist' },
+    { mapCode: 'vastitas_borealis_nova', milestoneCode: 'engineer' },
+    { mapCode: 'vastitas_borealis_nova', milestoneCode: 'farmer' },
   ],
   mapAwards: [
     { mapCode: 'tharsis', awardCode: 'landlord' },
@@ -255,6 +289,16 @@ export const referenceDimensions: {
     { mapCode: 'utopia_planitia', awardCode: 'botanist' },
     { mapCode: 'utopia_planitia', awardCode: 'incorporator' },
     { mapCode: 'utopia_planitia', awardCode: 'metropolist' },
+    { mapCode: 'terra_cimmeria_nova', awardCode: 'electrician' },
+    { mapCode: 'terra_cimmeria_nova', awardCode: 'founder' },
+    { mapCode: 'terra_cimmeria_nova', awardCode: 'mogul' },
+    { mapCode: 'terra_cimmeria_nova', awardCode: 'a_zoologist' },
+    { mapCode: 'terra_cimmeria_nova', awardCode: 'forecaster' },
+    { mapCode: 'vastitas_borealis_nova', awardCode: 'traveller' },
+    { mapCode: 'vastitas_borealis_nova', awardCode: 'landscaper' },
+    { mapCode: 'vastitas_borealis_nova', awardCode: 'highlander' },
+    { mapCode: 'vastitas_borealis_nova', awardCode: 'promoter' },
+    { mapCode: 'vastitas_borealis_nova', awardCode: 'blacksmith' },
   ],
   styles: [
     {

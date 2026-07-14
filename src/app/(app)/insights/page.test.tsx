@@ -6,6 +6,12 @@ import InsightsPage from './page';
 type CapturedInsightsDashboardProps = {
   children?: ReactNode;
   focusPeople: Array<{ canonicalId: string; displayName: string }>;
+  mapAwardGroups?: Array<{
+    awardNames: string[];
+    mapCode: string;
+    mapName: string;
+    milestoneNames: string[];
+  }>;
 };
 
 const captureState = vi.hoisted(() => ({
@@ -19,7 +25,9 @@ const mockState = vi.hoisted(() => ({
   getGroupAnalytics: vi.fn(),
   getMergerImpactStats: vi.fn(),
   getOverallAnalytics: vi.fn(),
+  getSelectionDialogData: vi.fn(),
   getSelectionStats: vi.fn(),
+  listMapAwardGroups: vi.fn(),
   listPromoCards: vi.fn(),
   listPromoSets: vi.fn(),
   requireGroupContextOrRedirect: vi.fn(),
@@ -117,6 +125,7 @@ vi.mock('@/lib/db/extended-analytics-repo', () => ({
 }));
 
 vi.mock('@/lib/db/reference-repo', () => ({
+  listMapAwardGroups: mockState.listMapAwardGroups,
   listPromoCards: mockState.listPromoCards,
   listPromoSets: mockState.listPromoSets,
 }));
@@ -124,6 +133,7 @@ vi.mock('@/lib/db/reference-repo', () => ({
 vi.mock('@/lib/db/selection-stats-repo', () => ({
   getHeadToHeadStats: mockState.getHeadToHeadStats,
   getMergerImpactStats: mockState.getMergerImpactStats,
+  getSelectionDialogData: mockState.getSelectionDialogData,
   getSelectionStats: mockState.getSelectionStats,
 }));
 
@@ -235,6 +245,12 @@ describe('InsightsPage', () => {
       analytics: emptyGroupAnalyticsFixture(),
       extended: emptyExtendedAnalyticsFixture(),
     });
+    mockState.listMapAwardGroups.mockResolvedValue([]);
+    mockState.getSelectionDialogData.mockResolvedValue({
+      cardMetaByName: new Map(),
+      corporationWinRates: new Map(),
+      preludeWinRates: new Map(),
+    });
     mockState.listPromoCards.mockResolvedValue([]);
     mockState.listPromoSets.mockResolvedValue([]);
     mockState.getHeadToHeadStats.mockResolvedValue({
@@ -255,6 +271,17 @@ describe('InsightsPage', () => {
   });
 
   it('forwards the cross-group focus people into player focus', async () => {
+    const mapAwardGroups = [
+      {
+        awardNames: ['Landlord'],
+        mapCode: 'tharsis',
+        mapName: 'Tharsis',
+        milestoneNames: ['Terraformer'],
+      },
+    ];
+
+    mockState.listMapAwardGroups.mockResolvedValueOnce(mapAwardGroups);
+
     render(await InsightsPage());
 
     expect(screen.getByRole('heading', { name: /insights/i })).toBeInTheDocument();
@@ -267,6 +294,9 @@ describe('InsightsPage', () => {
     expect(
       captureState.insightsDashboardProps?.focusPeople.map((person) => person.displayName),
     ).toEqual(['Friday Mars', 'Colette LeRoux']);
+    expect(captureState.insightsDashboardProps?.mapAwardGroups).toEqual(
+      mapAwardGroups,
+    );
     // A player from another group is offered even though they aren't in the
     // active group's analytics.
     expect(screen.getByText('Colette LeRoux')).toBeInTheDocument();

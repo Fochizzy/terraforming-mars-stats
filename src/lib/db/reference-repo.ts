@@ -295,6 +295,82 @@ export async function listMapAwards(): Promise<MapAwardOption[]> {
   }));
 }
 
+export type MapAwardGroup = {
+  awardNames: string[];
+  mapCode: string;
+  mapName: string;
+  milestoneNames: string[];
+};
+
+/**
+ * Awards and milestones grouped by board map, so map-aware stats can show the
+ * board image and reference slate without each analytics query rejoining them.
+ */
+export async function listMapAwardGroups(): Promise<MapAwardGroup[]> {
+  const [maps, mapAwards, mapMilestones] = await Promise.all([
+    listMaps(),
+    listMapAwards(),
+    listMapMilestones(),
+  ]);
+  const mapById = new Map(maps.map((map) => [map.id, map]));
+  const byMapId = new Map<string, MapAwardGroup>(
+    maps.map((map) => [
+      map.id,
+      {
+        awardNames: [],
+        mapCode: map.code,
+        mapName: map.name,
+        milestoneNames: [],
+      },
+    ]),
+  );
+  const ensureGroup = (mapId: string) => {
+    const map = mapById.get(mapId);
+
+    if (!map) {
+      return null;
+    }
+
+    return byMapId.get(map.id) ?? null;
+  };
+
+  for (const mapAward of mapAwards) {
+    const group = ensureGroup(mapAward.mapId);
+
+    if (!group || !mapAward.awardName) {
+      continue;
+    }
+
+    if (!group.awardNames.includes(mapAward.awardName)) {
+      group.awardNames.push(mapAward.awardName);
+    }
+  }
+
+  for (const mapMilestone of mapMilestones) {
+    const group = ensureGroup(mapMilestone.mapId);
+
+    if (!group || !mapMilestone.milestoneName) {
+      continue;
+    }
+
+    if (!group.milestoneNames.includes(mapMilestone.milestoneName)) {
+      group.milestoneNames.push(mapMilestone.milestoneName);
+    }
+  }
+
+  return [...byMapId.values()]
+    .map((group) => ({
+      ...group,
+      awardNames: [...group.awardNames].sort((left, right) =>
+        left.localeCompare(right),
+      ),
+      milestoneNames: [...group.milestoneNames].sort((left, right) =>
+        left.localeCompare(right),
+      ),
+    }))
+    .sort((left, right) => left.mapName.localeCompare(right.mapName));
+}
+
 export async function listStyles(): Promise<StyleOption[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

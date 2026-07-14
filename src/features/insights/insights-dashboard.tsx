@@ -36,6 +36,8 @@ import type {
   TrendRow,
 } from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
+import type { MapAwardGroup } from '@/lib/db/reference-repo';
+import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { buildInsightCards, type InsightCard } from './build-insight-cards';
 import { BoardHeatmapSection } from './board-heatmap-section';
@@ -49,6 +51,7 @@ import {
 } from './milestone-award-section';
 import { PlacementDistributionChart } from './placement-distribution-chart';
 import { ScoreSourceRadar } from './score-source-radar';
+import { SelectionPairLabel } from './selection-name-link';
 import { TableSizeChart } from './table-size-chart';
 import { TagOutcomesSection } from './tag-outcomes-section';
 
@@ -57,8 +60,10 @@ type InsightsDashboardProps = {
   children?: ReactNode;
   extended: ExtendedGroupAnalytics;
   focusPeople: CrossGroupFocusPerson[];
+  mapAwardGroups?: MapAwardGroup[];
   overallAnalytics: GroupAnalytics;
   overallExtended: ExtendedGroupAnalytics;
+  selectionDialogData?: SelectionDialogData;
 };
 
 type ScoreSourceShape = {
@@ -641,8 +646,10 @@ export function InsightsDashboard({
   children: groupSwitcher,
   extended,
   focusPeople,
+  mapAwardGroups = [],
   overallAnalytics,
   overallExtended,
+  selectionDialogData,
 }: InsightsDashboardProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string>('all');
   const [focusScope, setFocusScope] = useState<FocusScope>('overall');
@@ -714,11 +721,6 @@ export function InsightsDashboard({
       ? groupPlayerCoverage ?? analytics.coverage
       : analytics.coverage
     : bundle?.coverage ?? null;
-  const selectedStyleRows = sectionFocusPlayerId
-    ? sectionAnalytics.styleAgreementRows.filter(
-        (row) => row.playerId === sectionFocusPlayerId,
-      )
-    : sectionAnalytics.styleAgreementRows.slice(0, 6);
   const selectedLineupRows = sectionFocusPlayerId
     ? sectionAnalytics.lineupEffectRows.filter(
         (row) => row.playerId === sectionFocusPlayerId,
@@ -812,12 +814,6 @@ export function InsightsDashboard({
         value: Number(entry.value.toFixed(1)),
       }))
     : [];
-  const styleAgreementData = selectedStyleRows.map((row) => ({
-    exact: Math.round(row.exactMatchRate * 100),
-    mismatch: Math.round(row.mismatchRate * 100),
-    partial: Math.round(row.partialMatchRate * 100),
-    playerName: row.playerName,
-  }));
   const stylePerformanceData = buildStylePerformanceChartData(selectedStylePerformanceRows);
   const trendRows = isGroupScope
     ? selectedPlayer
@@ -1086,45 +1082,6 @@ export function InsightsDashboard({
 
           {showExtendedSections ? (
           <ChartFrame
-            description="How often each player's declared play style matched the style inferred from their actual scoring — exact, partial, or mismatched."
-            title={
-              sectionFocusPlayerName
-                ? `Style Agreement for ${sectionFocusPlayerName}`
-                : 'Style Agreement'
-            }
-          >
-            {styleAgreementData.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Declared-versus-inferred style comparisons will appear once both
-                style inputs are recorded.
-              </p>
-            ) : (
-              <ResponsiveContainer height={260} width="100%">
-                <BarChart
-                  data={styleAgreementData}
-                  margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                >
-                  <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                  <XAxis
-                    angle={-20}
-                    dataKey="playerName"
-                    height={60}
-                    textAnchor="end"
-                    tick={chartAxisTick}
-                  />
-                  <YAxis tick={chartAxisTick} />
-                  <Tooltip contentStyle={chartTooltipStyle} />
-                  <Bar dataKey="exact" fill={chartSeriesColors.greenery} stackId="style" />
-                  <Bar dataKey="partial" fill={chartSeriesColors.partial} stackId="style" />
-                  <Bar dataKey="mismatch" fill={chartSeriesColors.danger} stackId="style" />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </ChartFrame>
-          ) : null}
-
-          {showExtendedSections ? (
-          <ChartFrame
             description="Win rate by inferred play style, with the three best-performing styles broken out below the chart."
             title="Best Style Snapshot"
           >
@@ -1252,6 +1209,7 @@ export function InsightsDashboard({
                 focusPlayerId={sectionFocusPlayerId}
                 focusPlayerName={sectionFocusPlayerName}
                 groupRows={sectionExtended.groupMapPerformanceRows}
+                mapGroups={mapAwardGroups}
                 playerRows={sectionExtended.playerMapPerformanceRows}
               />
             </>
@@ -1346,6 +1304,7 @@ export function InsightsDashboard({
           />
 
           <TagOutcomesSection
+            dialogData={selectionDialogData}
             focusPlayerId={sectionFocusPlayerId}
             focusPlayerName={sectionFocusPlayerName}
             rows={sectionExtended.tagOutcomeRows}
@@ -1353,7 +1312,10 @@ export function InsightsDashboard({
 
           <GamePaceSection rows={sectionExtended.generationPaceRows} />
 
-          <BoardHeatmapSection rows={sectionExtended.tilePlacementRows} />
+          <BoardHeatmapSection
+            mapGroups={mapAwardGroups}
+            rows={sectionExtended.tilePlacementRows}
+          />
 
           {selectedInteractionRows.length > 0 ? (
             <ChartFrame
@@ -1367,7 +1329,12 @@ export function InsightsDashboard({
                     key={`${row.playerId ?? 'group'}-${row.interactionType}-${row.label}`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-stone-100">{row.label}</h3>
+                      <h3 className="font-semibold text-stone-100">
+                        <SelectionPairLabel
+                          dialogData={selectionDialogData}
+                          label={row.label}
+                        />
+                      </h3>
                       <p className="tm-accent-copy text-sm">
                         {formatPercent(row.winRate)}
                       </p>

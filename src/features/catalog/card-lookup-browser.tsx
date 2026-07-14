@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { SelectChevron } from '@/components/ui/select-chevron';
+import { TagIcon } from '@/components/ui/tag-icon';
 import { isRenderableCardImage } from './card-image';
 import { CardStatsButton } from './card-stats-dialog';
 
@@ -285,7 +286,11 @@ export function CardLookupBrowser({ cards }: { cards: CardLookupEntry[] }) {
                       </span>
                     ) : null}
                     {card.sourceTags.slice(0, 4).map((tagName) => (
-                      <span className="tm-coverage-badge px-2 py-0.5" key={tagName}>
+                      <span
+                        className="tm-coverage-badge inline-flex items-center gap-1 px-2 py-0.5"
+                        key={tagName}
+                      >
+                        <TagIcon code={tagName} size={14} />
                         {humanizeCode(tagName)}
                       </span>
                     ))}

@@ -5,7 +5,10 @@ import GlobalStatisticsPage from './page';
 import type { SelectionStats } from '@/lib/db/selection-stats-repo';
 
 const mockState = vi.hoisted(() => ({
+  getCardImageMetaByNames: vi.fn(),
+  getSelectionDialogData: vi.fn(),
   getSelectionStats: vi.fn(),
+  listMapAwardGroups: vi.fn(),
 }));
 
 vi.mock('@/components/layout/app-shell', () => ({
@@ -37,13 +40,22 @@ vi.mock('@/features/insights/selection-stats-section', () => ({
   ),
 }));
 
-vi.mock('@/features/insights/winning-cards-section', () => ({
+vi.mock('@/features/insights/winning-cards-section', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@/features/insights/winning-cards-section')
+  >()),
   WinningCardsSection: ({ cards }: { cards: SelectionStats['cards'] }) => (
     <div data-testid="winning-cards">{cards.length} cards</div>
   ),
 }));
 
+vi.mock('@/lib/db/reference-repo', () => ({
+  listMapAwardGroups: mockState.listMapAwardGroups,
+}));
+
 vi.mock('@/lib/db/selection-stats-repo', () => ({
+  getCardImageMetaByNames: mockState.getCardImageMetaByNames,
+  getSelectionDialogData: mockState.getSelectionDialogData,
   getSelectionStats: mockState.getSelectionStats,
 }));
 
@@ -63,6 +75,13 @@ describe('GlobalStatisticsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.getSelectionStats.mockResolvedValue(sampleStats);
+    mockState.getCardImageMetaByNames.mockResolvedValue(new Map());
+    mockState.getSelectionDialogData.mockResolvedValue({
+      cardMetaByName: new Map(),
+      corporationWinRates: new Map(),
+      preludeWinRates: new Map(),
+    });
+    mockState.listMapAwardGroups.mockResolvedValue([]);
   });
 
   it('renders global statistics from all recorded games', async () => {

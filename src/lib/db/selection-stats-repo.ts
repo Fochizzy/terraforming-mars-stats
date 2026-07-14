@@ -56,6 +56,12 @@ export type CardWinStat = {
   win_rate_when_played: number;
 };
 
+export type CardImageMeta = {
+  fullImageUrl: string | null;
+  id: string;
+  thumbnailUrl: string | null;
+};
+
 export type TagWinStat = {
   avg_tags_in_losses: number | null;
   avg_tags_in_wins: number | null;
@@ -146,6 +152,142 @@ export async function getSelectionStats(
     tagWins: readArray(payload.tagWins),
     totalGames:
       typeof payload.totalGames === 'number' ? payload.totalGames : 0,
+  };
+}
+
+// The global card win stats carry only names, so the Global Statistics page
+// looks up catalog id + art by name to let each loss-correlated card open its
+// stats dialog. Image URLs mirror the analytics views' coalesce order. First
+// row wins per name; a couple of cards sharing a name resolve to one entry.
+export async function getCardImageMetaByNames(
+  cardNames: string[],
+): Promise<Map<string, CardImageMeta>> {
+  const uniqueNames = [...new Set(cardNames)];
+
+  if (uniqueNames.length === 0) {
+    return new Map();
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('cards')
+    .select('id, card_name, full_image_path, thumbnail_path, image_url')
+    .in('card_name', uniqueNames);
+
+  if (error) {
+    throw error;
+  }
+
+  const meta = new Map<string, CardImageMeta>();
+
+  for (const row of (data ?? []) as Array<{
+    card_name: string;
+    full_image_path: string | null;
+    id: string;
+    image_url: string | null;
+    thumbnail_path: string | null;
+  }>) {
+    if (meta.has(row.card_name)) {
+      continue;
+    }
+
+    meta.set(row.card_name, {
+      fullImageUrl: row.full_image_path ?? row.image_url ?? null,
+      id: row.id,
+      thumbnailUrl:
+        row.thumbnail_path ?? row.full_image_path ?? row.image_url ?? null,
+    });
+  }
+
+  return meta;
+}
+
+export type SelectionWinScope = {
+  plays: number;
+  winRate: number;
+};
+
+export type SelectionDialogEntry = {
+  global: SelectionWinScope | null;
+  personal: SelectionWinScope | null;
+};
+
+export type SelectionDialogData = {
+  cardMetaByName: Map<string, CardImageMeta>;
+  corporationWinRates: Map<string, SelectionDialogEntry>;
+  preludeWinRates: Map<string, SelectionDialogEntry>;
+};
+
+function indexWinScope(
+  personalRows: Array<{ name: string; plays: number; win_rate: number }>,
+  globalRows: Array<{ name: string; plays: number; win_rate: number }>,
+): Map<string, SelectionDialogEntry> {
+  const entries = new Map<string, SelectionDialogEntry>();
+  const ensure = (name: string) =>
+    entries.get(name) ?? { global: null, personal: null };
+
+  for (const row of globalRows) {
+    const entry = ensure(row.name);
+    entry.global = { plays: row.plays, winRate: row.win_rate };
+    entries.set(row.name, entry);
+  }
+
+  for (const row of personalRows) {
+    const entry = ensure(row.name);
+    entry.personal = { plays: row.plays, winRate: row.win_rate };
+    entries.set(row.name, entry);
+  }
+
+  return entries;
+}
+
+/**
+ * Assemble everything a corporation/prelude click-through needs: the catalog art
+ * (corps and preludes live in the `cards` table alongside project cards) plus
+ * each one's personal and global win rate, drawn from the already-loaded
+ * selection stats so no extra RPC is needed.
+ */
+export async function getSelectionDialogData(
+  personal: SelectionStats,
+  global: SelectionStats,
+): Promise<SelectionDialogData> {
+  const names = [
+    ...new Set([
+      ...global.corporations.map((row) => row.corporation_name),
+      ...personal.corporations.map((row) => row.corporation_name),
+      ...global.preludes.map((row) => row.prelude_name),
+      ...personal.preludes.map((row) => row.prelude_name),
+    ]),
+  ];
+
+  const cardMetaByName = await getCardImageMetaByNames(names);
+
+  return {
+    cardMetaByName,
+    corporationWinRates: indexWinScope(
+      personal.corporations.map((row) => ({
+        name: row.corporation_name,
+        plays: row.plays,
+        win_rate: row.win_rate,
+      })),
+      global.corporations.map((row) => ({
+        name: row.corporation_name,
+        plays: row.plays,
+        win_rate: row.win_rate,
+      })),
+    ),
+    preludeWinRates: indexWinScope(
+      personal.preludes.map((row) => ({
+        name: row.prelude_name,
+        plays: row.plays,
+        win_rate: row.win_rate,
+      })),
+      global.preludes.map((row) => ({
+        name: row.prelude_name,
+        plays: row.plays,
+        win_rate: row.win_rate,
+      })),
+    ),
   };
 }
 

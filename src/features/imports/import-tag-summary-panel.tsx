@@ -1,3 +1,4 @@
+import { TagIcon } from '@/components/ui/tag-icon';
 import {
   PLAYER_TAG_CODES,
   type ImportPlayerTagSummary,
@@ -64,9 +65,10 @@ export function ImportTagSummaryPanel({
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
                   {nonZeroTags.map((tagCode) => (
                     <span
-                      className="rounded-full border border-sky-100/20 bg-black/20 px-2.5 py-1"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-sky-100/20 bg-black/20 px-2.5 py-1"
                       key={`${summary.playerName}-${tagCode}`}
                     >
+                      <TagIcon code={tagCode} size={16} />
                       {tagLabels[tagCode]} {summary.tagCounts[tagCode]}
                     </span>
                   ))}

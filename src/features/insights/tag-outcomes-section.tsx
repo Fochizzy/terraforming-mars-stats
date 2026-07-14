@@ -21,7 +21,10 @@ import {
   chartTooltipStyle,
 } from '@/components/charts/chart-theme';
 import { SelectChevron } from '@/components/ui/select-chevron';
+import { TagLabel } from '@/components/ui/tag-icon';
 import type { TagOutcomeRow } from '@/lib/db/extended-analytics-repo';
+import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
+import { SelectionNameButton } from './selection-name-link';
 
 export function listAvailableTagCodes(rows: TagOutcomeRow[]) {
   return [...new Set(rows.map((row) => row.tagCode))].sort((left, right) =>
@@ -234,6 +237,7 @@ export function buildCorporationTagData(
 }
 
 export function TagOutcomesSection(props: {
+  dialogData?: SelectionDialogData;
   focusPlayerId: string | null;
   focusPlayerName: string | null;
   rows: TagOutcomeRow[];
@@ -318,7 +322,7 @@ export function TagOutcomesSection(props: {
                   {winRateData.map((entry) => (
                     <tr className="border-t border-white/5" key={entry.tagCode}>
                       <td className="py-1 pr-3 font-semibold text-stone-100">
-                        {entry.tagCode}
+                        <TagLabel code={entry.tagCode} />
                       </td>
                       <td className="py-1 pr-3">{entry.results}</td>
                       <td className="py-1 pr-3">{entry.winRate}%</td>
@@ -455,15 +459,18 @@ export function TagOutcomesSection(props: {
             <h3 className="tm-data-label mb-2 text-xs">
               Corporation Relationship
             </h3>
-            <ResponsiveContainer height={260} width="100%">
+            <ResponsiveContainer height={320} width="100%">
               <ComposedChart
                 data={corporationTagData}
-                margin={{ bottom: 40, left: 0, right: 12, top: 8 }}
+                margin={{ bottom: 96, left: 0, right: 12, top: 8 }}
               >
                 <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
                 <XAxis
+                  angle={-90}
                   dataKey="corporationName"
+                  height={110}
                   interval={0}
+                  textAnchor="end"
                   tick={chartAxisTick}
                 />
                 <YAxis
@@ -509,7 +516,11 @@ export function TagOutcomesSection(props: {
                       key={entry.corporationId ?? entry.corporationName}
                     >
                       <td className="py-1 pr-3 font-semibold text-stone-100">
-                        {entry.corporationName}
+                        <SelectionNameButton
+                          dialogData={props.dialogData}
+                          kind="Corporation"
+                          name={entry.corporationName}
+                        />
                       </td>
                       <td className="py-1 pr-3">{entry.results}</td>
                       <td className="py-1 pr-3">{entry.tagUseRate}%</td>

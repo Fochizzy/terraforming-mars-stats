@@ -3,6 +3,10 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
 import { SelectionStatsSection } from '@/features/insights/selection-stats-section';
+import {
+  listMapAwardGroups,
+  type MapAwardGroup,
+} from '@/lib/db/reference-repo';
 import type {
   CrossGroupFocusPerson,
   GroupAnalytics,
@@ -19,9 +23,11 @@ import { getExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import {
   getHeadToHeadStats,
   getMergerImpactStats,
+  getSelectionDialogData,
   getSelectionStats,
   type HeadToHeadStats,
   type MergerImpactStat,
+  type SelectionDialogData,
   type SelectionStats,
 } from '@/lib/db/selection-stats-repo';
 
@@ -107,6 +113,7 @@ export default async function InsightsPage() {
     globalSelectionStats,
     headToHeadStats,
     mergerImpactStats,
+    mapAwardGroups,
   ] = await Promise.all([
     loadInsightsDataOrDefault(
       'group analytics',
@@ -148,7 +155,20 @@ export default async function InsightsPage() {
       getMergerImpactStats(context.groupId),
       emptyMergerImpactStats,
     ),
+    loadInsightsDataOrDefault(
+      'map award groups',
+      listMapAwardGroups(),
+      [] as MapAwardGroup[],
+    ),
   ]);
+
+  const selectionDialogData = await loadInsightsDataOrDefault<
+    SelectionDialogData | undefined
+  >(
+    'selection dialog data',
+    getSelectionDialogData(personalSelectionStats, globalSelectionStats),
+    undefined,
+  );
 
   return (
     <AppShell
@@ -160,14 +180,18 @@ export default async function InsightsPage() {
         analytics={analytics}
         extended={extendedAnalytics}
         focusPeople={focusPeople}
+        mapAwardGroups={mapAwardGroups}
         overallAnalytics={overallAnalytics.analytics}
         overallExtended={overallAnalytics.extended}
+        selectionDialogData={selectionDialogData}
       >
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/insights" />
       </InsightsDashboard>
       <SelectionStatsSection
+        dialogData={selectionDialogData}
         global={globalSelectionStats}
         headToHead={headToHeadStats}
+        mapAwardGroups={mapAwardGroups}
         mergerImpact={mergerImpactStats}
         personal={personalSelectionStats}
       />

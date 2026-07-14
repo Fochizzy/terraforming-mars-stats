@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
+import { MapInfoButton } from '@/components/ui/map-info-button';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import type { TilePlacementRow } from '@/lib/db/extended-analytics-repo';
+import type { MapAwardGroup } from '@/lib/db/reference-repo';
 import {
   BOARD_ROW_LENGTHS,
   OFF_PLANET_SPACE_COUNT,
@@ -162,8 +164,14 @@ function buildSelectOptions(rows: TilePlacementRow[]) {
   return { games, mapNames, tileTypes };
 }
 
-export function BoardHeatmapSection(props: { rows: TilePlacementRow[] }) {
+export function BoardHeatmapSection(props: {
+  mapGroups?: MapAwardGroup[];
+  rows: TilePlacementRow[];
+}) {
   const options = useMemo(() => buildSelectOptions(props.rows), [props.rows]);
+  const mapGroupByName = new Map(
+    (props.mapGroups ?? []).map((mapGroup) => [mapGroup.mapName, mapGroup]),
+  );
   const [selectedMapName, setSelectedMapName] = useState<string | null>(null);
   const [selectedTileType, setSelectedTileType] = useState<string | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
@@ -188,6 +196,7 @@ export function BoardHeatmapSection(props: { rows: TilePlacementRow[] }) {
   const fillColor = activeTileType
     ? TILE_FILL_COLORS[activeTileType] ?? 'var(--tm-copper-500)'
     : 'var(--tm-copper-500)';
+  const activeMapGroup = activeMapName ? mapGroupByName.get(activeMapName) : null;
 
   return (
     <ChartFrame
@@ -273,6 +282,16 @@ export function BoardHeatmapSection(props: { rows: TilePlacementRow[] }) {
               </span>
             </div>
           </div>
+          {activeMapGroup ? (
+            <p className="text-sm">
+              <MapInfoButton
+                awardNames={activeMapGroup.awardNames}
+                mapCode={activeMapGroup.mapCode}
+                mapName={activeMapGroup.mapName}
+                milestoneNames={activeMapGroup.milestoneNames}
+              />
+            </p>
+          ) : null}
           <div className="overflow-x-auto">
             <svg
               aria-label="Tile placement heatmap"

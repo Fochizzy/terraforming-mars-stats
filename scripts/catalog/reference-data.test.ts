@@ -30,8 +30,11 @@ describe('referenceDimensions', () => {
       'amazonis_planitia',
       'arabia_terra',
       'terra_cimmeria',
+      'terra_cimmeria_nova',
       'vastitas_borealis',
+      'vastitas_borealis_nova',
       'utopia_planitia',
+      'hollandia',
     ]);
   });
 
@@ -122,6 +125,16 @@ describe('referenceDimensions', () => {
       'irrigator',
       'capitalist',
       'researcher',
+      'planetologist',
+      'architect',
+      'coastguard',
+      'c_forester',
+      'fundraiser',
+      'agronomist',
+      'v_spacefarer',
+      'geologist',
+      'engineer',
+      'farmer',
     ]);
 
     expect(referenceDimensions.awards.map((entry) => entry.code)).toEqual([
@@ -161,6 +174,13 @@ describe('referenceDimensions', () => {
       'voyager',
       'investor',
       'metropolist',
+      'electrician',
+      'founder',
+      'mogul',
+      'traveller',
+      'landscaper',
+      'highlander',
+      'blacksmith',
     ]);
 
     const milestoneCountsByMap = Object.fromEntries(
@@ -185,8 +205,11 @@ describe('referenceDimensions', () => {
       amazonis_planitia: 5,
       arabia_terra: 5,
       terra_cimmeria: 5,
+      terra_cimmeria_nova: 5,
       vastitas_borealis: 5,
+      vastitas_borealis_nova: 5,
       utopia_planitia: 5,
+      hollandia: 0,
     });
 
     expect(awardCountsByMap).toEqual({
@@ -196,8 +219,11 @@ describe('referenceDimensions', () => {
       amazonis_planitia: 5,
       arabia_terra: 5,
       terra_cimmeria: 5,
+      terra_cimmeria_nova: 5,
       vastitas_borealis: 5,
+      vastitas_borealis_nova: 5,
       utopia_planitia: 5,
+      hollandia: 0,
     });
   });
 

@@ -1,15 +1,25 @@
+import { TagLabel } from '@/components/ui/tag-icon';
+import type { MapAwardGroup } from '@/lib/db/reference-repo';
 import type {
   CorporationSelectionStat,
   HeadToHeadStats,
   MergerImpactStat,
   PreludeSelectionStat,
+  SelectionDialogData,
   SelectionStats,
 } from '@/lib/db/selection-stats-repo';
+import { AwardFundingByMap } from './award-funding-by-map';
+import { CorporationPreludePairings } from './corporation-prelude-pairings';
+import { SelectionStatTable } from './selection-stat-table';
+import { CorporationTagProfiles } from './corporation-tag-profiles';
+import { SelectionNameButton } from './selection-name-link';
 import { SelectionOriginChart } from './selection-origin-chart';
 
 type SelectionStatsSectionProps = {
+  dialogData?: SelectionDialogData;
   global: SelectionStats;
   headToHead: HeadToHeadStats;
+  mapAwardGroups?: MapAwardGroup[];
   mergerImpact: MergerImpactStat[];
   personal: SelectionStats;
 };
@@ -39,16 +49,6 @@ function formatWins(wins: number) {
   return `${wins} ${wins === 1 ? 'win' : 'wins'}`;
 }
 
-// Playrate = share of finalized games in the scope that featured this
-// selection. Each corporation, prelude, and project card is a unique copy per
-// game, so plays never exceeds games and the ratio is a clean 0-100%.
-function formatPlayrate(plays: number, totalGames: number) {
-  if (!totalGames || totalGames <= 0) {
-    return '-';
-  }
-  return `${Math.round((plays / totalGames) * 100)}%`;
-}
-
 function SelectionStatRows(props: {
   rows: Array<
     (CorporationSelectionStat | PreludeSelectionStat) & { name: string }
@@ -56,70 +56,18 @@ function SelectionStatRows(props: {
   scopeTotalGames: number;
   globalTotalGames: number;
   globalPlaysByName: Map<string, number>;
+  kind: 'Corporation' | 'Prelude';
+  dialogData?: SelectionDialogData;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-xs">
-        <thead>
-          <tr className="tm-data-label">
-            <th className="py-1 pr-3">Name</th>
-            <th className="py-1 pr-3">Plays</th>
-            <th className="py-1 pr-3">Playrate</th>
-            <th className="py-1 pr-3">Global playrate</th>
-            <th className="py-1 pr-3">Win rate</th>
-            <th className="py-1 pr-3">Avg place</th>
-            <th className="py-1 pr-3">1st/2nd/3rd+</th>
-            <th className="py-1 pr-3">Avg VP</th>
-            <th className="py-1 pr-3">TR</th>
-            <th className="py-1 pr-3">Cards</th>
-            <th className="py-1 pr-3">Microbes</th>
-            <th className="py-1 pr-3">Animals</th>
-            <th className="py-1 pr-3">Greenery</th>
-            <th className="py-1 pr-3">Cities</th>
-            <th className="py-1 pr-3">Milestones</th>
-            <th className="py-1 pr-3">Awards</th>
-          </tr>
-        </thead>
-        <tbody>
-          {props.rows.map((row) => (
-            <tr className="border-t border-white/5" key={row.name}>
-              <td className="py-1 pr-3 font-semibold text-stone-100">
-                {row.name}
-              </td>
-              <td className="py-1 pr-3">{row.plays}</td>
-              <td className="py-1 pr-3">
-                {formatPlayrate(row.plays, props.scopeTotalGames)}
-              </td>
-              <td className="py-1 pr-3">
-                {formatPlayrate(
-                  props.globalPlaysByName.get(row.name) ?? 0,
-                  props.globalTotalGames,
-                )}
-              </td>
-              <td className="py-1 pr-3">{formatWinRate(row.win_rate)}</td>
-              <td className="py-1 pr-3">{row.avg_placement}</td>
-              <td className="py-1 pr-3">
-                {row.first_place_finishes}/{row.second_place_finishes}/
-                {row.third_plus_finishes}
-              </td>
-              <td className="py-1 pr-3">{row.avg_points}</td>
-              <td className="py-1 pr-3">{row.avg_tr_points}</td>
-              <td className="py-1 pr-3">{row.avg_card_points}</td>
-              <td className="py-1 pr-3">{row.avg_microbe_points}</td>
-              <td className="py-1 pr-3">{row.avg_animal_points}</td>
-              <td className="py-1 pr-3">{row.avg_greenery_points}</td>
-              <td className="py-1 pr-3">{row.avg_cities_points}</td>
-              <td className="py-1 pr-3">
-                {row.avg_milestone_points} ({row.avg_milestones_won})
-              </td>
-              <td className="py-1 pr-3">
-                {row.avg_award_points} ({row.avg_awards_won})
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <SelectionStatTable
+      dialogData={props.dialogData}
+      globalPlaysByName={props.globalPlaysByName}
+      globalTotalGames={props.globalTotalGames}
+      kind={props.kind}
+      rows={props.rows}
+      scopeTotalGames={props.scopeTotalGames}
+    />
   );
 }
 
@@ -132,6 +80,14 @@ export function SelectionStatsScope(props: {
    * displayed scope already is global).
    */
   globalStats?: SelectionStats;
+  /** Card art + win rates so corporation/prelude names can open a stats card. */
+  dialogData?: SelectionDialogData;
+  /**
+   * Award-to-map reference data. When provided, Award Funding ROI becomes a
+   * per-map dropdown with the map image; without it, it falls back to a flat
+   * list (e.g. in unit tests that don't load reference data).
+   */
+  mapAwardGroups?: MapAwardGroup[];
 }) {
   const globalStats = props.globalStats ?? props.stats;
   const globalCorpPlaysByName = new Map(
@@ -184,6 +140,8 @@ export function SelectionStatsScope(props: {
                 Corporations
               </h4>
               <SelectionStatRows
+                dialogData={props.dialogData}
+                kind="Corporation"
                 rows={props.stats.corporations.map((row) => ({
                   ...row,
                   name: row.corporation_name,
@@ -200,6 +158,8 @@ export function SelectionStatsScope(props: {
                 Preludes
               </h4>
               <SelectionStatRows
+                dialogData={props.dialogData}
+                kind="Prelude"
                 rows={props.stats.preludes.map((row) => ({
                   ...row,
                   name: row.prelude_name,
@@ -211,41 +171,39 @@ export function SelectionStatsScope(props: {
             </div>
           ) : null}
           {props.stats.pairs.length > 0 ? (
-            <div>
-              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                Corporation + Prelude Pairings
-              </h4>
-              <ul className="flex flex-col gap-1 text-xs">
-                {props.stats.pairs.slice(0, 15).map((pair) => (
-                  <li key={`${pair.corporation_name}-${pair.prelude_name}`}>
-                    {pair.corporation_name} + {pair.prelude_name}: {pair.plays}{' '}
-                    plays, {formatWinRate(pair.win_rate)} wins, {pair.avg_points}{' '}
-                    avg VP
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <CorporationPreludePairings
+              dialogData={props.dialogData}
+              rows={props.stats.pairs}
+            />
           ) : null}
           {props.stats.awardFunding.length > 0 ? (
-            <div>
-              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                Award Funding ROI
-              </h4>
-              <ul className="flex flex-col gap-1 text-xs">
-                {props.stats.awardFunding.map((funding) => (
-                  <li key={funding.award_name}>
-                    {funding.award_name}: funded {funding.funded_count}×, funder
-                    took 1st {funding.funder_won_count}× (
-                    {funding.funded_count > 0
-                      ? Math.round(
-                          (funding.funder_won_count / funding.funded_count) * 100,
-                        )
-                      : 0}
-                    % ROI)
-                  </li>
-                ))}
-              </ul>
-            </div>
+            props.mapAwardGroups && props.mapAwardGroups.length > 0 ? (
+              <AwardFundingByMap
+                mapGroups={props.mapAwardGroups}
+                rows={props.stats.awardFunding}
+              />
+            ) : (
+              <div>
+                <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+                  Award Funding ROI
+                </h4>
+                <ul className="flex flex-col gap-1 text-xs">
+                  {props.stats.awardFunding.map((funding) => (
+                    <li key={funding.award_name}>
+                      {funding.award_name}: funded {funding.funded_count}×,
+                      funder took 1st {funding.funder_won_count}× (
+                      {funding.funded_count > 0
+                        ? Math.round(
+                            (funding.funder_won_count / funding.funded_count) *
+                              100,
+                          )
+                        : 0}
+                      % ROI)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
           ) : null}
           {props.stats.tagWins.length > 0 ? (
             <div>
@@ -254,29 +212,21 @@ export function SelectionStatsScope(props: {
               </h4>
               <ul className="flex flex-col gap-1 text-xs">
                 {props.stats.tagWins.map((tagWin) => (
-                  <li key={tagWin.tag_code}>
-                    {tagWin.tag_code}: {tagWin.avg_tags_in_wins ?? '—'} per win
-                    vs {tagWin.avg_tags_in_losses ?? '—'} per loss (
-                    {tagWin.samples} samples)
+                  <li className="flex items-center gap-1.5" key={tagWin.tag_code}>
+                    <TagLabel code={tagWin.tag_code} />:{' '}
+                    {tagWin.avg_tags_in_wins ?? '—'} per win vs{' '}
+                    {tagWin.avg_tags_in_losses ?? '—'} per loss ({tagWin.samples}{' '}
+                    samples)
                   </li>
                 ))}
               </ul>
             </div>
           ) : null}
           {props.stats.corporationTags.length > 0 ? (
-            <div>
-              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                Tag Profiles by Corporation
-              </h4>
-              <ul className="flex flex-col gap-1 text-xs">
-                {props.stats.corporationTags.slice(0, 20).map((tagStat) => (
-                  <li key={`${tagStat.corporation_name}-${tagStat.tag_code}`}>
-                    {tagStat.corporation_name}: {tagStat.avg_tag_count}{' '}
-                    {tagStat.tag_code} tags per game
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <CorporationTagProfiles
+              dialogData={props.dialogData}
+              rows={props.stats.corporationTags}
+            />
           ) : null}
         </>
       )}
@@ -284,7 +234,10 @@ export function SelectionStatsScope(props: {
   );
 }
 
-function HeadToHeadBlock(props: { headToHead: HeadToHeadStats }) {
+function HeadToHeadBlock(props: {
+  dialogData?: SelectionDialogData;
+  headToHead: HeadToHeadStats;
+}) {
   if (props.headToHead.pairs.length === 0) {
     return null;
   }
@@ -310,7 +263,18 @@ function HeadToHeadBlock(props: { headToHead: HeadToHeadStats }) {
           <ul className="flex flex-col gap-1 text-xs">
             {props.headToHead.corporationMatchups.slice(0, 15).map((matchup) => (
               <li key={`${matchup.corporation_a}-${matchup.corporation_b}`}>
-                {matchup.corporation_a} vs {matchup.corporation_b}:{' '}
+                <SelectionNameButton
+                  dialogData={props.dialogData}
+                  kind="Corporation"
+                  name={matchup.corporation_a}
+                />{' '}
+                vs{' '}
+                <SelectionNameButton
+                  dialogData={props.dialogData}
+                  kind="Corporation"
+                  name={matchup.corporation_b}
+                />
+                :{' '}
                 {matchup.corporation_a_wins}–{matchup.corporation_b_wins} over{' '}
                 {matchup.games} games
               </li>
@@ -375,23 +339,29 @@ function MergerImpactBlock(props: { rows: MergerImpactStat[] }) {
 }
 
 export function SelectionStatsSection({
+  dialogData,
   global,
   headToHead,
+  mapAwardGroups,
   mergerImpact,
   personal,
 }: SelectionStatsSectionProps) {
   return (
     <section className="tm-panel flex flex-col gap-5">
       <h2 className="tm-panel-title text-lg">Corporation &amp; Prelude Stats</h2>
-      <HeadToHeadBlock headToHead={headToHead} />
+      <HeadToHeadBlock dialogData={dialogData} headToHead={headToHead} />
       <MergerImpactBlock rows={mergerImpact} />
       <SelectionStatsScope
+        dialogData={dialogData}
         heading="Your Games"
+        mapAwardGroups={mapAwardGroups}
         stats={personal}
         globalStats={global}
       />
       <SelectionStatsScope
+        dialogData={dialogData}
         heading="All Recorded Games"
+        mapAwardGroups={mapAwardGroups}
         stats={global}
         globalStats={global}
       />

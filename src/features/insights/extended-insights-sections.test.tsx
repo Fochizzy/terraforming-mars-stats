@@ -16,7 +16,10 @@ import {
   listPaceGames,
 } from './game-pace-section';
 import { buildGameLengthBucketData } from './game-length-section';
-import { buildMapPerformanceData } from './map-performance-section';
+import {
+  buildMapPerformanceData,
+  MapPerformanceSection,
+} from './map-performance-section';
 import {
   AwardEconomicsSection,
   buildAwardMatrixModel,
@@ -228,6 +231,38 @@ describe('buildMapPerformanceData', () => {
         winRate: 75,
       },
     ]);
+  });
+
+  it('renders known map names as detail buttons', () => {
+    render(
+      <MapPerformanceSection
+        focusPlayerId={null}
+        focusPlayerName={null}
+        groupRows={[
+          {
+            averageGenerationCount: 11.2,
+            averageScore: 74.5,
+            gamesPlayed: 6,
+            groupId: 'group-1',
+            mapId: 'map-1',
+            mapName: 'Tharsis',
+          },
+        ]}
+        mapGroups={[
+          {
+            awardNames: ['Landlord'],
+            mapCode: 'tharsis',
+            mapName: 'Tharsis',
+            milestoneNames: ['Terraformer'],
+          },
+        ]}
+        playerRows={[]}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Show map details for Tharsis' }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -770,11 +805,22 @@ describe('BoardHeatmapSection', () => {
   it('renders hex cells with placement counts', () => {
     render(
       <BoardHeatmapSection
+        mapGroups={[
+          {
+            awardNames: ['Landlord'],
+            mapCode: 'tharsis',
+            mapName: 'Tharsis',
+            milestoneNames: ['Terraformer'],
+          },
+        ]}
         rows={[buildTileRow({ boardSpace: '21', placements: 3 })]}
       />,
     );
 
     expect(screen.getByLabelText(/tile type/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Show map details for Tharsis' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('Space 21: 3 placements'),
     ).toBeInTheDocument();

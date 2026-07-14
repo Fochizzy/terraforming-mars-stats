@@ -16,10 +16,12 @@ import {
   chartSeriesColors,
   chartTooltipStyle,
 } from '@/components/charts/chart-theme';
+import { MapInfoButton } from '@/components/ui/map-info-button';
 import type {
   GroupMapPerformanceRow,
   PlayerMapPerformanceRow,
 } from '@/lib/db/extended-analytics-repo';
+import type { MapAwardGroup } from '@/lib/db/reference-repo';
 
 export type MapPerformanceDatum = {
   averageScore: number;
@@ -59,6 +61,7 @@ export function MapPerformanceSection(props: {
   focusPlayerId: string | null;
   focusPlayerName: string | null;
   groupRows: GroupMapPerformanceRow[];
+  mapGroups?: MapAwardGroup[];
   playerRows: PlayerMapPerformanceRow[];
 }) {
   const data = buildMapPerformanceData({
@@ -66,6 +69,9 @@ export function MapPerformanceSection(props: {
     groupRows: props.groupRows,
     playerRows: props.playerRows,
   });
+  const mapGroupByName = new Map(
+    (props.mapGroups ?? []).map((mapGroup) => [mapGroup.mapName, mapGroup]),
+  );
 
   return (
     <ChartFrame
@@ -100,20 +106,38 @@ export function MapPerformanceSection(props: {
             </BarChart>
           </ResponsiveContainer>
           <div className="grid gap-3 md:grid-cols-3">
-            {data.map((entry) => (
-              <article className="tm-stat-card" key={entry.mapName}>
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="font-semibold text-stone-100">{entry.mapName}</h3>
-                  {entry.winRate !== null ? (
-                    <p className="tm-accent-copy text-sm">{entry.winRate}% wins</p>
-                  ) : null}
-                </div>
-                <p className="tm-muted-copy mt-2 text-sm">
-                  {entry.gamesPlayed} {entry.winRate !== null ? 'results' : 'games'}{' '}
-                  | avg {entry.averageScore} points | {entry.detail}
-                </p>
-              </article>
-            ))}
+            {data.map((entry) => {
+              const mapGroup = mapGroupByName.get(entry.mapName);
+
+              return (
+                <article className="tm-stat-card" key={entry.mapName}>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-semibold text-stone-100">
+                      {mapGroup ? (
+                        <MapInfoButton
+                          awardNames={mapGroup.awardNames}
+                          mapCode={mapGroup.mapCode}
+                          mapName={entry.mapName}
+                          milestoneNames={mapGroup.milestoneNames}
+                        />
+                      ) : (
+                        entry.mapName
+                      )}
+                    </h3>
+                    {entry.winRate !== null ? (
+                      <p className="tm-accent-copy text-sm">
+                        {entry.winRate}% wins
+                      </p>
+                    ) : null}
+                  </div>
+                  <p className="tm-muted-copy mt-2 text-sm">
+                    {entry.gamesPlayed}{' '}
+                    {entry.winRate !== null ? 'results' : 'games'} | avg{' '}
+                    {entry.averageScore} points | {entry.detail}
+                  </p>
+                </article>
+              );
+            })}
           </div>
         </div>
       )}
