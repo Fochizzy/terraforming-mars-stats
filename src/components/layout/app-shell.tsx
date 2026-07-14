@@ -11,7 +11,7 @@ export function AppShell({
 }) {
   return (
     <main className="tm-app-shell">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col">
+      <div className="flex min-h-screen w-full flex-col">
         <header className="tm-app-header">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -23,7 +23,7 @@ export function AppShell({
             {headerActions}
           </div>
         </header>
-        <section className="flex-1 px-5 py-5">{children}</section>
+        <section className="flex-1 w-full px-5 py-5">{children}</section>
         <BottomNav />
       </div>
     </main>
