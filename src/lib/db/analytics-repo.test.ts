@@ -72,13 +72,19 @@ describe('getProfileAnalytics', () => {
     await expect(getProfileAnalytics('user-1')).resolves.toEqual({
       cardOutcomes: [],
       coverage: null,
+      gameLengthProfile: null,
+      globalParameterTempoProfile: null,
       headToHeadRows: [],
       keyCards: [],
+      leadPressure: null,
       lossCards: [],
+      phaseTempoProfile: null,
       performance: null,
       playerId: 'player-1',
       playerName: 'Friday Mars',
+      resourceRemovalProfile: null,
       scoreAverages: null,
+      scorePace: null,
       styleAgreement: null,
       styleBreakdownRows: [],
       styleInsights: [],
@@ -341,6 +347,501 @@ describe('getProfileAnalytics', () => {
           title: 'Game Log Signal',
         }),
       ],
+    });
+  });
+
+  it('builds score pace, lead pressure, and resource-removal profile from finalized games and imports', async () => {
+    const makeRow = (
+      overrides: Partial<Record<string, unknown>>,
+    ): Record<string, unknown> => ({
+      award_points: 0,
+      card_points_animals: null,
+      card_points_jovian: null,
+      card_points_microbes: null,
+      card_points_total: 0,
+      cities_points: 0,
+      declared_modifier_style_codes: null,
+      declared_primary_style_code: null,
+      game_id: 'game-1',
+      generation_count: 10,
+      greenery_points: 0,
+      group_id: 'group-1',
+      has_full_card_breakdown: false,
+      inferred_primary_style_code: null,
+      inferred_style_confidence: null,
+      is_winner: false,
+      key_card_count: 0,
+      loss_gap_points: null,
+      milestone_points: 0,
+      other_card_points: null,
+      placement: 1,
+      placement_score: 1,
+      player_id: 'me-1',
+      player_name: 'Friday Mars',
+      signed_differential_points: 0,
+      total_points: 0,
+      tr_points: 0,
+      win_differential_points: null,
+      ...overrides,
+    });
+
+    const ownRows = [
+      makeRow({
+        card_points_total: 20,
+        cities_points: 8,
+        generation_count: 8,
+        game_id: 'game-1',
+        greenery_points: 12,
+        is_winner: true,
+        milestone_points: 5,
+        signed_differential_points: 6,
+        total_points: 80,
+        tr_points: 24,
+        win_differential_points: 6,
+      }),
+      makeRow({
+        card_points_total: 10,
+        cities_points: 4,
+        generation_count: 12,
+        game_id: 'game-2',
+        greenery_points: 8,
+        loss_gap_points: 4,
+        milestone_points: 5,
+        placement: 2,
+        placement_score: 0.5,
+        signed_differential_points: -4,
+        total_points: 70,
+        tr_points: 20,
+      }),
+    ];
+    const sharedRows = [
+      ...ownRows.map((row) => ({ ...row })),
+      makeRow({
+        game_id: 'game-1',
+        player_id: 'opponent-1',
+        player_name: 'Corey',
+      }),
+      makeRow({
+        game_id: 'game-2',
+        is_winner: true,
+        player_id: 'opponent-1',
+        player_name: 'Corey',
+      }),
+    ];
+
+    const playerResultsIn = vi.fn((column: string) => {
+      if (column === 'player_id') {
+        return Promise.resolve({ data: ownRows, error: null });
+      }
+
+      return Promise.resolve({ data: sharedRows, error: null });
+    });
+    const playerResultsSelect = vi.fn().mockReturnValue({ in: playerResultsIn });
+    const cardStatsIn = vi.fn().mockResolvedValue({ data: [], error: null });
+    const cardStatsSelect = vi.fn().mockReturnValue({ in: cardStatsIn });
+    const importsIn = vi.fn().mockResolvedValue({
+      data: [
+        { game_id: 'game-1', id: 'import-1' },
+        { game_id: 'game-2', id: 'import-2' },
+      ],
+      error: null,
+    });
+    const importsSelect = vi.fn().mockReturnValue({ in: importsIn });
+    const eventsIn = vi.fn().mockResolvedValue({
+      data: [
+        {
+          card_id: null,
+          event_order: 1,
+          event_type: 'generation_started',
+          game_log_import_id: 'import-1',
+          generation_number: 1,
+          payload: {},
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: 'card-asteroid',
+          event_order: 2,
+          event_type: 'card_played',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: { actor: 'Friday Mars', cardName: 'Asteroid' },
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 2.1,
+          event_type: 'global_parameter_changed',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: { actor: 'Friday Mars', parameterType: 'oxygen' },
+          resource_amount: null,
+          resource_type: 'oxygen',
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 2.2,
+          event_type: 'global_parameter_changed',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: { actor: 'Friday Mars', parameterType: 'ocean' },
+          resource_amount: null,
+          resource_type: 'ocean',
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 3,
+          event_type: 'generation_started',
+          game_log_import_id: 'import-1',
+          generation_number: 5,
+          payload: {},
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 4,
+          event_type: 'tile_placed',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: { actor: 'Friday Mars' },
+          resource_amount: null,
+          resource_type: null,
+          tile_type: 'Greenery',
+        },
+        {
+          card_id: 'card-asteroid',
+          event_order: 5,
+          event_type: 'resource_changed',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: {
+            actor: 'Corey',
+            cardName: 'Asteroid',
+            operation: 'removed',
+          },
+          resource_amount: 3,
+          resource_type: 'plant',
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 1,
+          event_type: 'generation_started',
+          game_log_import_id: 'import-2',
+          generation_number: 1,
+          payload: {},
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: 'card-hackers',
+          event_order: 2,
+          event_type: 'card_played',
+          game_log_import_id: 'import-2',
+          generation_number: null,
+          payload: { actor: 'Corey', cardName: 'Hackers' },
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 3,
+          event_type: 'generation_started',
+          game_log_import_id: 'import-2',
+          generation_number: 5,
+          payload: {},
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: 'card-hackers',
+          event_order: 4,
+          event_type: 'resource_changed',
+          game_log_import_id: 'import-2',
+          generation_number: null,
+          payload: {
+            actor: 'Friday Mars',
+            cardName: 'Hackers',
+            operation: 'removed',
+          },
+          resource_amount: 4,
+          resource_type: 'megacredit',
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 4.1,
+          event_type: 'global_parameter_changed',
+          game_log_import_id: 'import-2',
+          generation_number: null,
+          payload: { actor: 'Friday Mars', parameterType: 'temperature' },
+          resource_amount: null,
+          resource_type: 'temperature',
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 5,
+          event_type: 'milestone_claimed',
+          game_log_import_id: 'import-2',
+          generation_number: null,
+          payload: { actor: 'Friday Mars' },
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+      ],
+      error: null,
+    });
+    const eventsSelect = vi.fn().mockReturnValue({ in: eventsIn });
+
+    const playersOrderByDisplayName = vi.fn().mockResolvedValue({
+      data: [{ display_name: 'Friday Mars', group_id: 'group-1', id: 'me-1' }],
+      error: null,
+    });
+    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
+      order: playersOrderByDisplayName,
+    });
+    const playersEqLinkedUserId = vi.fn().mockReturnValue({
+      order: playersOrderByCreatedAt,
+    });
+    const opponentIdentityIn = vi.fn().mockResolvedValue({
+      data: [{ id: 'opponent-1', linked_user_id: null }],
+      error: null,
+    });
+    const playersSelect = vi.fn((columns: string) => {
+      if (columns === 'id, linked_user_id') {
+        return { in: opponentIdentityIn };
+      }
+
+      return { eq: playersEqLinkedUserId };
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playersSelect };
+        }
+
+        if (table === 'game_log_imports') {
+          return { select: importsSelect };
+        }
+
+        if (table === 'game_log_events') {
+          return { select: eventsSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      schema: vi.fn((schemaName: string) => {
+        if (schemaName !== 'analytics') {
+          throw new Error(`Unexpected schema ${schemaName}`);
+        }
+
+        return {
+          from: vi.fn((table: string) => {
+            if (table === 'player_game_results') {
+              return { select: playerResultsSelect };
+            }
+
+            if (table === 'player_key_cards' || table === 'player_card_outcomes') {
+              return { select: cardStatsSelect };
+            }
+
+            throw new Error(`Unexpected analytics table ${table}`);
+          }),
+        };
+      }),
+    } as never);
+
+    await expect(getProfileAnalytics('user-1')).resolves.toMatchObject({
+      gameLengthProfile: {
+        bestBucket: expect.objectContaining({
+          averageGenerationCount: 8,
+          averagePlacement: 1,
+          averagePointsPerGeneration: 10,
+          averageScore: 80,
+          bucket: 'short',
+          gamesPlayed: 1,
+          winRate: 1,
+          wins: 1,
+        }),
+        rows: [
+          expect.objectContaining({
+            bucket: 'short',
+            label: 'Short Games',
+            rangeLabel: '9 or fewer generations',
+          }),
+          expect.objectContaining({
+            averageGenerationCount: 12,
+            averagePlacement: 2,
+            averagePointsPerGeneration: 5.833,
+            averageScore: 70,
+            bucket: 'long',
+            gamesPlayed: 1,
+            label: 'Long Games',
+            rangeLabel: '12+ generations',
+            winRate: 0,
+            wins: 0,
+          }),
+        ],
+        weakestBucket: expect.objectContaining({
+          bucket: 'long',
+        }),
+      },
+      globalParameterTempoProfile: {
+        bestMix: expect.objectContaining({
+          averageFastGeneration: 1,
+          averagePlacement: 1,
+          averageScore: 80,
+          code: 'fast_oxygen_ocean',
+          gamesPlayed: 1,
+          label: 'Fast Oxygen + Oceans',
+          parameters: ['oxygen', 'ocean'],
+          winRate: 1,
+          wins: 1,
+        }),
+        importedGames: 2,
+        rows: [
+          expect.objectContaining({
+            code: 'fast_heat',
+            label: 'Fast Heat',
+            parameters: ['heat'],
+            winRate: 0,
+          }),
+          expect.objectContaining({
+            code: 'fast_oxygen_ocean',
+            label: 'Fast Oxygen + Oceans',
+            parameters: ['oxygen', 'ocean'],
+            winRate: 1,
+          }),
+        ],
+        weakestMix: expect.objectContaining({
+          averageFastGeneration: 5,
+          averagePlacement: 2,
+          averageScore: 70,
+          code: 'fast_heat',
+          gamesPlayed: 1,
+          winRate: 0,
+          wins: 0,
+        }),
+      },
+      leadPressure: {
+        averageLeadWhenWinning: 6,
+        averageScoreDifferential: 1,
+        averageShortfallWhenBehind: 4,
+        closeGameRate: 0.5,
+        dominantWinRate: 0,
+        gamesPlayed: 2,
+        leadRate: 0.5,
+        pressureLabel: 'Close-game grinder',
+      },
+      phaseTempoProfile: {
+        bestPhase: expect.objectContaining({
+          averagePlacementWhenPeak: 1.5,
+          averageScoreWhenPeak: 75,
+          gamesWithPeak: 2,
+          label: 'Mid Game',
+          phase: 'mid',
+          winRateWhenPeak: 0.5,
+          winsWhenPeak: 1,
+        }),
+        importedGames: 2,
+        mostActivePhase: expect.objectContaining({
+          actions: 3,
+          actionsPerImportedGame: 1.5,
+          label: 'Mid Game',
+          phase: 'mid',
+        }),
+        rows: [
+          expect.objectContaining({
+            actions: 1,
+            cardsPlayed: 1,
+            phase: 'early',
+          }),
+          expect.objectContaining({
+            actions: 3,
+            gamesWithPeak: 2,
+            greeneriesPlaced: 1,
+            milestonesClaimed: 1,
+            phase: 'mid',
+            removalEvents: 1,
+            tilesPlaced: 1,
+          }),
+          expect.objectContaining({
+            actions: 0,
+            phase: 'late',
+          }),
+        ],
+      },
+      resourceRemovalProfile: {
+        importedGames: 2,
+        incoming: {
+          amountPerImportedGame: 2,
+          events: 1,
+          totalAmount: 4,
+        },
+        outgoing: {
+          amountPerImportedGame: 1.5,
+          events: 1,
+          totalAmount: 3,
+        },
+        resourceRows: [
+          {
+            amount: 4,
+            events: 1,
+            resourceType: 'megacredit',
+          },
+          {
+            amount: 3,
+            events: 1,
+            resourceType: 'plant',
+          },
+        ],
+        totalRemovalEvents: 2,
+      },
+      scorePace: {
+        averageGenerationCount: 10,
+        averageTotalPointsPerGeneration: 7.917,
+        rows: [
+          expect.objectContaining({
+            averagePoints: 22,
+            averagePointsPerGeneration: 2.333,
+            code: 'terraform_rating',
+          }),
+          expect.objectContaining({
+            averagePoints: 15,
+            averagePointsPerGeneration: 1.667,
+            code: 'cards',
+          }),
+          expect.objectContaining({
+            averagePoints: 10,
+            averagePointsPerGeneration: 1.083,
+            code: 'greenery',
+          }),
+          expect.objectContaining({
+            averagePoints: 6,
+            averagePointsPerGeneration: 0.667,
+            code: 'cities',
+          }),
+          expect.objectContaining({
+            averagePoints: 5,
+            averagePointsPerGeneration: 0.521,
+            code: 'milestones',
+          }),
+        ],
+      },
     });
   });
 

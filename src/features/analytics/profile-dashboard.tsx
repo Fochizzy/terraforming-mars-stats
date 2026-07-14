@@ -7,7 +7,13 @@ import {
   type CoverageRow,
   type LeaderboardRow,
   type ProfileCardStat,
+  type ProfileGameLengthProfile,
+  type ProfileGlobalParameterTempoProfile,
   type ProfileHeadToHeadRow,
+  type ProfileLeadPressure,
+  type ProfilePhaseTempoProfile,
+  type ProfileResourceRemovalProfile,
+  type ProfileScorePace,
   type ProfileStyleBreakdownRow,
   type ProfileStyleInsight,
   type ScoreSourceAverages,
@@ -18,7 +24,11 @@ import {
   StyleEffectivenessPanel,
   type StyleEffectivenessScopeInput,
 } from '@/features/insights/style-effectiveness';
-import { formatAverage, formatPercent } from './performance-delta';
+import {
+  formatAverage,
+  formatPercent,
+  formatSignedAverage,
+} from './performance-delta';
 import { ProfileCardPanels } from './profile-card-panels';
 import { ScoreSourceList } from './score-source-list';
 
@@ -113,12 +123,18 @@ function renderStyleInsightBody(insight: ProfileStyleInsight): ReactNode[] {
 type ProfileDashboardProps = {
   cardOutcomes?: ProfileCardStat[];
   coverage?: CoverageRow | null;
+  gameLengthProfile?: ProfileGameLengthProfile | null;
+  globalParameterTempoProfile?: ProfileGlobalParameterTempoProfile | null;
   headToHeadRows?: ProfileHeadToHeadRow[];
   keyCards?: ProfileCardStat[];
+  leadPressure?: ProfileLeadPressure | null;
   lossCards?: ProfileCardStat[];
   performance?: LeaderboardRow | null;
+  phaseTempoProfile?: ProfilePhaseTempoProfile | null;
   playerName: string | null;
+  resourceRemovalProfile?: ProfileResourceRemovalProfile | null;
   scoreAverages?: ScoreSourceAverages | null;
+  scorePace?: ProfileScorePace | null;
   styleBreakdownRows?: ProfileStyleBreakdownRow[];
   styleInsights?: ProfileStyleInsight[];
   linkHref?: string;
@@ -195,16 +211,28 @@ function getStyleFocus(rows: ProfileStyleBreakdownRow[]) {
 }
 
 function buildPlayAnalysis({
+  gameLengthProfile,
+  globalParameterTempoProfile,
   headToHeadRows,
+  leadPressure,
   performance,
+  phaseTempoProfile,
   playerName,
+  resourceRemovalProfile,
   scoreAverages,
+  scorePace,
   styleBreakdownRows,
 }: {
+  gameLengthProfile: ProfileGameLengthProfile | null;
+  globalParameterTempoProfile: ProfileGlobalParameterTempoProfile | null;
   headToHeadRows: ProfileHeadToHeadRow[];
+  leadPressure: ProfileLeadPressure | null;
   performance: LeaderboardRow | null;
+  phaseTempoProfile: ProfilePhaseTempoProfile | null;
   playerName: string;
+  resourceRemovalProfile: ProfileResourceRemovalProfile | null;
   scoreAverages: ScoreSourceAverages | null;
+  scorePace: ProfileScorePace | null;
   styleBreakdownRows: ProfileStyleBreakdownRow[];
 }) {
   const strengths: string[] = [];
@@ -215,81 +243,210 @@ function buildPlayAnalysis({
   const bestMatchup = getBestMatchup(headToHeadRows);
   const scoreHighlights = getScoreSourceHighlights(scoreAverages);
 
-  if (performance) {
+  const addStrength = (sentence: string | null) => {
+    if (sentence && !strengths.includes(sentence)) {
+      strengths.push(sentence);
+    }
+  };
+  const addImprovement = (sentence: string | null) => {
+    if (sentence && !improvements.includes(sentence)) {
+      improvements.push(sentence);
+    }
+  };
+
+  if (leadPressure && scorePace?.strongestSource) {
+    addStrength(
+      `${playerName} is a ${leadPressure.pressureLabel.toLowerCase()}: they lead in ${formatPercent(leadPressure.leadRate)} of finalized games, carry a ${formatSignedAverage(leadPressure.averageScoreDifferential)} average score edge, and pace their strongest scoring lane through ${scorePace.strongestSource.label} at ${formatAverage(scorePace.strongestSource.averagePointsPerGeneration)} points per generation.`,
+    );
+  } else if (leadPressure) {
+    addStrength(
+      `${playerName} is a ${leadPressure.pressureLabel.toLowerCase()}, leading in ${formatPercent(leadPressure.leadRate)} of finalized games with a ${formatSignedAverage(leadPressure.averageScoreDifferential)} average score edge.`,
+    );
+  } else if (scorePace?.strongestSource) {
+    addStrength(
+      `${scorePace.strongestSource.label} is the clearest pace engine, producing ${formatAverage(scorePace.strongestSource.averagePointsPerGeneration)} points per generation on average.`,
+    );
+  }
+
+  const fitSignals: string[] = [];
+
+  if (
+    phaseTempoProfile?.bestPhase &&
+    phaseTempoProfile.bestPhase.winRateWhenPeak !== null
+  ) {
+    fitSignals.push(
+      `activity peaking in the ${phaseTempoProfile.bestPhase.label.toLowerCase()} (${formatPercent(phaseTempoProfile.bestPhase.winRateWhenPeak)} win rate)`,
+    );
+  }
+
+  if (globalParameterTempoProfile?.bestMix) {
+    fitSignals.push(
+      `${globalParameterTempoProfile.bestMix.label.toLowerCase()} games (${formatPercent(globalParameterTempoProfile.bestMix.winRate)} win rate)`,
+    );
+  }
+
+  if (gameLengthProfile?.bestBucket) {
+    fitSignals.push(
+      `${gameLengthProfile.bestBucket.label.toLowerCase()} (${formatPercent(gameLengthProfile.bestBucket.winRate)} win rate)`,
+    );
+  }
+
+  if (fitSignals.length > 0) {
+    addStrength(
+      `The best-fit game shapes are ${fitSignals.join(', ')}; those are the tempo and length patterns where the profile data says ${playerName}'s plan travels best.`,
+    );
+  }
+
+  if (
+    resourceRemovalProfile &&
+    resourceRemovalProfile.outgoing.events > 0 &&
+    resourceRemovalProfile.outgoing.totalAmount >=
+      resourceRemovalProfile.incoming.totalAmount
+  ) {
+    addStrength(
+      `${playerName}'s interaction pressure is proactive: they made opponents lose ${formatAverage(resourceRemovalProfile.outgoing.totalAmount)} resources or production across ${pluralize(resourceRemovalProfile.outgoing.events, 'attributed removal')}, at least matching what opponents removed from them.`,
+    );
+  }
+
+  if (performance && strengths.length < 3) {
     const gamesLabel = pluralize(performance.gamesPlayed, 'finalized game');
 
     if (performance.winRate >= 0.5) {
-      strengths.push(
+      addStrength(
         `${playerName} wins ${formatPercent(performance.winRate)} of ${gamesLabel}, so they are already turning a strong share of tables into wins.`,
       );
     } else if (performance.averagePlacement <= 2.5) {
-      strengths.push(
+      addStrength(
         `${playerName} stays in the mix with an average placement of ${formatAverage(performance.averagePlacement)} across ${gamesLabel}.`,
       );
     } else {
-      strengths.push(
+      addStrength(
         `${playerName} has ${gamesLabel} logged, which gives them a real baseline for spotting repeatable play patterns.`,
       );
     }
   }
 
-  if (winningStyle && winningStyle.wins > 0) {
-    strengths.push(
+  if (winningStyle && winningStyle.wins > 0 && strengths.length < 3) {
+    addStrength(
       `${winningStyle.styleName} is the clearest successful plan, producing ${pluralize(winningStyle.wins, 'win')} and a ${formatPercent(winningStyle.winRate)} win rate.`,
     );
-  } else if (mostPlayedStyle) {
-    strengths.push(
+  } else if (mostPlayedStyle && strengths.length < 3) {
+    addStrength(
       `${playerName} has a defined style identity around ${mostPlayedStyle.styleName}, using it in ${formatPercent(mostPlayedStyle.playRate)} of inferred-style games.`,
     );
   }
 
-  if (scoreHighlights.top) {
-    strengths.push(
+  if (scoreHighlights.top && strengths.length < 3) {
+    addStrength(
       `${scoreHighlights.top.label} is the strongest scoring lane, averaging ${formatAverage(scoreHighlights.top.value)} points per finalized game.`,
     );
   }
 
   if (bestMatchup && strengths.length < 3) {
-    strengths.push(
+    addStrength(
       `In repeated head-to-head play, ${playerName} has the clearest edge against ${bestMatchup.opponentName} at ${bestMatchup.wins}-${bestMatchup.losses}-${bestMatchup.ties}.`,
     );
   }
 
   while (strengths.length < 2) {
-    strengths.push(
+    addStrength(
       strengths.length === 0
         ? `${playerName}'s profile is ready to turn finalized games into a concrete play identity.`
         : 'Complete score rows, style reads, and imported logs will make the strongest habits easier to call out.',
     );
   }
 
-  if (performance) {
+  const roughSpotSignals: string[] = [];
+
+  if (
+    gameLengthProfile?.weakestBucket &&
+    gameLengthProfile.bestBucket &&
+    gameLengthProfile.weakestBucket.bucket !== gameLengthProfile.bestBucket.bucket
+  ) {
+    roughSpotSignals.push(
+      `${gameLengthProfile.weakestBucket.label.toLowerCase()} (${formatPercent(gameLengthProfile.weakestBucket.winRate)} win rate)`,
+    );
+  }
+
+  if (
+    globalParameterTempoProfile?.weakestMix &&
+    globalParameterTempoProfile.bestMix &&
+    globalParameterTempoProfile.weakestMix.code !==
+      globalParameterTempoProfile.bestMix.code
+  ) {
+    roughSpotSignals.push(
+      `${globalParameterTempoProfile.weakestMix.label.toLowerCase()} games (${formatPercent(globalParameterTempoProfile.weakestMix.winRate)} win rate)`,
+    );
+  }
+
+  if (roughSpotSignals.length > 0) {
+    addImprovement(
+      `Tighten the roughest game shapes first: ${roughSpotSignals.join(' and ')} are where the profile currently shows the weakest outcomes.`,
+    );
+  }
+
+  if (phaseTempoProfile?.bestPhase) {
+    const phase = phaseTempoProfile.bestPhase;
+
+    addImprovement(
+      `Use the ${phase.label.toLowerCase()} peak as a review template: compare openings and late-game turns against the logs where that phase drove ${formatPercent(phase.winRateWhenPeak ?? 0)} win-rate outcomes.`,
+    );
+  } else if (
+    phaseTempoProfile?.mostActivePhase &&
+    phaseTempoProfile.mostActivePhase.actions > 0
+  ) {
+    addImprovement(
+      `Review whether the ${phaseTempoProfile.mostActivePhase.label.toLowerCase()} activity spike is converting into points, because it is the heaviest logged tempo phase.`,
+    );
+  }
+
+  if (scorePace?.lightestSource) {
+    addImprovement(
+      `The lightest pace source is ${scorePace.lightestSource.label} at ${formatAverage(scorePace.lightestSource.averagePointsPerGeneration)} points per generation; finding one more reliable route there would make low-variance games safer.`,
+    );
+  } else if (scoreHighlights.focus) {
+    addImprovement(
+      `${scoreHighlights.focus.label} is the lightest major score source at ${formatAverage(scoreHighlights.focus.value)} points on average; finding one more reliable route there would make low-variance games safer.`,
+    );
+  }
+
+  if (resourceRemovalProfile && resourceRemovalProfile.incoming.events > 0) {
+    addImprovement(
+      `Build a buffer against resource and production attacks: opponents have made ${playerName} lose ${formatAverage(resourceRemovalProfile.incoming.totalAmount)} across ${pluralize(resourceRemovalProfile.incoming.events, 'attributed removal')}.`,
+    );
+  }
+
+  if (leadPressure && leadPressure.averageShortfallWhenBehind !== null) {
+    const chaseGap = leadPressure.averageShortfallWhenBehind;
+
+    addImprovement(
+      chaseGap > 0
+        ? `When the explicit lead does not materialize, plan for a catch-up package worth at least ${formatAverage(chaseGap)} points, which is the average chase gap in non-winning games.`
+        : `Keep testing whether the explicit-lead plan still works from behind, because the current profile has little shortfall data to separate comeback play from front-running.`,
+    );
+  }
+
+  if (performance && improvements.length < 4) {
     if (performance.winRate < 0.5) {
-      improvements.push(
+      addImprovement(
         `Start by converting more competitive finishes into wins; the current win rate is ${formatPercent(performance.winRate)} over ${pluralize(performance.gamesPlayed, 'finalized game')}.`,
       );
     } else {
-      improvements.push(
+      addImprovement(
         `The next step is raising the floor in non-winning games so the ${formatPercent(performance.winRate)} win rate is backed by steadier finishes.`,
       );
     }
 
     if (performance.averageLossGap !== null && performance.averageLossGap > 0) {
-      improvements.push(
+      addImprovement(
         `Losses are averaging a ${formatAverage(performance.averageLossGap)}-point gap, so plan for one more late-game scoring swing before the final generation.`,
       );
     }
   }
 
-  if (styleFocus) {
-    improvements.push(
+  if (styleFocus && improvements.length < 4) {
+    addImprovement(
       `Use ${styleFocus.styleName} as a review focus: it has a ${formatPercent(styleFocus.winRate)} win rate over ${pluralize(styleFocus.gamesPlayed, 'game')}, so compare its openings and endgame scoring against stronger results.`,
-    );
-  }
-
-  if (scoreHighlights.focus) {
-    improvements.push(
-      `${scoreHighlights.focus.label} is the lightest major score source at ${formatAverage(scoreHighlights.focus.value)} points on average; finding one more reliable route there would make low-variance games safer.`,
     );
   }
 
@@ -300,7 +457,7 @@ function buildPlayAnalysis({
       'Import game logs when possible so the profile can connect card choices to actual outcomes.',
     ];
 
-    improvements.push(fallbacks[improvements.length % fallbacks.length]);
+    addImprovement(fallbacks[improvements.length % fallbacks.length]);
   }
 
   return {
@@ -309,16 +466,169 @@ function buildPlayAnalysis({
   };
 }
 
+function buildModelEnhancements({
+  resourceRemovalProfile,
+  scorePace,
+}: {
+  resourceRemovalProfile: ProfileResourceRemovalProfile | null;
+  scorePace: ProfileScorePace | null;
+}) {
+  const suggestions = [
+    'Store explicit source player and target player on each removal event so attack metrics do not depend on prior-card inference.',
+    'Split resource deltas from production deltas; production removal is strategically different from spending or losing stored resources.',
+    'Capture per-generation snapshots for TR, card points, greeneries, cities, and milestone progress so pace can separate early pressure from final scoring.',
+    'Track milestone claim generation, award funding timing, and second-place award outcomes to show whether pressure is proactive or reactive.',
+  ];
+
+  if (!scorePace) {
+    suggestions.unshift(
+      'Keep generation counts on every finalized game so per-generation style pace can be calculated consistently.',
+    );
+  }
+
+  if (!resourceRemovalProfile || resourceRemovalProfile.importedGames === 0) {
+    suggestions.unshift(
+      'Import more game logs so the model can connect card plays, resource removal, and actual opponents.',
+    );
+  }
+
+  return suggestions.slice(0, 5);
+}
+
+function buildPhaseTempoStatements(
+  phaseTempoProfile: ProfilePhaseTempoProfile | null,
+) {
+  if (!phaseTempoProfile) {
+    return [
+      'Import logs with generation markers to show whether your strongest play happens early, mid, or late.',
+    ];
+  }
+
+  const statements: string[] = [];
+
+  const bestPhase = phaseTempoProfile.bestPhase;
+  const bestPhaseWinRate = bestPhase?.winRateWhenPeak ?? null;
+
+  if (bestPhase && bestPhaseWinRate !== null) {
+    const phase = bestPhase;
+
+    statements.push(
+      `Your best log-backed results come when your activity peaks in the ${phase.label.toLowerCase()}: ${formatPercent(bestPhaseWinRate)} win rate over ${pluralize(phase.gamesWithPeak, 'imported game')}, with average placement ${formatAverage(phase.averagePlacementWhenPeak)}.`,
+    );
+  }
+
+  if (
+    phaseTempoProfile.mostActivePhase &&
+    phaseTempoProfile.mostActivePhase.actions > 0
+  ) {
+    const phase = phaseTempoProfile.mostActivePhase;
+
+    statements.push(
+      `Your logged tempo is heaviest in the ${phase.label.toLowerCase()}, averaging ${formatAverage(phase.actionsPerImportedGame)} tracked actions per imported game.`,
+    );
+  }
+
+  if (statements.length === 0) {
+    statements.push(
+      'Imported logs are present, but they do not yet contain enough player-scoped generation actions to call an early, mid, or late tendency.',
+    );
+  }
+
+  statements.push(phaseTempoProfile.confidenceLabel);
+
+  return statements;
+}
+
+function buildGameLengthStatements(
+  gameLengthProfile: ProfileGameLengthProfile | null,
+) {
+  if (!gameLengthProfile || gameLengthProfile.rows.length === 0) {
+    return [
+      'Finalized games with generation counts will show whether short, standard, or long games suit you best.',
+    ];
+  }
+
+  const statements: string[] = [];
+
+  if (gameLengthProfile.bestBucket) {
+    const best = gameLengthProfile.bestBucket;
+
+    statements.push(
+      `You do best in ${best.label.toLowerCase()} (${best.rangeLabel}): ${formatPercent(best.winRate)} win rate, average placement ${formatAverage(best.averagePlacement)}, and ${formatAverage(best.averagePointsPerGeneration)} points per generation over ${pluralize(best.gamesPlayed, 'game')}.`,
+    );
+  }
+
+  if (
+    gameLengthProfile.weakestBucket &&
+    gameLengthProfile.bestBucket &&
+    gameLengthProfile.weakestBucket.bucket !== gameLengthProfile.bestBucket.bucket
+  ) {
+    const weakest = gameLengthProfile.weakestBucket;
+
+    statements.push(
+      `${weakest.label} are the roughest length so far at ${formatPercent(weakest.winRate)} win rate and average placement ${formatAverage(weakest.averagePlacement)}.`,
+    );
+  }
+
+  return statements;
+}
+
+function buildGlobalParameterTempoStatements(
+  globalParameterTempoProfile: ProfileGlobalParameterTempoProfile | null,
+) {
+  if (
+    !globalParameterTempoProfile ||
+    globalParameterTempoProfile.rows.length === 0
+  ) {
+    return [
+      'Imported logs with oxygen, heat, and ocean raises will show which fast terraforming mixes help or hurt you.',
+    ];
+  }
+
+  const best = globalParameterTempoProfile.bestMix;
+  const weakest = globalParameterTempoProfile.weakestMix;
+
+  if (!best) {
+    return [
+      'Imported logs are present, but there is not enough linked-player oxygen, heat, or ocean tempo to compare fast terraforming mixes yet.',
+      globalParameterTempoProfile.confidenceLabel,
+    ];
+  }
+
+  const statements: string[] = [];
+  const bestSentence = `You fare best in ${best.label.toLowerCase()} games: ${formatPercent(best.winRate)} win rate, average placement ${formatAverage(best.averagePlacement)}, and average score ${formatAverage(best.averageScore)} over ${pluralize(best.gamesPlayed, 'imported game')}.`;
+
+  if (weakest && weakest.code !== best.code) {
+    statements.push(
+      `${bestSentence} Your toughest fast-terraforming mix is ${weakest.label.toLowerCase()} games at ${formatPercent(weakest.winRate)} win rate and average placement ${formatAverage(weakest.averagePlacement)}.`,
+    );
+  } else {
+    statements.push(
+      `${bestSentence} More mixed fast-parameter logs will make the best/worst split sharper.`,
+    );
+  }
+
+  statements.push(globalParameterTempoProfile.confidenceLabel);
+
+  return statements;
+}
+
 export function ProfileDashboard({
   cardOutcomes = [],
   coverage = null,
+  gameLengthProfile = null,
+  globalParameterTempoProfile = null,
   headToHeadRows = [],
   keyCards = [],
+  leadPressure = null,
   linkHref,
   lossCards = [],
   performance = null,
+  phaseTempoProfile = null,
   playerName,
+  resourceRemovalProfile = null,
   scoreAverages = null,
+  scorePace = null,
   styleBreakdownRows = [],
   styleInsights = [],
 }: ProfileDashboardProps) {
@@ -341,12 +651,27 @@ export function ProfileDashboard({
   const mostPlayedStyle = styleBreakdownRows[0] ?? null;
   const winningStyle = getWinningStyle(styleBreakdownRows);
   const playAnalysis = buildPlayAnalysis({
+    gameLengthProfile,
+    globalParameterTempoProfile,
     headToHeadRows,
+    leadPressure,
     performance,
+    phaseTempoProfile,
     playerName,
+    resourceRemovalProfile,
     scoreAverages,
+    scorePace,
     styleBreakdownRows,
   });
+  const modelEnhancements = buildModelEnhancements({
+    resourceRemovalProfile,
+    scorePace,
+  });
+  const phaseTempoStatements = buildPhaseTempoStatements(phaseTempoProfile);
+  const gameLengthStatements = buildGameLengthStatements(gameLengthProfile);
+  const globalParameterTempoStatements = buildGlobalParameterTempoStatements(
+    globalParameterTempoProfile,
+  );
   const styleEffectivenessScopes: StyleEffectivenessScopeInput[] =
     styleBreakdownRows.length > 0
       ? [
@@ -455,6 +780,247 @@ export function ProfileDashboard({
             </ul>
           </article>
         </div>
+      </ChartFrame>
+      <ChartFrame title="Play Style Profile">
+        <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <section className="tm-stat-card">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-stone-100">
+                  Score Pace by Generation
+                </h3>
+                <p className="tm-muted-copy mt-1 text-sm">
+                  TR, card points, greenery, milestones, and cities normalized by game length.
+                </p>
+              </div>
+              {scorePace ? (
+                <p className="tm-accent-copy text-sm">
+                  {formatAverage(scorePace.averageTotalPointsPerGeneration)} pts/gen
+                </p>
+              ) : null}
+            </div>
+            {scorePace ? (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs uppercase tracking-wide text-stone-500">
+                    <tr>
+                      <th className="pb-2 pr-4 font-medium">Source</th>
+                      <th className="pb-2 pr-4 font-medium">Per Gen</th>
+                      <th className="pb-2 pr-4 font-medium">Per Game</th>
+                      <th className="pb-2 font-medium">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10 text-stone-200">
+                    {scorePace.rows.map((row) => (
+                      <tr key={row.code}>
+                        <td className="py-2 pr-4">{row.label}</td>
+                        <td className="py-2 pr-4">
+                          {formatAverage(row.averagePointsPerGeneration)}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {formatAverage(row.averagePoints)}
+                        </td>
+                        <td className="py-2">{formatPercent(row.scoreShare)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="tm-muted-copy mt-3 text-xs">
+                  Average game length: {formatAverage(scorePace.averageGenerationCount)} generations.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-stone-400">
+                Per-generation score pace will appear after finalized games include generation counts.
+              </p>
+            )}
+          </section>
+          <div className="grid gap-3">
+            <article className="tm-stat-card">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h3 className="font-semibold text-stone-100">
+                  Explicit Lead
+                </h3>
+                {leadPressure ? (
+                  <p className="tm-data-label">{leadPressure.pressureLabel}</p>
+                ) : null}
+              </div>
+              {leadPressure ? (
+                <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <dt className="tm-data-label">Lead Rate</dt>
+                    <dd className="mt-1 text-stone-100">
+                      {formatPercent(leadPressure.leadRate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="tm-data-label">Score Edge</dt>
+                    <dd className="mt-1 text-stone-100">
+                      {formatSignedAverage(leadPressure.averageScoreDifferential)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="tm-data-label">Avg Winning Lead</dt>
+                    <dd className="mt-1 text-stone-100">
+                      {formatAverage(leadPressure.averageLeadWhenWinning)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="tm-data-label">Avg Chase Gap</dt>
+                    <dd className="mt-1 text-stone-100">
+                      {formatAverage(leadPressure.averageShortfallWhenBehind)}
+                    </dd>
+                  </div>
+                </dl>
+              ) : (
+                <p className="mt-3 text-sm text-stone-400">
+                  Lead pressure needs finalized score differentials.
+                </p>
+              )}
+            </article>
+            <article className="tm-stat-card">
+              <h3 className="font-semibold text-stone-100">
+                Interaction Pressure
+              </h3>
+              {resourceRemovalProfile ? (
+                <div className="mt-3 grid gap-2 text-sm text-stone-300">
+                  <p>
+                    You made opponents lose{' '}
+                    <span className="font-semibold text-stone-100">
+                      {formatAverage(resourceRemovalProfile.outgoing.totalAmount)}
+                    </span>{' '}
+                    resources or production over{' '}
+                    {pluralize(resourceRemovalProfile.outgoing.events, 'attributed removal')}.
+                  </p>
+                  <p>
+                    Opponents made you lose{' '}
+                    <span className="font-semibold text-stone-100">
+                      {formatAverage(resourceRemovalProfile.incoming.totalAmount)}
+                    </span>{' '}
+                    resources or production over{' '}
+                    {pluralize(resourceRemovalProfile.incoming.events, 'attributed removal')}.
+                  </p>
+                  {resourceRemovalProfile.resourceRows[0] ? (
+                    <p className="tm-muted-copy text-xs">
+                      Most affected resource/production track: {resourceRemovalProfile.resourceRows[0].resourceType} ({formatAverage(resourceRemovalProfile.resourceRows[0].amount)} total).
+                    </p>
+                  ) : (
+                    <p className="tm-muted-copy text-xs">
+                      No resource or production removal events were found in imported logs yet.
+                    </p>
+                  )}
+                  <p className="tm-muted-copy text-xs">
+                    {resourceRemovalProfile.confidenceLabel}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-stone-400">
+                  Imported game logs will add resource and production removal pressure here.
+                </p>
+              )}
+            </article>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 xl:grid-cols-3">
+          <article className="tm-stat-card">
+            <h3 className="font-semibold text-stone-100">
+              Early, Mid, and Late Game
+            </h3>
+            <ul className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300">
+              {phaseTempoStatements.map((statement) => (
+                <li key={statement}>{statement}</li>
+              ))}
+            </ul>
+            {phaseTempoProfile ? (
+              <div className="mt-4 grid gap-2 text-sm">
+                {phaseTempoProfile.rows.map((row) => (
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2"
+                    key={row.phase}
+                  >
+                    <span className="font-medium text-stone-200">
+                      {row.label}
+                    </span>
+                    <span className="tm-muted-copy">
+                      {formatAverage(row.actionsPerImportedGame)} actions/game
+                      {row.winRateWhenPeak !== null
+                        ? ` | ${formatPercent(row.winRateWhenPeak)} when peak`
+                        : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </article>
+          <article className="tm-stat-card">
+            <h3 className="font-semibold text-stone-100">
+              Terraforming Tempo
+            </h3>
+            <ul className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300">
+              {globalParameterTempoStatements.map((statement) => (
+                <li key={statement}>{statement}</li>
+              ))}
+            </ul>
+            {globalParameterTempoProfile?.rows.length ? (
+              <div className="mt-4 grid gap-2 text-sm">
+                {globalParameterTempoProfile.rows.map((row) => (
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2"
+                    key={row.code}
+                  >
+                    <span className="font-medium text-stone-200">
+                      {row.label}
+                    </span>
+                    <span className="tm-muted-copy">
+                      {formatPercent(row.winRate)} | avg place{' '}
+                      {formatAverage(row.averagePlacement)} | gen{' '}
+                      {formatAverage(row.averageFastGeneration)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </article>
+          <article className="tm-stat-card">
+            <h3 className="font-semibold text-stone-100">
+              Generation Length Fit
+            </h3>
+            <ul className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300">
+              {gameLengthStatements.map((statement) => (
+                <li key={statement}>{statement}</li>
+              ))}
+            </ul>
+            {gameLengthProfile ? (
+              <div className="mt-4 grid gap-2 text-sm">
+                {gameLengthProfile.rows.map((row) => (
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2"
+                    key={row.bucket}
+                  >
+                    <span className="font-medium text-stone-200">
+                      {row.label}
+                    </span>
+                    <span className="tm-muted-copy">
+                      {formatPercent(row.winRate)} | avg place{' '}
+                      {formatAverage(row.averagePlacement)} |{' '}
+                      {formatAverage(row.averagePointsPerGeneration)} pts/gen
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </article>
+        </div>
+        <article className="tm-stat-card mt-4">
+          <h3 className="font-semibold text-stone-100">
+            Ways to Enhance the Model
+          </h3>
+          <ul className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300">
+            {modelEnhancements.map((suggestion) => (
+              <li key={suggestion}>{suggestion}</li>
+            ))}
+          </ul>
+        </article>
       </ChartFrame>
       <ChartFrame title="Group Comparisons">
         <p className="text-sm text-stone-300">

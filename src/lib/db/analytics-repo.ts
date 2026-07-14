@@ -2350,6 +2350,18 @@ function normalizeGlobalParameterTempoToken(
 }
 
 function getEventGlobalParameter(row: RawGameLogEventRow) {
+  if (row.event_type === 'tile_placed') {
+    const normalizedTileType = normalizeAnalyticsToken(row.tile_type);
+
+    if (normalizedTileType === 'greenery') {
+      return 'oxygen';
+    }
+
+    if (normalizedTileType === 'ocean') {
+      return 'ocean';
+    }
+  }
+
   return (
     normalizeGlobalParameterTempoToken(row.resource_type) ??
     normalizeGlobalParameterTempoToken(
@@ -2429,7 +2441,10 @@ function buildProfileGlobalParameterTempoProfile({
         currentGeneration = eventGeneration;
       }
 
-      if (event.event_type !== 'global_parameter_changed') {
+      if (
+        event.event_type !== 'global_parameter_changed' &&
+        event.event_type !== 'tile_placed'
+      ) {
         continue;
       }
 
