@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { GlobalInsightMetrics } from '@/lib/db/analytics-repo';
-import { GlobalInsightMetricsSection } from './global-insight-metrics-section';
+import {
+  GlobalInsightMetricsSection,
+  rankMetaSignals,
+} from './global-insight-metrics-section';
 
 const metrics: GlobalInsightMetrics = {
   cardTiming: [
@@ -99,6 +102,27 @@ const metrics: GlobalInsightMetrics = {
 };
 
 describe('GlobalInsightMetricsSection', () => {
+  it('ranks meta signals by delta tempered by how often they were played', () => {
+    const baseSignal = metrics.metaSignals[0]!;
+    const lightlyPlayedOutlier = {
+      ...baseSignal,
+      label: 'One-game outlier',
+      sampleSize: 1,
+      winRateDelta: 0.6,
+    };
+    const repeatedSignal = {
+      ...baseSignal,
+      label: 'Repeated signal',
+      sampleSize: 10,
+      winRateDelta: 0.3,
+    };
+
+    expect(rankMetaSignals([lightlyPlayedOutlier, repeatedSignal])).toEqual([
+      repeatedSignal,
+      lightlyPlayedOutlier,
+    ]);
+  });
+
   it('renders all seven global metric groups', () => {
     render(<GlobalInsightMetricsSection metrics={metrics} />);
 
