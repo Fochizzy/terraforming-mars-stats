@@ -21,6 +21,32 @@ import type { ImportReviewModel } from '@/lib/imports/build-import-review-model'
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
 import { ImportReviewPanel } from './import-review-panel';
 
+const WEB_IMPORT_INSTRUCTIONS_URL =
+  'https://tm-import-instructions-20260714.izzy-hodnett-1470.chatgpt.site';
+
+const WEB_IMPORT_INSTRUCTION_STEPS = [
+  {
+    title: 'Export the game result as a PDF.',
+    detail:
+      'From the victory screen, press Ctrl + P, set Destination to PDF, choose Landscape, expand More settings, and make sure Background graphics is checked.',
+  },
+  {
+    title: 'Download and copy the game log.',
+    detail:
+      'Click Download game log, switch to the opened tab, press Ctrl + A, then Ctrl + C.',
+  },
+  {
+    title: 'Paste the log and attach evidence here.',
+    detail:
+      'Paste the copied log into Game Log, then upload the PDF or combined result screenshot in the evidence box.',
+  },
+  {
+    title: 'Analyze, review, and confirm.',
+    detail:
+      'Click Analyze Import Evidence, review extracted scores and players, then Confirm Import Draft before finalizing the saved game.',
+  },
+];
+
 export type WebImportDraftValues = {
   endgameScreenshot: File | null;
   exportedGameLog: string;
@@ -210,6 +236,125 @@ function resolveManualReviewJumpTargetWithPlayerSelection(input: {
   };
 }
 
+function WebImportInstructionsDialog({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      aria-label="Web import upload instructions"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+      onClick={onClose}
+      role="dialog"
+    >
+      <section
+        className="tm-panel max-h-[88vh] w-full max-w-3xl overflow-y-auto"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="tm-data-label text-xs">Upload Instructions</p>
+            <h2 className="tm-panel-title mt-1 text-xl">
+              Complete the web import
+            </h2>
+          </div>
+          <button
+            aria-label="Close upload instructions"
+            className="tm-button-secondary px-3 py-1 text-sm"
+            onClick={onClose}
+            type="button"
+          >
+            X
+          </button>
+        </div>
+
+        <p className="tm-body-copy mt-3 text-sm">
+          Keep this open while you work. The instructions scroll inside this
+          overlay, so anything already pasted into the import form stays in
+          place behind it.
+        </p>
+        <aside className="mt-4 rounded-2xl border border-red-300/30 bg-red-300/10 p-4">
+          <p className="tm-data-label text-xs text-red-100">Important</p>
+          <p className="mt-2 text-sm font-semibold text-red-50/95">
+            This reader cannot use randomized milestones, awards, or tiles.
+          </p>
+        </aside>
+
+        <ol className="mt-5 grid gap-3">
+          {WEB_IMPORT_INSTRUCTION_STEPS.map((step, index) => (
+            <li
+              className="rounded-2xl border bg-black/25 p-4"
+              key={step.title}
+              style={{ borderColor: 'var(--tm-panel-border)' }}
+            >
+              <div className="flex gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-orange-300/40 bg-orange-300/10 text-xs font-bold text-orange-100">
+                  {index + 1}
+                </span>
+                <div>
+                  <h3 className="font-semibold text-stone-100">
+                    {step.title}
+                  </h3>
+                  <p className="tm-muted-copy mt-1 text-sm">{step.detail}</p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <aside className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4">
+            <p className="tm-data-label text-xs text-amber-100">Tip</p>
+            <p className="mt-2 text-sm text-amber-50/90">
+              A saved `.txt` game log can also be dragged into the Game Log box.
+            </p>
+          </aside>
+          <aside className="rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4">
+            <p className="tm-data-label text-xs text-emerald-100">Feature</p>
+            <p className="mt-2 text-sm text-emerald-50/90">
+              New players can claim their imported profile later after signing in.
+            </p>
+          </aside>
+          <aside className="rounded-2xl border border-red-300/30 bg-red-300/10 p-4">
+            <p className="tm-data-label text-xs text-red-100">Alert</p>
+            <p className="mt-2 text-sm text-red-50/90">
+              The same game cannot be saved twice.
+            </p>
+          </aside>
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <a
+            className="tm-button-primary inline-flex justify-center px-4 py-2 text-xs"
+            href={WEB_IMPORT_INSTRUCTIONS_URL}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Open full guide in a new tab
+          </a>
+          <button
+            className="tm-button-secondary px-4 py-2 text-xs"
+            onClick={onClose}
+            type="button"
+          >
+            Back to upload
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 type WebImportPageProps = {
   initialValues: Pick<WebImportDraftValues, 'playedOn'>;
   onAnalyzeImportEvidence: (
@@ -264,6 +409,7 @@ export function WebImportPage({
   const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<
     string | null
   >(null);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
   const screenshotOcrCacheRef = useRef<{
     file: File;
     payload: ScreenshotOcrPayload;
@@ -676,13 +822,52 @@ export function WebImportPage({
           Only one image is needed here. Board screenshots are no longer part of
           this import flow.
         </p>
-        <Link
-          className="tm-button-secondary w-fit px-4 py-2 text-xs"
-          href="/log-game/review"
+        <div
+          className="rounded-2xl border p-4"
+          style={{
+            background: 'rgba(214, 135, 66, 0.08)',
+            borderColor: 'rgba(214, 135, 66, 0.35)',
+          }}
         >
-          Review Saved Games
-        </Link>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="tm-data-label text-[10px]">
+                Need help with the upload?
+              </p>
+              <p className="tm-body-copy mt-1 text-sm">
+                Open the step-by-step instructions without leaving this import
+                draft, or use the full guide in a new tab.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="tm-button-primary px-4 py-2 text-xs"
+                onClick={() => setInstructionsOpen(true)}
+                type="button"
+              >
+                Show Upload Instructions
+              </button>
+              <a
+                className="tm-button-secondary px-4 py-2 text-xs"
+                href={WEB_IMPORT_INSTRUCTIONS_URL}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Open Full Guide
+              </a>
+              <Link
+                className="tm-button-secondary px-4 py-2 text-xs"
+                href="/log-game/review"
+              >
+                Review Saved Games
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
+      {instructionsOpen ? (
+        <WebImportInstructionsDialog onClose={() => setInstructionsOpen(false)} />
+      ) : null}
 
       <form
         className="tm-panel flex flex-col gap-6"

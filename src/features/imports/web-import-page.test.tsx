@@ -142,6 +142,13 @@ describe('WebImportPage', () => {
       screen.getByRole('link', { name: /review saved games/i }),
     ).toHaveAttribute('href', '/log-game/review');
     expect(
+      screen.getByRole('button', { name: /show upload instructions/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open full guide/i })).toHaveAttribute(
+      'href',
+      'https://tm-import-instructions-20260714.izzy-hodnett-1470.chatgpt.site',
+    );
+    expect(
       screen.getByText(
         /only one image is needed here\. board screenshots are no longer part of this import flow\./i,
       ),
@@ -156,6 +163,55 @@ describe('WebImportPage', () => {
     expect(
       screen.getByRole('button', { name: /analyze import evidence/i }),
     ).toBeInTheDocument();
+  });
+
+  it('opens upload instructions in an internal dialog without leaving the import page', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <WebImportPage
+        initialValues={{
+          playedOn: '2026-07-03',
+        }}
+        onAnalyzeImportEvidence={vi.fn()}
+        onCreateImportPlayer={vi.fn()}
+        onConfirmImportReview={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /show upload instructions/i }),
+    );
+
+    const dialog = screen.getByRole('dialog', {
+      name: /web import upload instructions/i,
+    });
+
+    expect(dialog).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /complete the web import/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /this reader cannot use randomized milestones, awards, or tiles/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /open full guide in a new tab/i }),
+    ).toHaveAttribute(
+      'href',
+      'https://tm-import-instructions-20260714.izzy-hodnett-1470.chatgpt.site',
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /close upload instructions/i }),
+    );
+
+    expect(
+      screen.queryByRole('dialog', {
+        name: /web import upload instructions/i,
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it('places the player list below both import upload sections', () => {
