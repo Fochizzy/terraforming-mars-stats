@@ -7,6 +7,7 @@ import {
   type CoverageRow,
   type LeaderboardRow,
   type ProfileCardStat,
+  type ProfileExpansionProfile,
   type ProfileGameLengthProfile,
   type ProfileGlobalParameterTempoProfile,
   type ProfileHeadToHeadRow,
@@ -123,6 +124,7 @@ function renderStyleInsightBody(insight: ProfileStyleInsight): ReactNode[] {
 type ProfileDashboardProps = {
   cardOutcomes?: ProfileCardStat[];
   coverage?: CoverageRow | null;
+  expansionProfile?: ProfileExpansionProfile | null;
   gameLengthProfile?: ProfileGameLengthProfile | null;
   globalParameterTempoProfile?: ProfileGlobalParameterTempoProfile | null;
   headToHeadRows?: ProfileHeadToHeadRow[];
@@ -152,6 +154,14 @@ function getWinningStyle(rows: ProfileStyleBreakdownRow[]) {
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatResourceRemovalTrack(
+  row: ProfileResourceRemovalProfile['resourceRows'][number],
+) {
+  return row.deltaKind === 'production'
+    ? `${row.resourceType} production`
+    : row.resourceType;
 }
 
 function getScoreSourceHighlights(scoreAverages: ScoreSourceAverages | null) {
@@ -211,6 +221,7 @@ function getStyleFocus(rows: ProfileStyleBreakdownRow[]) {
 }
 
 function buildPlayAnalysis({
+  expansionProfile,
   gameLengthProfile,
   globalParameterTempoProfile,
   headToHeadRows,
@@ -223,6 +234,7 @@ function buildPlayAnalysis({
   scorePace,
   styleBreakdownRows,
 }: {
+  expansionProfile: ProfileExpansionProfile | null;
   gameLengthProfile: ProfileGameLengthProfile | null;
   globalParameterTempoProfile: ProfileGlobalParameterTempoProfile | null;
   headToHeadRows: ProfileHeadToHeadRow[];
@@ -253,6 +265,10 @@ function buildPlayAnalysis({
       improvements.push(sentence);
     }
   };
+
+  for (const strength of expansionProfile?.strengths ?? []) {
+    addStrength(strength);
+  }
 
   if (leadPressure && scorePace?.strongestSource) {
     addStrength(
@@ -301,10 +317,10 @@ function buildPlayAnalysis({
     resourceRemovalProfile &&
     resourceRemovalProfile.outgoing.events > 0 &&
     resourceRemovalProfile.outgoing.totalAmount >=
-      resourceRemovalProfile.incoming.totalAmount
+    resourceRemovalProfile.incoming.totalAmount
   ) {
     addStrength(
-      `${playerName}'s interaction pressure is proactive: they made opponents lose ${formatAverage(resourceRemovalProfile.outgoing.totalAmount)} resources or production across ${pluralize(resourceRemovalProfile.outgoing.events, 'attributed removal')}, at least matching what opponents removed from them.`,
+      `${playerName}'s interaction pressure is proactive: they made opponents lose ${formatAverage(resourceRemovalProfile.outgoing.resourceAmount)} stored resources and ${formatAverage(resourceRemovalProfile.outgoing.productionAmount)} production across ${pluralize(resourceRemovalProfile.outgoing.events, 'attributed removal')}, at least matching what opponents removed from them.`,
     );
   }
 
@@ -357,6 +373,10 @@ function buildPlayAnalysis({
   }
 
   const roughSpotSignals: string[] = [];
+
+  for (const improvement of expansionProfile?.improvements ?? []) {
+    addImprovement(improvement);
+  }
 
   if (
     gameLengthProfile?.weakestBucket &&
@@ -412,7 +432,7 @@ function buildPlayAnalysis({
 
   if (resourceRemovalProfile && resourceRemovalProfile.incoming.events > 0) {
     addImprovement(
-      `Build a buffer against resource and production attacks: opponents have made ${playerName} lose ${formatAverage(resourceRemovalProfile.incoming.totalAmount)} across ${pluralize(resourceRemovalProfile.incoming.events, 'attributed removal')}.`,
+      `Build a buffer against attacks: opponents have made ${playerName} lose ${formatAverage(resourceRemovalProfile.incoming.resourceAmount)} stored resources and ${formatAverage(resourceRemovalProfile.incoming.productionAmount)} production across ${pluralize(resourceRemovalProfile.incoming.events, 'attributed removal')}.`,
     );
   }
 
@@ -464,35 +484,6 @@ function buildPlayAnalysis({
     improvements: improvements.slice(0, 4),
     strengths: strengths.slice(0, 3),
   };
-}
-
-function buildModelEnhancements({
-  resourceRemovalProfile,
-  scorePace,
-}: {
-  resourceRemovalProfile: ProfileResourceRemovalProfile | null;
-  scorePace: ProfileScorePace | null;
-}) {
-  const suggestions = [
-    'Store explicit source player and target player on each removal event so attack metrics do not depend on prior-card inference.',
-    'Split resource deltas from production deltas; production removal is strategically different from spending or losing stored resources.',
-    'Capture per-generation snapshots for TR, card points, greeneries, cities, and milestone progress so pace can separate early pressure from final scoring.',
-    'Track milestone claim generation, award funding timing, and second-place award outcomes to show whether pressure is proactive or reactive.',
-  ];
-
-  if (!scorePace) {
-    suggestions.unshift(
-      'Keep generation counts on every finalized game so per-generation style pace can be calculated consistently.',
-    );
-  }
-
-  if (!resourceRemovalProfile || resourceRemovalProfile.importedGames === 0) {
-    suggestions.unshift(
-      'Import more game logs so the model can connect card plays, resource removal, and actual opponents.',
-    );
-  }
-
-  return suggestions.slice(0, 5);
 }
 
 function buildPhaseTempoStatements(
@@ -616,6 +607,7 @@ function buildGlobalParameterTempoStatements(
 export function ProfileDashboard({
   cardOutcomes = [],
   coverage = null,
+  expansionProfile = null,
   gameLengthProfile = null,
   globalParameterTempoProfile = null,
   headToHeadRows = [],
@@ -651,6 +643,7 @@ export function ProfileDashboard({
   const mostPlayedStyle = styleBreakdownRows[0] ?? null;
   const winningStyle = getWinningStyle(styleBreakdownRows);
   const playAnalysis = buildPlayAnalysis({
+    expansionProfile,
     gameLengthProfile,
     globalParameterTempoProfile,
     headToHeadRows,
@@ -663,15 +656,13 @@ export function ProfileDashboard({
     scorePace,
     styleBreakdownRows,
   });
-  const modelEnhancements = buildModelEnhancements({
-    resourceRemovalProfile,
-    scorePace,
-  });
   const phaseTempoStatements = buildPhaseTempoStatements(phaseTempoProfile);
   const gameLengthStatements = buildGameLengthStatements(gameLengthProfile);
   const globalParameterTempoStatements = buildGlobalParameterTempoStatements(
     globalParameterTempoProfile,
   );
+  const hasResourceRemovalEvents =
+    (resourceRemovalProfile?.totalRemovalEvents ?? 0) > 0;
   const styleEffectivenessScopes: StyleEffectivenessScopeInput[] =
     styleBreakdownRows.length > 0
       ? [
@@ -882,33 +873,49 @@ export function ProfileDashboard({
               <h3 className="font-semibold text-stone-100">
                 Interaction Pressure
               </h3>
-              {resourceRemovalProfile ? (
+              {resourceRemovalProfile && hasResourceRemovalEvents ? (
                 <div className="mt-3 grid gap-2 text-sm text-stone-300">
                   <p>
                     You made opponents lose{' '}
                     <span className="font-semibold text-stone-100">
                       {formatAverage(resourceRemovalProfile.outgoing.totalAmount)}
                     </span>{' '}
-                    resources or production over{' '}
+                    total over{' '}
                     {pluralize(resourceRemovalProfile.outgoing.events, 'attributed removal')}.
+                  </p>
+                  <p className="tm-muted-copy text-xs">
+                    Split: {formatAverage(resourceRemovalProfile.outgoing.resourceAmount)} stored resources / {formatAverage(resourceRemovalProfile.outgoing.productionAmount)} production.
                   </p>
                   <p>
                     Opponents made you lose{' '}
                     <span className="font-semibold text-stone-100">
                       {formatAverage(resourceRemovalProfile.incoming.totalAmount)}
                     </span>{' '}
-                    resources or production over{' '}
+                    total over{' '}
                     {pluralize(resourceRemovalProfile.incoming.events, 'attributed removal')}.
+                  </p>
+                  <p className="tm-muted-copy text-xs">
+                    Split: {formatAverage(resourceRemovalProfile.incoming.resourceAmount)} stored resources / {formatAverage(resourceRemovalProfile.incoming.productionAmount)} production.
                   </p>
                   {resourceRemovalProfile.resourceRows[0] ? (
                     <p className="tm-muted-copy text-xs">
-                      Most affected resource/production track: {resourceRemovalProfile.resourceRows[0].resourceType} ({formatAverage(resourceRemovalProfile.resourceRows[0].amount)} total).
+                      Most affected resource/production track: {formatResourceRemovalTrack(resourceRemovalProfile.resourceRows[0])} ({formatAverage(resourceRemovalProfile.resourceRows[0].amount)} total).
                     </p>
                   ) : (
                     <p className="tm-muted-copy text-xs">
                       No resource or production removal events were found in imported logs yet.
                     </p>
                   )}
+                  <p className="tm-muted-copy text-xs">
+                    {resourceRemovalProfile.confidenceLabel}
+                  </p>
+                </div>
+              ) : resourceRemovalProfile ? (
+                <div className="mt-3 grid gap-2 text-sm text-stone-300">
+                  <p>
+                    No parsed resource or production removal events have been
+                    attributed from imported logs yet.
+                  </p>
                   <p className="tm-muted-copy text-xs">
                     {resourceRemovalProfile.confidenceLabel}
                   </p>
@@ -1011,17 +1018,47 @@ export function ProfileDashboard({
             ) : null}
           </article>
         </div>
-        <article className="tm-stat-card mt-4">
-          <h3 className="font-semibold text-stone-100">
-            Ways to Enhance the Model
-          </h3>
-          <ul className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300">
-            {modelEnhancements.map((suggestion) => (
-              <li key={suggestion}>{suggestion}</li>
-            ))}
-          </ul>
-        </article>
       </ChartFrame>
+      {expansionProfile ? (
+        <ChartFrame title="Profile Expansions">
+          <div className="grid gap-3 lg:grid-cols-2">
+            {expansionProfile.sections.map((section) => (
+              <article className="tm-stat-card" key={section.code}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h3 className="font-semibold text-stone-100">
+                    {section.title}
+                  </h3>
+                  <p className="tm-data-label">Profile model</p>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-stone-300">
+                  {section.summary}
+                </p>
+                <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {section.metrics.map((metric) => (
+                    <div
+                      className="rounded-md border border-white/10 bg-black/10 p-3"
+                      key={`${section.code}-${metric.label}`}
+                    >
+                      <dt className="tm-data-label">{metric.label}</dt>
+                      <dd className="mt-1 break-words text-sm font-semibold text-stone-100">
+                        {metric.value}
+                      </dd>
+                      {metric.detail ? (
+                        <p className="tm-muted-copy mt-1 text-xs">
+                          {metric.detail}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </dl>
+                <p className="tm-muted-copy mt-3 text-xs">
+                  {section.confidenceLabel}
+                </p>
+              </article>
+            ))}
+          </div>
+        </ChartFrame>
+      ) : null}
       <ChartFrame title="Group Comparisons">
         <p className="text-sm text-stone-300">
           Compare your play in any group you have played against your{' '}

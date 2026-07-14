@@ -87,7 +87,8 @@ export function deriveCardScoreEvidence(input: {
   for (const event of input.events) {
     if (
       (event.eventType === 'card_played' || event.eventType === 'resource_changed') &&
-      typeof event.actor === 'string'
+      typeof event.actor === 'string' &&
+      typeof event.card === 'string'
     ) {
       const cardReference = cardReferenceByName.get(normalizeCardToken(event.card));
 

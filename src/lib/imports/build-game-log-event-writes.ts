@@ -14,11 +14,13 @@ function buildCardIdByName(cards: Array<Pick<CardOption, 'cardName' | 'id'>>) {
 
 function buildCardPointBreakdownWrite(
   breakdown: ParsedCardPointBreakdown,
+  generationNumber: number | null,
 ): SaveGameLogEventInput {
   return {
     confidenceLevel: 'high',
     eventOrder: breakdown.lineNumber,
     eventType: breakdown.eventType,
+    ...(generationNumber !== null ? { generationNumber } : {}),
     lineClassification: 'event',
     payload: {
       cardPointsAnimals: breakdown.cardPointsAnimals,
@@ -30,9 +32,29 @@ function buildCardPointBreakdownWrite(
   };
 }
 
+function getCardAttributionKeys(
+  cardIdByName: Map<string, string>,
+  cardName: null | string,
+) {
+  if (!cardName) {
+    return [];
+  }
+
+  const normalizedName = normalizePlayerAlias(cardName);
+  const cardId = cardIdByName.get(normalizedName);
+
+  return [
+    ...(cardId ? [`id:${cardId}`] : []),
+    `name:${normalizedName}`,
+  ];
+}
+
 function buildParsedEventWrite(input: {
   cardIdByName: Map<string, string>;
+  currentGeneration: number | null;
   event: ParsedActionGameLogEvent;
+  sourcePlayerName?: string | null;
+  targetPlayerName?: string | null;
 }): SaveGameLogEventInput {
   switch (input.event.eventType) {
     case 'generation_started':
@@ -52,6 +74,9 @@ function buildParsedEventWrite(input: {
         confidenceLevel: 'high',
         eventOrder: input.event.lineNumber,
         eventType: input.event.eventType,
+        ...(input.currentGeneration !== null
+          ? { generationNumber: input.currentGeneration }
+          : {}),
         lineClassification: 'event',
         payload: {
           actor: input.event.actor,
@@ -65,6 +90,9 @@ function buildParsedEventWrite(input: {
         confidenceLevel: 'high',
         eventOrder: input.event.lineNumber,
         eventType: input.event.eventType,
+        ...(input.currentGeneration !== null
+          ? { generationNumber: input.currentGeneration }
+          : {}),
         lineClassification: 'event',
         payload: {
           actor: input.event.actor,
@@ -77,6 +105,9 @@ function buildParsedEventWrite(input: {
         confidenceLevel: 'high',
         eventOrder: input.event.lineNumber,
         eventType: input.event.eventType,
+        ...(input.currentGeneration !== null
+          ? { generationNumber: input.currentGeneration }
+          : {}),
         lineClassification: 'event',
         payload: {
           actor: input.event.actor,
@@ -85,28 +116,47 @@ function buildParsedEventWrite(input: {
         rawLine: input.event.rawLine,
         resourceType: input.event.parameter,
       };
-    case 'resource_changed':
+    case 'resource_changed': {
+      const cardName = input.event.card ?? null;
       return {
-        cardId:
-          input.cardIdByName.get(normalizePlayerAlias(input.event.card)) ?? null,
+        cardId: cardName
+          ? input.cardIdByName.get(normalizePlayerAlias(cardName)) ?? null
+          : null,
         confidenceLevel: 'high',
         eventOrder: input.event.lineNumber,
         eventType: input.event.eventType,
+        ...(input.currentGeneration !== null
+          ? { generationNumber: input.currentGeneration }
+          : {}),
         lineClassification: 'event',
         payload: {
+          ...(input.event.affectedPlayer
+            ? { affectedPlayer: input.event.affectedPlayer }
+            : {}),
           actor: input.event.actor,
-          cardName: input.event.card,
+          ...(cardName ? { cardName } : {}),
+          deltaKind: input.event.deltaKind ?? 'resource',
           operation: input.event.operation,
+          ...(input.sourcePlayerName
+            ? { sourcePlayerName: input.sourcePlayerName }
+            : {}),
+          ...(input.targetPlayerName
+            ? { targetPlayerName: input.targetPlayerName }
+            : {}),
         },
         rawLine: input.event.rawLine,
         resourceAmount: input.event.resourceAmount,
         resourceType: input.event.resourceType,
       };
+    }
     case 'milestone_claimed':
       return {
         confidenceLevel: 'high',
         eventOrder: input.event.lineNumber,
         eventType: input.event.eventType,
+        ...(input.currentGeneration !== null
+          ? { generationNumber: input.currentGeneration }
+          : {}),
         lineClassification: 'event',
         payload: {
           actor: input.event.actor,
@@ -119,6 +169,9 @@ function buildParsedEventWrite(input: {
         confidenceLevel: 'high',
         eventOrder: input.event.lineNumber,
         eventType: input.event.eventType,
+        ...(input.currentGeneration !== null
+          ? { generationNumber: input.currentGeneration }
+          : {}),
         lineClassification: 'event',
         payload: {
           actor: input.event.actor,
@@ -131,6 +184,9 @@ function buildParsedEventWrite(input: {
         confidenceLevel: 'high',
         eventOrder: input.event.lineNumber,
         eventType: input.event.eventType,
+        ...(input.currentGeneration !== null
+          ? { generationNumber: input.currentGeneration }
+          : {}),
         lineClassification: 'event',
         payload: {
           actor: input.event.actor,
@@ -154,16 +210,60 @@ export function buildGameLogEventWrites(input: {
   };
 }): SaveGameLogEventInput[] {
   const cardIdByName = buildCardIdByName(input.cards);
+  const sourcePlayerNameByCardKey = new Map<string, string>();
+  const writes: SaveGameLogEventInput[] = [];
+  let currentGeneration: number | null = null;
 
-  return [
-    ...input.parsedGameLog.events.map((event) =>
+  for (const event of [...input.parsedGameLog.events].sort(
+    (left, right) => left.lineNumber - right.lineNumber,
+  )) {
+    if (event.eventType === 'generation_started') {
+      currentGeneration = event.generation;
+      writes.push(
+        buildParsedEventWrite({
+          cardIdByName,
+          currentGeneration,
+          event,
+        }),
+      );
+      continue;
+    }
+
+    let sourcePlayerName: string | null = null;
+    let targetPlayerName: string | null = null;
+
+    if (event.eventType === 'resource_changed' && event.operation === 'removed') {
+      targetPlayerName = event.affectedPlayer ?? event.actor;
+      sourcePlayerName =
+        event.affectedPlayer
+          ? event.actor
+          : getCardAttributionKeys(cardIdByName, event.card ?? null)
+              .map((key) => sourcePlayerNameByCardKey.get(key))
+              .find((value): value is string => Boolean(value)) ?? null;
+    }
+
+    writes.push(
       buildParsedEventWrite({
         cardIdByName,
+        currentGeneration,
         event,
+        sourcePlayerName,
+        targetPlayerName,
       }),
-    ),
+    );
+
+    if (event.eventType === 'card_played') {
+      for (const key of getCardAttributionKeys(cardIdByName, event.card)) {
+        sourcePlayerNameByCardKey.set(key, event.actor);
+      }
+    }
+  }
+
+  writes.push(
     ...(input.parsedGameLog.cardPointBreakdowns ?? []).map((breakdown) =>
-      buildCardPointBreakdownWrite(breakdown),
+      buildCardPointBreakdownWrite(breakdown, currentGeneration),
     ),
-  ].sort((left, right) => left.eventOrder - right.eventOrder);
+  );
+
+  return writes.sort((left, right) => left.eventOrder - right.eventOrder);
 }

@@ -110,6 +110,7 @@ describe('ProfilePage', () => {
     vi.mocked(getProfileAnalytics).mockResolvedValue({
       cardOutcomes: [],
       coverage: null,
+      expansionProfile: null,
       gameLengthProfile: null,
       globalParameterTempoProfile: null,
       headToHeadRows: [],
@@ -170,6 +171,7 @@ describe('ProfilePage', () => {
     vi.mocked(getProfileAnalytics).mockResolvedValue({
       cardOutcomes: [],
       coverage: null,
+      expansionProfile: null,
       gameLengthProfile: null,
       globalParameterTempoProfile: null,
       headToHeadRows: [],

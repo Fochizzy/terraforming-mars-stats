@@ -19,6 +19,111 @@ describe('ProfileDashboard', () => {
         playerId: 'p1',
         playerName: 'Friday Mars',
       },
+      expansionProfile: {
+        improvements: [
+          'Stabilize Milestones: it is the swingiest scoring source in the expanded model, so choose one dependable backup route before final scoring.',
+          'Treat fast heat games as the prep branch: the current fast-terraforming sample says that mix is the weakest, so decide earlier whether to chase TR, cards, or board points.',
+          'When the lead plan does not land, reserve a catch-up package worth about 2.5 points, which is the average non-winning chase gap.',
+          'Add buffer turns against attacks; opponents have made Friday Mars lose 3 stored resources and 0 production, so avoid plans that fold to one removal hit.',
+        ],
+        sections: [
+          {
+            code: 'opening_profile',
+            confidenceLabel:
+              'Uses linked-player actions from generations 1-3 in imported logs.',
+            metrics: [{ label: 'Gen 1-3 Cards', value: '5' }],
+            summary:
+              'Your opening profile leans toward card development before the engine fully matures.',
+            title: 'Opening Profile',
+          },
+          {
+            code: 'engine_shape',
+            confidenceLabel:
+              'Uses imported card-play events matched to catalog tags and printed VP.',
+            metrics: [{ label: 'Top Card Tag', value: 'Space' }],
+            summary:
+              'Your engine shape is card-led with a Space tilt and reliable logged gains.',
+            title: 'Engine Shape',
+          },
+          {
+            code: 'scoring_reliability',
+            confidenceLabel:
+              'Uses final score-source rows and standard deviation across finalized games.',
+            metrics: [{ label: 'Most Reliable', value: 'Terraform Rating' }],
+            summary:
+              'Terraform Rating is your safest scoring lane while Milestones swing the most.',
+            title: 'Scoring Source Reliability',
+          },
+          {
+            code: 'comeback_front_runner',
+            confidenceLabel:
+              'Uses final score differentials plus phase peaks as a comeback/front-runner proxy.',
+            metrics: [{ label: 'Lead Rate', value: '75%' }],
+            summary:
+              'The profile currently reads as front-runner with a manageable chase gap.',
+            title: 'Comeback / Front-Runner',
+          },
+          {
+            code: 'opponent_adjusted',
+            confidenceLabel:
+              'Uses shared finalized-game rows, comparing your score to the average opponent in each game.',
+            metrics: [{ label: 'Vs Opp Avg', value: '+5.8' }],
+            summary:
+              'Opponent-adjusted scoring is positive versus the average opponent in shared games.',
+            title: 'Opponent-Adjusted Performance',
+          },
+          {
+            code: 'board_control',
+            confidenceLabel:
+              'Uses imported tile spaces plus shared board adjacency.',
+            metrics: [{ label: 'Board Pts / Tile', value: '4.8' }],
+            summary:
+              'Board control is supported by connected cities and greeneries touching oceans.',
+            title: 'Board Control',
+          },
+          {
+            code: 'interaction_personality',
+            confidenceLabel:
+              'Imported log removals use stored source and target players, with stored-resource and production losses split.',
+            metrics: [{ label: 'Outgoing Stored', value: '2' }],
+            summary:
+              'Your interaction personality is proactive with more outgoing than incoming removal.',
+            title: 'Interaction Personality',
+          },
+          {
+            code: 'corporation_prelude_fit',
+            confidenceLabel:
+              'Current profile read uses style outcomes as a proxy; exact fit needs corporation and prelude setup selections on profile games.',
+            metrics: [{ label: 'Winning Shell', value: 'Board Control' }],
+            summary:
+              'Exact corporation/prelude fit needs setup selections, so this read uses style outcomes.',
+            title: 'Corporation / Prelude Fit',
+          },
+          {
+            code: 'game_speed_matchup',
+            confidenceLabel:
+              'Combines generation-length buckets with fast oxygen, heat, ocean, and exact fast-parameter mixes.',
+            metrics: [{ label: 'Best Fast Mix', value: 'Fast Oxygen + Oceans' }],
+            summary:
+              'You fare best in fast oxygen + oceans games and worst in fast heat games.',
+            title: 'Game-Speed Matchup',
+          },
+          {
+            code: 'improvement_coach',
+            confidenceLabel:
+              'Condenses the expansion model into the next few review prompts.',
+            metrics: [{ label: 'Review 1', value: 'Stabilize Milestones' }],
+            summary:
+              'Highest ROI review target: stabilize the swingiest scoring lane.',
+            title: 'Improvement Coach',
+          },
+        ],
+        strengths: [
+          'The expanded profile backs the front-runner read: the explicit lead shows up in 75% of finalized games with a 5.8 point average score edge, and Terraform Rating is the repeatable floor at 25.3 points with 1.4 standard deviation.',
+          'The best expanded tempo lane is mid game peaks at 75% win rate, fast oxygen + oceans games at 75% win rate, short games at 75% win rate; that is the game shape where the model says the plan travels best.',
+          'The opponent-adjusted profile is positive: Friday Mars scores 5.8 points above the average opponent in shared games and wins 75% of the stronger-table sample.',
+        ],
+      },
       gameLengthProfile: {
         bestBucket: {
           averageGenerationCount: 8.5,
@@ -259,21 +364,32 @@ describe('ProfileDashboard', () => {
       },
       resourceRemovalProfile: {
         confidenceLabel:
-          'Imported log estimate: removals are attributed to the prior played card with the same card name or id.',
+          'Imported log removals use stored source and target players, with stored-resource and production losses split.',
+        explicitAttributionEvents: 3,
+        fallbackAttributionEvents: 0,
         importedGames: 3,
         incoming: {
           amountPerImportedGame: 1,
           events: 1,
+          productionAmount: 0,
+          productionEvents: 0,
+          resourceAmount: 3,
+          resourceEvents: 1,
           totalAmount: 3,
         },
         outgoing: {
           amountPerImportedGame: 2,
           events: 2,
+          productionAmount: 0,
+          productionEvents: 0,
+          resourceAmount: 6,
+          resourceEvents: 2,
           totalAmount: 6,
         },
         resourceRows: [
           {
             amount: 9,
+            deltaKind: 'resource',
             events: 3,
             resourceType: 'plant',
           },
@@ -414,55 +530,94 @@ describe('ProfileDashboard', () => {
       ).getAllByRole('listitem'),
     ).toHaveLength(4);
     expect(
-      screen.getByText(/front-runner: they lead in 75%/i),
+      screen.getByText(/expanded profile backs the front-runner read/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/terraform rating at 2.53 points per generation/i),
+      screen.getByText(/terraform rating is the repeatable floor/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/best-fit game shapes are activity peaking in the mid game/i),
+      screen.getByText(/best expanded tempo lane is mid game peaks/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/fast oxygen \+ oceans games \(75% win rate\)/i),
+      screen.getByText(/fast oxygen \+ oceans games at 75% win rate/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/short games \(75% win rate\)/i),
+      screen.getByText(/short games at 75% win rate/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/interaction pressure is proactive/i),
+      screen.getByText(/opponent-adjusted profile is positive/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/roughest game shapes first/i),
+      screen.getAllByText(/stabilize milestones/i).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/treat fast heat games as the prep branch/i)
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/reserve a catch-up package worth about 2.5 points/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/standard games \(50% win rate\)/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/fast heat games \(25% win rate\)/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/use the mid game peak as a review template/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/lightest pace source is milestones/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/build a buffer against resource and production attacks/i),
+      screen.getByText(/add buffer turns against attacks/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/play style profile/i)).toBeInTheDocument();
     expect(screen.getByText(/score pace by generation/i)).toBeInTheDocument();
-    expect(screen.getByText(/explicit lead/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /explicit lead/i }),
+    ).toBeInTheDocument();
     expect(screen.getAllByText(/front-runner/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/interaction pressure/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/you made opponents lose/i)).toBeInTheDocument();
     expect(screen.getByText(/early, mid, and late game/i)).toBeInTheDocument();
     expect(screen.getByText(/activity peaks in the mid game/i)).toBeInTheDocument();
     expect(screen.getByText(/terraforming tempo/i)).toBeInTheDocument();
-    expect(screen.getByText(/you fare best in fast oxygen \+ oceans games/i)).toBeInTheDocument();
-    expect(screen.getByText(/toughest fast-terraforming mix is fast heat games/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/you fare best in fast oxygen \+ oceans games/i)
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/toughest fast-terraforming mix is fast heat games/i)
+        .length,
+    ).toBeGreaterThan(0);
     expect(screen.getByText(/generation length fit/i)).toBeInTheDocument();
     expect(screen.getByText(/you do best in short games/i)).toBeInTheDocument();
-    expect(screen.getByText(/ways to enhance the model/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/ways to enhance the model/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/profile expansions/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /opening profile/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /engine shape/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /scoring source reliability/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /comeback \/ front-runner/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /opponent-adjusted performance/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /^board control$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /interaction personality/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /corporation \/ prelude fit/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /game-speed matchup/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /improvement coach/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/you fare best in fast oxygen \+ oceans games and worst in fast heat games/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
     expect(screen.getByText(/styles breakdown/i)).toBeInTheDocument();
     expect(screen.getByText(/most played/i)).toBeInTheDocument();
@@ -473,6 +628,46 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/style identity/i)).toBeInTheDocument();
     expect(screen.getByText(/game log signal/i)).toBeInTheDocument();
     expect(screen.getByText(/commercial district/i)).toBeInTheDocument();
+  });
+
+  it('does not present zero removal totals as measured pressure when no parsed removal events exist', () => {
+    render(
+      <ProfileDashboard
+        playerName="Friday Mars"
+        resourceRemovalProfile={{
+          confidenceLabel:
+            'Imported log removals use stored source and target players, with stored-resource and production losses split.',
+          explicitAttributionEvents: 0,
+          fallbackAttributionEvents: 0,
+          importedGames: 2,
+          incoming: {
+            amountPerImportedGame: 0,
+            events: 0,
+            productionAmount: 0,
+            productionEvents: 0,
+            resourceAmount: 0,
+            resourceEvents: 0,
+            totalAmount: 0,
+          },
+          outgoing: {
+            amountPerImportedGame: 0,
+            events: 0,
+            productionAmount: 0,
+            productionEvents: 0,
+            resourceAmount: 0,
+            resourceEvents: 0,
+            totalAmount: 0,
+          },
+          resourceRows: [],
+          totalRemovalEvents: 0,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(/no parsed resource or production removal events/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/you made opponents lose/i)).not.toBeInTheDocument();
   });
 
   it('links out to the dedicated play comparison screen', () => {

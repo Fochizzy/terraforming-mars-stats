@@ -21,7 +21,9 @@ export type GameLogEvent =
     }
   | {
       actor: string;
-      card: string;
+      affectedPlayer?: string;
+      card?: string;
+      deltaKind?: 'production' | 'resource';
       eventType: 'resource_changed';
       operation: 'added' | 'removed';
       resourceAmount: number;
@@ -87,6 +89,25 @@ function normalizeGlobalParameter(
   }
 
   return 'temperature';
+}
+
+function normalizeResourceType(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ').replace(/s$/, '');
+}
+
+function normalizeResourceDelta(value: string): {
+  deltaKind: 'production' | 'resource';
+  resourceType: string;
+} {
+  const normalized = value.trim().toLowerCase().replace(/[-_]+/g, ' ');
+  const deltaKind = /\bproduction\b/i.test(normalized)
+    ? 'production'
+    : 'resource';
+  const resourceType = normalizeResourceType(
+    normalized.replace(/\bproduction\b/gi, '').trim() || normalized,
+  );
+
+  return { deltaKind, resourceType };
 }
 
 export function classifyGameLogLine(line: string): GameLogLineClassification {
@@ -188,7 +209,7 @@ export function classifyGameLogLine(line: string): GameLogLineClassification {
   }
 
   const resourceMatch =
-    /^(.+) (added|removed) (\d+) ([A-Za-z]+) to (.+)$/i.exec(
+    /^(.+) (added|removed) (\d+) ([A-Za-z][A-Za-z -]*?) to (.+)$/i.exec(
       trimmedLine,
     );
   if (
@@ -198,17 +219,43 @@ export function classifyGameLogLine(line: string): GameLogLineClassification {
     resourceMatch[4] &&
     resourceMatch[5]
   ) {
+    const resourceDelta = normalizeResourceDelta(resourceMatch[4]);
+
     return {
       event: {
         actor: resourceMatch[1].trim(),
         card: resourceMatch[5].trim(),
+        deltaKind: resourceDelta.deltaKind,
         eventType: 'resource_changed',
         operation: resourceMatch[2].toLowerCase() as 'added' | 'removed',
         resourceAmount: Number(resourceMatch[3]),
-        resourceType: resourceMatch[4]
-          .trim()
-          .toLowerCase()
-          .replace(/s$/, ''),
+        resourceType: resourceDelta.resourceType,
+      },
+      kind: 'event',
+    };
+  }
+
+  const targetedRemovalMatch =
+    /^(.+) removed (\d+) ([A-Za-z][A-Za-z -]*?) from (.+)$/i.exec(
+      trimmedLine,
+    );
+  if (
+    targetedRemovalMatch?.[1] &&
+    targetedRemovalMatch[2] &&
+    targetedRemovalMatch[3] &&
+    targetedRemovalMatch[4]
+  ) {
+    const resourceDelta = normalizeResourceDelta(targetedRemovalMatch[3]);
+
+    return {
+      event: {
+        actor: targetedRemovalMatch[1].trim(),
+        affectedPlayer: targetedRemovalMatch[4].trim(),
+        deltaKind: resourceDelta.deltaKind,
+        eventType: 'resource_changed',
+        operation: 'removed',
+        resourceAmount: Number(targetedRemovalMatch[2]),
+        resourceType: resourceDelta.resourceType,
       },
       kind: 'event',
     };

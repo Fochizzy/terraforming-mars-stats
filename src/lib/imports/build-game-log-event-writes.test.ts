@@ -21,6 +21,7 @@ describe('buildGameLogEventWrites', () => {
             {
               actor: 'Izzy',
               card: 'Tardigrades',
+              deltaKind: 'resource',
               eventType: 'resource_changed',
               lineNumber: 5,
               operation: 'added',
@@ -30,8 +31,19 @@ describe('buildGameLogEventWrites', () => {
             },
             {
               actor: 'Izzy',
-              eventType: 'milestone_claimed',
+              affectedPlayer: 'Corey',
+              deltaKind: 'resource',
+              eventType: 'resource_changed',
               lineNumber: 6,
+              operation: 'removed',
+              rawLine: 'Izzy removed 3 plants from Corey',
+              resourceAmount: 3,
+              resourceType: 'plant',
+            },
+            {
+              actor: 'Izzy',
+              eventType: 'milestone_claimed',
+              lineNumber: 7,
               milestone: 'Builder',
               rawLine: 'Izzy claimed Builder milestone',
             },
@@ -39,21 +51,21 @@ describe('buildGameLogEventWrites', () => {
               actor: 'Corey',
               award: 'Landlord',
               eventType: 'award_funded',
-              lineNumber: 7,
+              lineNumber: 8,
               rawLine: 'Corey funded Landlord award',
             },
             {
               actor: 'Izzy',
               award: 'Landlord',
               eventType: 'award_result',
-              lineNumber: 8,
+              lineNumber: 9,
               placement: 'first',
               rawLine: 'Izzy won first place on Landlord award',
             },
             {
               actor: 'Corey',
               eventType: 'global_parameter_changed',
-              lineNumber: 9,
+              lineNumber: 10,
               parameter: 'temperature',
               rawLine: 'Corey raised temperature to 8 C',
             },
@@ -82,6 +94,7 @@ describe('buildGameLogEventWrites', () => {
         payload: {
           actor: 'Izzy',
           cardName: 'Tardigrades',
+          deltaKind: 'resource',
           operation: 'added',
         },
         rawLine: 'Izzy added 2 microbes to Tardigrades',
@@ -89,8 +102,26 @@ describe('buildGameLogEventWrites', () => {
         resourceType: 'microbe',
       },
       {
+        cardId: null,
         confidenceLevel: 'high',
         eventOrder: 6,
+        eventType: 'resource_changed',
+        lineClassification: 'event',
+        payload: {
+          actor: 'Izzy',
+          affectedPlayer: 'Corey',
+          deltaKind: 'resource',
+          operation: 'removed',
+          sourcePlayerName: 'Izzy',
+          targetPlayerName: 'Corey',
+        },
+        rawLine: 'Izzy removed 3 plants from Corey',
+        resourceAmount: 3,
+        resourceType: 'plant',
+      },
+      {
+        confidenceLevel: 'high',
+        eventOrder: 7,
         eventType: 'milestone_claimed',
         lineClassification: 'event',
         payload: {
@@ -101,7 +132,7 @@ describe('buildGameLogEventWrites', () => {
       },
       {
         confidenceLevel: 'high',
-        eventOrder: 7,
+        eventOrder: 8,
         eventType: 'award_funded',
         lineClassification: 'event',
         payload: {
@@ -112,7 +143,7 @@ describe('buildGameLogEventWrites', () => {
       },
       {
         confidenceLevel: 'high',
-        eventOrder: 8,
+        eventOrder: 9,
         eventType: 'award_result',
         lineClassification: 'event',
         payload: {
@@ -124,7 +155,7 @@ describe('buildGameLogEventWrites', () => {
       },
       {
         confidenceLevel: 'high',
-        eventOrder: 9,
+        eventOrder: 10,
         eventType: 'global_parameter_changed',
         lineClassification: 'event',
         payload: {
@@ -133,6 +164,139 @@ describe('buildGameLogEventWrites', () => {
         },
         rawLine: 'Corey raised temperature to 8 C',
         resourceType: 'temperature',
+      },
+    ]);
+  });
+
+  it('stores generation, source player, target player, and delta kind on removal events', () => {
+    expect(
+      buildGameLogEventWrites({
+        cards: [{ cardName: 'Asteroid', id: 'card-asteroid' }],
+        parsedGameLog: {
+          cardPointBreakdowns: [
+            {
+              cardPointsAnimals: 0,
+              cardPointsJovian: 2,
+              cardPointsMicrobes: 0,
+              eventType: 'card_points_breakdown',
+              lineNumber: 5,
+              playerName: 'Izzy',
+              rawLine: 'Izzy Microbes 0 Animals 0 Jovian 2',
+            },
+          ],
+          events: [
+            {
+              eventType: 'generation_started',
+              generation: 4,
+              lineNumber: 1,
+              rawLine: 'Generation 4',
+            },
+            {
+              actor: 'Izzy',
+              card: 'Asteroid',
+              eventType: 'card_played',
+              lineNumber: 2,
+              rawLine: 'Izzy played Asteroid',
+            },
+            {
+              actor: 'Corey',
+              card: 'Asteroid',
+              deltaKind: 'resource',
+              eventType: 'resource_changed',
+              lineNumber: 3,
+              operation: 'removed',
+              rawLine: 'Corey removed 3 plants to Asteroid',
+              resourceAmount: 3,
+              resourceType: 'plant',
+            },
+            {
+              actor: 'Corey',
+              affectedPlayer: 'Izzy',
+              deltaKind: 'production',
+              eventType: 'resource_changed',
+              lineNumber: 4,
+              operation: 'removed',
+              rawLine: 'Corey removed 1 megacredit production from Izzy',
+              resourceAmount: 1,
+              resourceType: 'megacredit',
+            },
+          ],
+        },
+      }),
+    ).toEqual([
+      {
+        confidenceLevel: 'high',
+        eventOrder: 1,
+        eventType: 'generation_started',
+        generationNumber: 4,
+        lineClassification: 'event',
+        payload: {},
+        rawLine: 'Generation 4',
+      },
+      {
+        cardId: 'card-asteroid',
+        confidenceLevel: 'high',
+        eventOrder: 2,
+        eventType: 'card_played',
+        generationNumber: 4,
+        lineClassification: 'event',
+        payload: {
+          actor: 'Izzy',
+          cardName: 'Asteroid',
+        },
+        rawLine: 'Izzy played Asteroid',
+      },
+      {
+        cardId: 'card-asteroid',
+        confidenceLevel: 'high',
+        eventOrder: 3,
+        eventType: 'resource_changed',
+        generationNumber: 4,
+        lineClassification: 'event',
+        payload: {
+          actor: 'Corey',
+          cardName: 'Asteroid',
+          deltaKind: 'resource',
+          operation: 'removed',
+          sourcePlayerName: 'Izzy',
+          targetPlayerName: 'Corey',
+        },
+        rawLine: 'Corey removed 3 plants to Asteroid',
+        resourceAmount: 3,
+        resourceType: 'plant',
+      },
+      {
+        cardId: null,
+        confidenceLevel: 'high',
+        eventOrder: 4,
+        eventType: 'resource_changed',
+        generationNumber: 4,
+        lineClassification: 'event',
+        payload: {
+          actor: 'Corey',
+          affectedPlayer: 'Izzy',
+          deltaKind: 'production',
+          operation: 'removed',
+          sourcePlayerName: 'Corey',
+          targetPlayerName: 'Izzy',
+        },
+        rawLine: 'Corey removed 1 megacredit production from Izzy',
+        resourceAmount: 1,
+        resourceType: 'megacredit',
+      },
+      {
+        confidenceLevel: 'high',
+        eventOrder: 5,
+        eventType: 'card_points_breakdown',
+        generationNumber: 4,
+        lineClassification: 'event',
+        payload: {
+          cardPointsAnimals: 0,
+          cardPointsJovian: 2,
+          cardPointsMicrobes: 0,
+          playerName: 'Izzy',
+        },
+        rawLine: 'Izzy Microbes 0 Animals 0 Jovian 2',
       },
     ]);
   });

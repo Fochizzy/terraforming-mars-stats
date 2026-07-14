@@ -65,6 +65,7 @@ describe('parseGameLog', () => {
         {
           actor: 'Izzy',
           card: 'Tardigrades',
+          deltaKind: 'resource',
           eventType: 'resource_changed',
           lineNumber: 6,
           operation: 'added',

@@ -108,10 +108,40 @@ describe('classifyGameLogLine', () => {
       event: {
         actor: 'Izzy',
         card: 'Tardigrades',
+        deltaKind: 'resource',
         eventType: 'resource_changed',
         operation: 'added',
         resourceAmount: 2,
         resourceType: 'microbe',
+      },
+      kind: 'event',
+    });
+  });
+
+  it('classifies targeted resource removals between players', () => {
+    expect(
+      classifyGameLogLine('Friday Mars removed 3 plants from Corey'),
+    ).toEqual({
+      event: {
+        actor: 'Friday Mars',
+        affectedPlayer: 'Corey',
+        deltaKind: 'resource',
+        eventType: 'resource_changed',
+        operation: 'removed',
+        resourceAmount: 3,
+        resourceType: 'plant',
+      },
+      kind: 'event',
+    });
+
+    expect(
+      classifyGameLogLine('Corey removed 1 plant production from Friday Mars'),
+    ).toMatchObject({
+      event: {
+        actor: 'Corey',
+        affectedPlayer: 'Friday Mars',
+        deltaKind: 'production',
+        resourceType: 'plant',
       },
       kind: 'event',
     });

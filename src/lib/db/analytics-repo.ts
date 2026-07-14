@@ -17,6 +17,7 @@ import {
   fetchUsernamesByPlayerId,
   resolvePlayerLabelsInRows,
 } from '@/lib/db/player-label-resolution';
+import { getBoardSpaceMap } from '@/lib/imports/board-space-maps';
 import { getSelectionStats } from '@/lib/db/selection-stats-repo';
 import { personLabel } from '@/lib/people/person-label';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -416,25 +417,65 @@ export type ProfilePhaseTempoProfile = {
 export type ProfileResourceRemoval = {
   amountPerImportedGame: number;
   events: number;
+  productionAmount: number;
+  productionEvents: number;
+  resourceAmount: number;
+  resourceEvents: number;
   totalAmount: number;
 };
 
 export type ProfileResourceRemovalProfile = {
   confidenceLabel: string;
+  explicitAttributionEvents: number;
+  fallbackAttributionEvents: number;
   importedGames: number;
   incoming: ProfileResourceRemoval;
   outgoing: ProfileResourceRemoval;
   resourceRows: Array<{
     amount: number;
+    deltaKind: 'production' | 'resource';
     events: number;
     resourceType: string;
   }>;
   totalRemovalEvents: number;
 };
 
+export type ProfileExpansionCode =
+  | 'board_control'
+  | 'comeback_front_runner'
+  | 'corporation_prelude_fit'
+  | 'engine_shape'
+  | 'game_speed_matchup'
+  | 'improvement_coach'
+  | 'interaction_personality'
+  | 'opening_profile'
+  | 'opponent_adjusted'
+  | 'scoring_reliability';
+
+export type ProfileExpansionMetric = {
+  detail?: string;
+  label: string;
+  value: string;
+};
+
+export type ProfileExpansionSection = {
+  code: ProfileExpansionCode;
+  confidenceLabel: string;
+  metrics: ProfileExpansionMetric[];
+  summary: string;
+  title: string;
+};
+
+export type ProfileExpansionProfile = {
+  improvements: string[];
+  sections: ProfileExpansionSection[];
+  strengths: string[];
+};
+
 export type ProfileAnalytics = {
   cardOutcomes: ProfileCardStat[];
   coverage: CoverageRow | null;
+  expansionProfile: ProfileExpansionProfile | null;
   gameLengthProfile: ProfileGameLengthProfile | null;
   globalParameterTempoProfile: ProfileGlobalParameterTempoProfile | null;
   headToHeadRows: ProfileHeadToHeadRow[];
@@ -1733,6 +1774,7 @@ function buildProfileAnalyticsFromRows(input: {
       playerName,
       performance: null,
       scoreAverages: null,
+      expansionProfile: null,
       gameLengthProfile: null,
       globalParameterTempoProfile: null,
       styleAgreement: null,
@@ -2077,6 +2119,7 @@ function buildProfileAnalyticsFromRows(input: {
       ),
     },
     scoreAverages,
+    expansionProfile: null,
     scorePace,
     gameLengthProfile,
     globalParameterTempoProfile: null,
@@ -2541,15 +2584,30 @@ type RawGameLogImportRow = {
 };
 
 type RawGameLogEventRow = {
+  board_space: string | null;
   card_id: string | null;
   event_order: number | string;
   event_type: string;
   game_log_import_id: string;
   generation_number: number | string | null;
   payload: Record<string, unknown> | null;
+  raw_line: string | null;
   resource_amount: number | string | null;
   resource_type: string | null;
   tile_type: string | null;
+};
+
+type RawProfileGameLogAliasRow = {
+  group_id: string;
+  normalized_alias: string;
+  player_id: string;
+};
+
+type RawProfileCardCatalogRow = {
+  card_name: string;
+  gameplay_tags: string[] | null;
+  id: string;
+  printed_victory_points: number | string | null;
 };
 
 function normalizeAnalyticsToken(value: null | string | undefined) {
@@ -2568,6 +2626,56 @@ function getPayloadString(
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function getPayloadStringFromKeys(
+  payload: RawGameLogEventRow['payload'],
+  keys: string[],
+) {
+  for (const key of keys) {
+    const value = getPayloadString(payload, key);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getEventResourceDeltaKind(
+  row: RawGameLogEventRow,
+): 'production' | 'resource' {
+  const explicitKind = getPayloadStringFromKeys(row.payload, [
+    'deltaKind',
+    'resourceDeltaKind',
+  ]);
+
+  if (normalizeAnalyticsToken(explicitKind).includes('production')) {
+    return 'production';
+  }
+
+  if (normalizeAnalyticsToken(row.resource_type).includes('production')) {
+    return 'production';
+  }
+
+  return 'resource';
+}
+
+function getEventResourceTrack(row: RawGameLogEventRow) {
+  const rawResource =
+    row.resource_type ??
+    getPayloadString(row.payload, 'resourceType') ??
+    'resource';
+  const withoutProduction = rawResource
+    .replace(/\bproduction\b/gi, '')
+    .replace(/[-_]+/g, ' ')
+    .trim();
+  const normalized = normalizeAnalyticsToken(
+    withoutProduction || rawResource,
+  ).replace(/s$/, '');
+
+  return normalized || 'resource';
+}
+
 function getEventCardKey(row: RawGameLogEventRow) {
   if (row.card_id) {
     return `id:${row.card_id}`;
@@ -2578,10 +2686,47 @@ function getEventCardKey(row: RawGameLogEventRow) {
   return cardName ? `name:${normalizeAnalyticsToken(cardName)}` : null;
 }
 
-function buildProfileActorLookup(sharedRows: ProfileGameResultRow[]) {
+function getEventBoardSpace(row: RawGameLogEventRow) {
+  return (
+    row.board_space?.trim() ||
+    getPayloadString(row.payload, 'boardSpace') ||
+    getPayloadString(row.payload, 'spaceId') ||
+    getPayloadString(row.payload, 'space')
+  );
+}
+
+function getEventTileType(row: RawGameLogEventRow) {
+  const normalized = normalizeAnalyticsToken(
+    row.tile_type ?? getPayloadString(row.payload, 'tileType'),
+  );
+
+  if (normalized.includes('greenery')) {
+    return 'greenery' as const;
+  }
+
+  if (normalized.includes('city')) {
+    return 'city' as const;
+  }
+
+  if (normalized.includes('ocean')) {
+    return 'ocean' as const;
+  }
+
+  return null;
+}
+
+function buildProfileActorLookup(
+  sharedRows: ProfileGameResultRow[],
+  aliases: RawProfileGameLogAliasRow[] = [],
+) {
+  const gameGroupIdByGameId = new Map<string, string>();
   const rowsByGameAndName = new Map<string, Map<string, ProfileGameResultRow>>();
+  const rowsByGameAndPlayerId = new Map<string, Map<string, ProfileGameResultRow>>();
+  const aliasPlayerIdByGroupAndName = new Map<string, string>();
 
   for (const row of sharedRows) {
+    gameGroupIdByGameId.set(row.gameId, row.groupId);
+
     const gameRows = rowsByGameAndName.get(row.gameId) ?? new Map();
     const normalizedName = normalizeAnalyticsToken(row.playerName);
 
@@ -2590,6 +2735,21 @@ function buildProfileActorLookup(sharedRows: ProfileGameResultRow[]) {
     }
 
     rowsByGameAndName.set(row.gameId, gameRows);
+
+    const playerRows = rowsByGameAndPlayerId.get(row.gameId) ?? new Map();
+    playerRows.set(row.playerId, row);
+    rowsByGameAndPlayerId.set(row.gameId, playerRows);
+  }
+
+  for (const alias of aliases) {
+    if (!alias.group_id || !alias.normalized_alias || !alias.player_id) {
+      continue;
+    }
+
+    aliasPlayerIdByGroupAndName.set(
+      `${alias.group_id}|${alias.normalized_alias}`,
+      alias.player_id,
+    );
   }
 
   return (gameId: string, actor: null | string) => {
@@ -2599,14 +2759,139 @@ function buildProfileActorLookup(sharedRows: ProfileGameResultRow[]) {
       return null;
     }
 
-    return rowsByGameAndName.get(gameId)?.get(normalizedActor) ?? null;
+    const gameRowsByName = rowsByGameAndName.get(gameId);
+    const exactNameMatch = gameRowsByName?.get(normalizedActor);
+
+    if (exactNameMatch) {
+      return exactNameMatch;
+    }
+
+    const groupId = gameGroupIdByGameId.get(gameId);
+    const aliasPlayerId = groupId
+      ? aliasPlayerIdByGroupAndName.get(`${groupId}|${normalizedActor}`)
+      : null;
+
+    return aliasPlayerId
+      ? rowsByGameAndPlayerId.get(gameId)?.get(aliasPlayerId) ?? null
+      : null;
   };
+}
+
+function isRemovedResourceChange(event: RawGameLogEventRow) {
+  return (
+    event.event_type === 'resource_changed' &&
+    getPayloadString(event.payload, 'operation') === 'removed'
+  );
+}
+
+function resolveResourceRemovalActors({
+  event,
+  gameId,
+  lookupActor,
+  sourceByCardKey,
+}: {
+  event: RawGameLogEventRow;
+  gameId: string;
+  lookupActor: ReturnType<typeof buildProfileActorLookup>;
+  sourceByCardKey: Map<string, ProfileGameResultRow>;
+}) {
+  const explicitAffectedName = getPayloadStringFromKeys(event.payload, [
+    'affectedPlayer',
+    'targetPlayerName',
+    'targetPlayer',
+    'target',
+    'opponent',
+    'removedFrom',
+  ]);
+  const cardKey = getEventCardKey(event);
+
+  if (explicitAffectedName) {
+    return {
+      affectedPlayer: lookupActor(gameId, explicitAffectedName),
+      attribution: 'explicit' as const,
+      sourcePlayer:
+        lookupActor(
+          gameId,
+          getPayloadStringFromKeys(event.payload, [
+            'sourcePlayerName',
+            'sourceActor',
+            'sourcePlayer',
+            'attacker',
+            'actor',
+          ]),
+        ) ??
+        (cardKey ? sourceByCardKey.get(cardKey) ?? null : null),
+    };
+  }
+
+  const explicitSourceName = getPayloadStringFromKeys(event.payload, [
+    'sourcePlayerName',
+    'sourceActor',
+    'sourcePlayer',
+    'attacker',
+  ]);
+  const explicitTargetName = getPayloadStringFromKeys(event.payload, [
+    'targetPlayerName',
+    'targetPlayer',
+    'target',
+    'opponent',
+  ]);
+
+  if (explicitSourceName || explicitTargetName) {
+    const fallbackSourceName = getPayloadStringFromKeys(event.payload, [
+      'sourceActor',
+      'sourcePlayer',
+      'attacker',
+      'actor',
+    ]);
+
+    return {
+      affectedPlayer: lookupActor(
+        gameId,
+        explicitTargetName ?? getPayloadString(event.payload, 'actor'),
+      ),
+      attribution: 'explicit' as const,
+      sourcePlayer:
+        lookupActor(gameId, explicitSourceName ?? fallbackSourceName) ??
+        (cardKey ? sourceByCardKey.get(cardKey) ?? null : null),
+    };
+  }
+
+  return {
+    affectedPlayer: lookupActor(gameId, getPayloadString(event.payload, 'actor')),
+    attribution: 'fallback' as const,
+    sourcePlayer: cardKey ? sourceByCardKey.get(cardKey) ?? null : null,
+  };
+}
+
+function hasExplicitResourceRemovalAttribution(event: RawGameLogEventRow) {
+  const sourceName =
+    getPayloadStringFromKeys(event.payload, [
+      'sourcePlayerName',
+      'sourceActor',
+      'sourcePlayer',
+      'attacker',
+    ]) ?? getPayloadString(event.payload, 'actor');
+  const targetName = getPayloadStringFromKeys(event.payload, [
+    'targetPlayerName',
+    'affectedPlayer',
+    'targetPlayer',
+    'target',
+    'opponent',
+    'removedFrom',
+  ]);
+
+  return Boolean(sourceName && targetName);
 }
 
 function emptyProfileResourceRemoval(): ProfileResourceRemoval {
   return {
     amountPerImportedGame: 0,
     events: 0,
+    productionAmount: 0,
+    productionEvents: 0,
+    resourceAmount: 0,
+    resourceEvents: 0,
     totalAmount: 0,
   };
 }
@@ -2728,11 +3013,13 @@ function getGlobalParameterTempoLabel(parameters: ProfileGlobalParameter[]) {
 }
 
 function buildProfileGlobalParameterTempoProfile({
+  aliases = [],
   events,
   imports,
   linkedPlayerIds,
   sharedRows,
 }: {
+  aliases?: RawProfileGameLogAliasRow[];
   events: RawGameLogEventRow[];
   imports: RawGameLogImportRow[];
   linkedPlayerIds: string[];
@@ -2747,7 +3034,7 @@ function buildProfileGlobalParameterTempoProfile({
     imports.map((row) => [row.id, row.game_id] as const),
   );
   const importedGames = new Set(imports.map((row) => row.game_id)).size;
-  const lookupActor = buildProfileActorLookup(sharedRows);
+  const lookupActor = buildProfileActorLookup(sharedRows, aliases);
   const eventsByImport = new Map<string, RawGameLogEventRow[]>();
   const mixTotals = new Map<
     string,
@@ -2935,6 +3222,7 @@ function emptyPhaseEventTotals() {
     greeneriesPlaced: 0,
     milestonesClaimed: 0,
     removalEvents: 0,
+    terraformingRaises: 0,
     tilesPlaced: 0,
   };
 }
@@ -2943,6 +3231,7 @@ function getPhaseActionScore(totals: ReturnType<typeof emptyPhaseEventTotals>) {
   return (
     totals.cardsPlayed +
     totals.tilesPlaced * 1.25 +
+    totals.terraformingRaises +
     totals.milestonesClaimed * 2 +
     totals.awardsFunded * 1.5 +
     totals.removalEvents
@@ -2950,11 +3239,13 @@ function getPhaseActionScore(totals: ReturnType<typeof emptyPhaseEventTotals>) {
 }
 
 function buildProfilePhaseTempoProfile({
+  aliases = [],
   events,
   imports,
   linkedPlayerIds,
   sharedRows,
 }: {
+  aliases?: RawProfileGameLogAliasRow[];
   events: RawGameLogEventRow[];
   imports: RawGameLogImportRow[];
   linkedPlayerIds: string[];
@@ -2969,7 +3260,7 @@ function buildProfilePhaseTempoProfile({
     imports.map((row) => [row.id, row.game_id] as const),
   );
   const importedGames = new Set(imports.map((row) => row.game_id)).size;
-  const lookupActor = buildProfileActorLookup(sharedRows);
+  const lookupActor = buildProfileActorLookup(sharedRows, aliases);
   const eventsByImport = new Map<string, RawGameLogEventRow[]>();
   const phaseTotals = new Map<ProfilePhase, ReturnType<typeof emptyPhaseEventTotals>>(
     [
@@ -3018,6 +3309,7 @@ function buildProfilePhaseTempoProfile({
     ]);
     let currentGeneration = 1;
     let gameSubject: ProfileGameResultRow | null = null;
+    const sourceByCardKey = new Map<string, ProfileGameResultRow>();
 
     for (const event of sortedEvents) {
       const eventGeneration = toNullableNumber(event.generation_number);
@@ -3030,7 +3322,22 @@ function buildProfilePhaseTempoProfile({
         continue;
       }
 
-      const actor = lookupActor(gameId, getPayloadString(event.payload, 'actor'));
+      const cardKey = getEventCardKey(event);
+      const eventActor = lookupActor(gameId, getPayloadString(event.payload, 'actor'));
+
+      if (event.event_type === 'card_played' && cardKey && eventActor) {
+        sourceByCardKey.set(cardKey, eventActor);
+      }
+
+      const removalActors = isRemovedResourceChange(event)
+        ? resolveResourceRemovalActors({
+            event,
+            gameId,
+            lookupActor,
+            sourceByCardKey,
+          })
+        : null;
+      const actor = removalActors?.sourcePlayer ?? eventActor;
 
       if (!actor || !ownPlayerIds.has(actor.playerId)) {
         continue;
@@ -3082,9 +3389,13 @@ function buildProfilePhaseTempoProfile({
         globalTotals.awardsFunded += 1;
         gameTotals.awardsFunded += 1;
       } else if (
-        event.event_type === 'resource_changed' &&
-        getPayloadString(event.payload, 'operation') === 'removed'
+        event.event_type === 'global_parameter_changed' &&
+        getEventGlobalParameter(event)
       ) {
+        addAction();
+        globalTotals.terraformingRaises += 1;
+        gameTotals.terraformingRaises += 1;
+      } else if (isRemovedResourceChange(event)) {
         addAction();
         globalTotals.removalEvents += 1;
         gameTotals.removalEvents += 1;
@@ -3195,11 +3506,13 @@ function buildProfilePhaseTempoProfile({
 }
 
 function buildProfileResourceRemovalProfile({
+  aliases = [],
   events,
   imports,
   linkedPlayerIds,
   sharedRows,
 }: {
+  aliases?: RawProfileGameLogAliasRow[];
   events: RawGameLogEventRow[];
   imports: RawGameLogImportRow[];
   linkedPlayerIds: string[];
@@ -3214,7 +3527,7 @@ function buildProfileResourceRemovalProfile({
     imports.map((row) => [row.id, row.game_id] as const),
   );
   const importedGames = new Set(imports.map((row) => row.game_id)).size;
-  const lookupActor = buildProfileActorLookup(sharedRows);
+  const lookupActor = buildProfileActorLookup(sharedRows, aliases);
   const eventsByImport = new Map<string, RawGameLogEventRow[]>();
 
   for (const event of events) {
@@ -3224,9 +3537,35 @@ function buildProfileResourceRemovalProfile({
   }
 
   let totalRemovalEvents = 0;
+  let explicitAttributionEvents = 0;
+  let fallbackAttributionEvents = 0;
   const incoming = emptyProfileResourceRemoval();
   const outgoing = emptyProfileResourceRemoval();
-  const resourceTotals = new Map<string, { amount: number; events: number }>();
+  const resourceTotals = new Map<
+    string,
+    {
+      amount: number;
+      deltaKind: 'production' | 'resource';
+      events: number;
+      resourceType: string;
+    }
+  >();
+  const addRemoval = (
+    bucket: ProfileResourceRemoval,
+    amount: number,
+    deltaKind: 'production' | 'resource',
+  ) => {
+    bucket.events += 1;
+    bucket.totalAmount += amount;
+
+    if (deltaKind === 'production') {
+      bucket.productionAmount += amount;
+      bucket.productionEvents += 1;
+    } else {
+      bucket.resourceAmount += amount;
+      bucket.resourceEvents += 1;
+    }
+  };
 
   for (const [importId, importEvents] of eventsByImport) {
     const gameId = importGameIds.get(importId);
@@ -3253,29 +3592,37 @@ function buildProfileResourceRemovalProfile({
         continue;
       }
 
-      if (
-        event.event_type !== 'resource_changed' ||
-        getPayloadString(event.payload, 'operation') !== 'removed'
-      ) {
+      if (!isRemovedResourceChange(event)) {
         continue;
       }
 
-      const affectedPlayer = lookupActor(
+      const { affectedPlayer, sourcePlayer } = resolveResourceRemovalActors({
+        event,
         gameId,
-        getPayloadString(event.payload, 'actor'),
-      );
-      const sourcePlayer = cardKey ? sourceByCardKey.get(cardKey) ?? null : null;
+        lookupActor,
+        sourceByCardKey,
+      });
       const amount = Math.max(toNumber(event.resource_amount), 0);
-      const resourceType = event.resource_type?.trim().toLowerCase() || 'resource';
-      const resourceTotal = resourceTotals.get(resourceType) ?? {
+      const deltaKind = getEventResourceDeltaKind(event);
+      const resourceType = getEventResourceTrack(event);
+      const resourceKey = `${deltaKind}:${resourceType}`;
+      const resourceTotal = resourceTotals.get(resourceKey) ?? {
         amount: 0,
+        deltaKind,
         events: 0,
+        resourceType,
       };
 
       totalRemovalEvents += 1;
+      if (hasExplicitResourceRemovalAttribution(event)) {
+        explicitAttributionEvents += 1;
+      } else {
+        fallbackAttributionEvents += 1;
+      }
+
       resourceTotal.amount += amount;
       resourceTotal.events += 1;
-      resourceTotals.set(resourceType, resourceTotal);
+      resourceTotals.set(resourceKey, resourceTotal);
 
       if (!affectedPlayer || !sourcePlayer) {
         continue;
@@ -3285,45 +3632,946 @@ function buildProfileResourceRemovalProfile({
       const sourceIsOwn = ownPlayerIds.has(sourcePlayer.playerId);
 
       if (sourceIsOwn && !affectedIsOwn) {
-        outgoing.events += 1;
-        outgoing.totalAmount += amount;
+        addRemoval(outgoing, amount, deltaKind);
       } else if (affectedIsOwn && !sourceIsOwn) {
-        incoming.events += 1;
-        incoming.totalAmount += amount;
+        addRemoval(incoming, amount, deltaKind);
       }
     }
   }
 
-  incoming.totalAmount = roundNumber(incoming.totalAmount, 3);
-  outgoing.totalAmount = roundNumber(outgoing.totalAmount, 3);
-  incoming.amountPerImportedGame = roundNumber(
-    importedGames > 0 ? incoming.totalAmount / importedGames : 0,
-    3,
-  );
-  outgoing.amountPerImportedGame = roundNumber(
-    importedGames > 0 ? outgoing.totalAmount / importedGames : 0,
-    3,
-  );
+  for (const bucket of [incoming, outgoing]) {
+    bucket.totalAmount = roundNumber(bucket.totalAmount, 3);
+    bucket.productionAmount = roundNumber(bucket.productionAmount, 3);
+    bucket.resourceAmount = roundNumber(bucket.resourceAmount, 3);
+    bucket.amountPerImportedGame = roundNumber(
+      importedGames > 0 ? bucket.totalAmount / importedGames : 0,
+      3,
+    );
+  }
 
   return {
     confidenceLabel:
-      'Imported log estimate: removals are attributed to the prior played card with the same card name or id.',
+      fallbackAttributionEvents > 0
+        ? 'Imported log removals use stored source/target players when available; older rows fall back to prior played-card attribution by name or id.'
+        : 'Imported log removals use stored source and target players, with stored-resource and production losses split.',
+    explicitAttributionEvents,
+    fallbackAttributionEvents,
     importedGames,
     incoming,
     outgoing,
-    resourceRows: [...resourceTotals.entries()]
-      .map(([resourceType, row]) => ({
+    resourceRows: [...resourceTotals.values()]
+      .map((row) => ({
         amount: roundNumber(row.amount, 3),
+        deltaKind: row.deltaKind,
         events: row.events,
-        resourceType,
+        resourceType: row.resourceType,
       }))
       .sort(
         (left, right) =>
           right.amount - left.amount ||
           right.events - left.events ||
+          left.deltaKind.localeCompare(right.deltaKind) ||
           left.resourceType.localeCompare(right.resourceType),
       ),
     totalRemovalEvents,
+  };
+}
+
+function formatExpansionNumber(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 'n/a';
+  }
+
+  return formatInsightNumber(roundNumber(value, 3));
+}
+
+function formatExpansionPercent(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 'n/a';
+  }
+
+  return formatInsightPercent(value);
+}
+
+function expansionMetric(
+  label: string,
+  value: string,
+  detail?: string,
+): ProfileExpansionMetric {
+  return detail ? { detail, label, value } : { label, value };
+}
+
+function standardDeviation(values: number[]) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const average = averageNumbers(values) ?? 0;
+  const variance =
+    averageNumbers(values.map((value) => (value - average) ** 2)) ?? 0;
+
+  return Math.sqrt(variance);
+}
+
+function getProfileScoreSourceSeries(ownRows: ProfileGameResultRow[]) {
+  return [
+    {
+      code: 'terraform_rating',
+      label: 'Terraform Rating',
+      values: ownRows.map((row) => row.trPoints),
+    },
+    {
+      code: 'cards',
+      label: 'Card Points',
+      values: ownRows.map((row) => row.cardPointsTotal),
+    },
+    {
+      code: 'greenery',
+      label: 'Greenery',
+      values: ownRows.map((row) => row.greeneryPoints),
+    },
+    {
+      code: 'cities',
+      label: 'Cities',
+      values: ownRows.map((row) => row.citiesPoints),
+    },
+    {
+      code: 'milestones',
+      label: 'Milestones',
+      values: ownRows.map((row) => row.milestonePoints),
+    },
+    {
+      code: 'awards',
+      label: 'Awards',
+      values: ownRows.map((row) => row.awardPoints),
+    },
+  ];
+}
+
+function getProfileScoreReliabilityRows(ownRows: ProfileGameResultRow[]) {
+  return getProfileScoreSourceSeries(ownRows)
+    .map((source) => {
+      const average = averageNumbers(source.values) ?? 0;
+      const deviation = standardDeviation(source.values) ?? 0;
+
+      return {
+        ...source,
+        average: roundNumber(average, 3),
+        coefficientOfVariation:
+          average > 0 ? roundNumber(deviation / average, 4) : null,
+        standardDeviation: roundNumber(deviation, 3),
+      };
+    })
+    .filter((source) => source.average > 0);
+}
+
+function getCardCatalogEntry(
+  event: RawGameLogEventRow,
+  cardById: Map<string, RawProfileCardCatalogRow>,
+  cardByName: Map<string, RawProfileCardCatalogRow>,
+) {
+  if (event.card_id) {
+    const card = cardById.get(event.card_id);
+
+    if (card) {
+      return card;
+    }
+  }
+
+  const cardName = getPayloadString(event.payload, 'cardName');
+
+  return cardName ? cardByName.get(normalizeAnalyticsToken(cardName)) ?? null : null;
+}
+
+function normalizeGameplayTags(tags: string[] | null) {
+  return (tags ?? [])
+    .map((tag) => normalizeAnalyticsToken(tag))
+    .filter(Boolean)
+    .map((tag) => formatStyleName(tag));
+}
+
+function topExpansionEntry(entries: Map<string, number>) {
+  return [...entries.entries()].sort(
+    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+  )[0] ?? null;
+}
+
+function getExpansionTitle(
+  code: ProfileExpansionCode,
+): ProfileExpansionSection['title'] {
+  const titles: Record<ProfileExpansionCode, string> = {
+    board_control: 'Board Control',
+    comeback_front_runner: 'Comeback / Front-Runner',
+    corporation_prelude_fit: 'Corporation / Prelude Fit',
+    engine_shape: 'Engine Shape',
+    game_speed_matchup: 'Game-Speed Matchup',
+    improvement_coach: 'Improvement Coach',
+    interaction_personality: 'Interaction Personality',
+    opening_profile: 'Opening Profile',
+    opponent_adjusted: 'Opponent-Adjusted Performance',
+    scoring_reliability: 'Scoring Source Reliability',
+  };
+
+  return titles[code];
+}
+
+function buildExpansionSection(input: {
+  code: ProfileExpansionCode;
+  confidenceLabel: string;
+  metrics: ProfileExpansionMetric[];
+  summary: string;
+}): ProfileExpansionSection {
+  return {
+    ...input,
+    title: getExpansionTitle(input.code),
+  };
+}
+
+function buildProfileExpansionProfile({
+  aliases = [],
+  cardCatalogRows,
+  events,
+  gameLengthProfile,
+  globalParameterTempoProfile,
+  headToHeadRows,
+  imports,
+  leadPressure,
+  linkedPlayerIds,
+  ownRows,
+  phaseTempoProfile,
+  resourceRemovalProfile,
+  sharedRows,
+  styleBreakdownRows,
+}: {
+  aliases?: RawProfileGameLogAliasRow[];
+  cardCatalogRows: RawProfileCardCatalogRow[];
+  events: RawGameLogEventRow[];
+  gameLengthProfile: ProfileGameLengthProfile | null;
+  globalParameterTempoProfile: ProfileGlobalParameterTempoProfile | null;
+  headToHeadRows: ProfileHeadToHeadRow[];
+  imports: RawGameLogImportRow[];
+  leadPressure: ProfileLeadPressure | null;
+  linkedPlayerIds: string[];
+  ownRows: ProfileGameResultRow[];
+  phaseTempoProfile: ProfilePhaseTempoProfile | null;
+  resourceRemovalProfile: ProfileResourceRemovalProfile | null;
+  sharedRows: ProfileGameResultRow[];
+  styleBreakdownRows: ProfileStyleBreakdownRow[];
+}): ProfileExpansionProfile | null {
+  if (ownRows.length === 0) {
+    return null;
+  }
+
+  const ownPlayerIds = new Set(linkedPlayerIds);
+  const importGameIds = new Map(
+    imports.map((row) => [row.id, row.game_id] as const),
+  );
+  const lookupActor = buildProfileActorLookup(sharedRows, aliases);
+  const eventsByImport = new Map<string, RawGameLogEventRow[]>();
+  const cardById = new Map(cardCatalogRows.map((card) => [card.id, card]));
+  const cardByName = new Map(
+    cardCatalogRows.map((card) => [
+      normalizeAnalyticsToken(card.card_name),
+      card,
+    ]),
+  );
+  const boardMap = getBoardSpaceMap('tharsis');
+  const opening = {
+    cardsPlayed: 0,
+    loggedGains: 0,
+    milestonesClaimed: 0,
+    terraformingRaises: 0,
+  };
+  const engine = {
+    cardPrintedVp: 0,
+    cardsPlayed: 0,
+    loggedGains: 0,
+  };
+  const tagCounts = new Map<string, number>();
+  const tileEvents: Array<{
+    actorIsOwn: boolean;
+    spaceId: string | null;
+    tileType: 'city' | 'greenery' | 'ocean';
+  }> = [];
+  const generationSnapshots = new Map<
+    string,
+    {
+      awardsFunded: number;
+      cardPrintedVp: number;
+      cities: number;
+      gameId: string;
+      generation: number;
+      greeneries: number;
+      milestonesClaimed: number;
+      secondPlaceAwards: number;
+      trRaises: number;
+    }
+  >();
+  const milestoneClaimGenerations: number[] = [];
+  const awardFundingGenerations: number[] = [];
+  let secondPlaceAwardOutcomes = 0;
+  const getGenerationSnapshot = (gameId: string, generation: number) => {
+    const key = `${gameId}:${generation}`;
+    const existing = generationSnapshots.get(key);
+
+    if (existing) {
+      return existing;
+    }
+
+    const snapshot = {
+      awardsFunded: 0,
+      cardPrintedVp: 0,
+      cities: 0,
+      gameId,
+      generation,
+      greeneries: 0,
+      milestonesClaimed: 0,
+      secondPlaceAwards: 0,
+      trRaises: 0,
+    };
+
+    generationSnapshots.set(key, snapshot);
+    return snapshot;
+  };
+
+  for (const event of events) {
+    const importEvents = eventsByImport.get(event.game_log_import_id) ?? [];
+    importEvents.push(event);
+    eventsByImport.set(event.game_log_import_id, importEvents);
+  }
+
+  for (const [importId, importEvents] of eventsByImport) {
+    const gameId = importGameIds.get(importId);
+
+    if (!gameId) {
+      continue;
+    }
+
+    const sortedEvents = [...importEvents].sort(
+      (left, right) => toNumber(left.event_order) - toNumber(right.event_order),
+    );
+    let currentGeneration = 1;
+
+    for (const event of sortedEvents) {
+      const eventGeneration = toNullableNumber(event.generation_number);
+
+      if (eventGeneration !== null && eventGeneration > 0) {
+        currentGeneration = eventGeneration;
+      }
+
+      const actor = lookupActor(gameId, getPayloadString(event.payload, 'actor'));
+      const actorIsOwn = actor ? ownPlayerIds.has(actor.playerId) : false;
+      const tileType = getEventTileType(event);
+
+      if (event.event_type === 'tile_placed' && tileType) {
+        tileEvents.push({
+          actorIsOwn,
+          spaceId: getEventBoardSpace(event),
+          tileType,
+        });
+      }
+
+      if (!actorIsOwn) {
+        continue;
+      }
+
+      const isOpening = currentGeneration <= 3;
+      const generationSnapshot = getGenerationSnapshot(gameId, currentGeneration);
+
+      if (event.event_type === 'tile_placed') {
+        if (tileType === 'greenery') {
+          generationSnapshot.greeneries += 1;
+        }
+
+        if (tileType === 'city') {
+          generationSnapshot.cities += 1;
+        }
+      }
+
+      if (event.event_type === 'card_played') {
+        engine.cardsPlayed += 1;
+
+        if (isOpening) {
+          opening.cardsPlayed += 1;
+        }
+
+        const card = getCardCatalogEntry(event, cardById, cardByName);
+
+        if (card) {
+          const printedVp = toNumber(card.printed_victory_points);
+
+          engine.cardPrintedVp += printedVp;
+          generationSnapshot.cardPrintedVp += printedVp;
+
+          for (const tag of normalizeGameplayTags(card.gameplay_tags)) {
+            tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+          }
+        }
+      } else if (
+        event.event_type === 'global_parameter_changed' ||
+        (event.event_type === 'tile_placed' && getEventGlobalParameter(event))
+      ) {
+        generationSnapshot.trRaises += 1;
+
+        if (isOpening) {
+          opening.terraformingRaises += 1;
+        }
+      } else if (event.event_type === 'milestone_claimed') {
+        generationSnapshot.milestonesClaimed += 1;
+        milestoneClaimGenerations.push(currentGeneration);
+
+        if (isOpening) {
+          opening.milestonesClaimed += 1;
+        }
+      } else if (event.event_type === 'award_funded') {
+        generationSnapshot.awardsFunded += 1;
+        awardFundingGenerations.push(currentGeneration);
+      } else if (
+        event.event_type === 'award_result' &&
+        getPayloadString(event.payload, 'placement') === 'second'
+      ) {
+        generationSnapshot.secondPlaceAwards += 1;
+        secondPlaceAwardOutcomes += 1;
+      } else if (
+        event.event_type === 'resource_changed' &&
+        getPayloadString(event.payload, 'operation') === 'added'
+      ) {
+        const amount = Math.max(toNumber(event.resource_amount), 0);
+
+        engine.loggedGains += amount;
+
+        if (isOpening) {
+          opening.loggedGains += amount;
+        }
+      }
+    }
+  }
+
+  const totalGenerations =
+    ownRows.reduce((sum, row) => sum + Math.max(row.generationCount, 0), 0) || null;
+  const cardsPerGeneration =
+    totalGenerations && totalGenerations > 0
+      ? engine.cardsPlayed / totalGenerations
+      : null;
+  const gainsPerGeneration =
+    totalGenerations && totalGenerations > 0
+      ? engine.loggedGains / totalGenerations
+      : null;
+  const snapshotRows = [...generationSnapshots.values()];
+  const snapshotCardPrintedVp = snapshotRows.reduce(
+    (sum, snapshot) => sum + snapshot.cardPrintedVp,
+    0,
+  );
+  const averageMilestoneGeneration = averageNumbers(milestoneClaimGenerations);
+  const averageAwardFundingGeneration = averageNumbers(awardFundingGenerations);
+  const topTag = topExpansionEntry(tagCounts);
+  const reliabilityRows = getProfileScoreReliabilityRows(ownRows);
+  const mostReliableSource =
+    [...reliabilityRows].sort(
+      (left, right) =>
+        (left.coefficientOfVariation ?? Infinity) -
+          (right.coefficientOfVariation ?? Infinity) ||
+        right.average - left.average,
+    )[0] ?? null;
+  const swingiestSource =
+    [...reliabilityRows].sort(
+      (left, right) =>
+        (right.coefficientOfVariation ?? -Infinity) -
+          (left.coefficientOfVariation ?? -Infinity) ||
+        right.average - left.average,
+    )[0] ?? null;
+  const totalScoreDeviation = standardDeviation(
+    ownRows.map((row) => row.totalPoints),
+  );
+  const sharedRowsByGameId = new Map<string, ProfileGameResultRow[]>();
+
+  for (const row of sharedRows) {
+    const gameRows = sharedRowsByGameId.get(row.gameId) ?? [];
+    gameRows.push(row);
+    sharedRowsByGameId.set(row.gameId, gameRows);
+  }
+
+  const opponentAdjustedRows: Array<{
+    opponentAverage: number;
+    scoreEdge: number;
+    won: boolean;
+  }> = [];
+
+  for (const ownRow of ownRows) {
+    const gameRows = sharedRowsByGameId.get(ownRow.gameId) ?? [];
+    const opponentRows = gameRows.filter((row) => !ownPlayerIds.has(row.playerId));
+    const opponentAverage = averageNumbers(
+      opponentRows.map((row) => row.totalPoints),
+    );
+
+    if (opponentAverage === null) {
+      continue;
+    }
+
+    opponentAdjustedRows.push({
+      opponentAverage,
+      scoreEdge: ownRow.totalPoints - opponentAverage,
+      won: ownRow.isWinner,
+    });
+  }
+
+  const opponentAverageBaseline = averageNumbers(
+    opponentAdjustedRows.map((row) => row.opponentAverage),
+  );
+  const strongerTableRows =
+    opponentAverageBaseline === null
+      ? []
+      : opponentAdjustedRows.filter(
+          (row) => row.opponentAverage >= opponentAverageBaseline,
+        );
+  const scoreVsOpponentAverage = averageNumbers(
+    opponentAdjustedRows.map((row) => row.scoreEdge),
+  );
+  const strongerTableWinRate =
+    strongerTableRows.length > 0
+      ? strongerTableRows.filter((row) => row.won).length / strongerTableRows.length
+      : null;
+  const bestHeadToHead =
+    [...headToHeadRows].sort(
+      (left, right) =>
+        right.averageScoreDifferential - left.averageScoreDifferential ||
+        right.wins - left.wins ||
+        right.gamesPlayed - left.gamesPlayed,
+    )[0] ?? null;
+  const hardestHeadToHead =
+    [...headToHeadRows].sort(
+      (left, right) =>
+        left.averageScoreDifferential - right.averageScoreDifferential ||
+        right.losses - left.losses ||
+        right.gamesPlayed - left.gamesPlayed,
+    )[0] ?? null;
+  const ownGreenerySpaces = new Set(
+    tileEvents
+      .filter((event) => event.actorIsOwn && event.tileType === 'greenery')
+      .map((event) => event.spaceId)
+      .filter((spaceId): spaceId is string => Boolean(spaceId)),
+  );
+  const opponentGreenerySpaces = new Set(
+    tileEvents
+      .filter((event) => !event.actorIsOwn && event.tileType === 'greenery')
+      .map((event) => event.spaceId)
+      .filter((spaceId): spaceId is string => Boolean(spaceId)),
+  );
+  const oceanSpaces = new Set(
+    tileEvents
+      .filter((event) => event.tileType === 'ocean')
+      .map((event) => event.spaceId)
+      .filter((spaceId): spaceId is string => Boolean(spaceId)),
+  );
+  const ownCitySpaces = tileEvents
+    .filter((event) => event.actorIsOwn && event.tileType === 'city')
+    .map((event) => event.spaceId)
+    .filter((spaceId): spaceId is string => Boolean(spaceId));
+  const ownTileCounts = {
+    cities: tileEvents.filter(
+      (event) => event.actorIsOwn && event.tileType === 'city',
+    ).length,
+    greeneries: tileEvents.filter(
+      (event) => event.actorIsOwn && event.tileType === 'greenery',
+    ).length,
+    oceans: tileEvents.filter(
+      (event) => event.actorIsOwn && event.tileType === 'ocean',
+    ).length,
+  };
+  const supportedCityCount = ownCitySpaces.filter((spaceId) => {
+    const neighbors = boardMap.spaces[spaceId]?.neighbors ?? [];
+
+    return neighbors.some(
+      (neighbor) =>
+        ownGreenerySpaces.has(neighbor) || opponentGreenerySpaces.has(neighbor),
+    );
+  }).length;
+  const greeneryNearOceanCount = [...ownGreenerySpaces].filter((spaceId) => {
+    const neighbors = boardMap.spaces[spaceId]?.neighbors ?? [];
+
+    return neighbors.some((neighbor) => oceanSpaces.has(neighbor));
+  }).length;
+  const boardTileCount = ownTileCounts.cities + ownTileCounts.greeneries;
+  const boardPoints = ownRows.reduce(
+    (sum, row) => sum + row.citiesPoints + row.greeneryPoints,
+    0,
+  );
+  const pointsPerBoardTile =
+    boardTileCount > 0 ? boardPoints / boardTileCount : null;
+  const bestLength = gameLengthProfile?.bestBucket ?? null;
+  const weakestLength = gameLengthProfile?.weakestBucket ?? null;
+  const bestSpeed = globalParameterTempoProfile?.bestMix ?? null;
+  const weakestSpeed = globalParameterTempoProfile?.weakestMix ?? null;
+  const bestPhase = phaseTempoProfile?.bestPhase ?? null;
+  const mostActivePhase = phaseTempoProfile?.mostActivePhase ?? null;
+  const mostPlayedStyle = styleBreakdownRows[0] ?? null;
+  const winningStyle =
+    [...styleBreakdownRows].sort(
+      (left, right) =>
+        right.wins - left.wins ||
+        right.winRate - left.winRate ||
+        right.gamesPlayed - left.gamesPlayed,
+    )[0] ?? null;
+  const openingActionCount =
+    opening.cardsPlayed +
+    opening.terraformingRaises +
+    opening.milestonesClaimed +
+    opening.loggedGains;
+
+  const strengths: string[] = [];
+  const improvements: string[] = [];
+  const addStrength = (sentence: string | null) => {
+    if (sentence && !strengths.includes(sentence)) {
+      strengths.push(sentence);
+    }
+  };
+  const addImprovement = (sentence: string | null) => {
+    if (sentence && !improvements.includes(sentence)) {
+      improvements.push(sentence);
+    }
+  };
+
+  const repeatableSourceClause = mostReliableSource
+    ? `${mostReliableSource.label} is the repeatable floor at ${formatExpansionNumber(mostReliableSource.average)} points with ${formatExpansionNumber(mostReliableSource.standardDeviation)} standard deviation`
+    : null;
+  const leadClause = leadPressure
+    ? `the explicit lead shows up in ${formatExpansionPercent(leadPressure.leadRate)} of finalized games with a ${formatExpansionNumber(leadPressure.averageScoreDifferential)} point average score edge`
+    : null;
+
+  addStrength(
+    leadClause || repeatableSourceClause
+      ? `The expanded profile backs the ${
+          leadPressure?.pressureLabel.toLowerCase() ?? 'core-plan'
+        } read: ${[leadClause, repeatableSourceClause].filter(Boolean).join(', and ')}.`
+      : null,
+  );
+
+  const tempoFitSignals = [
+    bestPhase && bestPhase.winRateWhenPeak !== null
+      ? `${bestPhase.label.toLowerCase()} peaks at ${formatExpansionPercent(bestPhase.winRateWhenPeak)} win rate`
+      : null,
+    bestSpeed
+      ? `${bestSpeed.label.toLowerCase()} games at ${formatExpansionPercent(bestSpeed.winRate)} win rate`
+      : null,
+    bestLength
+      ? `${bestLength.label.toLowerCase()} at ${formatExpansionPercent(bestLength.winRate)} win rate`
+      : null,
+  ].filter((signal): signal is string => Boolean(signal));
+
+  addStrength(
+    tempoFitSignals.length > 0
+      ? `The best expanded tempo lane is ${tempoFitSignals.join(', ')}; that is the game shape where the model says the plan travels best.`
+      : null,
+  );
+
+  addStrength(
+    scoreVsOpponentAverage !== null && scoreVsOpponentAverage > 0
+      ? `The opponent-adjusted profile is positive: you score ${formatExpansionNumber(scoreVsOpponentAverage)} points above the average opponent in shared games${
+          strongerTableWinRate !== null
+            ? ` and win ${formatExpansionPercent(strongerTableWinRate)} of the stronger-table sample`
+            : ''
+        }.`
+      : null,
+  );
+  addStrength(
+    boardTileCount > 0 && pointsPerBoardTile !== null
+      ? `Board control is producing real value: city and greenery tiles are returning ${formatExpansionNumber(pointsPerBoardTile)} final points per logged board tile.`
+      : null,
+  );
+  addStrength(
+    resourceRemovalProfile &&
+      resourceRemovalProfile.outgoing.totalAmount >
+        resourceRemovalProfile.incoming.totalAmount
+      ? `Interaction pressure is a strength: outgoing logged removal is ${formatExpansionNumber(resourceRemovalProfile.outgoing.totalAmount - resourceRemovalProfile.incoming.totalAmount)} stored-resource or production points ahead of incoming pressure.`
+      : null,
+  );
+  addStrength(
+    topTag && engine.cardsPlayed > 0
+      ? `The engine profile has a clear ${topTag[0]} tilt, with ${formatExpansionNumber(engine.cardsPlayed)} matched card plays and ${formatExpansionNumber(cardsPerGeneration)} cards per generation.`
+      : openingActionCount > 0
+        ? `The opening log is specific enough to profile: generations 1-3 show ${formatExpansionNumber(opening.cardsPlayed)} card plays, ${formatExpansionNumber(opening.terraformingRaises)} terraforming raises, and ${formatExpansionNumber(opening.milestonesClaimed)} milestones.`
+        : null,
+  );
+
+  addImprovement(
+    swingiestSource
+      ? `Stabilize ${swingiestSource.label}: it is the swingiest scoring source, averaging ${formatExpansionNumber(swingiestSource.average)} points with ${formatExpansionNumber(swingiestSource.standardDeviation)} standard deviation, so choose one dependable backup route before final scoring.`
+      : null,
+  );
+  addImprovement(
+    weakestSpeed && bestSpeed && weakestSpeed.code !== bestSpeed.code
+      ? `Treat ${weakestSpeed.label.toLowerCase()} games as the prep branch: the current fast-terraforming sample says that mix is the weakest, so decide earlier whether to chase TR, cards, or board points.`
+      : weakestLength && bestLength && weakestLength.bucket !== bestLength.bucket
+        ? `Treat ${weakestLength.label.toLowerCase()} as the prep branch: that length bucket is weakest so far, so decide earlier whether to speed up or bank endgame points.`
+        : null,
+  );
+  addImprovement(
+    leadPressure && leadPressure.averageShortfallWhenBehind !== null
+      ? `When the lead plan does not land, reserve a catch-up package worth about ${formatExpansionNumber(leadPressure.averageShortfallWhenBehind)} points, which is the average non-winning chase gap.`
+      : null,
+  );
+  addImprovement(
+    resourceRemovalProfile && resourceRemovalProfile.incoming.events > 0
+      ? `Add buffer turns against attacks; opponents have made you lose ${formatExpansionNumber(resourceRemovalProfile.incoming.resourceAmount)} stored resources and ${formatExpansionNumber(resourceRemovalProfile.incoming.productionAmount)} production, so avoid plans that fold to one removal hit.`
+      : null,
+  );
+  addImprovement(
+    ownTileCounts.cities > 0 && supportedCityCount < ownTileCounts.cities
+      ? `Improve board support by placing cities where more greeneries can score them later.`
+      : null,
+  );
+  addImprovement(
+    winningStyle || mostPlayedStyle
+      ? `Keep attaching corporation and prelude setup selections to profile games so the ${winningStyle?.styleName ?? mostPlayedStyle?.styleName} style read can become exact start-package advice instead of a proxy.`
+      : null,
+  );
+
+  const openingSummary =
+    openingActionCount <= 0
+      ? 'Imported logs do not yet show enough generation 1-3 linked-player actions to call a stable opening pattern.'
+      : opening.terraformingRaises >= opening.cardsPlayed
+        ? `Your opening profile leans toward immediate terraforming, with ${formatExpansionNumber(opening.terraformingRaises)} oxygen, heat, ocean, or greenery-linked raises in generations 1-3.`
+        : `Your opening profile leans toward card development, with ${formatExpansionNumber(opening.cardsPlayed)} logged card plays in generations 1-3 before the engine fully matures.`;
+  const engineSummary =
+    topTag && engine.cardsPlayed > 0
+      ? `Your engine shape is card-led with a ${topTag[0]} tilt: ${formatExpansionNumber(engine.cardsPlayed)} logged card plays and ${formatExpansionNumber(engine.cardPrintedVp)} printed VP visible from matched cards.`
+      : engine.cardsPlayed > 0
+        ? `Your engine shape is card-led in the logs, but matched card tags are still sparse; the model sees ${formatExpansionNumber(engine.cardsPlayed)} card plays.`
+        : 'Your engine shape is currently inferred more from final score sources than from matched card-play logs.';
+  const reliabilitySummary =
+    mostReliableSource && swingiestSource
+      ? `${mostReliableSource.label} is your safest scoring lane, while ${swingiestSource.label} is the one most likely to decide whether a game spikes or stalls.`
+      : 'More finalized score rows will let the model separate repeatable scoring lanes from one-off spikes.';
+  const comebackSummary =
+    leadPressure?.leadRate !== undefined
+      ? `The profile currently reads as ${leadPressure.pressureLabel.toLowerCase()}: you hold the explicit lead in ${formatExpansionPercent(leadPressure.leadRate)} of finalized games, with a ${formatExpansionNumber(leadPressure.averageShortfallWhenBehind)} average chase gap when behind.`
+      : 'Final placement and differential rows will show whether your wins come more from front-running or late recovery.';
+  const opponentSummary =
+    scoreVsOpponentAverage !== null
+      ? `Opponent-adjusted scoring is ${scoreVsOpponentAverage >= 0 ? 'positive' : 'negative'} at ${formatExpansionNumber(scoreVsOpponentAverage)} points versus the average opponent in shared games.`
+      : 'Shared-game opponent rows will show whether the profile is beating tougher tables or mostly converting softer ones.';
+  const boardSummary =
+    boardTileCount > 0
+      ? `Board control is worth ${formatExpansionNumber(pointsPerBoardTile)} final points per logged city/greenery tile, with ${formatExpansionNumber(supportedCityCount)} supported cities and ${formatExpansionNumber(greeneryNearOceanCount)} greeneries touching oceans.`
+      : 'Board control can already use final city and greenery points, but imported tile spaces are needed to judge adjacency quality.';
+  const hasResourceRemovalEvents =
+    (resourceRemovalProfile?.totalRemovalEvents ?? 0) > 0;
+  const interactionSummary = resourceRemovalProfile
+    ? hasResourceRemovalEvents
+      ? resourceRemovalProfile.outgoing.totalAmount >
+      resourceRemovalProfile.incoming.totalAmount
+        ? `Your interaction personality is proactive: outgoing logged removal exceeds incoming pressure by ${formatExpansionNumber(resourceRemovalProfile.outgoing.totalAmount - resourceRemovalProfile.incoming.totalAmount)} total, split between stored resources and production.`
+        : resourceRemovalProfile.incoming.totalAmount > 0
+          ? `Your interaction personality is currently more targeted than targeting: incoming logged removal exceeds outgoing pressure by ${formatExpansionNumber(resourceRemovalProfile.incoming.totalAmount - resourceRemovalProfile.outgoing.totalAmount)} total, split between stored resources and production.`
+          : 'Your interaction personality is low-contact in the imported logs so far.'
+      : 'Imported logs have not produced parsed resource or production removal events yet.'
+    : 'Imported logs will show how often you target others and how often they target you.';
+  const corpPreludeSummary =
+    winningStyle && mostPlayedStyle
+      ? `Exact corporation/prelude fit needs setup selections attached to the profile, so this read uses style outcomes: ${winningStyle.styleName} is the strongest winning shell and ${mostPlayedStyle.styleName} is the most common shell.`
+      : 'Exact corporation/prelude fit needs setup selections attached to the profile; until then this section uses style outcomes as the closest proxy.';
+  const speedSummary =
+    bestSpeed
+      ? `You fare best in ${bestSpeed.label.toLowerCase()} games and ${
+          weakestSpeed && weakestSpeed.code !== bestSpeed.code
+            ? `worst in ${weakestSpeed.label.toLowerCase()} games`
+            : 'need more contrasting fast terraforming mixes for a worst-case call'
+        }.`
+      : bestLength
+        ? `Generation length is the strongest current speed signal: ${bestLength.label.toLowerCase()} are best for you so far.`
+        : 'Generation length and fast-parameter logs will identify the game speeds where your style travels best.';
+  const coachSummary =
+    improvements.length > 0
+      ? `Highest ROI review target: ${improvements[0]}`
+      : 'Highest ROI review target: keep logging complete games so the model can turn trends into specific coaching prompts.';
+
+  return {
+    improvements: improvements.slice(0, 4),
+    sections: [
+      buildExpansionSection({
+        code: 'opening_profile',
+        confidenceLabel:
+          snapshotRows.length > 0
+            ? 'Uses per-generation imported-log snapshots for TR raises, card VP, greeneries, cities, and milestones.'
+            : 'Needs imported logs with generation markers for higher confidence.',
+        metrics: [
+          expansionMetric('Gen 1-3 Cards', formatExpansionNumber(opening.cardsPlayed)),
+          expansionMetric(
+            'Gen 1-3 Terraforming',
+            formatExpansionNumber(opening.terraformingRaises),
+          ),
+          expansionMetric(
+            'Gen 1-3 Milestones',
+            formatExpansionNumber(opening.milestonesClaimed),
+          ),
+          expansionMetric('Gen 1-3 Logged Gains', formatExpansionNumber(opening.loggedGains)),
+          expansionMetric('Snapshot Rows', formatExpansionNumber(snapshotRows.length)),
+        ],
+        summary: openingSummary,
+      }),
+      buildExpansionSection({
+        code: 'engine_shape',
+        confidenceLabel:
+          cardCatalogRows.length > 0
+            ? 'Uses imported card-play events matched to catalog tags and printed VP.'
+            : 'Uses card-play counts now; card tags improve once event cards match catalog rows.',
+        metrics: [
+          expansionMetric('Cards / Gen', formatExpansionNumber(cardsPerGeneration)),
+          expansionMetric('Logged Gains / Gen', formatExpansionNumber(gainsPerGeneration)),
+          expansionMetric('Top Card Tag', topTag ? topTag[0] : 'n/a'),
+          expansionMetric('Printed Card VP', formatExpansionNumber(engine.cardPrintedVp)),
+          expansionMetric('Snapshot Card VP', formatExpansionNumber(snapshotCardPrintedVp)),
+        ],
+        summary: engineSummary,
+      }),
+      buildExpansionSection({
+        code: 'scoring_reliability',
+        confidenceLabel:
+          'Uses final score-source rows and standard deviation across finalized games.',
+        metrics: [
+          expansionMetric(
+            'Most Reliable',
+            mostReliableSource?.label ?? 'n/a',
+            mostReliableSource
+              ? `${formatExpansionNumber(mostReliableSource.standardDeviation)} point standard deviation`
+              : undefined,
+          ),
+          expansionMetric(
+            'Swingiest',
+            swingiestSource?.label ?? 'n/a',
+            swingiestSource
+              ? `${formatExpansionNumber(swingiestSource.standardDeviation)} point standard deviation`
+              : undefined,
+          ),
+          expansionMetric('Total Score SD', formatExpansionNumber(totalScoreDeviation)),
+        ],
+        summary: reliabilitySummary,
+      }),
+      buildExpansionSection({
+        code: 'comeback_front_runner',
+        confidenceLabel:
+          'Uses final score differentials, phase peaks, milestone timing, award timing, and second-place award outcomes.',
+        metrics: [
+          expansionMetric(
+            'Lead Rate',
+            formatExpansionPercent(leadPressure?.leadRate),
+          ),
+          expansionMetric(
+            'Avg Chase Gap',
+            formatExpansionNumber(leadPressure?.averageShortfallWhenBehind),
+          ),
+          expansionMetric(
+            'Best Peak Phase',
+            bestPhase?.label ?? mostActivePhase?.label ?? 'n/a',
+          ),
+          expansionMetric(
+            'Avg Milestone Gen',
+            formatExpansionNumber(averageMilestoneGeneration),
+          ),
+          expansionMetric(
+            'Avg Award Fund Gen',
+            formatExpansionNumber(averageAwardFundingGeneration),
+          ),
+          expansionMetric('Second Awards', formatExpansionNumber(secondPlaceAwardOutcomes)),
+        ],
+        summary: comebackSummary,
+      }),
+      buildExpansionSection({
+        code: 'opponent_adjusted',
+        confidenceLabel:
+          'Uses shared finalized-game rows, comparing your score to the average opponent in each game.',
+        metrics: [
+          expansionMetric(
+            'Vs Opp Avg',
+            formatExpansionNumber(scoreVsOpponentAverage),
+          ),
+          expansionMetric(
+            'Strong-Table Win Rate',
+            formatExpansionPercent(strongerTableWinRate),
+          ),
+          expansionMetric('Best Matchup', bestHeadToHead?.opponentName ?? 'n/a'),
+          expansionMetric('Hardest Matchup', hardestHeadToHead?.opponentName ?? 'n/a'),
+        ],
+        summary: opponentSummary,
+      }),
+      buildExpansionSection({
+        code: 'board_control',
+        confidenceLabel:
+          tileEvents.some((event) => event.spaceId)
+            ? 'Uses imported tile spaces plus shared board adjacency.'
+            : 'Needs imported tile space IDs to judge city and greenery adjacency.',
+        metrics: [
+          expansionMetric('Greeneries', formatExpansionNumber(ownTileCounts.greeneries)),
+          expansionMetric('Cities', formatExpansionNumber(ownTileCounts.cities)),
+          expansionMetric('Oceans', formatExpansionNumber(ownTileCounts.oceans)),
+          expansionMetric('Board Pts / Tile', formatExpansionNumber(pointsPerBoardTile)),
+        ],
+        summary: boardSummary,
+      }),
+      buildExpansionSection({
+        code: 'interaction_personality',
+        confidenceLabel:
+          resourceRemovalProfile?.confidenceLabel ??
+          'Needs imported logs with resource/production changes.',
+        metrics: [
+          expansionMetric(
+            'Outgoing Stored',
+            formatExpansionNumber(resourceRemovalProfile?.outgoing.resourceAmount),
+          ),
+          expansionMetric(
+            'Outgoing Production',
+            formatExpansionNumber(resourceRemovalProfile?.outgoing.productionAmount),
+          ),
+          expansionMetric(
+            'Incoming Stored',
+            formatExpansionNumber(resourceRemovalProfile?.incoming.resourceAmount),
+          ),
+          expansionMetric(
+            'Incoming Production',
+            formatExpansionNumber(resourceRemovalProfile?.incoming.productionAmount),
+          ),
+        ],
+        summary: interactionSummary,
+      }),
+      buildExpansionSection({
+        code: 'corporation_prelude_fit',
+        confidenceLabel:
+          'Current profile read uses style outcomes as a proxy; exact fit needs corporation and prelude setup selections on profile games.',
+        metrics: [
+          expansionMetric('Winning Shell', winningStyle?.styleName ?? 'n/a'),
+          expansionMetric('Most Common Shell', mostPlayedStyle?.styleName ?? 'n/a'),
+          expansionMetric(
+            'Shell Win Rate',
+            formatExpansionPercent(winningStyle?.winRate),
+          ),
+        ],
+        summary: corpPreludeSummary,
+      }),
+      buildExpansionSection({
+        code: 'game_speed_matchup',
+        confidenceLabel:
+          'Combines generation-length buckets with fast oxygen, heat, ocean, and exact fast-parameter mixes.',
+        metrics: [
+          expansionMetric('Best Fast Mix', bestSpeed?.label ?? 'n/a'),
+          expansionMetric('Weakest Fast Mix', weakestSpeed?.label ?? 'n/a'),
+          expansionMetric('Best Length', bestLength?.label ?? 'n/a'),
+          expansionMetric('Weakest Length', weakestLength?.label ?? 'n/a'),
+        ],
+        summary: speedSummary,
+      }),
+      buildExpansionSection({
+        code: 'improvement_coach',
+        confidenceLabel:
+          'Condenses the expansion model into the next few review prompts.',
+        metrics: [
+          expansionMetric('Review 1', improvements[0] ?? 'Keep logging complete games.'),
+          expansionMetric('Review 2', improvements[1] ?? 'Compare one win and one loss.'),
+          expansionMetric('Review 3', improvements[2] ?? 'Watch for score-source gaps.'),
+        ],
+        summary: coachSummary,
+      }),
+    ],
+    strengths: strengths.slice(0, 3),
   };
 }
 
@@ -3360,7 +4608,7 @@ async function listProfileResourceLogData(
     const { data: events, error: eventsError } = await supabase
       .from('game_log_events')
       .select(
-        'card_id, event_order, event_type, game_log_import_id, generation_number, payload, resource_amount, resource_type, tile_type',
+        'board_space, card_id, event_order, event_type, game_log_import_id, generation_number, payload, raw_line, resource_amount, resource_type, tile_type',
       )
       .in(
         'game_log_import_id',
@@ -3378,6 +4626,61 @@ async function listProfileResourceLogData(
   } catch (error) {
     console.warn('[profile] Optional game-log resource lookup failed', error);
     return null;
+  }
+}
+
+async function listProfileGameLogAliases(
+  supabase: AnalyticsSupabaseClient,
+  groupIds: string[],
+): Promise<RawProfileGameLogAliasRow[]> {
+  const uniqueGroupIds = [...new Set(groupIds.filter(Boolean))];
+
+  if (uniqueGroupIds.length === 0) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('player_import_aliases')
+      .select('group_id, normalized_alias, player_id')
+      .in('group_id', uniqueGroupIds)
+      .eq('source_type', 'game_log');
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as RawProfileGameLogAliasRow[] | null) ?? [];
+  } catch (error) {
+    console.warn('[profile] Optional game-log alias lookup failed', error);
+    return [];
+  }
+}
+
+async function listProfileCardCatalogRows(
+  supabase: AnalyticsSupabaseClient,
+  cardIds: string[],
+): Promise<RawProfileCardCatalogRow[]> {
+  const uniqueCardIds = [...new Set(cardIds.filter(Boolean))];
+
+  if (uniqueCardIds.length === 0) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('cards')
+      .select('id, card_name, gameplay_tags, printed_victory_points')
+      .in('id', uniqueCardIds);
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as RawProfileCardCatalogRow[] | null) ?? [];
+  } catch (error) {
+    console.warn('[profile] Optional profile card catalog lookup failed', error);
+    return [];
   }
 }
 
@@ -3860,6 +5163,12 @@ export async function getProfileAnalytics(
     loadGlobalCardWinRates(),
     listProfileResourceLogData(supabase, sharedGameIds),
   ]);
+  const resourceAliasRows = resourceLogData
+    ? await listProfileGameLogAliases(
+        supabase,
+        resourceLookupRows.map((row) => row.groupId),
+      )
+    : [];
 
   const built = buildProfileAnalyticsFromRows({
     cardOutcomeRows,
@@ -3868,9 +5177,61 @@ export async function getProfileAnalytics(
     ownRows: normalizedOwnRows,
     sharedRows: normalizedSharedRows,
   });
+  const cardCatalogRows = resourceLogData
+    ? await listProfileCardCatalogRows(
+        supabase,
+        resourceLogData.events
+          .map((event) => event.card_id)
+          .filter((cardId): cardId is string => Boolean(cardId)),
+      )
+    : [];
+  const globalParameterTempoProfile = resourceLogData
+    ? buildProfileGlobalParameterTempoProfile({
+        aliases: resourceAliasRows,
+        events: resourceLogData.events,
+        imports: resourceLogData.imports,
+        linkedPlayerIds,
+        sharedRows: resourceLookupRows,
+      })
+    : null;
+  const phaseTempoProfile = resourceLogData
+    ? buildProfilePhaseTempoProfile({
+        aliases: resourceAliasRows,
+        events: resourceLogData.events,
+        imports: resourceLogData.imports,
+        linkedPlayerIds,
+        sharedRows: resourceLookupRows,
+      })
+    : null;
+  const resourceRemovalProfile = resourceLogData
+    ? buildProfileResourceRemovalProfile({
+        aliases: resourceAliasRows,
+        events: resourceLogData.events,
+        imports: resourceLogData.imports,
+        linkedPlayerIds,
+        sharedRows: resourceLookupRows,
+      })
+    : null;
+  const expansionProfile = buildProfileExpansionProfile({
+    aliases: resourceAliasRows,
+    cardCatalogRows,
+    events: resourceLogData?.events ?? [],
+    gameLengthProfile: built.gameLengthProfile,
+    globalParameterTempoProfile,
+    headToHeadRows: built.headToHeadRows,
+    imports: resourceLogData?.imports ?? [],
+    leadPressure: built.leadPressure,
+    linkedPlayerIds,
+    ownRows: normalizedOwnRows,
+    phaseTempoProfile,
+    resourceRemovalProfile,
+    sharedRows: resourceLookupRows,
+    styleBreakdownRows: built.styleBreakdownRows,
+  });
 
   return {
     ...built,
+    expansionProfile,
     keyCards: buildVictoryImpactKeyCards(
       cardOutcomeRows,
       globalCardWinRates.winRateByCardName,
@@ -3884,30 +5245,9 @@ export async function getProfileAnalytics(
       built.performance?.winRate ?? globalCardWinRates.baselineWinRate,
     ),
     cardOutcomes: aggregateProfileCardRows(cardOutcomeRows),
-    globalParameterTempoProfile: resourceLogData
-      ? buildProfileGlobalParameterTempoProfile({
-          events: resourceLogData.events,
-          imports: resourceLogData.imports,
-          linkedPlayerIds,
-          sharedRows: resourceLookupRows,
-        })
-      : null,
-    phaseTempoProfile: resourceLogData
-      ? buildProfilePhaseTempoProfile({
-          events: resourceLogData.events,
-          imports: resourceLogData.imports,
-          linkedPlayerIds,
-          sharedRows: resourceLookupRows,
-        })
-      : null,
-    resourceRemovalProfile: resourceLogData
-      ? buildProfileResourceRemovalProfile({
-          events: resourceLogData.events,
-          imports: resourceLogData.imports,
-          linkedPlayerIds,
-          sharedRows: resourceLookupRows,
-        })
-      : null,
+    globalParameterTempoProfile,
+    phaseTempoProfile,
+    resourceRemovalProfile,
   };
 }
 

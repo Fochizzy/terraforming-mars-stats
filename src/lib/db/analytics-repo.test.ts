@@ -203,6 +203,7 @@ describe('getProfileAnalytics', () => {
     await expect(getProfileAnalytics('user-1')).resolves.toEqual({
       cardOutcomes: [],
       coverage: null,
+      expansionProfile: null,
       gameLengthProfile: null,
       globalParameterTempoProfile: null,
       headToHeadRows: [],
@@ -597,7 +598,7 @@ describe('getProfileAnalytics', () => {
           event_type: 'card_played',
           game_log_import_id: 'import-1',
           generation_number: null,
-          payload: { actor: 'Friday Mars', cardName: 'Asteroid' },
+          payload: { actor: 'FM Alias', cardName: 'Asteroid' },
           resource_amount: null,
           resource_type: null,
           tile_type: null,
@@ -608,7 +609,7 @@ describe('getProfileAnalytics', () => {
           event_type: 'global_parameter_changed',
           game_log_import_id: 'import-1',
           generation_number: null,
-          payload: { actor: 'Friday Mars', parameterType: 'oxygen' },
+          payload: { actor: 'FM Alias', parameterType: 'oxygen' },
           resource_amount: null,
           resource_type: 'oxygen',
           tile_type: null,
@@ -619,7 +620,7 @@ describe('getProfileAnalytics', () => {
           event_type: 'global_parameter_changed',
           game_log_import_id: 'import-1',
           generation_number: null,
-          payload: { actor: 'Friday Mars', parameterType: 'ocean' },
+          payload: { actor: 'FM Alias', parameterType: 'ocean' },
           resource_amount: null,
           resource_type: 'ocean',
           tile_type: null,
@@ -641,20 +642,20 @@ describe('getProfileAnalytics', () => {
           event_type: 'tile_placed',
           game_log_import_id: 'import-1',
           generation_number: null,
-          payload: { actor: 'Friday Mars' },
+          payload: { actor: 'FM Alias' },
           resource_amount: null,
           resource_type: null,
           tile_type: 'Greenery',
         },
         {
-          card_id: 'card-asteroid',
+          card_id: null,
           event_order: 5,
           event_type: 'resource_changed',
           game_log_import_id: 'import-1',
           generation_number: null,
           payload: {
-            actor: 'Corey',
-            cardName: 'Asteroid',
+            actor: 'FM Alias',
+            affectedPlayer: 'Corey',
             operation: 'removed',
           },
           resource_amount: 3,
@@ -701,9 +702,12 @@ describe('getProfileAnalytics', () => {
           game_log_import_id: 'import-2',
           generation_number: null,
           payload: {
-            actor: 'Friday Mars',
+            actor: 'Corey',
             cardName: 'Hackers',
+            deltaKind: 'production',
             operation: 'removed',
+            sourcePlayerName: 'Corey',
+            targetPlayerName: 'FM Alias',
           },
           resource_amount: 4,
           resource_type: 'megacredit',
@@ -715,7 +719,7 @@ describe('getProfileAnalytics', () => {
           event_type: 'global_parameter_changed',
           game_log_import_id: 'import-2',
           generation_number: null,
-          payload: { actor: 'Friday Mars', parameterType: 'temperature' },
+          payload: { actor: 'FM Alias', parameterType: 'temperature' },
           resource_amount: null,
           resource_type: 'temperature',
           tile_type: null,
@@ -726,7 +730,33 @@ describe('getProfileAnalytics', () => {
           event_type: 'milestone_claimed',
           game_log_import_id: 'import-2',
           generation_number: null,
-          payload: { actor: 'Friday Mars' },
+          payload: { actor: 'FM Alias' },
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 6,
+          event_type: 'award_funded',
+          game_log_import_id: 'import-2',
+          generation_number: null,
+          payload: { actor: 'FM Alias', awardName: 'Landlord' },
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 7,
+          event_type: 'award_result',
+          game_log_import_id: 'import-2',
+          generation_number: null,
+          payload: {
+            actor: 'FM Alias',
+            awardName: 'Landlord',
+            placement: 'second',
+          },
           resource_amount: null,
           resource_type: null,
           tile_type: null,
@@ -735,6 +765,36 @@ describe('getProfileAnalytics', () => {
       error: null,
     });
     const eventsSelect = vi.fn().mockReturnValue({ in: eventsIn });
+    const aliasesEq = vi.fn().mockResolvedValue({
+      data: [
+        {
+          group_id: 'group-1',
+          normalized_alias: 'fm alias',
+          player_id: 'me-1',
+        },
+      ],
+      error: null,
+    });
+    const aliasesIn = vi.fn().mockReturnValue({ eq: aliasesEq });
+    const aliasesSelect = vi.fn().mockReturnValue({ in: aliasesIn });
+    const cardsIn = vi.fn().mockResolvedValue({
+      data: [
+        {
+          card_name: 'Asteroid',
+          gameplay_tags: ['space'],
+          id: 'card-asteroid',
+          printed_victory_points: 0,
+        },
+        {
+          card_name: 'Hackers',
+          gameplay_tags: ['interaction'],
+          id: 'card-hackers',
+          printed_victory_points: 1,
+        },
+      ],
+      error: null,
+    });
+    const cardsSelect = vi.fn().mockReturnValue({ in: cardsIn });
 
     const playersOrderByDisplayName = vi.fn().mockResolvedValue({
       data: [{ display_name: 'Friday Mars', group_id: 'group-1', id: 'me-1' }],
@@ -773,6 +833,14 @@ describe('getProfileAnalytics', () => {
           return { select: eventsSelect };
         }
 
+        if (table === 'player_import_aliases') {
+          return { select: aliasesSelect };
+        }
+
+        if (table === 'cards') {
+          return { select: cardsSelect };
+        }
+
         throw new Error(`Unexpected table ${table}`);
       }),
       schema: vi.fn((schemaName: string) => {
@@ -797,6 +865,41 @@ describe('getProfileAnalytics', () => {
     } as never);
 
     await expect(getProfileAnalytics('user-1')).resolves.toMatchObject({
+      expansionProfile: {
+        improvements: expect.arrayContaining([expect.stringMatching(/stabilize/i)]),
+        sections: expect.arrayContaining([
+          expect.objectContaining({
+            code: 'opening_profile',
+            metrics: expect.arrayContaining([
+              expect.objectContaining({ label: 'Snapshot Rows', value: '3' }),
+            ]),
+          }),
+          expect.objectContaining({ code: 'engine_shape' }),
+          expect.objectContaining({ code: 'scoring_reliability' }),
+          expect.objectContaining({
+            code: 'comeback_front_runner',
+            metrics: expect.arrayContaining([
+              expect.objectContaining({ label: 'Avg Award Fund Gen', value: '5' }),
+              expect.objectContaining({ label: 'Second Awards', value: '1' }),
+            ]),
+          }),
+          expect.objectContaining({ code: 'opponent_adjusted' }),
+          expect.objectContaining({ code: 'board_control' }),
+          expect.objectContaining({
+            code: 'interaction_personality',
+            metrics: expect.arrayContaining([
+              expect.objectContaining({ label: 'Outgoing Stored', value: '3' }),
+              expect.objectContaining({ label: 'Incoming Production', value: '4' }),
+            ]),
+          }),
+          expect.objectContaining({ code: 'corporation_prelude_fit' }),
+          expect.objectContaining({ code: 'game_speed_matchup' }),
+          expect.objectContaining({ code: 'improvement_coach' }),
+        ]),
+        strengths: expect.arrayContaining([
+          expect.stringMatching(/expanded profile backs/i),
+        ]),
+      },
       gameLengthProfile: {
         bestBucket: expect.objectContaining({
           averageGenerationCount: 8,
@@ -880,30 +983,32 @@ describe('getProfileAnalytics', () => {
       },
       phaseTempoProfile: {
         bestPhase: expect.objectContaining({
-          averagePlacementWhenPeak: 1.5,
-          averageScoreWhenPeak: 75,
-          gamesWithPeak: 2,
-          label: 'Mid Game',
-          phase: 'mid',
-          winRateWhenPeak: 0.5,
+          averagePlacementWhenPeak: 1,
+          averageScoreWhenPeak: 80,
+          gamesWithPeak: 1,
+          label: 'Early Game',
+          phase: 'early',
+          winRateWhenPeak: 1,
           winsWhenPeak: 1,
         }),
         importedGames: 2,
         mostActivePhase: expect.objectContaining({
-          actions: 3,
-          actionsPerImportedGame: 1.5,
+          actions: 5,
+          actionsPerImportedGame: 2.5,
           label: 'Mid Game',
           phase: 'mid',
         }),
         rows: [
           expect.objectContaining({
-            actions: 1,
+            actions: 3,
             cardsPlayed: 1,
+            gamesWithPeak: 1,
             phase: 'early',
           }),
           expect.objectContaining({
-            actions: 3,
-            gamesWithPeak: 2,
+            actions: 5,
+            awardsFunded: 1,
+            gamesWithPeak: 1,
             greeneriesPlaced: 1,
             milestonesClaimed: 1,
             phase: 'mid',
@@ -917,25 +1022,37 @@ describe('getProfileAnalytics', () => {
         ],
       },
       resourceRemovalProfile: {
+        explicitAttributionEvents: 2,
+        fallbackAttributionEvents: 0,
         importedGames: 2,
         incoming: {
           amountPerImportedGame: 2,
           events: 1,
+          productionAmount: 4,
+          productionEvents: 1,
+          resourceAmount: 0,
+          resourceEvents: 0,
           totalAmount: 4,
         },
         outgoing: {
           amountPerImportedGame: 1.5,
           events: 1,
+          productionAmount: 0,
+          productionEvents: 0,
+          resourceAmount: 3,
+          resourceEvents: 1,
           totalAmount: 3,
         },
         resourceRows: [
           {
             amount: 4,
+            deltaKind: 'production',
             events: 1,
             resourceType: 'megacredit',
           },
           {
             amount: 3,
+            deltaKind: 'resource',
             events: 1,
             resourceType: 'plant',
           },
@@ -1100,6 +1217,9 @@ describe('getProfileAnalytics', () => {
       error: null,
     });
     const eventsSelect = vi.fn().mockReturnValue({ in: eventsIn });
+    const aliasesEq = vi.fn().mockResolvedValue({ data: [], error: null });
+    const aliasesIn = vi.fn().mockReturnValue({ eq: aliasesEq });
+    const aliasesSelect = vi.fn().mockReturnValue({ in: aliasesIn });
 
     const playersOrderByDisplayName = vi.fn().mockResolvedValue({
       data: [{ display_name: 'Friday Mars', group_id: 'group-1', id: 'me-1' }],
@@ -1114,7 +1234,13 @@ describe('getProfileAnalytics', () => {
     const playersSelect = vi.fn().mockReturnValue({ eq: playersEqLinkedUserId });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      rpc: vi.fn(async () => ({ data: [], error: null })),
+      rpc: vi.fn(async (fn: string) => ({
+        data:
+          fn === 'get_selection_stats'
+            ? { baselineWinRate: 0, cards: [] }
+            : [],
+        error: null,
+      })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };
@@ -1126,6 +1252,10 @@ describe('getProfileAnalytics', () => {
 
         if (table === 'game_log_events') {
           return { select: eventsSelect };
+        }
+
+        if (table === 'player_import_aliases') {
+          return { select: aliasesSelect };
         }
 
         throw new Error(`Unexpected table ${table}`);
@@ -1176,7 +1306,7 @@ describe('getProfileAnalytics', () => {
           winRateWhenPeak: 1,
         }),
         mostActivePhase: expect.objectContaining({
-          actions: 1,
+          actions: 2,
           phase: 'early',
         }),
       },
