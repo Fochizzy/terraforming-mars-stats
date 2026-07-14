@@ -21,6 +21,7 @@
     "catalog:check-source": "tsx scripts/catalog/check-tfm-card-source.ts",
     "catalog:sync-tags": "tsx scripts/catalog/sync-card-tags.ts",
     "catalog:backfill-images": "tsx scripts/catalog/backfill-card-images.ts",
+    "catalog:render-card-images": "tsx scripts/catalog/render-tfm-card-images.ts",
     "catalog:upload-asset-images": "tsx scripts/catalog/upload-game-asset-images.ts"
   },
   "dependencies": {

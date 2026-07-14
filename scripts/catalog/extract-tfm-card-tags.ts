@@ -10,7 +10,7 @@
  */
 
 export const TFM_CARDS_BASE_URL = 'https://terraforming-mars.herokuapp.com';
-export const TFM_CARDS_PAGE_URL = `${TFM_CARDS_BASE_URL}/cards#bio~trbgpcseCmalt`;
+export const TFM_CARDS_PAGE_URL = `${TFM_CARDS_BASE_URL}/cards#~trbgpcseCmalt`;
 export const TFM_CARDS_SOURCE_URL = `${TFM_CARDS_BASE_URL}/main.js`;
 export const TFM_CARD_TAGS_SNAPSHOT_PATH =
   'scripts/catalog/source/tfm-card-tags.json';

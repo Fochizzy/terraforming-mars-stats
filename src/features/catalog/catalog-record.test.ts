@@ -26,7 +26,7 @@ describe('normalizeCardRecord', () => {
     expect(record.image_url).toBe('https://example.com/card.png');
     expect(record.printed_victory_points).toBe(1);
     expect(record.source_attribution).toBe(
-      'https://terraforming-mars.herokuapp.com/cards#bio~trbgpcseCmalt',
+      'https://terraforming-mars.herokuapp.com/cards#~trbgpcseCmalt',
     );
     expect(record.sync_metadata).toEqual({
       expansion: 'Promo',

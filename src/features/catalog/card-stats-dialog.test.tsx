@@ -28,7 +28,7 @@ describe('isRenderableCardImage', () => {
   it('rejects the legacy Heroku search page, the /file.svg placeholder, and empties', () => {
     expect(
       isRenderableCardImage(
-        'https://terraforming-mars.herokuapp.com/cards#bio~trbgpcseCmalt&search=Acidizing',
+        'https://terraforming-mars.herokuapp.com/cards#~trbgpcseCmalt&search=Acidizing',
       ),
     ).toBe(false);
     expect(isRenderableCardImage('/file.svg')).toBe(false);
@@ -77,7 +77,7 @@ describe('CardStatsButton dialog image', () => {
         card={{
           cardName: 'Acidizing',
           fullImageUrl:
-            'https://terraforming-mars.herokuapp.com/cards#bio~trbgpcseCmalt&search=Acidizing',
+            'https://terraforming-mars.herokuapp.com/cards#~trbgpcseCmalt&search=Acidizing',
           id: 'card-2',
           thumbnailUrl: '/file.svg',
         }}

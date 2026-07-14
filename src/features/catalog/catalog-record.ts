@@ -48,7 +48,7 @@ export function normalizeCardRecord(input: {
     promo_set_id: input.promoSetId ?? null,
     source_attribution:
       input.sourceAttribution ??
-      'https://terraforming-mars.herokuapp.com/cards#bio~trbgpcseCmalt',
+      'https://terraforming-mars.herokuapp.com/cards#~trbgpcseCmalt',
     sync_metadata: {
       expansion: input.expansion,
       name: input.name,

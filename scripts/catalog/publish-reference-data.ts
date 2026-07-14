@@ -1,5 +1,7 @@
+import { existsSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import type { NormalizedCardRecord } from '../../src/features/catalog/catalog-record';
+import { getPublicEnv } from '../../src/lib/env';
 import {
   type CatalogCorporationSeed,
   type CatalogPreludeSeed,
@@ -11,6 +13,23 @@ import { referenceDimensions, type PromoSetSeed } from './reference-data';
 type MinimalSupabaseClient = {
   from: (table: string) => any;
 };
+
+type ExistingCardImageRow = Pick<
+  NormalizedCardRecord,
+  'full_image_path' | 'source_card_id' | 'thumbnail_path'
+>;
+
+const SUPABASE_PAGE_SIZE = 1000;
+
+for (const file of ['.env', '.env.local']) {
+  if (existsSync(file)) {
+    try {
+      process.loadEnvFile(file);
+    } catch {
+      // Env files are optional; shell env can still provide the secret key.
+    }
+  }
+}
 
 function readPromoSetSlug(card: NormalizedCardRecord) {
   const maybeSlug = card.sync_metadata?.promoSetSlug;
@@ -38,6 +57,39 @@ async function fetchIdMap(
   return new Map(
     (data as Array<Record<string, string>>).map((row) => [row[keyColumn], row.id]),
   );
+}
+
+function isRenderableStoredImage(url: string | null | undefined) {
+  if (!url) {
+    return false;
+  }
+  if (url.includes('herokuapp.com')) {
+    return false;
+  }
+  return !url.endsWith('/file.svg');
+}
+
+async function fetchExistingCardImageMap(supabase: MinimalSupabaseClient) {
+  const rows: ExistingCardImageRow[] = [];
+
+  for (let from = 0; ; from += SUPABASE_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('cards')
+      .select('source_card_id, full_image_path, thumbnail_path')
+      .order('source_card_id', { ascending: true })
+      .range(from, from + SUPABASE_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    rows.push(...(((data ?? []) as ExistingCardImageRow[])));
+    if (!data || data.length < SUPABASE_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return new Map(rows.map((row) => [row.source_card_id, row]));
 }
 
 function mapCorporations(
@@ -73,13 +125,26 @@ function mapPreludes(
 function mapCards(
   cards: NormalizedCardRecord[],
   promoSetIdsBySlug: Map<string, string>,
+  existingCardImagesBySourceId: Map<string, ExistingCardImageRow>,
 ) {
   return cards.map((card) => ({
     ...card,
+    full_image_path: isRenderableStoredImage(
+      existingCardImagesBySourceId.get(card.source_card_id)?.full_image_path,
+    )
+      ? (existingCardImagesBySourceId.get(card.source_card_id)
+          ?.full_image_path ?? card.full_image_path)
+      : card.full_image_path,
     promo_set_id: readPromoSetSlug(card)
       ? promoSetIdsBySlug.get(readPromoSetSlug(card) as string) ?? null
       : null,
     required_expansion_codes: readRequiredExpansionCodes(card),
+    thumbnail_path: isRenderableStoredImage(
+      existingCardImagesBySourceId.get(card.source_card_id)?.thumbnail_path,
+    )
+      ? (existingCardImagesBySourceId.get(card.source_card_id)
+          ?.thumbnail_path ?? card.thumbnail_path)
+      : card.thumbnail_path,
   }));
 }
 
@@ -178,11 +243,15 @@ export async function publishReferenceData(input: {
     mapIdsByCode,
     milestoneIdsByCode,
     awardIdsByCode,
+    existingCardImagesBySourceId,
   ] = await Promise.all([
     fetchIdMap(supabase, 'promo_sets', 'slug'),
     fetchIdMap(supabase, 'maps', 'code'),
     fetchIdMap(supabase, 'milestones', 'code'),
     fetchIdMap(supabase, 'awards', 'code'),
+    cards.length > 0
+      ? fetchExistingCardImageMap(supabase)
+      : Promise.resolve(new Map<string, ExistingCardImageRow>()),
   ]);
 
   const relationUpserts: Array<Promise<{ error: Error | null }>> = [];
@@ -205,9 +274,14 @@ export async function publishReferenceData(input: {
 
   if (cards.length > 0) {
     relationUpserts.push(
-      supabase.from('cards').upsert(mapCards(cards, promoSetIdsBySlug), {
-        onConflict: 'source_card_id',
-      }),
+      supabase
+        .from('cards')
+        .upsert(
+          mapCards(cards, promoSetIdsBySlug, existingCardImagesBySourceId),
+          {
+            onConflict: 'source_card_id',
+          },
+        ),
     );
   }
 
@@ -246,7 +320,9 @@ export async function publishReferenceData(input: {
 }
 
 async function main() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    getPublicEnv().NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {

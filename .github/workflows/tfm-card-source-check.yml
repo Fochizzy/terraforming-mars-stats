@@ -1,13 +1,23 @@
-name: Terraforming Mars card source check
+name: Terraforming Mars card catalog refresh
 
 on:
   schedule:
     - cron: '17 10 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: tfm-card-catalog-refresh
+  cancel-in-progress: false
+
 jobs:
-  check-card-source:
+  refresh-card-catalog:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://qjtwgrjjwnqafbvkkfex.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -21,5 +31,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check Terraforming Mars card source
-        run: npm run catalog:check-source
+      - name: Verify Supabase write secret
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Set SUPABASE_SERVICE_ROLE_KEY as a GitHub Actions repository secret."
+            exit 1
+          fi
+
+      - name: Show source drift before refresh
+        run: npm run catalog:check-source || true
+
+      - name: Refresh Terraforming Mars source snapshot
+        run: npm run catalog:fetch
+
+      - name: Publish catalog reference data to Supabase
+        run: npm run catalog:publish
+
+      - name: Install Chromium for card rendering
+        run: npx playwright install --with-deps chromium
+
+      - name: Render and upload source card images
+        run: npm run catalog:render-card-images -- --force
+
+      - name: Verify Supabase image coverage
+        run: npm run catalog:render-card-images -- --dry-run
