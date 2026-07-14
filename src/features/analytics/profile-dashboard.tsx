@@ -2,17 +2,22 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
-import type {
-  CoverageRow,
-  LeaderboardRow,
-  ProfileCardStat,
-  ProfileHeadToHeadRow,
-  ProfileStyleBreakdownRow,
-  ProfileStyleInsight,
-  ScoreSourceAverages,
+import {
+  buildScoreSourceEntries,
+  type CoverageRow,
+  type LeaderboardRow,
+  type ProfileCardStat,
+  type ProfileHeadToHeadRow,
+  type ProfileStyleBreakdownRow,
+  type ProfileStyleInsight,
+  type ScoreSourceAverages,
 } from '@/lib/db/analytics-repo';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
+import {
+  StyleEffectivenessPanel,
+  type StyleEffectivenessScopeInput,
+} from '@/features/insights/style-effectiveness';
 import { formatAverage, formatPercent } from './performance-delta';
 import { ProfileCardPanels } from './profile-card-panels';
 import { ScoreSourceList } from './score-source-list';
@@ -110,6 +115,7 @@ type ProfileDashboardProps = {
   coverage?: CoverageRow | null;
   headToHeadRows?: ProfileHeadToHeadRow[];
   keyCards?: ProfileCardStat[];
+  lossCards?: ProfileCardStat[];
   performance?: LeaderboardRow | null;
   playerName: string | null;
   scoreAverages?: ScoreSourceAverages | null;
@@ -309,6 +315,7 @@ export function ProfileDashboard({
   headToHeadRows = [],
   keyCards = [],
   linkHref,
+  lossCards = [],
   performance = null,
   playerName,
   scoreAverages = null,
@@ -340,6 +347,30 @@ export function ProfileDashboard({
     scoreAverages,
     styleBreakdownRows,
   });
+  const styleEffectivenessScopes: StyleEffectivenessScopeInput[] =
+    styleBreakdownRows.length > 0
+      ? [
+          {
+            key: 'profile',
+            label: playerName,
+            scoreEntries: scoreAverages
+              ? buildScoreSourceEntries(scoreAverages)
+              : [],
+            styleRows: styleBreakdownRows.map((row) => ({
+              averagePlacement: row.averagePlacement,
+              averageScore: row.averageScore,
+              gamesPlayed: row.gamesPlayed,
+              styleCode: row.styleCode,
+              winRate: row.winRate,
+              wins: row.wins,
+            })),
+            subject: {
+              possessive: `${playerName}'s`,
+              subject: playerName,
+            },
+          },
+        ]
+      : [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -443,8 +474,15 @@ export function ProfileDashboard({
       <ProfileCardPanels
         cardOutcomes={cardOutcomes}
         keyCards={keyCards}
+        lossCards={lossCards}
         playerName={playerName}
       />
+      {styleEffectivenessScopes.length > 0 ? (
+        <StyleEffectivenessPanel
+          scopes={styleEffectivenessScopes}
+          title="My Style Effectiveness"
+        />
+      ) : null}
       <ChartFrame title="Styles Breakdown">
         <p className="tm-muted-copy mb-3 text-sm">
           How each{' '}

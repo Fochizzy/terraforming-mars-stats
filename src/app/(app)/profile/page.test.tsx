@@ -112,6 +112,7 @@ describe('ProfilePage', () => {
       coverage: null,
       headToHeadRows: [],
       keyCards: [],
+      lossCards: [],
       performance: {
         averageLossGap: 2,
         averagePlacement: 1.5,
@@ -165,6 +166,7 @@ describe('ProfilePage', () => {
       coverage: null,
       headToHeadRows: [],
       keyCards: [],
+      lossCards: [],
       performance: {
         averageLossGap: 2,
         averagePlacement: 1.5,

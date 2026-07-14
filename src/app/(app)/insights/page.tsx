@@ -4,6 +4,12 @@ import { requireGroupContextOrRedirect } from '@/features/groups/require-group-c
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
 import { SelectionStatsSection } from '@/features/insights/selection-stats-section';
 import {
+  buildStyleScope,
+  FIELD_SUBJECT,
+  GROUP_SUBJECT,
+  SELF_SUBJECT,
+} from '@/features/insights/style-effectiveness-scopes';
+import {
   listMapAwardGroups,
   type MapAwardGroup,
 } from '@/lib/db/reference-repo';
@@ -17,6 +23,8 @@ import {
   getCrossGroupFocusData,
   getGroupAnalytics,
   getOverallAnalytics,
+  getStyleEffectiveness,
+  type StyleEffectivenessData,
 } from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { getExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
@@ -89,6 +97,11 @@ const emptyHeadToHeadStats: HeadToHeadStats = {
 
 const emptyMergerImpactStats: MergerImpactStat[] = [];
 
+const emptyStyleEffectiveness: StyleEffectivenessData = {
+  scoreAverages: null,
+  styleRows: [],
+};
+
 async function loadInsightsDataOrDefault<T>(
   label: string,
   loadData: Promise<T>,
@@ -114,6 +127,9 @@ export default async function InsightsPage() {
     headToHeadStats,
     mergerImpactStats,
     mapAwardGroups,
+    groupStyleEffectiveness,
+    globalStyleEffectiveness,
+    personalStyleEffectiveness,
   ] = await Promise.all([
     loadInsightsDataOrDefault(
       'group analytics',
@@ -160,7 +176,43 @@ export default async function InsightsPage() {
       listMapAwardGroups(),
       [] as MapAwardGroup[],
     ),
+    loadInsightsDataOrDefault(
+      'group style effectiveness',
+      getStyleEffectiveness('group', context.groupId),
+      emptyStyleEffectiveness,
+    ),
+    loadInsightsDataOrDefault(
+      'global style effectiveness',
+      getStyleEffectiveness('global'),
+      emptyStyleEffectiveness,
+    ),
+    loadInsightsDataOrDefault(
+      'personal style effectiveness',
+      getStyleEffectiveness('personal'),
+      emptyStyleEffectiveness,
+    ),
   ]);
+
+  const styleEffectivenessScopes = [
+    buildStyleScope({
+      data: groupStyleEffectiveness,
+      key: 'group',
+      label: 'This group',
+      subject: GROUP_SUBJECT,
+    }),
+    buildStyleScope({
+      data: personalStyleEffectiveness,
+      key: 'personal',
+      label: 'Your games',
+      subject: SELF_SUBJECT,
+    }),
+    buildStyleScope({
+      data: globalStyleEffectiveness,
+      key: 'global',
+      label: 'Global',
+      subject: FIELD_SUBJECT,
+    }),
+  ];
 
   const selectionDialogData = await loadInsightsDataOrDefault<
     SelectionDialogData | undefined
@@ -184,6 +236,7 @@ export default async function InsightsPage() {
         overallAnalytics={overallAnalytics.analytics}
         overallExtended={overallAnalytics.extended}
         selectionDialogData={selectionDialogData}
+        styleEffectivenessScopes={styleEffectivenessScopes}
       >
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/insights" />
       </InsightsDashboard>

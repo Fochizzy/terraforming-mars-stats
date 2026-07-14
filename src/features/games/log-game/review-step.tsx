@@ -26,7 +26,7 @@ export function ReviewStep({
 
   return (
     <section className="tm-panel flex flex-col gap-4">
-      <StepHeading step="06" title="Review and Finalize" />
+      <StepHeading step="05" title="Review and Finalize" />
       <p className="tm-body-copy text-sm">
         Show validation warnings, optional-data coverage, and finalize or save
         the draft.

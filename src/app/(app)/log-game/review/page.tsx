@@ -25,13 +25,11 @@ import { resolveLogGamePlayerReferences } from '@/lib/db/log-game-player-resolut
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
 import {
   getLatestCatalogSnapshotId,
-  listCards,
   listCorporations,
   listMapAwards,
   listMapMilestones,
   listMaps,
   listPreludes,
-  listStyles,
 } from '@/lib/db/reference-repo';
 import { serializeUnknownError } from '@/lib/errors/describe-unknown-error';
 import {
@@ -206,8 +204,6 @@ export default async function LogGameReviewPage({
     preludeOptions,
     milestoneOptions,
     awardOptions,
-    styleOptions,
-    cardOptions,
     latestCatalogSnapshotId,
   ] = await Promise.all([
     getSavedGameForm({
@@ -221,8 +217,6 @@ export default async function LogGameReviewPage({
     listPreludes(),
     listMapMilestones(),
     listMapAwards(),
-    listStyles(),
-    listCards(),
     getLatestCatalogSnapshotId(),
   ]);
   const defaultInitialValues: LogGameDraftInput = {
@@ -360,7 +354,6 @@ export default async function LogGameReviewPage({
       ) : null}
       <LogGameWizard
         awardOptions={awardOptions}
-        cardOptions={cardOptions}
         corporationOptions={corporationOptions}
         initialStatus={savedGame?.status ?? 'draft'}
         initialValues={initialValues}
@@ -375,7 +368,6 @@ export default async function LogGameReviewPage({
           linked_username: player.linkedUsername,
         }))}
         preludeOptions={preludeOptions}
-        styleOptions={styleOptions}
       />
     </AppShell>
   );

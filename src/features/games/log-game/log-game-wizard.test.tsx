@@ -36,7 +36,6 @@ describe('LogGameWizard', () => {
     render(
       <LogGameWizard
         awardOptions={[]}
-        cardOptions={[]}
         corporationOptions={[]}
         initialStatus="finalized"
         initialValues={{
@@ -80,7 +79,6 @@ describe('LogGameWizard', () => {
         onSaveDraft={onSaveDraft}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        styleOptions={[]}
       />,
     );
 
@@ -109,7 +107,6 @@ describe('LogGameWizard', () => {
     render(
       <LogGameWizard
         awardOptions={[]}
-        cardOptions={[]}
         corporationOptions={[]}
         initialValues={{
           awardClaims: {},
@@ -152,7 +149,6 @@ describe('LogGameWizard', () => {
         onSaveDraft={vi.fn()}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        styleOptions={[]}
       />,
     );
 
@@ -175,7 +171,6 @@ describe('LogGameWizard', () => {
     render(
       <LogGameWizard
         awardOptions={[]}
-        cardOptions={[]}
         corporationOptions={[]}
         initialValues={{
           awardClaims: {},
@@ -218,7 +213,6 @@ describe('LogGameWizard', () => {
         onSaveDraft={vi.fn()}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        styleOptions={[]}
       />,
     );
 
@@ -251,7 +245,6 @@ describe('LogGameWizard', () => {
     render(
       <LogGameWizard
         awardOptions={[]}
-        cardOptions={[]}
         corporationOptions={[]}
         initialValues={{
           awardClaims: {},
@@ -284,7 +277,6 @@ describe('LogGameWizard', () => {
         })}
         playerOptions={playerOptions}
         preludeOptions={[]}
-        styleOptions={[]}
       />,
     );
 
@@ -313,7 +305,6 @@ describe('LogGameWizard', () => {
     render(
       <LogGameWizard
         awardOptions={[]}
-        cardOptions={[]}
         corporationOptions={[]}
         initialValues={{
           awardClaims: {},
@@ -346,7 +337,6 @@ describe('LogGameWizard', () => {
         })}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        styleOptions={[]}
       />,
     );
 
@@ -361,7 +351,7 @@ describe('LogGameWizard', () => {
     expect(screen.getAllByRole('button', { name: /remove/i })).toHaveLength(1);
   });
 
-  it('submits a full draft payload with player, score, milestone, award, and style data', async () => {
+  it('submits a full draft payload with player, score, milestone, and award data', async () => {
     const user = userEvent.setup();
     const onFinalizeGame = vi.fn().mockResolvedValue({
       status: 'success' as const,
@@ -378,16 +368,6 @@ describe('LogGameWizard', () => {
       <LogGameWizard
         awardOptions={[
           { awardId: 'award1', awardName: 'Landlord', mapId: 'tharsis' },
-        ]}
-        cardOptions={[
-          {
-            cardName: 'Io Mining Industries',
-            cardNumber: '042',
-            expansionCode: 'base',
-            id: 'card1',
-            promoSetSlug: null,
-            requiredExpansionCodes: ['base'],
-          },
         ]}
         corporationOptions={[
           {
@@ -438,10 +418,6 @@ describe('LogGameWizard', () => {
             requiredExpansionCodes: ['prelude'],
           },
         ]}
-        styleOptions={[
-          { code: 'engine_builder', id: 'style1', name: 'Engine Builder' },
-          { code: 'card_combo', id: 'style2', name: 'Card Combo' },
-        ]}
       />,
     );
 
@@ -473,9 +449,6 @@ describe('LogGameWizard', () => {
     await user.type(screen.getByLabelText(/friday mars total points/i), '55');
     await user.clear(screen.getByLabelText(/friday mars final megacredits/i));
     await user.type(screen.getByLabelText(/friday mars final megacredits/i), '8');
-    await user.selectOptions(screen.getByLabelText(/friday mars declared style/i), 'engine_builder');
-    await user.selectOptions(screen.getByLabelText(/friday mars style modifier 1/i), 'card_combo');
-    await user.selectOptions(screen.getByLabelText(/friday mars key card 1/i), 'card1');
     await user.clear(screen.getByLabelText(/generation count/i));
     await user.type(screen.getByLabelText(/generation count/i), '11');
     await user.click(screen.getByRole('button', { name: /save draft setup/i }));
@@ -526,13 +499,7 @@ describe('LogGameWizard', () => {
             preludeIds: ['prelude1'],
           },
         },
-        playerStyles: {
-          p1: {
-            keyCardIds: ['card1'],
-            modifierStyleCodes: ['card_combo'],
-            primaryStyleCode: 'engine_builder',
-          },
-        },
+        playerStyles: {},
         expansionCodes: ['base', 'prelude', 'colonies'],
         promoSetSlugs: ['2022-seasonal-promos'],
         selectedPlayerIds: ['p1', 'p2'],
@@ -553,7 +520,6 @@ describe('LogGameWizard', () => {
     render(
       <LogGameWizard
         awardOptions={[]}
-        cardOptions={[]}
         corporationOptions={[
           {
             expansionCode: 'base',
@@ -593,7 +559,6 @@ describe('LogGameWizard', () => {
         onSaveDraft={onSaveDraft}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        styleOptions={[]}
       />,
     );
 
@@ -617,7 +582,7 @@ describe('LogGameWizard', () => {
     );
   });
 
-  it('offers every corporation, prelude, and key card regardless of the stored expansion and promo selections', () => {
+  it('offers every corporation and prelude regardless of the stored expansion and promo selections', () => {
     const renderWizardWithSelections = (selections: {
       expansionCodes: string[];
       promoSetSlugs: string[];
@@ -625,24 +590,6 @@ describe('LogGameWizard', () => {
       render(
         <LogGameWizard
           awardOptions={[]}
-          cardOptions={[
-            {
-              cardName: 'Colonizer Training Camp',
-              cardNumber: '001',
-              expansionCode: 'base',
-              id: 'card-base',
-              promoSetSlug: null,
-              requiredExpansionCodes: ['base'],
-            },
-            {
-              cardName: 'Political Alliance',
-              cardNumber: 'X09',
-              expansionCode: 'promo',
-              id: 'card-promo',
-              promoSetSlug: '2019-turmoil-promos',
-              requiredExpansionCodes: ['turmoil'],
-            },
-          ]}
           corporationOptions={[
             {
               expansionCode: 'base',
@@ -712,7 +659,6 @@ describe('LogGameWizard', () => {
               requiredExpansionCodes: ['prelude'],
             },
           ]}
-          styleOptions={[{ code: 'balanced', id: 'style1', name: 'Balanced' }]}
         />,
       );
 
@@ -730,12 +676,6 @@ describe('LogGameWizard', () => {
     // mid-game slots.
     expect(screen.getAllByRole('option', { name: /allied bank/i })).toHaveLength(11);
     expect(screen.getAllByRole('option', { name: /corporate archives/i })).toHaveLength(11);
-    expect(
-      screen.getAllByRole('option', { name: /001 - colonizer training camp/i }),
-    ).toHaveLength(3);
-    expect(
-      screen.getAllByRole('option', { name: /x09 - political alliance/i }),
-    ).toHaveLength(3);
   });
 
   it('consumes a stored import-review jump target for the matching game and highlights the score field that still needs manual entry', async () => {
@@ -755,7 +695,6 @@ describe('LogGameWizard', () => {
     render(
       <LogGameWizard
         awardOptions={[]}
-        cardOptions={[]}
         corporationOptions={[]}
         initialValues={{
           awardClaims: {},
@@ -788,7 +727,6 @@ describe('LogGameWizard', () => {
         })}
         playerOptions={[{ id: 'p1', display_name: 'Friday Mars' }]}
         preludeOptions={[]}
-        styleOptions={[]}
       />,
     );
 
@@ -830,7 +768,6 @@ describe('LogGameWizard', () => {
     render(
       <LogGameWizard
         awardOptions={[]}
-        cardOptions={[]}
         corporationOptions={[]}
         initialValues={{
           awardClaims: {},
@@ -863,7 +800,6 @@ describe('LogGameWizard', () => {
         })}
         playerOptions={[{ id: 'player-roster', display_name: 'Roster Name' }]}
         preludeOptions={[]}
-        styleOptions={[]}
       />,
     );
 

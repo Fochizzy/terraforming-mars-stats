@@ -4,6 +4,7 @@ import {
   getCrossGroupFocusData,
   getProfileAnalytics,
   listGroupInteractions,
+  rewriteLineupLabels,
 } from './analytics-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -73,6 +74,7 @@ describe('getProfileAnalytics', () => {
       coverage: null,
       headToHeadRows: [],
       keyCards: [],
+      lossCards: [],
       performance: null,
       playerId: 'player-1',
       playerName: 'Friday Mars',
@@ -737,5 +739,40 @@ describe('getCrossGroupFocusData', () => {
     } as never);
 
     await expect(getCrossGroupFocusData('user-1', 'group-1')).resolves.toEqual([]);
+  });
+});
+
+describe('rewriteLineupLabels', () => {
+  const makeRow = (lineupKey: string | null, lineupLabel: string | null) =>
+    ({
+      lineup_key: lineupKey,
+      lineup_label: lineupLabel,
+    }) as never as Parameters<typeof rewriteLineupLabels>[0][number];
+
+  it('rebuilds the label from co-player ids, not by splitting the old label', () => {
+    // lineup_key is ordered by id; lineup_label by display name — so the label
+    // must be rebuilt from the ids, never zipped positionally against the label.
+    const rows = [makeRow('id-b,id-a', 'Corey Jansen, James Hodnett')];
+    const labels: Record<string, string> = { 'id-a': 'corey', 'id-b': 'jimmy' };
+
+    rewriteLineupLabels(rows, (id) => labels[id]);
+
+    expect(rows[0].lineup_label).toBe('corey, jimmy');
+  });
+
+  it('leaves the label untouched when a co-player can not be resolved', () => {
+    const rows = [makeRow('id-a,id-unknown', 'Corey Jansen, Someone Else')];
+
+    rewriteLineupLabels(rows, (id) => (id === 'id-a' ? 'corey' : undefined));
+
+    expect(rows[0].lineup_label).toBe('Corey Jansen, Someone Else');
+  });
+
+  it('skips solo rows with no lineup key', () => {
+    const rows = [makeRow(null, 'Solo setup')];
+
+    rewriteLineupLabels(rows, () => 'corey');
+
+    expect(rows[0].lineup_label).toBe('Solo setup');
   });
 });

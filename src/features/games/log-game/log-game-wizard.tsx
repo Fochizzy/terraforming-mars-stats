@@ -13,13 +13,11 @@ import {
   type ImportReviewJumpTarget,
 } from '@/lib/imports/import-review-jump-state';
 import type {
-  CardOption,
   CorporationOption,
   MapAwardOption,
   MapMilestoneOption,
   MapOption,
   PreludeOption,
-  StyleOption,
 } from '@/lib/db/reference-repo';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
 import { MilestonesStep } from './milestones-step';
@@ -28,7 +26,6 @@ import { ReviewStep } from './review-step';
 import { ScoresStep } from './scores-step';
 import { sanitizePlayerLinkedState } from './sanitize-player-linked-state';
 import { SetupStep } from './setup-step';
-import { StyleStep } from './style-step';
 import type { LogGamePlayerOption } from './player-picker';
 
 type GameSubmitResult = {
@@ -45,7 +42,6 @@ const EMPTY_PLAYER_IDS: string[] = [];
 
 type LogGameWizardProps = {
   awardOptions: MapAwardOption[];
-  cardOptions: CardOption[];
   corporationOptions: CorporationOption[];
   initialStatus?: 'draft' | 'finalized';
   initialValues: LogGameDraftInput;
@@ -55,12 +51,10 @@ type LogGameWizardProps = {
   onSaveDraft: (values: LogGameDraftInput) => Promise<GameSubmitResult>;
   playerOptions: LogGamePlayerOption[];
   preludeOptions: PreludeOption[];
-  styleOptions: StyleOption[];
 };
 
 export function LogGameWizard({
   awardOptions,
-  cardOptions,
   corporationOptions,
   initialStatus = 'draft',
   initialValues,
@@ -70,7 +64,6 @@ export function LogGameWizard({
   onSaveDraft,
   playerOptions,
   preludeOptions,
-  styleOptions,
 }: LogGameWizardProps) {
   const router = useRouter();
   const form = useForm<LogGameDraftInput>({
@@ -258,12 +251,6 @@ export function LogGameWizard({
         manualReviewHighlight={manualReviewHighlight}
         register={form.register}
         selectedPlayers={selectedPlayers}
-      />
-      <StyleStep
-        cardOptions={cardOptions}
-        register={form.register}
-        selectedPlayers={selectedPlayers}
-        styleOptions={styleOptions}
       />
       <ReviewStep
         playerScores={playerScores}

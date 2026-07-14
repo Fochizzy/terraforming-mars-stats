@@ -9,10 +9,20 @@ import {
   GlobalLossCardsSection,
 } from '@/features/insights/global-loss-cards-section';
 import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
+import { StyleEffectivenessPanel } from '@/features/insights/style-effectiveness';
+import {
+  buildStyleScope,
+  FIELD_SUBJECT,
+  SELF_SUBJECT,
+} from '@/features/insights/style-effectiveness-scopes';
 import {
   buildWinningCardData,
   WinningCardsSection,
 } from '@/features/insights/winning-cards-section';
+import {
+  getStyleEffectiveness,
+  type StyleEffectivenessData,
+} from '@/lib/db/analytics-repo';
 import {
   listMapAwardGroups,
   type MapAwardGroup,
@@ -37,6 +47,13 @@ const emptySelectionStats: SelectionStats = {
   tagWins: [],
   totalGames: 0,
 };
+
+const emptyStyleEffectiveness: StyleEffectivenessData = {
+  scoreAverages: null,
+  styleRows: [],
+};
+
+export const dynamic = 'force-dynamic';
 
 async function loadGlobalStatsOrDefault(): Promise<SelectionStats> {
   try {
@@ -65,11 +82,30 @@ async function loadMapAwardGroupsOrDefault(): Promise<MapAwardGroup[]> {
   }
 }
 
+async function loadStyleEffectivenessOrDefault(
+  scope: 'global' | 'personal',
+): Promise<StyleEffectivenessData> {
+  try {
+    return await getStyleEffectiveness(scope);
+  } catch (error) {
+    console.error(`[global] Failed to load ${scope} style effectiveness`, error);
+    return emptyStyleEffectiveness;
+  }
+}
+
 export default async function GlobalStatisticsPage() {
-  const [globalStats, personalStats, mapAwardGroups] = await Promise.all([
+  const [
+    globalStats,
+    personalStats,
+    mapAwardGroups,
+    globalStyleEffectiveness,
+    personalStyleEffectiveness,
+  ] = await Promise.all([
     loadGlobalStatsOrDefault(),
     loadPersonalStatsOrDefault(),
     loadMapAwardGroupsOrDefault(),
+    loadStyleEffectivenessOrDefault('global'),
+    loadStyleEffectivenessOrDefault('personal'),
   ]);
 
   let selectionDialogData: SelectionDialogData | undefined;
@@ -107,6 +143,21 @@ export default async function GlobalStatisticsPage() {
     console.error('[global] Failed to load card images', error);
   }
 
+  const styleEffectivenessScopes = [
+    buildStyleScope({
+      data: globalStyleEffectiveness,
+      key: 'global',
+      label: 'Global',
+      subject: FIELD_SUBJECT,
+    }),
+    buildStyleScope({
+      data: personalStyleEffectiveness,
+      key: 'personal',
+      label: 'Your games',
+      subject: SELF_SUBJECT,
+    }),
+  ];
+
   return (
     <AppShell showReviewSavedGamesLink title="Global Statistics" wide>
       <section className="tm-panel flex flex-col gap-5">
@@ -127,6 +178,7 @@ export default async function GlobalStatisticsPage() {
           mapAwardGroups={mapAwardGroups}
           stats={globalStats}
         />
+        <StyleEffectivenessPanel scopes={styleEffectivenessScopes} />
         <GlobalKeyCardsSection
           baselineWinRate={globalStats.baselineWinRate}
           cardMetaByName={cardMeta}

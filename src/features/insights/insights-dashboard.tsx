@@ -52,6 +52,10 @@ import {
 import { PlacementDistributionChart } from './placement-distribution-chart';
 import { ScoreSourceRadar } from './score-source-radar';
 import { SelectionPairLabel } from './selection-name-link';
+import {
+  StyleEffectivenessPanel,
+  type StyleEffectivenessScopeInput,
+} from './style-effectiveness';
 import { TableSizeChart } from './table-size-chart';
 import { TagOutcomesSection } from './tag-outcomes-section';
 
@@ -64,6 +68,7 @@ type InsightsDashboardProps = {
   overallAnalytics: GroupAnalytics;
   overallExtended: ExtendedGroupAnalytics;
   selectionDialogData?: SelectionDialogData;
+  styleEffectivenessScopes?: StyleEffectivenessScopeInput[];
 };
 
 type ScoreSourceShape = {
@@ -650,6 +655,7 @@ export function InsightsDashboard({
   overallAnalytics,
   overallExtended,
   selectionDialogData,
+  styleEffectivenessScopes = [],
 }: InsightsDashboardProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string>('all');
   const [focusScope, setFocusScope] = useState<FocusScope>('overall');
@@ -1080,60 +1086,64 @@ export function InsightsDashboard({
             playerAverages={radarPlayerAverages}
           />
 
+          {styleEffectivenessScopes.length > 0 ? (
+            <StyleEffectivenessPanel scopes={styleEffectivenessScopes} />
+          ) : null}
+
           {showExtendedSections ? (
-          <ChartFrame
-            description="Win rate by inferred play style, with the three best-performing styles broken out below the chart."
-            title="Best Style Snapshot"
-          >
-            {stylePerformanceData.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Best-style snapshots will appear once inferred styles have been
-                recorded on finalized games.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <ResponsiveContainer height={260} width="100%">
-                  <BarChart
-                    data={stylePerformanceData}
-                    margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  >
-                    <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                    <XAxis
-                      angle={-20}
-                      dataKey="styleLabel"
-                      height={72}
-                      textAnchor="end"
-                      tick={chartAxisTick}
-                    />
-                    <YAxis tick={chartAxisTick} />
-                    <Tooltip contentStyle={chartTooltipStyle} />
-                    <Bar dataKey="winRate" fill={chartSeriesColors.tr} radius={[10, 10, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="grid gap-3">
-                  {selectedStylePerformanceRows.slice(0, 3).map((row) => (
-                    <article
-                      className="tm-stat-card"
-                      key={`${row.styleCode}-${row.gamesPlayed}`}
+            <ChartFrame
+              description="Win rate by inferred play style, with the three best-performing styles broken out below the chart."
+              title="Best Style Snapshot"
+            >
+              {stylePerformanceData.length === 0 ? (
+                <p className="tm-muted-copy text-sm">
+                  Best-style snapshots will appear once inferred styles have been
+                  recorded on finalized games.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <ResponsiveContainer height={260} width="100%">
+                    <BarChart
+                      data={stylePerformanceData}
+                      margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-semibold text-stone-100">
-                          {humanizeStyleCode(row.styleCode)}
-                        </h3>
-                        <p className="tm-accent-copy text-sm">
-                          {formatPercent(row.winRate)}
+                      <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
+                      <XAxis
+                        angle={-20}
+                        dataKey="styleLabel"
+                        height={72}
+                        textAnchor="end"
+                        tick={chartAxisTick}
+                      />
+                      <YAxis tick={chartAxisTick} />
+                      <Tooltip contentStyle={chartTooltipStyle} />
+                      <Bar dataKey="winRate" fill={chartSeriesColors.tr} radius={[10, 10, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="grid gap-3">
+                    {selectedStylePerformanceRows.slice(0, 3).map((row) => (
+                      <article
+                        className="tm-stat-card"
+                        key={`${row.styleCode}-${row.gamesPlayed}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <h3 className="font-semibold text-stone-100">
+                            {humanizeStyleCode(row.styleCode)}
+                          </h3>
+                          <p className="tm-accent-copy text-sm">
+                            {formatPercent(row.winRate)}
+                          </p>
+                        </div>
+                        <p className="tm-muted-copy mt-2 text-sm">
+                          {row.gamesPlayed} games | avg {formatAverage(row.averageScore)} points
+                          | avg place {formatAverage(row.averagePlacement)}
                         </p>
-                      </div>
-                      <p className="tm-muted-copy mt-2 text-sm">
-                        {row.gamesPlayed} games | avg {formatAverage(row.averageScore)} points
-                        | avg place {formatAverage(row.averagePlacement)}
-                      </p>
-                    </article>
-                  ))}
+                      </article>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </ChartFrame>
+              )}
+            </ChartFrame>
           ) : null}
 
           <ChartFrame
