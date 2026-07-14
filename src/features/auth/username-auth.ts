@@ -11,9 +11,15 @@ export function normalizeUsername(input: string) {
     .replace(/^-+|-+$/g, '');
 }
 
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email('Enter a valid email address.');
+
 export const pinSchema = z
   .string()
-  .regex(/^\d{4}$/, 'PIN must be exactly 4 digits.');
+  .regex(/^\d{6}$/, 'PIN must be exactly 6 digits.');
 
 export const signupFullNameSchema = z
   .string()
@@ -22,6 +28,12 @@ export const signupFullNameSchema = z
     message: 'Enter a full name in First Name Last Name format.',
   });
 
-export function buildSyntheticAuthEmail(username: string) {
-  return `${normalizeUsername(username)}@users.tmstats.local`;
-}
+export const signupUsernameSchema = z
+  .string()
+  .transform(normalizeUsername)
+  .refine((value) => value.length >= 3, {
+    message: 'Username must contain at least 3 letters or numbers.',
+  })
+  .refine((value) => value.length <= 32, {
+    message: 'Username must be 32 characters or fewer.',
+  });

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { RecoveryHashRedirect } from '@/features/auth/recovery-hash-redirect';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -11,7 +12,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <RecoveryHashRedirect />
+        {children}
+      </body>
     </html>
   );
 }
