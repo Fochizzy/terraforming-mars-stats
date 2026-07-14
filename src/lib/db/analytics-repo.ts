@@ -978,6 +978,39 @@ function mapGlobalMetaSignal(row: Record<string, unknown>): GlobalMetaSignal {
   };
 }
 
+const META_SIGNAL_SOURCE_PRIORITY: Record<GlobalMetaSignal['sourceType'], number> = {
+  Corporation: 4,
+  Prelude: 3,
+  Card: 2,
+  Tag: 1,
+};
+
+function deduplicateGlobalMetaSignals(rows: GlobalMetaSignal[]) {
+  const deduplicated: GlobalMetaSignal[] = [];
+  const indexByLabel = new Map<string, number>();
+
+  for (const row of rows) {
+    const key = row.label.trim().toLocaleLowerCase('en-US');
+    const existingIndex = indexByLabel.get(key);
+
+    if (typeof existingIndex === 'undefined') {
+      indexByLabel.set(key, deduplicated.length);
+      deduplicated.push(row);
+      continue;
+    }
+
+    const existing = deduplicated[existingIndex];
+    if (
+      META_SIGNAL_SOURCE_PRIORITY[row.sourceType] >
+      META_SIGNAL_SOURCE_PRIORITY[existing.sourceType]
+    ) {
+      deduplicated[existingIndex] = row;
+    }
+  }
+
+  return deduplicated;
+}
+
 function mapGlobalTempoMetric(row: Record<string, unknown>): GlobalTempoMetric {
   return {
     averageGeneration: readNumberField(row, 'averageGeneration'),
@@ -1091,7 +1124,9 @@ function mapGlobalInsightMetrics(value: unknown): GlobalInsightMetrics {
     mapTableMeta: readRecordArray(payload.mapTableMeta).map(
       mapGlobalMapTableMetric,
     ),
-    metaSignals: readRecordArray(payload.metaSignals).map(mapGlobalMetaSignal),
+    metaSignals: deduplicateGlobalMetaSignals(
+      readRecordArray(payload.metaSignals).map(mapGlobalMetaSignal),
+    ),
     objectiveConversion: readRecordArray(payload.objectiveConversion).map(
       mapGlobalObjectiveConversionMetric,
     ),

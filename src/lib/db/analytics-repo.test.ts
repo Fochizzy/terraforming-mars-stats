@@ -59,6 +59,28 @@ describe('getGlobalInsightMetrics', () => {
             winRateDelta: '0.35',
             wins: '3',
           },
+          {
+            averageScore: '74',
+            baselineWinRate: '0.36',
+            direction: 'dragger',
+            label: 'Project Eden',
+            sampleSize: '5',
+            sourceType: 'Card',
+            winRate: '0',
+            winRateDelta: '-0.36',
+            wins: '0',
+          },
+          {
+            averageScore: '74',
+            baselineWinRate: '0.36',
+            direction: 'dragger',
+            label: 'Project Eden',
+            sampleSize: '5',
+            sourceType: 'Prelude',
+            winRate: '0',
+            winRateDelta: '-0.36',
+            wins: '0',
+          },
         ],
         objectiveConversion: [
           {
@@ -127,7 +149,10 @@ describe('getGlobalInsightMetrics', () => {
     await expect(getGlobalInsightMetrics()).resolves.toMatchObject({
       cardTiming: [{ cardName: 'Mars University', earlyPlays: 4 }],
       mapTableMeta: [{ averageScore: 82.25, category: 'map' }],
-      metaSignals: [{ label: 'Tharsis Republic', winRateDelta: 0.35 }],
+      metaSignals: [
+        { label: 'Tharsis Republic', winRateDelta: 0.35 },
+        { label: 'Project Eden', sourceType: 'Prelude' },
+      ],
       objectiveConversion: [{ label: 'Gardener', snipedRate: null }],
       openingCombos: [{ corporationName: 'Ecoline', signalType: 'best' }],
       summary: {
@@ -138,6 +163,12 @@ describe('getGlobalInsightMetrics', () => {
       tempoProfile: [{ bucket: 'standard', games: 4 }],
       terraformingShare: [{ playerName: 'Friday Mars', totalActions: 8 }],
     });
+    const metrics = await getGlobalInsightMetrics();
+    expect(
+      metrics.metaSignals.filter((signal) => signal.label === 'Project Eden'),
+    ).toEqual([
+      expect.objectContaining({ sourceType: 'Prelude', sampleSize: 5 }),
+    ]);
     expect(rpc).toHaveBeenCalledWith('get_global_insight_metrics');
   });
 });
