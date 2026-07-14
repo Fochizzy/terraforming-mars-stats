@@ -1,5 +1,6 @@
 import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type {
   CoverageRow,
   GroupHeadToHeadRow,
@@ -59,8 +60,9 @@ export function GroupDashboard({
     return (
       <ChartFrame title="Group Analytics">
         <p className="text-sm text-stone-300">
-          Finalize a few games to unlock the leaderboard, head-to-head, lineup,
-          style, and coverage analytics for this group.
+          <GlossaryRichText>
+            Finalize a few games to unlock the leaderboard, head-to-head, lineup, style, and coverage analytics for this group.
+          </GlossaryRichText>
         </p>
       </ChartFrame>
     );
@@ -71,7 +73,9 @@ export function GroupDashboard({
       <ChartFrame title="Weighted Leaderboard">
         {leaderboardRows.length === 0 ? (
           <p className="text-sm text-stone-400">
-            No finalized leaderboard rows are available yet.
+            <GlossaryRichText>
+              No finalized leaderboard rows are available yet.
+            </GlossaryRichText>
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -87,7 +91,9 @@ export function GroupDashboard({
                   </p>
                 </div>
                 <p className="tm-muted-copy mt-2 text-sm">
-                  {formatPercent(row.winRate)} win rate | avg place {formatAverage(row.averagePlacement)}
+                  <GlossaryRichText>
+                    {`${formatPercent(row.winRate)} win rate | avg place ${formatAverage(row.averagePlacement)}`}
+                  </GlossaryRichText>
                 </p>
               </article>
             ))}
@@ -100,7 +106,9 @@ export function GroupDashboard({
       <ChartFrame title="Head-to-Head">
         {headToHeadRows.length === 0 ? (
           <p className="text-sm text-stone-400">
-            No finalized head-to-head rows are available yet.
+            <GlossaryRichText>
+              No finalized head-to-head rows are available yet.
+            </GlossaryRichText>
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -123,7 +131,9 @@ export function GroupDashboard({
       <ChartFrame title="Lineup Effects">
         {lineupEffectRows.length === 0 ? (
           <p className="text-sm text-stone-400">
-            No finalized lineup comparisons are available yet.
+            <GlossaryRichText>
+              No finalized lineup comparisons are available yet.
+            </GlossaryRichText>
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -145,7 +155,9 @@ export function GroupDashboard({
       <ChartFrame title="Style Agreement">
         {styleAgreementRows.length === 0 ? (
           <p className="text-sm text-stone-400">
-            No declared-versus-inferred style comparisons are available yet.
+            <GlossaryRichText>
+              No declared-versus-inferred style comparisons are available yet.
+            </GlossaryRichText>
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -159,7 +171,9 @@ export function GroupDashboard({
                   <p className="tm-accent-copy text-sm">{formatPercent(row.exactMatchRate)}</p>
                 </div>
                 <p className="tm-muted-copy mt-2 text-sm">
-                  {row.comparedGames} compared games | partial {formatPercent(row.partialMatchRate)} | mismatch {formatPercent(row.mismatchRate)}
+                  <GlossaryRichText>
+                    {`${row.comparedGames} compared games | partial ${formatPercent(row.partialMatchRate)} | mismatch ${formatPercent(row.mismatchRate)}`}
+                  </GlossaryRichText>
                 </p>
               </article>
             ))}
@@ -178,7 +192,9 @@ export function GroupDashboard({
           </div>
         ) : (
           <p className="text-sm text-stone-400">
-            Optional-data coverage will appear after finalized games are logged.
+            <GlossaryRichText>
+              Optional-data coverage will appear after finalized games are logged.
+            </GlossaryRichText>
           </p>
         )}
       </ChartFrame>

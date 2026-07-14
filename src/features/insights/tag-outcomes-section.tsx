@@ -22,6 +22,7 @@ import {
 } from '@/components/charts/chart-theme';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { TagLabel } from '@/components/ui/tag-icon';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { TagOutcomeRow } from '@/lib/db/extended-analytics-repo';
 import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
 import { SelectionNameButton } from './selection-name-link';
@@ -276,8 +277,9 @@ export function TagOutcomesSection(props: {
     >
       {props.rows.length === 0 ? (
         <p className="tm-muted-copy text-sm">
-          Tag outcomes will appear once imported game logs provide tag
-          summaries for finalized games.
+          <GlossaryRichText>
+            Tag outcomes will appear once imported game logs provide tag summaries for finalized games.
+          </GlossaryRichText>
         </p>
       ) : (
         <div className="flex flex-col gap-4">
@@ -545,8 +547,9 @@ export function TagOutcomesSection(props: {
           </div>
           {winRateData.length === 0 ? (
             <p className="tm-muted-copy text-sm">
-              Tag win rates will appear once at least one finalized result has
-              a nonzero tag count.
+              <GlossaryRichText>
+                Tag win rates will appear once at least one finalized result has a nonzero tag count.
+              </GlossaryRichText>
             </p>
           ) : null}
         </div>

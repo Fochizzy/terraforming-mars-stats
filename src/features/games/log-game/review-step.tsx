@@ -2,6 +2,7 @@
 
 import { StepHeading } from '@/components/ui/step-heading';
 import type { GameReview } from '@/features/games/finalize-game';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister } from 'react-hook-form';
 
@@ -28,8 +29,9 @@ export function ReviewStep({
     <section className="tm-panel flex flex-col gap-4">
       <StepHeading step="05" title="Review and Finalize" />
       <p className="tm-body-copy text-sm">
-        Show validation warnings, optional-data coverage, and finalize or save
-        the draft.
+        <GlossaryRichText>
+          Show validation warnings, optional-data coverage, and finalize or save the draft.
+        </GlossaryRichText>
       </p>
       <label className="flex flex-col gap-2 text-sm">
         <span className="tm-data-label">Notes</span>

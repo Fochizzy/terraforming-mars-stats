@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { StepHeading } from '@/components/ui/step-heading';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister } from 'react-hook-form';
@@ -107,8 +108,9 @@ export function ScoresStep({
         </div>
       ) : null}
       <p className="tm-body-copy text-sm">
-        Total card points are required; microbe, animal, and Jovian breakdowns
-        stay optional.
+        <GlossaryRichText>
+          Total card points are required; microbe, animal, and Jovian breakdowns stay optional.
+        </GlossaryRichText>
       </p>
       <div className="grid gap-4">
         {selectedPlayers.map((player) => (

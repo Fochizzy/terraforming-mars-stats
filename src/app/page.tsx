@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { LandingSectionList } from './landing-section-list';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import {
   emptyPublicLandingStats,
   getPublicLandingStats,
@@ -39,8 +40,9 @@ export default async function HomePage() {
           </div>
         </div>
         <p className="tm-body-copy tm-landing-hero-copy">
-          Log finished games, compare corporations and preludes, and see how your
-          group&apos;s meta changes over time.
+          <GlossaryRichText>
+            {"Log finished games, compare corporations and preludes, and see how your group's meta changes over time."}
+          </GlossaryRichText>
         </p>
         <Link
           className="tm-button-primary tm-landing-hero-cta"

@@ -1,4 +1,5 @@
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { CardWinStat } from '@/lib/db/selection-stats-repo';
 
 export const GLOBAL_LOSS_CARD_LIMIT = 5;
@@ -69,16 +70,15 @@ export function GlobalLossCardsSection(props: {
     <div className="flex flex-col gap-3">
       <h3 className="tm-data-label text-xs">Cards Most Correlated With Losses</h3>
       <p className="tm-muted-copy text-sm">
-        Cards whose win rate when played sits furthest below the{' '}
-        {baselinePercent}% baseline win rate across every recorded game. Cards
-        with fewer than {GLOBAL_LOSS_CARD_MIN_PLAYS} plays are held back so a
-        single game can&apos;t brand a card. Select a card to open its image with
-        your win rate and the global win rate.
+        <GlossaryRichText>
+          {`Cards whose win rate when played sits furthest below the ${baselinePercent}% baseline win rate across every recorded game. Cards with fewer than ${GLOBAL_LOSS_CARD_MIN_PLAYS} plays are held back so a single game cannot brand a card. Select a card to open its image with your win rate and the global win rate.`}
+        </GlossaryRichText>
       </p>
       {data.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
-          Loss-correlated cards will appear once finalized game logs record
-          enough card plays to measure their impact.
+          <GlossaryRichText>
+            Loss-correlated cards will appear once finalized game logs record enough card plays to measure their impact.
+          </GlossaryRichText>
         </p>
       ) : (
         <div className="overflow-x-auto">

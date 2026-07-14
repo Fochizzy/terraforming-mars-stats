@@ -9,6 +9,18 @@ import type {
 import type { TagOutcomeRow } from '@/lib/db/extended-analytics-repo';
 import { PlayerComparison } from './player-comparison';
 
+function getByTextContent(pattern: RegExp) {
+  return screen.getByText((_content, element) => {
+    if (!element || !pattern.test(element.textContent ?? '')) {
+      return false;
+    }
+
+    return Array.from(element.children).every(
+      (child) => !pattern.test(child.textContent ?? ''),
+    );
+  });
+}
+
 function performance(
   overrides: Partial<LeaderboardRow> = {},
 ): LeaderboardRow {
@@ -82,7 +94,12 @@ function person(
 }
 
 function interaction(
-  overrides: Partial<GroupInteractionRow & { playerId: string; playerName: string }>,
+  overrides: Partial<
+    GroupInteractionRow & {
+      playerId: string;
+      playerName: string;
+    }
+  >,
 ) {
   return {
     averagePlacement: 1.5,
@@ -148,6 +165,7 @@ describe('PlayerComparison', () => {
         ],
       },
     });
+
     const opponent = person({
       activeGroupPlayerId: 'player-2',
       bundle: {
@@ -231,17 +249,21 @@ describe('PlayerComparison', () => {
       />,
     );
 
-    expect(screen.getByLabelText(/player faced/i)).toHaveValue('name:alex-green');
+    expect(screen.getByLabelText(/player faced/i)).toHaveValue(
+      'name:alex-green',
+    );
     expect(screen.getByText(/direct record: 2-1-0/i)).toBeInTheDocument();
-    expect(screen.getByText(/record and win rate/i)).toBeInTheDocument();
+    expect(getByTextContent(/record and win rate/i)).toBeInTheDocument();
     expect(screen.getAllByText(/terraform rush/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/science combo/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/preferred point sources/i)).toBeInTheDocument();
-    expect(screen.getByText(/tag profiles/i)).toBeInTheDocument();
+    expect(
+      getByTextContent(/preferred point sources/i),
+    ).toBeInTheDocument();
+    expect(getByTextContent(/tag profiles/i)).toBeInTheDocument();
     expect(screen.getAllByText(/plant/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/science/i).length).toBeGreaterThan(0);
     expect(
-      screen.getByText(/preferred corporations and preludes/i),
+      getByTextContent(/preferred corporations and preludes/i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByText(/tharsis republic \| merger/i).length,
@@ -249,7 +271,9 @@ describe('PlayerComparison', () => {
     expect(
       screen.getAllByText(/saturn systems \| donation/i).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByText(/additional compare points/i)).toBeInTheDocument();
+    expect(
+      getByTextContent(/additional compare points/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/style clash/i)).toBeInTheDocument();
   });
 
@@ -273,6 +297,7 @@ describe('PlayerComparison', () => {
         ],
       },
     });
+
     const opponent = person({
       activeGroupPlayerId: 'player-2',
       bundle: {
@@ -354,7 +379,9 @@ describe('PlayerComparison', () => {
       />,
     );
 
-    expect(screen.getByText(/4 \/ game \| 100% wins with tag/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/4 \/ game \| 100% wins with tag/i),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText(/24 \/ game|20 \/ game|science/i),
     ).not.toBeInTheDocument();

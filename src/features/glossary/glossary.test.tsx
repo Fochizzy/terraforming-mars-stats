@@ -1,8 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { GlossaryContent } from './glossary-content';
-import { glossaryCategories, glossarySlugs } from './glossary-data';
+import {
+  glossaryCategories,
+  glossaryLinkTargets,
+  glossarySlugs,
+} from './glossary-data';
 import { GlossaryLink } from './glossary-link';
+import { GlossaryRichText } from './glossary-rich-text';
 
 // Anchor targets the glossary page exposes: every term slug plus every
 // category id (sections are linkable too). GlossaryLink slugs used elsewhere
@@ -54,6 +59,37 @@ describe('glossary data', () => {
       expect(glossarySlugs.has(slug)).toBe(true);
     }
   });
+
+  it('defines the current analytics and import workflow terms', () => {
+    const currentSlugs = [
+      'combination-lens',
+      'insights-lab',
+      'final-terraforming-action',
+      'global-parameter-tempo',
+      'import-draft',
+      'import-evidence',
+      'log-derived-card-timing',
+      'opening-combo-strength',
+      'profile-expansions',
+      'score-profile',
+      'score-details',
+      'style-card-combo',
+      'style-science-combo',
+      'terraforming-share',
+    ];
+
+    for (const slug of currentSlugs) {
+      expect(glossarySlugs.has(slug)).toBe(true);
+    }
+  });
+
+  it('only exposes auto-link targets with rendered glossary anchors', () => {
+    for (const target of glossaryLinkTargets) {
+      expect(anchorIds.has(target.slug)).toBe(true);
+      expect(target.label.trim()).toBe(target.label);
+      expect(target.label.length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('GlossaryLink', () => {
@@ -88,6 +124,47 @@ describe('GlossaryLink', () => {
     for (const slug of referencedSlugs) {
       expect(anchorIds.has(slug)).toBe(true);
     }
+  });
+});
+
+describe('GlossaryRichText', () => {
+  it('links matching terms to their glossary anchors', () => {
+    render(
+      <p>
+        <GlossaryRichText>
+          Baseline win rate compares against victory impact from imported game logs.
+        </GlossaryRichText>
+      </p>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: /baseline win rate/i }),
+    ).toHaveAttribute('href', '/glossary#baseline-win-rate');
+    expect(
+      screen.getByRole('link', { name: /victory impact/i }),
+    ).toHaveAttribute('href', '/glossary#win-rate-delta');
+    expect(
+      screen.getByRole('link', { name: /imported game logs/i }),
+    ).toHaveAttribute('href', '/glossary#game-log');
+  });
+
+  it('prefers the longest term match and respects word boundaries', () => {
+    render(
+      <p>
+        <GlossaryRichText>
+          Total card points and TR improve; strategy should not link because it only contains tr.
+        </GlossaryRichText>
+      </p>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: /total card points/i }),
+    ).toHaveAttribute('href', '/glossary#card-points');
+    expect(screen.getByRole('link', { name: 'TR' })).toHaveAttribute(
+      'href',
+      '/glossary#terraform-rating',
+    );
+    expect(screen.queryByRole('link', { name: /trategy/i })).toBeNull();
   });
 });
 

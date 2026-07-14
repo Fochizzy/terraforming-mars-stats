@@ -1,5 +1,6 @@
 import { TagLabel } from '@/components/ui/tag-icon';
 import { ObjectiveInfoButton } from '@/components/ui/objective-info-button';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { MapAwardGroup } from '@/lib/db/reference-repo';
 import type {
   CorporationSelectionStat,
@@ -319,17 +320,21 @@ export function SelectionStatsScope(props: {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="tm-data-label text-xs">{props.heading}</h3>
+      <h3 className="tm-data-label text-xs">
+        <GlossaryRichText maxLinks={2}>{props.heading}</GlossaryRichText>
+      </h3>
       {!hasData ? (
         <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
-          No finalized games with corporation selections yet.
+          <GlossaryRichText>
+            No finalized games with corporation selections yet.
+          </GlossaryRichText>
         </p>
       ) : (
         <>
           {selectionValueSummaries.length > 0 ? (
             <div>
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                Global Value Summary
+                <GlossaryRichText maxLinks={1}>Global Value Summary</GlossaryRichText>
               </h4>
               <ul className="flex flex-col gap-1 text-xs">
                 {selectionValueSummaries.map((summary) => (
@@ -344,7 +349,9 @@ export function SelectionStatsScope(props: {
                       name={summary.name}
                     />
                     {' '}
-                    <span>{summary.sentence}</span>
+                    <span>
+                      <GlossaryRichText>{summary.sentence}</GlossaryRichText>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -353,7 +360,9 @@ export function SelectionStatsScope(props: {
           {props.stats.corporations.length > 0 ? (
             <div>
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                Where Points Come From (share of VP by corporation)
+                <GlossaryRichText maxLinks={2}>
+                  Where Points Come From (share of VP by corporation)
+                </GlossaryRichText>
               </h4>
               <SelectionOriginChart
                 rows={props.stats.corporations.map((row) => ({
@@ -366,7 +375,9 @@ export function SelectionStatsScope(props: {
           {props.stats.preludes.length > 0 ? (
             <div>
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                Where Points Come From (share of VP by prelude)
+                <GlossaryRichText maxLinks={2}>
+                  Where Points Come From (share of VP by prelude)
+                </GlossaryRichText>
               </h4>
               <SelectionOriginChart
                 rows={props.stats.preludes.map((row) => ({
@@ -429,7 +440,9 @@ export function SelectionStatsScope(props: {
             ) : (
               <div>
                 <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                  Award Funding ROI
+                  <GlossaryRichText maxLinks={1}>
+                    Award Funding ROI
+                  </GlossaryRichText>
                 </h4>
                 <ul className="flex flex-col gap-1 text-xs">
                   {props.stats.awardFunding.map((funding) => (
@@ -467,7 +480,9 @@ export function SelectionStatsScope(props: {
               {tagTrendSentences.length > 0 ? (
                 <div className="mb-3">
                   <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                    Most Prevalent Tag Trends
+                    <GlossaryRichText maxLinks={1}>
+                      Most Prevalent Tag Trends
+                    </GlossaryRichText>
                   </h4>
                   <ul className="flex flex-col gap-1 text-xs">
                     {tagTrendSentences.map((trend) => (
@@ -477,14 +492,16 @@ export function SelectionStatsScope(props: {
                       >
                         <TagLabel code={trend.tagCode} />
                         {' '}
-                        <span>{trend.sentence}</span>
+                        <span>
+                          <GlossaryRichText>{trend.sentence}</GlossaryRichText>
+                        </span>
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : null}
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-                Tags in Wins vs Losses
+                <GlossaryRichText maxLinks={1}>Tags in Wins vs Losses</GlossaryRichText>
               </h4>
               <ul className="flex flex-col gap-1 text-xs">
                 {props.stats.tagWins.map((tagWin) => (
@@ -520,7 +537,9 @@ function HeadToHeadBlock(props: {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="tm-data-label text-xs">Head-to-Head (This Group)</h3>
+      <h3 className="tm-data-label text-xs">
+        <GlossaryRichText maxLinks={1}>Head-to-Head (This Group)</GlossaryRichText>
+      </h3>
       <ul className="flex flex-col gap-1 text-xs">
         {props.headToHead.pairs.map((pair) => (
           <li key={`${pair.player_a}-${pair.player_b}`}>
@@ -534,7 +553,7 @@ function HeadToHeadBlock(props: {
       {props.headToHead.corporationMatchups.length > 0 ? (
         <div>
           <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
-            Corporation Matchups
+            <GlossaryRichText maxLinks={1}>Corporation Matchups</GlossaryRichText>
           </h4>
           <ul className="flex flex-col gap-1 text-xs">
             {props.headToHead.corporationMatchups.slice(0, 15).map((matchup) => (
@@ -569,7 +588,9 @@ function MergerImpactBlock(props: { rows: MergerImpactStat[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="tm-data-label text-xs">Merger Impact (Imported Logs)</h3>
+      <h3 className="tm-data-label text-xs">
+        <GlossaryRichText maxLinks={2}>Merger Impact (Imported Logs)</GlossaryRichText>
+      </h3>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
@@ -624,7 +645,9 @@ export function FinalTerraformingActionBlock(props: {
   return (
     <div className="flex flex-col gap-3">
       <h3 className="tm-data-label text-xs">
-        Final Terraforming Action (Imported Logs)
+        <GlossaryRichText maxLinks={2}>
+          Final Terraforming Action (Imported Logs)
+        </GlossaryRichText>
       </h3>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
@@ -690,7 +713,11 @@ export function SelectionStatsSection({
 }: SelectionStatsSectionProps) {
   return (
     <section className="tm-panel flex flex-col gap-5">
-      <h2 className="tm-panel-title text-lg">Corporation &amp; Prelude Stats</h2>
+      <h2 className="tm-panel-title text-lg">
+        <GlossaryRichText maxLinks={2}>
+          {'Corporation & Prelude Stats'}
+        </GlossaryRichText>
+      </h2>
       <HeadToHeadBlock dialogData={dialogData} headToHead={headToHead} />
       <MergerImpactBlock rows={mergerImpact} />
       <FinalTerraformingActionBlock rows={finalTerraformingActions} />

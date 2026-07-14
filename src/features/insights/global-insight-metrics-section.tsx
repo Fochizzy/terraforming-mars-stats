@@ -8,6 +8,7 @@ import type {
   GlobalTempoMetric,
   GlobalTerraformingShareMetric,
 } from '@/lib/db/analytics-repo';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 
 function formatAverage(value: number | null | undefined, digits = 1) {
   if (value === null || typeof value === 'undefined') {
@@ -66,11 +67,19 @@ function compactRows<T>(rows: T[], limit: number) {
 }
 
 function SectionHeading({ children }: { children: string }) {
-  return <h3 className="tm-data-label text-xs">{children}</h3>;
+  return (
+    <h3 className="tm-data-label text-xs">
+      <GlossaryRichText maxLinks={2}>{children}</GlossaryRichText>
+    </h3>
+  );
 }
 
 function EmptyMetric({ children }: { children: string }) {
-  return <p className="tm-muted-copy text-sm">{children}</p>;
+  return (
+    <p className="tm-muted-copy text-sm">
+      <GlossaryRichText>{children}</GlossaryRichText>
+    </p>
+  );
 }
 
 function SummaryCards({ metrics }: { metrics: GlobalInsightMetrics }) {
@@ -79,25 +88,33 @@ function SummaryCards({ metrics }: { metrics: GlobalInsightMetrics }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <div className="tm-stat-card">
-        <p className="tm-data-label">Finalized Games</p>
+        <p className="tm-data-label">
+          <GlossaryRichText maxLinks={1}>Finalized Games</GlossaryRichText>
+        </p>
         <p className="mt-1 text-2xl font-semibold text-stone-100">
           {summary.totalGames}
         </p>
       </div>
       <div className="tm-stat-card">
-        <p className="tm-data-label">Baseline Win Rate</p>
+        <p className="tm-data-label">
+          <GlossaryRichText maxLinks={1}>Baseline Win Rate</GlossaryRichText>
+        </p>
         <p className="mt-1 text-2xl font-semibold text-stone-100">
           {formatPercent(summary.baselineWinRate)}
         </p>
       </div>
       <div className="tm-stat-card">
-        <p className="tm-data-label">Average Score</p>
+        <p className="tm-data-label">
+          <GlossaryRichText maxLinks={1}>Average Score</GlossaryRichText>
+        </p>
         <p className="mt-1 text-2xl font-semibold text-stone-100">
           {formatAverage(summary.averageScore)}
         </p>
       </div>
       <div className="tm-stat-card">
-        <p className="tm-data-label">Average Generation</p>
+        <p className="tm-data-label">
+          <GlossaryRichText maxLinks={1}>Average Generation</GlossaryRichText>
+        </p>
         <p className="mt-1 text-2xl font-semibold text-stone-100">
           {formatAverage(summary.averageGeneration)}
         </p>
@@ -432,9 +449,13 @@ export function GlobalInsightMetricsSection({
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h3 className="tm-panel-title text-base">Global Meta Snapshot</h3>
+        <h3 className="tm-panel-title text-base">
+          <GlossaryRichText maxLinks={1}>Global Meta Snapshot</GlossaryRichText>
+        </h3>
         <p className="tm-muted-copy text-sm">
-          All finalized games, imported logs, and objective records.
+          <GlossaryRichText>
+            All finalized games, imported logs, and objective records.
+          </GlossaryRichText>
         </p>
       </div>
       <SummaryCards metrics={metrics} />

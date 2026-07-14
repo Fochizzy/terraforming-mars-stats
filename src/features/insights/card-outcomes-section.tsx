@@ -18,6 +18,7 @@ import {
   chartTooltipStyle,
 } from '@/components/charts/chart-theme';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { CardWinStats } from '@/features/catalog/card-stats-actions';
 import type { CardOutcomeRow } from '@/lib/db/extended-analytics-repo';
 
@@ -192,11 +193,14 @@ function CardOutcomePanel(props: {
           <span className="text-lg font-semibold text-stone-100">
             {props.summary.winRate}%
           </span>{' '}
-          win rate across {props.summary.wins}/{props.summary.plays} results with
-          the {props.summary.cards} most-played cards.
+          <GlossaryRichText>
+            {`win rate across ${props.summary.wins}/${props.summary.plays} results with the ${props.summary.cards} most-played cards.`}
+          </GlossaryRichText>
         </p>
       ) : (
-        <p className="tm-muted-copy text-sm">{props.emptyCopy}</p>
+        <p className="tm-muted-copy text-sm">
+          <GlossaryRichText>{props.emptyCopy}</GlossaryRichText>
+        </p>
       )}
       {props.data.length > 0 ? (
         <>
@@ -321,8 +325,9 @@ export function CardOutcomesSection(props: {
     >
       {props.rows.length === 0 ? (
         <p className="tm-muted-copy text-sm">
-          Card outcomes will appear once imported game logs record the cards
-          players played in finalized games.
+          <GlossaryRichText>
+            Card outcomes will appear once imported game logs record the cards players played in finalized games.
+          </GlossaryRichText>
         </p>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">

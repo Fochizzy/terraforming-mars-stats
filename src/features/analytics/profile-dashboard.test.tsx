@@ -3,6 +3,30 @@ import type { ComponentProps } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ProfileDashboard } from './profile-dashboard';
 
+function getByTextContent(pattern: RegExp) {
+  return screen.getByText((_content, element) => {
+    if (!element || !pattern.test(element.textContent ?? '')) {
+      return false;
+    }
+
+    return Array.from(element.children).every(
+      (child) => !pattern.test(child.textContent ?? ''),
+    );
+  });
+}
+
+function getAllByTextContent(pattern: RegExp) {
+  return screen.getAllByText((_content, element) => {
+    if (!element || !pattern.test(element.textContent ?? '')) {
+      return false;
+    }
+
+    return Array.from(element.children).every(
+      (child) => !pattern.test(child.textContent ?? ''),
+    );
+  });
+}
+
 describe('ProfileDashboard', () => {
   it('renders personal finalized-game analytics when a linked player exists', () => {
     const props: ComponentProps<typeof ProfileDashboard> = {
@@ -530,22 +554,22 @@ describe('ProfileDashboard', () => {
       ).getAllByRole('listitem'),
     ).toHaveLength(4);
     expect(
-      screen.getByText(/expanded profile backs the front-runner read/i),
+      getByTextContent(/expanded profile backs the front-runner read/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/terraform rating is the repeatable floor/i),
+      getByTextContent(/terraform rating is the repeatable floor/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/best expanded tempo lane is mid game peaks/i),
+      getByTextContent(/best expanded tempo lane is mid game peaks/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/fast oxygen \+ oceans games at 75% win rate/i),
+      getByTextContent(/fast oxygen \+ oceans games at 75% win rate/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/short games at 75% win rate/i),
+      getByTextContent(/short games at 75% win rate/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/opponent-adjusted profile is positive/i),
+      getByTextContent(/opponent-adjusted profile is positive/i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByText(/stabilize milestones/i).length,
@@ -555,32 +579,33 @@ describe('ProfileDashboard', () => {
         .length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getByText(/reserve a catch-up package worth about 2.5 points/i),
+      getByTextContent(/reserve a catch-up package worth about 2.5 points/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/add buffer turns against attacks/i),
+      getByTextContent(/add buffer turns against attacks/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/play style profile/i)).toBeInTheDocument();
+    expect(getByTextContent(/play style profile/i)).toBeInTheDocument();
     expect(screen.getByText(/score pace by generation/i)).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /explicit lead/i }),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/front-runner/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/interaction pressure/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/you made opponents lose/i)).toBeInTheDocument();
-    expect(screen.getByText(/early, mid, and late game/i)).toBeInTheDocument();
-    expect(screen.getByText(/activity peaks in the mid game/i)).toBeInTheDocument();
+    expect(getByTextContent(/you made opponents lose/i)).toBeInTheDocument();
+    expect(getByTextContent(/early, mid, and late game/i)).toBeInTheDocument();
+    expect(getByTextContent(/activity peaks in the mid game/i)).toBeInTheDocument();
     expect(screen.getByText(/terraforming tempo/i)).toBeInTheDocument();
     expect(
-      screen.getAllByText(/you fare best in fast oxygen \+ oceans games/i)
+      getAllByTextContent(/you fare best in fast oxygen \+ oceans games/i)
         .length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getAllByText(/toughest fast-terraforming mix is fast heat games/i)
-        .length,
+      getAllByTextContent(
+        /toughest fast-terraforming mix is fast heat games/i,
+      ).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText(/generation length fit/i)).toBeInTheDocument();
-    expect(screen.getByText(/you do best in short games/i)).toBeInTheDocument();
+    expect(getByTextContent(/you do best in short games/i)).toBeInTheDocument();
     expect(
       screen.queryByText(/ways to enhance the model/i),
     ).not.toBeInTheDocument();
@@ -616,7 +641,7 @@ describe('ProfileDashboard', () => {
       screen.getByRole('heading', { name: /improvement coach/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/you fare best in fast oxygen \+ oceans games and worst in fast heat games/i),
+      getByTextContent(/you fare best in fast oxygen \+ oceans games and worst in fast heat games/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
     expect(screen.getByText(/styles breakdown/i)).toBeInTheDocument();
@@ -665,7 +690,7 @@ describe('ProfileDashboard', () => {
     );
 
     expect(
-      screen.getByText(/no parsed resource or production removal events/i),
+      getByTextContent(/no parsed resource or production removal events/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/you made opponents lose/i)).not.toBeInTheDocument();
   });

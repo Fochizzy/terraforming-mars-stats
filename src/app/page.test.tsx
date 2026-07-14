@@ -14,11 +14,24 @@ const mockState = vi.hoisted(() => ({
 vi.mock('@/lib/db/public-landing-stats-repo', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('@/lib/db/public-landing-stats-repo')>();
+
   return {
     ...actual,
     getPublicLandingStats: mockState.getPublicLandingStats,
   };
 });
+
+function getByTextContent(pattern: RegExp) {
+  return screen.getByText((_content, element) => {
+    if (!element || !pattern.test(element.textContent ?? '')) {
+      return false;
+    }
+
+    return Array.from(element.children).every(
+      (child) => !pattern.test(child.textContent ?? ''),
+    );
+  });
+}
 
 const sampleStats: PublicLandingStats = {
   ...emptyPublicLandingStats,
@@ -26,7 +39,11 @@ const sampleStats: PublicLandingStats = {
   totalPlayers: 17,
   totalGroups: 6,
   mapsPlayed: 3,
-  topCorpWinRate: { name: 'Mons Insurance', plays: 5, winRate: 0.8 },
+  topCorpWinRate: {
+    name: 'Mons Insurance',
+    plays: 5,
+    winRate: 0.8,
+  },
 };
 
 describe('HomePage', () => {
@@ -64,26 +81,35 @@ describe('HomePage', () => {
     const user = userEvent.setup();
     render(await HomePage());
 
-    const winRatesChip = screen.getByRole('button', { name: /win rates/i });
+    const winRatesChip = screen.getByRole('button', {
+      name: /win rates/i,
+    });
+
     expect(winRatesChip).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(winRatesChip);
 
     expect(winRatesChip).toHaveAttribute('aria-expanded', 'true');
     expect(
-      screen.getByText(/best win rate — Mons Insurance \(5 plays\)/i),
+      getByTextContent(/best win rate — Mons Insurance \(5 plays\)/i),
     ).toBeVisible();
   });
 
   it('falls back to empty stats when the query fails', async () => {
     mockState.getPublicLandingStats.mockRejectedValueOnce(new Error('boom'));
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     render(await HomePage());
 
     expect(
-      screen.getByRole('heading', { name: /terraforming mars stats/i }),
+      screen.getByRole('heading', {
+        name: /terraforming mars stats/i,
+      }),
     ).toBeInTheDocument();
+
     consoleError.mockRestore();
   });
 });

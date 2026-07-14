@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { UseFormRegister } from 'react-hook-form';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StepHeading } from '@/components/ui/step-heading';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { MapOption } from '@/lib/db/reference-repo';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 
@@ -17,7 +18,9 @@ export function SetupStep({ mapOptions, register }: SetupStepProps) {
     <section className="tm-panel flex flex-col gap-4">
       <StepHeading step="01" title="Game Setup" />
       <p className="tm-body-copy text-sm">
-        Choose the group, map, player count, and generation count.
+        <GlossaryRichText>
+          Choose the group, map, player count, and generation count.
+        </GlossaryRichText>
       </p>
       <Link className="tm-button-secondary w-fit" href="/log-game">
         Open Web Import
