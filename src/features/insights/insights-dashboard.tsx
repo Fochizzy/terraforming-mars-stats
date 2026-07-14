@@ -35,11 +35,23 @@ import type {
   LeaderboardRow,
   ScoreSourceAverages,
   SharedGameResultRow,
+  StyleAgreementRow,
   TrendRow,
 } from '@/lib/db/analytics-repo';
-import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
+import type {
+  CardOutcomeRow,
+  ExtendedGroupAnalytics,
+  GameLengthPerformanceRow,
+  GenerationPaceRow,
+  PlayerMapPerformanceRow,
+  TilePlacementRow,
+} from '@/lib/db/extended-analytics-repo';
 import type { MapAwardGroup } from '@/lib/db/reference-repo';
-import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
+import type {
+  FinalTerraformingActionStat,
+  SelectionDialogData,
+  SelectionStats,
+} from '@/lib/db/selection-stats-repo';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { buildInsightCards, type InsightCard } from './build-insight-cards';
 import { BoardHeatmapSection } from './board-heatmap-section';
@@ -70,10 +82,12 @@ type InsightsDashboardProps = {
   children?: ReactNode;
   currentUserCanonicalId?: string;
   extended: ExtendedGroupAnalytics;
+  finalTerraformingActionStats?: FinalTerraformingActionStat[];
   focusPeople: CrossGroupFocusPerson[];
   mapAwardGroups?: MapAwardGroup[];
   overallAnalytics: GroupAnalytics;
   overallExtended: ExtendedGroupAnalytics;
+  personalSelectionStats?: SelectionStats;
   selectionDialogData?: SelectionDialogData;
   sharedGameRows?: SharedGameResultRow[];
   scopeMode?: 'all' | 'group' | 'individual';
@@ -110,6 +124,18 @@ type FocusScope = 'group' | 'overall';
 
 type OverallLeaderboardRow = LeaderboardRow & {
   canonicalId: string;
+};
+
+type ExpandedIndividualMetric = {
+  confidenceLabel: string;
+  metrics: Array<{
+    detail?: string;
+    label: string;
+    value: string;
+  }>;
+  sampleSize: number;
+  summary: string;
+  title: string;
 };
 
 const scoreSourceKeys = [
@@ -655,15 +681,985 @@ function buildOverallFocusCards(
   return cards;
 }
 
+function averageValues(values: number[]) {
+  const finiteValues = values.filter(Number.isFinite);
+
+  if (finiteValues.length === 0) {
+    return null;
+  }
+
+  return (
+    finiteValues.reduce((sum, value) => sum + value, 0) / finiteValues.length
+  );
+}
+
+function sumValues(values: number[]) {
+  return values.reduce((sum, value) => sum + value, 0);
+}
+
+function standardDeviationValues(values: number[]) {
+  const average = averageValues(values);
+
+  if (average === null) {
+    return null;
+  }
+
+  const variance = averageValues(values.map((value) => (value - average) ** 2));
+
+  return variance === null ? null : Math.sqrt(variance);
+}
+
+function formatMetricAverage(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 'n/a';
+  }
+
+  return formatAverage(value);
+}
+
+function formatMetricDelta(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 'n/a';
+  }
+
+  return `${value >= 0 ? '+' : ''}${formatAverage(value)}`;
+}
+
+function formatMetricPercent(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 'n/a';
+  }
+
+  return formatPercent(value);
+}
+
+function formatMetricPercentDelta(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 'n/a';
+  }
+
+  const points = Math.round(value * 100);
+
+  return `${points >= 0 ? '+' : ''}${points} pts`;
+}
+
+function expandedMetricEntry(
+  label: string,
+  value: string,
+  detail?: string,
+): ExpandedIndividualMetric['metrics'][number] {
+  return detail ? { detail, label, value } : { label, value };
+}
+
+function expandedMetric(input: Omit<ExpandedIndividualMetric, 'sampleSize'> & {
+  sampleSize?: number;
+}): ExpandedIndividualMetric {
+  return {
+    ...input,
+    sampleSize: input.sampleSize ?? 0,
+  };
+}
+
+const individualScoreSources = [
+  { getValue: (row: SharedGameResultRow) => row.trPoints, label: 'TR' },
+  { getValue: (row: SharedGameResultRow) => row.cardPointsTotal, label: 'Cards' },
+  {
+    getValue: (row: SharedGameResultRow) => row.greeneryPoints,
+    label: 'Greenery',
+  },
+  { getValue: (row: SharedGameResultRow) => row.citiesPoints, label: 'Cities' },
+  {
+    getValue: (row: SharedGameResultRow) => row.milestonePoints,
+    label: 'Milestones',
+  },
+  { getValue: (row: SharedGameResultRow) => row.awardPoints, label: 'Awards' },
+  {
+    getValue: (row: SharedGameResultRow) => row.cardPointsJovian ?? 0,
+    label: 'Jovian',
+  },
+  {
+    getValue: (row: SharedGameResultRow) => row.cardPointsMicrobes ?? 0,
+    label: 'Microbe',
+  },
+  {
+    getValue: (row: SharedGameResultRow) => row.cardPointsAnimals ?? 0,
+    label: 'Animal',
+  },
+] as const;
+
+function getGenerationBucket(generationCount: number) {
+  if (generationCount <= 9) {
+    return { code: 'short', label: 'Short' };
+  }
+
+  if (generationCount >= 12) {
+    return { code: 'long', label: 'Long' };
+  }
+
+  return { code: 'standard', label: 'Standard' };
+}
+
+function getWinRate(rows: Array<{ isWinner: boolean }>) {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return rows.filter((row) => row.isWinner).length / rows.length;
+}
+
+function matchesFocus(playerId: string | null | undefined, focusPlayerId: string | null) {
+  return !focusPlayerId || playerId === focusPlayerId;
+}
+
+function filterPaceRows(
+  rows: GenerationPaceRow[],
+  focusPlayerId: string | null,
+) {
+  return rows.filter((row) => matchesFocus(row.playerId, focusPlayerId));
+}
+
+function getActionCount(row: GenerationPaceRow) {
+  return (
+    row.awardsFunded +
+    row.cardsPlayed +
+    row.citiesPlaced +
+    row.greeneriesPlaced +
+    row.milestonesClaimed
+  );
+}
+
+function getTerraformingActionCount(row: GenerationPaceRow) {
+  return row.citiesPlaced + row.greeneriesPlaced + row.tilesPlaced;
+}
+
+function getMostCommonAction(rows: GenerationPaceRow[]) {
+  const actionCounts = new Map<string, number>();
+
+  for (const row of rows) {
+    actionCounts.set('Cards', (actionCounts.get('Cards') ?? 0) + row.cardsPlayed);
+    actionCounts.set(
+      'Greeneries',
+      (actionCounts.get('Greeneries') ?? 0) + row.greeneriesPlaced,
+    );
+    actionCounts.set('Cities', (actionCounts.get('Cities') ?? 0) + row.citiesPlaced);
+    actionCounts.set(
+      'Milestones',
+      (actionCounts.get('Milestones') ?? 0) + row.milestonesClaimed,
+    );
+    actionCounts.set(
+      'Awards',
+      (actionCounts.get('Awards') ?? 0) + row.awardsFunded,
+    );
+  }
+
+  return [...actionCounts.entries()].sort(
+    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+  )[0] ?? null;
+}
+
+function buildWinConditionDeltaMetric(
+  targetRows: SharedGameResultRow[],
+): ExpandedIndividualMetric {
+  const winRows = targetRows.filter((row) => row.isWinner);
+  const lossRows = targetRows.filter((row) => !row.isWinner);
+  const rows = individualScoreSources.map((source) => {
+    const winAverage = averageValues(winRows.map(source.getValue));
+    const lossAverage = averageValues(lossRows.map(source.getValue));
+
+    return {
+      delta:
+        winAverage !== null && lossAverage !== null ? winAverage - lossAverage : null,
+      label: source.label,
+      lossAverage,
+      winAverage,
+    };
+  });
+  const bestLift =
+    [...rows]
+      .filter((row) => row.delta !== null)
+      .sort((left, right) => (right.delta ?? 0) - (left.delta ?? 0))[0] ?? null;
+  const lossDrag =
+    [...rows]
+      .filter((row) => row.delta !== null)
+      .sort((left, right) => (left.delta ?? 0) - (right.delta ?? 0))[0] ?? null;
+  const averageWinScore = averageValues(winRows.map((row) => row.totalPoints));
+  const averageLossScore = averageValues(lossRows.map((row) => row.totalPoints));
+
+  return expandedMetric({
+    confidenceLabel:
+      winRows.length > 0 && lossRows.length > 0
+        ? 'Compares final score-source averages in wins against losses.'
+        : 'Needs both wins and losses to show a true win/loss delta.',
+    metrics: [
+      expandedMetricEntry(
+        'Top win lift',
+        bestLift?.label ?? 'n/a',
+        bestLift ? `${formatMetricDelta(bestLift.delta)} points in wins` : undefined,
+      ),
+      expandedMetricEntry(
+        'Loss drag',
+        lossDrag?.label ?? 'n/a',
+        lossDrag ? `${formatMetricDelta(lossDrag.delta)} points in wins` : undefined,
+      ),
+      expandedMetricEntry('Avg win score', formatMetricAverage(averageWinScore)),
+      expandedMetricEntry('Avg loss score', formatMetricAverage(averageLossScore)),
+    ],
+    sampleSize: targetRows.length,
+    summary:
+      bestLift && bestLift.delta !== null
+        ? `${bestLift.label} is the clearest scoring separator, moving ${formatMetricDelta(
+            bestLift.delta,
+          )} points from losses to wins.`
+        : 'Score-source rows are ready, but the selected slice needs both wins and losses for a sharper comparison.',
+    title: 'Win Condition Delta',
+  });
+}
+
+function buildGameLengthFitMetric(
+  targetRows: SharedGameResultRow[],
+  fallbackRows: GameLengthPerformanceRow[],
+  focusPlayerId: string | null,
+): ExpandedIndividualMetric {
+  const grouped = new Map<
+    string,
+    { label: string; rows: SharedGameResultRow[] }
+  >();
+
+  for (const row of targetRows) {
+    const bucket = getGenerationBucket(row.generationCount);
+    const existing = grouped.get(bucket.code) ?? { label: bucket.label, rows: [] };
+    existing.rows.push(row);
+    grouped.set(bucket.code, existing);
+  }
+
+  const derivedRows = [...grouped.entries()].map(([code, entry]) => {
+    const averageScore = averageValues(entry.rows.map((row) => row.totalPoints));
+    const averageGenerationCount = averageValues(
+      entry.rows.map((row) => row.generationCount),
+    );
+
+    return {
+      averagePointsPerGeneration:
+        averageScore !== null && averageGenerationCount !== null
+          ? averageScore / averageGenerationCount
+          : null,
+      averageScore,
+      gamesPlayed: entry.rows.length,
+      label: entry.label,
+      winRate: getWinRate(entry.rows),
+      wins: entry.rows.filter((row) => row.isWinner).length,
+      code,
+    };
+  });
+  const extendedRows =
+    derivedRows.length > 0
+      ? derivedRows
+      : fallbackRows
+          .filter((row) => matchesFocus(row.playerId, focusPlayerId))
+          .map((row) => ({
+            averagePointsPerGeneration: row.averagePointsPerGeneration,
+            averageScore: row.averageScore,
+            code: row.lengthBucket,
+            gamesPlayed: row.gamesPlayed,
+            label: humanizeStyleCode(row.lengthBucket),
+            winRate: row.winRate,
+            wins: row.wins,
+          }));
+  const best =
+    [...extendedRows].sort(
+      (left, right) =>
+        (right.winRate ?? -1) - (left.winRate ?? -1) ||
+        (right.averagePointsPerGeneration ?? -1) -
+          (left.averagePointsPerGeneration ?? -1),
+    )[0] ?? null;
+  const weakest =
+    [...extendedRows].sort(
+      (left, right) =>
+        (left.winRate ?? 2) - (right.winRate ?? 2) ||
+        (left.averagePointsPerGeneration ?? Infinity) -
+          (right.averagePointsPerGeneration ?? Infinity),
+    )[0] ?? null;
+  const averageGenerationCount = averageValues(
+    targetRows.map((row) => row.generationCount),
+  );
+
+  return expandedMetric({
+    confidenceLabel:
+      extendedRows.length > 0
+        ? 'Buckets finalized games into short, standard, and long generation lengths.'
+        : 'Needs finalized games with generation counts.',
+    metrics: [
+      expandedMetricEntry('Best length', best?.label ?? 'n/a'),
+      expandedMetricEntry('Weakest length', weakest?.label ?? 'n/a'),
+      expandedMetricEntry(
+        'Best win rate',
+        formatMetricPercent(best?.winRate ?? null),
+      ),
+      expandedMetricEntry('Avg generations', formatMetricAverage(averageGenerationCount)),
+    ],
+    sampleSize: targetRows.length,
+    summary: best
+      ? `${best.label} games fit best so far, with ${formatMetricPercent(
+          best.winRate,
+        )} wins and ${formatMetricAverage(
+          best.averagePointsPerGeneration,
+        )} points per generation.`
+      : 'Game length fit will appear once finalized games include generation counts.',
+    title: 'Game Length Fit',
+  });
+}
+
+function buildOpeningTempoMetric(
+  generationPaceRows: GenerationPaceRow[],
+  focusPlayerId: string | null,
+): ExpandedIndividualMetric {
+  const earlyRows = filterPaceRows(generationPaceRows, focusPlayerId).filter(
+    (row) => row.generationNumber <= 3,
+  );
+  const gameCount = new Set(earlyRows.map((row) => row.gameId)).size;
+  const cardsPerGame =
+    gameCount > 0 ? sumValues(earlyRows.map((row) => row.cardsPlayed)) / gameCount : null;
+  const terraformingPerGame =
+    gameCount > 0
+      ? sumValues(earlyRows.map(getTerraformingActionCount)) / gameCount
+      : null;
+  const milestonesPerGame =
+    gameCount > 0
+      ? sumValues(earlyRows.map((row) => row.milestonesClaimed)) / gameCount
+      : null;
+  const mostCommonAction = getMostCommonAction(earlyRows);
+
+  return expandedMetric({
+    confidenceLabel:
+      gameCount > 0
+        ? 'Uses generation 1-3 card, tile, greenery, city, milestone, and award logs.'
+        : 'Needs imported logs with generation-level actions.',
+    metrics: [
+      expandedMetricEntry('Cards / game', formatMetricAverage(cardsPerGame)),
+      expandedMetricEntry(
+        'Terraform / game',
+        formatMetricAverage(terraformingPerGame),
+      ),
+      expandedMetricEntry('Milestones / game', formatMetricAverage(milestonesPerGame)),
+      expandedMetricEntry('Opening lean', mostCommonAction?.[0] ?? 'n/a'),
+    ],
+    sampleSize: gameCount,
+    summary:
+      cardsPerGame !== null || terraformingPerGame !== null
+        ? `Early tempo currently leans ${
+            (cardsPerGame ?? 0) >= (terraformingPerGame ?? 0)
+              ? 'card development'
+              : 'board terraforming'
+          }, based on the first three generations.`
+        : 'Opening tempo will unlock as imported logs capture the first three generations.',
+    title: 'Opening Tempo Profile',
+  });
+}
+
+function buildEndgameConversionMetric({
+  finalTerraformingActionStats,
+  focusPlayerId,
+  generationPaceRows,
+  targetPlayerIds,
+}: {
+  finalTerraformingActionStats: FinalTerraformingActionStat[];
+  focusPlayerId: string | null;
+  generationPaceRows: GenerationPaceRow[];
+  targetPlayerIds: Set<string> | null;
+}): ExpandedIndividualMetric {
+  const paceRows = filterPaceRows(generationPaceRows, focusPlayerId);
+  const maxGenerationByGame = new Map<string, number>();
+
+  for (const row of paceRows) {
+    maxGenerationByGame.set(
+      row.gameId,
+      Math.max(maxGenerationByGame.get(row.gameId) ?? 0, row.generationNumber),
+    );
+  }
+
+  const finalRows = paceRows.filter((row) => {
+    const maxGeneration = maxGenerationByGame.get(row.gameId) ?? row.generationNumber;
+
+    return row.generationNumber >= Math.max(1, maxGeneration - 1);
+  });
+  const gameCount = maxGenerationByGame.size;
+  const actionsPerGame =
+    gameCount > 0 ? sumValues(finalRows.map(getActionCount)) / gameCount : null;
+  const terraformingPerGame =
+    gameCount > 0
+      ? sumValues(finalRows.map(getTerraformingActionCount)) / gameCount
+      : null;
+  const mostCommonAction = getMostCommonAction(finalRows);
+  const actionStats = finalTerraformingActionStats.filter(
+    (row) => !targetPlayerIds || targetPlayerIds.has(row.player_id),
+  );
+  const actionStat =
+    [...actionStats].sort(
+      (left, right) =>
+        right.final_action_games - left.final_action_games ||
+        (right.win_rate_delta ?? -Infinity) - (left.win_rate_delta ?? -Infinity),
+    )[0] ?? null;
+
+  return expandedMetric({
+    confidenceLabel:
+      gameCount > 0 || actionStat
+        ? 'Uses final two logged generations plus final terraforming action stats when available.'
+        : 'Needs imported logs with late-generation actions.',
+    metrics: [
+      expandedMetricEntry('Final actions / game', formatMetricAverage(actionsPerGame)),
+      expandedMetricEntry(
+        'Terraform / game',
+        formatMetricAverage(terraformingPerGame),
+      ),
+      expandedMetricEntry(
+        'Common closer',
+        actionStat?.most_common_action_type ?? mostCommonAction?.[0] ?? 'n/a',
+      ),
+      expandedMetricEntry(
+        'Closer win lift',
+        formatMetricPercentDelta(actionStat?.win_rate_delta ?? null),
+      ),
+    ],
+    sampleSize: Math.max(gameCount, actionStat?.imported_games ?? 0),
+    summary:
+      actionsPerGame !== null
+        ? `Endgame conversion is averaging ${formatMetricAverage(
+            actionsPerGame,
+          )} logged actions across the final two generations.`
+        : 'Endgame conversion will sharpen once final-generation action logs are available.',
+    title: 'Endgame Conversion',
+  });
+}
+
+function buildOpponentAdjustedMetric({
+  allRows,
+  focusedHeadToHeadRows,
+  targetPlayerIds,
+  targetRows,
+}: {
+  allRows: SharedGameResultRow[];
+  focusedHeadToHeadRows: FocusedHeadToHeadRow[];
+  targetPlayerIds: Set<string> | null;
+  targetRows: SharedGameResultRow[];
+}): ExpandedIndividualMetric {
+  const rowsByGame = new Map<string, SharedGameResultRow[]>();
+
+  for (const row of allRows) {
+    const existing = rowsByGame.get(row.gameId) ?? [];
+    existing.push(row);
+    rowsByGame.set(row.gameId, existing);
+  }
+
+  const adjustedRows = targetRows.flatMap((row) => {
+    const gameRows = rowsByGame.get(row.gameId) ?? [];
+    const opponentRows = gameRows.filter((candidate) =>
+      targetPlayerIds
+        ? !targetPlayerIds.has(candidate.playerId)
+        : candidate.playerId !== row.playerId,
+    );
+    const opponentAverage = averageValues(
+      opponentRows.map((candidate) => candidate.totalPoints),
+    );
+
+    return opponentAverage === null
+      ? []
+      : [
+          {
+            isWinner: row.isWinner,
+            opponentAverage,
+            scoreEdge: row.totalPoints - opponentAverage,
+          },
+        ];
+  });
+  const averageOpponentScore = averageValues(
+    adjustedRows.map((row) => row.opponentAverage),
+  );
+  const averageScoreEdge = averageValues(adjustedRows.map((row) => row.scoreEdge));
+  const strongTableRows =
+    averageOpponentScore === null
+      ? []
+      : adjustedRows.filter((row) => row.opponentAverage >= averageOpponentScore);
+  const bestMatchup =
+    [...focusedHeadToHeadRows].sort(
+      (left, right) =>
+        right.averageScoreDifferential - left.averageScoreDifferential ||
+        right.wins - left.wins,
+    )[0] ?? null;
+  const hardestMatchup =
+    [...focusedHeadToHeadRows].sort(
+      (left, right) =>
+        left.averageScoreDifferential - right.averageScoreDifferential ||
+        right.losses - left.losses,
+    )[0] ?? null;
+
+  return expandedMetric({
+    confidenceLabel:
+      adjustedRows.length > 0
+        ? 'Compares each result to the average opponent score in that game.'
+        : 'Needs shared games with opponent result rows.',
+    metrics: [
+      expandedMetricEntry('Vs opponent avg', formatMetricDelta(averageScoreEdge)),
+      expandedMetricEntry('Strong-table wins', formatMetricPercent(getWinRate(strongTableRows))),
+      expandedMetricEntry('Best matchup', bestMatchup?.label ?? 'n/a'),
+      expandedMetricEntry('Hardest matchup', hardestMatchup?.label ?? 'n/a'),
+    ],
+    sampleSize: adjustedRows.length,
+    summary:
+      averageScoreEdge !== null
+        ? `Opponent-adjusted scoring is ${formatMetricDelta(
+            averageScoreEdge,
+          )} points versus the average tablemate.`
+        : 'Opponent-adjusted performance will appear once opponent rows are available.',
+    title: 'Opponent-Adjusted Performance',
+  });
+}
+
+function buildStyleFitMetric({
+  focusPlayerId,
+  selectedStylePerformanceRows,
+  styleAgreementRows,
+}: {
+  focusPlayerId: string | null;
+  selectedStylePerformanceRows: GroupStylePerformanceRow[];
+  styleAgreementRows: StyleAgreementRow[];
+}): ExpandedIndividualMetric {
+  const mostPlayed =
+    [...selectedStylePerformanceRows].sort(
+      (left, right) =>
+        right.gamesPlayed - left.gamesPlayed || right.winRate - left.winRate,
+    )[0] ?? null;
+  const best =
+    [...selectedStylePerformanceRows].sort(
+      (left, right) =>
+        right.winRate - left.winRate ||
+        right.gamesPlayed - left.gamesPlayed ||
+        right.averageScore - left.averageScore,
+    )[0] ?? null;
+  const agreementRows = focusPlayerId
+    ? styleAgreementRows.filter((row) => row.playerId === focusPlayerId)
+    : styleAgreementRows;
+  const agreementWeight = sumValues(
+    agreementRows.map((row) => row.comparedGames),
+  );
+  const exactAgreement =
+    agreementWeight > 0
+      ? sumValues(
+          agreementRows.map((row) => row.exactMatchRate * row.comparedGames),
+        ) / agreementWeight
+      : null;
+  const winRateGap =
+    mostPlayed && best ? best.winRate - mostPlayed.winRate : null;
+
+  return expandedMetric({
+    confidenceLabel:
+      selectedStylePerformanceRows.length > 0
+        ? 'Compares most-played inferred style to best-performing inferred style.'
+        : 'Needs inferred styles on finalized games.',
+    metrics: [
+      expandedMetricEntry(
+        'Most played',
+        mostPlayed ? humanizeStyleCode(mostPlayed.styleCode) : 'n/a',
+      ),
+      expandedMetricEntry(
+        'Best style',
+        best ? humanizeStyleCode(best.styleCode) : 'n/a',
+      ),
+      expandedMetricEntry('Win-rate gap', formatMetricPercentDelta(winRateGap)),
+      expandedMetricEntry('Style agreement', formatMetricPercent(exactAgreement)),
+    ],
+    sampleSize: selectedStylePerformanceRows.reduce(
+      (sum, row) => sum + row.gamesPlayed,
+      0,
+    ),
+    summary:
+      mostPlayed && best
+        ? mostPlayed.styleCode === best.styleCode
+          ? `${humanizeStyleCode(best.styleCode)} is both the most common and best-performing style.`
+          : `${humanizeStyleCode(mostPlayed.styleCode)} is most common, but ${humanizeStyleCode(
+              best.styleCode,
+            )} is performing better.`
+        : 'Style fit will appear once inferred style performance rows exist.',
+    title: 'Style Fit Gap',
+  });
+}
+
+function buildSignatureSelectionLiftMetric({
+  cardOutcomeRows,
+  currentUserCanonicalId,
+  focusPlayerId,
+  personalSelectionStats,
+  selectedPersonCanonicalId,
+  targetRows,
+}: {
+  cardOutcomeRows: CardOutcomeRow[];
+  currentUserCanonicalId?: string;
+  focusPlayerId: string | null;
+  personalSelectionStats?: SelectionStats;
+  selectedPersonCanonicalId: string | null;
+  targetRows: SharedGameResultRow[];
+}): ExpandedIndividualMetric {
+  const canUsePersonalSelections = Boolean(
+    personalSelectionStats &&
+      personalSelectionStats.totalGames > 0 &&
+      selectedPersonCanonicalId !== null &&
+      selectedPersonCanonicalId === currentUserCanonicalId,
+  );
+  const baseline = canUsePersonalSelections
+    ? personalSelectionStats?.baselineWinRate ?? 0
+    : getWinRate(targetRows);
+
+  if (canUsePersonalSelections && personalSelectionStats) {
+    const personalBaseline = personalSelectionStats.baselineWinRate;
+    const candidates = [
+      ...personalSelectionStats.corporations.map((row) => ({
+        label: 'Corporation',
+        name: row.corporation_name,
+        plays: row.plays,
+        winRate: row.win_rate,
+      })),
+      ...personalSelectionStats.preludes.map((row) => ({
+        label: 'Prelude',
+        name: row.prelude_name,
+        plays: row.plays,
+        winRate: row.win_rate,
+      })),
+      ...personalSelectionStats.pairs.map((row) => ({
+        label: 'Corp + Prelude',
+        name: `${row.corporation_name} + ${row.prelude_name}`,
+        plays: row.plays,
+        winRate: row.win_rate,
+      })),
+      ...personalSelectionStats.cards.map((row) => ({
+        label: 'Card',
+        name: row.card_name,
+        plays: row.plays,
+        winRate: row.win_rate_when_played,
+      })),
+    ].filter((row) => row.plays > 0);
+    const best =
+      [...candidates].sort(
+        (left, right) =>
+          right.winRate - personalBaseline - (left.winRate - personalBaseline) ||
+          right.plays - left.plays,
+      )[0] ?? null;
+
+    return expandedMetric({
+      confidenceLabel:
+        'Uses personal corporation, prelude, pair, and card win-rate lift over baseline.',
+      metrics: [
+        expandedMetricEntry('Best signature', best?.name ?? 'n/a'),
+        expandedMetricEntry('Type', best?.label ?? 'n/a'),
+        expandedMetricEntry(
+          'Win lift',
+          best ? formatMetricPercentDelta(best.winRate - personalBaseline) : 'n/a',
+        ),
+        expandedMetricEntry('Plays', best ? formatAverage(best.plays) : 'n/a'),
+      ],
+      sampleSize: personalSelectionStats.totalGames,
+      summary: best
+        ? `${best.name} is the strongest signature selection, running ${formatMetricPercentDelta(
+            best.winRate - personalBaseline,
+          )} above baseline.`
+        : 'Signature lift will appear once personal selection rows have repeated plays.',
+      title: 'Signature Selection Lift',
+    });
+  }
+
+  const cardRows = cardOutcomeRows.filter((row) =>
+    matchesFocus(row.playerId, focusPlayerId),
+  );
+  const cardsByName = new Map<string, { plays: number; wins: number }>();
+
+  for (const row of cardRows) {
+    const existing = cardsByName.get(row.cardName) ?? { plays: 0, wins: 0 };
+    existing.plays += 1;
+    existing.wins += row.isWinner ? 1 : 0;
+    cardsByName.set(row.cardName, existing);
+  }
+
+  const best =
+    [...cardsByName.entries()]
+      .map(([name, row]) => ({
+        lift: baseline === null ? null : row.wins / row.plays - baseline,
+        name,
+        plays: row.plays,
+        winRate: row.wins / row.plays,
+      }))
+      .sort(
+        (left, right) =>
+          (right.lift ?? -Infinity) - (left.lift ?? -Infinity) ||
+          right.plays - left.plays,
+      )[0] ?? null;
+
+  return expandedMetric({
+    confidenceLabel:
+      'Uses card outcome lift when personal setup selection stats are not available for this focus.',
+    metrics: [
+      expandedMetricEntry('Best card', best?.name ?? 'n/a'),
+      expandedMetricEntry('Win lift', formatMetricPercentDelta(best?.lift ?? null)),
+      expandedMetricEntry('Card win rate', formatMetricPercent(best?.winRate ?? null)),
+      expandedMetricEntry('Plays', best ? formatAverage(best.plays) : 'n/a'),
+    ],
+    sampleSize: cardRows.length,
+    summary: best
+      ? `${best.name} is the clearest repeated signature card in this slice.`
+      : 'Signature lift needs repeated card, corporation, or prelude selections.',
+    title: 'Signature Selection Lift',
+  });
+}
+
+function buildInteractionResilienceMetric({
+  focusedHeadToHeadRows,
+  selectedInteractionRows,
+  targetRows,
+}: {
+  focusedHeadToHeadRows: FocusedHeadToHeadRow[];
+  selectedInteractionRows: DashboardInteractionRow[];
+  targetRows: SharedGameResultRow[];
+}): ExpandedIndividualMetric {
+  const closeRows = targetRows.filter((row) => {
+    const margin = row.isWinner ? row.winDifferentialPoints : row.lossGapPoints;
+
+    return margin !== null && margin <= 5;
+  });
+  const closeWinRate = getWinRate(closeRows);
+  const hardest =
+    [...focusedHeadToHeadRows].sort(
+      (left, right) =>
+        left.averageScoreDifferential - right.averageScoreDifferential ||
+        right.losses - left.losses,
+    )[0] ?? null;
+  const baseline = getWinRate(targetRows);
+  const resilientPairing =
+    [...selectedInteractionRows].sort(
+      (left, right) =>
+        (right.winRate - (baseline ?? 0)) - (left.winRate - (baseline ?? 0)) ||
+        right.gamesPlayed - left.gamesPlayed,
+    )[0] ?? null;
+
+  return expandedMetric({
+    confidenceLabel:
+      'Uses close-game outcomes, hardest head-to-head rows, and setup interaction pairings.',
+    metrics: [
+      expandedMetricEntry('Close-game wins', formatMetricPercent(closeWinRate)),
+      expandedMetricEntry('Close games', formatAverage(closeRows.length)),
+      expandedMetricEntry('Pressure matchup', hardest?.label ?? 'n/a'),
+      expandedMetricEntry('Best resilient pair', resilientPairing?.label ?? 'n/a'),
+    ],
+    sampleSize: targetRows.length,
+    summary:
+      closeRows.length > 0
+        ? `The selected slice wins ${formatMetricPercent(
+            closeWinRate,
+          )} of games decided by five points or fewer.`
+        : 'Interaction resilience will sharpen as close games and repeated matchup pressure accumulate.',
+    title: 'Interaction Resilience',
+  });
+}
+
+function buildBoardControlEfficiencyMetric({
+  focusPlayerId,
+  playerMapPerformanceRows,
+  targetRows,
+  tilePlacementRows,
+}: {
+  focusPlayerId: string | null;
+  playerMapPerformanceRows: PlayerMapPerformanceRow[];
+  targetRows: SharedGameResultRow[];
+  tilePlacementRows: TilePlacementRow[];
+}): ExpandedIndividualMetric {
+  const boardPoints = sumValues(
+    targetRows.map((row) => row.greeneryPoints + row.citiesPoints),
+  );
+  const boardPointsPerGame =
+    targetRows.length > 0 ? boardPoints / targetRows.length : null;
+  const tileRows = tilePlacementRows.filter((row) =>
+    matchesFocus(row.playerId, focusPlayerId),
+  );
+  const boardTileRows = tileRows.filter((row) =>
+    ['city', 'greenery'].some((tileType) =>
+      row.tileType.toLowerCase().includes(tileType),
+    ),
+  );
+  const greeneryRows = tileRows.filter((row) =>
+    row.tileType.toLowerCase().includes('greenery'),
+  );
+  const pointsPerBoardTile =
+    boardTileRows.length > 0 ? boardPoints / boardTileRows.length : null;
+  const bestMap =
+    [...playerMapPerformanceRows]
+      .filter((row) => matchesFocus(row.playerId, focusPlayerId))
+      .sort(
+        (left, right) =>
+          right.winRate - left.winRate ||
+          right.gamesPlayed - left.gamesPlayed ||
+          right.averageScore - left.averageScore,
+      )[0] ?? null;
+
+  return expandedMetric({
+    confidenceLabel:
+      tileRows.length > 0
+        ? 'Uses imported tile placements plus final city and greenery points.'
+        : 'Uses final city and greenery points; tile efficiency improves with imported board logs.',
+    metrics: [
+      expandedMetricEntry('Board pts / game', formatMetricAverage(boardPointsPerGame)),
+      expandedMetricEntry('Pts / board tile', formatMetricAverage(pointsPerBoardTile)),
+      expandedMetricEntry(
+        'Greenery share',
+        boardTileRows.length > 0
+          ? formatMetricPercent(greeneryRows.length / boardTileRows.length)
+          : 'n/a',
+      ),
+      expandedMetricEntry('Best map', bestMap?.mapName ?? 'n/a'),
+    ],
+    sampleSize: Math.max(targetRows.length, tileRows.length),
+    summary:
+      boardPointsPerGame !== null
+        ? `Board scoring is averaging ${formatMetricAverage(
+            boardPointsPerGame,
+          )} city and greenery points per game.`
+        : 'Board-control efficiency needs finalized scores or imported tile placements.',
+    title: 'Board Control Efficiency',
+  });
+}
+
+function buildReliabilityMetric(targetRows: SharedGameResultRow[]): ExpandedIndividualMetric {
+  const scores = targetRows.map((row) => row.totalPoints);
+  const scoreDeviation = standardDeviationValues(scores);
+  const floor = scores.length > 0 ? Math.min(...scores) : null;
+  const ceiling = scores.length > 0 ? Math.max(...scores) : null;
+  const closeRows = targetRows.filter((row) => {
+    const margin = row.isWinner ? row.winDifferentialPoints : row.lossGapPoints;
+
+    return margin !== null && margin <= 5;
+  });
+  const averageWinMargin = averageValues(
+    targetRows
+      .map((row) => row.winDifferentialPoints)
+      .filter((value): value is number => value !== null),
+  );
+  const averageLossGap = averageValues(
+    targetRows
+      .map((row) => row.lossGapPoints)
+      .filter((value): value is number => value !== null),
+  );
+
+  return expandedMetric({
+    confidenceLabel:
+      targetRows.length > 1
+        ? 'Uses score floor, ceiling, standard deviation, and close-game results.'
+        : 'Needs multiple finalized games for volatility.',
+    metrics: [
+      expandedMetricEntry('Score floor', formatMetricAverage(floor)),
+      expandedMetricEntry('Score ceiling', formatMetricAverage(ceiling)),
+      expandedMetricEntry('Score volatility', formatMetricAverage(scoreDeviation)),
+      expandedMetricEntry('Close-game wins', formatMetricPercent(getWinRate(closeRows))),
+    ],
+    sampleSize: targetRows.length,
+    summary:
+      scoreDeviation !== null
+        ? `Scores range from ${formatMetricAverage(floor)} to ${formatMetricAverage(
+            ceiling,
+          )}, with ${formatMetricAverage(scoreDeviation)} standard deviation. Average win margin is ${formatMetricAverage(
+            averageWinMargin,
+          )}; average loss gap is ${formatMetricAverage(averageLossGap)}.`
+        : 'Reliability and volatility will appear once multiple finalized games are available.',
+    title: 'Reliability / Volatility',
+  });
+}
+
+function buildExpandedIndividualMetrics({
+  allRows,
+  cardOutcomeRows,
+  currentUserCanonicalId,
+  finalTerraformingActionStats,
+  focusPlayerId,
+  focusedHeadToHeadRows,
+  gameLengthRows,
+  generationPaceRows,
+  personalSelectionStats,
+  playerMapPerformanceRows,
+  selectedInteractionRows,
+  selectedPersonCanonicalId,
+  selectedStylePerformanceRows,
+  styleAgreementRows,
+  targetPlayerIds,
+  targetRows,
+  tilePlacementRows,
+}: {
+  allRows: SharedGameResultRow[];
+  cardOutcomeRows: CardOutcomeRow[];
+  currentUserCanonicalId?: string;
+  finalTerraformingActionStats: FinalTerraformingActionStat[];
+  focusPlayerId: string | null;
+  focusedHeadToHeadRows: FocusedHeadToHeadRow[];
+  gameLengthRows: GameLengthPerformanceRow[];
+  generationPaceRows: GenerationPaceRow[];
+  personalSelectionStats?: SelectionStats;
+  playerMapPerformanceRows: PlayerMapPerformanceRow[];
+  selectedInteractionRows: DashboardInteractionRow[];
+  selectedPersonCanonicalId: string | null;
+  selectedStylePerformanceRows: GroupStylePerformanceRow[];
+  styleAgreementRows: StyleAgreementRow[];
+  targetPlayerIds: Set<string> | null;
+  targetRows: SharedGameResultRow[];
+  tilePlacementRows: TilePlacementRow[];
+}): ExpandedIndividualMetric[] {
+  return [
+    buildWinConditionDeltaMetric(targetRows),
+    buildGameLengthFitMetric(targetRows, gameLengthRows, focusPlayerId),
+    buildOpeningTempoMetric(generationPaceRows, focusPlayerId),
+    buildEndgameConversionMetric({
+      finalTerraformingActionStats,
+      focusPlayerId,
+      generationPaceRows,
+      targetPlayerIds,
+    }),
+    buildOpponentAdjustedMetric({
+      allRows,
+      focusedHeadToHeadRows,
+      targetPlayerIds,
+      targetRows,
+    }),
+    buildStyleFitMetric({
+      focusPlayerId,
+      selectedStylePerformanceRows,
+      styleAgreementRows,
+    }),
+    buildSignatureSelectionLiftMetric({
+      cardOutcomeRows,
+      currentUserCanonicalId,
+      focusPlayerId,
+      personalSelectionStats,
+      selectedPersonCanonicalId,
+      targetRows,
+    }),
+    buildInteractionResilienceMetric({
+      focusedHeadToHeadRows,
+      selectedInteractionRows,
+      targetRows,
+    }),
+    buildBoardControlEfficiencyMetric({
+      focusPlayerId,
+      playerMapPerformanceRows,
+      targetRows,
+      tilePlacementRows,
+    }),
+    buildReliabilityMetric(targetRows),
+  ];
+}
+
 export function InsightsDashboard({
   analytics: baseAnalytics,
   children: groupSwitcher,
   currentUserCanonicalId,
   extended: baseExtended,
+  finalTerraformingActionStats = [],
   focusPeople,
   mapAwardGroups = [],
   overallAnalytics,
   overallExtended,
+  personalSelectionStats,
   selectionDialogData,
   sharedGameRows = [],
   scopeMode = 'all',
@@ -899,6 +1895,61 @@ export function InsightsDashboard({
   const trendChartData = buildTrendChartData(
     trendRows,
     isGroupScope ? Boolean(selectedPlayer) : Boolean(selectedPerson),
+  );
+  const targetPlayerIds = useMemo(
+    () => (selectedPerson ? new Set(selectedPerson.playerIds) : null),
+    [selectedPerson],
+  );
+  const targetSharedGameRows = useMemo(
+    () =>
+      targetPlayerIds
+        ? sharedGameRows.filter((row) => targetPlayerIds.has(row.playerId))
+        : sharedGameRows,
+    [sharedGameRows, targetPlayerIds],
+  );
+  const expandedIndividualMetrics = useMemo(
+    () =>
+      scopeMode === 'individual'
+        ? buildExpandedIndividualMetrics({
+            allRows: sharedGameRows,
+            cardOutcomeRows: sectionExtended.cardOutcomeRows,
+            currentUserCanonicalId,
+            finalTerraformingActionStats,
+            focusPlayerId: sectionFocusPlayerId,
+            focusedHeadToHeadRows,
+            gameLengthRows: sectionExtended.gameLengthPerformanceRows,
+            generationPaceRows: sectionExtended.generationPaceRows,
+            personalSelectionStats,
+            playerMapPerformanceRows: sectionExtended.playerMapPerformanceRows,
+            selectedInteractionRows,
+            selectedPersonCanonicalId: selectedPerson?.canonicalId ?? null,
+            selectedStylePerformanceRows,
+            styleAgreementRows: sectionAnalytics.styleAgreementRows,
+            targetPlayerIds,
+            targetRows: targetSharedGameRows,
+            tilePlacementRows: sectionExtended.tilePlacementRows,
+          })
+        : [],
+    [
+      currentUserCanonicalId,
+      finalTerraformingActionStats,
+      focusedHeadToHeadRows,
+      personalSelectionStats,
+      scopeMode,
+      sectionAnalytics.styleAgreementRows,
+      sectionExtended.cardOutcomeRows,
+      sectionExtended.gameLengthPerformanceRows,
+      sectionExtended.generationPaceRows,
+      sectionExtended.playerMapPerformanceRows,
+      sectionExtended.tilePlacementRows,
+      sectionFocusPlayerId,
+      selectedInteractionRows,
+      selectedPerson,
+      selectedStylePerformanceRows,
+      sharedGameRows,
+      targetPlayerIds,
+      targetSharedGameRows,
+    ],
   );
   const coverageData = selectedCoverage
     ? [
@@ -1246,6 +2297,53 @@ export function InsightsDashboard({
               ))}
             </div>
           </ChartFrame>
+
+          {expandedIndividualMetrics.length > 0 ? (
+            <ChartFrame
+              description="Ten player-specific lenses that explain what is driving wins, losses, tempo, style fit, and consistency."
+              title="Expanded Individual Metrics"
+            >
+              <div className="grid gap-3 lg:grid-cols-2">
+                {expandedIndividualMetrics.map((metric) => (
+                  <article className="tm-stat-card" key={metric.title}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <h3 className="font-semibold text-stone-100">
+                        {metric.title}
+                      </h3>
+                      <p className="tm-accent-copy text-xs uppercase tracking-[0.2em]">
+                        {metric.sampleSize} sample
+                        {metric.sampleSize === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                    <p className="tm-muted-copy mt-2 text-sm">
+                      {metric.summary}
+                    </p>
+                    <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+                      {metric.metrics.map((entry) => (
+                        <div
+                          className="rounded-md border border-white/10 bg-black/10 p-3"
+                          key={`${metric.title}-${entry.label}`}
+                        >
+                          <dt className="tm-data-label">{entry.label}</dt>
+                          <dd className="mt-1 break-words text-sm font-semibold text-stone-100">
+                            {entry.value}
+                          </dd>
+                          {entry.detail ? (
+                            <dd className="tm-muted-copy mt-1 text-xs">
+                              {entry.detail}
+                            </dd>
+                          ) : null}
+                        </div>
+                      ))}
+                    </dl>
+                    <p className="tm-muted-copy mt-3 text-xs">
+                      {metric.confidenceLabel}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </ChartFrame>
+          ) : null}
 
           {isGroupScope && selectedPerson && !selectedPerson.inActiveGroup ? (
             <ChartFrame title="Selected Group Unavailable">

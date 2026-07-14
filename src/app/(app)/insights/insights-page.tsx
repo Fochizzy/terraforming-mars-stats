@@ -243,10 +243,12 @@ export async function InsightsPageContent({ mode }: { mode: InsightsPageMode }) 
         analytics={analytics}
         currentUserCanonicalId={`user:${context.userId}`}
         extended={extendedAnalytics}
+        finalTerraformingActionStats={finalTerraformingActionStats}
         focusPeople={focusPeople}
         mapAwardGroups={mapAwardGroups}
         overallAnalytics={overallAnalytics.analytics}
         overallExtended={overallAnalytics.extended}
+        personalSelectionStats={personalSelectionStats}
         selectionDialogData={selectionDialogData}
         sharedGameRows={sharedGameRows}
         scopeMode={mode}

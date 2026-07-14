@@ -3,9 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type {
   CrossGroupFocusPerson,
+  GroupAnalytics,
   SharedGameResultRow,
 } from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
+import type {
+  FinalTerraformingActionStat,
+  SelectionStats,
+} from '@/lib/db/selection-stats-repo';
 import { InsightsDashboard } from './insights-dashboard';
 
 const emptyScoreAverages = {
@@ -62,7 +67,7 @@ function buildExtendedFixture(
   };
 }
 
-function buildEmptyGroupAnalyticsFixture() {
+function buildEmptyGroupAnalyticsFixture(): GroupAnalytics {
   return {
     coverage: null,
     groupInteractionRows: [],
@@ -78,7 +83,7 @@ function buildEmptyGroupAnalyticsFixture() {
     playerTrendRows: [],
     scoreAverages: null,
     styleAgreementRows: [],
-  } as never;
+  };
 }
 
 function buildSharedGameRow(
@@ -418,6 +423,402 @@ describe('InsightsDashboard', () => {
     expect(
       screen.getByRole('heading', { name: /Table Size Performance/i }),
     ).toBeInTheDocument();
+  });
+
+  it('renders all expanded individual metrics for a focused player', async () => {
+    const user = userEvent.setup();
+    const personalSelectionStats: SelectionStats = {
+      awardFunding: [],
+      baselineWinRate: 0.5,
+      cards: [
+        {
+          card_name: 'Earth Catapult',
+          plays: 2,
+          win_rate_when_played: 1,
+        },
+      ],
+      corporations: [
+        {
+          avg_animal_points: 0,
+          avg_award_points: 3,
+          avg_awards_won: 1,
+          avg_card_points: 21,
+          avg_cities_points: 5,
+          avg_greenery_points: 9,
+          avg_jovian_points: 0,
+          avg_microbe_points: 0,
+          avg_milestone_points: 5,
+          avg_milestones_won: 1,
+          avg_placement: 1,
+          avg_points: 91,
+          avg_tr_points: 31,
+          corporation_name: 'Tharsis Republic',
+          first_place_finishes: 2,
+          plays: 2,
+          second_place_finishes: 0,
+          third_plus_finishes: 0,
+          win_rate: 1,
+        },
+      ],
+      corporationTags: [],
+      pairs: [
+        {
+          avg_points: 91,
+          corporation_name: 'Tharsis Republic',
+          plays: 2,
+          prelude_name: 'Allied Bank',
+          win_rate: 1,
+        },
+      ],
+      preludes: [
+        {
+          avg_animal_points: 0,
+          avg_award_points: 3,
+          avg_awards_won: 1,
+          avg_card_points: 21,
+          avg_cities_points: 5,
+          avg_greenery_points: 9,
+          avg_jovian_points: 0,
+          avg_microbe_points: 0,
+          avg_milestone_points: 5,
+          avg_milestones_won: 1,
+          avg_placement: 1,
+          avg_points: 91,
+          avg_tr_points: 31,
+          first_place_finishes: 2,
+          plays: 2,
+          prelude_name: 'Allied Bank',
+          second_place_finishes: 0,
+          third_plus_finishes: 0,
+          win_rate: 1,
+        },
+      ],
+      tagWins: [],
+      totalGames: 3,
+    };
+    const finalTerraformingActionStats: FinalTerraformingActionStat[] = [
+      {
+        final_action_games: 2,
+        final_action_rate: 0.67,
+        final_action_win_rate: 1,
+        final_action_wins: 2,
+        imported_games: 3,
+        most_common_action_count: 2,
+        most_common_action_type: 'greenery',
+        overall_win_rate: 0.67,
+        overall_wins: 2,
+        player_id: 'p1',
+        player_name: 'Friday Mars',
+        win_rate_delta: 0.33,
+      },
+    ];
+    const sharedGameRows: SharedGameResultRow[] = [
+      buildSharedGameRow({
+        awardPoints: 3,
+        cardPointsTotal: 20,
+        citiesPoints: 8,
+        gameId: 'g1',
+        generationCount: 9,
+        greeneryPoints: 12,
+        isWinner: true,
+        lossGapPoints: null,
+        placement: 1,
+        playedOn: '2026-06-01',
+        playerId: 'p1',
+        playerName: 'Friday Mars',
+        totalPoints: 90,
+        trPoints: 35,
+        winDifferentialPoints: 5,
+      }),
+      buildSharedGameRow({
+        gameId: 'g1',
+        isWinner: false,
+        placement: 2,
+        playedOn: '2026-06-01',
+        playerId: 'p2',
+        playerName: 'Second Seat',
+        totalPoints: 83,
+      }),
+      buildSharedGameRow({
+        awardPoints: 0,
+        cardPointsTotal: 12,
+        citiesPoints: 4,
+        gameId: 'g2',
+        generationCount: 12,
+        greeneryPoints: 8,
+        isWinner: false,
+        lossGapPoints: 6,
+        milestonePoints: 0,
+        placement: 2,
+        playedOn: '2026-06-08',
+        playerId: 'p1',
+        playerName: 'Friday Mars',
+        totalPoints: 75,
+        trPoints: 28,
+        winDifferentialPoints: null,
+      }),
+      buildSharedGameRow({
+        gameId: 'g2',
+        isWinner: true,
+        placement: 1,
+        playedOn: '2026-06-08',
+        playerId: 'p2',
+        playerName: 'Second Seat',
+        totalPoints: 88,
+      }),
+      buildSharedGameRow({
+        awardPoints: 5,
+        cardPointsTotal: 24,
+        citiesPoints: 6,
+        gameId: 'g3',
+        generationCount: 10,
+        greeneryPoints: 10,
+        isWinner: true,
+        lossGapPoints: null,
+        placement: 1,
+        playedOn: '2026-06-15',
+        playerId: 'p1',
+        playerName: 'Friday Mars',
+        totalPoints: 92,
+        trPoints: 32,
+        winDifferentialPoints: 4,
+      }),
+      buildSharedGameRow({
+        gameId: 'g3',
+        isWinner: false,
+        placement: 2,
+        playedOn: '2026-06-15',
+        playerId: 'p3',
+        playerName: 'Third Seat',
+        totalPoints: 80,
+      }),
+    ];
+
+    render(
+      <InsightsDashboard
+        analytics={buildEmptyGroupAnalyticsFixture()}
+        currentUserCanonicalId="user:me"
+        extended={buildExtendedFixture()}
+        finalTerraformingActionStats={finalTerraformingActionStats}
+        focusPeople={[
+          buildFocusPerson({
+            bundle: {
+              coverage: null,
+              headToHeadRows: [
+                {
+                  averageScoreDifferential: 4,
+                  gamesPlayed: 3,
+                  label: 'Friday Mars vs Second Seat',
+                  losses: 1,
+                  ties: 0,
+                  wins: 2,
+                },
+              ],
+              performance: null,
+              scoreAverages: emptyScoreAverages,
+              styleBreakdownRows: [],
+              trendRows: [
+                {
+                  gameId: 'g1',
+                  generationCount: 9,
+                  groupId: 'group-1',
+                  inferredPrimaryStyleCode: 'engine_builder',
+                  isWinner: true,
+                  placement: 1,
+                  playedOn: '2026-06-01',
+                  playerId: 'p1',
+                  playerName: 'Friday Mars',
+                  totalPoints: 90,
+                },
+              ],
+            },
+            canonicalId: 'user:me',
+            displayName: 'Friday Mars',
+            playerIds: ['p1'],
+          }),
+        ]}
+        overallAnalytics={{
+          ...buildEmptyGroupAnalyticsFixture(),
+          playerInteractionRows: [
+            {
+              averagePlacement: 1.33,
+              averageScore: 88.1,
+              gamesPlayed: 3,
+              groupId: 'overall',
+              interactionType: 'corporation_prelude_pair',
+              label: 'Tharsis Republic | Allied Bank',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              winRate: 0.67,
+              wins: 2,
+            },
+          ],
+          playerStylePerformanceRows: [
+            {
+              averageGenerationCount: 10.5,
+              averagePlacement: 1.5,
+              averageScore: 82,
+              gamesPlayed: 2,
+              groupId: 'overall',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              styleCode: 'engine_builder',
+              winRate: 0.5,
+              wins: 1,
+            },
+            {
+              averageGenerationCount: 9,
+              averagePlacement: 1,
+              averageScore: 90,
+              gamesPlayed: 1,
+              groupId: 'overall',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              styleCode: 'board_control',
+              winRate: 1,
+              wins: 1,
+            },
+          ],
+          styleAgreementRows: [
+            {
+              averageInferredConfidence: 0.8,
+              comparedGames: 3,
+              exactMatchRate: 0.67,
+              groupId: 'overall',
+              mismatchRate: 0,
+              partialMatchRate: 0.33,
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+            },
+          ],
+        } as never}
+        overallExtended={buildExtendedFixture({
+          cardOutcomeRows: [
+            {
+              cardId: 'earth-catapult',
+              cardName: 'Earth Catapult',
+              fullImageUrl: null,
+              gameId: 'g1',
+              groupId: 'overall',
+              isWinner: true,
+              playedOn: '2026-06-01',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              thumbnailUrl: null,
+            },
+          ],
+          generationPaceRows: [
+            {
+              awardsFunded: 0,
+              cardsPlayed: 2,
+              citiesPlaced: 0,
+              gameId: 'g1',
+              generationNumber: 1,
+              greeneriesPlaced: 1,
+              groupId: 'overall',
+              milestonesClaimed: 0,
+              playedOn: '2026-06-01',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              tilesPlaced: 1,
+            },
+            {
+              awardsFunded: 1,
+              cardsPlayed: 1,
+              citiesPlaced: 0,
+              gameId: 'g1',
+              generationNumber: 9,
+              greeneriesPlaced: 1,
+              groupId: 'overall',
+              milestonesClaimed: 0,
+              playedOn: '2026-06-01',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              tilesPlaced: 1,
+            },
+            {
+              awardsFunded: 0,
+              cardsPlayed: 1,
+              citiesPlaced: 1,
+              gameId: 'g2',
+              generationNumber: 12,
+              greeneriesPlaced: 0,
+              groupId: 'overall',
+              milestonesClaimed: 0,
+              playedOn: '2026-06-08',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              tilesPlaced: 1,
+            },
+          ],
+          playerMapPerformanceRows: [
+            {
+              averagePlacement: 1.33,
+              averageScore: 85.7,
+              gamesPlayed: 3,
+              groupId: 'overall',
+              mapId: 'map-tharsis',
+              mapName: 'Tharsis',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              winRate: 0.67,
+              wins: 2,
+            },
+          ],
+          tilePlacementRows: [
+            {
+              boardSpace: 'A1',
+              gameId: 'g1',
+              groupId: 'overall',
+              mapName: 'Tharsis',
+              placements: 1,
+              playedOn: '2026-06-01',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              tileType: 'greenery',
+            },
+            {
+              boardSpace: 'B1',
+              gameId: 'g2',
+              groupId: 'overall',
+              mapName: 'Tharsis',
+              placements: 1,
+              playedOn: '2026-06-08',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              tileType: 'city',
+            },
+          ],
+        })}
+        personalSelectionStats={personalSelectionStats}
+        scopeMode="individual"
+        sharedGameRows={sharedGameRows}
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText(/player focus/i), 'user:me');
+
+    expect(
+      screen.getByRole('heading', { name: /Expanded Individual Metrics/i }),
+    ).toBeInTheDocument();
+
+    for (const heading of [
+      'Win Condition Delta',
+      'Game Length Fit',
+      'Opening Tempo Profile',
+      'Endgame Conversion',
+      'Opponent-Adjusted Performance',
+      'Style Fit Gap',
+      'Signature Selection Lift',
+      'Interaction Resilience',
+      'Board Control Efficiency',
+      'Reliability / Volatility',
+    ]) {
+      expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
+    }
+
+    expect(screen.getAllByText('Tharsis Republic').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('greenery').length).toBeGreaterThan(0);
   });
 
   it('does not surface promo catalog or map expansion interactions as stats', () => {
