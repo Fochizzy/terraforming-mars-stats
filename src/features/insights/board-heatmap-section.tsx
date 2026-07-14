@@ -138,6 +138,80 @@ export function aggregateBoardSpaces(
   };
 }
 
+export function buildBoardHeatmapNarratives(
+  rows: TilePlacementRow[],
+  filters: {
+    gameId: string | null;
+    mapName: string | null;
+    tileType: string | null;
+  },
+) {
+  const filteredRows = rows.filter(
+    (row) =>
+      (!filters.gameId || row.gameId === filters.gameId) &&
+      (!filters.mapName || row.mapName === filters.mapName) &&
+      (!filters.tileType || row.tileType === filters.tileType),
+  );
+
+  if (filteredRows.length === 0 || !filters.mapName) {
+    return [];
+  }
+
+  const games = new Set(filteredRows.map((row) => row.gameId));
+  const totalPlacements = filteredRows.reduce(
+    (sum, row) => sum + row.placements,
+    0,
+  );
+  const byTileType = new Map<string, number>();
+  const bySpace = new Map<string, number>();
+
+  for (const row of filteredRows) {
+    byTileType.set(
+      row.tileType,
+      (byTileType.get(row.tileType) ?? 0) + row.placements,
+    );
+    const space = normalizeBoardSpace(row.boardSpace);
+    bySpace.set(space, (bySpace.get(space) ?? 0) + row.placements);
+  }
+
+  const tileRanking = [...byTileType.entries()].sort(
+    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+  );
+  const spaceRanking = [...bySpace.entries()].sort(
+    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+  );
+  const topSpacePlacements = spaceRanking
+    .slice(0, 3)
+    .reduce((sum, [, placements]) => sum + placements, 0);
+  const concentration =
+    totalPlacements > 0
+      ? Math.round((topSpacePlacements / totalPlacements) * 100)
+      : 0;
+  const gameWord = games.size === 1 ? 'game' : 'games';
+  const placementWord = totalPlacements === 1 ? 'placement' : 'placements';
+  const narratives = [
+    `${filters.mapName} has ${totalPlacements} recorded ${placementWord} across ${games.size} imported ${gameWord} in this view.`,
+  ];
+
+  if (tileRanking[0]) {
+    const [tileType, count] = tileRanking[0];
+    narratives.push(
+      `${tileType.charAt(0).toUpperCase()}${tileType.slice(1)} is the most common tile pattern, accounting for ${Math.round((count / totalPlacements) * 100)}% of placements.`,
+    );
+  }
+
+  if (spaceRanking.length > 0) {
+    narratives.push(
+      `The busiest spaces are ${spaceRanking
+        .slice(0, 3)
+        .map(([space, count]) => `${space} (${count})`)
+        .join(', ')}, and the top three hold ${concentration}% of recorded activity.`,
+    );
+  }
+
+  return narratives;
+}
+
 function buildSelectOptions(rows: TilePlacementRow[]) {
   const mapNames = [...new Set(rows.map((row) => row.mapName))].sort(
     (left, right) => left.localeCompare(right),
@@ -167,6 +241,7 @@ function buildSelectOptions(rows: TilePlacementRow[]) {
 export function BoardHeatmapSection(props: {
   mapGroups?: MapAwardGroup[];
   rows: TilePlacementRow[];
+  title?: string;
 }) {
   const options = useMemo(() => buildSelectOptions(props.rows), [props.rows]);
   const mapGroupByName = new Map(
@@ -197,11 +272,16 @@ export function BoardHeatmapSection(props: {
     ? TILE_FILL_COLORS[activeTileType] ?? 'var(--tm-copper-500)'
     : 'var(--tm-copper-500)';
   const activeMapGroup = activeMapName ? mapGroupByName.get(activeMapName) : null;
+  const narratives = buildBoardHeatmapNarratives(props.rows, {
+    gameId: activeGameId,
+    mapName: activeMapName,
+    tileType: activeTileType,
+  });
 
   return (
     <ChartFrame
       description="Which board hexes get built on most often, with warmer tiles marking the most-used spaces across imported games."
-      title="Board Heatmap"
+      title={props.title ?? 'Board Heatmap'}
     >
       {props.rows.length === 0 ? (
         <p className="tm-muted-copy text-sm">
@@ -291,6 +371,16 @@ export function BoardHeatmapSection(props: {
                 milestoneNames={activeMapGroup.milestoneNames}
               />
             </p>
+          ) : null}
+          {narratives.length > 0 ? (
+            <div className="rounded border border-[var(--tm-copper-700)]/50 bg-black/10 p-3 text-sm text-stone-200">
+              <p className="tm-data-label mb-2">How this map tends to play</p>
+              <div className="flex flex-col gap-1">
+                {narratives.map((narrative) => (
+                  <p key={narrative}>{narrative}</p>
+                ))}
+              </div>
+            </div>
           ) : null}
           <div className="overflow-x-auto">
             <svg

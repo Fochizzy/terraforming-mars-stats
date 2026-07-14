@@ -56,7 +56,10 @@ describe('buildContextAdjustedImpactCards', () => {
       }),
       cardRow('hard-context-card', 'hard-target', true, {
         corporation_name: 'Ecoline',
+        map_name: 'Hellas',
         outcome_method: 'board_position',
+        pace_bucket: 'fast_pace',
+        player_count: 3,
         style_code: 'board_control',
       }),
       ...[1, 2, 3, 4].map((game) =>
@@ -81,7 +84,7 @@ describe('buildContextAdjustedImpactCards', () => {
       strongContext.victoryImpact!,
     );
     expect(hardContext.contextLabel).toBe(
-      'Ecoline · Board Control · Board Position',
+      'Ecoline · Board Control · Board Position · Fast Pace · 3 players · Hellas',
     );
   });
 });

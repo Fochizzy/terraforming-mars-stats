@@ -342,14 +342,15 @@ describe('InsightsDashboard', () => {
 
     expect(screen.queryByLabelText(/player focus/i)).not.toBeInTheDocument();
     expect(screen.getAllByRole('checkbox').map((checkbox) => checkbox.id)).toEqual([
-      'combination-player-0-name-corey',
-      'combination-player-1-name-sam',
-      'combination-player-2-name-james',
+      'combination-player-0-user-me',
+      'combination-player-1-name-corey',
+      'combination-player-2-name-sam',
+      'combination-player-3-name-james',
     ]);
     expect(screen.getByRole('checkbox', { name: /Corey/ })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /James/ })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Sam/ })).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Friday Mars/)).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Friday Mars/ })).toBeInTheDocument();
     expect(screen.getByText(/4 shared games \| 12 player results/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Hide Sam/i }));

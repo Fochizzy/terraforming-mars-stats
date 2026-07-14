@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Fragment } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { isRenderableCardImage } from '@/features/catalog/card-image';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
@@ -67,6 +68,24 @@ function impactToneClass(impact: number | undefined) {
   return impact > 0 ? 'text-emerald-400' : 'text-rose-400';
 }
 
+function cardImpactReason(card: ProfileCardStat) {
+  const impact = card.victoryImpact ?? 0;
+  const points = Math.abs(Math.round(impact * 100));
+  const result = `${card.wins} of ${card.plays} ${card.plays === 1 ? 'game' : 'games'}`;
+  const context = card.contextLabel
+    ? ` after accounting for your ${card.contextLabel} context`
+    : ' after accounting for your recorded corporation, play style, scoring method, game pace, table size, and map';
+  const confidence = card.evidenceConfidence
+    ? ` This is ${card.evidenceConfidence.toLowerCase()}-confidence evidence based on ${card.plays} ${card.plays === 1 ? 'play' : 'plays'}.`
+    : '';
+
+  if (impact >= 0) {
+    return `It made the list because you won ${result} with it and${context}, it raised your expected win rate by ${points} ${points === 1 ? 'point' : 'points'}.${confidence}`;
+  }
+
+  return `It made the list because you won ${result} with it and${context}, it lowered your expected win rate by ${points} ${points === 1 ? 'point' : 'points'}.${confidence}`;
+}
+
 function ProfileCardTable({
   cards,
   countLabel,
@@ -99,7 +118,8 @@ function ProfileCardTable({
         </thead>
         <tbody>
           {cards.map((card) => (
-            <tr className="border-t border-white/5" key={card.cardId}>
+            <Fragment key={card.cardId}>
+            <tr className="border-t border-white/5">
               <td className="py-2 pr-3">
                 <CardCell card={card} />
               </td>
@@ -118,6 +138,17 @@ function ProfileCardTable({
                 </span>
               </td>
             </tr>
+            {showImpact ? (
+              <tr className="border-t border-white/5">
+                <td
+                  className="tm-muted-copy pb-3 pr-3 text-xs leading-relaxed"
+                  colSpan={4}
+                >
+                  {cardImpactReason(card)}
+                </td>
+              </tr>
+            ) : null}
+            </Fragment>
           ))}
         </tbody>
       </table>
@@ -139,7 +170,7 @@ export function ProfileCardPanels({
   return (
     <>
       <ChartFrame
-        description="The cards that most raise your odds of winning after accounting for play count, corporation, play style, and whether your scoring came primarily from terraforming, board position, cards, or objectives. Click a card to open its full image."
+        description="The cards that most raise your odds of winning after accounting for play count, corporation, play style, scoring method, game pace, table size, and map. Click a card to open its full image."
         title="My Key Cards"
       >
         <ProfileCardTable
@@ -151,13 +182,13 @@ export function ProfileCardPanels({
         {keyCards.length > 0 ? (
           <p className="tm-muted-copy mt-3 text-xs">
             <GlossaryRichText>
-              Key cards are not picked by hand. Context-adjusted victory impact compares each result with your normal performance using that corporation, play style, and scoring method, then blends in global card performance and play-count confidence.
+              Key cards are not picked by hand. Context-adjusted victory impact compares each result with your normal performance using that corporation, play style, scoring method, game pace, table size, and map, then blends in global card performance and play-count confidence.
             </GlossaryRichText>
           </p>
         ) : null}
       </ChartFrame>
       <ChartFrame
-        description="The cards most correlated with losses after accounting for play count, corporation, play style, and whether your scoring came primarily from terraforming, board position, cards, or objectives."
+        description="The cards most correlated with losses after accounting for play count, corporation, play style, scoring method, game pace, table size, and map."
         title="My Loss-Correlated Cards"
       >
         <ProfileCardTable

@@ -217,7 +217,6 @@ export function buildPlayerCombinationOptions(input: {
   }
 
   return input.focusPeople
-    .filter((person) => person.canonicalId !== input.currentUserCanonicalId)
     .flatMap((person) => {
       const gameIds = new Set<string>();
 
