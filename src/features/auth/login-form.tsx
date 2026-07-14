@@ -5,7 +5,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { buildAuthCallbackUrl } from './build-auth-callback-url';
 import {
   emailSchema,
-  passwordSchema,
+  pinSchema,
   resolveSignInEmail,
   signupFullNameSchema,
   signupUsernameSchema,
@@ -19,7 +19,7 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
   const [identifier, setIdentifier] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<{
     message: string;
@@ -36,27 +36,35 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
 
       if (mode === 'sign-in') {
         const signInEmail = resolveSignInEmail(identifier);
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: signInEmail,
-          password,
+          password: pin,
         });
 
-        if (error) {
+        if (error || !data.user) {
           setStatus({
-            message: 'The email/username or password/PIN was not recognized.',
+            message: 'The email/username or PIN was not recognized.',
             state: 'error',
           });
           return;
         }
 
-        window.location.assign(nextPath);
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('credential_reset_required')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+
+        window.location.assign(
+          profile?.credential_reset_required ? '/account-migration' : nextPath,
+        );
         return;
       }
 
       const parsedFullName = signupFullNameSchema.parse(fullName);
       const parsedUsername = signupUsernameSchema.parse(username);
       const parsedEmail = emailSchema.parse(email);
-      const parsedPassword = passwordSchema.parse(password);
+      const parsedPin = pinSchema.parse(pin);
       const emailRedirectTo = buildAuthCallbackUrl(window.location.origin, nextPath);
 
       const { data, error } = await supabase.auth.signUp({
@@ -68,7 +76,7 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
           },
           emailRedirectTo,
         },
-        password: parsedPassword,
+        password: parsedPin,
       });
 
       if (error || !data.user) {
@@ -186,17 +194,21 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
       )}
 
       <label className="flex flex-col gap-2 text-sm">
-        <span className="tm-data-label">{mode === 'sign-in' ? 'Password or Legacy PIN' : 'Password'}</span>
+        <span className="tm-data-label">
+          {mode === 'sign-in' ? 'PIN' : 'Create 6-Digit PIN'}
+        </span>
         <input
-          aria-label={mode === 'sign-in' ? 'Password or Legacy PIN' : 'Password'}
+          aria-label={mode === 'sign-in' ? 'PIN' : 'Create 6-Digit PIN'}
           autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
           className="tm-input"
-          minLength={mode === 'sign-up' ? 8 : undefined}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder={mode === 'sign-in' ? 'Password or 4-digit PIN' : 'At least 8 characters'}
+          inputMode="numeric"
+          maxLength={6}
+          minLength={mode === 'sign-up' ? 6 : 4}
+          onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))}
+          placeholder={mode === 'sign-in' ? '4 or 6 digits' : '6 digits'}
           required
           type="password"
-          value={password}
+          value={pin}
         />
       </label>
 
@@ -206,7 +218,7 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
 
       {mode === 'sign-in' ? (
         <a className="text-center text-sm text-sky-200 underline-offset-4 hover:underline" href="/forgot-password">
-          Forgot your password?
+          Forgot your PIN?
         </a>
       ) : null}
 
