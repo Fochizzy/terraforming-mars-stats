@@ -244,7 +244,7 @@ describe('getProfileAnalytics', () => {
       phaseTempoProfile: null,
       performance: null,
       playerId: 'player-1',
-      playerName: 'Friday Mars',
+      playerName: 'Friday',
       resourceRemovalProfile: null,
       scoreAverages: null,
       scorePace: null,
@@ -314,7 +314,7 @@ describe('getProfileAnalytics', () => {
       getProfileAnalytics('user-1', { groupId: 'group-2' }),
     ).resolves.toMatchObject({
       playerId: 'player-2',
-      playerName: 'Weeknight Mars',
+      playerName: 'Weeknight',
     });
 
     expect(playersSelect).toHaveBeenCalledWith('id, display_name, group_id');

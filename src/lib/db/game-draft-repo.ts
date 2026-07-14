@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { FinalizedGamePayload } from '@/features/games/finalize-game';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
 import { getServerEnv } from '@/lib/env';
+import { personLabel } from '@/lib/people/person-label';
+import { resolvePlayerLabelsInRows } from './player-label-resolution';
 
 type SavedGameStatus = 'draft' | 'finalized';
 
@@ -428,8 +430,13 @@ export async function listSavedGames(payload: {
     }
   }
 
+  const labeledPlayers = await resolvePlayerLabelsInRows(
+    supabase,
+    (players ?? []) as PlayerNameRow[],
+    [['id', 'display_name']],
+  );
   const playerNameById = new Map(
-    ((players ?? []) as PlayerNameRow[]).map((player) => [player.id, player.display_name]),
+    labeledPlayers.map((player) => [player.id, player.display_name]),
   );
 
   return savedGames.map((game) => {
@@ -443,7 +450,8 @@ export async function listSavedGames(payload: {
       groupId: game.group_id,
       playerCount: game.player_count,
       playerNames: selectedPlayerIds.map(
-        (playerId) => playerNameById.get(playerId) ?? playerId,
+        (playerId) =>
+          playerNameById.get(playerId) ?? personLabel({ displayName: playerId }),
       ),
       playedOn: game.played_on,
       status: game.status,

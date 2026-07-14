@@ -7,26 +7,23 @@ import {
 const playerOptions = [
   {
     id: 'player-1',
-    display_name: 'Friday Mars',
-    linked_full_name: 'Friday Mars',
+    display_name: 'friday-mars',
     linked_username: 'friday-mars',
   },
   {
     id: 'player-2',
-    display_name: 'James Howard',
-    linked_full_name: 'James Howard',
+    display_name: 'jhoward',
     linked_username: 'jhoward',
   },
   {
     id: 'player-3',
-    display_name: 'James Hodnett',
-    linked_full_name: 'James Hodnett',
+    display_name: 'jhodnett',
     linked_username: 'jhodnett',
   },
 ] as const;
 
 describe('player picker helpers', () => {
-  it('matches a roster player by username, full name, and first name plus last initial', () => {
+  it('matches roster players by username without using a full name', () => {
     expect(
       findMatchingPlayerOptions({
         playerEntry: 'friday-mars',
@@ -36,27 +33,27 @@ describe('player picker helpers', () => {
 
     expect(
       findMatchingPlayerOptions({
-        playerEntry: 'Friday Mars',
+        playerEntry: 'friday',
         playerOptions: [...playerOptions],
       })[0]?.player.id,
     ).toBe('player-1');
 
     expect(
       findMatchingPlayerOptions({
-        playerEntry: 'Friday M',
+        playerEntry: 'Friday Hodnett',
         playerOptions: [...playerOptions],
-      })[0]?.player.id,
-    ).toBe('player-1');
+      }),
+    ).toEqual([]);
   });
 
-  it('formats saved-player confirmations with first name and username instead of the last name', () => {
-    expect(formatSelectedPlayerLabel(playerOptions[0])).toBe('Friday (@friday-mars)');
-    expect(formatSelectedPlayerLabel(playerOptions[1])).toBe('James (@jhoward)');
+  it('formats saved-player confirmations with usernames only', () => {
+    expect(formatSelectedPlayerLabel(playerOptions[0])).toBe('friday-mars');
+    expect(formatSelectedPlayerLabel(playerOptions[1])).toBe('jhoward');
   });
 
-  it('keeps ambiguous first name plus last initial matches reviewable in the list order', () => {
+  it('keeps ambiguous username prefixes reviewable in list order', () => {
     const matches = findMatchingPlayerOptions({
-      playerEntry: 'James H',
+      playerEntry: 'jho',
       playerOptions: [...playerOptions],
     });
 

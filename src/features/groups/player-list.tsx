@@ -1,8 +1,7 @@
 'use client';
 
 import { startTransition, useState } from 'react';
-import { signupFullNameSchema } from '@/features/auth/username-auth';
-import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { usernameHandleSchema } from '@/features/auth/username-auth';
 
 type ActionResult = {
   status: 'success' | 'error';
@@ -10,25 +9,26 @@ type ActionResult = {
 };
 
 type PlayerListProps = {
-  currentUserFullName?: string | null;
   currentUserId?: string | null;
-  onAddPlayer: (displayName: string) => Promise<ActionResult>;
+  currentUserUsername?: string | null;
+  onAddPlayer: (username: string) => Promise<ActionResult>;
   onLinkPlayer?: (playerId: string) => Promise<ActionResult>;
   players: Array<{
     id: string;
     display_name: string;
     linked_user_id?: string | null;
+    matches_current_user?: boolean;
   }>;
 };
 
 export function PlayerList({
-  currentUserFullName = null,
   currentUserId = null,
+  currentUserUsername = null,
   onAddPlayer,
   onLinkPlayer,
   players,
 }: PlayerListProps) {
-  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [isAddPending, setIsAddPending] = useState(false);
   const [pendingLinkPlayerId, setPendingLinkPlayerId] = useState<string | null>(
     null,
@@ -37,11 +37,8 @@ export function PlayerList({
     status: 'success' | 'error';
     text: string;
   } | null>(null);
-  const fullNameResult = signupFullNameSchema.safeParse(displayName);
-  const canAddPlayer = fullNameResult.success;
-  const normalizedCurrentUserFullName = currentUserFullName
-    ? normalizePlayerAlias(currentUserFullName)
-    : null;
+  const usernameResult = usernameHandleSchema.safeParse(username);
+  const canAddPlayer = usernameResult.success;
 
   return (
     <section className="tm-panel flex flex-col gap-4">
@@ -52,8 +49,8 @@ export function PlayerList({
       </p>
       {currentUserId ? (
         <p className="tm-muted-copy text-sm">
-          {currentUserFullName
-            ? `Signed in as ${currentUserFullName}. Link the matching roster row to unlock your personal analytics.`
+          {currentUserUsername
+            ? `Signed in as @${currentUserUsername}. Link the matching roster row to unlock your personal analytics.`
             : 'Use the matching roster row to link your signed-in account.'}
         </p>
       ) : null}
@@ -61,12 +58,12 @@ export function PlayerList({
         className="grid gap-3 sm:grid-cols-[1fr_auto]"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!fullNameResult.success) {
+          if (!usernameResult.success) {
             setMessage({
               status: 'error',
               text:
-                fullNameResult.error.issues[0]?.message ??
-                'Enter a full player name in First Name Last Name format.',
+                usernameResult.error.issues[0]?.message ??
+                'Enter a username.',
             });
             return;
           }
@@ -74,10 +71,10 @@ export function PlayerList({
           setMessage(null);
           startTransition(async () => {
             try {
-              const result = await onAddPlayer(fullNameResult.data);
+              const result = await onAddPlayer(usernameResult.data);
               setMessage({ status: result.status, text: result.message });
               if (result.status === 'success') {
-                setDisplayName('');
+                setUsername('');
               }
             } catch (error) {
               setMessage({
@@ -94,13 +91,14 @@ export function PlayerList({
         }}
       >
         <label className="flex flex-col gap-2 text-sm">
-          <span className="tm-data-label">Add Player Name</span>
+          <span className="tm-data-label">Add Player Username</span>
           <input
-            aria-label="Add Player Name"
+            aria-label="Add Player Username"
+            autoCapitalize="none"
             className="tm-input"
-            onChange={(event) => setDisplayName(event.target.value)}
-            placeholder="First Name Last Name"
-            value={displayName}
+            onChange={(event) => setUsername(event.target.value)}
+            placeholder="Username"
+            value={username}
           />
         </label>
         <button
@@ -130,10 +128,7 @@ export function PlayerList({
           const isLinkedToAnotherUser = Boolean(
             player.linked_user_id && player.linked_user_id !== currentUserId,
           );
-          const matchesCurrentUserName =
-            normalizedCurrentUserFullName &&
-            normalizePlayerAlias(player.display_name) ===
-              normalizedCurrentUserFullName;
+          const matchesCurrentUserName = player.matches_current_user;
 
           return (
             <li className="tm-stat-card" key={player.id}>

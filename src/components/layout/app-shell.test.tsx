@@ -17,7 +17,7 @@ describe('AppShell', () => {
 
     expect(nav.getByRole('link', { name: /my profile/i })).toBeInTheDocument();
     expect(nav.getByRole('link', { name: /log game/i })).toBeInTheDocument();
-    expect(nav.getByRole('link', { name: /global/i })).toBeInTheDocument();
+    expect(nav.getByRole('link', { name: 'Global Data' })).toBeInTheDocument();
     expect(
       nav.getByRole('link', { name: /individual insights/i }),
     ).toHaveAttribute('href', '/insights/individual');
@@ -90,6 +90,10 @@ describe('AppShell', () => {
     ).map((element) => element.textContent?.trim());
 
     expect(actionLabels).toEqual(['Review Saved Games', 'Log Out', 'Leaderboard']);
+    expect(screen.getByRole('link', { name: 'Leaderboard' })).toHaveClass(
+      'tm-button-leaderboard',
+      'w-full',
+    );
   });
 
   it('renders the shared header with the login-style cropped banner', () => {

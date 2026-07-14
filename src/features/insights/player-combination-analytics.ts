@@ -995,20 +995,18 @@ function buildMapPerformanceRows(input: {
 function filterRowLevelExtendedData(
   source: ExtendedGroupAnalytics,
   matchingGameIds: Set<string>,
+  selectedPlayerIds: Set<string>,
 ): Partial<ExtendedGroupAnalytics> {
+  const isSelectedRow = (row: { gameId: string; playerId: string | null }) =>
+    matchingGameIds.has(row.gameId) &&
+    (selectedPlayerIds.size === 0 ||
+      (row.playerId !== null && selectedPlayerIds.has(row.playerId)));
+
   return {
-    cardOutcomeRows: source.cardOutcomeRows.filter((row) =>
-      matchingGameIds.has(row.gameId),
-    ),
-    generationPaceRows: source.generationPaceRows.filter((row) =>
-      matchingGameIds.has(row.gameId),
-    ),
-    tagOutcomeRows: source.tagOutcomeRows.filter((row) =>
-      matchingGameIds.has(row.gameId),
-    ),
-    tilePlacementRows: source.tilePlacementRows.filter((row) =>
-      matchingGameIds.has(row.gameId),
-    ),
+    cardOutcomeRows: source.cardOutcomeRows.filter(isSelectedRow),
+    generationPaceRows: source.generationPaceRows.filter(isSelectedRow),
+    tagOutcomeRows: source.tagOutcomeRows.filter(isSelectedRow),
+    tilePlacementRows: source.tilePlacementRows.filter(isSelectedRow),
   };
 }
 
@@ -1056,17 +1054,41 @@ export function buildPlayerCombinationAnalytics(input: {
     selectedCanonicalIds: input.selectedCanonicalIds,
   });
   const identityByPlayerId = buildIdentityByPlayerId(input.focusPeople);
-  const matchingRows = normalizeResultRows(
+  const matchingGameRows = normalizeResultRows(
     input.rows.filter((row) => matchingGameIds.has(row.gameId)),
     identityByPlayerId,
   );
+  // A combination first finds games containing every checked player, then
+  // limits every downstream player-level dataset to those checked players.
+  // Without this second boundary, an unchecked seat from a matching game could
+  // still appear in the leaderboard, trend, map, card, or tag charts.
+  const matchingRows =
+    selectedIdSet.size === 0
+      ? matchingGameRows
+      : matchingGameRows.filter((row) => selectedIdSet.has(row.playerId));
+  const selectedPlayerIds = new Set<string>(input.selectedCanonicalIds);
+
+  for (const option of options) {
+    if (!selectedIdSet.has(option.canonicalId)) {
+      continue;
+    }
+
+    for (const playerId of option.playerIds) {
+      selectedPlayerIds.add(playerId);
+    }
+  }
+
   const playerScoreAverages = buildPlayerScoreAverages(matchingRows);
   const mapRows = buildMapPerformanceRows({
     mapAwardGroups: input.mapAwardGroups,
     rows: matchingRows,
   });
   const filteredExtended = input.sourceExtended
-    ? filterRowLevelExtendedData(input.sourceExtended, matchingGameIds)
+    ? filterRowLevelExtendedData(
+        input.sourceExtended,
+        matchingGameIds,
+        selectedPlayerIds,
+      )
     : {};
   const extended: ExtendedGroupAnalytics = {
     ...buildEmptyExtendedAnalytics(),

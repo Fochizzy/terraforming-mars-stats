@@ -928,6 +928,13 @@ describe('listSavedGames', () => {
     };
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn().mockResolvedValue({
+        data: [
+          { player_id: 'player-1', username: 'FridayMars' },
+          { player_id: 'player-2', username: 'Izzy' },
+        ],
+        error: null,
+      }),
       from: vi.fn((table: string) => {
         if (table === 'games') {
           return gamesQuery;
@@ -967,7 +974,7 @@ describe('listSavedGames', () => {
         gameId: 'game-draft',
         groupId: '11111111-1111-4111-8111-111111111111',
         playerCount: 2,
-        playerNames: ['Friday Mars', 'Izzy Hodnett'],
+        playerNames: ['FridayMars', 'Izzy'],
         playedOn: '2026-07-07',
         status: 'draft',
         updatedAt: '2026-07-08T09:00:00.000Z',
@@ -976,7 +983,7 @@ describe('listSavedGames', () => {
         gameId: 'game-final',
         groupId: '11111111-1111-4111-8111-111111111111',
         playerCount: 2,
-        playerNames: ['Friday Mars', 'Typed Player'],
+        playerNames: ['FridayMars', 'Typed'],
         playedOn: '2026-07-06',
         status: 'finalized',
         updatedAt: '2026-07-08T08:00:00.000Z',
@@ -1059,6 +1066,13 @@ describe('listSavedGames', () => {
     };
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn().mockResolvedValue({
+        data: [
+          { player_id: 'player-1', username: 'FridayMars' },
+          { player_id: 'player-2', username: 'Sam' },
+        ],
+        error: null,
+      }),
       from: vi.fn((table: string) => {
         if (table === 'games') {
           return gamesQuery;
@@ -1086,7 +1100,7 @@ describe('listSavedGames', () => {
         gameId: 'game-1',
         groupId: 'group-1',
         playerCount: 2,
-        playerNames: ['Friday Mars'],
+        playerNames: ['FridayMars'],
         playedOn: '2026-07-07',
         status: 'draft',
         updatedAt: '2026-07-08T09:00:00.000Z',
@@ -1095,7 +1109,7 @@ describe('listSavedGames', () => {
         gameId: 'game-2',
         groupId: 'group-2',
         playerCount: 2,
-        playerNames: ['Sam Terraformer'],
+        playerNames: ['Sam'],
         playedOn: '2026-07-06',
         status: 'finalized',
         updatedAt: '2026-07-08T08:00:00.000Z',

@@ -364,7 +364,6 @@ export default async function LogGameReviewPage({
         playerOptions={playerOptions.map((player) => ({
           id: player.id,
           display_name: player.displayName,
-          linked_full_name: player.linkedFullName,
           linked_username: player.linkedUsername,
         }))}
         preludeOptions={preludeOptions}

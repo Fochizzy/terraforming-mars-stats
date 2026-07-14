@@ -2,12 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { startTransition, useEffect, useRef, useState } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import type { Resolver } from 'react-hook-form';
 import { useForm, useWatch } from 'react-hook-form';
 import { StatusBanner } from '@/components/ui/status-banner';
 import { buildGameReview } from '@/features/games/finalize-game';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { personLabel } from '@/lib/people/person-label';
 import {
   consumeImportReviewJumpState,
   type ImportReviewJumpTarget,
@@ -26,7 +27,10 @@ import { ReviewStep } from './review-step';
 import { ScoresStep } from './scores-step';
 import { sanitizePlayerLinkedState } from './sanitize-player-linked-state';
 import { SetupStep } from './setup-step';
-import type { LogGamePlayerOption } from './player-picker';
+import {
+  formatSelectedPlayerLabel,
+  type LogGamePlayerOption,
+} from './player-picker';
 
 type GameSubmitResult = {
   status: 'success' | 'error';
@@ -82,6 +86,14 @@ export function LogGameWizard({
   // (possibly stale) submitMode closure.
   const submitModeRef = useRef(submitMode);
   const isFinalizedEdit = initialStatus === 'finalized';
+  const visiblePlayerOptions = useMemo(
+    () =>
+      playerOptions.map((player) => ({
+        ...player,
+        display_name: formatSelectedPlayerLabel(player),
+      })),
+    [playerOptions],
+  );
 
   function selectSubmitMode(mode: 'draft' | 'finalize') {
     submitModeRef.current = mode;
@@ -108,9 +120,9 @@ export function LogGameWizard({
   const selectedPlayers = selectedPlayerIds
     .map(
       (playerId) =>
-        playerOptions.find((player) => player.id === playerId) ?? {
+        visiblePlayerOptions.find((player) => player.id === playerId) ?? {
           id: playerId,
-          display_name: playerId,
+          display_name: personLabel({ displayName: playerId }),
         },
     );
   useEffect(() => {
@@ -233,7 +245,7 @@ export function LogGameWizard({
       <PlayersStep
         corporationOptions={corporationOptions}
         playerCount={playerCount}
-        playerOptions={playerOptions}
+        playerOptions={visiblePlayerOptions}
         preludeOptions={preludeOptions}
         register={form.register}
         selectedPlayerIds={selectedPlayerIds}

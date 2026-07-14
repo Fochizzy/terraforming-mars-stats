@@ -1,56 +1,43 @@
+'use client';
+
+import { Fragment, useState } from 'react';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
 import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type {
   CardImageMeta,
   CardWinStat,
 } from '@/lib/db/selection-stats-repo';
+import {
+  buildGlobalCardImpactData,
+  describeGlobalCardImpact,
+  formatImpactPoints,
+  GLOBAL_CARD_IMPACT_MIN_PLAYS,
+  type GlobalCardImpactDatum,
+} from './global-card-impact';
 
-export const GLOBAL_KEY_CARD_LIMIT = 15;
+export const GLOBAL_KEY_CARD_LIMIT = 10;
 
 // Cards need enough plays before a win rate says anything about victory impact;
 // below this a single game swings the rate by tens of points.
-export const GLOBAL_KEY_CARD_MIN_PLAYS = 5;
+export const GLOBAL_KEY_CARD_MIN_PLAYS = GLOBAL_CARD_IMPACT_MIN_PLAYS;
 
-export type GlobalKeyCardDatum = {
-  cardName: string;
-  plays: number;
-  victoryImpact: number;
-  winRate: number;
-};
+export type GlobalKeyCardDatum = GlobalCardImpactDatum;
 
-// "Key cards" across every recorded game: rank cards by victory impact — how far
-// their win rate when played sits above the baseline win rate for all games —
-// rather than by raw play count or win rate alone. A high bar with few plays is
-// noise, so cards under the play floor are dropped before ranking.
+// "Key cards" across every recorded game: rank cards by a composite of victory
+// impact and play-count confidence. A high win rate with little evidence is
+// shrunk toward the baseline before ranking.
 export function buildGlobalKeyCardData(
   cards: CardWinStat[],
   baselineWinRate: number,
   {
-    limit = GLOBAL_KEY_CARD_LIMIT,
+    limit,
     minPlays = GLOBAL_KEY_CARD_MIN_PLAYS,
   }: { limit?: number; minPlays?: number } = {},
 ): GlobalKeyCardDatum[] {
-  return cards
-    .filter((card) => card.plays >= minPlays)
-    .map((card) => ({
-      cardName: card.card_name,
-      plays: card.plays,
-      victoryImpact: card.win_rate_when_played - baselineWinRate,
-      winRate: card.win_rate_when_played,
-    }))
-    .filter((card) => card.victoryImpact > 0)
-    .sort(
-      (left, right) =>
-        right.victoryImpact - left.victoryImpact ||
-        right.plays - left.plays ||
-        left.cardName.localeCompare(right.cardName),
-    )
-    .slice(0, limit);
-}
-
-function formatImpactPoints(impact: number) {
-  const points = Math.round(impact * 100);
-  return `${points > 0 ? '+' : points < 0 ? '−' : ''}${Math.abs(points)} pts`;
+  return buildGlobalCardImpactData(cards, baselineWinRate, 'positive', {
+    limit,
+    minPlays,
+  });
 }
 
 export function GlobalKeyCardsSection(props: {
@@ -59,7 +46,9 @@ export function GlobalKeyCardsSection(props: {
   /** card name -> catalog id + art, so each card can open its stats dialog. */
   cardMetaByName?: Map<string, CardImageMeta>;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const data = buildGlobalKeyCardData(props.cards, props.baselineWinRate);
+  const visibleData = expanded ? data : data.slice(0, GLOBAL_KEY_CARD_LIMIT);
   const baselinePercent = Math.round(props.baselineWinRate * 100);
   const cardMetaByName = props.cardMetaByName ?? new Map<string, CardImageMeta>();
 
@@ -68,7 +57,7 @@ export function GlobalKeyCardsSection(props: {
       <h3 className="tm-data-label text-xs">Key Cards (Highest Victory Impact)</h3>
       <p className="tm-muted-copy text-sm">
         <GlossaryRichText>
-          {`Cards whose win rate when played sits furthest above the ${baselinePercent}% baseline win rate across every recorded game. Cards with fewer than ${GLOBAL_KEY_CARD_MIN_PLAYS} plays are held back so a single game cannot crown a card. Select a card to open its image with your win rate and the global win rate.`}
+          {`Cards whose play-count-adjusted impact score sits furthest above the ${baselinePercent}% baseline win rate across every recorded game. The score blends win-rate lift with repeat-play evidence, and cards with fewer than ${GLOBAL_KEY_CARD_MIN_PLAYS} plays are held back. The top ${GLOBAL_KEY_CARD_LIMIT} are shown first.`}
         </GlossaryRichText>
       </p>
       {data.length === 0 ? (
@@ -83,18 +72,19 @@ export function GlobalKeyCardsSection(props: {
             <thead>
               <tr className="tm-data-label">
                 <th className="py-1 pr-3">Card</th>
-                <th className="py-1 pr-3">Victory impact</th>
+                <th className="py-1 pr-3">Impact score</th>
                 <th className="py-1 pr-3">Win rate</th>
                 <th className="py-1 pr-3">Plays</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((card) => {
+              {visibleData.map((card) => {
                 const meta = cardMetaByName.get(card.cardName);
 
                 return (
-                  <tr className="border-t border-white/5" key={card.cardName}>
-                    <td className="py-1 pr-3">
+                  <Fragment key={card.cardName}>
+                    <tr className="border-t border-white/5">
+                      <td className="py-1 pr-3">
                       {meta ? (
                         <CardStatsButton
                           card={{
@@ -112,19 +102,40 @@ export function GlobalKeyCardsSection(props: {
                           {card.cardName}
                         </span>
                       )}
-                    </td>
-                    <td className="py-1 pr-3 font-semibold text-emerald-400">
-                      {formatImpactPoints(card.victoryImpact)}
-                    </td>
-                    <td className="py-1 pr-3">
-                      {Math.round(card.winRate * 100)}%
-                    </td>
-                    <td className="py-1 pr-3">{card.plays}</td>
-                  </tr>
+                      </td>
+                      <td className="py-1 pr-3 font-semibold text-emerald-400">
+                        {formatImpactPoints(card.impactScore, 1)}
+                      </td>
+                      <td className="py-1 pr-3">
+                        {Math.round(card.winRate * 100)}%
+                      </td>
+                      <td className="py-1 pr-3">{card.plays}</td>
+                    </tr>
+                    <tr className="border-t border-white/5">
+                      <td
+                        className="tm-muted-copy pb-3 pr-3 text-xs leading-relaxed"
+                        colSpan={4}
+                      >
+                        {describeGlobalCardImpact(card, props.baselineWinRate)}
+                      </td>
+                    </tr>
+                  </Fragment>
                 );
               })}
             </tbody>
           </table>
+          {data.length > GLOBAL_KEY_CARD_LIMIT ? (
+            <button
+              aria-expanded={expanded}
+              className="tm-button-secondary mt-4 w-full px-4 py-2 text-xs"
+              onClick={() => setExpanded((current) => !current)}
+              type="button"
+            >
+              {expanded
+                ? `Show top ${GLOBAL_KEY_CARD_LIMIT}`
+                : `See more positive cards (${data.length - GLOBAL_KEY_CARD_LIMIT})`}
+            </button>
+          ) : null}
         </div>
       )}
     </div>

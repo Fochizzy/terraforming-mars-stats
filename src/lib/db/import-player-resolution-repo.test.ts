@@ -16,7 +16,7 @@ describe('listImportResolutionPlayers', () => {
     vi.clearAllMocks();
   });
 
-  it('enriches roster players with linked full names, usernames, and games played', async () => {
+  it('shows usernames while retaining private claim fields and games played', async () => {
     const playerOrder = vi.fn().mockResolvedValue({
       data: [
         {
@@ -100,14 +100,14 @@ describe('listImportResolutionPlayers', () => {
 
     await expect(listImportResolutionPlayers('group-1')).resolves.toEqual([
       {
-        displayName: 'Friday Mars',
+        displayName: 'friday-mars',
         gamesPlayed: 11,
         id: 'player-1',
         linkedFullName: 'Friday Mars',
         linkedUsername: 'friday-mars',
       },
       {
-        displayName: 'Second Seat',
+        displayName: 'Second',
         gamesPlayed: 4,
         id: 'player-2',
         linkedFullName: null,
@@ -116,7 +116,7 @@ describe('listImportResolutionPlayers', () => {
     ]);
   });
 
-  it('surfaces a non-account player’s own username and full name columns', async () => {
+  it('shows a non-account player’s username and retains private claim data', async () => {
     const playerOrder = vi.fn().mockResolvedValue({
       data: [
         {
@@ -154,7 +154,7 @@ describe('listImportResolutionPlayers', () => {
 
     await expect(listImportResolutionPlayers('group-1')).resolves.toEqual([
       {
-        displayName: 'Corey',
+        displayName: 'coreyc',
         gamesPlayed: 0,
         id: 'player-3',
         linkedFullName: 'Corey Carter',
@@ -206,7 +206,7 @@ describe('listImportResolutionPlayers', () => {
 
     await expect(listImportResolutionPlayers('group-1')).resolves.toEqual([
       {
-        displayName: 'Friday Mars',
+        displayName: 'Friday',
         gamesPlayed: 11,
         id: 'player-1',
         linkedFullName: null,

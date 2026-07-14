@@ -13,7 +13,7 @@ export type BottomNavItem = {
 export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/log-game', label: 'Log Game' },
   { href: '/profile', label: 'My Profile' },
-  { href: '/group', label: 'Global' },
+  { href: '/group', label: 'Global Data' },
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
   { href: '/comparisons', label: 'Comparisons' },

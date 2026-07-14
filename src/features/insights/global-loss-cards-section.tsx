@@ -1,13 +1,23 @@
+'use client';
+
+import { Fragment, useState } from 'react';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
 import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { CardWinStat } from '@/lib/db/selection-stats-repo';
+import {
+  buildGlobalCardImpactData,
+  describeGlobalCardImpact,
+  formatImpactPoints,
+  GLOBAL_CARD_IMPACT_MIN_PLAYS,
+  type GlobalCardImpactDatum,
+} from './global-card-impact';
 
 export const GLOBAL_LOSS_CARD_LIMIT = 5;
 
 // Cards need enough plays before a win rate says anything about how they
 // correlate with losses; below this a single game swings the rate by tens of
 // points. Mirrors the key-cards floor so both lists stay noise-free.
-export const GLOBAL_LOSS_CARD_MIN_PLAYS = 5;
+export const GLOBAL_LOSS_CARD_MIN_PLAYS = GLOBAL_CARD_IMPACT_MIN_PLAYS;
 
 export type GlobalLossCardMeta = {
   fullImageUrl: string | null;
@@ -15,46 +25,23 @@ export type GlobalLossCardMeta = {
   thumbnailUrl: string | null;
 };
 
-export type GlobalLossCardDatum = {
-  cardName: string;
-  plays: number;
-  victoryImpact: number;
-  winRate: number;
-};
+export type GlobalLossCardDatum = GlobalCardImpactDatum;
 
-// The inverse of the key-cards ranking: surface the cards whose win rate when
-// played sits furthest *below* the baseline win rate for all games — the cards
-// most correlated with losing. A steep drop off a couple of plays is noise, so
-// cards under the play floor are dropped before ranking.
+// The inverse of the key-cards ranking: surface negative impact after applying
+// the same play-count confidence. A steep drop across few plays is shrunk
+// toward the baseline before ranking.
 export function buildGlobalLossCardData(
   cards: CardWinStat[],
   baselineWinRate: number,
   {
-    limit = GLOBAL_LOSS_CARD_LIMIT,
+    limit,
     minPlays = GLOBAL_LOSS_CARD_MIN_PLAYS,
   }: { limit?: number; minPlays?: number } = {},
 ): GlobalLossCardDatum[] {
-  return cards
-    .filter((card) => card.plays >= minPlays)
-    .map((card) => ({
-      cardName: card.card_name,
-      plays: card.plays,
-      victoryImpact: card.win_rate_when_played - baselineWinRate,
-      winRate: card.win_rate_when_played,
-    }))
-    .filter((card) => card.victoryImpact < 0)
-    .sort(
-      (left, right) =>
-        left.victoryImpact - right.victoryImpact ||
-        right.plays - left.plays ||
-        left.cardName.localeCompare(right.cardName),
-    )
-    .slice(0, limit);
-}
-
-function formatImpactPoints(impact: number) {
-  const points = Math.round(impact * 100);
-  return `${points > 0 ? '+' : points < 0 ? '−' : ''}${Math.abs(points)} pts`;
+  return buildGlobalCardImpactData(cards, baselineWinRate, 'negative', {
+    limit,
+    minPlays,
+  });
 }
 
 export function GlobalLossCardsSection(props: {
@@ -63,7 +50,9 @@ export function GlobalLossCardsSection(props: {
   /** card name -> catalog id + art, so each card can open its stats dialog. */
   cardMetaByName: Map<string, GlobalLossCardMeta>;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const data = buildGlobalLossCardData(props.cards, props.baselineWinRate);
+  const visibleData = expanded ? data : data.slice(0, GLOBAL_LOSS_CARD_LIMIT);
   const baselinePercent = Math.round(props.baselineWinRate * 100);
 
   return (
@@ -71,7 +60,7 @@ export function GlobalLossCardsSection(props: {
       <h3 className="tm-data-label text-xs">Cards Most Correlated With Losses</h3>
       <p className="tm-muted-copy text-sm">
         <GlossaryRichText>
-          {`Cards whose win rate when played sits furthest below the ${baselinePercent}% baseline win rate across every recorded game. Cards with fewer than ${GLOBAL_LOSS_CARD_MIN_PLAYS} plays are held back so a single game cannot brand a card. Select a card to open its image with your win rate and the global win rate.`}
+          {`Cards whose play-count-adjusted impact score sits furthest below the ${baselinePercent}% baseline win rate across every recorded game. The score blends win-rate drop with repeat-play evidence, and cards with fewer than ${GLOBAL_LOSS_CARD_MIN_PLAYS} plays are held back. The top ${GLOBAL_LOSS_CARD_LIMIT} are shown first.`}
         </GlossaryRichText>
       </p>
       {data.length === 0 ? (
@@ -86,18 +75,19 @@ export function GlobalLossCardsSection(props: {
             <thead>
               <tr className="tm-data-label">
                 <th className="py-1 pr-3">Card</th>
-                <th className="py-1 pr-3">Loss impact</th>
+                <th className="py-1 pr-3">Impact score</th>
                 <th className="py-1 pr-3">Global win rate</th>
                 <th className="py-1 pr-3">Plays</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((card) => {
+              {visibleData.map((card) => {
                 const meta = props.cardMetaByName.get(card.cardName);
 
                 return (
-                  <tr className="border-t border-white/5" key={card.cardName}>
-                    <td className="py-1 pr-3">
+                  <Fragment key={card.cardName}>
+                    <tr className="border-t border-white/5">
+                      <td className="py-1 pr-3">
                       {meta ? (
                         <CardStatsButton
                           card={{
@@ -115,17 +105,40 @@ export function GlobalLossCardsSection(props: {
                           {card.cardName}
                         </span>
                       )}
-                    </td>
-                    <td className="py-1 pr-3 font-semibold text-rose-400">
-                      {formatImpactPoints(card.victoryImpact)}
-                    </td>
-                    <td className="py-1 pr-3">{Math.round(card.winRate * 100)}%</td>
-                    <td className="py-1 pr-3">{card.plays}</td>
-                  </tr>
+                      </td>
+                      <td className="py-1 pr-3 font-semibold text-rose-400">
+                        {formatImpactPoints(card.impactScore, 1)}
+                      </td>
+                      <td className="py-1 pr-3">
+                        {Math.round(card.winRate * 100)}%
+                      </td>
+                      <td className="py-1 pr-3">{card.plays}</td>
+                    </tr>
+                    <tr className="border-t border-white/5">
+                      <td
+                        className="tm-muted-copy pb-3 pr-3 text-xs leading-relaxed"
+                        colSpan={4}
+                      >
+                        {describeGlobalCardImpact(card, props.baselineWinRate)}
+                      </td>
+                    </tr>
+                  </Fragment>
                 );
               })}
             </tbody>
           </table>
+          {data.length > GLOBAL_LOSS_CARD_LIMIT ? (
+            <button
+              aria-expanded={expanded}
+              className="tm-button-secondary mt-4 w-full px-4 py-2 text-xs"
+              onClick={() => setExpanded((current) => !current)}
+              type="button"
+            >
+              {expanded
+                ? `Show top ${GLOBAL_LOSS_CARD_LIMIT}`
+                : `See more negative cards (${data.length - GLOBAL_LOSS_CARD_LIMIT})`}
+            </button>
+          ) : null}
         </div>
       )}
     </div>

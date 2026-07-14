@@ -1,7 +1,10 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { personLabel } from '@/lib/people/person-label';
+import { fetchUsernamesByPlayerId } from './player-label-resolution';
 
 export type PlayerRow = {
+  claim_name?: string;
   id: string;
   display_name: string;
   full_name?: string | null;
@@ -18,7 +21,7 @@ export async function listPlayers(groupId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id')
+    .select('id, display_name, linked_user_id, username')
     .eq('group_id', groupId)
     .order('display_name');
 
@@ -26,7 +29,21 @@ export async function listPlayers(groupId: string) {
     throw error;
   }
 
-  return data;
+  const rows = (data ?? []) as PlayerRow[];
+  const usernameByPlayerId = await fetchUsernamesByPlayerId(
+    supabase,
+    rows.map((player) => player.id),
+  );
+
+  return rows.map((player) => ({
+    ...player,
+    // Retained only for server-side claim matching; never render this value.
+    claim_name: player.display_name,
+    display_name: personLabel({
+      username: usernameByPlayerId.get(player.id) ?? player.username,
+      displayName: player.display_name,
+    }),
+  }));
 }
 
 export async function createPlayerIfMissing(input: {

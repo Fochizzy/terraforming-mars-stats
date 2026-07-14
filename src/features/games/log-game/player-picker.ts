@@ -1,9 +1,9 @@
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { personLabel } from '@/lib/people/person-label';
 
 export type LogGamePlayerOption = {
   display_name: string;
   id: string;
-  linked_full_name?: string | null;
   linked_username?: string | null;
 };
 
@@ -15,19 +15,13 @@ export type MatchedPlayerOption = {
 type MatchReason =
   | 'display_name_exact'
   | 'display_name_partial'
-  | 'full_name_exact'
-  | 'full_name_partial'
-  | 'last_initial_exact'
   | 'username_exact'
   | 'username_partial';
 
 const matchScores: Record<MatchReason, number> = {
   display_name_exact: 500,
-  full_name_exact: 475,
   username_exact: 450,
-  last_initial_exact: 425,
   display_name_partial: 250,
-  full_name_partial: 225,
   username_partial: 200,
 };
 
@@ -48,28 +42,6 @@ function isTokenPrefixMatch(input: string, candidate: string) {
   );
 }
 
-function buildFirstNameLastInitial(value: string) {
-  const tokens = value.trim().split(/\s+/).filter(Boolean);
-
-  if (tokens.length < 2) {
-    return '';
-  }
-
-  const firstName = tokens[0] ?? '';
-  const lastName = tokens[tokens.length - 1] ?? '';
-
-  if (!firstName || !lastName) {
-    return '';
-  }
-
-  return `${firstName} ${lastName.charAt(0)}`;
-}
-
-function getPrimaryName(player: LogGamePlayerOption) {
-  const preferredName = player.linked_full_name?.trim() || player.display_name.trim();
-  return preferredName.split(/\s+/).filter(Boolean)[0] ?? player.display_name.trim();
-}
-
 function compareMatchedPlayers(left: MatchedPlayerOption, right: MatchedPlayerOption) {
   return (
     right.score - left.score ||
@@ -79,11 +51,7 @@ function compareMatchedPlayers(left: MatchedPlayerOption, right: MatchedPlayerOp
 
 function buildPlayerScore(player: LogGamePlayerOption, normalizedEntry: string) {
   const displayName = normalizePlayerAlias(player.display_name);
-  const fullName = normalizePlayerAlias(player.linked_full_name ?? '');
   const username = normalizePlayerAlias(player.linked_username ?? '');
-  const shortName = normalizePlayerAlias(
-    buildFirstNameLastInitial(player.linked_full_name ?? player.display_name),
-  );
 
   let score = 0;
 
@@ -93,33 +61,20 @@ function buildPlayerScore(player: LogGamePlayerOption, normalizedEntry: string) 
     score = Math.max(score, matchScores.display_name_partial);
   }
 
-  if (fullName && fullName === normalizedEntry) {
-    score = Math.max(score, matchScores.full_name_exact);
-  } else if (fullName && isTokenPrefixMatch(normalizedEntry, fullName)) {
-    score = Math.max(score, matchScores.full_name_partial);
-  }
-
   if (username && username === normalizedEntry) {
     score = Math.max(score, matchScores.username_exact);
   } else if (username && isTokenPrefixMatch(normalizedEntry, username)) {
     score = Math.max(score, matchScores.username_partial);
   }
 
-  if (shortName && shortName === normalizedEntry) {
-    score = Math.max(score, matchScores.last_initial_exact);
-  }
-
   return score;
 }
 
 export function formatSelectedPlayerLabel(player: LogGamePlayerOption) {
-  const username = player.linked_username?.trim();
-
-  if (!username) {
-    return player.display_name;
-  }
-
-  return `${getPrimaryName(player)} (@${username})`;
+  return personLabel({
+    username: player.linked_username,
+    displayName: player.display_name,
+  });
 }
 
 export function findMatchingPlayerOptions(input: {

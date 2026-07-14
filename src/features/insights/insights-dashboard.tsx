@@ -1733,10 +1733,17 @@ export function InsightsDashboard({
     useState<FocusScope>('overall');
   const focusScope = fixedFocusScope ?? selectedFocusScope;
 
+  const lockFocusToCurrentUser =
+    scopeMode === 'individual' && Boolean(currentUserCanonicalId);
+  const effectiveSelectedPersonId = lockFocusToCurrentUser
+    ? currentUserCanonicalId ?? 'all'
+    : selectedPersonId;
   const selectedPerson =
-    isPlayerCombinationMode || selectedPersonId === 'all'
+    isPlayerCombinationMode || effectiveSelectedPersonId === 'all'
       ? null
-      : focusPeople.find((person) => person.canonicalId === selectedPersonId) ?? null;
+      : focusPeople.find(
+          (person) => person.canonicalId === effectiveSelectedPersonId,
+        ) ?? null;
   const overallFocusBundle = useMemo(
     () => buildOverallFocusBundle(focusPeople),
     [focusPeople],
@@ -2215,11 +2222,14 @@ export function InsightsDashboard({
                 <select
                   aria-label="Player focus"
                   className="tm-input mt-2 w-full appearance-none pr-9"
+                  disabled={lockFocusToCurrentUser}
                   id="player-focus-select"
                   onChange={(event) => setSelectedPersonId(event.target.value)}
-                  value={selectedPersonId}
+                  value={effectiveSelectedPersonId}
                 >
-                  <option value="all">All players</option>
+                  {lockFocusToCurrentUser ? null : (
+                    <option value="all">All players</option>
+                  )}
                   {focusPeople.map((person) => (
                     <option key={person.canonicalId} value={person.canonicalId}>
                       {person.displayName}
@@ -2229,6 +2239,11 @@ export function InsightsDashboard({
                 <span className="mt-2 block">
                   <SelectChevron />
                 </span>
+                {lockFocusToCurrentUser ? (
+                  <p className="tm-muted-copy mt-2 text-xs">
+                    Individual Insights always follows your signed-in player.
+                  </p>
+                ) : null}
               </div>
             )}
             {fixedFocusScope ? null : (

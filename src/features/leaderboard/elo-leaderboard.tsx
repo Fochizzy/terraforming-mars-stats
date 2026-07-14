@@ -17,7 +17,9 @@ function RatingTable({ personal, rows, savedIds, onToggle }: {
         const saved = savedIds.has(row.playerId);
         return (
           <article className={`tm-elo-row${index === 0 ? ' tm-elo-row--leader' : ''}`} key={row.playerId} role="row">
-            {index === 0 ? <Image alt="First-place Terraforming Mars trophy" className="tm-elo-first-trophy" height={1536} src="/leaderboard-trophy.png" width={1024} /> : null}
+            {index === 0 ? <Image alt="Gold first-place Terraforming Mars emblem" className="tm-elo-emblem" height={512} src="/leaderboard-gold.png" width={512} /> : null}
+            {index === 1 ? <Image alt="Silver second-place Terraforming Mars emblem" className="tm-elo-emblem" height={512} src="/leaderboard-silver.png" width={512} /> : null}
+            {index === 2 ? <Image alt="Bronze third-place Terraforming Mars emblem" className="tm-elo-emblem" height={512} src="/leaderboard-bronze.png" width={512} /> : null}
             <div className="tm-elo-rank">{index + 1}</div>
             <label className="tm-elo-save">
               <input checked={saved} onChange={(event) => onToggle(row.playerId, event.target.checked)} type="checkbox" />

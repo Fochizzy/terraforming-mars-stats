@@ -334,7 +334,46 @@ describe('InsightsDashboard', () => {
           },
         ]}
         overallAnalytics={buildEmptyGroupAnalyticsFixture()}
-        overallExtended={buildExtendedFixture()}
+        overallExtended={buildExtendedFixture({
+          cardOutcomeRows: [
+            {
+              cardId: 'corey-card',
+              cardName: 'Corey Card',
+              fullImageUrl: null,
+              gameId: 'game-1',
+              groupId: 'overall',
+              isWinner: false,
+              playedOn: '2026-06-01',
+              playerId: 'name:corey',
+              playerName: 'Corey',
+              thumbnailUrl: null,
+            },
+            {
+              cardId: 'james-card',
+              cardName: 'James Card',
+              fullImageUrl: null,
+              gameId: 'game-1',
+              groupId: 'overall',
+              isWinner: false,
+              playedOn: '2026-06-01',
+              playerId: 'name:james',
+              playerName: 'James',
+              thumbnailUrl: null,
+            },
+            {
+              cardId: 'unselected-card',
+              cardName: 'Unselected Player Card',
+              fullImageUrl: null,
+              gameId: 'game-1',
+              groupId: 'overall',
+              isWinner: true,
+              playedOn: '2026-06-01',
+              playerId: 'user:me',
+              playerName: 'Friday Mars',
+              thumbnailUrl: null,
+            },
+          ],
+        })}
         scopeMode="group"
         sharedGameRows={sharedGameRows}
       />,
@@ -374,8 +413,11 @@ describe('InsightsDashboard', () => {
     await user.click(screen.getByRole('button', { name: /analyze/i }));
 
     expect(
-      screen.getByText(/1 game containing Corey, James \| 3 player results/i),
+      screen.getByText(/1 game containing Corey, James \| 2 player results/i),
     ).toBeInTheDocument();
+    expect(screen.getByText('Corey Card')).toBeInTheDocument();
+    expect(screen.getByText('James Card')).toBeInTheDocument();
+    expect(screen.queryByText('Unselected Player Card')).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /Combination Weighted Leaderboard/i }),
     ).toBeInTheDocument();
@@ -438,7 +480,6 @@ describe('InsightsDashboard', () => {
   });
 
   it('renders all expanded individual metrics for a focused player', async () => {
-    const user = userEvent.setup();
     const personalSelectionStats: SelectionStats = {
       awardFunding: [],
       baselineWinRate: 0.5,
@@ -808,7 +849,11 @@ describe('InsightsDashboard', () => {
       />,
     );
 
-    await user.selectOptions(screen.getByLabelText(/player focus/i), 'user:me');
+    expect(screen.getByLabelText(/player focus/i)).toBeDisabled();
+    expect(screen.getByLabelText(/player focus/i)).toHaveValue('user:me');
+    expect(
+      screen.getByText(/always follows your signed-in player/i),
+    ).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { name: /Expanded Individual Metrics/i }),

@@ -14,7 +14,7 @@ export type TopNavItem = {
 export const defaultTopNavItems: TopNavItem[] = [
   { href: '/log-game', label: 'Log a Game' },
   { href: '/profile', label: 'My Profile' },
-  { href: '/group', label: 'Global' },
+  { href: '/group', label: 'Global Data' },
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
   { href: '/comparisons', label: 'Comparisons' },
@@ -26,7 +26,7 @@ function isItemActive(pathname: string, href: string): boolean {
   if (pathname === href) {
     return true;
   }
-  // Treat nested routes as active for their parent (e.g. /group/settings → Global),
+  // Treat nested routes as active for their parent (e.g. /group/settings → Global Data),
   // but keep the more specific Saved Games link from also lighting up Log a Game.
   if (href === '/log-game') {
     return pathname === '/log-game' || pathname.startsWith('/log-game/import');

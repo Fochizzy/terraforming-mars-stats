@@ -225,19 +225,17 @@ describe('LogGameWizard', () => {
     expect(routerMocks.push).not.toHaveBeenCalled();
   });
 
-  it('shows first name and username in the player picker list and lets the user choose a first-name-plus-initial match', async () => {
+  it('shows usernames only in the player picker and matches by username', async () => {
     const user = userEvent.setup();
     const playerOptions = [
       {
         id: 'p1',
         display_name: 'Friday Mars',
-        linked_full_name: 'Friday Mars',
         linked_username: 'friday-mars',
       },
       {
         id: 'p2',
         display_name: 'Friday May',
-        linked_full_name: 'Friday May',
         linked_username: 'friday-may',
       },
     ];
@@ -280,22 +278,23 @@ describe('LogGameWizard', () => {
       />,
     );
 
-    await user.type(screen.getByLabelText(/add or select player/i), 'Friday M');
+    await user.type(screen.getByLabelText(/add or select player/i), 'friday-');
 
     expect(
-      screen.getByRole('button', { name: /friday \(@friday-mars\)/i }),
+      screen.getByRole('button', { name: 'friday-mars' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /friday \(@friday-may\)/i }),
+      screen.getByRole('button', { name: 'friday-may' }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Friday Mars$/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Friday May$/i)).not.toBeInTheDocument();
 
     await user.click(
-      screen.getByRole('button', { name: /friday \(@friday-mars\)/i }),
+      screen.getByRole('button', { name: 'friday-mars' }),
     );
 
-    expect(screen.getAllByText('Friday (@friday-mars)')).toHaveLength(2);
+    expect(screen.getAllByText('friday-mars').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText(/^Friday Mars$/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/add or select player/i)).toHaveValue('');
   });
 
@@ -436,30 +435,30 @@ describe('LogGameWizard', () => {
     expect(screen.getByText(/own the most non-ocean tiles/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /close/i }));
 
-    await user.selectOptions(screen.getByLabelText(/friday mars corporation 1/i), 'corp1');
-    await user.selectOptions(screen.getByLabelText(/friday mars prelude 1/i), 'prelude1');
+    await user.selectOptions(screen.getByLabelText(/friday corporation 1/i), 'corp1');
+    await user.selectOptions(screen.getByLabelText(/friday prelude 1/i), 'prelude1');
     await user.click(screen.getByLabelText(/builder claimed/i));
-    await user.click(screen.getByLabelText(/builder winner friday mars/i));
+    await user.click(screen.getByLabelText(/builder winner friday/i));
     await user.click(screen.getByLabelText(/landlord funded/i));
     await user.selectOptions(screen.getByLabelText(/landlord funded by/i), 'p2');
-    await user.click(screen.getByLabelText(/landlord first place friday mars/i));
-    await user.click(screen.getByLabelText(/landlord second place second seat/i));
-    await user.clear(screen.getByLabelText(/friday mars cities/i));
-    await user.type(screen.getByLabelText(/friday mars cities/i), '5');
-    await user.clear(screen.getByLabelText(/friday mars greenery/i));
-    await user.type(screen.getByLabelText(/friday mars greenery/i), '6');
-    await user.clear(screen.getByLabelText(/friday mars total card points/i));
-    await user.type(screen.getByLabelText(/friday mars total card points/i), '18');
-    await user.clear(screen.getByLabelText(/friday mars terraform rating points/i));
-    await user.type(screen.getByLabelText(/friday mars terraform rating points/i), '21');
-    await user.clear(screen.getByLabelText(/friday mars milestone points/i));
-    await user.type(screen.getByLabelText(/friday mars milestone points/i), '5');
-    await user.clear(screen.getByLabelText(/friday mars award points/i));
-    await user.type(screen.getByLabelText(/friday mars award points/i), '5');
-    await user.clear(screen.getByLabelText(/friday mars total points/i));
-    await user.type(screen.getByLabelText(/friday mars total points/i), '55');
-    await user.clear(screen.getByLabelText(/friday mars final megacredits/i));
-    await user.type(screen.getByLabelText(/friday mars final megacredits/i), '8');
+    await user.click(screen.getByLabelText(/landlord first place friday/i));
+    await user.click(screen.getByLabelText(/landlord second place second/i));
+    await user.clear(screen.getByLabelText(/friday cities/i));
+    await user.type(screen.getByLabelText(/friday cities/i), '5');
+    await user.clear(screen.getByLabelText(/friday greenery/i));
+    await user.type(screen.getByLabelText(/friday greenery/i), '6');
+    await user.clear(screen.getByLabelText(/friday total card points/i));
+    await user.type(screen.getByLabelText(/friday total card points/i), '18');
+    await user.clear(screen.getByLabelText(/friday terraform rating points/i));
+    await user.type(screen.getByLabelText(/friday terraform rating points/i), '21');
+    await user.clear(screen.getByLabelText(/friday milestone points/i));
+    await user.type(screen.getByLabelText(/friday milestone points/i), '5');
+    await user.clear(screen.getByLabelText(/friday award points/i));
+    await user.type(screen.getByLabelText(/friday award points/i), '5');
+    await user.clear(screen.getByLabelText(/friday total points/i));
+    await user.type(screen.getByLabelText(/friday total points/i), '55');
+    await user.clear(screen.getByLabelText(/friday final megacredits/i));
+    await user.type(screen.getByLabelText(/friday final megacredits/i), '8');
     await user.clear(screen.getByLabelText(/generation count/i));
     await user.type(screen.getByLabelText(/generation count/i), '11');
     await user.click(screen.getByRole('button', { name: /save draft setup/i }));
@@ -573,8 +572,8 @@ describe('LogGameWizard', () => {
       />,
     );
 
-    await user.selectOptions(screen.getByLabelText(/friday mars corporation 1/i), 'corp1');
-    await user.selectOptions(screen.getByLabelText(/friday mars corporation 2/i), 'corp2');
+    await user.selectOptions(screen.getByLabelText(/friday corporation 1/i), 'corp1');
+    await user.selectOptions(screen.getByLabelText(/friday corporation 2/i), 'corp2');
     await user.click(screen.getByRole('button', { name: /save draft setup/i }));
 
     await waitFor(() =>
@@ -699,7 +698,7 @@ describe('LogGameWizard', () => {
       itemLabel: 'Commercial District',
       message:
         'The city placement from Commercial District could not be linked safely from the imported log.',
-      playerName: 'Friday Mars',
+      playerName: 'Friday',
       scoreField: 'cardPointsTotal',
     });
 
@@ -749,7 +748,7 @@ describe('LogGameWizard', () => {
       ).toBeInTheDocument(),
     );
 
-    const highlightedInput = screen.getByLabelText(/friday mars total card points/i);
+    const highlightedInput = screen.getByLabelText(/friday total card points/i);
     expect(highlightedInput).toHaveAttribute(
       'data-manual-review-highlight',
       'true',
@@ -822,7 +821,7 @@ describe('LogGameWizard', () => {
       ).toBeInTheDocument(),
     );
 
-    const highlightedInput = screen.getByLabelText(/roster name total card points/i);
+    const highlightedInput = screen.getByLabelText(/roster total card points/i);
     expect(highlightedInput).toHaveAttribute(
       'data-manual-review-highlight',
       'true',

@@ -1,13 +1,15 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
 import {
-  buildGlobalKeyCardData,
   GlobalKeyCardsSection,
 } from '@/features/insights/global-key-cards-section';
 import {
-  buildGlobalLossCardData,
   GlobalLossCardsSection,
 } from '@/features/insights/global-loss-cards-section';
+import {
+  buildGlobalCardImpactData,
+  GLOBAL_CARD_IMPACT_MIN_PLAYS,
+} from '@/features/insights/global-card-impact';
 import {
   FinalTerraformingActionBlock,
   SelectionStatsScope,
@@ -163,13 +165,17 @@ export default async function GlobalStatisticsPage() {
   // panels. Optional: on failure the cards still list, just without the
   // click-to-open-image link.
   const linkedCardNames = new Set<string>([
-    ...buildGlobalKeyCardData(
+    ...buildGlobalCardImpactData(
       globalStats.cards,
       globalStats.baselineWinRate,
+      'positive',
+      { minPlays: GLOBAL_CARD_IMPACT_MIN_PLAYS },
     ).map((card) => card.cardName),
-    ...buildGlobalLossCardData(
+    ...buildGlobalCardImpactData(
       globalStats.cards,
       globalStats.baselineWinRate,
+      'negative',
+      { minPlays: GLOBAL_CARD_IMPACT_MIN_PLAYS },
     ).map((card) => card.cardName),
     ...buildWinningCardData(globalStats.cards).map((card) => card.cardName),
   ]);

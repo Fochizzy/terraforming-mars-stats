@@ -91,7 +91,7 @@ a {
   }
 
   .tm-app-header__actions {
-    @apply flex flex-col items-start gap-2 sm:items-end;
+    @apply flex flex-col items-stretch gap-2;
   }
 
   .tm-top-nav {
@@ -360,6 +360,29 @@ a {
 
   .tm-button-secondary:hover {
     border-color: rgba(157, 213, 240, 0.7);
+    transform: translateY(-1px);
+  }
+
+  .tm-button-leaderboard {
+    @apply rounded-full border text-center font-semibold;
+    background: linear-gradient(180deg, #7dd3c7 0%, #2f9f96 52%, #1f766f 100%);
+    border-color: rgba(185, 255, 242, 0.58);
+    box-shadow:
+      0 10px 22px rgba(10, 91, 84, 0.3),
+      inset 0 1px 0 rgba(230, 255, 250, 0.55);
+    color: #071f1d;
+    font-family: var(--tm-font-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition:
+      transform 140ms ease,
+      box-shadow 140ms ease;
+  }
+
+  .tm-button-leaderboard:hover {
+    box-shadow:
+      0 14px 28px rgba(10, 91, 84, 0.38),
+      inset 0 1px 0 rgba(230, 255, 250, 0.65);
     transform: translateY(-1px);
   }
 

@@ -65,28 +65,38 @@ export default async function ProfilePage(_props: ProfilePageProps) {
           </Link>
         </ChartFrame>
       ) : (
-        <ProfileDashboard
-          cardOutcomes={profileAnalytics?.cardOutcomes ?? []}
-          coverage={profileAnalytics?.coverage ?? null}
-          expansionProfile={profileAnalytics?.expansionProfile ?? null}
-          gameLengthProfile={profileAnalytics?.gameLengthProfile ?? null}
-          globalParameterTempoProfile={
-            profileAnalytics?.globalParameterTempoProfile ?? null
-          }
-          headToHeadRows={profileAnalytics?.headToHeadRows ?? []}
-          keyCards={profileAnalytics?.keyCards ?? []}
-          leadPressure={profileAnalytics?.leadPressure ?? null}
-          linkHref="/group/players"
-          lossCards={profileAnalytics?.lossCards ?? []}
-          performance={profileAnalytics?.performance ?? null}
-          phaseTempoProfile={profileAnalytics?.phaseTempoProfile ?? null}
-          playerName={profileAnalytics?.playerName ?? null}
-          resourceRemovalProfile={profileAnalytics?.resourceRemovalProfile ?? null}
-          scoreAverages={profileAnalytics?.scoreAverages ?? null}
-          scorePace={profileAnalytics?.scorePace ?? null}
-          styleBreakdownRows={profileAnalytics?.styleBreakdownRows ?? []}
-          styleInsights={profileAnalytics?.styleInsights ?? []}
-        />
+        <>
+          <div className="flex flex-wrap gap-3">
+            <Link className="tm-button-secondary" href="/profile/compare">
+              Compare Players
+            </Link>
+            <Link className="tm-button-secondary" href="/profile/comparison">
+              Open My Play vs Overall
+            </Link>
+          </div>
+          <ProfileDashboard
+            cardOutcomes={profileAnalytics?.cardOutcomes ?? []}
+            coverage={profileAnalytics?.coverage ?? null}
+            expansionProfile={profileAnalytics?.expansionProfile ?? null}
+            gameLengthProfile={profileAnalytics?.gameLengthProfile ?? null}
+            globalParameterTempoProfile={
+              profileAnalytics?.globalParameterTempoProfile ?? null
+            }
+            headToHeadRows={profileAnalytics?.headToHeadRows ?? []}
+            keyCards={profileAnalytics?.keyCards ?? []}
+            leadPressure={profileAnalytics?.leadPressure ?? null}
+            linkHref="/group/players"
+            lossCards={profileAnalytics?.lossCards ?? []}
+            performance={profileAnalytics?.performance ?? null}
+            phaseTempoProfile={profileAnalytics?.phaseTempoProfile ?? null}
+            playerName={profileAnalytics?.playerName ?? null}
+            resourceRemovalProfile={profileAnalytics?.resourceRemovalProfile ?? null}
+            scoreAverages={profileAnalytics?.scoreAverages ?? null}
+            scorePace={profileAnalytics?.scorePace ?? null}
+            styleBreakdownRows={profileAnalytics?.styleBreakdownRows ?? []}
+            styleInsights={profileAnalytics?.styleInsights ?? []}
+          />
+        </>
       )}
     </AppShell>
   );

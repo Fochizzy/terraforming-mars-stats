@@ -4,10 +4,7 @@ import { useMemo, useState } from 'react';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StepHeading } from '@/components/ui/step-heading';
 import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
-import {
-  signupFullNameSchema,
-  usernameHandleSchema,
-} from '@/features/auth/username-auth';
+import { usernameHandleSchema } from '@/features/auth/username-auth';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 import type {
   CorporationOption,
@@ -29,9 +26,7 @@ const MIDGAME_PRELUDE_SLOT_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7];
 // A roster player is "registered" once it is linked to an account, which is the
 // only time the linked profile fields are populated.
 function isRegisteredPlayer(player: LogGamePlayerOption) {
-  return Boolean(
-    player.linked_username?.trim() || player.linked_full_name?.trim(),
-  );
+  return Boolean(player.linked_username?.trim());
 }
 
 type PlayersStepProps = {
@@ -55,9 +50,6 @@ export function PlayersStep({
 }: PlayersStepProps) {
   const [playerEntry, setPlayerEntry] = useState('');
   const [playerEntryError, setPlayerEntryError] = useState('');
-  const [newPlayerKind, setNewPlayerKind] = useState<'name' | 'username'>(
-    'name',
-  );
   const matchingPlayerOptions = useMemo(
     () =>
       findMatchingPlayerOptions({
@@ -74,6 +66,8 @@ export function PlayersStep({
           display_name: playerId,
         },
     );
+  const labelForPlayer = (player: LogGamePlayerOption) =>
+    formatSelectedPlayerLabel(player);
   const availableMatches = matchingPlayerOptions.filter(
     (match) => !selectedPlayerIds.includes(match.player.id),
   );
@@ -132,16 +126,13 @@ export function PlayersStep({
         return;
       }
 
-      const nextReference =
-        newPlayerKind === 'username'
-          ? usernameHandleSchema.parse(rawValue)
-          : signupFullNameSchema.parse(rawValue);
+      const nextReference = usernameHandleSchema.parse(rawValue);
       addPlayerReference(nextReference);
     } catch (error) {
       setPlayerEntryError(
         error instanceof Error
           ? error.message
-          : 'Enter a full player name in First Name Last Name format.',
+          : 'Enter a username.',
       );
     }
   }
@@ -161,69 +152,27 @@ export function PlayersStep({
       <StepHeading step="02" title="Players" />
       <p className="tm-body-copy text-sm">
         <GlossaryRichText>
-          Pick saved players from the roster or type a full name to create that player on save.
+          Pick saved players from the roster or type a username to create that player on save.
         </GlossaryRichText>
       </p>
       <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
         <GlossaryRichText>
-          Saved players can be found by roster name, username, or first name plus last initial.
+          Saved players are shown by username. Full names are used only as private evidence when claiming an unclaimed profile.
         </GlossaryRichText>
       </p>
       <p className="tm-data-label">
         {selectedPlayers.length} of {playerCount} seats filled
       </p>
-      <div className="flex flex-col gap-2">
-        <span className="tm-data-label">New player is a</span>
-        <div className="flex gap-2" role="group" aria-label="New player type">
-          <button
-            aria-pressed={newPlayerKind === 'name'}
-            className={
-              newPlayerKind === 'name'
-                ? 'tm-button-primary flex-1 px-3 py-2 text-xs'
-                : 'tm-button-secondary flex-1 px-3 py-2 text-xs'
-            }
-            onClick={() => {
-              setNewPlayerKind('name');
-              setPlayerEntryError('');
-            }}
-            type="button"
-          >
-            Real Name
-          </button>
-          <button
-            aria-pressed={newPlayerKind === 'username'}
-            className={
-              newPlayerKind === 'username'
-                ? 'tm-button-primary flex-1 px-3 py-2 text-xs'
-                : 'tm-button-secondary flex-1 px-3 py-2 text-xs'
-            }
-            onClick={() => {
-              setNewPlayerKind('username');
-              setPlayerEntryError('');
-            }}
-            type="button"
-          >
-            Username
-          </button>
-        </div>
-        <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-          {newPlayerKind === 'name'
-            ? 'Real names need a first and last name (e.g. James Hodnett).'
-            : 'A username is a single handle (e.g. Revloki).'}
-        </p>
-      </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
         <label className="flex flex-col gap-2 text-sm">
           <span className="tm-data-label">Add Or Select Player</span>
           <input
             aria-label="Add Or Select Player"
+            autoCapitalize="none"
             className="tm-input"
             autoComplete="off"
-            autoCapitalize={newPlayerKind === 'username' ? 'none' : undefined}
             onChange={(event) => setPlayerEntry(event.target.value)}
-            placeholder={
-              newPlayerKind === 'username' ? 'Revloki' : 'First Name Last Name'
-            }
+            placeholder="Username"
             value={playerEntry}
           />
         </label>
@@ -326,7 +275,7 @@ export function PlayersStep({
                         Corporation {slotIndex + 1}
                       </span>
                       <select
-                        aria-label={`${player.display_name} Corporation ${slotIndex + 1}`}
+                        aria-label={`${labelForPlayer(player)} Corporation ${slotIndex + 1}`}
                         className="tm-input appearance-none pr-9"
                         defaultValue=""
                         {...register(
@@ -358,7 +307,7 @@ export function PlayersStep({
                         Prelude {slotIndex + 1}
                       </span>
                       <select
-                        aria-label={`${player.display_name} Prelude ${slotIndex + 1}`}
+                        aria-label={`${labelForPlayer(player)} Prelude ${slotIndex + 1}`}
                         className="tm-input appearance-none pr-9"
                         defaultValue=""
                         {...register(
@@ -392,7 +341,7 @@ export function PlayersStep({
                           Mid-game prelude {slotIndex + 1}
                         </span>
                         <select
-                          aria-label={`${player.display_name} Mid-game prelude ${slotIndex + 1}`}
+                          aria-label={`${labelForPlayer(player)} Mid-game prelude ${slotIndex + 1}`}
                           className="tm-input appearance-none pr-9"
                           defaultValue=""
                           {...register(

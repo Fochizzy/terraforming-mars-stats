@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PlayerList } from './player-list';
 
 describe('PlayerList', () => {
-  it('submits a new recurring player name', async () => {
+  it('submits a new recurring player username', async () => {
     const user = userEvent.setup();
     const onAddPlayer = vi.fn().mockResolvedValue({
       status: 'success' as const,
@@ -18,25 +18,25 @@ describe('PlayerList', () => {
       />,
     );
 
-    await user.type(screen.getByLabelText(/add player name/i), 'Second Seat');
+    await user.type(screen.getByLabelText(/add player username/i), 'SecondSeat');
     await user.click(screen.getByRole('button', { name: /add player/i }));
 
-    await waitFor(() => expect(onAddPlayer).toHaveBeenCalledWith('Second Seat'));
+    await waitFor(() => expect(onAddPlayer).toHaveBeenCalledWith('SecondSeat'));
   });
 
-  it('requires a first and last name before allowing a roster add', async () => {
+  it('requires a valid username before allowing a roster add', async () => {
     const user = userEvent.setup();
 
     render(<PlayerList onAddPlayer={vi.fn()} players={[]} />);
 
-    const input = screen.getByLabelText(/add player name/i);
+    const input = screen.getByLabelText(/add player username/i);
     const button = screen.getByRole('button', { name: /add player/i });
 
-    await user.type(input, 'Friday');
+    await user.type(input, '---');
     expect(button).toBeDisabled();
 
     await user.clear(input);
-    await user.type(input, 'Friday Mars');
+    await user.type(input, 'FridayMars');
     expect(button).toBeEnabled();
   });
 

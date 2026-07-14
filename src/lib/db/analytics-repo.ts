@@ -5345,8 +5345,14 @@ export async function getProfileAnalytics(
   ).map(mapProfileGameResultRow);
 
   if (normalizedOwnRows.length === 0) {
-    return buildProfileAnalyticsFromRows({
+    const publiclyLabeledPlayers = await resolvePlayerLabelsInRows(
+      supabase,
       linkedPlayers,
+      [['id', 'display_name']],
+    );
+
+    return buildProfileAnalyticsFromRows({
+      linkedPlayers: publiclyLabeledPlayers,
       ownRows: normalizedOwnRows,
       sharedRows: [],
     });

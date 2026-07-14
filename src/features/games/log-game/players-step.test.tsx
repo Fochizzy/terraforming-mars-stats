@@ -8,12 +8,11 @@ import type { LogGamePlayerOption } from './player-picker';
 
 const playerOptions: LogGamePlayerOption[] = [
   // Previously entered, never linked to an account.
-  { id: 'p-hodnett', display_name: 'James Hodnett' },
+  { id: 'p-hodnett', display_name: 'jamesh' },
   // Registered: linked to an account with a username.
   {
     id: 'p-howard',
-    display_name: 'James Howard',
-    linked_full_name: 'James Howard',
+    display_name: 'jhoward',
     linked_username: 'jhoward',
   },
 ];
@@ -45,15 +44,15 @@ describe('PlayersStep new-player resolution', () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.type(screen.getByLabelText(/add or select player/i), 'James');
+    await user.type(screen.getByLabelText(/add or select player/i), 'j');
 
     expect(screen.getByText(/previously entered/i)).toBeInTheDocument();
     expect(screen.getByText(/registered players/i)).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'James Hodnett' }),
+      screen.getByRole('button', { name: 'jamesh' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /james.*@jhoward/i }),
+      screen.getByRole('button', { name: 'jhoward' }),
     ).toBeInTheDocument();
     // A brand-new player is still an explicit option.
     expect(
@@ -65,8 +64,8 @@ describe('PlayersStep new-player resolution', () => {
     const user = userEvent.setup();
     const { setValue } = renderStep();
 
-    await user.type(screen.getByLabelText(/add or select player/i), 'James');
-    await user.click(screen.getByRole('button', { name: 'James Hodnett' }));
+    await user.type(screen.getByLabelText(/add or select player/i), 'j');
+    await user.click(screen.getByRole('button', { name: 'jamesh' }));
 
     expect(setValue).toHaveBeenCalledWith(
       'selectedPlayerIds',
@@ -79,8 +78,8 @@ describe('PlayersStep new-player resolution', () => {
     const user = userEvent.setup();
     const { setValue } = renderStep();
 
-    await user.type(screen.getByLabelText(/add or select player/i), 'James');
-    await user.click(screen.getByRole('button', { name: /james.*@jhoward/i }));
+    await user.type(screen.getByLabelText(/add or select player/i), 'j');
+    await user.click(screen.getByRole('button', { name: 'jhoward' }));
 
     expect(setValue).toHaveBeenCalledWith(
       'selectedPlayerIds',
@@ -95,14 +94,14 @@ describe('PlayersStep new-player resolution', () => {
 
     await user.type(
       screen.getByLabelText(/add or select player/i),
-      'James Bond',
+      'JamesBond',
     );
     // No roster player matches "James Bond", so the button is a plain add.
     await user.click(screen.getByRole('button', { name: /^add player$/i }));
 
     expect(setValue).toHaveBeenCalledWith(
       'selectedPlayerIds',
-      ['James Bond'],
+      ['JamesBond'],
       { shouldDirty: true },
     );
   });
@@ -113,7 +112,7 @@ describe('PlayersStep new-player resolution', () => {
 
     await user.type(
       screen.getByLabelText(/add or select player/i),
-      'James Hodnett',
+      'jamesh',
     );
     await user.click(screen.getByRole('button', { name: /create new player/i }));
 
@@ -127,7 +126,6 @@ describe('PlayersStep new-player resolution', () => {
     const user = userEvent.setup();
     const { setValue } = renderStep();
 
-    await user.click(screen.getByRole('button', { name: /^username$/i }));
     await user.type(screen.getByLabelText(/add or select player/i), 'Revloki');
     await user.click(screen.getByRole('button', { name: /^add player$/i }));
 

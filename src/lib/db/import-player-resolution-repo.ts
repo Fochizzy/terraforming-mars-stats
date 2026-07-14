@@ -1,4 +1,5 @@
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { personLabel } from '@/lib/people/person-label';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { listCurrentUserGroups } from './group-context-repo';
@@ -116,7 +117,10 @@ export async function listImportResolutionPlayers(groupId: string) {
       : null;
 
     return {
-      displayName: player.display_name,
+      displayName: personLabel({
+        username: profile?.username ?? player.username,
+        displayName: player.display_name,
+      }),
       gamesPlayed: gamesPlayedByPlayerId.get(player.id) ?? 0,
       id: player.id,
       // A linked account's own profile is canonical; unlinked roster players
@@ -135,7 +139,9 @@ export async function listImportResolutionPlayers(groupId: string) {
 function dedupeKeyForPlayer(player: RawGroupPlayerRow) {
   return player.linked_user_id
     ? `user:${player.linked_user_id}`
-    : `name:${normalizePlayerAlias(player.display_name)}`;
+    : player.username?.trim()
+      ? `username:${normalizePlayerAlias(player.username)}`
+      : `name:${normalizePlayerAlias(player.display_name)}`;
 }
 
 /**
@@ -211,7 +217,10 @@ export async function listImportResolutionPlayersForCurrentUser(): Promise<
 
     if (!existing) {
       dedupedByKey.set(key, {
-        displayName: player.display_name,
+        displayName: personLabel({
+          username: profile?.username ?? player.username,
+          displayName: player.display_name,
+        }),
         gamesPlayed,
         id: player.id,
         linkedFullName: profile?.full_name ?? player.full_name ?? null,

@@ -63,7 +63,7 @@ export function AppShell({
                   </form>
                 </div>
                 <Link
-                  className="tm-button-secondary px-4 py-2 text-xs"
+                  className="tm-button-leaderboard w-full px-4 py-2 text-xs"
                   href="/leaderboard"
                 >
                   Leaderboard

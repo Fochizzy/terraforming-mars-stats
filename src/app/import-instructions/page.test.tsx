@@ -24,5 +24,9 @@ describe('ImportInstructionsPage', () => {
       }),
     ).toHaveAttribute('href', 'https://terraforming-mars.herokuapp.com');
     expect(screen.getAllByRole('img')).toHaveLength(12);
+    expect(
+      document.querySelector('a[href^="/glossary"]'),
+    ).not.toBeInTheDocument();
+    expect(document.querySelector('.tm-glossary-link')).not.toBeInTheDocument();
   });
 });

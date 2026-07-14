@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import styles from './import-instructions.module.css';
-import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 
 export const metadata: Metadata = {
   title: 'Upload Instructions | Terraforming Mars Stats',
@@ -262,7 +261,7 @@ function CalloutBubble({ callout }: { callout: Callout }) {
     <aside className={calloutClass(callout.kind)}>
       <span className={styles.calloutLabel}>{callout.title}</span>
       <p className={styles.calloutBody}>
-        <GlossaryRichText>{callout.body}</GlossaryRichText>
+        {callout.body}
         {callout.link ? (
           <a href={callout.link.href} rel="noreferrer" target="_blank">
             {callout.link.label}
@@ -283,12 +282,10 @@ function StepCard({ step }: { step: Step }) {
         </span>
         <div>
           <h2 className={styles.stepTitle}>
-            <GlossaryRichText maxLinks={2}>{step.title}</GlossaryRichText>
+            {step.title}
           </h2>
           {step.detail ? (
-            <p className={styles.stepDetail}>
-              <GlossaryRichText>{step.detail}</GlossaryRichText>
-            </p>
+            <p className={styles.stepDetail}>{step.detail}</p>
           ) : null}
           {step.shortcut ? <Shortcut keys={step.shortcut} /> : null}
         </div>
@@ -318,9 +315,7 @@ export default function ImportInstructionsPage() {
               Upload and finalize a game
             </h1>
             <p className={styles.body}>
-              <GlossaryRichText>
-                Work through the steps in order: export the game log, upload evidence, review the draft, and finalize the game.
-              </GlossaryRichText>
+              Work through the steps in order: export the game log, upload evidence, review the draft, and finalize the game.
             </p>
           </div>
           <div className={styles.heroActions}>

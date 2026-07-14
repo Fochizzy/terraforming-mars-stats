@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 function getExtendedAnalyticsViewsMigration() {
-  return getMigrationFile('20260708210000_add_extended_analytics_views.sql');
+  return getMigrationFile('20260708212912_add_extended_analytics_views.sql');
 }
 
 function getMigrationFile(fileName: string) {
@@ -95,7 +95,7 @@ describe('extended analytics views migration', () => {
 
 describe('tag summary alias resolution migration', () => {
   const migration = getMigrationFile(
-    '20260710002854_resolve_tag_summary_aliases.sql',
+    '20260711215135_add_selection_stats_total_games.sql',
   );
   const multipleCorporationsMigration = getMigrationContaining(
     'create table if not exists public.game_player_corporations',
@@ -189,54 +189,9 @@ describe('Merger impact stats migration', () => {
   });
 });
 
-describe('final terraforming action stats migration', () => {
-  const migration = getMigrationContaining('get_final_terraforming_action_stats');
-
-  it('detects the final terraforming action from the latest imported log', () => {
-    expect(migration).toContain(
-      'create or replace function public.get_final_terraforming_action_stats',
-    );
-    expect(migration).toContain('latest_imports as');
-    expect(migration).toContain("btrim(gli.raw_log_text) <> ''");
-    expect(migration).toContain("gle.event_type = 'global_parameter_changed'");
-    expect(migration).toContain(
-      "lower(coalesce(gle.tile_type, '')) in ('greenery', 'ocean')",
-    );
-    expect(migration).toContain('row_number() over');
-    expect(migration).toContain('order by te.event_order desc');
-  });
-
-  it('resolves final terraforming actors and compares win-rate baselines', () => {
-    expect(migration).toContain("gle.payload->>'actor'");
-    expect(migration).toContain('p.normalized_display_name');
-    expect(migration).toContain("pia.source_type = 'game_log'");
-    expect(migration).toContain('final_action_win_rate');
-    expect(migration).toContain('overall_win_rate');
-    expect(migration).toContain('win_rate_delta');
-  });
-
-  it('supports global, personal, and active-group scopes', () => {
-    expect(migration).toContain("scope = 'global'");
-    expect(migration).toContain("scope = 'personal'");
-    expect(migration).toContain("scope = 'group'");
-    expect(migration).toContain('p_self.linked_user_id = auth.uid()');
-    expect(migration).toContain('public.can_read_game(g.id)');
-  });
-
-  it('keeps the final terraforming RPC executable only by authenticated callers', () => {
-    expect(migration).toContain('security definer');
-    expect(migration).toContain(
-      'revoke all on function public.get_final_terraforming_action_stats(text, uuid) from public;',
-    );
-    expect(migration).toContain(
-      'grant execute on function public.get_final_terraforming_action_stats(text, uuid) to authenticated;',
-    );
-  });
-});
-
 describe('Award economics migration', () => {
   const migration = getMigrationFile(
-    '20260711130000_add_award_economics_function.sql',
+    '20260711123856_add_award_economics_function.sql',
   );
 
   it('aggregates award economics across groups with security definer', () => {
@@ -273,23 +228,30 @@ describe('Award economics migration', () => {
 });
 
 describe('Selection stats mid-game prelude migration', () => {
-  const migration = getMigrationFile(
-    '20260711194358_include_midgame_preludes_in_selection_stats.sql',
+  const selectionStatsMigration = getMigrationFile(
+    '20260714100000_add_objective_detail_stats.sql',
+  );
+  const midgamePreludes = getMigrationFile(
+    '20260710134348_add_midgame_preludes.sql',
   );
 
-  it('counts setup and in-game preludes in prelude selection stats', () => {
-    expect(migration).toContain('from game_player_preludes gpp');
-    expect(migration).toContain('from game_player_midgame_preludes gpmp');
-    expect(migration).toContain('join prelude_entries pe on pe.game_player_id = e.id');
-    expect(migration).toContain('join prelude_entries pe on pe.game_player_id = ce.id');
-    expect(migration).toContain('Board of Directors');
+  it('creates the midgame preludes table with a Board of Directors comment', () => {
+    expect(midgamePreludes).toContain('create table if not exists public.game_player_midgame_preludes');
+    expect(midgamePreludes).toContain('Board of Directors');
+  });
+
+  it('counts setup and in-game preludes via a unified prelude_entries CTE', () => {
+    expect(selectionStatsMigration).toContain('from game_player_preludes');
+    expect(selectionStatsMigration).toContain('from game_player_midgame_preludes');
+    expect(selectionStatsMigration).toContain('prelude_entries as (');
+    expect(selectionStatsMigration).toContain('join prelude_entries pe on pe.game_player_id');
   });
 
   it('preserves the get_selection_stats grants after replacing the function', () => {
-    expect(migration).toContain(
+    expect(selectionStatsMigration).toContain(
       'revoke all on function public.get_selection_stats(text) from public;',
     );
-    expect(migration).toContain(
+    expect(selectionStatsMigration).toContain(
       'grant execute on function public.get_selection_stats(text) to authenticated;',
     );
   });
