@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { SelectChevron } from '@/components/ui/select-chevron';
+import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
 import type { PromoCardOption, PromoSetOption } from '@/lib/db/reference-repo';
 
 type PromoSetBrowserProps = {
@@ -55,8 +56,8 @@ export function PromoSetBrowser({
     <ChartFrame title="Promo Sets">
       <div className="flex flex-col gap-4">
         <p className="tm-body-copy text-sm">
-          Browse each promo year and release set, then open a full card image from the
-          cached catalog reference.
+          Browse each promo year and release set, then select a card for its
+          image and win-rate stats.
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <div className="relative min-w-[220px] flex-1">
@@ -132,13 +133,15 @@ export function PromoSetBrowser({
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {activeCards.map((card) => (
-                  <a
-                    aria-label={`${card.cardName} full image`}
-                    className="tm-stat-card grid min-w-0 grid-cols-[72px_minmax(0,1fr)] gap-3"
-                    href={card.fullImageUrl}
+                  <CardStatsButton
+                    card={{
+                      cardName: card.cardName,
+                      fullImageUrl: card.fullImageUrl,
+                      id: card.id,
+                      thumbnailUrl: card.thumbnailUrl,
+                    }}
+                    className="tm-stat-card grid min-w-0 grid-cols-[72px_minmax(0,1fr)] gap-3 text-left"
                     key={card.id}
-                    rel="noreferrer"
-                    target="_blank"
                   >
                     <Image
                       alt={`${card.cardName} thumbnail`}
@@ -154,9 +157,9 @@ export function PromoSetBrowser({
                         {card.cardName}
                       </h4>
                       <p className="tm-muted-copy break-words text-sm">{card.cardType}</p>
-                      <span className="tm-accent-copy text-xs">Open full image</span>
+                      <span className="tm-accent-copy text-xs">Open card stats</span>
                     </div>
-                  </a>
+                  </CardStatsButton>
                 ))}
               </div>
             )}

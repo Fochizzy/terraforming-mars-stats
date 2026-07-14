@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { SelectChevron } from '@/components/ui/select-chevron';
-import { TagIcon } from '@/components/ui/tag-icon';
+import { TagLabel } from '@/components/ui/tag-icon';
 import type {
   CorporationTagStat,
   SelectionDialogData,
@@ -79,11 +79,12 @@ export function CorporationTagProfiles({
         <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2">
           {tagsForCorporation.map((tagStat) => (
             <li className="flex items-center gap-2" key={tagStat.tag_code}>
-              <TagIcon code={tagStat.tag_code} size={20} />
               <span className="font-semibold tabular-nums text-stone-100">
                 {tagStat.avg_tag_count}
               </span>
-              <span className="tm-muted-copy">{tagStat.tag_code} / game</span>
+              <span className="tm-muted-copy">
+                <TagLabel code={tagStat.tag_code} size={20} /> / game
+              </span>
             </li>
           ))}
         </ul>

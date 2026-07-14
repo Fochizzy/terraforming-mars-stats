@@ -18,10 +18,6 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
-    // React Native-only sources consumed by the Expo app, not the Next.js web app.
-    'native-app/**',
-    'src/features/auth/native-auth-screen.tsx',
-    'src/lib/supabase/native.ts',
   ]),
 ]);
 

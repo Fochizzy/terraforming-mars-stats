@@ -1,7 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PromoSetBrowser } from './promo-set-browser';
+
+vi.mock('./card-stats-actions', () => ({
+  getCardWinStats: vi.fn().mockResolvedValue({
+    globalGames: 0,
+    globalWins: 0,
+    personalGames: 0,
+    personalWins: 0,
+  }),
+}));
 
 describe('PromoSetBrowser', () => {
   it('switches between promo sets and shows the cards for the active set', async () => {
@@ -52,8 +61,8 @@ describe('PromoSetBrowser', () => {
 
     expect(screen.getByText(/Merger/i)).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /Merger full image/i }),
-    ).toHaveAttribute('href', 'https://example.com/merger.png');
+      screen.getByRole('button', { name: /show statistics for merger/i }),
+    ).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/promo set/i), 'promo-2');
 
@@ -95,13 +104,15 @@ describe('PromoSetBrowser', () => {
       screen.getByRole('heading', { name: /^Promo Sets$/i }),
     ).toBeInTheDocument();
 
-    const cardGrid = screen.getByRole('link', {
-      name: /Corporate Stronghold full image/i,
+    const cardGrid = screen.getByRole('button', {
+      name: /show statistics for corporate stronghold/i,
     }).parentElement;
 
     expect(cardGrid).toHaveClass('grid', 'gap-3', 'md:grid-cols-2');
     expect(
-      screen.getByRole('link', { name: /Corporate Stronghold full image/i }),
+      screen.getByRole('button', {
+        name: /show statistics for corporate stronghold/i,
+      }),
     ).toHaveClass('min-w-0');
   });
 });

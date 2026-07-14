@@ -81,7 +81,9 @@ export type ImportCalculatedCardScore = {
   cardName: string;
   category: CardScoringCategory;
   evidenceSummary: string;
+  fullImageUrl?: string;
   humanSummary: string;
+  thumbnailUrl?: string;
   points: number;
   sourceType: 'curated' | 'ocr';
 };
@@ -89,10 +91,12 @@ export type ImportCalculatedCardScore = {
 export type ImportPendingCardScore = {
   cardId: string;
   cardName: string;
+  fullImageUrl?: string;
   imageUrl?: string;
   reason: string;
   requestedSpaceIds?: string[];
   reviewKind?: 'board_evidence';
+  thumbnailUrl?: string;
 };
 
 export type ImportPlayerCardScoringSummary = {

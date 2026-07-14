@@ -4,6 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
 import { ImportReviewPanel } from './import-review-panel';
 
+vi.mock('@/features/catalog/card-stats-actions', () => ({
+  getCardWinStats: vi.fn().mockResolvedValue({
+    globalGames: 0,
+    globalWins: 0,
+    personalGames: 0,
+    personalWins: 0,
+  }),
+}));
+
 describe('ImportReviewPanel', () => {
   it('treats matched cards with no printed tags as a valid zero-tag result', () => {
     render(
@@ -135,8 +144,8 @@ describe('ImportReviewPanel', () => {
     expect(screen.getByText(/2 unresolved cards/i)).toBeInTheDocument();
     expect(screen.getByText(/missing project/i)).toBeInTheDocument();
     expect(
-      screen.getAllByRole('link', {
-        name: /open duplicate project card image/i,
+      screen.getAllByRole('button', {
+        name: /show statistics for duplicate project/i,
       }),
     ).toHaveLength(2);
   });

@@ -154,9 +154,11 @@ describe('calculateImportCardScores', () => {
           {
             cardId: 'card-mystery',
             cardName: 'Mystery Science Score',
+            fullImageUrl: 'https://example.com/mystery-science-score.png',
             imageUrl: 'https://example.com/mystery-science-score.png',
             reason:
               'Multiple endgame scoring formulas were detected for Mystery Science Score.',
+            thumbnailUrl: 'https://example.com/mystery-science-score-thumb.png',
           },
         ],
         playerName: 'Friday Mars',
@@ -223,11 +225,13 @@ describe('calculateImportCardScores', () => {
           {
             cardId: 'card-commercial-harbor',
             cardName: 'Commercial Harbor',
+            fullImageUrl: 'https://example.com/commercial-harbor.png',
             imageUrl: 'https://example.com/commercial-harbor.png',
             reason:
               'Commercial Harbor still needs board confirmation for spaces 14, 22, 29, 30.',
             requestedSpaceIds: ['14', '22', '29', '30'],
             reviewKind: 'board_evidence',
+            thumbnailUrl: 'https://example.com/commercial-harbor-thumb.png',
           },
         ],
         playerName: 'Friday Mars',

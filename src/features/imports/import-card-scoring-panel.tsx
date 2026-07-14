@@ -1,5 +1,7 @@
 import type { ImportPlayerCardScoringSummary } from '@/lib/imports/card-scoring/card-scoring-types';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
+import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
+import type { ReactNode } from 'react';
 
 function formatBreakdown(summary: ImportPlayerCardScoringSummary['totals']) {
   return [
@@ -59,25 +61,35 @@ function isSameManualReviewJumpTarget(
   );
 }
 
-function CardImageLink({
-  card,
-}: {
-  card: ImportPlayerCardScoringSummary['pendingCards'][number];
-}) {
-  if (!card.imageUrl) {
-    return null;
-  }
+type ScoringCard =
+  | ImportPlayerCardScoringSummary['autoScoredCards'][number]
+  | ImportPlayerCardScoringSummary['pendingCards'][number];
 
+function cardFullImageUrl(card: ScoringCard) {
+  return card.fullImageUrl ?? ('imageUrl' in card ? card.imageUrl : undefined) ?? null;
+}
+
+function ScoringCardButton({
+  card,
+  children,
+  className = 'font-semibold text-stone-100 underline decoration-dotted underline-offset-2 transition hover:text-[rgb(221,161,93)]',
+}: {
+  card: ScoringCard;
+  children?: ReactNode;
+  className?: string;
+}) {
   return (
-    <a
-      aria-label={`Open ${card.cardName} card image`}
-      className="tm-button-secondary shrink-0"
-      href={card.imageUrl}
-      rel="noreferrer"
-      target="_blank"
+    <CardStatsButton
+      card={{
+        cardName: card.cardName,
+        fullImageUrl: cardFullImageUrl(card),
+        id: card.cardId,
+        thumbnailUrl: card.thumbnailUrl ?? cardFullImageUrl(card),
+      }}
+      className={className}
     >
-      Open card image
-    </a>
+      {children ?? card.cardName}
+    </CardStatsButton>
   );
 }
 
@@ -110,7 +122,8 @@ export function ImportCardScoringPanel({
               <ul className="mt-3 flex flex-col gap-2 text-xs">
                 {summary.autoScoredCards.map((card) => (
                   <li key={`${summary.playerName}-${card.cardId}`}>
-                    {card.cardName}: {card.points} VP. {card.evidenceSummary}
+                    <ScoringCardButton card={card} />: {card.points} VP.{' '}
+                    {card.evidenceSummary}
                   </li>
                 ))}
               </ul>
@@ -138,9 +151,9 @@ export function ImportCardScoringPanel({
                       <li key={`${summary.playerName}-${card.cardId}-pending`}>
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <span>
-                            Review {card.cardName}: {card.reason}
+                            Review <ScoringCardButton card={card} />:{' '}
+                            {card.reason}
                           </span>
-                          <CardImageLink card={card} />
                         </div>
                       </li>
                     );
@@ -153,10 +166,10 @@ export function ImportCardScoringPanel({
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <span>
-                          Review {card.cardName}: {card.reason}
+                          Review <ScoringCardButton card={card} />:{' '}
+                          {card.reason}
                         </span>
                         <div className="flex flex-wrap gap-2">
-                          <CardImageLink card={card} />
                           <button
                             aria-label={`Fill manually ${jumpTarget.itemLabel} for ${jumpTarget.playerName}`}
                             className="tm-button-secondary shrink-0"

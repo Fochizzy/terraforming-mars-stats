@@ -85,18 +85,27 @@ export function deriveCardScoreEvidence(input: {
   const playerStates = new Map<string, PlayerCardState>();
 
   for (const event of input.events) {
-    if (
-      (event.eventType === 'card_played' || event.eventType === 'resource_changed') &&
-      typeof event.actor === 'string' &&
-      typeof event.card === 'string'
-    ) {
-      const cardReference = cardReferenceByName.get(normalizeCardToken(event.card));
+    let actorName: string | null = null;
+    let eventCardName: string | null = null;
+
+    if (event.eventType === 'card_played') {
+      actorName = event.actor;
+      eventCardName = event.card;
+    } else if (event.eventType === 'resource_changed' && event.card) {
+      actorName = event.actor;
+      eventCardName = event.card;
+    }
+
+    if (actorName && eventCardName) {
+      const cardReference = cardReferenceByName.get(
+        normalizeCardToken(eventCardName),
+      );
 
       if (!cardReference) {
         continue;
       }
 
-      const playerState = getPlayerState(playerStates, event.actor);
+      const playerState = getPlayerState(playerStates, actorName);
       playerState.cards.set(cardReference.id, cardReference);
 
       if (event.eventType === 'resource_changed') {

@@ -283,6 +283,9 @@ export function TagOutcomesSection(props: {
         <div className="flex flex-col gap-4">
           <div>
             <h3 className="tm-data-label mb-2 text-xs">Win Rate by Tag</h3>
+            <p className="tm-muted-copy mb-2 text-xs">
+              {activeTagCode ? <TagLabel code={activeTagCode} /> : null}
+            </p>
             <ResponsiveContainer height={260} width="100%">
               <BarChart
                 data={winRateData}
@@ -358,6 +361,11 @@ export function TagOutcomesSection(props: {
               <span className="mt-2 block">
                 <SelectChevron />
               </span>
+              {activeTagCode ? (
+                <span className="tm-muted-copy mt-2 flex text-xs">
+                  <TagLabel code={activeTagCode} />
+                </span>
+              ) : null}
             </div>
 
             <div className="grid gap-3 text-xs sm:grid-cols-3">

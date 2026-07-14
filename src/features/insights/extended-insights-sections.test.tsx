@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type {
   GenerationPaceRow,
@@ -532,7 +532,7 @@ describe('AwardEconomicsSection', () => {
     expect(screen.getByText(/funder came 2nd/i)).toBeInTheDocument();
   });
 
-  it('defaults to this-group data and swaps to all-my-groups on toggle', () => {
+  it('defaults to this-group data and swaps to all-groups on toggle', () => {
     render(
       <AwardEconomicsSection
         focusPlayerName={null}
@@ -569,10 +569,96 @@ describe('AwardEconomicsSection', () => {
     expect(screen.getByText('Group Only Award')).toBeInTheDocument();
     expect(screen.queryByText('Cross Group Award')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'All my groups' }));
+    fireEvent.click(screen.getByRole('button', { name: 'All groups' }));
 
     expect(screen.getByText('Cross Group Award')).toBeInTheDocument();
     expect(screen.queryByText('Group Only Award')).not.toBeInTheDocument();
+  });
+
+  it('uses the all-groups matrix without narrowing it to the focused funder', () => {
+    render(
+      <AwardEconomicsSection
+        defaultScope="all"
+        focusPlayerName="Fochizzy"
+        groupFocusPlayerId="fochizzy-group"
+        groupMatrixRows={[
+          {
+            awardId: 'a1',
+            awardName: 'Group Award',
+            firstPlaceAwards: 1,
+            funderPlayerId: 'fochizzy-group',
+            funderPlayerName: 'Fochizzy',
+            groupId: 'group-1',
+            winnerPlayerId: 'revloki-group',
+            winnerPlayerName: 'Revloki',
+          },
+        ]}
+        groupOutcomeRows={[
+          {
+            awardId: 'a1',
+            awardName: 'Group Award',
+            fundedCount: 1,
+            funderWonCount: 0,
+            funderWonRate: 0,
+            groupId: 'group-1',
+            snipedCount: 1,
+          },
+        ]}
+        overallFocusPlayerId="user:fochizzy"
+        overallMatrixRows={[
+          {
+            awardId: 'a1',
+            awardName: 'All Groups Award',
+            firstPlaceAwards: 6,
+            funderPlayerId: 'user:fochizzy',
+            funderPlayerName: 'Fochizzy',
+            groupId: 'overall',
+            winnerPlayerId: 'name:revloki',
+            winnerPlayerName: 'Revloki',
+          },
+          {
+            awardId: 'a2',
+            awardName: 'All Groups Award',
+            firstPlaceAwards: 4,
+            funderPlayerId: 'name:revloki',
+            funderPlayerName: 'Revloki',
+            groupId: 'overall',
+            winnerPlayerId: 'name:jenna',
+            winnerPlayerName: 'Jenna',
+          },
+          {
+            awardId: 'a3',
+            awardName: 'All Groups Award',
+            firstPlaceAwards: 3,
+            funderPlayerId: 'name:corey',
+            funderPlayerName: 'Corey',
+            groupId: 'overall',
+            winnerPlayerId: 'user:fochizzy',
+            winnerPlayerName: 'Fochizzy',
+          },
+        ]}
+        overallOutcomeRows={[
+          {
+            awardId: 'a1',
+            awardName: 'All Groups Award',
+            fundedCount: 13,
+            funderWonCount: 6,
+            funderWonRate: 0.46,
+            groupId: 'overall',
+            snipedCount: 7,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('All Groups Award')).toBeInTheDocument();
+    expect(screen.queryByText('Group Award')).not.toBeInTheDocument();
+
+    const matrix = within(screen.getByTestId('award-funder-matrix'));
+
+    expect(matrix.getAllByText('Corey')).toHaveLength(2);
+    expect(matrix.getAllByText('Jenna')).toHaveLength(2);
+    expect(matrix.getByText('4')).toBeInTheDocument();
   });
 });
 

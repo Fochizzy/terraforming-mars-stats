@@ -1271,7 +1271,7 @@ describe('getProfileAnalytics', () => {
               return { select: playerResultsSelect };
             }
 
-            if (table === 'player_key_cards' || table === 'player_card_outcomes') {
+            if (table === 'player_card_outcomes') {
               return { select: cardStatsSelect };
             }
 

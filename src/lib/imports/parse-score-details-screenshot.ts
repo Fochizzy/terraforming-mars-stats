@@ -5,8 +5,10 @@ import type { ParsedGameLog } from './parse-game-log';
 
 type CardReference = {
   cardName: string;
+  fullImageUrl?: string;
   id: string;
   sourceTags?: string[];
+  thumbnailUrl?: string;
 };
 
 type CardCategory = 'animals' | 'jovian' | 'microbes' | 'other';
@@ -68,8 +70,10 @@ export type ParsedScoreDetailsScreenshot = {
 type PlayerCardCandidate = {
   cardName: string;
   category: CardCategory;
+  fullImageUrl?: string;
   id: string;
   normalizedName: string;
+  thumbnailUrl?: string;
 };
 
 type ParsedColumnCardLine = {
@@ -187,8 +191,10 @@ function buildPlayedCardsByPlayer(input: {
       {
         cardName: cardReference.cardName,
         category: deriveCardCategory(cardReference.sourceTags),
+        fullImageUrl: cardReference.fullImageUrl,
         id: cardReference.id,
         normalizedName: normalizedCardName,
+        thumbnailUrl: cardReference.thumbnailUrl,
       },
     ]);
   }
@@ -709,7 +715,14 @@ function buildPlayerSummary(input: {
 }) {
   const bestMatchByCardId = new Map<
     string,
-    { cardName: string; category: CardCategory; confidence: number; points: number }
+    {
+      cardName: string;
+      category: CardCategory;
+      confidence: number;
+      fullImageUrl?: string;
+      points: number;
+      thumbnailUrl?: string;
+    }
   >();
 
   for (const matchedCard of input.matchedCards) {
@@ -720,7 +733,9 @@ function buildPlayerSummary(input: {
         cardName: matchedCard.card.cardName,
         category: matchedCard.card.category,
         confidence: matchedCard.confidence,
+        fullImageUrl: matchedCard.card.fullImageUrl,
         points: matchedCard.points,
+        thumbnailUrl: matchedCard.card.thumbnailUrl,
       });
     }
   }
@@ -731,7 +746,9 @@ function buildPlayerSummary(input: {
       cardName: match.cardName,
       category: match.category,
       evidenceSummary: `Direct score details screenshot: ${match.points} VP.`,
+      fullImageUrl: match.fullImageUrl,
       humanSummary: 'Read from score details screenshot.',
+      thumbnailUrl: match.thumbnailUrl,
       points: match.points,
       sourceType: 'ocr' as const,
     }))

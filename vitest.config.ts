@@ -11,7 +11,6 @@ export default defineConfig({
       '.worktrees/**',
       '_r6/**',
       '.claude/**',
-      '.expo/**',
       '.fresh-*/**',
       '.codex-deploy-*/**',
       '.deploy-*/**',

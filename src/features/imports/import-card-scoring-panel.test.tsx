@@ -3,6 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ImportCardScoringPanel } from './import-card-scoring-panel';
 
+vi.mock('@/features/catalog/card-stats-actions', () => ({
+  getCardWinStats: vi.fn().mockResolvedValue({
+    globalGames: 0,
+    globalWins: 0,
+    personalGames: 0,
+    personalWins: 0,
+  }),
+}));
+
 describe('ImportCardScoringPanel', () => {
   it('shows a manual-fill button only for board-aware pending cards', async () => {
     const user = userEvent.setup();
@@ -58,14 +67,20 @@ describe('ImportCardScoringPanel', () => {
     expect(
       screen.getByText(/Friday Mars: 3 calculated card points/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Pets: 3 VP\./i)).toBeInTheDocument();
-    expect(screen.getByText(/Review Commercial District/i)).toBeInTheDocument();
-    expect(screen.getByText(/Review Research Outpost/i)).toBeInTheDocument();
     expect(
-      screen.getByRole('link', {
-        name: /open commercial district card image/i,
+      screen.getByRole('button', { name: /show statistics for pets/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: /show statistics for commercial district/i,
       }),
-    ).toHaveAttribute('href', 'https://example.com/commercial-district.png');
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: /show statistics for research outpost/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/3 VP\./i)).toBeInTheDocument();
     expect(
       screen.getByRole('button', {
         name: /fill manually commercial district for friday mars/i,

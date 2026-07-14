@@ -68,6 +68,7 @@ export default async function ProfilePage(_props: ProfilePageProps) {
         <ProfileDashboard
           cardOutcomes={profileAnalytics?.cardOutcomes ?? []}
           coverage={profileAnalytics?.coverage ?? null}
+          expansionProfile={profileAnalytics?.expansionProfile ?? null}
           gameLengthProfile={profileAnalytics?.gameLengthProfile ?? null}
           globalParameterTempoProfile={
             profileAnalytics?.globalParameterTempoProfile ?? null

@@ -431,6 +431,7 @@ function buildAwardStats(
 }
 
 export function AwardEconomicsSection(props: {
+  defaultScope?: 'all' | 'group';
   focusPlayerName: string | null;
   groupFocusPlayerId: string | null;
   groupMatrixRows: AwardFunderWinnerRow[];
@@ -441,10 +442,12 @@ export function AwardEconomicsSection(props: {
   overallOutcomeRows: AwardOutcomeRow[];
   overallPlayerAwardRows?: PlayerAwardFundingOutcomeRow[];
 }) {
-  // Default to the active group's matrix so every member of a group sees the
-  // same numbers. "All my groups" is an explicit opt-in to the caller's own
-  // cross-group aggregate, which is inherently viewer-relative.
-  const [scope, setScope] = useState<'all' | 'group'>('group');
+  // Group insights default to the active group's shared numbers. Individual
+  // insights can opt into the cross-group view so a focused person is compared
+  // across every played group instead of being pulled back to the active group.
+  const [scope, setScope] = useState<'all' | 'group'>(
+    () => props.defaultScope ?? 'group',
+  );
   const isAllGroups = scope === 'all';
   const activeFocusPlayerId = isAllGroups
     ? props.overallFocusPlayerId
@@ -459,9 +462,7 @@ export function AwardEconomicsSection(props: {
     ? props.overallPlayerAwardRows ?? []
     : props.groupPlayerAwardRows ?? [];
 
-  const matrixRows = activeFocusPlayerId
-    ? sourceMatrixRows.filter((row) => row.funderPlayerId === activeFocusPlayerId)
-    : sourceMatrixRows;
+  const matrixRows = sourceMatrixRows;
   const personalAwardRowsById = new Map(
     activeFocusPlayerId
       ? sourcePlayerAwardRows
@@ -507,7 +508,7 @@ export function AwardEconomicsSection(props: {
               onClick={() => setScope('all')}
               type="button"
             >
-              All my groups
+              All groups
             </button>
           </div>
         </div>

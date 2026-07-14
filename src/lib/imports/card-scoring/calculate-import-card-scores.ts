@@ -62,8 +62,10 @@ export async function calculateImportCardScores(input: {
       playerSummary.pendingCards.push({
         cardId: card.id,
         cardName: card.cardName,
+        fullImageUrl: card.fullImageUrl,
         imageUrl: card.fullImageUrl,
         reason: resolution.reason,
+        thumbnailUrl: card.thumbnailUrl,
       });
       playerSummary.totals.complete = false;
       summariesByPlayerName.set(evidence.playerName, playerSummary);
@@ -87,10 +89,12 @@ export async function calculateImportCardScores(input: {
       playerSummary.pendingCards.push({
         cardId: card.id,
         cardName: card.cardName,
+        fullImageUrl: card.fullImageUrl,
         imageUrl: card.fullImageUrl,
         reason: scoredCard.reason,
         requestedSpaceIds: scoredCard.requestedSpaceIds,
         reviewKind: scoredCard.reviewKind,
+        thumbnailUrl: card.thumbnailUrl,
       });
       playerSummary.totals.complete = false;
       summariesByPlayerName.set(evidence.playerName, playerSummary);
@@ -102,7 +106,9 @@ export async function calculateImportCardScores(input: {
       cardName: card.cardName,
       category: scoredCard.category,
       evidenceSummary: scoredCard.evidenceSummary,
+      fullImageUrl: card.fullImageUrl,
       humanSummary: resolution.rule.humanSummary,
+      thumbnailUrl: card.thumbnailUrl,
       points: scoredCard.points,
       sourceType: resolution.rule.sourceType,
     });

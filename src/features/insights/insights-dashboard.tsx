@@ -2654,6 +2654,7 @@ export function InsightsDashboard({
               />
 
               <AwardEconomicsSection
+                defaultScope={scopeMode === 'individual' ? 'all' : 'group'}
                 focusPlayerName={selectedPerson?.displayName ?? null}
                 groupFocusPlayerId={selectedPerson?.activeGroupPlayerId ?? null}
                 groupMatrixRows={extended.awardFunderWinnerRows}

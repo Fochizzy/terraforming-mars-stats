@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { SelectChevron } from '@/components/ui/select-chevron';
-import { TagIcon } from '@/components/ui/tag-icon';
+import { TagIcon, TagLabel } from '@/components/ui/tag-icon';
 import { isRenderableCardImage } from './card-image';
 import { CardStatsButton } from './card-stats-dialog';
 
@@ -220,6 +220,11 @@ export function CardLookupBrowser({ cards }: { cards: CardLookupEntry[] }) {
             <span className="mt-2 block">
               <SelectChevron />
             </span>
+            {tag !== 'all' ? (
+              <span className="tm-muted-copy mt-2 flex text-xs">
+                <TagLabel code={tag} />
+              </span>
+            ) : null}
           </div>
         </div>
 

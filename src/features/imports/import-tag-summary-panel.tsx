@@ -1,6 +1,8 @@
 import { TagIcon } from '@/components/ui/tag-icon';
+import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
 import {
   PLAYER_TAG_CODES,
+  type ImportPlayerTagCandidateCard,
   type ImportPlayerTagSummary,
   type PlayerTagCode,
 } from '@/lib/imports/derive-player-tag-summaries';
@@ -24,6 +26,28 @@ const tagLabels: Record<PlayerTagCode, string> = {
 
 function formatCountLabel(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function CandidateCardButton({
+  candidate,
+  index,
+}: {
+  candidate: ImportPlayerTagCandidateCard;
+  index: number;
+}) {
+  return (
+    <CardStatsButton
+      card={{
+        cardName: candidate.cardName,
+        fullImageUrl: candidate.imageUrl,
+        id: candidate.cardId,
+        thumbnailUrl: candidate.imageUrl,
+      }}
+      className="tm-button-secondary"
+    >
+      Open candidate {index + 1}
+    </CardStatsButton>
+  );
 }
 
 type ImportTagSummaryPanelProps = {
@@ -92,16 +116,11 @@ export function ImportTagSummaryPanel({
                         {card.candidateCards && card.candidateCards.length > 0 ? (
                           <span className="flex flex-wrap gap-2">
                             {card.candidateCards.map((candidate, candidateIndex) => (
-                              <a
-                                aria-label={`Open ${candidate.cardName} card image`}
-                                className="tm-button-secondary"
-                                href={candidate.imageUrl}
+                              <CandidateCardButton
+                                candidate={candidate}
                                 key={`${candidate.cardId}-${candidateIndex}`}
-                                rel="noreferrer"
-                                target="_blank"
-                              >
-                                Open candidate {candidateIndex + 1}
-                              </a>
+                                index={candidateIndex}
+                              />
                             ))}
                           </span>
                         ) : null}

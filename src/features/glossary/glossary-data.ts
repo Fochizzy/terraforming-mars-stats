@@ -3,6 +3,8 @@ export type GlossaryTerm = {
   slug: string;
   /** Display name for the term. */
   term: string;
+  /** Additional labels used when auto-linking site copy to this term. */
+  aliases?: string[];
   /** Plain-language definition. */
   definition: string;
 };
@@ -589,3 +591,44 @@ export const glossaryCategories: GlossaryCategory[] = [
 export const glossarySlugs: ReadonlySet<string> = new Set(
   glossaryCategories.flatMap((category) => category.terms.map((term) => term.slug)),
 );
+
+export type GlossaryLinkTarget = {
+  label: string;
+  slug: string;
+  term: string;
+};
+
+function parentheticalAliases(term: string) {
+  return [...term.matchAll(/\(([^)]+)\)/g)]
+    .map((match) => match[1]?.trim() ?? '')
+    .filter((alias) => /^[A-Z0-9 +&/-]+$/.test(alias));
+}
+
+function baseTerm(term: string) {
+  return term.replace(/\s*\([^)]*\)/g, '').trim();
+}
+
+/** Link labels that are valid because they are backed by the current glossary. */
+export const glossaryLinkTargets: GlossaryLinkTarget[] = [
+  ...new Map(
+    glossaryCategories.flatMap((category) =>
+      category.terms.flatMap((term) => {
+        const labels = new Set([
+          term.term,
+          baseTerm(term.term),
+          ...parentheticalAliases(term.term),
+          ...(term.aliases ?? []),
+        ].filter(Boolean));
+
+        return [...labels].map((label) => [
+          `${label.toLowerCase()}|${term.slug}`,
+          {
+            label,
+            slug: term.slug,
+            term: term.term,
+          },
+        ] as const);
+      }),
+    ),
+  ).values(),
+].sort((left, right) => right.label.length - left.label.length);

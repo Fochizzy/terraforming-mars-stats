@@ -150,9 +150,11 @@ export function parseImportPlayerStyles(input: {
     }
 
     const cardName =
-      event.eventType === 'card_played' || event.eventType === 'resource_changed'
+      event.eventType === 'card_played'
         ? event.card
-        : null;
+        : event.eventType === 'resource_changed'
+          ? event.card ?? null
+          : null;
 
     if (!cardName) {
       continue;

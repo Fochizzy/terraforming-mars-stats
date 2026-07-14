@@ -40,7 +40,6 @@
     "node_modules",
     "_r6",
     ".claude",
-    ".expo",
     ".fresh-*",
     ".deploy-*",
     ".live-*",
@@ -50,6 +49,5 @@
     "tmp-*.ts",
     "tmp-*.tsx",
     "tmp-*.mts"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }
