@@ -188,7 +188,12 @@
 }
 
 .screenshot {
+  display: grid;
+  place-items: center;
+  width: min(100%, 960px);
   margin: 0;
+  margin-inline: auto;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   border: 1px solid rgba(84, 47, 28, 0.18);
   border-radius: 8px;
@@ -199,8 +204,7 @@
 .screenshotImage {
   display: block;
   width: 100%;
-  max-height: min(42vh, 390px);
-  height: auto;
+  height: 100%;
   object-fit: contain;
 }
 
