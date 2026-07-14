@@ -338,6 +338,8 @@ export type ProfileCardStat = {
   // win chances above their baseline (blended personal + global win rate), and
   // the global win rate it was blended toward. Undefined on most-played cards.
   globalWinRate?: number;
+  contextLabel?: string;
+  evidenceConfidence?: 'High' | 'Low' | 'Medium';
   victoryImpact?: number;
 };
 
@@ -2603,13 +2605,16 @@ export async function listImportCoverage(groupId: string) {
 // dump.
 export const PROFILE_CARD_LIMIT = 12;
 
-type RawProfileCardRow = {
+export type RawProfileCardRow = {
   card_id: string;
   card_name: string;
+  corporation_name?: string | null;
   full_image_url?: string | null;
   game_id: string;
   is_winner: boolean;
+  outcome_method?: string | null;
   player_id: string;
+  style_code?: string | null;
   thumbnail_url?: string | null;
 };
 
@@ -4798,33 +4803,129 @@ const PROFILE_LOSS_CARD_LIMIT = 5;
 // carry the signed lift that blended rate has over the player's baseline. The
 // key-card and loss-card lists just rank this shared shape in opposite
 // directions.
-function buildBlendedImpactCards(
+const KEY_CARD_CONTEXT_SHRINKAGE = 3;
+
+type CardContextField = 'corporation_name' | 'outcome_method' | 'style_code';
+
+function contextWinRates(
+  rows: RawProfileCardRow[],
+  field: CardContextField,
+  personalBaselineWinRate: number,
+) {
+  const games = new Map<string, { isWinner: boolean; value: string }>();
+
+  for (const row of rows) {
+    const value = row[field];
+    if (value) {
+      games.set(`${row.game_id}|${row.player_id}`, {
+        isWinner: row.is_winner,
+        value,
+      });
+    }
+  }
+
+  const totals = new Map<string, { games: number; wins: number }>();
+  for (const game of games.values()) {
+    const total = totals.get(game.value) ?? { games: 0, wins: 0 };
+    total.games += 1;
+    total.wins += game.isWinner ? 1 : 0;
+    totals.set(game.value, total);
+  }
+
+  return new Map(
+    [...totals.entries()].map(([value, total]) => [
+      value,
+      (total.wins + KEY_CARD_CONTEXT_SHRINKAGE * personalBaselineWinRate) /
+        (total.games + KEY_CARD_CONTEXT_SHRINKAGE),
+    ]),
+  );
+}
+
+function mostCommonContext(rows: RawProfileCardRow[], field: CardContextField) {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const value = row[field];
+    if (value) {
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()].sort(
+    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+  )[0]?.[0];
+}
+
+function formatCardContext(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+/**
+ * Estimate a card's lift after accounting for the corporation, play style,
+ * and dominant scoring method in each game. Each contextual baseline is
+ * shrunk toward the player's overall rate, then the card residual is blended
+ * with the global card residual. The denominator supplies play-count
+ * confidence, preventing one-game outliers from dominating the list.
+ */
+export function buildContextAdjustedImpactCards(
   cardOutcomeRows: RawProfileCardRow[],
   globalWinRateByCardName: Map<string, number>,
   globalBaselineWinRate: number,
   personalBaselineWinRate: number,
 ): ProfileCardStat[] {
+  const uniqueRows = uniqueProfileCardRows(cardOutcomeRows);
+  const contextRates = {
+    corporation_name: contextWinRates(
+      uniqueRows,
+      'corporation_name',
+      personalBaselineWinRate,
+    ),
+    outcome_method: contextWinRates(
+      uniqueRows,
+      'outcome_method',
+      personalBaselineWinRate,
+    ),
+    style_code: contextWinRates(uniqueRows, 'style_code', personalBaselineWinRate),
+  };
   const totals = new Map<
     string,
     {
       cardName: string;
+      contextResidual: number;
       fullImageUrl: string | null;
       plays: number;
+      rows: RawProfileCardRow[];
       thumbnailUrl: string | null;
       wins: number;
     }
   >();
 
-  for (const row of uniqueProfileCardRows(cardOutcomeRows)) {
+  for (const row of uniqueRows) {
     const entry = totals.get(row.card_id) ?? {
       cardName: row.card_name,
+      contextResidual: 0,
       fullImageUrl: row.full_image_url ?? null,
       plays: 0,
+      rows: [],
       thumbnailUrl: row.thumbnail_url ?? null,
       wins: 0,
     };
 
+    const expectedRates = (
+      ['corporation_name', 'style_code', 'outcome_method'] as CardContextField[]
+    ).flatMap((field) => {
+      const value = row[field];
+      const rate = value ? contextRates[field].get(value) : undefined;
+      return typeof rate === 'number' ? [rate] : [];
+    });
+    const expectedWinRate =
+      averageNumbers(expectedRates) ?? personalBaselineWinRate;
+
     entry.plays += 1;
+    entry.contextResidual += (row.is_winner ? 1 : 0) - expectedWinRate;
+    entry.rows.push(row);
     entry.wins += row.is_winner ? 1 : 0;
     totals.set(row.card_id, entry);
   }
@@ -4834,18 +4935,30 @@ function buildBlendedImpactCards(
     // top-cards payload, so a rare card leans on the overall win rate.
     const globalWinRate =
       globalWinRateByCardName.get(entry.cardName) ?? globalBaselineWinRate;
-    const blendedWinRate =
-      (entry.wins + KEY_CARD_SHRINKAGE * globalWinRate) /
+    const globalResidual = globalWinRate - globalBaselineWinRate;
+    const contextualImpact =
+      (entry.contextResidual + KEY_CARD_SHRINKAGE * globalResidual) /
       (entry.plays + KEY_CARD_SHRINKAGE);
+    const contextParts = [
+      mostCommonContext(entry.rows, 'corporation_name'),
+      mostCommonContext(entry.rows, 'style_code'),
+      mostCommonContext(entry.rows, 'outcome_method'),
+    ].filter((value): value is string => Boolean(value));
 
     return {
       cardId,
       cardName: entry.cardName,
+      contextLabel:
+        contextParts.length > 0
+          ? contextParts.map(formatCardContext).join(' · ')
+          : undefined,
+      evidenceConfidence:
+        entry.plays >= 6 ? 'High' : entry.plays >= 3 ? 'Medium' : 'Low',
       fullImageUrl: entry.fullImageUrl,
       globalWinRate: roundNumber(globalWinRate, 4),
       plays: entry.plays,
       thumbnailUrl: entry.thumbnailUrl,
-      victoryImpact: roundNumber(blendedWinRate - personalBaselineWinRate, 4),
+      victoryImpact: roundNumber(contextualImpact, 4),
       winRate: roundNumber(entry.wins / entry.plays, 4),
       wins: entry.wins,
     };
@@ -4864,7 +4977,7 @@ function buildVictoryImpactKeyCards(
   globalBaselineWinRate: number,
   personalBaselineWinRate: number,
 ): ProfileCardStat[] {
-  return buildBlendedImpactCards(
+  return buildContextAdjustedImpactCards(
     cardOutcomeRows,
     globalWinRateByCardName,
     globalBaselineWinRate,
@@ -4891,7 +5004,7 @@ function buildLossImpactCards(
   globalBaselineWinRate: number,
   personalBaselineWinRate: number,
 ): ProfileCardStat[] {
-  return buildBlendedImpactCards(
+  return buildContextAdjustedImpactCards(
     cardOutcomeRows,
     globalWinRateByCardName,
     globalBaselineWinRate,
@@ -5086,7 +5199,11 @@ async function listProfileCardRows(
   const { data, error } = await getAnalyticsClient(supabase)
     .from(view)
     .select(
-      'card_id, card_name, full_image_url, game_id, is_winner, player_id, thumbnail_url',
+      `card_id, card_name, full_image_url, game_id, is_winner, player_id, thumbnail_url${
+        view === 'player_card_outcomes'
+          ? ', corporation_name, outcome_method, style_code'
+          : ''
+      }`,
     )
     .in('player_id', playerIds);
 
@@ -5095,7 +5212,10 @@ async function listProfileCardRows(
     return [];
   }
 
-  return (data as RawProfileCardRow[] | null) ?? [];
+  // Supabase's compile-time select parser cannot represent the conditional
+  // context suffix above, but both view shapes are normalized by the optional
+  // context fields on RawProfileCardRow.
+  return (data as unknown as RawProfileCardRow[] | null) ?? [];
 }
 
 export async function getProfileAnalytics(
