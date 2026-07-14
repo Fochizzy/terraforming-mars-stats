@@ -23,9 +23,13 @@ import {
   WinningCardsSection,
 } from '@/features/insights/winning-cards-section';
 import {
+  buildEmptyGlobalInsightMetrics,
+  getGlobalInsightMetrics,
   getStyleEffectiveness,
+  type GlobalInsightMetrics,
   type StyleEffectivenessData,
 } from '@/lib/db/analytics-repo';
+import { GlobalInsightMetricsSection } from '@/features/insights/global-insight-metrics-section';
 import {
   listMapAwardGroups,
   type MapAwardGroup,
@@ -59,6 +63,9 @@ const emptyStyleEffectiveness: StyleEffectivenessData = {
   scoreAverages: null,
   styleRows: [],
 };
+
+const emptyGlobalInsightMetrics: GlobalInsightMetrics =
+  buildEmptyGlobalInsightMetrics();
 
 export const dynamic = 'force-dynamic';
 
@@ -111,6 +118,15 @@ async function loadStyleEffectivenessOrDefault(
   }
 }
 
+async function loadGlobalInsightMetricsOrDefault(): Promise<GlobalInsightMetrics> {
+  try {
+    return await getGlobalInsightMetrics();
+  } catch (error) {
+    console.error('[global] Failed to load global insight metrics', error);
+    return emptyGlobalInsightMetrics;
+  }
+}
+
 export default async function GlobalStatisticsPage() {
   const [
     globalStats,
@@ -119,6 +135,7 @@ export default async function GlobalStatisticsPage() {
     mapAwardGroups,
     globalStyleEffectiveness,
     personalStyleEffectiveness,
+    globalInsightMetrics,
   ] = await Promise.all([
     loadGlobalStatsOrDefault(),
     loadPersonalStatsOrDefault(),
@@ -126,6 +143,7 @@ export default async function GlobalStatisticsPage() {
     loadMapAwardGroupsOrDefault(),
     loadStyleEffectivenessOrDefault('global'),
     loadStyleEffectivenessOrDefault('personal'),
+    loadGlobalInsightMetricsOrDefault(),
   ]);
 
   let selectionDialogData: SelectionDialogData | undefined;
@@ -198,6 +216,7 @@ export default async function GlobalStatisticsPage() {
           mapAwardGroups={mapAwardGroups}
           stats={globalStats}
         />
+        <GlobalInsightMetricsSection metrics={globalInsightMetrics} />
         <FinalTerraformingActionBlock rows={finalTerraformingActionStats} />
         <StyleEffectivenessPanel scopes={styleEffectivenessScopes} />
         <GlobalKeyCardsSection

@@ -7,6 +7,7 @@ import type { SelectionStats } from '@/lib/db/selection-stats-repo';
 const mockState = vi.hoisted(() => ({
   getCardImageMetaByNames: vi.fn(),
   getFinalTerraformingActionStats: vi.fn(),
+  getGlobalInsightMetrics: vi.fn(),
   getSelectionDialogData: vi.fn(),
   getSelectionStats: vi.fn(),
   getStyleEffectiveness: vi.fn(),
@@ -54,7 +55,36 @@ vi.mock('@/features/insights/winning-cards-section', async (importOriginal) => (
   ),
 }));
 
+vi.mock('@/features/insights/global-insight-metrics-section', () => ({
+  GlobalInsightMetricsSection: ({
+    metrics,
+  }: {
+    metrics: { summary: { totalGames: number } };
+  }) => (
+    <div data-testid="global-insight-metrics">
+      {metrics.summary.totalGames} metric games
+    </div>
+  ),
+}));
+
 vi.mock('@/lib/db/analytics-repo', () => ({
+  buildEmptyGlobalInsightMetrics: () => ({
+    cardTiming: [],
+    mapTableMeta: [],
+    metaSignals: [],
+    objectiveConversion: [],
+    openingCombos: [],
+    summary: {
+      averageGeneration: 0,
+      averageScore: 0,
+      baselineWinRate: 0,
+      playerResults: 0,
+      totalGames: 0,
+    },
+    tempoProfile: [],
+    terraformingShare: [],
+  }),
+  getGlobalInsightMetrics: mockState.getGlobalInsightMetrics,
   getStyleEffectiveness: mockState.getStyleEffectiveness,
 }));
 
@@ -87,6 +117,22 @@ describe('GlobalStatisticsPage', () => {
     mockState.getSelectionStats.mockResolvedValue(sampleStats);
     mockState.getCardImageMetaByNames.mockResolvedValue(new Map());
     mockState.getFinalTerraformingActionStats.mockResolvedValue([]);
+    mockState.getGlobalInsightMetrics.mockResolvedValue({
+      cardTiming: [],
+      mapTableMeta: [],
+      metaSignals: [],
+      objectiveConversion: [],
+      openingCombos: [],
+      summary: {
+        averageGeneration: 10,
+        averageScore: 80,
+        baselineWinRate: 0.25,
+        playerResults: 16,
+        totalGames: 4,
+      },
+      tempoProfile: [],
+      terraformingShare: [],
+    });
     mockState.getStyleEffectiveness.mockResolvedValue({
       scoreAverages: null,
       styleRows: [],
@@ -106,10 +152,14 @@ describe('GlobalStatisticsPage', () => {
     expect(mockState.getFinalTerraformingActionStats).toHaveBeenCalledWith({
       scope: 'global',
     });
+    expect(mockState.getGlobalInsightMetrics).toHaveBeenCalledWith();
     expect(
       screen.getByRole('heading', { name: 'Global Statistics' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('global-selection-stats')).toBeInTheDocument();
+    expect(screen.getByTestId('global-insight-metrics')).toHaveTextContent(
+      '4 metric games',
+    );
     expect(screen.getByTestId('final-terraforming-actions')).toHaveTextContent(
       '0 rows',
     );

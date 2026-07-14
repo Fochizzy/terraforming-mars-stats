@@ -51,6 +51,103 @@ export type ScoreSourceAverages = {
   averageTrPoints: number;
 };
 
+export type GlobalInsightMetricSummary = {
+  averageGeneration: number;
+  averageScore: number;
+  baselineWinRate: number;
+  playerResults: number;
+  totalGames: number;
+};
+
+export type GlobalMetaSignal = {
+  averageScore: number;
+  baselineWinRate: number;
+  direction: 'dragger' | 'overperformer';
+  label: string;
+  sampleSize: number;
+  sourceType: 'Card' | 'Corporation' | 'Prelude' | 'Tag';
+  winRate: number;
+  winRateDelta: number;
+  wins: number;
+};
+
+export type GlobalTempoMetric = {
+  averageGeneration: number;
+  averagePointsPerGeneration: number;
+  averageScore: number;
+  bucket: 'long' | 'short' | 'standard';
+  games: number;
+  label: string;
+  playerResults: number;
+  winRate: number;
+  wins: number;
+};
+
+export type GlobalTerraformingShareMetric = {
+  actionShare: number;
+  heatActions: number;
+  oceanActions: number;
+  oxygenActions: number;
+  playerId: string;
+  playerName: string;
+  totalActions: number;
+};
+
+export type GlobalObjectiveConversionMetric = {
+  actions: number;
+  conversionRate: number;
+  label: string;
+  objectiveType: 'award' | 'milestone';
+  snipedActions: number | null;
+  snipedRate: number | null;
+  winRate: number;
+  wins: number;
+};
+
+export type GlobalMapTableMetric = {
+  averageGeneration: number;
+  averageScore: number;
+  category: 'map' | 'tableSize';
+  games: number;
+  label: string;
+  playerResults: number;
+  winRate: number | null;
+};
+
+export type GlobalOpeningComboMetric = {
+  averageScore: number;
+  corporationName: string;
+  label: string;
+  plays: number;
+  preludeLabel: string;
+  scoreDeviation: number;
+  signalType: 'best' | 'highVariance' | 'trap';
+  winRate: number;
+  wins: number;
+};
+
+export type GlobalCardTimingMetric = {
+  cardName: string;
+  earlyPlays: number;
+  earlyWinRate: number;
+  earlyWins: number;
+  latePlays: number;
+  lateWinRate: number;
+  lateWins: number;
+  winRateDelta: number;
+};
+
+export type GlobalInsightMetrics = {
+  cardTiming: GlobalCardTimingMetric[];
+  mapTableMeta: GlobalMapTableMetric[];
+  metaSignals: GlobalMetaSignal[];
+  objectiveConversion: GlobalObjectiveConversionMetric[];
+  openingCombos: GlobalOpeningComboMetric[];
+  summary: GlobalInsightMetricSummary;
+  tempoProfile: GlobalTempoMetric[];
+  terraformingShare: GlobalTerraformingShareMetric[];
+};
+
 export type ProfileScorePaceRow = {
   averagePoints: number;
   averagePointsPerGeneration: number;
@@ -655,6 +752,28 @@ function toNullableNumber(value: number | string | null | undefined) {
   return toNumber(value);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.map(asRecord) : [];
+}
+
+function readString(value: unknown) {
+  return typeof value === 'string' ? value : '';
+}
+
+function readNumberField(row: Record<string, unknown>, key: string) {
+  return toNumber(row[key] as number | string | null | undefined);
+}
+
+function readNullableNumberField(row: Record<string, unknown>, key: string) {
+  return toNullableNumber(row[key] as number | string | null | undefined);
+}
+
 function roundNumber(value: number, digits: number) {
   return Number(value.toFixed(digits));
 }
@@ -753,6 +872,199 @@ function getWeightedScore(row: Record<string, unknown>) {
 
 function getAnalyticsClient(supabase: AnalyticsSupabaseClient) {
   return supabase.schema('analytics');
+}
+
+function readOneOf<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T,
+) {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+export function buildEmptyGlobalInsightMetrics(): GlobalInsightMetrics {
+  return {
+    cardTiming: [],
+    mapTableMeta: [],
+    metaSignals: [],
+    objectiveConversion: [],
+    openingCombos: [],
+    summary: {
+      averageGeneration: 0,
+      averageScore: 0,
+      baselineWinRate: 0,
+      playerResults: 0,
+      totalGames: 0,
+    },
+    tempoProfile: [],
+    terraformingShare: [],
+  };
+}
+
+function mapGlobalInsightSummary(
+  value: unknown,
+): GlobalInsightMetricSummary {
+  const row = asRecord(value);
+
+  return {
+    averageGeneration: readNumberField(row, 'average_generation'),
+    averageScore: readNumberField(row, 'average_score'),
+    baselineWinRate: readNumberField(row, 'baseline_win_rate'),
+    playerResults: readNumberField(row, 'player_results'),
+    totalGames: readNumberField(row, 'total_games'),
+  };
+}
+
+function mapGlobalMetaSignal(row: Record<string, unknown>): GlobalMetaSignal {
+  return {
+    averageScore: readNumberField(row, 'averageScore'),
+    baselineWinRate: readNumberField(row, 'baselineWinRate'),
+    direction: readOneOf(
+      row.direction,
+      ['dragger', 'overperformer'] as const,
+      'overperformer',
+    ),
+    label: readString(row.label),
+    sampleSize: readNumberField(row, 'sampleSize'),
+    sourceType: readOneOf(
+      row.sourceType,
+      ['Card', 'Corporation', 'Prelude', 'Tag'] as const,
+      'Card',
+    ),
+    winRate: readNumberField(row, 'winRate'),
+    winRateDelta: readNumberField(row, 'winRateDelta'),
+    wins: readNumberField(row, 'wins'),
+  };
+}
+
+function mapGlobalTempoMetric(row: Record<string, unknown>): GlobalTempoMetric {
+  return {
+    averageGeneration: readNumberField(row, 'averageGeneration'),
+    averagePointsPerGeneration: readNumberField(
+      row,
+      'averagePointsPerGeneration',
+    ),
+    averageScore: readNumberField(row, 'averageScore'),
+    bucket: readOneOf(
+      row.bucket,
+      ['long', 'short', 'standard'] as const,
+      'standard',
+    ),
+    games: readNumberField(row, 'games'),
+    label: readString(row.label),
+    playerResults: readNumberField(row, 'playerResults'),
+    winRate: readNumberField(row, 'winRate'),
+    wins: readNumberField(row, 'wins'),
+  };
+}
+
+function mapGlobalTerraformingShareMetric(
+  row: Record<string, unknown>,
+): GlobalTerraformingShareMetric {
+  return {
+    actionShare: readNumberField(row, 'actionShare'),
+    heatActions: readNumberField(row, 'heatActions'),
+    oceanActions: readNumberField(row, 'oceanActions'),
+    oxygenActions: readNumberField(row, 'oxygenActions'),
+    playerId: readString(row.playerId),
+    playerName: readString(row.playerName),
+    totalActions: readNumberField(row, 'totalActions'),
+  };
+}
+
+function mapGlobalObjectiveConversionMetric(
+  row: Record<string, unknown>,
+): GlobalObjectiveConversionMetric {
+  return {
+    actions: readNumberField(row, 'actions'),
+    conversionRate: readNumberField(row, 'conversionRate'),
+    label: readString(row.label),
+    objectiveType: readOneOf(
+      row.objectiveType,
+      ['award', 'milestone'] as const,
+      'milestone',
+    ),
+    snipedActions: readNullableNumberField(row, 'snipedActions'),
+    snipedRate: readNullableNumberField(row, 'snipedRate'),
+    winRate: readNumberField(row, 'winRate'),
+    wins: readNumberField(row, 'wins'),
+  };
+}
+
+function mapGlobalMapTableMetric(
+  row: Record<string, unknown>,
+): GlobalMapTableMetric {
+  return {
+    averageGeneration: readNumberField(row, 'averageGeneration'),
+    averageScore: readNumberField(row, 'averageScore'),
+    category: readOneOf(row.category, ['map', 'tableSize'] as const, 'map'),
+    games: readNumberField(row, 'games'),
+    label: readString(row.label),
+    playerResults: readNumberField(row, 'playerResults'),
+    winRate: readNullableNumberField(row, 'winRate'),
+  };
+}
+
+function mapGlobalOpeningComboMetric(
+  row: Record<string, unknown>,
+): GlobalOpeningComboMetric {
+  return {
+    averageScore: readNumberField(row, 'averageScore'),
+    corporationName: readString(row.corporationName),
+    label: readString(row.label),
+    plays: readNumberField(row, 'plays'),
+    preludeLabel: readString(row.preludeLabel),
+    scoreDeviation: readNumberField(row, 'scoreDeviation'),
+    signalType: readOneOf(
+      row.signalType,
+      ['best', 'highVariance', 'trap'] as const,
+      'best',
+    ),
+    winRate: readNumberField(row, 'winRate'),
+    wins: readNumberField(row, 'wins'),
+  };
+}
+
+function mapGlobalCardTimingMetric(
+  row: Record<string, unknown>,
+): GlobalCardTimingMetric {
+  return {
+    cardName: readString(row.cardName),
+    earlyPlays: readNumberField(row, 'earlyPlays'),
+    earlyWinRate: readNumberField(row, 'earlyWinRate'),
+    earlyWins: readNumberField(row, 'earlyWins'),
+    latePlays: readNumberField(row, 'latePlays'),
+    lateWinRate: readNumberField(row, 'lateWinRate'),
+    lateWins: readNumberField(row, 'lateWins'),
+    winRateDelta: readNumberField(row, 'winRateDelta'),
+  };
+}
+
+function mapGlobalInsightMetrics(value: unknown): GlobalInsightMetrics {
+  const payload = asRecord(value);
+
+  return {
+    cardTiming: readRecordArray(payload.cardTiming).map(
+      mapGlobalCardTimingMetric,
+    ),
+    mapTableMeta: readRecordArray(payload.mapTableMeta).map(
+      mapGlobalMapTableMetric,
+    ),
+    metaSignals: readRecordArray(payload.metaSignals).map(mapGlobalMetaSignal),
+    objectiveConversion: readRecordArray(payload.objectiveConversion).map(
+      mapGlobalObjectiveConversionMetric,
+    ),
+    openingCombos: readRecordArray(payload.openingCombos).map(
+      mapGlobalOpeningComboMetric,
+    ),
+    summary: mapGlobalInsightSummary(payload.summary),
+    tempoProfile: readRecordArray(payload.tempoProfile).map(
+      mapGlobalTempoMetric,
+    ),
+    terraformingShare: readRecordArray(payload.terraformingShare).map(
+      mapGlobalTerraformingShareMetric,
+    ),
+  };
 }
 
 function mapLeaderboardRow(row: RawLeaderboardRow): LeaderboardRow {
@@ -1878,6 +2190,17 @@ export function buildScoreSourceEntries(row: ScoreSourceAverages) {
     { label: 'Microbe', value: row.averageMicrobePoints },
     { label: 'Animal', value: row.averageAnimalPoints },
   ];
+}
+
+export async function getGlobalInsightMetrics(): Promise<GlobalInsightMetrics> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('get_global_insight_metrics');
+
+  if (error) {
+    throw error;
+  }
+
+  return mapGlobalInsightMetrics(data);
 }
 
 export async function listGroupLeaderboard(groupId: string) {

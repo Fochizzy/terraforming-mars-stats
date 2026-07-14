@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   getCrossGroupFocusData,
+  getGlobalInsightMetrics,
   getProfileAnalytics,
   listGroupInteractions,
   rewriteLineupLabels,
@@ -10,6 +11,136 @@ import {
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
 }));
+
+describe('getGlobalInsightMetrics', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.mocked(createSupabaseServerClient).mockReset();
+  });
+
+  it('loads and normalizes the seven global insight metric groups', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: {
+        cardTiming: [
+          {
+            cardName: 'Mars University',
+            earlyPlays: '4',
+            earlyWinRate: '0.75',
+            earlyWins: '3',
+            latePlays: '3',
+            lateWinRate: '0.3333',
+            lateWins: '1',
+            winRateDelta: '0.4167',
+          },
+        ],
+        mapTableMeta: [
+          {
+            averageGeneration: '10.5',
+            averageScore: '82.25',
+            category: 'map',
+            games: '6',
+            label: 'Tharsis',
+            playerResults: '24',
+            winRate: null,
+          },
+        ],
+        metaSignals: [
+          {
+            averageScore: '88.5',
+            baselineWinRate: '0.25',
+            direction: 'overperformer',
+            label: 'Tharsis Republic',
+            sampleSize: '5',
+            sourceType: 'Corporation',
+            winRate: '0.6',
+            winRateDelta: '0.35',
+            wins: '3',
+          },
+        ],
+        objectiveConversion: [
+          {
+            actions: '4',
+            conversionRate: '0.5',
+            label: 'Gardener',
+            objectiveType: 'milestone',
+            snipedActions: null,
+            snipedRate: null,
+            winRate: '0.75',
+            wins: '3',
+          },
+        ],
+        openingCombos: [
+          {
+            averageScore: '91.5',
+            corporationName: 'Ecoline',
+            label: 'Ecoline | Mohole',
+            plays: '4',
+            preludeLabel: 'Mohole',
+            scoreDeviation: '8.5',
+            signalType: 'best',
+            winRate: '0.75',
+            wins: '3',
+          },
+        ],
+        summary: {
+          average_generation: '10.5',
+          average_score: '82.25',
+          baseline_win_rate: '0.25',
+          player_results: '24',
+          total_games: '6',
+        },
+        tempoProfile: [
+          {
+            averageGeneration: '10',
+            averagePointsPerGeneration: '8.1',
+            averageScore: '81',
+            bucket: 'standard',
+            games: '4',
+            label: 'Standard games',
+            playerResults: '16',
+            winRate: '0.25',
+            wins: '4',
+          },
+        ],
+        terraformingShare: [
+          {
+            actionShare: '0.4',
+            heatActions: '2',
+            oceanActions: '1',
+            oxygenActions: '5',
+            playerId: 'player-1',
+            playerName: 'Friday Mars',
+            totalActions: '8',
+          },
+        ],
+      },
+      error: null,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc,
+    } as never);
+
+    await expect(getGlobalInsightMetrics()).resolves.toMatchObject({
+      cardTiming: [{ cardName: 'Mars University', earlyPlays: 4 }],
+      mapTableMeta: [{ averageScore: 82.25, category: 'map' }],
+      metaSignals: [{ label: 'Tharsis Republic', winRateDelta: 0.35 }],
+      objectiveConversion: [{ label: 'Gardener', snipedRate: null }],
+      openingCombos: [{ corporationName: 'Ecoline', signalType: 'best' }],
+      summary: {
+        averageGeneration: 10.5,
+        baselineWinRate: 0.25,
+        totalGames: 6,
+      },
+      tempoProfile: [{ bucket: 'standard', games: 4 }],
+      terraformingShare: [{ playerName: 'Friday Mars', totalActions: 8 }],
+    });
+    expect(rpc).toHaveBeenCalledWith('get_global_insight_metrics');
+  });
+});
 
 describe('getProfileAnalytics', () => {
   beforeEach(() => {
