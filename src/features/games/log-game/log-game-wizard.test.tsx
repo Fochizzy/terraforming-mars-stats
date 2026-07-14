@@ -425,6 +425,17 @@ describe('LogGameWizard', () => {
       screen.getByRole('link', { name: /open web import/i }),
     ).toHaveAttribute('href', '/log-game');
 
+    await user.click(
+      screen.getByRole('button', { name: /show milestone details for builder/i }),
+    );
+    expect(screen.getByText(/have 8 building tags in play/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /close/i }));
+    await user.click(
+      screen.getByRole('button', { name: /show award details for landlord/i }),
+    );
+    expect(screen.getByText(/own the most non-ocean tiles/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /close/i }));
+
     await user.selectOptions(screen.getByLabelText(/friday mars corporation 1/i), 'corp1');
     await user.selectOptions(screen.getByLabelText(/friday mars prelude 1/i), 'prelude1');
     await user.click(screen.getByLabelText(/builder claimed/i));

@@ -1,5 +1,6 @@
 'use client';
 
+import { ObjectiveInfoButton } from '@/components/ui/objective-info-button';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StepHeading } from '@/components/ui/step-heading';
 import type {
@@ -20,6 +21,9 @@ type MilestonesStepProps = {
     display_name: string;
   }>;
 };
+
+const OBJECTIVE_LINK_CLASS =
+  'text-left font-semibold text-stone-100 underline decoration-dotted underline-offset-2 transition hover:text-[rgb(221,161,93)]';
 
 export function MilestonesStep({
   awardClaims,
@@ -49,7 +53,7 @@ export function MilestonesStep({
 
                 return (
                   <article className="tm-stat-card" key={milestone.milestoneId}>
-                    <label className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-3 text-sm">
                       <input
                         aria-label={`${milestone.milestoneName} Claimed`}
                         type="checkbox"
@@ -57,8 +61,12 @@ export function MilestonesStep({
                           `milestoneClaims.${milestone.milestoneId}.claimed` as const,
                         )}
                       />
-                      {milestone.milestoneName}
-                    </label>
+                      <ObjectiveInfoButton
+                        className={OBJECTIVE_LINK_CLASS}
+                        kind="milestone"
+                        name={milestone.milestoneName}
+                      />
+                    </div>
                     {claim?.claimed ? (
                       <div className="mt-3 grid gap-2">
                         {selectedPlayers.map((player) => (
@@ -98,14 +106,18 @@ export function MilestonesStep({
 
                 return (
                   <article className="tm-stat-card" key={award.awardId}>
-                    <label className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-3 text-sm">
                       <input
                         aria-label={`${award.awardName} Funded`}
                         type="checkbox"
                         {...register(`awardClaims.${award.awardId}.funded` as const)}
                       />
-                      {award.awardName}
-                    </label>
+                      <ObjectiveInfoButton
+                        className={OBJECTIVE_LINK_CLASS}
+                        kind="award"
+                        name={award.awardName}
+                      />
+                    </div>
                     {claim?.funded ? (
                       <div className="mt-4 grid gap-4">
                         <label className="relative flex flex-col gap-2 text-sm">
