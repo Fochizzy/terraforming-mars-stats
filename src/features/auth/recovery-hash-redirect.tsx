@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
+// Handles Supabase implicit recovery links that arrive at the site root.
 export function RecoveryHashRedirect() {
   useEffect(() => {
     async function recoverSession() {
