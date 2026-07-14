@@ -3,6 +3,7 @@ import type { TagOutcomeRow } from '@/lib/db/extended-analytics-repo';
 import {
   buildCorporationTagData,
   buildTagCountDistributionData,
+  buildTagOutcomeNarratives,
   buildTagWinRateData,
 } from './tag-outcomes-section';
 
@@ -88,5 +89,27 @@ describe('buildCorporationTagData', () => {
         (entry) => entry.corporationName,
       ),
     ).toEqual(['Arklight', 'Vitor', 'Viron']);
+  });
+});
+
+describe('buildTagOutcomeNarratives', () => {
+  it('explains the strongest, weakest, and deepest tag signals in sentences', () => {
+    const narrativeRows = [
+      buildRow({ gameId: 'g1', tagCode: 'science', tagCount: 7 }),
+      buildRow({ gameId: 'g2', isWinner: true, tagCode: 'science', tagCount: 5 }),
+      buildRow({ gameId: 'g5', isWinner: true, tagCode: 'science', tagCount: 4 }),
+      buildRow({ gameId: 'g3', isWinner: false, tagCode: 'animal', tagCount: 1 }),
+      buildRow({ gameId: 'g4', isWinner: false, tagCode: 'animal', tagCount: 2 }),
+      buildRow({ gameId: 'g1', tagCode: 'building', tagCount: 14 }),
+      buildRow({ gameId: 'g2', isWinner: true, tagCode: 'building', tagCount: 10 }),
+    ];
+
+    expect(buildTagOutcomeNarratives(narrativeRows, 'player-1')).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/Science is your strongest context-adjusted tag signal/i),
+        expect.stringMatching(/Animal is your clearest loss-correlated tag/i),
+        expect.stringMatching(/Building was your deepest tag engine/i),
+      ]),
+    );
   });
 });

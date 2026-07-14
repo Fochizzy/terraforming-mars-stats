@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import type {
+  CorporationSelectionStat,
+  PreludeSelectionStat,
   SelectionDialogData,
   SelectionPairStat,
 } from '@/lib/db/selection-stats-repo';
@@ -23,11 +25,67 @@ function StatBlock({ label, value }: { label: string; value: string }) {
   );
 }
 
+export function buildPairingNarratives({
+  baselineWinRate,
+  corporation,
+  pair,
+  prelude,
+}: {
+  baselineWinRate: number;
+  corporation?: CorporationSelectionStat;
+  pair: SelectionPairStat;
+  prelude?: PreludeSelectionStat;
+}) {
+  const deltaPoints = Math.round((pair.win_rate - baselineWinRate) * 100);
+  const evidence = pair.plays >= 6 ? 'high' : pair.plays >= 3 ? 'medium' : 'low';
+  const direction =
+    deltaPoints > 0
+      ? `${deltaPoints} points above`
+      : deltaPoints < 0
+        ? `${Math.abs(deltaPoints)} points below`
+        : 'even with';
+  const narratives = [
+    `${pair.corporation_name} with ${pair.prelude_name} won ${formatWinRate(pair.win_rate)} of ${pair.plays} recorded ${pair.plays === 1 ? 'game' : 'games'}, ${direction} your ${formatWinRate(baselineWinRate)} baseline, while averaging ${pair.avg_points} VP. This is ${evidence}-confidence setup evidence.`,
+  ];
+
+  const sources = [corporation, prelude].filter(
+    (row): row is CorporationSelectionStat | PreludeSelectionStat => Boolean(row),
+  );
+  if (sources.length > 0) {
+    const average = (getValue: (row: typeof sources[number]) => number) =>
+      sources.reduce((sum, row) => sum + getValue(row), 0) / sources.length;
+    const profiles = [
+      { label: 'terraforming-led', value: average((row) => row.avg_tr_points) },
+      {
+        label: 'board-focused',
+        value: average((row) => row.avg_cities_points + row.avg_greenery_points),
+      },
+      { label: 'card-engine', value: average((row) => row.avg_card_points) },
+      {
+        label: 'objective-focused',
+        value: average((row) => row.avg_milestone_points + row.avg_award_points),
+      },
+    ].sort((left, right) => right.value - left.value);
+
+    narratives.push(
+      `The recorded scoring profile for these choices is most ${profiles[0].label}: about ${profiles[0].value.toFixed(1)} points came from that channel, alongside ${average((row) => row.avg_tr_points).toFixed(1)} TR points, ${average((row) => row.avg_cities_points + row.avg_greenery_points).toFixed(1)} board points, and ${average((row) => row.avg_card_points).toFixed(1)} card points on average.`,
+    );
+  }
+
+  return narratives;
+}
+
 export function CorporationPreludePairings({
+  baselineWinRate,
+  corporationRows,
   dialogData,
+  preludeRows,
   rows,
 }: {
+  baselineWinRate: number;
+  corporationRows: CorporationSelectionStat[];
   dialogData?: SelectionDialogData;
+  preludeRows: PreludeSelectionStat[];
   rows: SelectionPairStat[];
 }) {
   const topPairings = useMemo(
@@ -83,6 +141,18 @@ export function CorporationPreludePairings({
       ) ?? null,
     [rows, activeCorporation, activePrelude],
   );
+  const activeNarratives = activePair
+    ? buildPairingNarratives({
+        baselineWinRate,
+        corporation: corporationRows.find(
+          (row) => row.corporation_name === activePair.corporation_name,
+        ),
+        pair: activePair,
+        prelude: preludeRows.find(
+          (row) => row.prelude_name === activePair.prelude_name,
+        ),
+      })
+    : [];
 
   if (corporationNames.length === 0) {
     return null;
@@ -187,6 +257,11 @@ export function CorporationPreludePairings({
               value={formatWinRate(activePair.win_rate)}
             />
             <StatBlock label="Avg VP" value={String(activePair.avg_points)} />
+          </div>
+          <div className="tm-muted-copy mt-3 space-y-2 text-sm">
+            {activeNarratives.map((narrative) => (
+              <p key={narrative}>{narrative}</p>
+            ))}
           </div>
         </div>
       ) : (

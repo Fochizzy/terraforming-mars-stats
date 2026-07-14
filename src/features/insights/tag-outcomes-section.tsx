@@ -120,6 +120,79 @@ export function buildTagWinRateData(
     );
 }
 
+function formatTagName(tagCode: string) {
+  return tagCode.charAt(0).toUpperCase() + tagCode.slice(1);
+}
+
+function tagEvidenceLabel(results: number) {
+  return results >= 10 ? 'well-established' : results >= 5 ? 'developing' : 'early';
+}
+
+export function buildTagOutcomeNarratives(
+  rows: TagOutcomeRow[],
+  focusPlayerId: string | null,
+) {
+  const resultRows = getScopedPlayerResultRows(rows, focusPlayerId);
+  const uniqueResults = new Map<string, TagOutcomeRow>();
+  for (const row of resultRows) {
+    uniqueResults.set(`${row.gameId}|${row.playerId}`, row);
+  }
+  const baselineRows = [...uniqueResults.values()];
+  const baselineWinRate = baselineRows.length
+    ? baselineRows.filter((row) => row.isWinner).length / baselineRows.length
+    : 0;
+  const data = buildTagWinRateData(rows, focusPlayerId).map((entry) => ({
+    ...entry,
+    adjustedDelta:
+      (entry.wins + 5 * baselineWinRate) / (entry.results + 5) -
+      baselineWinRate,
+  }));
+
+  if (data.length === 0) {
+    return [];
+  }
+
+  const strongest = [...data].sort(
+    (left, right) =>
+      right.adjustedDelta - left.adjustedDelta ||
+      right.results - left.results ||
+      left.tagCode.localeCompare(right.tagCode),
+  )[0];
+  const weakest = [...data].sort(
+    (left, right) =>
+      left.adjustedDelta - right.adjustedDelta ||
+      right.results - left.results ||
+      left.tagCode.localeCompare(right.tagCode),
+  )[0];
+  const deepest = [...data].sort(
+    (left, right) =>
+      right.averageTagCount - left.averageTagCount ||
+      right.results - left.results ||
+      left.tagCode.localeCompare(right.tagCode),
+  )[0];
+  const baselinePercent = roundPercent(baselineWinRate);
+  const narratives = [
+    `${formatTagName(strongest.tagCode)} is your strongest context-adjusted tag signal: ${strongest.wins} wins in ${strongest.results} results (${strongest.winRate}%), compared with your ${baselinePercent}% baseline. This is ${tagEvidenceLabel(strongest.results)} evidence, with ${strongest.averageTagCount} ${strongest.tagCode} tags on average.`,
+  ];
+
+  if (weakest.tagCode !== strongest.tagCode) {
+    narratives.push(
+      `${formatTagName(weakest.tagCode)} is your clearest loss-correlated tag: ${weakest.wins} wins in ${weakest.results} results (${weakest.winRate}%), compared with your ${baselinePercent}% baseline. Its average count was ${weakest.averageTagCount}, so the signal reflects both whether the tag appeared and how heavily you used it.`,
+    );
+  }
+
+  if (
+    deepest.tagCode !== strongest.tagCode &&
+    deepest.tagCode !== weakest.tagCode
+  ) {
+    narratives.push(
+      `${formatTagName(deepest.tagCode)} was your deepest tag engine, averaging ${deepest.averageTagCount} tags and reaching ${deepest.maxTagCount} in one result; that volume produced a ${deepest.winRate}% win rate across ${deepest.results} results.`,
+    );
+  }
+
+  return narratives;
+}
+
 export type TagCountDistributionDatum = {
   countLabel: string;
   resultShare: number;
@@ -252,6 +325,10 @@ export function TagOutcomesSection(props: {
     props.rows,
     props.focusPlayerId,
   );
+  const narratives = buildTagOutcomeNarratives(
+    props.rows,
+    props.focusPlayerId,
+  );
   const distributionData = buildTagCountDistributionData(
     props.rows,
     activeTagCode,
@@ -341,6 +418,16 @@ export function TagOutcomesSection(props: {
                 </tbody>
               </table>
             </div>
+            {narratives.length > 0 ? (
+              <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-3">
+                <h4 className="tm-data-label text-xs">What the tag data says</h4>
+                <ul className="tm-muted-copy mt-2 space-y-2 text-sm">
+                  {narratives.map((narrative) => (
+                    <li key={narrative}>{narrative}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-3">
