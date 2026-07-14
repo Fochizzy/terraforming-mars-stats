@@ -99,6 +99,17 @@ function buildSharedGameRow(
   > &
     Partial<SharedGameResultRow>,
 ): SharedGameResultRow {
+  const {
+    gameId,
+    isWinner,
+    placement,
+    playedOn,
+    playerId,
+    playerName,
+    totalPoints,
+    ...rest
+  } = overrides;
+
   return {
     awardPoints: 2,
     cardPointsAnimals: 0,
@@ -108,30 +119,30 @@ function buildSharedGameRow(
     citiesPoints: 4,
     declaredModifierStyleCodes: [],
     declaredPrimaryStyleCode: 'balanced',
-    gameId: overrides.gameId,
+    gameId,
     generationCount: 10,
     greeneryPoints: 8,
     groupId: 'group-1',
     hasFullCardBreakdown: true,
     inferredPrimaryStyleCode: 'balanced',
     inferredStyleConfidence: 0.8,
-    isWinner: overrides.isWinner,
+    isWinner,
     keyCardCount: 1,
-    lossGapPoints: overrides.isWinner ? null : 8,
+    lossGapPoints: isWinner ? null : 8,
     mapId: 'map-tharsis',
     milestonePoints: 5,
     otherCardPoints: 4,
-    playedOn: overrides.playedOn,
-    placement: overrides.placement,
-    placementScore: overrides.placement === 1 ? 1 : 0.5,
+    playedOn,
+    placement,
+    placementScore: placement === 1 ? 1 : 0.5,
     playerCount: 3,
-    playerId: overrides.playerId,
-    playerName: overrides.playerName,
-    signedDifferentialPoints: overrides.isWinner ? 8 : -8,
-    totalPoints: overrides.totalPoints,
+    playerId,
+    playerName,
+    signedDifferentialPoints: isWinner ? 8 : -8,
+    totalPoints,
     trPoints: 30,
-    winDifferentialPoints: overrides.isWinner ? 8 : null,
-    ...overrides,
+    winDifferentialPoints: isWinner ? 8 : null,
+    ...rest,
   };
 }
 
