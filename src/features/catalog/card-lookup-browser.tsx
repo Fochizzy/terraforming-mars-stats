@@ -295,7 +295,7 @@ export function CardLookupBrowser({ cards }: { cards: CardLookupEntry[] }) {
                         className="tm-coverage-badge inline-flex items-center gap-1 px-2 py-0.5"
                         key={tagName}
                       >
-                        <TagIcon code={tagName} size={14} />
+                        <TagIcon code={tagName} size={18} />
                         {humanizeCode(tagName)}
                       </span>
                     ))}

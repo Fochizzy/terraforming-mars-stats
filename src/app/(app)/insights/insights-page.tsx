@@ -30,6 +30,7 @@ import {
 } from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { getExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
+import { getHiddenGroupInsightPlayerIds } from '@/lib/db/insight-preferences-repo';
 import {
   getFinalTerraformingActionStats,
   getSelectionDialogData,
@@ -137,6 +138,7 @@ export async function InsightsPageContent({ mode }: { mode: InsightsPageMode }) 
     globalStyleEffectiveness,
     personalStyleEffectiveness,
     sharedGameRows,
+    hiddenGroupInsightPlayerIds,
   ] = await Promise.all([
     loadInsightsDataOrDefault(
       'group analytics',
@@ -200,6 +202,9 @@ export async function InsightsPageContent({ mode }: { mode: InsightsPageMode }) 
       listSharedGameResultRows(context.userId),
       [] as SharedGameResultRow[],
     ),
+    mode === 'group'
+      ? loadInsightsDataOrDefault('hidden group insight players', getHiddenGroupInsightPlayerIds({ groupId: context.groupId, userId: context.userId }), [] as string[])
+      : Promise.resolve([] as string[]),
   ]);
 
   const groupStyleScope = buildStyleScope({
@@ -242,6 +247,8 @@ export async function InsightsPageContent({ mode }: { mode: InsightsPageMode }) 
       <InsightsDashboard
         analytics={analytics}
         currentUserCanonicalId={`user:${context.userId}`}
+        groupId={context.groupId}
+        initialHiddenCombinationPlayerIds={hiddenGroupInsightPlayerIds}
         extended={extendedAnalytics}
         finalTerraformingActionStats={finalTerraformingActionStats}
         focusPeople={focusPeople}

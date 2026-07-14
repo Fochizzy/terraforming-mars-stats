@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState, useTransition } from 'react';
 import { EyeOff, Plus } from 'lucide-react';
 import {
   Bar,
@@ -54,6 +54,7 @@ import type {
 } from '@/lib/db/selection-stats-repo';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
+import { saveHiddenGroupInsightPlayer } from '@/app/(app)/insights/group/actions';
 import { buildInsightCards, type InsightCard } from './build-insight-cards';
 import { BoardHeatmapSection } from './board-heatmap-section';
 import { CardOutcomesSection } from './card-outcomes-section';
@@ -85,6 +86,8 @@ type InsightsDashboardProps = {
   extended: ExtendedGroupAnalytics;
   finalTerraformingActionStats?: FinalTerraformingActionStat[];
   focusPeople: CrossGroupFocusPerson[];
+  groupId?: string;
+  initialHiddenCombinationPlayerIds?: string[];
   mapAwardGroups?: MapAwardGroup[];
   overallAnalytics: GroupAnalytics;
   overallExtended: ExtendedGroupAnalytics;
@@ -1657,6 +1660,8 @@ export function InsightsDashboard({
   extended: baseExtended,
   finalTerraformingActionStats = [],
   focusPeople,
+  groupId,
+  initialHiddenCombinationPlayerIds = [],
   mapAwardGroups = [],
   overallAnalytics,
   overallExtended,
@@ -1674,7 +1679,8 @@ export function InsightsDashboard({
     useState<string[]>([]);
   const [hiddenCombinationPlayerIds, setHiddenCombinationPlayerIds] = useState<
     string[]
-  >([]);
+  >(initialHiddenCombinationPlayerIds);
+  const [, startPreferenceTransition] = useTransition();
   const isPlayerCombinationMode = scopeMode === 'group';
   const combinationOptions = useMemo(
     () =>
@@ -2050,11 +2056,13 @@ export function InsightsDashboard({
     setAnalyzedCombinationPlayerIds((currentIds) =>
       currentIds.filter((currentId) => currentId !== canonicalId),
     );
+    if (groupId) startPreferenceTransition(() => saveHiddenGroupInsightPlayer(groupId, canonicalId, true));
   };
   const restoreCombinationPlayer = (canonicalId: string) => {
     setHiddenCombinationPlayerIds((currentIds) =>
       currentIds.filter((currentId) => currentId !== canonicalId),
     );
+    if (groupId) startPreferenceTransition(() => saveHiddenGroupInsightPlayer(groupId, canonicalId, false));
   };
 
   const hasAnalytics =

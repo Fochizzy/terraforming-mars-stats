@@ -19,6 +19,8 @@ export function InsightsLoadingPopup() {
           <span className="tm-insights-loading-dot tm-insights-loading-dot--one h-2 w-2 rounded-full bg-orange-300" />
           <span className="tm-insights-loading-dot tm-insights-loading-dot--two h-2 w-2 rounded-full bg-orange-300" />
           <span className="tm-insights-loading-dot tm-insights-loading-dot--three h-2 w-2 rounded-full bg-orange-300" />
+          <span className="tm-insights-loading-dot tm-insights-loading-dot--four h-2 w-2 rounded-full bg-orange-300" />
+          <span className="tm-insights-loading-dot tm-insights-loading-dot--five h-2 w-2 rounded-full bg-orange-300" />
         </div>
       </div>
       <style>{`
@@ -27,18 +29,28 @@ export function InsightsLoadingPopup() {
         }
 
         @keyframes tm-insights-dot-two {
-          0%, 32.99% { opacity: 0; }
-          33%, 100% { opacity: 1; }
+          0%, 19.99% { opacity: 0; }
+          20%, 100% { opacity: 1; }
         }
 
         @keyframes tm-insights-dot-three {
-          0%, 65.99% { opacity: 0; }
-          66%, 100% { opacity: 1; }
+          0%, 39.99% { opacity: 0; }
+          40%, 100% { opacity: 1; }
+        }
+
+        @keyframes tm-insights-dot-four {
+          0%, 59.99% { opacity: 0; }
+          60%, 100% { opacity: 1; }
+        }
+
+        @keyframes tm-insights-dot-five {
+          0%, 79.99% { opacity: 0; }
+          80%, 100% { opacity: 1; }
         }
 
         .tm-insights-loading-dot {
           opacity: 0;
-          animation-duration: 1.2s;
+          animation-duration: 4s;
           animation-iteration-count: infinite;
           animation-timing-function: steps(1, end);
         }
@@ -53,6 +65,14 @@ export function InsightsLoadingPopup() {
 
         .tm-insights-loading-dot--three {
           animation-name: tm-insights-dot-three;
+        }
+
+        .tm-insights-loading-dot--four {
+          animation-name: tm-insights-dot-four;
+        }
+
+        .tm-insights-loading-dot--five {
+          animation-name: tm-insights-dot-five;
         }
       `}</style>
     </div>

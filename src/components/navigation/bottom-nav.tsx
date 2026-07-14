@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type MouseEvent, useState } from 'react';
 import { InsightsLoadingPopup } from './insights-loading-popup';
-import { ProfileLoadingPopup } from './profile-loading-popup';
 
 export type BottomNavItem = {
   href: string;
@@ -12,11 +11,12 @@ export type BottomNavItem = {
 };
 
 export const defaultBottomNavItems: BottomNavItem[] = [
-  { href: '/profile', label: 'My Profile' },
   { href: '/log-game', label: 'Log Game' },
+  { href: '/profile', label: 'My Profile' },
   { href: '/group', label: 'Global' },
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
+  { href: '/comparisons', label: 'Comparisons' },
   { href: '/cards', label: 'Cards' },
   { href: '/glossary', label: 'Glossary' },
 ];
@@ -63,22 +63,6 @@ function shouldShowInsightsLoading(
   );
 }
 
-function shouldShowProfileLoading(
-  event: MouseEvent<HTMLAnchorElement>,
-  href: string,
-  pathname: string,
-) {
-  return (
-    href === '/profile' &&
-    pathname !== href &&
-    event.button === 0 &&
-    !event.metaKey &&
-    !event.ctrlKey &&
-    !event.shiftKey &&
-    !event.altKey
-  );
-}
-
 export function BottomNav({
   items = defaultBottomNavItems,
 }: {
@@ -86,7 +70,6 @@ export function BottomNav({
 }) {
   const pathname = usePathname() ?? '';
   const [showInsightsLoading, setShowInsightsLoading] = useState(false);
-  const [showProfileLoading, setShowProfileLoading] = useState(false);
   const navigationItems = items;
   const cardsItem = navigationItems.find((item) => item.href === '/cards');
   const glossaryItem = navigationItems.find((item) => item.href === '/glossary');
@@ -110,33 +93,19 @@ export function BottomNav({
         <Link
           aria-label="Home"
           className="tm-bottom-nav__icon"
-          href={navigationItems[0]?.href ?? '/'}
-          onClick={(event) => {
-            if (
-              shouldShowProfileLoading(
-                event,
-                navigationItems[0]?.href ?? '/',
-                pathname,
-              )
-            ) {
-              setShowProfileLoading(true);
-            }
-          }}
+          href="/profile"
         >
           <HomeIcon />
         </Link>
         <div className="tm-bottom-nav__links">
           {stripItems.map((item) => (
             <Link
-              className="tm-bottom-nav__link"
+              className={`tm-bottom-nav__link${item.href === '/log-game' ? ' tm-bottom-nav__link--log-game' : ''}`}
               href={item.href}
               key={item.href}
               onClick={(event) => {
                 if (shouldShowInsightsLoading(event, item.href, pathname)) {
                   setShowInsightsLoading(true);
-                }
-                if (shouldShowProfileLoading(event, item.href, pathname)) {
-                  setShowProfileLoading(true);
                 }
               }}
             >
@@ -175,7 +144,6 @@ export function BottomNav({
         ) : null}
       </nav>
       {showInsightsLoading ? <InsightsLoadingPopup /> : null}
-      {showProfileLoading ? <ProfileLoadingPopup /> : null}
     </>
   );
 }

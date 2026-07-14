@@ -30,6 +30,18 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');
     expect(container.querySelector('.tm-bottom-nav')).toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /log game/i })).toHaveClass(
+      'tm-bottom-nav__link--log-game',
+    );
+
+    const textLinks = Array.from(
+      container.querySelectorAll('.tm-bottom-nav__links a'),
+    ).map((link) => link.textContent?.trim());
+    expect(textLinks[0]).toBe('Log Game');
+    expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute(
+      'href',
+      '/profile',
+    );
   });
 
   it('accepts a reduced navigation set for profile-only access', () => {
@@ -60,7 +72,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
   });
 
-  it('renders review saved games immediately before log out when requested', () => {
+  it('renders leaderboard beneath review saved games and log out', () => {
     const { container } = render(
       <AppShell showReviewSavedGamesLink title="My Profile">
         content
@@ -77,7 +89,7 @@ describe('AppShell', () => {
       ),
     ).map((element) => element.textContent?.trim());
 
-    expect(actionLabels).toEqual(['Review Saved Games', 'Log Out']);
+    expect(actionLabels).toEqual(['Review Saved Games', 'Log Out', 'Leaderboard']);
   });
 
   it('renders the shared header with the login-style cropped banner', () => {

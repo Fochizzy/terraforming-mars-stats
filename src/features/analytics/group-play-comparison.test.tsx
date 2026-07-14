@@ -59,10 +59,11 @@ describe('GroupPlayComparison', () => {
     expect(
       screen.getByText('4 finalized games in this group | 10 overall'),
     ).toBeInTheDocument();
-    expect(screen.getByText('+10 vs overall')).toBeInTheDocument();
-    expect(screen.getByText('+15 vs overall')).toBeInTheDocument();
-    expect(screen.getByText('+25 pp vs overall')).toBeInTheDocument();
-    expect(screen.getByText('-0.50 vs overall')).toBeInTheDocument();
+    expect(screen.getByText('+10')).toBeInTheDocument();
+    expect(screen.getByText('+15')).toBeInTheDocument();
+    expect(screen.getByText('+25 pp')).toBeInTheDocument();
+    expect(screen.getByText('0.50 places better')).toBeInTheDocument();
+    expect(screen.getByText(/This is early evidence based on 4 finalized games/i)).toBeInTheDocument();
   });
 
   it('explains when the player has no finalized games in the selected group', () => {

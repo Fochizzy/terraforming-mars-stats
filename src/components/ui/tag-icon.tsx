@@ -43,7 +43,7 @@ export function hasTagIcon(code: string): boolean {
 export function TagIcon({
   className,
   code,
-  size = 18,
+  size = 22,
 }: {
   className?: string;
   code: string;
@@ -76,7 +76,7 @@ export function TagIcon({
 export function TagLabel({
   className,
   code,
-  size = 16,
+  size = 20,
 }: {
   className?: string;
   code: string;

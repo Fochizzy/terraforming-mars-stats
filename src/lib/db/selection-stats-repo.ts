@@ -237,6 +237,7 @@ export type SelectionDialogEntry = {
 
 export type SelectionDialogData = {
   cardMetaByName: Map<string, CardImageMeta>;
+  cardWinRates?: Map<string, SelectionDialogEntry>;
   corporationWinRates: Map<string, SelectionDialogEntry>;
   preludeWinRates: Map<string, SelectionDialogEntry>;
 };
@@ -280,6 +281,8 @@ export async function getSelectionDialogData(
       ...personal.corporations.map((row) => row.corporation_name),
       ...global.preludes.map((row) => row.prelude_name),
       ...personal.preludes.map((row) => row.prelude_name),
+      ...global.cards.map((row) => row.card_name),
+      ...personal.cards.map((row) => row.card_name),
     ]),
   ];
 
@@ -287,6 +290,10 @@ export async function getSelectionDialogData(
 
   return {
     cardMetaByName,
+    cardWinRates: indexWinScope(
+      personal.cards.map((row) => ({ name: row.card_name, plays: row.plays, win_rate: row.win_rate_when_played })),
+      global.cards.map((row) => ({ name: row.card_name, plays: row.plays, win_rate: row.win_rate_when_played })),
+    ),
     corporationWinRates: indexWinScope(
       personal.corporations.map((row) => ({
         name: row.corporation_name,

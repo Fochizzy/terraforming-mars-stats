@@ -3656,6 +3656,21 @@ function buildProfileResourceRemovalProfile({
         resourceType,
       };
 
+      if (!affectedPlayer || !sourcePlayer) {
+        continue;
+      }
+
+      const affectedIsOwn = ownPlayerIds.has(affectedPlayer.playerId);
+      const sourceIsOwn = ownPlayerIds.has(sourcePlayer.playerId);
+
+      // Spending a resource from one's own card (Asteroid Rights, microbes,
+      // animals, etc.) is a cost/activation, not interaction pressure. Keep
+      // this profile strictly player-versus-player so self-removal cannot
+      // create a misleading affected-track total with zero incoming/outgoing.
+      if (affectedPlayer.playerId === sourcePlayer.playerId) {
+        continue;
+      }
+
       totalRemovalEvents += 1;
       if (hasExplicitResourceRemovalAttribution(event)) {
         explicitAttributionEvents += 1;
@@ -3666,13 +3681,6 @@ function buildProfileResourceRemovalProfile({
       resourceTotal.amount += amount;
       resourceTotal.events += 1;
       resourceTotals.set(resourceKey, resourceTotal);
-
-      if (!affectedPlayer || !sourcePlayer) {
-        continue;
-      }
-
-      const affectedIsOwn = ownPlayerIds.has(affectedPlayer.playerId);
-      const sourceIsOwn = ownPlayerIds.has(sourcePlayer.playerId);
 
       if (sourceIsOwn && !affectedIsOwn) {
         addRemoval(outgoing, amount, deltaKind);
@@ -4260,6 +4268,35 @@ function buildProfileExpansionProfile({
     opening.terraformingRaises +
     opening.milestonesClaimed +
     opening.loggedGains;
+  const winningRows = ownRows.filter((row) => row.isWinner);
+  const losingRows = ownRows.filter((row) => !row.isWinner);
+  const averageForRows = (
+    rows: ProfileGameResultRow[],
+    getValue: (row: ProfileGameResultRow) => number,
+  ) => averageNumbers(rows.map(getValue));
+  const objectivePoints = (row: ProfileGameResultRow) =>
+    row.milestonePoints + row.awardPoints;
+  const boardScore = (row: ProfileGameResultRow) =>
+    row.citiesPoints + row.greeneryPoints;
+  const winningObjectiveAverage = averageForRows(winningRows, objectivePoints);
+  const losingObjectiveAverage = averageForRows(losingRows, objectivePoints);
+  const winningBoardAverage = averageForRows(winningRows, boardScore);
+  const losingBoardAverage = averageForRows(losingRows, boardScore);
+  const winningTrAverage = averageForRows(winningRows, (row) => row.trPoints);
+  const losingTrAverage = averageForRows(losingRows, (row) => row.trPoints);
+  const objectiveWinLift =
+    winningObjectiveAverage !== null && losingObjectiveAverage !== null
+      ? winningObjectiveAverage - losingObjectiveAverage
+      : null;
+  const boardWinLift =
+    winningBoardAverage !== null && losingBoardAverage !== null
+      ? winningBoardAverage - losingBoardAverage
+      : null;
+  const trWinLift =
+    winningTrAverage !== null && losingTrAverage !== null
+      ? winningTrAverage - losingTrAverage
+      : null;
+  const outcomeSampleLabel = `${formatExpansionNumber(winningRows.length)} wins and ${formatExpansionNumber(losingRows.length)} non-wins`;
 
   const strengths: string[] = [];
   const improvements: string[] = [];
@@ -4286,6 +4323,12 @@ function buildProfileExpansionProfile({
       ? `The expanded profile backs the ${
           leadPressure?.pressureLabel.toLowerCase() ?? 'core-plan'
         } read: ${[leadClause, repeatableSourceClause].filter(Boolean).join(', and ')}.`
+      : null,
+  );
+
+  addStrength(
+    objectiveWinLift !== null && objectiveWinLift > 0
+      ? `Milestones and awards are part of the winning pattern: wins average ${formatExpansionNumber(winningObjectiveAverage)} objective points, ${formatExpansionNumber(objectiveWinLift)} more than non-wins across ${outcomeSampleLabel}. Treat this as an association, especially while either outcome sample is small.`
       : null,
   );
 
@@ -4318,7 +4361,7 @@ function buildProfileExpansionProfile({
   );
   addStrength(
     boardTileCount > 0 && pointsPerBoardTile !== null
-      ? `Board control is producing real value: city and greenery tiles are returning ${formatExpansionNumber(pointsPerBoardTile)} final points per logged board tile.`
+      ? `Board control is producing real value: city and greenery tiles are returning ${formatExpansionNumber(pointsPerBoardTile)} final points per logged board tile${boardWinLift !== null && boardWinLift > 0 ? `, while wins score ${formatExpansionNumber(boardWinLift)} more board points than non-wins` : ''}.`
       : null,
   );
   addStrength(
@@ -4339,6 +4382,23 @@ function buildProfileExpansionProfile({
   addImprovement(
     swingiestSource
       ? `Stabilize ${swingiestSource.label}: it is the swingiest scoring source, averaging ${formatExpansionNumber(swingiestSource.average)} points with ${formatExpansionNumber(swingiestSource.standardDeviation)} standard deviation, so choose one dependable backup route before final scoring.`
+      : null,
+  );
+  addImprovement(
+    objectiveWinLift !== null && objectiveWinLift < 0
+      ? `Review milestone and award timing: non-wins currently average ${formatExpansionNumber(Math.abs(objectiveWinLift))} more objective points than wins across ${outcomeSampleLabel}, suggesting those points may be costing tempo or arriving without enough follow-through.`
+      : winningObjectiveAverage !== null && winningObjectiveAverage < 5
+        ? `Build a clearer milestone-and-award branch into the opening: wins average only ${formatExpansionNumber(winningObjectiveAverage)} objective points, so identify one claimable milestone and one affordable award without sacrificing the main engine.`
+        : null,
+  );
+  addImprovement(
+    boardWinLift !== null && boardWinLift < 0
+      ? `Convert board presence more efficiently: non-wins score ${formatExpansionNumber(Math.abs(boardWinLift))} more city-and-greenery points than wins, so check whether late placements are consuming actions without improving placement.`
+      : null,
+  );
+  addImprovement(
+    trWinLift !== null && trWinLift < 0
+      ? `Recheck terraforming pace: non-wins average ${formatExpansionNumber(Math.abs(trWinLift))} more TR points than wins, which can signal that parameter pushes are ending the game before the rest of the scoring engine pays back.`
       : null,
   );
   addImprovement(
