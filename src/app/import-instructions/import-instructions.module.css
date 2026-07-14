@@ -17,13 +17,14 @@
 
 .shell {
   --content-left: max(320px, calc(50vw - 450px));
+  --content-right: max(28px, calc(50vw - 720px));
 
   position: absolute;
-  top: clamp(154px, 19vh, 208px);
+  top: clamp(148px, 18.5vh, 204px);
   bottom: clamp(24px, 5.5vh, 58px);
   left: var(--content-left);
+  right: var(--content-right);
   box-sizing: border-box;
-  width: min(920px, calc(100vw - var(--content-left) - 44px));
   display: flex;
   flex-direction: column;
   gap: 14px;
