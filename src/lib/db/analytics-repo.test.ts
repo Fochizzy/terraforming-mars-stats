@@ -845,6 +845,213 @@ describe('getProfileAnalytics', () => {
     });
   });
 
+  it('uses imported log generation markers for tempo when profile game length is missing', async () => {
+    const makeRow = (
+      overrides: Partial<Record<string, unknown>>,
+    ): Record<string, unknown> => ({
+      award_points: 0,
+      card_points_animals: null,
+      card_points_jovian: null,
+      card_points_microbes: null,
+      card_points_total: 0,
+      cities_points: 0,
+      declared_modifier_style_codes: null,
+      declared_primary_style_code: null,
+      game_id: 'game-1',
+      generation_count: 0,
+      greenery_points: 0,
+      group_id: 'group-1',
+      has_full_card_breakdown: false,
+      inferred_primary_style_code: null,
+      inferred_style_confidence: null,
+      is_winner: true,
+      key_card_count: 0,
+      loss_gap_points: null,
+      milestone_points: 0,
+      other_card_points: null,
+      placement: 1,
+      placement_score: 1,
+      player_id: 'me-1',
+      player_name: 'Friday Mars',
+      signed_differential_points: 5,
+      total_points: 80,
+      tr_points: 24,
+      win_differential_points: 5,
+      ...overrides,
+    });
+
+    const ownRows = [makeRow({})];
+    const sharedRows = ownRows.map((row) => ({ ...row }));
+    const playerResultsIn = vi.fn((column: string) => {
+      if (column === 'player_id') {
+        return Promise.resolve({ data: ownRows, error: null });
+      }
+
+      return Promise.resolve({ data: sharedRows, error: null });
+    });
+    const playerResultsSelect = vi.fn().mockReturnValue({ in: playerResultsIn });
+    const cardStatsIn = vi.fn().mockResolvedValue({ data: [], error: null });
+    const cardStatsSelect = vi.fn().mockReturnValue({ in: cardStatsIn });
+    const importsIn = vi.fn().mockResolvedValue({
+      data: [{ game_id: 'game-1', id: 'import-1' }],
+      error: null,
+    });
+    const importsSelect = vi.fn().mockReturnValue({ in: importsIn });
+    const eventsIn = vi.fn().mockResolvedValue({
+      data: [
+        {
+          card_id: null,
+          event_order: 1,
+          event_type: 'generation_started',
+          game_log_import_id: 'import-1',
+          generation_number: 1,
+          payload: {},
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 2,
+          event_type: 'card_played',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: { actor: 'Friday Mars', cardName: 'Asteroid' },
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 3,
+          event_type: 'global_parameter_changed',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: { actor: 'Friday Mars', parameterType: 'oxygen' },
+          resource_amount: null,
+          resource_type: 'oxygen',
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 4,
+          event_type: 'generation_started',
+          game_log_import_id: 'import-1',
+          generation_number: 5,
+          payload: {},
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 5,
+          event_type: 'global_parameter_changed',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: { actor: 'Friday Mars', parameterType: 'temperature' },
+          resource_amount: null,
+          resource_type: 'temperature',
+          tile_type: null,
+        },
+        {
+          card_id: null,
+          event_order: 6,
+          event_type: 'generation_started',
+          game_log_import_id: 'import-1',
+          generation_number: 8,
+          payload: {},
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+      ],
+      error: null,
+    });
+    const eventsSelect = vi.fn().mockReturnValue({ in: eventsIn });
+
+    const playersOrderByDisplayName = vi.fn().mockResolvedValue({
+      data: [{ display_name: 'Friday Mars', group_id: 'group-1', id: 'me-1' }],
+      error: null,
+    });
+    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
+      order: playersOrderByDisplayName,
+    });
+    const playersEqLinkedUserId = vi.fn().mockReturnValue({
+      order: playersOrderByCreatedAt,
+    });
+    const playersSelect = vi.fn().mockReturnValue({ eq: playersEqLinkedUserId });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc: vi.fn(async () => ({ data: [], error: null })),
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playersSelect };
+        }
+
+        if (table === 'game_log_imports') {
+          return { select: importsSelect };
+        }
+
+        if (table === 'game_log_events') {
+          return { select: eventsSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      schema: vi.fn((schemaName: string) => {
+        if (schemaName !== 'analytics') {
+          throw new Error(`Unexpected schema ${schemaName}`);
+        }
+
+        return {
+          from: vi.fn((table: string) => {
+            if (table === 'player_game_results') {
+              return { select: playerResultsSelect };
+            }
+
+            if (table === 'player_key_cards' || table === 'player_card_outcomes') {
+              return { select: cardStatsSelect };
+            }
+
+            throw new Error(`Unexpected analytics table ${table}`);
+          }),
+        };
+      }),
+    } as never);
+
+    await expect(getProfileAnalytics('user-1')).resolves.toMatchObject({
+      globalParameterTempoProfile: {
+        bestMix: expect.objectContaining({
+          averageFastGeneration: 1,
+          code: 'fast_oxygen',
+          gamesPlayed: 1,
+          label: 'Fast Oxygen',
+          parameters: ['oxygen'],
+          winRate: 1,
+        }),
+        importedGames: 1,
+        rows: [
+          expect.objectContaining({
+            code: 'fast_oxygen',
+            gamesPlayed: 1,
+            winRate: 1,
+          }),
+        ],
+      },
+      phaseTempoProfile: {
+        bestPhase: expect.objectContaining({
+          phase: 'early',
+          winRateWhenPeak: 1,
+        }),
+        mostActivePhase: expect.objectContaining({
+          actions: 1,
+          phase: 'early',
+        }),
+      },
+    });
+  });
+
   it('collapses opponents that share a linked user into one head-to-head row', async () => {
     const makeRow = (
       overrides: Partial<Record<string, unknown>>,

@@ -2313,6 +2313,29 @@ function getProfilePhase(
   return 'late';
 }
 
+function getImportedLogGenerationCount(events: RawGameLogEventRow[]) {
+  const generationNumbers = events
+    .map((event) => toNullableNumber(event.generation_number))
+    .filter((value): value is number => value !== null && value > 0);
+
+  if (generationNumbers.length === 0) {
+    return null;
+  }
+
+  return Math.max(...generationNumbers);
+}
+
+function getTempoGenerationCount(
+  row: ProfileGameResultRow,
+  importedLogGenerationCount: number | null,
+) {
+  if (row.generationCount > 0) {
+    return row.generationCount;
+  }
+
+  return importedLogGenerationCount;
+}
+
 const PROFILE_GLOBAL_PARAMETER_ORDER: ProfileGlobalParameter[] = [
   'oxygen',
   'heat',
@@ -2430,9 +2453,11 @@ function buildProfileGlobalParameterTempoProfile({
     const sortedEvents = [...importEvents].sort(
       (left, right) => toNumber(left.event_order) - toNumber(right.event_order),
     );
+    const importedLogGenerationCount = getImportedLogGenerationCount(sortedEvents);
     const firstParameterGeneration = new Map<ProfileGlobalParameter, number>();
     let currentGeneration = 1;
     let gameSubject: ProfileGameResultRow | null = null;
+    let gameGenerationCount: number | null = null;
 
     for (const event of sortedEvents) {
       const eventGeneration = toNullableNumber(event.generation_number);
@@ -2460,11 +2485,17 @@ function buildProfileGlobalParameterTempoProfile({
         continue;
       }
 
-      gameSubject = gameSubject ?? actor;
+      const actorGenerationCount = getTempoGenerationCount(
+        actor,
+        importedLogGenerationCount,
+      );
 
-      if (actor.generationCount <= 0) {
+      if (!actorGenerationCount || actorGenerationCount <= 0) {
         continue;
       }
+
+      gameSubject = gameSubject ?? actor;
+      gameGenerationCount = gameGenerationCount ?? actorGenerationCount;
 
       const previousGeneration = firstParameterGeneration.get(parameter);
 
@@ -2476,13 +2507,13 @@ function buildProfileGlobalParameterTempoProfile({
       }
     }
 
-    if (!gameSubject || firstParameterGeneration.size === 0) {
+    if (!gameSubject || !gameGenerationCount || firstParameterGeneration.size === 0) {
       continue;
     }
 
     const fastCutoffGeneration = Math.max(
       1,
-      Math.ceil(gameSubject.generationCount / 2),
+      Math.ceil(gameGenerationCount / 2),
     );
     const fastParameters = PROFILE_GLOBAL_PARAMETER_ORDER.filter(
       (parameter) =>
@@ -2653,6 +2684,7 @@ function buildProfilePhaseTempoProfile({
     const sortedEvents = [...importEvents].sort(
       (left, right) => toNumber(left.event_order) - toNumber(right.event_order),
     );
+    const importedLogGenerationCount = getImportedLogGenerationCount(sortedEvents);
     const gamePhaseTotals = new Map<
       ProfilePhase,
       ReturnType<typeof emptyPhaseEventTotals>
@@ -2681,13 +2713,18 @@ function buildProfilePhaseTempoProfile({
         continue;
       }
 
-      gameSubject = gameSubject ?? actor;
+      const actorGenerationCount = getTempoGenerationCount(
+        actor,
+        importedLogGenerationCount,
+      );
 
-      if (actor.generationCount <= 0) {
+      if (!actorGenerationCount || actorGenerationCount <= 0) {
         continue;
       }
 
-      const phase = getProfilePhase(currentGeneration, actor.generationCount);
+      gameSubject = gameSubject ?? actor;
+
+      const phase = getProfilePhase(currentGeneration, actorGenerationCount);
       const globalTotals = phaseTotals.get(phase) ?? emptyPhaseEventTotals();
       const gameTotals = gamePhaseTotals.get(phase) ?? emptyPhaseEventTotals();
       const addAction = () => {
