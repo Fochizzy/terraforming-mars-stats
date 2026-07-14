@@ -6,7 +6,6 @@ import { buildAuthCallbackUrl } from './build-auth-callback-url';
 import {
   emailSchema,
   pinSchema,
-  resolveSignInEmail,
   signupFullNameSchema,
   signupUsernameSchema,
 } from './username-auth';
@@ -16,7 +15,6 @@ type AuthMode = 'sign-in' | 'sign-up';
 export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string }) {
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [fullName, setFullName] = useState('');
-  const [identifier, setIdentifier] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
@@ -33,17 +31,18 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
 
     try {
       const supabase = createSupabaseBrowserClient();
+      const parsedEmail = emailSchema.parse(email);
 
       if (mode === 'sign-in') {
-        const signInEmail = resolveSignInEmail(identifier);
+        const parsedPin = pinSchema.parse(pin);
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: signInEmail,
-          password: pin,
+          email: parsedEmail,
+          password: parsedPin,
         });
 
         if (error || !data.user) {
           setStatus({
-            message: 'The email/username or PIN was not recognized.',
+            message: 'The email address or 6-digit PIN was not recognized.',
             state: 'error',
           });
           return;
@@ -56,14 +55,13 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
           .maybeSingle();
 
         window.location.assign(
-          profile?.credential_reset_required ? '/account-migration' : nextPath,
+          profile?.credential_reset_required ? '/reset-pin' : nextPath,
         );
         return;
       }
 
       const parsedFullName = signupFullNameSchema.parse(fullName);
       const parsedUsername = signupUsernameSchema.parse(username);
-      const parsedEmail = emailSchema.parse(email);
       const parsedPin = pinSchema.parse(pin);
       const emailRedirectTo = buildAuthCallbackUrl(window.location.origin, nextPath);
 
@@ -162,50 +160,38 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
               value={username}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="tm-data-label">Email</span>
-            <input
-              aria-label="Email"
-              autoComplete="email"
-              className="tm-input"
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              required
-              type="email"
-              value={email}
-            />
-          </label>
         </>
-      ) : (
-        <label className="flex flex-col gap-2 text-sm">
-          <span className="tm-data-label">Email or Legacy Username</span>
-          <input
-            aria-label="Email or Legacy Username"
-            autoCapitalize="none"
-            autoCorrect="off"
-            className="tm-input"
-            onChange={(event) => setIdentifier(event.target.value)}
-            placeholder="you@example.com or friday-mars"
-            required
-            type="text"
-            value={identifier}
-          />
-        </label>
-      )}
+      ) : null}
+
+      <label className="flex flex-col gap-2 text-sm">
+        <span className="tm-data-label">Email</span>
+        <input
+          aria-label="Email"
+          autoCapitalize="none"
+          autoComplete="email"
+          autoCorrect="off"
+          className="tm-input"
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@example.com"
+          required
+          type="email"
+          value={email}
+        />
+      </label>
 
       <label className="flex flex-col gap-2 text-sm">
         <span className="tm-data-label">
-          {mode === 'sign-in' ? 'PIN' : 'Create 6-Digit PIN'}
+          {mode === 'sign-in' ? '6-Digit PIN' : 'Create 6-Digit PIN'}
         </span>
         <input
-          aria-label={mode === 'sign-in' ? 'PIN' : 'Create 6-Digit PIN'}
+          aria-label={mode === 'sign-in' ? '6-Digit PIN' : 'Create 6-Digit PIN'}
           autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
           className="tm-input"
           inputMode="numeric"
           maxLength={6}
-          minLength={mode === 'sign-up' ? 6 : 4}
+          minLength={6}
           onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))}
-          placeholder={mode === 'sign-in' ? '4 or 6 digits' : '6 digits'}
+          placeholder="6 digits"
           required
           type="password"
           value={pin}
@@ -217,7 +203,7 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
       </button>
 
       {mode === 'sign-in' ? (
-        <a className="text-center text-sm text-sky-200 underline-offset-4 hover:underline" href="/forgot-password">
+        <a className="text-center text-sm text-sky-200 underline-offset-4 hover:underline" href="/forgot-pin">
           Forgot your PIN?
         </a>
       ) : null}
