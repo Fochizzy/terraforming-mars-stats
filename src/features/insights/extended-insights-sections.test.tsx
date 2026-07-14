@@ -253,6 +253,7 @@ describe('buildMapPerformanceData', () => {
           {
             awardNames: ['Landlord'],
             mapCode: 'tharsis',
+            mapId: 'map-1',
             mapName: 'Tharsis',
             milestoneNames: ['Terraformer'],
           },
@@ -887,6 +888,7 @@ describe('BoardHeatmapSection', () => {
           {
             awardNames: ['Landlord'],
             mapCode: 'tharsis',
+            mapId: 'map-tharsis',
             mapName: 'Tharsis',
             milestoneNames: ['Terraformer'],
           },

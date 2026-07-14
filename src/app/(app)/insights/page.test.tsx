@@ -1,17 +1,20 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import InsightsPage from './page';
+import { InsightsPageContent } from './insights-page';
 
 type CapturedInsightsDashboardProps = {
   children?: ReactNode;
+  currentUserCanonicalId?: string;
   focusPeople: Array<{ canonicalId: string; displayName: string }>;
   mapAwardGroups?: Array<{
     awardNames: string[];
     mapCode: string;
+    mapId: string;
     mapName: string;
     milestoneNames: string[];
   }>;
+  scopeMode?: 'all' | 'group' | 'individual';
 };
 
 const captureState = vi.hoisted(() => ({
@@ -19,6 +22,7 @@ const captureState = vi.hoisted(() => ({
 }));
 
 const mockState = vi.hoisted(() => ({
+  getFinalTerraformingActionStats: vi.fn(),
   getHeadToHeadStats: vi.fn(),
   getCrossGroupFocusData: vi.fn(),
   getExtendedGroupAnalytics: vi.fn(),
@@ -27,9 +31,11 @@ const mockState = vi.hoisted(() => ({
   getOverallAnalytics: vi.fn(),
   getSelectionDialogData: vi.fn(),
   getSelectionStats: vi.fn(),
+  getStyleEffectiveness: vi.fn(),
   listMapAwardGroups: vi.fn(),
   listPromoCards: vi.fn(),
   listPromoSets: vi.fn(),
+  listSharedGameResultRows: vi.fn(),
   requireGroupContextOrRedirect: vi.fn(),
 }));
 
@@ -91,7 +97,12 @@ vi.mock('@/components/layout/app-shell', () => ({
 }));
 
 vi.mock('@/features/groups/group-switcher', () => ({
-  GroupSwitcher: () => <div>Group Switcher</div>,
+  GroupSwitcher: ({
+    returnPath,
+  }: {
+    currentGroupId: string;
+    returnPath: string;
+  }) => <div>Group Switcher: {returnPath}</div>,
 }));
 
 vi.mock('@/features/groups/require-group-context', () => ({
@@ -118,6 +129,8 @@ vi.mock('@/lib/db/analytics-repo', () => ({
   getCrossGroupFocusData: mockState.getCrossGroupFocusData,
   getGroupAnalytics: mockState.getGroupAnalytics,
   getOverallAnalytics: mockState.getOverallAnalytics,
+  getStyleEffectiveness: mockState.getStyleEffectiveness,
+  listSharedGameResultRows: mockState.listSharedGameResultRows,
 }));
 
 vi.mock('@/lib/db/extended-analytics-repo', () => ({
@@ -131,6 +144,7 @@ vi.mock('@/lib/db/reference-repo', () => ({
 }));
 
 vi.mock('@/lib/db/selection-stats-repo', () => ({
+  getFinalTerraformingActionStats: mockState.getFinalTerraformingActionStats,
   getHeadToHeadStats: mockState.getHeadToHeadStats,
   getMergerImpactStats: mockState.getMergerImpactStats,
   getSelectionDialogData: mockState.getSelectionDialogData,
@@ -253,11 +267,13 @@ describe('InsightsPage', () => {
     });
     mockState.listPromoCards.mockResolvedValue([]);
     mockState.listPromoSets.mockResolvedValue([]);
+    mockState.listSharedGameResultRows.mockResolvedValue([]);
     mockState.getHeadToHeadStats.mockResolvedValue({
       corporationMatchups: [],
       pairs: [],
     });
     mockState.getMergerImpactStats.mockResolvedValue([]);
+    mockState.getFinalTerraformingActionStats.mockResolvedValue([]);
     mockState.getSelectionStats.mockResolvedValue({
       awardFunding: [],
       baselineWinRate: 0,
@@ -267,6 +283,11 @@ describe('InsightsPage', () => {
       pairs: [],
       preludes: [],
       tagWins: [],
+      totalGames: 0,
+    });
+    mockState.getStyleEffectiveness.mockResolvedValue({
+      scoreAverages: null,
+      styleRows: [],
     });
   });
 
@@ -275,6 +296,7 @@ describe('InsightsPage', () => {
       {
         awardNames: ['Landlord'],
         mapCode: 'tharsis',
+        mapId: 'map-tharsis',
         mapName: 'Tharsis',
         milestoneNames: ['Terraformer'],
       },
@@ -282,15 +304,30 @@ describe('InsightsPage', () => {
 
     mockState.listMapAwardGroups.mockResolvedValueOnce(mapAwardGroups);
 
-    render(await InsightsPage());
+    render(await InsightsPageContent({ mode: 'individual' }));
 
-    expect(screen.getByRole('heading', { name: /insights/i })).toBeInTheDocument();
-    expect(screen.getByText('Group Switcher')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /individual insights/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Group Switcher: /insights/individual'),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /review saved games/i }),
     ).toHaveAttribute('href', '/log-game/review');
     expect(screen.getByTestId('insights-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('selection-stats-section')).toBeInTheDocument();
+    expect(captureState.insightsDashboardProps?.scopeMode).toBe('individual');
+    expect(captureState.insightsDashboardProps?.currentUserCanonicalId).toBe(
+      'user:user-1',
+    );
     expect(mockState.getCrossGroupFocusData).toHaveBeenCalledWith('user-1', 'group-1');
+    expect(mockState.listSharedGameResultRows).toHaveBeenCalledWith('user-1');
+    expect(mockState.getFinalTerraformingActionStats).toHaveBeenCalledWith({
+      scope: 'personal',
+    });
+    expect(mockState.getHeadToHeadStats).not.toHaveBeenCalled();
+    expect(mockState.getMergerImpactStats).not.toHaveBeenCalled();
     expect(
       captureState.insightsDashboardProps?.focusPeople.map((person) => person.displayName),
     ).toEqual(['Friday Mars', 'Colette LeRoux']);
@@ -313,16 +350,15 @@ describe('InsightsPage', () => {
       new Error('missing live analytics view'),
     );
     mockState.getSelectionStats.mockRejectedValue(new Error('stale stats rpc'));
-    mockState.getHeadToHeadStats.mockRejectedValueOnce(
-      new Error('stale head-to-head rpc'),
-    );
-    mockState.getMergerImpactStats.mockRejectedValueOnce(
-      new Error('missing merger rpc'),
+    mockState.getFinalTerraformingActionStats.mockRejectedValueOnce(
+      new Error('missing final action rpc'),
     );
 
-    render(await InsightsPage());
+    render(await InsightsPageContent({ mode: 'individual' }));
 
-    expect(screen.getByRole('heading', { name: /insights/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /individual insights/i }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('insights-dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('selection-stats-section')).toBeInTheDocument();
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -334,10 +370,23 @@ describe('InsightsPage', () => {
       expect.any(Error),
     );
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[insights] Failed to load Merger impact stats',
+      '[insights] Failed to load final terraforming action stats',
       expect.any(Error),
     );
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('renders group insights as a separate group-scoped page', async () => {
+    render(await InsightsPageContent({ mode: 'group' }));
+
+    expect(
+      screen.getByRole('heading', { name: /group insights/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Group Switcher: /insights/group')).toBeInTheDocument();
+    expect(screen.getByTestId('insights-dashboard')).toBeInTheDocument();
+    expect(captureState.insightsDashboardProps?.scopeMode).toBe('group');
+    expect(mockState.getFinalTerraformingActionStats).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('selection-stats-section')).not.toBeInTheDocument();
   });
 });

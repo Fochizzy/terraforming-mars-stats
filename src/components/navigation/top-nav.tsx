@@ -15,7 +15,8 @@ export const defaultTopNavItems: TopNavItem[] = [
   { href: '/profile', label: 'My Profile' },
   { href: '/log-game', label: 'Log a Game' },
   { href: '/group', label: 'Global' },
-  { href: '/insights', label: 'Insights' },
+  { href: '/insights/individual', label: 'Individual Insights' },
+  { href: '/insights/group', label: 'Group Insights' },
   { href: '/cards', label: 'Cards', align: 'end' },
   { href: '/glossary', label: 'Glossary', align: 'end' },
 ];
@@ -38,8 +39,8 @@ function shouldShowInsightsLoading(
   pathname: string,
 ) {
   return (
-    href === '/insights' &&
-    pathname !== '/insights' &&
+    href.startsWith('/insights') &&
+    pathname !== href &&
     event.button === 0 &&
     !event.metaKey &&
     !event.ctrlKey &&

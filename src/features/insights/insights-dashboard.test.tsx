@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { CrossGroupFocusPerson } from '@/lib/db/analytics-repo';
+import type {
+  CrossGroupFocusPerson,
+  SharedGameResultRow,
+} from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
 import { InsightsDashboard } from './insights-dashboard';
 
@@ -78,6 +81,55 @@ function buildEmptyGroupAnalyticsFixture() {
   } as never;
 }
 
+function buildSharedGameRow(
+  overrides: Pick<
+    SharedGameResultRow,
+    | 'gameId'
+    | 'isWinner'
+    | 'placement'
+    | 'playedOn'
+    | 'playerId'
+    | 'playerName'
+    | 'totalPoints'
+  > &
+    Partial<SharedGameResultRow>,
+): SharedGameResultRow {
+  return {
+    awardPoints: 2,
+    cardPointsAnimals: 0,
+    cardPointsJovian: 0,
+    cardPointsMicrobes: 0,
+    cardPointsTotal: 18,
+    citiesPoints: 4,
+    declaredModifierStyleCodes: [],
+    declaredPrimaryStyleCode: 'balanced',
+    gameId: overrides.gameId,
+    generationCount: 10,
+    greeneryPoints: 8,
+    groupId: 'group-1',
+    hasFullCardBreakdown: true,
+    inferredPrimaryStyleCode: 'balanced',
+    inferredStyleConfidence: 0.8,
+    isWinner: overrides.isWinner,
+    keyCardCount: 1,
+    lossGapPoints: overrides.isWinner ? null : 8,
+    mapId: 'map-tharsis',
+    milestonePoints: 5,
+    otherCardPoints: 4,
+    playedOn: overrides.playedOn,
+    placement: overrides.placement,
+    placementScore: overrides.placement === 1 ? 1 : 0.5,
+    playerCount: 3,
+    playerId: overrides.playerId,
+    playerName: overrides.playerName,
+    signedDifferentialPoints: overrides.isWinner ? 8 : -8,
+    totalPoints: overrides.totalPoints,
+    trPoints: 30,
+    winDifferentialPoints: overrides.isWinner ? 8 : null,
+    ...overrides,
+  };
+}
+
 describe('InsightsDashboard', () => {
   it('places the selected group switcher below player focus controls', () => {
     const { container } = render(
@@ -114,6 +166,209 @@ describe('InsightsDashboard', () => {
       labels.indexOf('Selected Group'),
     );
     expect(screen.getByText('Group Switcher')).toBeInTheDocument();
+  });
+
+  it('analyzes group insights by selected player combination', async () => {
+    const user = userEvent.setup();
+    const sharedGameRows: SharedGameResultRow[] = [
+      buildSharedGameRow({
+        gameId: 'game-1',
+        isWinner: true,
+        placement: 1,
+        playedOn: '2026-06-01',
+        playerId: 'me-1',
+        playerName: 'Friday Mars',
+        totalPoints: 90,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-1',
+        isWinner: false,
+        placement: 2,
+        playedOn: '2026-06-01',
+        playerId: 'corey-1',
+        playerName: 'Corey',
+        totalPoints: 82,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-1',
+        isWinner: false,
+        placement: 3,
+        playedOn: '2026-06-01',
+        playerId: 'james-1',
+        playerName: 'James',
+        totalPoints: 78,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-2',
+        isWinner: false,
+        placement: 2,
+        playedOn: '2026-06-02',
+        playerId: 'me-1',
+        playerName: 'Friday Mars',
+        totalPoints: 80,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-2',
+        isWinner: true,
+        placement: 1,
+        playedOn: '2026-06-02',
+        playerId: 'corey-1',
+        playerName: 'Corey',
+        totalPoints: 88,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-2',
+        isWinner: false,
+        placement: 3,
+        playedOn: '2026-06-02',
+        playerId: 'sam-1',
+        playerName: 'Sam',
+        totalPoints: 75,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-3',
+        isWinner: true,
+        placement: 1,
+        playedOn: '2026-06-03',
+        playerId: 'me-1',
+        playerName: 'Friday Mars',
+        totalPoints: 93,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-3',
+        isWinner: false,
+        placement: 2,
+        playedOn: '2026-06-03',
+        playerId: 'james-1',
+        playerName: 'James',
+        totalPoints: 84,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-3',
+        isWinner: false,
+        placement: 3,
+        playedOn: '2026-06-03',
+        playerId: 'sam-1',
+        playerName: 'Sam',
+        totalPoints: 79,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-4',
+        isWinner: false,
+        placement: 2,
+        playedOn: '2026-06-04',
+        playerId: 'me-1',
+        playerName: 'Friday Mars',
+        totalPoints: 81,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-4',
+        isWinner: true,
+        placement: 1,
+        playedOn: '2026-06-04',
+        playerId: 'corey-1',
+        playerName: 'Corey',
+        totalPoints: 91,
+      }),
+      buildSharedGameRow({
+        gameId: 'game-4',
+        isWinner: false,
+        placement: 3,
+        playedOn: '2026-06-04',
+        playerId: 'sam-1',
+        playerName: 'Sam',
+        totalPoints: 73,
+      }),
+    ];
+
+    render(
+      <InsightsDashboard
+        analytics={buildEmptyGroupAnalyticsFixture()}
+        currentUserCanonicalId="user:me"
+        extended={buildExtendedFixture()}
+        focusPeople={[
+          buildFocusPerson({
+            canonicalId: 'user:me',
+            displayName: 'Friday Mars',
+            playerIds: ['me-1'],
+          }),
+          buildFocusPerson({
+            canonicalId: 'name:corey',
+            displayName: 'Corey',
+            playerIds: ['corey-1'],
+          }),
+          buildFocusPerson({
+            canonicalId: 'name:james',
+            displayName: 'James',
+            playerIds: ['james-1'],
+          }),
+          buildFocusPerson({
+            canonicalId: 'name:sam',
+            displayName: 'Sam',
+            playerIds: ['sam-1'],
+          }),
+        ]}
+        mapAwardGroups={[
+          {
+            awardNames: ['Landlord'],
+            mapCode: 'tharsis',
+            mapId: 'map-tharsis',
+            mapName: 'Tharsis',
+            milestoneNames: ['Terraformer'],
+          },
+        ]}
+        overallAnalytics={buildEmptyGroupAnalyticsFixture()}
+        overallExtended={buildExtendedFixture()}
+        scopeMode="group"
+        sharedGameRows={sharedGameRows}
+      />,
+    );
+
+    expect(screen.queryByLabelText(/player focus/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox').map((checkbox) => checkbox.id)).toEqual([
+      'combination-player-0-name-corey',
+      'combination-player-1-name-sam',
+      'combination-player-2-name-james',
+    ]);
+    expect(screen.getByRole('checkbox', { name: /Corey/ })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /James/ })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Sam/ })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Friday Mars/)).not.toBeInTheDocument();
+    expect(screen.getByText(/4 shared games \| 12 player results/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Hide Sam/i }));
+
+    expect(
+      screen.queryByRole('checkbox', { name: /Sam/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Hidden players \(1\)/i)).toBeInTheDocument();
+
+    await user.click(screen.getByText(/Hidden players \(1\)/i));
+    await user.click(
+      screen.getByRole('button', {
+        name: /Add Sam back to group selection/i,
+      }),
+    );
+
+    expect(screen.getByRole('checkbox', { name: /Sam/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: /Corey/ }));
+    await user.click(screen.getByRole('checkbox', { name: /James/ }));
+    await user.click(screen.getByRole('button', { name: /analyze/i }));
+
+    expect(
+      screen.getByText(/1 game containing Corey, James \| 3 player results/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Combination Weighted Leaderboard/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /2026-06-01/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /2026-06-02/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /2026-06-03/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the cross-group sections in the default overall view', () => {

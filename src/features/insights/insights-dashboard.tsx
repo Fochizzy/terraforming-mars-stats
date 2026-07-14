@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode, useMemo, useState } from 'react';
+import { EyeOff, Plus } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -33,6 +34,7 @@ import type {
   GroupStylePerformanceRow,
   LeaderboardRow,
   ScoreSourceAverages,
+  SharedGameResultRow,
   TrendRow,
 } from '@/lib/db/analytics-repo';
 import type { ExtendedGroupAnalytics } from '@/lib/db/extended-analytics-repo';
@@ -58,16 +60,23 @@ import {
 } from './style-effectiveness';
 import { TableSizeChart } from './table-size-chart';
 import { TagOutcomesSection } from './tag-outcomes-section';
+import {
+  buildPlayerCombinationAnalytics,
+  buildPlayerCombinationOptions,
+} from './player-combination-analytics';
 
 type InsightsDashboardProps = {
   analytics: GroupAnalytics;
   children?: ReactNode;
+  currentUserCanonicalId?: string;
   extended: ExtendedGroupAnalytics;
   focusPeople: CrossGroupFocusPerson[];
   mapAwardGroups?: MapAwardGroup[];
   overallAnalytics: GroupAnalytics;
   overallExtended: ExtendedGroupAnalytics;
   selectionDialogData?: SelectionDialogData;
+  sharedGameRows?: SharedGameResultRow[];
+  scopeMode?: 'all' | 'group' | 'individual';
   styleEffectivenessScopes?: StyleEffectivenessScopeInput[];
 };
 
@@ -647,21 +656,82 @@ function buildOverallFocusCards(
 }
 
 export function InsightsDashboard({
-  analytics,
+  analytics: baseAnalytics,
   children: groupSwitcher,
-  extended,
+  currentUserCanonicalId,
+  extended: baseExtended,
   focusPeople,
   mapAwardGroups = [],
   overallAnalytics,
   overallExtended,
   selectionDialogData,
+  sharedGameRows = [],
+  scopeMode = 'all',
   styleEffectivenessScopes = [],
 }: InsightsDashboardProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string>('all');
-  const [focusScope, setFocusScope] = useState<FocusScope>('overall');
+  const [draftCombinationPlayerIds, setDraftCombinationPlayerIds] = useState<
+    string[]
+  >([]);
+  const [analyzedCombinationPlayerIds, setAnalyzedCombinationPlayerIds] =
+    useState<string[]>([]);
+  const [hiddenCombinationPlayerIds, setHiddenCombinationPlayerIds] = useState<
+    string[]
+  >([]);
+  const isPlayerCombinationMode = scopeMode === 'group';
+  const combinationOptions = useMemo(
+    () =>
+      buildPlayerCombinationOptions({
+        currentUserCanonicalId,
+        focusPeople,
+        rows: sharedGameRows,
+      }),
+    [currentUserCanonicalId, focusPeople, sharedGameRows],
+  );
+  const hiddenCombinationSet = new Set(hiddenCombinationPlayerIds);
+  const visibleCombinationOptions = combinationOptions.filter(
+    (option) => !hiddenCombinationSet.has(option.canonicalId),
+  );
+  const hiddenCombinationOptions = combinationOptions.filter((option) =>
+    hiddenCombinationSet.has(option.canonicalId),
+  );
+  const combinationResult = useMemo(
+    () =>
+      buildPlayerCombinationAnalytics({
+        currentUserCanonicalId,
+        focusPeople,
+        mapAwardGroups,
+        rows: sharedGameRows,
+        selectedCanonicalIds: analyzedCombinationPlayerIds,
+        sourceExtended: overallExtended,
+      }),
+    [
+      analyzedCombinationPlayerIds,
+      currentUserCanonicalId,
+      focusPeople,
+      mapAwardGroups,
+      overallExtended,
+      sharedGameRows,
+    ],
+  );
+  const analytics = isPlayerCombinationMode
+    ? combinationResult.analytics
+    : baseAnalytics;
+  const extended = isPlayerCombinationMode
+    ? combinationResult.extended
+    : baseExtended;
+  const fixedFocusScope: FocusScope | null =
+    scopeMode === 'group'
+      ? 'group'
+      : scopeMode === 'individual'
+        ? 'overall'
+        : null;
+  const [selectedFocusScope, setSelectedFocusScope] =
+    useState<FocusScope>('overall');
+  const focusScope = fixedFocusScope ?? selectedFocusScope;
 
   const selectedPerson =
-    selectedPersonId === 'all'
+    isPlayerCombinationMode || selectedPersonId === 'all'
       ? null
       : focusPeople.find((person) => person.canonicalId === selectedPersonId) ?? null;
   const overallFocusBundle = useMemo(
@@ -846,7 +916,19 @@ export function InsightsDashboard({
         { label: 'Key Cards', value: Math.round(selectedCoverage.keyCardCoverage * 100) },
       ]
     : [];
-  const focusBadgeText = isGroupScope
+  const selectedCombinationLabel =
+    combinationResult.selectedPlayerNames.length > 0
+      ? combinationResult.selectedPlayerNames.join(', ')
+      : 'all shared games';
+  const combinationGameWord =
+    combinationResult.matchingGameCount === 1 ? 'game' : 'games';
+  const combinationBadgeText =
+    combinationResult.selectedPlayerNames.length > 0
+      ? `${combinationResult.matchingGameCount} ${combinationGameWord} containing ${selectedCombinationLabel}`
+      : `${combinationResult.matchingGameCount} shared ${combinationGameWord}`;
+  const focusBadgeText = isPlayerCombinationMode
+    ? `${combinationBadgeText} | ${combinationResult.matchingResultCount} player results`
+    : isGroupScope
     ? focusPlayerName
       ? selectedPerson?.inActiveGroup
         ? `Focused on ${focusPlayerName} in selected group`
@@ -855,12 +937,26 @@ export function InsightsDashboard({
     : focusPlayerName
       ? `Focused on ${focusPlayerName} overall`
       : 'Focused on all shared players';
+  const labTitle =
+    scopeMode === 'group'
+      ? 'Group Insights Lab'
+      : scopeMode === 'individual'
+        ? 'Individual Insights Lab'
+        : 'Insights Lab';
+  const labDescription =
+    scopeMode === 'group'
+      ? 'Choose players, run the combination lens, and compare finalized games containing that selected mix.'
+      : scopeMode === 'individual'
+        ? 'Pick a player to refocus every individual chart below. All figures are built from finalized games only.'
+        : 'Pick a player and a scope to refocus every chart below. All figures are built from finalized games only.';
   const scoreProfileTitle = focusPlayerName
     ? isGroupScope
       ? `Score Profile for ${focusPlayerName} in Selected Group`
       : `Score Profile for ${focusPlayerName}`
     : isGroupScope
-      ? 'Group Score Profile'
+      ? isPlayerCombinationMode
+        ? 'Combination Score Profile'
+        : 'Group Score Profile'
       : 'Overall Score Profile';
   const radarGroupAverages = isGroupScope
     ? analytics.scoreAverages
@@ -869,81 +965,241 @@ export function InsightsDashboard({
     ? groupPlayerScoreAverages
     : selectedPerson?.bundle.scoreAverages ?? null;
   const leaderboardTitle = isGroupScope
-    ? 'Weighted Leaderboard Comparison'
+    ? isPlayerCombinationMode
+      ? 'Combination Weighted Leaderboard'
+      : 'Weighted Leaderboard Comparison'
     : 'Overall Weighted Leaderboard';
   const coverageTitle = focusPlayerName
     ? isGroupScope
       ? `Optional Data Coverage for ${focusPlayerName} in Selected Group`
       : `Optional Data Coverage for ${focusPlayerName}`
     : isGroupScope
-      ? 'Group Optional Data Coverage'
+      ? isPlayerCombinationMode
+        ? 'Combination Optional Data Coverage'
+        : 'Group Optional Data Coverage'
       : 'Overall Optional Data Coverage';
+  const draftCombinationSet = new Set(draftCombinationPlayerIds);
+  const toggleDraftCombinationPlayer = (canonicalId: string) => {
+    setDraftCombinationPlayerIds((currentIds) =>
+      currentIds.includes(canonicalId)
+        ? currentIds.filter((currentId) => currentId !== canonicalId)
+        : [...currentIds, canonicalId],
+    );
+  };
+  const hideCombinationPlayer = (canonicalId: string) => {
+    setHiddenCombinationPlayerIds((currentIds) =>
+      currentIds.includes(canonicalId)
+        ? currentIds
+        : [...currentIds, canonicalId],
+    );
+    setDraftCombinationPlayerIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== canonicalId),
+    );
+    setAnalyzedCombinationPlayerIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== canonicalId),
+    );
+  };
+  const restoreCombinationPlayer = (canonicalId: string) => {
+    setHiddenCombinationPlayerIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== canonicalId),
+    );
+  };
 
   const hasAnalytics =
     bundle !== null ||
-    analytics.leaderboardRows.length > 0 ||
-    analytics.headToHeadRows.length > 0 ||
+    sectionAnalytics.leaderboardRows.length > 0 ||
+    sectionAnalytics.headToHeadRows.length > 0 ||
     selectedInteractionRows.length > 0 ||
-    analytics.lineupEffectRows.length > 0 ||
-    analytics.styleAgreementRows.length > 0 ||
-    analytics.scoreAverages !== null ||
-    analytics.coverage !== null;
+    sectionAnalytics.lineupEffectRows.length > 0 ||
+    sectionAnalytics.styleAgreementRows.length > 0 ||
+    sectionAnalytics.scoreAverages !== null ||
+    selectedCoverage !== null;
 
   return (
     <div className="flex flex-col gap-4">
       <ChartFrame
-        description="Pick a player and a scope to refocus every chart below. All figures are built from finalized games only."
-        title="Insights Lab"
+        description={labDescription}
+        title={labTitle}
       >
         <div className="flex flex-col gap-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]">
-            <div className="relative">
-              <label className="tm-data-label" htmlFor="player-focus-select">
-                Player Focus
-              </label>
-              <select
-                aria-label="Player focus"
-                className="tm-input mt-2 w-full appearance-none pr-9"
-                id="player-focus-select"
-                onChange={(event) => setSelectedPersonId(event.target.value)}
-                value={selectedPersonId}
+          <div
+            className={
+              fixedFocusScope
+                ? 'grid gap-3 lg:grid-cols-[minmax(0,1fr)]'
+                : 'grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]'
+            }
+          >
+            {isPlayerCombinationMode ? (
+              <form
+                className="flex flex-col gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setAnalyzedCombinationPlayerIds(
+                    visibleCombinationOptions
+                      .filter((option) =>
+                        draftCombinationSet.has(option.canonicalId),
+                      )
+                      .map((option) => option.canonicalId),
+                  );
+                }}
               >
-                <option value="all">All players</option>
-                {focusPeople.map((person) => (
-                  <option key={person.canonicalId} value={person.canonicalId}>
-                    {person.displayName}
-                  </option>
-                ))}
-              </select>
-              <span className="mt-2 block">
-                <SelectChevron />
-              </span>
-            </div>
-            <div className="relative">
-              <label className="tm-data-label" htmlFor="insight-scope-select">
-                Scope
-              </label>
-              <select
-                aria-label="Insight scope"
-                className="tm-input mt-2 w-full appearance-none pr-9"
-                id="insight-scope-select"
-                onChange={(event) => setFocusScope(event.target.value as FocusScope)}
-                value={focusScope}
-              >
-                <option value="overall">Overall</option>
-                <option value="group">Selected group</option>
-              </select>
-              <span className="mt-2 block">
-                <SelectChevron />
-              </span>
-            </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="tm-data-label">Players</p>
+                  <button
+                    className="tm-button-primary px-4 py-2 text-xs"
+                    type="submit"
+                  >
+                    Analyze
+                  </button>
+                </div>
+                {combinationOptions.length === 0 ? (
+                  <p className="tm-muted-copy text-sm">
+                    Finalized shared players will appear here once games are
+                    logged.
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {visibleCombinationOptions.length === 0 ? (
+                      <p className="tm-muted-copy text-sm">
+                        All players are hidden from group selection.
+                      </p>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {visibleCombinationOptions.map((option, optionIndex) => {
+                          const optionId = `combination-player-${optionIndex}-${option.canonicalId.replace(/[^a-zA-Z0-9_-]+/g, '-')}`;
+
+                          return (
+                            <div
+                              className="flex min-h-12 items-center gap-2 rounded border border-white/10 bg-black/10 px-3 py-2 text-sm text-stone-100"
+                              key={option.canonicalId}
+                            >
+                              <input
+                                checked={draftCombinationSet.has(
+                                  option.canonicalId,
+                                )}
+                                className="h-4 w-4 accent-[var(--tm-accent)]"
+                                id={optionId}
+                                onChange={() =>
+                                  toggleDraftCombinationPlayer(
+                                    option.canonicalId,
+                                  )
+                                }
+                                type="checkbox"
+                              />
+                              <label
+                                className="min-w-0 flex-1 truncate"
+                                htmlFor={optionId}
+                              >
+                                {option.displayName}
+                              </label>
+                              <span className="tm-muted-copy shrink-0 text-xs">
+                                {option.gamesPlayed}
+                              </span>
+                              <button
+                                aria-label={`Hide ${option.displayName} from group selection`}
+                                className="tm-button-secondary shrink-0 px-2 py-1 text-xs"
+                                onClick={() =>
+                                  hideCombinationPlayer(option.canonicalId)
+                                }
+                                title={`Hide ${option.displayName} from group selection`}
+                                type="button"
+                              >
+                                <EyeOff aria-hidden="true" className="h-4 w-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {hiddenCombinationOptions.length > 0 ? (
+                      <details className="rounded border border-white/10 bg-black/10 px-3 py-2">
+                        <summary className="cursor-pointer text-xs uppercase tracking-[0.2em] text-[var(--tm-muted)]">
+                          Hidden players ({hiddenCombinationOptions.length})
+                        </summary>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                          {hiddenCombinationOptions.map((option) => (
+                            <div
+                              className="flex min-h-10 items-center gap-2 rounded border border-white/10 px-3 py-2 text-sm text-stone-100"
+                              key={option.canonicalId}
+                            >
+                              <span className="min-w-0 flex-1 truncate">
+                                {option.displayName}
+                              </span>
+                              <span className="tm-muted-copy shrink-0 text-xs">
+                                {option.gamesPlayed}
+                              </span>
+                              <button
+                                aria-label={`Add ${option.displayName} back to group selection`}
+                                className="tm-button-secondary shrink-0 px-2 py-1 text-xs"
+                                onClick={() =>
+                                  restoreCombinationPlayer(option.canonicalId)
+                                }
+                                title={`Add ${option.displayName} back to group selection`}
+                                type="button"
+                              >
+                                <Plus aria-hidden="true" className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null}
+                  </div>
+                )}
+              </form>
+            ) : (
+              <div className="relative">
+                <label className="tm-data-label" htmlFor="player-focus-select">
+                  Player Focus
+                </label>
+                <select
+                  aria-label="Player focus"
+                  className="tm-input mt-2 w-full appearance-none pr-9"
+                  id="player-focus-select"
+                  onChange={(event) => setSelectedPersonId(event.target.value)}
+                  value={selectedPersonId}
+                >
+                  <option value="all">All players</option>
+                  {focusPeople.map((person) => (
+                    <option key={person.canonicalId} value={person.canonicalId}>
+                      {person.displayName}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-2 block">
+                  <SelectChevron />
+                </span>
+              </div>
+            )}
+            {fixedFocusScope ? null : (
+              <div className="relative">
+                <label className="tm-data-label" htmlFor="insight-scope-select">
+                  Scope
+                </label>
+                <select
+                  aria-label="Insight scope"
+                  className="tm-input mt-2 w-full appearance-none pr-9"
+                  id="insight-scope-select"
+                  onChange={(event) =>
+                    setSelectedFocusScope(event.target.value as FocusScope)
+                  }
+                  value={focusScope}
+                >
+                  <option value="overall">Overall</option>
+                  <option value="group">Selected group</option>
+                </select>
+                <span className="mt-2 block">
+                  <SelectChevron />
+                </span>
+              </div>
+            )}
             {groupSwitcher ? (
-              <div className="lg:col-span-2">
+              <div className={fixedFocusScope ? '' : 'lg:col-span-2'}>
                 <p className="tm-data-label">Selected Group</p>
                 <div className="mt-2">{groupSwitcher}</div>
               </div>
             ) : null}
-            <div className="lg:col-span-2">
+            <div className={fixedFocusScope ? '' : 'lg:col-span-2'}>
               <span className="tm-coverage-badge">{focusBadgeText}</span>
             </div>
           </div>
@@ -1086,7 +1342,7 @@ export function InsightsDashboard({
             playerAverages={radarPlayerAverages}
           />
 
-          {styleEffectivenessScopes.length > 0 ? (
+          {styleEffectivenessScopes.length > 0 && !isPlayerCombinationMode ? (
             <StyleEffectivenessPanel scopes={styleEffectivenessScopes} />
           ) : null}
 
@@ -1290,24 +1546,28 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
-          <MilestoneEconomicsSection
-            focusPlayerId={sectionFocusPlayerId}
-            focusPlayerName={sectionFocusPlayerName}
-            groupRows={sectionExtended.milestoneEconomicsRows}
-            playerRows={sectionExtended.playerMilestoneClaimRows}
-          />
+          {!isPlayerCombinationMode ? (
+            <>
+              <MilestoneEconomicsSection
+                focusPlayerId={sectionFocusPlayerId}
+                focusPlayerName={sectionFocusPlayerName}
+                groupRows={sectionExtended.milestoneEconomicsRows}
+                playerRows={sectionExtended.playerMilestoneClaimRows}
+              />
 
-          <AwardEconomicsSection
-            focusPlayerName={selectedPerson?.displayName ?? null}
-            groupFocusPlayerId={selectedPerson?.activeGroupPlayerId ?? null}
-            groupMatrixRows={extended.awardFunderWinnerRows}
-            groupOutcomeRows={extended.awardOutcomeRows}
-            groupPlayerAwardRows={extended.playerAwardFundingRows}
-            overallFocusPlayerId={selectedPerson?.canonicalId ?? null}
-            overallMatrixRows={overallExtended.awardFunderWinnerRows}
-            overallOutcomeRows={overallExtended.awardOutcomeRows}
-            overallPlayerAwardRows={overallExtended.playerAwardFundingRows}
-          />
+              <AwardEconomicsSection
+                focusPlayerName={selectedPerson?.displayName ?? null}
+                groupFocusPlayerId={selectedPerson?.activeGroupPlayerId ?? null}
+                groupMatrixRows={extended.awardFunderWinnerRows}
+                groupOutcomeRows={extended.awardOutcomeRows}
+                groupPlayerAwardRows={extended.playerAwardFundingRows}
+                overallFocusPlayerId={selectedPerson?.canonicalId ?? null}
+                overallMatrixRows={overallExtended.awardFunderWinnerRows}
+                overallOutcomeRows={overallExtended.awardOutcomeRows}
+                overallPlayerAwardRows={overallExtended.playerAwardFundingRows}
+              />
+            </>
+          ) : null}
 
           <CardOutcomesSection
             focusPlayerId={sectionFocusPlayerId}

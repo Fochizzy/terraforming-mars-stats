@@ -5,7 +5,10 @@ import type {
   SelectionDialogData,
   SelectionStatRow,
 } from '@/lib/db/selection-stats-repo';
-import { SelectionNameButton } from './selection-name-link';
+import {
+  SELECTION_NAME_LINK_CLASS,
+  SelectionNameButton,
+} from './selection-name-link';
 
 type NamedStatRow = SelectionStatRow & { name: string };
 type AugmentedRow = NamedStatRow & { globalPlays: number };
@@ -48,6 +51,7 @@ function buildColumns(
       value: (row) => row.name,
       render: (row) => (
         <SelectionNameButton
+          className={`${SELECTION_NAME_LINK_CLASS} inline-block text-left`}
           dialogData={dialogData}
           kind={kind}
           name={row.name}

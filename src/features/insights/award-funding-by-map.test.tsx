@@ -13,6 +13,7 @@ describe('buildAwardFundingGroups', () => {
         {
           awardNames: ['Landlord', 'Banker'],
           mapCode: 'tharsis',
+          mapId: 'map-tharsis',
           mapName: 'Tharsis',
           milestoneNames: ['Terraformer'],
         },
@@ -42,6 +43,7 @@ describe('AwardFundingByMap', () => {
           {
             awardNames: ['Landlord'],
             mapCode: 'tharsis',
+            mapId: 'map-tharsis',
             mapName: 'Tharsis',
             milestoneNames: ['Terraformer'],
           },

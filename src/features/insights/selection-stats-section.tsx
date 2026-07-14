@@ -3,23 +3,30 @@ import { ObjectiveInfoButton } from '@/components/ui/objective-info-button';
 import type { MapAwardGroup } from '@/lib/db/reference-repo';
 import type {
   CorporationSelectionStat,
+  FinalTerraformingActionStat,
   HeadToHeadStats,
   MergerImpactStat,
   PreludeSelectionStat,
   SelectionDialogData,
   SelectionStats,
+  SelectionStatRow,
+  TagWinStat,
 } from '@/lib/db/selection-stats-repo';
 import { AwardFundingByMap } from './award-funding-by-map';
 import { CorporationPreludePairings } from './corporation-prelude-pairings';
 import { SelectionStatTable } from './selection-stat-table';
 import { CorporationTagProfiles } from './corporation-tag-profiles';
-import { SelectionNameButton } from './selection-name-link';
+import {
+  SELECTION_NAME_LINK_CLASS,
+  SelectionNameButton,
+} from './selection-name-link';
 import { SelectionOriginChart } from './selection-origin-chart';
 
 type SelectionStatsSectionProps = {
   dialogData?: SelectionDialogData;
   global: SelectionStats;
   headToHead: HeadToHeadStats;
+  finalTerraformingActions: FinalTerraformingActionStat[];
   mapAwardGroups?: MapAwardGroup[];
   mergerImpact: MergerImpactStat[];
   personal: SelectionStats;
@@ -48,6 +55,159 @@ function formatWinRateDelta(winRateDelta: number | null) {
 
 function formatWins(wins: number) {
   return `${wins} ${wins === 1 ? 'win' : 'wins'}`;
+}
+
+function formatActionType(actionType: string | null | undefined) {
+  switch (actionType) {
+    case 'ocean':
+      return 'Ocean';
+    case 'oxygen':
+      return 'Oxygen';
+    case 'temperature':
+      return 'Temperature';
+    default:
+      return 'Unknown';
+  }
+}
+
+function formatAverageNumber(value: number) {
+  const rounded = Math.round(value * 10) / 10;
+  return rounded.toLocaleString('en-US', {
+    maximumFractionDigits: 1,
+  });
+}
+
+function formatPlayCount(plays: number) {
+  return `${plays} ${plays === 1 ? 'play' : 'plays'}`;
+}
+
+function formatTagAverage(value: number | null) {
+  if (value === null) {
+    return 'no recorded average';
+  }
+
+  const rounded = Math.round(value * 10) / 10;
+  return `${formatAverageNumber(rounded)} ${rounded === 1 ? 'tag' : 'tags'}`;
+}
+
+type SelectionValueSummary = {
+  kind: 'Corporation' | 'Prelude';
+  name: string;
+  sentence: string;
+};
+
+type NamedSelectionStat = SelectionStatRow & {
+  name: string;
+};
+
+function buildTopSelectionValueSummaries(
+  rows: NamedSelectionStat[],
+  kind: SelectionValueSummary['kind'],
+): SelectionValueSummary[] {
+  const label = kind.toLowerCase();
+
+  return [...rows]
+    .filter((row) => row.plays > 0)
+    .sort(
+      (left, right) =>
+        right.avg_points - left.avg_points ||
+        right.win_rate - left.win_rate ||
+        right.plays - left.plays ||
+        left.name.localeCompare(right.name),
+    )
+    .slice(0, 2)
+    .map((row) => ({
+      kind,
+      name: row.name,
+      sentence: `ranks among the top ${label}s by average VP, averaging ${formatAverageNumber(
+        row.avg_points,
+      )} VP with a ${formatWinRate(row.win_rate)} win rate and ${formatAverageNumber(
+        row.avg_placement,
+      )} average placement across ${formatPlayCount(row.plays)}.`,
+    }));
+}
+
+function buildSelectionValueSummaries(stats: SelectionStats) {
+  return [
+    ...buildTopSelectionValueSummaries(
+      stats.corporations.map((row) => ({
+        ...row,
+        name: row.corporation_name,
+      })),
+      'Corporation',
+    ),
+    ...buildTopSelectionValueSummaries(
+      stats.preludes.map((row) => ({
+        ...row,
+        name: row.prelude_name,
+      })),
+      'Prelude',
+    ),
+  ];
+}
+
+function buildTagTrendSentences(tagWins: TagWinStat[]) {
+  return tagWins
+    .filter(
+      (tagWin) =>
+        tagWin.samples > 0 &&
+        (tagWin.avg_tags_in_wins !== null ||
+          tagWin.avg_tags_in_losses !== null),
+    )
+    .sort((left, right) => {
+      const sampleDelta = right.samples - left.samples;
+
+      if (sampleDelta !== 0) {
+        return sampleDelta;
+      }
+
+      const leftGap =
+        left.avg_tags_in_wins !== null && left.avg_tags_in_losses !== null
+          ? Math.abs(left.avg_tags_in_wins - left.avg_tags_in_losses)
+          : 0;
+      const rightGap =
+        right.avg_tags_in_wins !== null && right.avg_tags_in_losses !== null
+          ? Math.abs(right.avg_tags_in_wins - right.avg_tags_in_losses)
+          : 0;
+
+      return rightGap - leftGap || left.tag_code.localeCompare(right.tag_code);
+    })
+    .slice(0, 4)
+    .map((tagWin) => {
+      const winsAverage = formatTagAverage(tagWin.avg_tags_in_wins);
+      const lossesAverage = formatTagAverage(tagWin.avg_tags_in_losses);
+
+      if (tagWin.avg_tags_in_wins === null) {
+        return {
+          sentence: `has only losing-result evidence so far: losses average ${lossesAverage} across ${tagWin.samples} samples.`,
+          tagCode: tagWin.tag_code,
+        };
+      }
+
+      if (tagWin.avg_tags_in_losses === null) {
+        return {
+          sentence: `has only winning-result evidence so far: wins average ${winsAverage} across ${tagWin.samples} samples.`,
+          tagCode: tagWin.tag_code,
+        };
+      }
+
+      const gap = tagWin.avg_tags_in_wins - tagWin.avg_tags_in_losses;
+
+      if (Math.abs(gap) < 0.05) {
+        return {
+          sentence: `is roughly even: wins average ${winsAverage} versus ${lossesAverage} in losses across ${tagWin.samples} samples.`,
+          tagCode: tagWin.tag_code,
+        };
+      }
+
+      return {
+        sentence:
+          gap > 0
+            ? `appears more often in wins: winners average ${winsAverage} versus ${lossesAverage} in losses across ${tagWin.samples} samples.`
+            : `appears less often in wins: winners average ${winsAverage} versus ${lossesAverage} in losses across ${tagWin.samples} samples.`,
+        tagCode: tagWin.tag_code,
+      };
+    });
 }
 
 function rate(count: number, denominator: number) {
@@ -147,7 +307,15 @@ export function SelectionStatsScope(props: {
     globalStats.awardFunding.map((row) => [row.award_name, row]),
   );
   const hasData =
-    props.stats.corporations.length > 0 || props.stats.preludes.length > 0;
+    props.stats.corporations.length > 0 ||
+    props.stats.preludes.length > 0 ||
+    props.stats.tagWins.length > 0;
+  const tagTrendSentences = isGlobalScope
+    ? buildTagTrendSentences(props.stats.tagWins)
+    : [];
+  const selectionValueSummaries = isGlobalScope
+    ? buildSelectionValueSummaries(props.stats)
+    : [];
 
   return (
     <div className="flex flex-col gap-3">
@@ -158,6 +326,30 @@ export function SelectionStatsScope(props: {
         </p>
       ) : (
         <>
+          {selectionValueSummaries.length > 0 ? (
+            <div>
+              <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+                Global Value Summary
+              </h4>
+              <ul className="flex flex-col gap-1 text-xs">
+                {selectionValueSummaries.map((summary) => (
+                  <li
+                    className="flex flex-wrap items-center gap-x-1.5 gap-y-1"
+                    key={`${summary.kind}-${summary.name}`}
+                  >
+                    <SelectionNameButton
+                      className={`${SELECTION_NAME_LINK_CLASS} text-left`}
+                      dialogData={props.dialogData}
+                      kind={summary.kind}
+                      name={summary.name}
+                    />
+                    {' '}
+                    <span>{summary.sentence}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {props.stats.corporations.length > 0 ? (
             <div>
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
@@ -272,6 +464,25 @@ export function SelectionStatsScope(props: {
           ) : null}
           {props.stats.tagWins.length > 0 ? (
             <div>
+              {tagTrendSentences.length > 0 ? (
+                <div className="mb-3">
+                  <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
+                    Most Prevalent Tag Trends
+                  </h4>
+                  <ul className="flex flex-col gap-1 text-xs">
+                    {tagTrendSentences.map((trend) => (
+                      <li
+                        className="flex flex-wrap items-center gap-x-1.5 gap-y-1"
+                        key={trend.tagCode}
+                      >
+                        <TagLabel code={trend.tagCode} />
+                        {' '}
+                        <span>{trend.sentence}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <h4 className="mb-1 text-xs font-semibold tm-accent-copy">
                 Tags in Wins vs Losses
               </h4>
@@ -403,8 +614,74 @@ function MergerImpactBlock(props: { rows: MergerImpactStat[] }) {
   );
 }
 
+export function FinalTerraformingActionBlock(props: {
+  rows: FinalTerraformingActionStat[];
+}) {
+  if (props.rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="tm-data-label text-xs">
+        Final Terraforming Action (Imported Logs)
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="tm-data-label">
+              <th className="py-1 pr-3">Player</th>
+              <th className="py-1 pr-3">Imported games</th>
+              <th className="py-1 pr-3">Final actions</th>
+              <th className="py-1 pr-3">Final-action win rate</th>
+              <th className="py-1 pr-3">Overall win rate</th>
+              <th className="py-1 pr-3">Delta</th>
+              <th className="py-1 pr-3">Common finisher</th>
+            </tr>
+          </thead>
+          <tbody>
+            {props.rows.map((row) => (
+              <tr className="border-t border-white/5" key={row.player_id}>
+                <td className="py-1 pr-3 font-semibold text-stone-100">
+                  {row.player_name}
+                </td>
+                <td className="py-1 pr-3">{row.imported_games}</td>
+                <td className="py-1 pr-3">
+                  {`${row.final_action_games} (${formatWinRate(
+                    row.final_action_rate,
+                  )})`}
+                </td>
+                <td className="py-1 pr-3">
+                  {formatNullableWinRate(row.final_action_win_rate)}
+                  {row.final_action_games > 0
+                    ? ` (${formatWins(row.final_action_wins)})`
+                    : ''}
+                </td>
+                <td className="py-1 pr-3">
+                  {formatNullableWinRate(row.overall_win_rate)}
+                  {row.imported_games > 0 ? ` (${formatWins(row.overall_wins)})` : ''}
+                </td>
+                <td className="py-1 pr-3">
+                  {formatWinRateDelta(row.win_rate_delta)}
+                </td>
+                <td className="py-1 pr-3">
+                  {formatActionType(row.most_common_action_type)}
+                  {row.most_common_action_count
+                    ? ` (${row.most_common_action_count})`
+                    : ''}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function SelectionStatsSection({
   dialogData,
+  finalTerraformingActions,
   global,
   headToHead,
   mapAwardGroups,
@@ -416,6 +693,7 @@ export function SelectionStatsSection({
       <h2 className="tm-panel-title text-lg">Corporation &amp; Prelude Stats</h2>
       <HeadToHeadBlock dialogData={dialogData} headToHead={headToHead} />
       <MergerImpactBlock rows={mergerImpact} />
+      <FinalTerraformingActionBlock rows={finalTerraformingActions} />
       <SelectionStatsScope
         dialogData={dialogData}
         heading="Your Games"

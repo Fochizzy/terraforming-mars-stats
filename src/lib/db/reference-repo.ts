@@ -298,6 +298,7 @@ export async function listMapAwards(): Promise<MapAwardOption[]> {
 export type MapAwardGroup = {
   awardNames: string[];
   mapCode: string;
+  mapId: string;
   mapName: string;
   milestoneNames: string[];
 };
@@ -319,6 +320,7 @@ export async function listMapAwardGroups(): Promise<MapAwardGroup[]> {
       {
         awardNames: [],
         mapCode: map.code,
+        mapId: map.id,
         mapName: map.name,
         milestoneNames: [],
       },

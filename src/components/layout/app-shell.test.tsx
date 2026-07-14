@@ -18,9 +18,15 @@ describe('AppShell', () => {
     expect(nav.getByRole('link', { name: /my profile/i })).toBeInTheDocument();
     expect(nav.getByRole('link', { name: /log game/i })).toBeInTheDocument();
     expect(nav.getByRole('link', { name: /global/i })).toBeInTheDocument();
+    expect(
+      nav.getByRole('link', { name: /individual insights/i }),
+    ).toHaveAttribute('href', '/insights/individual');
+    expect(nav.getByRole('link', { name: /group insights/i })).toHaveAttribute(
+      'href',
+      '/insights/group',
+    );
     expect(nav.getByRole('link', { name: /cards/i })).toBeInTheDocument();
     expect(nav.getByRole('link', { name: /glossary/i })).toBeInTheDocument();
-    expect(nav.getByRole('link', { name: /insights/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');
     expect(container.querySelector('.tm-bottom-nav')).toBeInTheDocument();

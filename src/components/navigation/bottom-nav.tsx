@@ -14,9 +14,10 @@ export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/profile', label: 'My Profile' },
   { href: '/log-game', label: 'Log Game' },
   { href: '/group', label: 'Global' },
+  { href: '/insights/individual', label: 'Individual Insights' },
+  { href: '/insights/group', label: 'Group Insights' },
   { href: '/cards', label: 'Cards' },
   { href: '/glossary', label: 'Glossary' },
-  { href: '/insights', label: 'Insights' },
 ];
 
 function HomeIcon() {
@@ -51,8 +52,8 @@ function shouldShowInsightsLoading(
   pathname: string,
 ) {
   return (
-    href === '/insights' &&
-    pathname !== '/insights' &&
+    href.startsWith('/insights') &&
+    pathname !== href &&
     event.button === 0 &&
     !event.metaKey &&
     !event.ctrlKey &&
@@ -71,15 +72,18 @@ export function BottomNav({
   const navigationItems = items;
   const cardsItem = navigationItems.find((item) => item.href === '/cards');
   const glossaryItem = navigationItems.find((item) => item.href === '/glossary');
-  // Insights has its own dedicated icon at the end of the strip, so keep it out
-  // of the text links to avoid a duplicate, and only surface the icon when the
-  // active navigation set actually includes it (e.g. hidden for profile-only).
-  const insightsItem = navigationItems.find((item) => item.href === '/insights');
+  // When a custom navigation set has a single Insights link, keep the compact
+  // chart icon. The default set has Individual + Group Insights, so both render
+  // as text links.
+  const insightsItems = navigationItems.filter((item) =>
+    item.href.startsWith('/insights'),
+  );
+  const insightsIconItem = insightsItems.length === 1 ? insightsItems[0] : null;
   const edgeItems = [cardsItem, glossaryItem].filter(
     (item): item is BottomNavItem => Boolean(item),
   );
   const stripItems = navigationItems.filter(
-    (item) => !edgeItems.includes(item) && item !== insightsItem,
+    (item) => !edgeItems.includes(item) && item !== insightsIconItem,
   );
 
   return (
@@ -117,13 +121,19 @@ export function BottomNav({
             {item.label}
           </Link>
         ))}
-        {insightsItem ? (
+        {insightsIconItem ? (
           <Link
-            aria-label="Open Insights"
+            aria-label={`Open ${insightsIconItem.label}`}
             className="tm-bottom-nav__icon"
-            href="/insights"
+            href={insightsIconItem.href}
             onClick={(event) => {
-              if (shouldShowInsightsLoading(event, '/insights', pathname)) {
+              if (
+                shouldShowInsightsLoading(
+                  event,
+                  insightsIconItem.href,
+                  pathname,
+                )
+              ) {
                 setShowInsightsLoading(true);
               }
             }}

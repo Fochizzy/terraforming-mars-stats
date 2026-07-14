@@ -51,6 +51,70 @@ export type ScoreSourceAverages = {
   averageTrPoints: number;
 };
 
+export type ProfileScorePaceRow = {
+  averagePoints: number;
+  averagePointsPerGeneration: number;
+  code:
+    | 'cards'
+    | 'cities'
+    | 'greenery'
+    | 'milestones'
+    | 'terraform_rating';
+  label: string;
+  scoreShare: number;
+};
+
+export type ProfileScorePace = {
+  averageGenerationCount: number;
+  averageTotalPointsPerGeneration: number;
+  lightestSource: ProfileScorePaceRow | null;
+  rows: ProfileScorePaceRow[];
+  strongestSource: ProfileScorePaceRow | null;
+};
+
+export type ProfileGameLengthBucket = 'long' | 'short' | 'standard';
+
+export type ProfileGameLengthRow = {
+  averageGenerationCount: number;
+  averagePlacement: number;
+  averagePointsPerGeneration: number;
+  averageScore: number;
+  bucket: ProfileGameLengthBucket;
+  gamesPlayed: number;
+  label: string;
+  rangeLabel: string;
+  winRate: number;
+  wins: number;
+};
+
+export type ProfileGameLengthProfile = {
+  bestBucket: ProfileGameLengthRow | null;
+  rows: ProfileGameLengthRow[];
+  weakestBucket: ProfileGameLengthRow | null;
+};
+
+export type ProfileGlobalParameter = 'heat' | 'ocean' | 'oxygen';
+
+export type ProfileGlobalParameterTempoRow = {
+  averageFastGeneration: number;
+  averagePlacement: number;
+  averageScore: number;
+  code: string;
+  gamesPlayed: number;
+  label: string;
+  parameters: ProfileGlobalParameter[];
+  winRate: number;
+  wins: number;
+};
+
+export type ProfileGlobalParameterTempoProfile = {
+  bestMix: ProfileGlobalParameterTempoRow | null;
+  confidenceLabel: string;
+  importedGames: number;
+  rows: ProfileGlobalParameterTempoRow[];
+  weakestMix: ProfileGlobalParameterTempoRow | null;
+};
+
 export type PlayerScoreSourceAverages = ScoreSourceAverages & {
   groupId: string;
   playerId: string;
@@ -110,6 +174,7 @@ export type ProfileHeadToHeadRow = {
   averageScoreDifferential: number;
   gamesPlayed: number;
   losses: number;
+  opponentId?: string;
   opponentName: string;
   ties: number;
   wins: number;
@@ -154,6 +219,7 @@ export type CoverageRow = {
 
 export type ImportCoverageRow = {
   gameId: string;
+  generationCount: number;
   groupId: string;
   hasScoreSourceBreakdown: boolean;
   ignoredFillerLines: number;
@@ -210,16 +276,81 @@ export type ProfileStyleInsight = {
   title: string;
 };
 
+export type ProfileLeadPressure = {
+  averageLeadWhenWinning: number | null;
+  averageScoreDifferential: number;
+  averageShortfallWhenBehind: number | null;
+  closeGameRate: number;
+  dominantWinRate: number;
+  gamesPlayed: number;
+  leadRate: number;
+  pressureLabel: string;
+};
+
+export type ProfilePhase = 'early' | 'late' | 'mid';
+
+export type ProfilePhaseTempoRow = {
+  actions: number;
+  actionsPerImportedGame: number;
+  awardsFunded: number;
+  averagePlacementWhenPeak: number | null;
+  averageScoreWhenPeak: number | null;
+  cardsPlayed: number;
+  citiesPlaced: number;
+  gamesWithPeak: number;
+  greeneriesPlaced: number;
+  label: string;
+  milestonesClaimed: number;
+  phase: ProfilePhase;
+  removalEvents: number;
+  tilesPlaced: number;
+  winRateWhenPeak: number | null;
+  winsWhenPeak: number;
+};
+
+export type ProfilePhaseTempoProfile = {
+  bestPhase: ProfilePhaseTempoRow | null;
+  confidenceLabel: string;
+  importedGames: number;
+  mostActivePhase: ProfilePhaseTempoRow | null;
+  rows: ProfilePhaseTempoRow[];
+};
+
+export type ProfileResourceRemoval = {
+  amountPerImportedGame: number;
+  events: number;
+  totalAmount: number;
+};
+
+export type ProfileResourceRemovalProfile = {
+  confidenceLabel: string;
+  importedGames: number;
+  incoming: ProfileResourceRemoval;
+  outgoing: ProfileResourceRemoval;
+  resourceRows: Array<{
+    amount: number;
+    events: number;
+    resourceType: string;
+  }>;
+  totalRemovalEvents: number;
+};
+
 export type ProfileAnalytics = {
   cardOutcomes: ProfileCardStat[];
   coverage: CoverageRow | null;
+  gameLengthProfile: ProfileGameLengthProfile | null;
+  globalParameterTempoProfile: ProfileGlobalParameterTempoProfile | null;
   headToHeadRows: ProfileHeadToHeadRow[];
   keyCards: ProfileCardStat[];
+  leadPressure: ProfileLeadPressure | null;
   lossCards: ProfileCardStat[];
   performance: LeaderboardRow | null;
+  phaseTempoProfile: ProfilePhaseTempoProfile | null;
   playerId: string;
   playerName: string;
+  resourceRemovalProfile: ProfileResourceRemovalProfile | null;
   scoreAverages: ScoreSourceAverages | null;
+  scorePace: ProfileScorePace | null;
   styleAgreement: StyleAgreementRow | null;
   styleBreakdownRows: ProfileStyleBreakdownRow[];
   styleInsights: ProfileStyleInsight[];
@@ -260,6 +391,7 @@ export type FocusedHeadToHeadRow = {
   gamesPlayed: number;
   label: string;
   losses: number;
+  opponentId?: string;
   ties: number;
   wins: number;
 };
@@ -269,6 +401,7 @@ export type CrossGroupFocusBundle = {
   headToHeadRows: FocusedHeadToHeadRow[];
   performance: LeaderboardRow | null;
   scoreAverages: ScoreSourceAverages | null;
+  styleBreakdownRows?: ProfileStyleBreakdownRow[];
   trendRows: TrendRow[];
 };
 
@@ -405,6 +538,7 @@ type RawCoverageRow = {
 
 type RawImportCoverageRow = {
   game_id: string;
+  generation_count: number | string;
   group_id: string;
   has_score_source_breakdown: boolean;
   ignored_filler_lines: number | string;
@@ -436,6 +570,7 @@ type RawProfileGameResultRow = {
   declared_modifier_style_codes: string[] | null;
   declared_primary_style_code: null | string;
   game_id: string;
+  generation_count: number | string;
   greenery_points: number | string;
   group_id: string;
   has_full_card_breakdown: boolean;
@@ -456,7 +591,7 @@ type RawProfileGameResultRow = {
   win_differential_points: number | string | null;
 };
 
-type ProfileGameResultRow = {
+export type ProfileGameResultRow = {
   awardPoints: number;
   cardPointsAnimals: null | number;
   cardPointsJovian: null | number;
@@ -466,6 +601,7 @@ type ProfileGameResultRow = {
   declaredModifierStyleCodes: string[];
   declaredPrimaryStyleCode: null | string;
   gameId: string;
+  generationCount: number;
   greeneryPoints: number;
   groupId: string;
   hasFullCardBreakdown: boolean;
@@ -484,6 +620,12 @@ type ProfileGameResultRow = {
   totalPoints: number;
   trPoints: number;
   winDifferentialPoints: null | number;
+};
+
+export type SharedGameResultRow = ProfileGameResultRow & {
+  mapId: null | string;
+  playedOn: string;
+  playerCount: number;
 };
 
 type LinkedPlayerRow = {
@@ -820,6 +962,7 @@ function mapCoverageRow(row: RawCoverageRow): CoverageRow {
 function mapImportCoverageRow(row: RawImportCoverageRow): ImportCoverageRow {
   return {
     gameId: row.game_id,
+    generationCount: toNumber(row.generation_count),
     groupId: row.group_id,
     hasScoreSourceBreakdown: row.has_score_source_breakdown,
     ignoredFillerLines: toNumber(row.ignored_filler_lines),
@@ -847,6 +990,7 @@ function mapTrendRow(row: RawTrendRow): TrendRow {
 function mapProfileGameResultRow(row: RawProfileGameResultRow): ProfileGameResultRow {
   return {
     gameId: row.game_id,
+    generationCount: toNumber(row.generation_count),
     groupId: row.group_id,
     playerId: row.player_id,
     playerName: row.player_name,
@@ -877,18 +1021,22 @@ function mapProfileGameResultRow(row: RawProfileGameResultRow): ProfileGameResul
 }
 
 const PROFILE_RESULT_SELECT =
-  'award_points, card_points_animals, card_points_jovian, card_points_microbes, card_points_total, cities_points, declared_modifier_style_codes, declared_primary_style_code, game_id, greenery_points, group_id, has_full_card_breakdown, inferred_primary_style_code, inferred_style_confidence, is_winner, key_card_count, loss_gap_points, milestone_points, other_card_points, placement, placement_score, player_id, player_name, signed_differential_points, total_points, tr_points, win_differential_points';
+  'award_points, card_points_animals, card_points_jovian, card_points_microbes, card_points_total, cities_points, declared_modifier_style_codes, declared_primary_style_code, game_id, generation_count, greenery_points, group_id, has_full_card_breakdown, inferred_primary_style_code, inferred_style_confidence, is_winner, key_card_count, loss_gap_points, milestone_points, other_card_points, placement, placement_score, player_id, player_name, signed_differential_points, total_points, tr_points, win_differential_points';
 
-const FOCUS_RESULT_SELECT = `${PROFILE_RESULT_SELECT}, generation_count, played_on`;
+const FOCUS_RESULT_SELECT = `${PROFILE_RESULT_SELECT}, played_on`;
+const SHARED_RESULT_SELECT = `${FOCUS_RESULT_SELECT}, map_id, player_count`;
 
 type RawFocusGameResultRow = RawProfileGameResultRow & {
-  generation_count: number | string;
   played_on: string;
 };
 
 type FocusGameResultRow = ProfileGameResultRow & {
-  generationCount: number;
   playedOn: string;
+};
+
+type RawSharedGameResultRow = RawFocusGameResultRow & {
+  map_id: null | string;
+  player_count: number | string;
 };
 
 type PlayerIdentityRow = {
@@ -901,8 +1049,15 @@ type PlayerIdentityRow = {
 function mapFocusGameResultRow(row: RawFocusGameResultRow): FocusGameResultRow {
   return {
     ...mapProfileGameResultRow(row),
-    generationCount: toNumber(row.generation_count),
     playedOn: row.played_on,
+  };
+}
+
+function mapSharedGameResultRow(row: RawSharedGameResultRow): SharedGameResultRow {
+  return {
+    ...mapFocusGameResultRow(row),
+    mapId: row.map_id,
+    playerCount: toNumber(row.player_count),
   };
 }
 
@@ -970,6 +1125,278 @@ function resolveProfileLabel(
   return 'Your linked profiles';
 }
 
+function buildProfileScorePace(
+  ownRows: ProfileGameResultRow[],
+): ProfileScorePace | null {
+  const pacedRows = ownRows.filter((row) => row.generationCount > 0);
+
+  if (pacedRows.length === 0) {
+    return null;
+  }
+
+  const averageScore = averageNumbers(ownRows.map((row) => row.totalPoints)) ?? 0;
+  const sources: Array<{
+    code: ProfileScorePaceRow['code'];
+    getValue: (row: ProfileGameResultRow) => number;
+    label: string;
+  }> = [
+    {
+      code: 'terraform_rating',
+      getValue: (row) => row.trPoints,
+      label: 'Terraform Rating',
+    },
+    {
+      code: 'cards',
+      getValue: (row) => row.cardPointsTotal,
+      label: 'Card Points',
+    },
+    {
+      code: 'greenery',
+      getValue: (row) => row.greeneryPoints,
+      label: 'Greenery',
+    },
+    {
+      code: 'milestones',
+      getValue: (row) => row.milestonePoints,
+      label: 'Milestones',
+    },
+    {
+      code: 'cities',
+      getValue: (row) => row.citiesPoints,
+      label: 'Cities',
+    },
+  ];
+
+  const rows = sources
+    .map((source) => {
+      const averagePoints =
+        averageNumbers(ownRows.map((row) => source.getValue(row))) ?? 0;
+      const averagePointsPerGeneration =
+        averageNumbers(
+          pacedRows.map((row) => source.getValue(row) / row.generationCount),
+        ) ?? 0;
+
+      return {
+        averagePoints: roundNumber(averagePoints, 3),
+        averagePointsPerGeneration: roundNumber(averagePointsPerGeneration, 3),
+        code: source.code,
+        label: source.label,
+        scoreShare: roundNumber(
+          averageScore > 0 ? averagePoints / averageScore : 0,
+          4,
+        ),
+      } satisfies ProfileScorePaceRow;
+    })
+    .sort(
+      (left, right) =>
+        right.averagePointsPerGeneration - left.averagePointsPerGeneration ||
+        right.averagePoints - left.averagePoints ||
+        left.label.localeCompare(right.label),
+    );
+
+  return {
+    averageGenerationCount: roundNumber(
+      averageNumbers(pacedRows.map((row) => row.generationCount)) ?? 0,
+      3,
+    ),
+    averageTotalPointsPerGeneration: roundNumber(
+      averageNumbers(
+        pacedRows.map((row) => row.totalPoints / row.generationCount),
+      ) ?? 0,
+      3,
+    ),
+    lightestSource:
+      [...rows].sort(
+        (left, right) =>
+          left.averagePointsPerGeneration - right.averagePointsPerGeneration ||
+          left.averagePoints - right.averagePoints ||
+          left.label.localeCompare(right.label),
+      )[0] ?? null,
+    rows,
+    strongestSource: rows[0] ?? null,
+  };
+}
+
+function buildProfileLeadPressure(
+  ownRows: ProfileGameResultRow[],
+): ProfileLeadPressure | null {
+  if (ownRows.length === 0) {
+    return null;
+  }
+
+  const wins = ownRows.filter((row) => row.isWinner).length;
+  const averageLeadWhenWinning = averageNumbers(
+    ownRows
+      .map((row) => row.winDifferentialPoints)
+      .filter((value): value is number => value !== null),
+  );
+  const averageShortfallWhenBehind = averageNumbers(
+    ownRows
+      .map((row) => row.lossGapPoints)
+      .filter((value): value is number => value !== null),
+  );
+  const averageScoreDifferential =
+    averageNumbers(ownRows.map((row) => row.signedDifferentialPoints)) ?? 0;
+  const closeGames = ownRows.filter(
+    (row) => Math.abs(row.signedDifferentialPoints) <= 5,
+  ).length;
+  const dominantWins = ownRows.filter(
+    (row) => (row.winDifferentialPoints ?? 0) >= 10,
+  ).length;
+  const leadRate = wins / ownRows.length;
+  const closeGameRate = closeGames / ownRows.length;
+  const dominantWinRate = dominantWins / ownRows.length;
+  let pressureLabel = 'Balanced pressure';
+
+  if (leadRate >= 0.5 && averageScoreDifferential >= 5) {
+    pressureLabel = 'Front-runner';
+  } else if (dominantWinRate >= 0.25) {
+    pressureLabel = 'High-ceiling closer';
+  } else if (closeGameRate >= 0.5) {
+    pressureLabel = 'Close-game grinder';
+  } else if (leadRate < 0.34) {
+    pressureLabel = 'Chasing table leader';
+  }
+
+  return {
+    averageLeadWhenWinning:
+      averageLeadWhenWinning === null
+        ? null
+        : roundNumber(averageLeadWhenWinning, 3),
+    averageScoreDifferential: roundNumber(averageScoreDifferential, 3),
+    averageShortfallWhenBehind:
+      averageShortfallWhenBehind === null
+        ? null
+        : roundNumber(averageShortfallWhenBehind, 3),
+    closeGameRate: roundNumber(closeGameRate, 4),
+    dominantWinRate: roundNumber(dominantWinRate, 4),
+    gamesPlayed: ownRows.length,
+    leadRate: roundNumber(leadRate, 4),
+    pressureLabel,
+  };
+}
+
+function getGameLengthBucket(generationCount: number): ProfileGameLengthBucket {
+  if (generationCount <= 9) {
+    return 'short';
+  }
+
+  if (generationCount <= 11) {
+    return 'standard';
+  }
+
+  return 'long';
+}
+
+const GAME_LENGTH_LABELS: Record<
+  ProfileGameLengthBucket,
+  { label: string; rangeLabel: string }
+> = {
+  long: {
+    label: 'Long Games',
+    rangeLabel: '12+ generations',
+  },
+  short: {
+    label: 'Short Games',
+    rangeLabel: '9 or fewer generations',
+  },
+  standard: {
+    label: 'Standard Games',
+    rangeLabel: '10-11 generations',
+  },
+};
+
+function sortGameLengthRows(rows: ProfileGameLengthRow[]) {
+  const bucketOrder: Record<ProfileGameLengthBucket, number> = {
+    short: 0,
+    standard: 1,
+    long: 2,
+  };
+
+  return [...rows].sort(
+    (left, right) => bucketOrder[left.bucket] - bucketOrder[right.bucket],
+  );
+}
+
+function buildProfileGameLengthProfile(
+  ownRows: ProfileGameResultRow[],
+): ProfileGameLengthProfile | null {
+  const rowsWithLength = ownRows.filter((row) => row.generationCount > 0);
+
+  if (rowsWithLength.length === 0) {
+    return null;
+  }
+
+  const totals = new Map<
+    ProfileGameLengthBucket,
+    {
+      generationCounts: number[];
+      placements: number[];
+      scores: number[];
+      wins: number;
+    }
+  >();
+
+  for (const row of rowsWithLength) {
+    const bucket = getGameLengthBucket(row.generationCount);
+    const current = totals.get(bucket) ?? {
+      generationCounts: [],
+      placements: [],
+      scores: [],
+      wins: 0,
+    };
+
+    current.generationCounts.push(row.generationCount);
+    current.placements.push(row.placement);
+    current.scores.push(row.totalPoints);
+    current.wins += row.isWinner ? 1 : 0;
+    totals.set(bucket, current);
+  }
+
+  const rows = sortGameLengthRows(
+    [...totals.entries()].map(([bucket, total]) => {
+      const gamesPlayed = total.scores.length;
+      const label = GAME_LENGTH_LABELS[bucket];
+      const averageGenerationCount =
+        averageNumbers(total.generationCounts) ?? 0;
+      const averageScore = averageNumbers(total.scores) ?? 0;
+
+      return {
+        averageGenerationCount: roundNumber(averageGenerationCount, 3),
+        averagePlacement: roundNumber(
+          averageNumbers(total.placements) ?? 0,
+          3,
+        ),
+        averagePointsPerGeneration: roundNumber(
+          averageGenerationCount > 0 ? averageScore / averageGenerationCount : 0,
+          3,
+        ),
+        averageScore: roundNumber(averageScore, 3),
+        bucket,
+        gamesPlayed,
+        label: label.label,
+        rangeLabel: label.rangeLabel,
+        winRate: roundNumber(total.wins / gamesPlayed, 4),
+        wins: total.wins,
+      } satisfies ProfileGameLengthRow;
+    }),
+  );
+
+  const performanceSorted = [...rows].sort(
+    (left, right) =>
+      right.winRate - left.winRate ||
+      left.averagePlacement - right.averagePlacement ||
+      right.averageScore - left.averageScore ||
+      right.gamesPlayed - left.gamesPlayed,
+  );
+
+  return {
+    bestBucket: performanceSorted[0] ?? null,
+    rows,
+    weakestBucket: performanceSorted.at(-1) ?? null,
+  };
+}
+
 function buildProfileAnalyticsFromRows(input: {
   cardOutcomeRows?: RawProfileCardRow[];
   linkedPlayers: LinkedPlayerRow[];
@@ -994,13 +1421,19 @@ function buildProfileAnalyticsFromRows(input: {
       playerName,
       performance: null,
       scoreAverages: null,
+      gameLengthProfile: null,
+      globalParameterTempoProfile: null,
       styleAgreement: null,
       styleBreakdownRows: [],
       styleInsights: [],
       coverage: null,
       headToHeadRows: [],
       keyCards: [],
+      leadPressure: null,
       lossCards: [],
+      phaseTempoProfile: null,
+      resourceRemovalProfile: null,
+      scorePace: null,
       cardOutcomes: [],
     } satisfies ProfileAnalytics;
   }
@@ -1065,6 +1498,9 @@ function buildProfileAnalyticsFromRows(input: {
       3,
     ),
   } satisfies ScoreSourceAverages;
+  const scorePace = buildProfileScorePace(input.ownRows);
+  const leadPressure = buildProfileLeadPressure(input.ownRows);
+  const gameLengthProfile = buildProfileGameLengthProfile(input.ownRows);
 
   const comparedStyleRows = input.ownRows.filter(
     (row) =>
@@ -1280,8 +1716,9 @@ function buildProfileAnalyticsFromRows(input: {
     }
   }
 
-  const headToHeadRows = [...headToHeadByOpponent.values()]
-    .map((row) => ({
+  const headToHeadRows = [...headToHeadByOpponent.entries()]
+    .map(([opponentId, row]) => ({
+      opponentId,
       opponentName: row.opponentName,
       gamesPlayed: row.gamesPlayed,
       wins: row.wins,
@@ -1328,6 +1765,10 @@ function buildProfileAnalyticsFromRows(input: {
       ),
     },
     scoreAverages,
+    scorePace,
+    gameLengthProfile,
+    globalParameterTempoProfile: null,
+    leadPressure,
     styleAgreement,
     styleBreakdownRows,
     styleInsights,
@@ -1337,6 +1778,8 @@ function buildProfileAnalyticsFromRows(input: {
     // getProfileAnalytics; row-derived callers leave them empty.
     keyCards: [],
     lossCards: [],
+    phaseTempoProfile: null,
+    resourceRemovalProfile: null,
     cardOutcomes: [],
   } satisfies ProfileAnalytics;
 }
@@ -1769,6 +2212,800 @@ type RawProfileCardRow = {
   thumbnail_url?: string | null;
 };
 
+type RawGameLogImportRow = {
+  game_id: string;
+  id: string;
+};
+
+type RawGameLogEventRow = {
+  card_id: string | null;
+  event_order: number | string;
+  event_type: string;
+  game_log_import_id: string;
+  generation_number: number | string | null;
+  payload: Record<string, unknown> | null;
+  resource_amount: number | string | null;
+  resource_type: string | null;
+  tile_type: string | null;
+};
+
+function normalizeAnalyticsToken(value: null | string | undefined) {
+  return (value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function getPayloadString(
+  payload: RawGameLogEventRow['payload'],
+  key: string,
+) {
+  const value = payload?.[key];
+
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function getEventCardKey(row: RawGameLogEventRow) {
+  if (row.card_id) {
+    return `id:${row.card_id}`;
+  }
+
+  const cardName = getPayloadString(row.payload, 'cardName');
+
+  return cardName ? `name:${normalizeAnalyticsToken(cardName)}` : null;
+}
+
+function buildProfileActorLookup(sharedRows: ProfileGameResultRow[]) {
+  const rowsByGameAndName = new Map<string, Map<string, ProfileGameResultRow>>();
+
+  for (const row of sharedRows) {
+    const gameRows = rowsByGameAndName.get(row.gameId) ?? new Map();
+    const normalizedName = normalizeAnalyticsToken(row.playerName);
+
+    if (normalizedName) {
+      gameRows.set(normalizedName, row);
+    }
+
+    rowsByGameAndName.set(row.gameId, gameRows);
+  }
+
+  return (gameId: string, actor: null | string) => {
+    const normalizedActor = normalizeAnalyticsToken(actor);
+
+    if (!normalizedActor) {
+      return null;
+    }
+
+    return rowsByGameAndName.get(gameId)?.get(normalizedActor) ?? null;
+  };
+}
+
+function emptyProfileResourceRemoval(): ProfileResourceRemoval {
+  return {
+    amountPerImportedGame: 0,
+    events: 0,
+    totalAmount: 0,
+  };
+}
+
+const PROFILE_PHASE_LABELS: Record<ProfilePhase, string> = {
+  early: 'Early Game',
+  late: 'Late Game',
+  mid: 'Mid Game',
+};
+
+function getProfilePhase(
+  generationNumber: number,
+  generationCount: number,
+): ProfilePhase {
+  const safeGenerationCount = Math.max(1, generationCount);
+  const earlyCutoff = Math.max(1, Math.floor(safeGenerationCount / 3));
+  const midCutoff = Math.max(1, Math.floor((safeGenerationCount * 2) / 3));
+
+  if (generationNumber <= earlyCutoff) {
+    return 'early';
+  }
+
+  if (generationNumber <= midCutoff) {
+    return 'mid';
+  }
+
+  return 'late';
+}
+
+const PROFILE_GLOBAL_PARAMETER_ORDER: ProfileGlobalParameter[] = [
+  'oxygen',
+  'heat',
+  'ocean',
+];
+
+const PROFILE_GLOBAL_PARAMETER_LABELS: Record<ProfileGlobalParameter, string> = {
+  heat: 'Heat',
+  ocean: 'Oceans',
+  oxygen: 'Oxygen',
+};
+
+function normalizeGlobalParameterTempoToken(
+  value: null | string,
+): ProfileGlobalParameter | null {
+  const normalized = normalizeAnalyticsToken(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.includes('oxygen')) {
+    return 'oxygen';
+  }
+
+  if (normalized.includes('ocean')) {
+    return 'ocean';
+  }
+
+  if (normalized.includes('heat') || normalized.includes('temperature')) {
+    return 'heat';
+  }
+
+  return null;
+}
+
+function getEventGlobalParameter(row: RawGameLogEventRow) {
+  return (
+    normalizeGlobalParameterTempoToken(row.resource_type) ??
+    normalizeGlobalParameterTempoToken(
+      getPayloadString(row.payload, 'parameterType'),
+    ) ??
+    normalizeGlobalParameterTempoToken(getPayloadString(row.payload, 'parameter'))
+  );
+}
+
+function getGlobalParameterTempoCode(parameters: ProfileGlobalParameter[]) {
+  return `fast_${parameters.join('_')}`;
+}
+
+function getGlobalParameterTempoLabel(parameters: ProfileGlobalParameter[]) {
+  return `Fast ${parameters
+    .map((parameter) => PROFILE_GLOBAL_PARAMETER_LABELS[parameter])
+    .join(' + ')}`;
+}
+
+function buildProfileGlobalParameterTempoProfile({
+  events,
+  imports,
+  linkedPlayerIds,
+  sharedRows,
+}: {
+  events: RawGameLogEventRow[];
+  imports: RawGameLogImportRow[];
+  linkedPlayerIds: string[];
+  sharedRows: ProfileGameResultRow[];
+}): ProfileGlobalParameterTempoProfile | null {
+  if (imports.length === 0) {
+    return null;
+  }
+
+  const ownPlayerIds = new Set(linkedPlayerIds);
+  const importGameIds = new Map(
+    imports.map((row) => [row.id, row.game_id] as const),
+  );
+  const importedGames = new Set(imports.map((row) => row.game_id)).size;
+  const lookupActor = buildProfileActorLookup(sharedRows);
+  const eventsByImport = new Map<string, RawGameLogEventRow[]>();
+  const mixTotals = new Map<
+    string,
+    {
+      fastGenerations: number[];
+      parameters: ProfileGlobalParameter[];
+      placements: number[];
+      scores: number[];
+      wins: number;
+    }
+  >();
+
+  for (const event of events) {
+    const importEvents = eventsByImport.get(event.game_log_import_id) ?? [];
+    importEvents.push(event);
+    eventsByImport.set(event.game_log_import_id, importEvents);
+  }
+
+  for (const [importId, importEvents] of eventsByImport) {
+    const gameId = importGameIds.get(importId);
+
+    if (!gameId) {
+      continue;
+    }
+
+    const sortedEvents = [...importEvents].sort(
+      (left, right) => toNumber(left.event_order) - toNumber(right.event_order),
+    );
+    const firstParameterGeneration = new Map<ProfileGlobalParameter, number>();
+    let currentGeneration = 1;
+    let gameSubject: ProfileGameResultRow | null = null;
+
+    for (const event of sortedEvents) {
+      const eventGeneration = toNullableNumber(event.generation_number);
+
+      if (eventGeneration !== null && eventGeneration > 0) {
+        currentGeneration = eventGeneration;
+      }
+
+      if (event.event_type !== 'global_parameter_changed') {
+        continue;
+      }
+
+      const parameter = getEventGlobalParameter(event);
+
+      if (!parameter) {
+        continue;
+      }
+
+      const actor = lookupActor(gameId, getPayloadString(event.payload, 'actor'));
+
+      if (!actor || !ownPlayerIds.has(actor.playerId)) {
+        continue;
+      }
+
+      gameSubject = gameSubject ?? actor;
+
+      if (actor.generationCount <= 0) {
+        continue;
+      }
+
+      const previousGeneration = firstParameterGeneration.get(parameter);
+
+      if (
+        previousGeneration === undefined ||
+        currentGeneration < previousGeneration
+      ) {
+        firstParameterGeneration.set(parameter, currentGeneration);
+      }
+    }
+
+    if (!gameSubject || firstParameterGeneration.size === 0) {
+      continue;
+    }
+
+    const fastCutoffGeneration = Math.max(
+      1,
+      Math.ceil(gameSubject.generationCount / 2),
+    );
+    const fastParameters = PROFILE_GLOBAL_PARAMETER_ORDER.filter(
+      (parameter) =>
+        (firstParameterGeneration.get(parameter) ?? Infinity) <=
+        fastCutoffGeneration,
+    );
+
+    if (fastParameters.length === 0) {
+      continue;
+    }
+
+    const code = getGlobalParameterTempoCode(fastParameters);
+    const current = mixTotals.get(code) ?? {
+      fastGenerations: [],
+      parameters: fastParameters,
+      placements: [],
+      scores: [],
+      wins: 0,
+    };
+    const averageFastGeneration =
+      averageNumbers(
+        fastParameters.map(
+          (parameter) => firstParameterGeneration.get(parameter) ?? 0,
+        ),
+      ) ?? 0;
+
+    current.fastGenerations.push(averageFastGeneration);
+    current.placements.push(gameSubject.placement);
+    current.scores.push(gameSubject.totalPoints);
+    current.wins += gameSubject.isWinner ? 1 : 0;
+    mixTotals.set(code, current);
+  }
+
+  const rows = [...mixTotals.entries()]
+    .map(([code, total]) => {
+      const gamesPlayed = total.scores.length;
+
+      return {
+        averageFastGeneration: roundNumber(
+          averageNumbers(total.fastGenerations) ?? 0,
+          3,
+        ),
+        averagePlacement: roundNumber(
+          averageNumbers(total.placements) ?? 0,
+          3,
+        ),
+        averageScore: roundNumber(averageNumbers(total.scores) ?? 0, 3),
+        code,
+        gamesPlayed,
+        label: getGlobalParameterTempoLabel(total.parameters),
+        parameters: total.parameters,
+        winRate: roundNumber(total.wins / gamesPlayed, 4),
+        wins: total.wins,
+      } satisfies ProfileGlobalParameterTempoRow;
+    })
+    .sort(
+      (left, right) =>
+        right.gamesPlayed - left.gamesPlayed ||
+        left.parameters.length - right.parameters.length ||
+        left.label.localeCompare(right.label),
+    );
+
+  const performanceSorted = [...rows].sort(
+    (left, right) =>
+      right.winRate - left.winRate ||
+      left.averagePlacement - right.averagePlacement ||
+      right.averageScore - left.averageScore ||
+      right.gamesPlayed - left.gamesPlayed ||
+      right.parameters.length - left.parameters.length,
+  );
+  const weaknessSorted = [...rows].sort(
+    (left, right) =>
+      left.winRate - right.winRate ||
+      right.averagePlacement - left.averagePlacement ||
+      left.averageScore - right.averageScore ||
+      right.gamesPlayed - left.gamesPlayed ||
+      right.parameters.length - left.parameters.length,
+  );
+
+  return {
+    bestMix: performanceSorted[0] ?? null,
+    confidenceLabel:
+      'Imported log terraforming read: fast means your first oxygen, heat, or ocean raise happened by that game midpoint; combinations are exact fast-parameter mixes.',
+    importedGames,
+    rows,
+    weakestMix: weaknessSorted[0] ?? null,
+  };
+}
+
+function emptyPhaseEventTotals() {
+  return {
+    actions: 0,
+    awardsFunded: 0,
+    cardsPlayed: 0,
+    citiesPlaced: 0,
+    greeneriesPlaced: 0,
+    milestonesClaimed: 0,
+    removalEvents: 0,
+    tilesPlaced: 0,
+  };
+}
+
+function getPhaseActionScore(totals: ReturnType<typeof emptyPhaseEventTotals>) {
+  return (
+    totals.cardsPlayed +
+    totals.tilesPlaced * 1.25 +
+    totals.milestonesClaimed * 2 +
+    totals.awardsFunded * 1.5 +
+    totals.removalEvents
+  );
+}
+
+function buildProfilePhaseTempoProfile({
+  events,
+  imports,
+  linkedPlayerIds,
+  sharedRows,
+}: {
+  events: RawGameLogEventRow[];
+  imports: RawGameLogImportRow[];
+  linkedPlayerIds: string[];
+  sharedRows: ProfileGameResultRow[];
+}): ProfilePhaseTempoProfile | null {
+  if (imports.length === 0) {
+    return null;
+  }
+
+  const ownPlayerIds = new Set(linkedPlayerIds);
+  const importGameIds = new Map(
+    imports.map((row) => [row.id, row.game_id] as const),
+  );
+  const importedGames = new Set(imports.map((row) => row.game_id)).size;
+  const lookupActor = buildProfileActorLookup(sharedRows);
+  const eventsByImport = new Map<string, RawGameLogEventRow[]>();
+  const phaseTotals = new Map<ProfilePhase, ReturnType<typeof emptyPhaseEventTotals>>(
+    [
+      ['early', emptyPhaseEventTotals()],
+      ['mid', emptyPhaseEventTotals()],
+      ['late', emptyPhaseEventTotals()],
+    ],
+  );
+  const peakTotals = new Map<
+    ProfilePhase,
+    {
+      placements: number[];
+      scores: number[];
+      wins: number;
+    }
+  >([
+    ['early', { placements: [], scores: [], wins: 0 }],
+    ['mid', { placements: [], scores: [], wins: 0 }],
+    ['late', { placements: [], scores: [], wins: 0 }],
+  ]);
+
+  for (const event of events) {
+    const importEvents = eventsByImport.get(event.game_log_import_id) ?? [];
+    importEvents.push(event);
+    eventsByImport.set(event.game_log_import_id, importEvents);
+  }
+
+  for (const [importId, importEvents] of eventsByImport) {
+    const gameId = importGameIds.get(importId);
+
+    if (!gameId) {
+      continue;
+    }
+
+    const sortedEvents = [...importEvents].sort(
+      (left, right) => toNumber(left.event_order) - toNumber(right.event_order),
+    );
+    const gamePhaseTotals = new Map<
+      ProfilePhase,
+      ReturnType<typeof emptyPhaseEventTotals>
+    >([
+      ['early', emptyPhaseEventTotals()],
+      ['mid', emptyPhaseEventTotals()],
+      ['late', emptyPhaseEventTotals()],
+    ]);
+    let currentGeneration = 1;
+    let gameSubject: ProfileGameResultRow | null = null;
+
+    for (const event of sortedEvents) {
+      const eventGeneration = toNullableNumber(event.generation_number);
+
+      if (eventGeneration !== null && eventGeneration > 0) {
+        currentGeneration = eventGeneration;
+      }
+
+      if (event.event_type === 'generation_started') {
+        continue;
+      }
+
+      const actor = lookupActor(gameId, getPayloadString(event.payload, 'actor'));
+
+      if (!actor || !ownPlayerIds.has(actor.playerId)) {
+        continue;
+      }
+
+      gameSubject = gameSubject ?? actor;
+
+      if (actor.generationCount <= 0) {
+        continue;
+      }
+
+      const phase = getProfilePhase(currentGeneration, actor.generationCount);
+      const globalTotals = phaseTotals.get(phase) ?? emptyPhaseEventTotals();
+      const gameTotals = gamePhaseTotals.get(phase) ?? emptyPhaseEventTotals();
+      const addAction = () => {
+        globalTotals.actions += 1;
+        gameTotals.actions += 1;
+      };
+
+      if (event.event_type === 'card_played') {
+        addAction();
+        globalTotals.cardsPlayed += 1;
+        gameTotals.cardsPlayed += 1;
+      } else if (event.event_type === 'tile_placed') {
+        addAction();
+        globalTotals.tilesPlaced += 1;
+        gameTotals.tilesPlaced += 1;
+
+        if (event.tile_type?.toLowerCase() === 'greenery') {
+          globalTotals.greeneriesPlaced += 1;
+          gameTotals.greeneriesPlaced += 1;
+        }
+
+        if (event.tile_type?.toLowerCase() === 'city') {
+          globalTotals.citiesPlaced += 1;
+          gameTotals.citiesPlaced += 1;
+        }
+      } else if (event.event_type === 'milestone_claimed') {
+        addAction();
+        globalTotals.milestonesClaimed += 1;
+        gameTotals.milestonesClaimed += 1;
+      } else if (event.event_type === 'award_funded') {
+        addAction();
+        globalTotals.awardsFunded += 1;
+        gameTotals.awardsFunded += 1;
+      } else if (
+        event.event_type === 'resource_changed' &&
+        getPayloadString(event.payload, 'operation') === 'removed'
+      ) {
+        addAction();
+        globalTotals.removalEvents += 1;
+        gameTotals.removalEvents += 1;
+      }
+
+      phaseTotals.set(phase, globalTotals);
+      gamePhaseTotals.set(phase, gameTotals);
+    }
+
+    if (!gameSubject) {
+      continue;
+    }
+
+    const peakPhase = [...gamePhaseTotals.entries()]
+      .map(([phase, totals]) => ({
+        phase,
+        score: getPhaseActionScore(totals),
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort(
+        (left, right) =>
+          right.score - left.score ||
+          ['early', 'mid', 'late'].indexOf(left.phase) -
+            ['early', 'mid', 'late'].indexOf(right.phase),
+      )[0]?.phase;
+
+    if (!peakPhase) {
+      continue;
+    }
+
+    const peak = peakTotals.get(peakPhase);
+
+    if (!peak) {
+      continue;
+    }
+
+    peak.placements.push(gameSubject.placement);
+    peak.scores.push(gameSubject.totalPoints);
+    peak.wins += gameSubject.isWinner ? 1 : 0;
+  }
+
+  const phaseOrder: ProfilePhase[] = ['early', 'mid', 'late'];
+  const rows = phaseOrder.map((phase) => {
+    const totals = phaseTotals.get(phase) ?? emptyPhaseEventTotals();
+    const peak = peakTotals.get(phase) ?? {
+      placements: [],
+      scores: [],
+      wins: 0,
+    };
+    const gamesWithPeak = peak.scores.length;
+
+    return {
+      actions: totals.actions,
+      actionsPerImportedGame: roundNumber(
+        importedGames > 0 ? totals.actions / importedGames : 0,
+        3,
+      ),
+      awardsFunded: totals.awardsFunded,
+      averagePlacementWhenPeak:
+        gamesWithPeak > 0
+          ? roundNumber(averageNumbers(peak.placements) ?? 0, 3)
+          : null,
+      averageScoreWhenPeak:
+        gamesWithPeak > 0
+          ? roundNumber(averageNumbers(peak.scores) ?? 0, 3)
+          : null,
+      cardsPlayed: totals.cardsPlayed,
+      citiesPlaced: totals.citiesPlaced,
+      gamesWithPeak,
+      greeneriesPlaced: totals.greeneriesPlaced,
+      label: PROFILE_PHASE_LABELS[phase],
+      milestonesClaimed: totals.milestonesClaimed,
+      phase,
+      removalEvents: totals.removalEvents,
+      tilesPlaced: totals.tilesPlaced,
+      winRateWhenPeak:
+        gamesWithPeak > 0 ? roundNumber(peak.wins / gamesWithPeak, 4) : null,
+      winsWhenPeak: peak.wins,
+    } satisfies ProfilePhaseTempoRow;
+  });
+
+  const mostActivePhase =
+    [...rows].sort(
+      (left, right) =>
+        right.actionsPerImportedGame - left.actionsPerImportedGame ||
+        right.actions - left.actions ||
+        phaseOrder.indexOf(left.phase) - phaseOrder.indexOf(right.phase),
+    )[0] ?? null;
+  const bestPhase =
+    [...rows]
+      .filter((row) => row.gamesWithPeak > 0 && row.winRateWhenPeak !== null)
+      .sort(
+        (left, right) =>
+          (right.winRateWhenPeak ?? 0) - (left.winRateWhenPeak ?? 0) ||
+          (left.averagePlacementWhenPeak ?? Infinity) -
+            (right.averagePlacementWhenPeak ?? Infinity) ||
+          (right.averageScoreWhenPeak ?? 0) - (left.averageScoreWhenPeak ?? 0),
+      )[0] ?? null;
+
+  return {
+    bestPhase,
+    confidenceLabel:
+      'Imported log phase read: early, mid, and late are split by each game generation count and use logged actions as the tempo signal.',
+    importedGames,
+    mostActivePhase,
+    rows,
+  };
+}
+
+function buildProfileResourceRemovalProfile({
+  events,
+  imports,
+  linkedPlayerIds,
+  sharedRows,
+}: {
+  events: RawGameLogEventRow[];
+  imports: RawGameLogImportRow[];
+  linkedPlayerIds: string[];
+  sharedRows: ProfileGameResultRow[];
+}): ProfileResourceRemovalProfile | null {
+  if (imports.length === 0) {
+    return null;
+  }
+
+  const ownPlayerIds = new Set(linkedPlayerIds);
+  const importGameIds = new Map(
+    imports.map((row) => [row.id, row.game_id] as const),
+  );
+  const importedGames = new Set(imports.map((row) => row.game_id)).size;
+  const lookupActor = buildProfileActorLookup(sharedRows);
+  const eventsByImport = new Map<string, RawGameLogEventRow[]>();
+
+  for (const event of events) {
+    const importEvents = eventsByImport.get(event.game_log_import_id) ?? [];
+    importEvents.push(event);
+    eventsByImport.set(event.game_log_import_id, importEvents);
+  }
+
+  let totalRemovalEvents = 0;
+  const incoming = emptyProfileResourceRemoval();
+  const outgoing = emptyProfileResourceRemoval();
+  const resourceTotals = new Map<string, { amount: number; events: number }>();
+
+  for (const [importId, importEvents] of eventsByImport) {
+    const gameId = importGameIds.get(importId);
+
+    if (!gameId) {
+      continue;
+    }
+
+    const sourceByCardKey = new Map<string, ProfileGameResultRow>();
+    const sortedEvents = [...importEvents].sort(
+      (left, right) => toNumber(left.event_order) - toNumber(right.event_order),
+    );
+
+    for (const event of sortedEvents) {
+      const cardKey = getEventCardKey(event);
+
+      if (event.event_type === 'card_played' && cardKey) {
+        const actor = lookupActor(gameId, getPayloadString(event.payload, 'actor'));
+
+        if (actor) {
+          sourceByCardKey.set(cardKey, actor);
+        }
+
+        continue;
+      }
+
+      if (
+        event.event_type !== 'resource_changed' ||
+        getPayloadString(event.payload, 'operation') !== 'removed'
+      ) {
+        continue;
+      }
+
+      const affectedPlayer = lookupActor(
+        gameId,
+        getPayloadString(event.payload, 'actor'),
+      );
+      const sourcePlayer = cardKey ? sourceByCardKey.get(cardKey) ?? null : null;
+      const amount = Math.max(toNumber(event.resource_amount), 0);
+      const resourceType = event.resource_type?.trim().toLowerCase() || 'resource';
+      const resourceTotal = resourceTotals.get(resourceType) ?? {
+        amount: 0,
+        events: 0,
+      };
+
+      totalRemovalEvents += 1;
+      resourceTotal.amount += amount;
+      resourceTotal.events += 1;
+      resourceTotals.set(resourceType, resourceTotal);
+
+      if (!affectedPlayer || !sourcePlayer) {
+        continue;
+      }
+
+      const affectedIsOwn = ownPlayerIds.has(affectedPlayer.playerId);
+      const sourceIsOwn = ownPlayerIds.has(sourcePlayer.playerId);
+
+      if (sourceIsOwn && !affectedIsOwn) {
+        outgoing.events += 1;
+        outgoing.totalAmount += amount;
+      } else if (affectedIsOwn && !sourceIsOwn) {
+        incoming.events += 1;
+        incoming.totalAmount += amount;
+      }
+    }
+  }
+
+  incoming.totalAmount = roundNumber(incoming.totalAmount, 3);
+  outgoing.totalAmount = roundNumber(outgoing.totalAmount, 3);
+  incoming.amountPerImportedGame = roundNumber(
+    importedGames > 0 ? incoming.totalAmount / importedGames : 0,
+    3,
+  );
+  outgoing.amountPerImportedGame = roundNumber(
+    importedGames > 0 ? outgoing.totalAmount / importedGames : 0,
+    3,
+  );
+
+  return {
+    confidenceLabel:
+      'Imported log estimate: removals are attributed to the prior played card with the same card name or id.',
+    importedGames,
+    incoming,
+    outgoing,
+    resourceRows: [...resourceTotals.entries()]
+      .map(([resourceType, row]) => ({
+        amount: roundNumber(row.amount, 3),
+        events: row.events,
+        resourceType,
+      }))
+      .sort(
+        (left, right) =>
+          right.amount - left.amount ||
+          right.events - left.events ||
+          left.resourceType.localeCompare(right.resourceType),
+      ),
+    totalRemovalEvents,
+  };
+}
+
+async function listProfileResourceLogData(
+  supabase: AnalyticsSupabaseClient,
+  gameIds: string[],
+): Promise<{
+  events: RawGameLogEventRow[];
+  imports: RawGameLogImportRow[];
+} | null> {
+  if (gameIds.length === 0) {
+    return null;
+  }
+
+  try {
+    const { data: imports, error: importsError } = await supabase
+      .from('game_log_imports')
+      .select('id, game_id')
+      .in('game_id', gameIds);
+
+    if (importsError) {
+      throw importsError;
+    }
+
+    const normalizedImports = (imports as RawGameLogImportRow[] | null) ?? [];
+
+    if (normalizedImports.length === 0) {
+      return {
+        events: [],
+        imports: [],
+      };
+    }
+
+    const { data: events, error: eventsError } = await supabase
+      .from('game_log_events')
+      .select(
+        'card_id, event_order, event_type, game_log_import_id, generation_number, payload, resource_amount, resource_type, tile_type',
+      )
+      .in(
+        'game_log_import_id',
+        normalizedImports.map((row) => row.id),
+      );
+
+    if (eventsError) {
+      throw eventsError;
+    }
+
+    return {
+      events: (events as RawGameLogEventRow[] | null) ?? [],
+      imports: normalizedImports,
+    };
+  } catch (error) {
+    console.warn('[profile] Optional game-log resource lookup failed', error);
+    return null;
+  }
+}
+
 function uniqueProfileCardRows(rows: RawProfileCardRow[]) {
   const seen = new Set<string>();
   const uniqueRows: RawProfileCardRow[] = [];
@@ -2165,9 +3402,7 @@ export async function getProfileAnalytics(
   const linkedPlayerIds = linkedPlayers.map((player) => player.id);
   const { data: ownRows, error: ownRowsError } = await getAnalyticsClient(supabase)
     .from('player_game_results')
-    .select(
-      'award_points, card_points_animals, card_points_jovian, card_points_microbes, card_points_total, cities_points, declared_modifier_style_codes, declared_primary_style_code, game_id, greenery_points, group_id, has_full_card_breakdown, inferred_primary_style_code, inferred_style_confidence, is_winner, key_card_count, loss_gap_points, milestone_points, other_card_points, placement, placement_score, player_id, player_name, signed_differential_points, total_points, tr_points, win_differential_points',
-    )
+    .select(PROFILE_RESULT_SELECT)
     .in('player_id', linkedPlayerIds);
 
   if (ownRowsError) {
@@ -2192,25 +3427,26 @@ export async function getProfileAnalytics(
   const sharedGameIds = [...new Set(normalizedOwnRows.map((row) => row.gameId))];
 
   let normalizedSharedRows: ProfileGameResultRow[] = [];
+  let resourceLookupRows: ProfileGameResultRow[] = normalizedOwnRows;
 
   if (sharedGameIds.length > 0) {
     const { data: sharedRows, error: sharedRowsError } = await getAnalyticsClient(
       supabase,
     )
       .from('player_game_results')
-      .select(
-        'award_points, card_points_animals, card_points_jovian, card_points_microbes, card_points_total, cities_points, declared_modifier_style_codes, declared_primary_style_code, game_id, greenery_points, group_id, has_full_card_breakdown, inferred_primary_style_code, inferred_style_confidence, is_winner, key_card_count, loss_gap_points, milestone_points, other_card_points, placement, placement_score, player_id, player_name, signed_differential_points, total_points, tr_points, win_differential_points',
-      )
+      .select(PROFILE_RESULT_SELECT)
       .in('game_id', sharedGameIds);
 
     if (sharedRowsError) {
       throw sharedRowsError;
     }
 
+    const rawSharedRows = (sharedRows as RawProfileGameResultRow[] | null) ?? [];
+    resourceLookupRows = rawSharedRows.map(mapProfileGameResultRow);
     normalizedSharedRows = (
       await resolvePlayerLabelsInRows(
         supabase,
-        (sharedRows as RawProfileGameResultRow[] | null) ?? [],
+        rawSharedRows,
       )
     ).map(mapProfileGameResultRow);
   }
@@ -2244,9 +3480,10 @@ export async function getProfileAnalytics(
     }
   }
 
-  const [cardOutcomeRows, globalCardWinRates] = await Promise.all([
+  const [cardOutcomeRows, globalCardWinRates, resourceLogData] = await Promise.all([
     listProfileCardRows(supabase, 'player_card_outcomes', linkedPlayerIds),
     loadGlobalCardWinRates(),
+    listProfileResourceLogData(supabase, sharedGameIds),
   ]);
 
   const built = buildProfileAnalyticsFromRows({
@@ -2272,6 +3509,30 @@ export async function getProfileAnalytics(
       built.performance?.winRate ?? globalCardWinRates.baselineWinRate,
     ),
     cardOutcomes: aggregateProfileCardRows(cardOutcomeRows),
+    globalParameterTempoProfile: resourceLogData
+      ? buildProfileGlobalParameterTempoProfile({
+          events: resourceLogData.events,
+          imports: resourceLogData.imports,
+          linkedPlayerIds,
+          sharedRows: resourceLookupRows,
+        })
+      : null,
+    phaseTempoProfile: resourceLogData
+      ? buildProfilePhaseTempoProfile({
+          events: resourceLogData.events,
+          imports: resourceLogData.imports,
+          linkedPlayerIds,
+          sharedRows: resourceLookupRows,
+        })
+      : null,
+    resourceRemovalProfile: resourceLogData
+      ? buildProfileResourceRemovalProfile({
+          events: resourceLogData.events,
+          imports: resourceLogData.imports,
+          linkedPlayerIds,
+          sharedRows: resourceLookupRows,
+        })
+      : null,
   };
 }
 
@@ -2436,6 +3697,7 @@ export async function getCrossGroupFocusData(
         ),
       performance: profile.performance,
       scoreAverages: profile.scoreAverages,
+      styleBreakdownRows: profile.styleBreakdownRows,
       trendRows: personRows
         .map(focusRowToTrendRow)
         .sort(
@@ -2471,6 +3733,64 @@ export async function getCrossGroupFocusData(
   });
 
   return people;
+}
+
+export async function listSharedGameResultRows(
+  userId: string,
+): Promise<SharedGameResultRow[]> {
+  const linkedPlayers = await getLinkedPlayers(userId);
+
+  if (linkedPlayers.length === 0) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const linkedPlayerIds = linkedPlayers.map((player) => player.id);
+  const client = getAnalyticsClient(supabase);
+  const { data: ownRows, error: ownError } = await client
+    .from('player_game_results')
+    .select('game_id')
+    .in('player_id', linkedPlayerIds);
+
+  if (ownError) {
+    throw ownError;
+  }
+
+  const gameIds = [
+    ...new Set(
+      ((ownRows as Array<{ game_id: string | null }> | null) ?? [])
+        .map((row) => row.game_id)
+        .filter((gameId): gameId is string => Boolean(gameId)),
+    ),
+  ];
+
+  if (gameIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await client
+    .from('player_game_results')
+    .select(SHARED_RESULT_SELECT)
+    .in('game_id', gameIds);
+
+  if (error) {
+    throw error;
+  }
+
+  const rows = await resolvePlayerLabelsInRows(
+    supabase,
+    (data as RawSharedGameResultRow[] | null) ?? [],
+  );
+
+  return rows
+    .map(mapSharedGameResultRow)
+    .sort(
+      (left, right) =>
+        left.playedOn.localeCompare(right.playedOn) ||
+        left.gameId.localeCompare(right.gameId) ||
+        left.placement - right.placement ||
+        left.playerName.localeCompare(right.playerName),
+    );
 }
 
 export async function getGroupAnalytics(groupId: string) {
