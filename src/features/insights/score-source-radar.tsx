@@ -17,6 +17,7 @@ import {
   chartSeriesColors,
   chartTooltipStyle,
 } from '@/components/charts/chart-theme';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { ScoreSourceAverages } from '@/lib/db/analytics-repo';
 
 const RADAR_AXES = [
@@ -62,7 +63,9 @@ export function ScoreSourceRadar(props: {
     >
       {!props.groupAverages ? (
         <p className="tm-muted-copy text-sm">
-          The score-source radar will appear after finalized games exist.
+          <GlossaryRichText>
+            The score-source radar will appear after finalized games exist.
+          </GlossaryRichText>
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -97,10 +100,9 @@ export function ScoreSourceRadar(props: {
             </RadarChart>
           </ResponsiveContainer>
           <p className="tm-muted-copy text-xs">
-            Average victory points per finalized game, by source.
-            {props.focusPlayerName
-              ? ` ${props.focusPlayerName} overlaid on the group profile.`
-              : ' Focus a player to overlay their build identity.'}
+            <GlossaryRichText>
+              {`Average victory points per finalized game, by source.${props.focusPlayerName ? ` ${props.focusPlayerName} overlaid on the group profile.` : ' Focus a player to overlay their build identity.'}`}
+            </GlossaryRichText>
           </p>
         </div>
       )}

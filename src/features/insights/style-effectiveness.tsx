@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 
 export type StyleEffectivenessScoreEntry = {
   label: string;
@@ -205,19 +206,22 @@ function SummaryBody({ scope }: { scope: StyleEffectivenessScopeInput }) {
   if (!summary) {
     return (
       <p className="tm-muted-copy text-sm">
-        Style effectiveness will appear once finalized games record how points
-        were scored.
+        <GlossaryRichText>
+          Style effectiveness will appear once finalized games record how points were scored.
+        </GlossaryRichText>
       </p>
     );
   }
 
   return (
     <div className="flex flex-col gap-3 text-sm">
-      <p className="text-stone-100">{summary.lead}</p>
+      <p className="text-stone-100">
+        <GlossaryRichText>{summary.lead}</GlossaryRichText>
+      </p>
       <ul className="flex flex-col gap-2">
         {summary.styles.map((style) => (
           <li className="tm-muted-copy" key={style.styleCode}>
-            {style.sentence}
+            <GlossaryRichText>{style.sentence}</GlossaryRichText>
           </li>
         ))}
       </ul>
@@ -245,8 +249,9 @@ export function StyleEffectivenessPanel({
     >
       {!activeScope ? (
         <p className="tm-muted-copy text-sm">
-          Style effectiveness will appear once finalized games record how points
-          were scored.
+          <GlossaryRichText>
+            Style effectiveness will appear once finalized games record how points were scored.
+          </GlossaryRichText>
         </p>
       ) : (
         <div className="flex flex-col gap-4">

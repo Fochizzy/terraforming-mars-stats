@@ -21,6 +21,7 @@ import {
 } from '@/lib/db/analytics-repo';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import {
   StyleEffectivenessPanel,
   type StyleEffectivenessScopeInput,
@@ -85,7 +86,13 @@ function renderLinkedText(
 
 /** The glossary deep-link slug for an inferred style code (e.g. `style-balanced`). */
 function styleGlossarySlug(styleCode: string) {
-  return `style-${styleCode.replaceAll('_', '-')}`;
+  const glossarySlugByStyleCode: Record<string, string> = {
+    engine_builder: 'style-engine-building',
+    milestone_race: 'style-milestone-aggression',
+    terraforming_rush: 'style-terraform-rush',
+  };
+
+  return glossarySlugByStyleCode[styleCode] ?? `style-${styleCode.replaceAll('_', '-')}`;
 }
 
 function renderStyleInsightBody(insight: ProfileStyleInsight): ReactNode[] {
@@ -753,7 +760,9 @@ export function ProfileDashboard({
               className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300"
             >
               {playAnalysis.strengths.map((sentence) => (
-                <li key={sentence}>{sentence}</li>
+                <li key={sentence}>
+                  <GlossaryRichText>{sentence}</GlossaryRichText>
+                </li>
               ))}
             </ul>
           </article>
@@ -766,7 +775,9 @@ export function ProfileDashboard({
               className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300"
             >
               {playAnalysis.improvements.map((sentence) => (
-                <li key={sentence}>{sentence}</li>
+                <li key={sentence}>
+                  <GlossaryRichText>{sentence}</GlossaryRichText>
+                </li>
               ))}
             </ul>
           </article>
@@ -781,7 +792,9 @@ export function ProfileDashboard({
                   Score Pace by Generation
                 </h3>
                 <p className="tm-muted-copy mt-1 text-sm">
-                  TR, card points, greenery, milestones, and cities normalized by game length.
+                  <GlossaryRichText>
+                    TR, card points, greenery, milestones, and cities normalized by game length.
+                  </GlossaryRichText>
                 </p>
               </div>
               {scorePace ? (
@@ -817,12 +830,16 @@ export function ProfileDashboard({
                   </tbody>
                 </table>
                 <p className="tm-muted-copy mt-3 text-xs">
-                  Average game length: {formatAverage(scorePace.averageGenerationCount)} generations.
+                  <GlossaryRichText>
+                    {`Average game length: ${formatAverage(scorePace.averageGenerationCount)} generations.`}
+                  </GlossaryRichText>
                 </p>
               </div>
             ) : (
               <p className="mt-3 text-sm text-stone-400">
-                Per-generation score pace will appear after finalized games include generation counts.
+                <GlossaryRichText>
+                  Per-generation score pace will appear after finalized games include generation counts.
+                </GlossaryRichText>
               </p>
             )}
           </section>
@@ -865,7 +882,9 @@ export function ProfileDashboard({
                 </dl>
               ) : (
                 <p className="mt-3 text-sm text-stone-400">
-                  Lead pressure needs finalized score differentials.
+                  <GlossaryRichText>
+                    Lead pressure needs finalized score differentials.
+                  </GlossaryRichText>
                 </p>
               )}
             </article>
@@ -884,7 +903,9 @@ export function ProfileDashboard({
                     {pluralize(resourceRemovalProfile.outgoing.events, 'attributed removal')}.
                   </p>
                   <p className="tm-muted-copy text-xs">
-                    Split: {formatAverage(resourceRemovalProfile.outgoing.resourceAmount)} stored resources / {formatAverage(resourceRemovalProfile.outgoing.productionAmount)} production.
+                    <GlossaryRichText>
+                      {`Split: ${formatAverage(resourceRemovalProfile.outgoing.resourceAmount)} stored resources / ${formatAverage(resourceRemovalProfile.outgoing.productionAmount)} production.`}
+                    </GlossaryRichText>
                   </p>
                   <p>
                     Opponents made you lose{' '}
@@ -895,15 +916,21 @@ export function ProfileDashboard({
                     {pluralize(resourceRemovalProfile.incoming.events, 'attributed removal')}.
                   </p>
                   <p className="tm-muted-copy text-xs">
-                    Split: {formatAverage(resourceRemovalProfile.incoming.resourceAmount)} stored resources / {formatAverage(resourceRemovalProfile.incoming.productionAmount)} production.
+                    <GlossaryRichText>
+                      {`Split: ${formatAverage(resourceRemovalProfile.incoming.resourceAmount)} stored resources / ${formatAverage(resourceRemovalProfile.incoming.productionAmount)} production.`}
+                    </GlossaryRichText>
                   </p>
                   {resourceRemovalProfile.resourceRows[0] ? (
                     <p className="tm-muted-copy text-xs">
-                      Most affected resource/production track: {formatResourceRemovalTrack(resourceRemovalProfile.resourceRows[0])} ({formatAverage(resourceRemovalProfile.resourceRows[0].amount)} total).
+                      <GlossaryRichText>
+                        {`Most affected resource/production track: ${formatResourceRemovalTrack(resourceRemovalProfile.resourceRows[0])} (${formatAverage(resourceRemovalProfile.resourceRows[0].amount)} total).`}
+                      </GlossaryRichText>
                     </p>
                   ) : (
                     <p className="tm-muted-copy text-xs">
-                      No resource or production removal events were found in imported logs yet.
+                      <GlossaryRichText>
+                        No resource or production removal events were found in imported logs yet.
+                      </GlossaryRichText>
                     </p>
                   )}
                   <p className="tm-muted-copy text-xs">
@@ -913,8 +940,9 @@ export function ProfileDashboard({
               ) : resourceRemovalProfile ? (
                 <div className="mt-3 grid gap-2 text-sm text-stone-300">
                   <p>
-                    No parsed resource or production removal events have been
-                    attributed from imported logs yet.
+                    <GlossaryRichText>
+                      No parsed resource or production removal events have been attributed from imported logs yet.
+                    </GlossaryRichText>
                   </p>
                   <p className="tm-muted-copy text-xs">
                     {resourceRemovalProfile.confidenceLabel}
@@ -922,7 +950,9 @@ export function ProfileDashboard({
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-stone-400">
-                  Imported game logs will add resource and production removal pressure here.
+                  <GlossaryRichText>
+                    Imported game logs will add resource and production removal pressure here.
+                  </GlossaryRichText>
                 </p>
               )}
             </article>
@@ -935,7 +965,9 @@ export function ProfileDashboard({
             </h3>
             <ul className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300">
               {phaseTempoStatements.map((statement) => (
-                <li key={statement}>{statement}</li>
+                <li key={statement}>
+                  <GlossaryRichText>{statement}</GlossaryRichText>
+                </li>
               ))}
             </ul>
             {phaseTempoProfile ? (
@@ -965,7 +997,9 @@ export function ProfileDashboard({
             </h3>
             <ul className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300">
               {globalParameterTempoStatements.map((statement) => (
-                <li key={statement}>{statement}</li>
+                <li key={statement}>
+                  <GlossaryRichText>{statement}</GlossaryRichText>
+                </li>
               ))}
             </ul>
             {globalParameterTempoProfile?.rows.length ? (
@@ -994,7 +1028,9 @@ export function ProfileDashboard({
             </h3>
             <ul className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300">
               {gameLengthStatements.map((statement) => (
-                <li key={statement}>{statement}</li>
+                <li key={statement}>
+                  <GlossaryRichText>{statement}</GlossaryRichText>
+                </li>
               ))}
             </ul>
             {gameLengthProfile ? (
@@ -1031,7 +1067,7 @@ export function ProfileDashboard({
                   <p className="tm-data-label">Profile model</p>
                 </div>
                 <p className="mt-2 text-sm leading-6 text-stone-300">
-                  {section.summary}
+                  <GlossaryRichText>{section.summary}</GlossaryRichText>
                 </p>
                 <dl className="mt-4 grid gap-2 sm:grid-cols-2">
                   {section.metrics.map((metric) => (
@@ -1045,7 +1081,7 @@ export function ProfileDashboard({
                       </dd>
                       {metric.detail ? (
                         <p className="tm-muted-copy mt-1 text-xs">
-                          {metric.detail}
+                          <GlossaryRichText>{metric.detail}</GlossaryRichText>
                         </p>
                       ) : null}
                     </div>

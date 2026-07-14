@@ -53,6 +53,7 @@ import type {
   SelectionStats,
 } from '@/lib/db/selection-stats-repo';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import { buildInsightCards, type InsightCard } from './build-insight-cards';
 import { BoardHeatmapSection } from './board-heatmap-section';
 import { CardOutcomesSection } from './card-outcomes-section';
@@ -2289,7 +2290,9 @@ export function InsightsDashboard({
                       {card.confidence}
                     </p>
                   </div>
-                  <p className="tm-muted-copy mt-2 text-sm">{card.body}</p>
+                  <p className="tm-muted-copy mt-2 text-sm">
+                    <GlossaryRichText>{card.body}</GlossaryRichText>
+                  </p>
                   <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
                     Sample size: {card.sampleSize}
                   </p>
@@ -2316,7 +2319,7 @@ export function InsightsDashboard({
                       </p>
                     </div>
                     <p className="tm-muted-copy mt-2 text-sm">
-                      {metric.summary}
+                      <GlossaryRichText>{metric.summary}</GlossaryRichText>
                     </p>
                     <dl className="mt-4 grid gap-2 sm:grid-cols-2">
                       {metric.metrics.map((entry) => (
@@ -2330,14 +2333,14 @@ export function InsightsDashboard({
                           </dd>
                           {entry.detail ? (
                             <dd className="tm-muted-copy mt-1 text-xs">
-                              {entry.detail}
+                              <GlossaryRichText>{entry.detail}</GlossaryRichText>
                             </dd>
                           ) : null}
                         </div>
                       ))}
                     </dl>
                     <p className="tm-muted-copy mt-3 text-xs">
-                      {metric.confidenceLabel}
+                      <GlossaryRichText>{metric.confidenceLabel}</GlossaryRichText>
                     </p>
                   </article>
                 ))}
@@ -2348,9 +2351,9 @@ export function InsightsDashboard({
           {isGroupScope && selectedPerson && !selectedPerson.inActiveGroup ? (
             <ChartFrame title="Selected Group Unavailable">
               <p className="tm-body-copy text-sm">
-                {focusPlayerName} doesn&apos;t have a player row in the selected
-                group, so group-only breakdowns are unavailable for that
-                combination.
+                <GlossaryRichText>
+                  {`${focusPlayerName} does not have a player row in the selected group, so group-only breakdowns are unavailable for that combination.`}
+                </GlossaryRichText>
               </p>
             </ChartFrame>
           ) : null}
@@ -2362,7 +2365,9 @@ export function InsightsDashboard({
             >
               {leaderboardChartData.length === 0 ? (
                 <p className="tm-muted-copy text-sm">
-                  Finalized leaderboard rows will appear here once games are logged.
+                  <GlossaryRichText>
+                    Finalized leaderboard rows will appear here once games are logged.
+                  </GlossaryRichText>
                 </p>
               ) : (
                 <ResponsiveContainer height={260} width="100%">
@@ -2788,8 +2793,9 @@ export function InsightsDashboard({
       ) : (
         <ChartFrame title="Insights Waiting on Finalized Games">
           <p className="tm-body-copy text-sm">
-            Finalize a few games to unlock leaderboard, style, lineup, and
-            coverage insights.
+            <GlossaryRichText>
+              Finalize a few games to unlock leaderboard, style, lineup, and coverage insights.
+            </GlossaryRichText>
           </p>
         </ChartFrame>
       )}

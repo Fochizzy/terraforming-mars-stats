@@ -12,6 +12,7 @@ import { parseImportParticipants } from '@/lib/imports/parse-import-participants
 import { describeUnknownError } from '@/lib/errors/describe-unknown-error';
 import { StatusBanner } from '@/components/ui/status-banner';
 import { StepHeading } from '@/components/ui/step-heading';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import { applyCreatedImportPlayerToReview } from '@/lib/imports/apply-created-import-player-to-review';
 import {
   resolveEffectivePlayerIdentity,
@@ -279,14 +280,16 @@ function WebImportInstructionsDialog({ onClose }: { onClose: () => void }) {
         </div>
 
         <p className="tm-body-copy mt-3 text-sm">
-          Keep this open while you work. The instructions scroll inside this
-          overlay, so anything already pasted into the import form stays in
-          place behind it.
+          <GlossaryRichText>
+            Keep this open while you work. The instructions scroll inside this overlay, so anything already pasted into the import form stays in place behind it.
+          </GlossaryRichText>
         </p>
         <aside className="mt-4 rounded-2xl border border-red-300/30 bg-red-300/10 p-4">
           <p className="tm-data-label text-xs text-red-100">Important</p>
           <p className="mt-2 text-sm font-semibold text-red-50/95">
-            This reader cannot use randomized milestones, awards, or tiles.
+            <GlossaryRichText>
+              This reader cannot use randomized milestones, awards, or tiles.
+            </GlossaryRichText>
           </p>
         </aside>
 
@@ -305,7 +308,9 @@ function WebImportInstructionsDialog({ onClose }: { onClose: () => void }) {
                   <h3 className="font-semibold text-stone-100">
                     {step.title}
                   </h3>
-                  <p className="tm-muted-copy mt-1 text-sm">{step.detail}</p>
+                  <p className="tm-muted-copy mt-1 text-sm">
+                    <GlossaryRichText>{step.detail}</GlossaryRichText>
+                  </p>
                 </div>
               </div>
             </li>
@@ -316,19 +321,23 @@ function WebImportInstructionsDialog({ onClose }: { onClose: () => void }) {
           <aside className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4">
             <p className="tm-data-label text-xs text-amber-100">Tip</p>
             <p className="mt-2 text-sm text-amber-50/90">
-              A saved `.txt` game log can also be dragged into the Game Log box.
+              <GlossaryRichText>
+                A saved `.txt` game log can also be dragged into the Game Log box.
+              </GlossaryRichText>
             </p>
           </aside>
           <aside className="rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4">
             <p className="tm-data-label text-xs text-emerald-100">Feature</p>
             <p className="mt-2 text-sm text-emerald-50/90">
-              New players can claim their imported profile later after signing in.
+              <GlossaryRichText>
+                New players can claim their imported profile later after signing in.
+              </GlossaryRichText>
             </p>
           </aside>
           <aside className="rounded-2xl border border-red-300/30 bg-red-300/10 p-4">
             <p className="tm-data-label text-xs text-red-100">Alert</p>
             <p className="mt-2 text-sm text-red-50/90">
-              The same game cannot be saved twice.
+              <GlossaryRichText>The same game cannot be saved twice.</GlossaryRichText>
             </p>
           </aside>
         </div>
@@ -815,12 +824,14 @@ export function WebImportPage({
           </div>
         </div>
         <p className="tm-body-copy text-sm">
-          Paste an exported game log, attach one combined game-result image,
-          and prepare a guided handoff into the shared scoring flow.
+          <GlossaryRichText>
+            Paste an exported game log, attach one combined game-result image, and prepare a guided handoff into the shared scoring flow.
+          </GlossaryRichText>
         </p>
         <p className="text-xs text-emerald-100/85">
-          Only one image is needed here. Board screenshots are no longer part of
-          this import flow.
+          <GlossaryRichText>
+            Only one image is needed here. Board screenshots are no longer part of this import flow.
+          </GlossaryRichText>
         </p>
         <div
           className="rounded-2xl border p-4"
@@ -835,8 +846,9 @@ export function WebImportPage({
                 Need help with the upload?
               </p>
               <p className="tm-body-copy mt-1 text-sm">
-                Open the step-by-step instructions without leaving this import
-                draft, or use the full guide in a new tab.
+                <GlossaryRichText>
+                  Open the step-by-step instructions without leaving this import draft, or use the full guide in a new tab.
+                </GlossaryRichText>
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -889,9 +901,9 @@ export function WebImportPage({
             </label>
           </div>
           <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-            The map and player count are detected automatically from the
-            pasted log evidence, and generations are inferred from the
-            uploaded victory point breakdown when possible.
+            <GlossaryRichText>
+              The map and player count are detected automatically from the pasted log evidence, and generations are inferred from the uploaded victory point breakdown when possible.
+            </GlossaryRichText>
           </p>
         </div>
 
@@ -927,8 +939,9 @@ export function WebImportPage({
             />
           </div>
           <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-            Paste the exported log text directly, or drop a `.txt` or `.log`
-            file into this panel.
+            <GlossaryRichText>
+              Paste the exported log text directly, or drop a `.txt` or `.log` file into this panel.
+            </GlossaryRichText>
           </p>
         </div>
 
@@ -1022,9 +1035,9 @@ export function WebImportPage({
               value={participantsText}
             />
             <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-              Leave this blank to auto-detect names from the pasted log when
-              possible, or enter one participant name per line to override the
-              detected list.
+              <GlossaryRichText>
+                Leave this blank to auto-detect names from the pasted log when possible, or enter one participant name per line to override the detected list.
+              </GlossaryRichText>
             </p>
           </label>
         </div>

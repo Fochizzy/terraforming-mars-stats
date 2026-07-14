@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StepHeading } from '@/components/ui/step-heading';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import {
   signupFullNameSchema,
   usernameHandleSchema,
@@ -159,12 +160,14 @@ export function PlayersStep({
     <section className="tm-panel flex flex-col gap-4">
       <StepHeading step="02" title="Players" />
       <p className="tm-body-copy text-sm">
-        Pick saved players from the roster or type a full name to create that
-        player on save.
+        <GlossaryRichText>
+          Pick saved players from the roster or type a full name to create that player on save.
+        </GlossaryRichText>
       </p>
       <p className="text-sm" style={{ color: 'var(--tm-muted)' }}>
-        Saved players can be found by roster name, username, or first name plus
-        last initial.
+        <GlossaryRichText>
+          Saved players can be found by roster name, username, or first name plus last initial.
+        </GlossaryRichText>
       </p>
       <p className="tm-data-label">
         {selectedPlayers.length} of {playerCount} seats filled
@@ -375,9 +378,9 @@ export function PlayersStep({
                 </div>
                 <div className="grid gap-3">
                   <p className="text-xs" style={{ color: 'var(--tm-muted)' }}>
-                    Preludes played later in the game, by Valley Trust, Board of
-                    Directors or New Partner. Enter them separately here; they
-                    still count under preludes in stats.
+                    <GlossaryRichText>
+                      Preludes played later in the game, by Valley Trust, Board of Directors or New Partner. Enter them separately here; they still count under preludes in stats.
+                    </GlossaryRichText>
                   </p>
                   <div className="grid gap-3 lg:grid-cols-4">
                     {MIDGAME_PRELUDE_SLOT_INDEXES.map((slotIndex) => (

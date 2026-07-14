@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { homepageSections } from './landing-sections';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { PublicLandingStats } from '@/lib/db/public-landing-stats-repo';
 
 type LandingSectionListProps = {
@@ -35,7 +36,7 @@ export function LandingSectionList({ stats }: LandingSectionListProps) {
               {section.title}
             </h2>
             <p className="tm-body-copy tm-landing-section-copy">
-              {section.description}
+              <GlossaryRichText>{section.description}</GlossaryRichText>
             </p>
             <div className="tm-landing-highlight-row">
               {section.highlights.map((highlight) => {
@@ -77,7 +78,9 @@ export function LandingSectionList({ stats }: LandingSectionListProps) {
                   {detail ? (
                     <>
                       <p className="tm-landing-stat-value">{detail.value}</p>
-                      <p className="tm-landing-stat-caption">{detail.caption}</p>
+                      <p className="tm-landing-stat-caption">
+                        <GlossaryRichText>{detail.caption}</GlossaryRichText>
+                      </p>
                     </>
                   ) : (
                     <p className="tm-landing-stat-caption">

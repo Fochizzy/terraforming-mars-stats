@@ -3,6 +3,7 @@
 import { ObjectiveInfoButton } from '@/components/ui/objective-info-button';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { StepHeading } from '@/components/ui/step-heading';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type {
   MapAwardOption,
   MapMilestoneOption,
@@ -37,7 +38,9 @@ export function MilestonesStep({
     <section className="tm-panel flex flex-col gap-4">
       <StepHeading step="03" title="Milestones and Awards" />
       <p className="tm-body-copy text-sm">
-        Record claimed milestones, funded awards, and who placed on each award.
+        <GlossaryRichText>
+          Record claimed milestones, funded awards, and who placed on each award.
+        </GlossaryRichText>
       </p>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="grid gap-4">

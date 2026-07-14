@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { isRenderableCardImage } from '@/features/catalog/card-image';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { ProfileCardStat } from '@/lib/db/analytics-repo';
 import { formatPercent } from './performance-delta';
 
@@ -144,10 +145,9 @@ export function ProfileCardPanels({
         />
         {keyCards.length > 0 ? (
           <p className="tm-muted-copy mt-3 text-xs">
-            Key cards aren&apos;t picked by hand. Victory impact is how many
-            points a card adds to your win rate above your baseline, blending
-            your own games with global play data so one lucky game can&apos;t
-            crown a card.
+            <GlossaryRichText>
+              Key cards are not picked by hand. Victory impact is how many points a card adds to your win rate above your baseline, blending your own games with global play data so one lucky game cannot crown a card.
+            </GlossaryRichText>
           </p>
         ) : null}
       </ChartFrame>
@@ -163,10 +163,9 @@ export function ProfileCardPanels({
         />
         {lossCards.length > 0 ? (
           <p className="tm-muted-copy mt-3 text-xs">
-            Loss-correlated cards aren&apos;t picked by hand. Victory impact is
-            how many points a card subtracts from your win rate below your
-            baseline, blending your own games with global play data so one bad
-            game can&apos;t condemn a card.
+            <GlossaryRichText>
+              Loss-correlated cards are not picked by hand. Victory impact is how many points a card subtracts from your win rate below your baseline, blending your own games with global play data so one bad game cannot condemn a card.
+            </GlossaryRichText>
           </p>
         ) : null}
       </ChartFrame>

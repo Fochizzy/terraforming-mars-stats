@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { SelectChevron } from '@/components/ui/select-chevron';
 import { TagLabel } from '@/components/ui/tag-icon';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type {
   CorporationTagStat,
   SelectionDialogData,
@@ -90,7 +91,9 @@ export function CorporationTagProfiles({
         </ul>
       ) : (
         <p className="tm-muted-copy mt-3 text-xs">
-          No tag profile recorded for this corporation yet.
+          <GlossaryRichText>
+            No tag profile recorded for this corporation yet.
+          </GlossaryRichText>
         </p>
       )}
     </div>

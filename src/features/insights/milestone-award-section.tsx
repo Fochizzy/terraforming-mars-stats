@@ -24,6 +24,7 @@ import {
   type AwardObjectiveStats,
   type MilestoneObjectiveStats,
 } from '@/components/ui/objective-info-button';
+import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type {
   AwardFunderWinnerRow,
   AwardOutcomeRow,
@@ -157,7 +158,9 @@ export function MilestoneEconomicsSection(props: {
     >
       {data.length === 0 ? (
         <p className="tm-muted-copy text-sm">
-          Milestone claims will appear once finalized games record them.
+          <GlossaryRichText>
+            Milestone claims will appear once finalized games record them.
+          </GlossaryRichText>
         </p>
       ) : (
         <div className="flex flex-col gap-4">
@@ -230,7 +233,9 @@ export function MilestoneEconomicsSection(props: {
                       </p>
                     </div>
                     <p className="tm-muted-copy mt-2 text-sm">
-                      Claimed {row.claims} time{row.claims === 1 ? '' : 's'}
+                      <GlossaryRichText>
+                        {`Claimed ${row.claims} time${row.claims === 1 ? '' : 's'}`}
+                      </GlossaryRichText>
                     </p>
                   </article>
                 );
