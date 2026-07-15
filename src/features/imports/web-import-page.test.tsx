@@ -3,6 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { WebImportPage } from './web-import-page';
 
+vi.mock('@/lib/ocr/browser-tesseract', () => ({
+  recognizeScreenshotInBrowser: vi.fn().mockResolvedValue({
+    confidence: 0.98,
+    text: 'Friday Mars won by 6 points.',
+  }),
+}));
+
 describe('WebImportPage', () => {
   it('renders the protected import workflow fields', () => {
     render(
@@ -74,7 +81,9 @@ describe('WebImportPage', () => {
     });
 
     await user.upload(screen.getByLabelText(/endgame screenshot/i), screenshot);
-    await user.click(screen.getByRole('button', { name: /save import draft/i }));
+    await user.click(
+      await screen.findByRole('button', { name: /save import draft/i }),
+    );
 
     await waitFor(() =>
       expect(onStartImport).toHaveBeenCalledWith({
@@ -82,8 +91,10 @@ describe('WebImportPage', () => {
         exportedGameLog: 'Friday Mars won by 6 points.',
         generationCount: 12,
         mapId: 'elysium',
+        ocrConfidence: 0.98,
         playedOn: '2026-07-04',
         playerCount: 3,
+        rawOcrText: 'Friday Mars won by 6 points.',
       }),
     );
 
