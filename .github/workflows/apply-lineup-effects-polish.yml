@@ -1,3 +1,4 @@
+# Integration workflow for the lineup effects UI branch.
 name: Apply lineup effects polish
 
 on:
