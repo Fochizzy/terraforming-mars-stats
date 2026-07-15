@@ -96,7 +96,7 @@ describe('CorporationPreludePairingsPanel', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('+75 pts vs baseline')).toBeInTheDocument();
     expect(
-      screen.getByText('Established sample · 3 games'),
+      screen.queryByText('Established sample · 3 games'),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Developing sample · 3 games')).toBeInTheDocument();
   });
