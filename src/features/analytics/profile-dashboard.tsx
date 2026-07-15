@@ -12,11 +12,12 @@ import type {
 import { AwardMilestoneSummary } from './award-milestone-summary';
 import { EfficiencySummary } from './efficiency-summary';
 import { MapPerformanceList } from './map-performance-list';
-import { ScoreSourceList } from './score-source-list';
+import { ScoreSourceRadar } from './score-source-radar';
 
 type ProfileDashboardProps = {
   coverage?: CoverageRow | null;
   efficiencySummary?: PlayerEfficiencySummary | null;
+  groupScoreAverages?: ScoreSourceAverages | null;
   headToHeadRows?: ProfileHeadToHeadRow[];
   mapMetricRows?: PlayerMapMetricRow[];
   performance?: LeaderboardRow | null;
@@ -46,6 +47,7 @@ function formatAverage(value: number | null) {
 export function ProfileDashboard({
   coverage = null,
   efficiencySummary = null,
+  groupScoreAverages = null,
   headToHeadRows = [],
   mapMetricRows = [],
   performance = null,
@@ -121,9 +123,11 @@ export function ProfileDashboard({
       <EfficiencySummary efficiencySummary={efficiencySummary} />
       <MapPerformanceList mapMetricRows={mapMetricRows} />
       <AwardMilestoneSummary efficiencySummary={efficiencySummary} />
-      <ChartFrame title="Score Source Averages">
-        <ScoreSourceList scoreAverages={scoreAverages} />
-      </ChartFrame>
+      <ScoreSourceRadar
+        groupAverages={groupScoreAverages}
+        playerAverages={scoreAverages}
+        playerName={playerName}
+      />
       <ChartFrame title="Head-to-Head Snapshot">
         {headToHeadRows.length === 0 ? (
           <p className="text-sm text-stone-400">
