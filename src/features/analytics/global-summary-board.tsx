@@ -8,6 +8,7 @@ import type {
   GlobalStyleMetricRow,
   GlobalTagMetricRow,
 } from '@/lib/db/analytics-repo';
+import { CorporationMetaPanel } from './corporation-meta-panel';
 
 type GlobalSummaryBoardProps = {
   globalAwardMetricRows?: GlobalAwardMetricRow[];
@@ -42,7 +43,11 @@ function humanizeCode(value: string) {
     .join(' ');
 }
 
-function contextLine(row: { mapId: string | null; mapName: string | null; playerCount: number }) {
+function contextLine(row: {
+  mapId: string | null;
+  mapName: string | null;
+  playerCount: number;
+}) {
   const mapLabel = row.mapName ?? row.mapId;
   const parts = [
     mapLabel ? `map ${mapLabel}` : null,
@@ -76,41 +81,9 @@ export function GlobalSummaryBoard({
 
   return (
     <>
-      <ChartFrame title="Global Corporation Meta">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {globalCorporationMetricRows.slice(0, 6).map((row) => {
-            const context = contextLine(row);
-
-            return (
-              <article
-                className="tm-stat-card"
-                key={`${row.corporationId}-${row.mapId ?? 'all'}-${row.playerCount}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-stone-100">
-                      {row.corporationName ?? humanizeCode(row.corporationId)}
-                    </p>
-                    <p className="tm-muted-copy mt-1 text-sm">
-                      {row.gamesPlayed} games | {row.wins} wins
-                    </p>
-                  </div>
-                  <p className="tm-accent-copy text-sm">
-                    {formatPercent(row.winRate)}
-                  </p>
-                </div>
-                <p className="tm-muted-copy mt-3 text-sm">
-                  {formatDecimal(row.averagePoints)} avg points |{' '}
-                  {formatDecimal(row.averagePointsPerGeneration)} pts/gen
-                </p>
-                {context ? (
-                  <p className="tm-muted-copy mt-2 text-sm">{context}</p>
-                ) : null}
-              </article>
-            );
-          })}
-        </div>
-      </ChartFrame>
+      {globalCorporationMetricRows.length > 0 ? (
+        <CorporationMetaPanel rows={globalCorporationMetricRows} />
+      ) : null}
 
       <ChartFrame title="Global Style Meta">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -164,7 +137,8 @@ export function GlobalSummaryBoard({
                       {humanizeCode(row.tagCode)}
                     </p>
                     <p className="tm-muted-copy mt-1 text-sm">
-                      {row.gamesPlayed} games | {formatDecimal(row.averageTagCount)} avg tags
+                      {row.gamesPlayed} games | {formatDecimal(row.averageTagCount)}{' '}
+                      avg tags
                     </p>
                   </div>
                   <p className="tm-accent-copy text-sm">
@@ -272,7 +246,8 @@ export function GlobalSummaryBoard({
                     {row.playerCount}-player games
                   </p>
                   <p className="tm-muted-copy mt-1 text-sm">
-                    {row.gamesPlayed} games | {formatDecimal(row.averageGenerations)} avg gens
+                    {row.gamesPlayed} games | {formatDecimal(row.averageGenerations)}{' '}
+                    avg gens
                   </p>
                 </div>
                 <p className="tm-accent-copy text-sm">
