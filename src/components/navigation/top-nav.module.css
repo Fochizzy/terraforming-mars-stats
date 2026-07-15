@@ -1,11 +1,11 @@
 .nav {
-  --tm-top-nav-gutter: 1.25rem;
+  --tm-top-nav-gutter: 1rem;
   display: flex;
   align-items: center;
-  min-height: 4.625rem;
+  min-height: 5.75rem;
   margin-inline: calc(var(--tm-top-nav-gutter) * -1);
   overflow-x: auto;
-  padding: 0;
+  padding: 0.25rem 0 0;
   border-top: 0;
   scrollbar-width: none;
 }
@@ -20,7 +20,7 @@
   width: 100%;
   min-width: max-content;
   max-width: 90rem;
-  min-height: 4.625rem;
+  min-height: 5.75rem;
   margin-inline: auto;
   padding-inline: var(--tm-top-nav-gutter);
 }
@@ -31,13 +31,13 @@
 }
 
 .primaryGroup {
-  gap: 0.75rem;
+  gap: 0.9rem;
 }
 
 .utilityGroup {
-  gap: 1.5rem;
+  gap: 1rem;
   margin-left: auto;
-  padding-left: 1.5rem;
+  padding-left: clamp(1.5rem, 5vw, 7.5rem);
 }
 
 .link {
@@ -47,15 +47,15 @@
   align-items: center;
   justify-content: center;
   min-height: 2.5rem;
-  padding: 0.625rem 0.25rem;
+  padding: 0.625rem 0.35rem;
   border: 0;
-  border-radius: 0.375rem;
+  border-radius: 0;
   background: transparent;
   color: var(--tm-muted);
   font-family: var(--tm-font-display);
   font-size: 0.8125rem;
   font-weight: 500;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
   transition:
@@ -79,15 +79,19 @@
 .active:not(.logGame) {
   background: transparent;
   color: #f9efe2;
-  box-shadow: inset 0 -2px 0 var(--tm-copper-400);
+  box-shadow: inset 0 -1px 0 rgba(221, 161, 93, 0.7);
 }
 
 .logGame {
-  min-height: 2.125rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(240, 176, 118, 0.5);
-  background: rgba(240, 106, 50, 0.2);
-  box-shadow: inset 0 1px 0 rgba(255, 232, 205, 0.12);
+  min-height: 2.35rem;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid rgba(240, 176, 118, 0.62);
+  border-radius: 0.125rem;
+  background:
+    linear-gradient(180deg, rgba(162, 77, 38, 0.5), rgba(91, 39, 26, 0.7));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 205, 0.16),
+    0 0 0 1px rgba(70, 28, 15, 0.78);
   color: #ffd9b5;
   font-size: 0.75rem;
   font-weight: 600;
@@ -105,41 +109,64 @@
 }
 
 .leaderboard {
-  min-width: 8rem;
-  min-height: 2.125rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid rgba(157, 213, 240, 0.42);
-  border-radius: 999px;
-  background: rgba(14, 28, 36, 0.72);
-  box-shadow: inset 0 1px 0 rgba(201, 236, 255, 0.1);
-  color: #d7f2ff;
-  font-size: 0.75rem;
+  min-width: min(12.25rem, 42vw);
+  min-height: 4.875rem;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.7rem 1.35rem 0.8rem;
+  border: 1px solid rgba(255, 144, 59, 0.82);
+  border-radius: 0.55rem;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 139, 36, 0.28), transparent 42%),
+    linear-gradient(180deg, rgba(62, 31, 19, 0.92), rgba(10, 12, 17, 0.96));
+  box-shadow:
+    0 0 24px rgba(231, 102, 34, 0.28),
+    inset 0 1px 0 rgba(255, 229, 191, 0.16);
+  color: #f9efe2;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
+.leaderboard::before {
+  content: '';
+  display: block;
+  width: 2.45rem;
+  height: 1.55rem;
+  background:
+    linear-gradient(to top, #f3a51f 0 100%) 0.1rem 100% / 0.55rem 52% no-repeat,
+    linear-gradient(to top, #ffb22f 0 100%) 0.93rem 100% / 0.6rem 100% no-repeat,
+    linear-gradient(to top, #d98716 0 100%) 1.82rem 100% / 0.55rem 72% no-repeat;
+  filter: drop-shadow(0 0 8px rgba(255, 160, 30, 0.42));
+}
+
 .leaderboard:hover {
-  border-color: rgba(157, 213, 240, 0.68);
-  background: rgba(29, 74, 91, 0.72);
-  color: #f0fbff;
+  border-color: rgba(255, 194, 105, 0.95);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 153, 50, 0.36), transparent 42%),
+    linear-gradient(180deg, rgba(79, 38, 22, 0.96), rgba(14, 15, 20, 0.98));
+  color: #fff6ea;
   transform: translateY(-1px);
 }
 
 .leaderboard[aria-current='page'] {
-  border-color: rgba(157, 213, 240, 0.82);
+  border-color: rgba(255, 205, 128, 0.98);
+  box-shadow:
+    0 0 28px rgba(255, 122, 35, 0.42),
+    inset 0 1px 0 rgba(255, 229, 191, 0.18);
 }
 
 @media (min-width: 768px) {
   .primaryGroup {
-    gap: 1.125rem;
+    gap: 1.15rem;
   }
 }
 
 @media (min-width: 1024px) {
   .nav {
-    --tm-top-nav-gutter: 2rem;
+    --tm-top-nav-gutter: 2.25rem;
   }
 
   .primaryGroup {
-    gap: 1.75rem;
+    gap: 1.65rem;
   }
 }

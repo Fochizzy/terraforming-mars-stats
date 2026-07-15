@@ -92,7 +92,7 @@ describe('AppShell', () => {
     const topNav = getTopNav(container);
 
     expect(
-      screen.getByRole('link', { name: /review saved games/i }),
+      screen.getByRole('link', { name: /saved games/i }),
     ).toHaveAttribute('href', '/log-game/review');
 
     const actionLabels = Array.from(
@@ -101,7 +101,7 @@ describe('AppShell', () => {
       ),
     ).map((element) => element.textContent?.trim());
 
-    expect(actionLabels).toEqual(['Review Saved Games', 'Log Out']);
+    expect(actionLabels).toEqual(['Saved Games', 'Log Out']);
     expect(screen.getByRole('link', { name: 'Leaderboard' })).toHaveAttribute(
       'href',
       '/leaderboard',

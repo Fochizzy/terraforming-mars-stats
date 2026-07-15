@@ -12,7 +12,7 @@ export function AppShell({
   children,
   headerActions,
   navItems,
-  showReviewSavedGamesLink = false,
+  showReviewSavedGamesLink = true,
   wide = false,
 }: {
   title: string;
@@ -27,9 +27,7 @@ export function AppShell({
       <PlayAnalysisEnhancer />
       <InsightFormattingEnhancer />
       <GroupInsightsLabEnhancer />
-      <div
-        className={`mx-auto flex min-h-screen flex-col ${wide ? 'max-w-6xl' : 'max-w-md'}`}
-      >
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col">
         <header className="tm-app-header">
           <div className="tm-app-header__inner">
             <div className="tm-app-header-banner tm-landing-hero-module">
@@ -56,10 +54,10 @@ export function AppShell({
                   {headerActions}
                   {showReviewSavedGamesLink ? (
                     <Link
-                      className="tm-button-secondary px-4 py-2 text-xs"
+                      className="tm-button-secondary tm-button-secondary--saved px-4 py-2 text-xs"
                       href="/log-game/review"
                     >
-                      Review Saved Games
+                      Saved Games
                     </Link>
                   ) : null}
                   <form action={signOut}>
@@ -73,7 +71,11 @@ export function AppShell({
             <TopNav />
           </div>
         </header>
-        <section className="flex-1 px-5 py-5 lg:px-8 lg:py-8">{children}</section>
+        <section
+          className={`mx-auto w-full flex-1 px-5 py-5 lg:px-8 lg:py-8 ${wide ? 'max-w-6xl' : 'max-w-md'}`}
+        >
+          {children}
+        </section>
         <BottomNav items={navItems} />
       </div>
     </main>
