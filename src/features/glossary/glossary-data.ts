@@ -26,9 +26,9 @@ export const glossaryCategories: GlossaryCategory[] = [
       {
         slug: 'weighted-score',
         term: 'Weighted Score',
-        aliases: ['weighted leaderboard', 'weighted leaderboard form'],
+        aliases: ['leaderboard score', 'leaderboard form'],
         definition:
-          'A single ranking number that blends how a player finishes rather than just their raw points: 50% win rate, 30% average finishing placement, and 20% average score margin against opponents (capped at ±20 points). Higher is better, and it drives the weighted leaderboard order. It exists so a player who wins often but by small margins can still rank above one who piles up points in games they lose.',
+          'A single ranking number that blends how a player finishes rather than just their raw points: 50% win rate, 30% average finishing placement, and 20% average score margin against opponents (capped at ±20 points). Higher is better, and it helps explain leaderboard order without making raw score the only signal.',
       },
       {
         slug: 'win-rate',

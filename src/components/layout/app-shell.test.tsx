@@ -72,7 +72,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
   });
 
-  it('renders leaderboard beneath review saved games and log out', () => {
+  it('renders leaderboard as the right-side primary navigation action', () => {
     const { container } = render(
       <AppShell showReviewSavedGamesLink title="My Profile">
         content
@@ -89,10 +89,14 @@ describe('AppShell', () => {
       ),
     ).map((element) => element.textContent?.trim());
 
-    expect(actionLabels).toEqual(['Review Saved Games', 'Log Out', 'Leaderboard']);
-    expect(screen.getByRole('link', { name: 'Leaderboard' })).toHaveClass(
-      'tm-button-leaderboard',
-      'w-full',
+    expect(actionLabels).toEqual(['Review Saved Games', 'Log Out']);
+    expect(screen.getByRole('link', { name: 'Leaderboard' })).toHaveAttribute(
+      'href',
+      '/leaderboard',
+    );
+    expect(screen.getByRole('link', { name: 'Leaderboard' })).toHaveAttribute(
+      'data-nav-position',
+      'end',
     );
   });
 

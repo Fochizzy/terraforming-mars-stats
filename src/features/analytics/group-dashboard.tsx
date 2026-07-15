@@ -4,7 +4,6 @@ import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type {
   CoverageRow,
   GroupHeadToHeadRow,
-  LeaderboardRow,
   LineupEffectRow,
   ScoreSourceAverages,
   StyleAgreementRow,
@@ -14,7 +13,6 @@ import { ScoreSourceList } from './score-source-list';
 type GroupDashboardProps = {
   coverage?: CoverageRow | null;
   headToHeadRows?: GroupHeadToHeadRow[];
-  leaderboardRows?: LeaderboardRow[];
   lineupEffectRows?: LineupEffectRow[];
   scoreAverages?: ScoreSourceAverages | null;
   styleAgreementRows?: Array<
@@ -29,27 +27,14 @@ function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-function formatAverage(value: number | null) {
-  if (value === null) {
-    return '—';
-  }
-
-  return new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-  }).format(value);
-}
-
 export function GroupDashboard({
   coverage = null,
   headToHeadRows = [],
-  leaderboardRows = [],
   lineupEffectRows = [],
   scoreAverages = null,
   styleAgreementRows = [],
 }: GroupDashboardProps) {
   const hasFinalizedAnalytics =
-    leaderboardRows.length > 0 ||
     headToHeadRows.length > 0 ||
     lineupEffectRows.length > 0 ||
     styleAgreementRows.length > 0 ||
@@ -70,36 +55,6 @@ export function GroupDashboard({
 
   return (
     <div className="flex flex-col gap-4">
-      <ChartFrame title="Weighted Leaderboard">
-        {leaderboardRows.length === 0 ? (
-          <p className="text-sm text-stone-400">
-            <GlossaryRichText>
-              No finalized leaderboard rows are available yet.
-            </GlossaryRichText>
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {leaderboardRows.slice(0, 6).map((row) => (
-              <article
-                className="tm-stat-card"
-                key={row.playerId}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-stone-100">{row.playerName}</p>
-                  <p className="tm-accent-copy text-sm">
-                    {formatAverage(row.weightedScore)}
-                  </p>
-                </div>
-                <p className="tm-muted-copy mt-2 text-sm">
-                  <GlossaryRichText>
-                    {`${formatPercent(row.winRate)} win rate | avg place ${formatAverage(row.averagePlacement)}`}
-                  </GlossaryRichText>
-                </p>
-              </article>
-            ))}
-          </div>
-        )}
-      </ChartFrame>
       <ChartFrame title="Score Source Averages">
         <ScoreSourceList scoreAverages={scoreAverages} />
       </ChartFrame>

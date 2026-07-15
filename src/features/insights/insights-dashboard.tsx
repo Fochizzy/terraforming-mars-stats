@@ -2034,9 +2034,9 @@ export function InsightsDashboard({
     : selectedPerson?.bundle.scoreAverages ?? null;
   const leaderboardTitle = isGroupScope
     ? isPlayerCombinationMode
-      ? 'Combination Weighted Leaderboard'
-      : 'Weighted Leaderboard Comparison'
-    : 'Overall Weighted Leaderboard';
+      ? 'Combination Leaderboard'
+      : 'Leaderboard Comparison'
+    : 'Overall Leaderboard';
   const coverageTitle = focusPlayerName
     ? isGroupScope
       ? `Optional Data Coverage for ${focusPlayerName} in Selected Group`
@@ -2275,7 +2275,7 @@ export function InsightsDashboard({
           </div>
           <p className="tm-body-copy text-sm">
             Compare{' '}
-            <GlossaryLink slug="weighted-score">weighted leaderboard</GlossaryLink>{' '}
+            <GlossaryLink slug="weighted-score">leaderboard</GlossaryLink>{' '}
             form,{' '}
             <GlossaryLink slug="score-sources">score-source</GlossaryLink>{' '}
             patterns,{' '}

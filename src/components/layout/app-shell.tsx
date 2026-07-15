@@ -68,12 +68,6 @@ export function AppShell({
                     </button>
                   </form>
                 </div>
-                <Link
-                  className="tm-button-leaderboard w-full px-4 py-2 text-xs"
-                  href="/leaderboard"
-                >
-                  Leaderboard
-                </Link>
               </div>
             </div>
             <TopNav />

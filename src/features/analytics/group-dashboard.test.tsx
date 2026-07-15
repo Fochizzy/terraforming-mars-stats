@@ -32,24 +32,6 @@ describe('GroupDashboard', () => {
           ties: 0,
         },
       ],
-      leaderboardRows: [
-        {
-          averageLossGap: 2.5,
-          averagePlacement: 1.25,
-          averageScore: 84.5,
-          averageWinMargin: 6.2,
-          differentialComponent: 0.067,
-          gamesPlayed: 4,
-          groupId: 'group-1',
-          placementComponent: 0.281,
-          playerId: 'p1',
-          playerName: 'Friday Mars',
-          weightedScore: 0.723,
-          winRate: 0.75,
-          winRateComponent: 0.375,
-          wins: 3,
-        },
-      ],
       lineupEffectRows: [
         {
           averageGenerationCount: 10.7,
@@ -90,7 +72,7 @@ describe('GroupDashboard', () => {
       <GroupDashboard {...props} />,
     );
 
-    expect(screen.getByText(/weighted leaderboard/i)).toBeInTheDocument();
+    expect(screen.queryByText(/weighted leaderboard/i)).not.toBeInTheDocument();
     expect(screen.getAllByText(/friday mars/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/second seat, third seat/i)).toBeInTheDocument();
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();

@@ -19,7 +19,8 @@ export const defaultTopNavItems: TopNavItem[] = [
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
   { href: '/comparisons', label: 'Comparisons' },
-  { href: '/glossary', label: 'Glossary', align: 'end' },
+  { href: '/glossary', label: 'Glossary' },
+  { href: '/leaderboard', label: 'Leaderboard', align: 'end' },
 ];
 
 function isItemActive(pathname: string, href: string): boolean {
@@ -63,10 +64,12 @@ export function TopNav({
   const renderItem = (item: TopNavItem) => {
     const active = isItemActive(pathname, item.href);
     const isLogGame = item.href === '/log-game';
+    const isLeaderboard = item.href === '/leaderboard';
     const className = [
       'tm-top-nav__link',
       styles.link,
       isLogGame ? styles.logGame : '',
+      isLeaderboard ? styles.leaderboard : '',
       active ? styles.active : '',
     ]
       .filter(Boolean)
@@ -76,6 +79,7 @@ export function TopNav({
       <Link
         aria-current={active ? 'page' : undefined}
         className={className}
+        data-nav-position={item.align ?? 'start'}
         href={item.href}
         key={item.href}
         onClick={(event) => {

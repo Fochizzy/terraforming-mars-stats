@@ -419,7 +419,7 @@ describe('InsightsDashboard', () => {
     expect(screen.getByText('James Card')).toBeInTheDocument();
     expect(screen.queryByText('Unselected Player Card')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: /Combination Weighted Leaderboard/i }),
+      screen.getByRole('heading', { name: /Combination Leaderboard/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /2026-06-01/i })).toBeInTheDocument();
     expect(
@@ -1429,7 +1429,7 @@ describe('InsightsDashboard', () => {
 
     // Overall is the default scope, so the leaderboard spans shared games.
     expect(
-      screen.getByRole('heading', { name: /Overall Weighted Leaderboard/i }),
+      screen.getByRole('heading', { name: /Overall Leaderboard/i }),
     ).toBeInTheDocument();
 
     await user.selectOptions(
@@ -1455,7 +1455,7 @@ describe('InsightsDashboard', () => {
       screen.getByRole('heading', { name: /Selected Group Unavailable/i }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { name: /Weighted Leaderboard Comparison/i }),
+      screen.queryByRole('heading', { name: /Leaderboard Comparison/i }),
     ).not.toBeInTheDocument();
   });
 });
