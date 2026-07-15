@@ -4,6 +4,7 @@ import { BottomNav, type BottomNavItem } from '@/components/navigation/bottom-na
 import { TopNav } from '@/components/navigation/top-nav';
 import { PlayAnalysisEnhancer } from '@/features/analytics/play-analysis-enhancer';
 import { signOut } from '@/features/auth/sign-out';
+import { InsightFormattingEnhancer } from '@/features/insights/insight-formatting-enhancer';
 
 export function AppShell({
   title,
@@ -23,6 +24,7 @@ export function AppShell({
   return (
     <main className="tm-app-shell">
       <PlayAnalysisEnhancer />
+      <InsightFormattingEnhancer />
       <div
         className={`mx-auto flex min-h-screen flex-col ${wide ? 'max-w-6xl' : 'max-w-md'}`}
       >
