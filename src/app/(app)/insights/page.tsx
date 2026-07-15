@@ -2,19 +2,23 @@ import { AppShell } from '@/components/layout/app-shell';
 import { CorporationPreludePairingsPanel } from '@/features/analytics/corporation-prelude-pairings-panel';
 import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
+import { GamePaceReplay } from '@/features/insights/game-pace-replay';
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
 import { getGroupAnalytics } from '@/lib/db/analytics-repo';
+import { listGamePaceReplays } from '@/lib/db/game-pace-repo';
 import { listPlayers } from '@/lib/db/player-repo';
 import { listPromoCards, listPromoSets } from '@/lib/db/reference-repo';
 
 export default async function InsightsPage() {
   const context = await requireGroupContextOrRedirect();
-  const [analytics, players, promoSets, promoCards] = await Promise.all([
-    getGroupAnalytics(context.groupId),
-    listPlayers(context.groupId),
-    listPromoSets(),
-    listPromoCards(),
-  ]);
+  const [analytics, players, promoSets, promoCards, gamePaceReplays] =
+    await Promise.all([
+      getGroupAnalytics(context.groupId),
+      listPlayers(context.groupId),
+      listPromoSets(),
+      listPromoCards(),
+      listGamePaceReplays(context.groupId),
+    ]);
 
   const pairingRows = analytics.groupInteractionRows.filter(
     (row) => row.interactionType === 'corporation_prelude_pair',
@@ -55,6 +59,7 @@ export default async function InsightsPage() {
           rows={pairingRows}
           scoreAverages={analytics.scoreAverages}
         />
+        <GamePaceReplay games={gamePaceReplays} />
         <InsightsDashboard
           analytics={dashboardAnalytics}
           players={players.map((player) => ({
