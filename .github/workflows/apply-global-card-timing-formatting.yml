@@ -1,0 +1,34 @@
+name: Apply global card timing formatting
+
+on:
+  push:
+    branches:
+      - feature/global-card-timing-formatting
+    paths:
+      - scripts/apply-global-card-timing-formatting.mjs
+      - .github/workflows/apply-global-card-timing-formatting.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/global-card-timing-formatting
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply source and test changes
+        run: node scripts/apply-global-card-timing-formatting.mjs
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/insights/global-insight-metrics-section.tsx src/features/insights/global-insight-metrics-section.test.tsx .github/workflows/apply-global-card-timing-formatting.yml scripts/apply-global-card-timing-formatting.mjs
+          git commit -m "Improve opening combo and card timing formatting"
+          git push origin HEAD:feature/global-card-timing-formatting
