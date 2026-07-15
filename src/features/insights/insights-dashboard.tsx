@@ -56,6 +56,7 @@ import { GlossaryLink } from '@/features/glossary/glossary-link';
 import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import { saveHiddenGroupInsightPlayer } from '@/app/(app)/insights/group/actions';
 import { buildInsightCards, type InsightCard } from './build-insight-cards';
+import { PlayerComparisonSummary } from './player-comparison-summary';
 import { BoardHeatmapSection } from './board-heatmap-section';
 import { CardOutcomesSection } from './card-outcomes-section';
 import { GameLengthSection } from './game-length-section';
@@ -1680,6 +1681,7 @@ export function InsightsDashboard({
   const [selectedPersonId, setSelectedPersonId] = useState<string>(
     initialSelectedPersonId,
   );
+  const [comparePersonId, setComparePersonId] = useState<string>('none');
   const [draftCombinationPlayerIds, setDraftCombinationPlayerIds] = useState<
     string[]
   >([]);
@@ -1741,12 +1743,24 @@ export function InsightsDashboard({
     useState<FocusScope>('overall');
   const focusScope = fixedFocusScope ?? selectedFocusScope;
 
+  const lockFocusToCurrentUser =
+    scopeMode === 'individual' && Boolean(currentUserCanonicalId);
+  const effectiveSelectedPersonId = lockFocusToCurrentUser
+    ? currentUserCanonicalId ?? 'all'
+    : selectedPersonId;
   const selectedPerson =
-    isPlayerCombinationMode || selectedPersonId === 'all'
+    isPlayerCombinationMode || effectiveSelectedPersonId === 'all'
       ? null
       : focusPeople.find(
-          (person) => person.canonicalId === selectedPersonId,
+          (person) => person.canonicalId === effectiveSelectedPersonId,
         ) ?? null;
+  const comparePerson =
+    !isPlayerCombinationMode &&
+    selectedPerson !== null &&
+    comparePersonId !== 'none' &&
+    comparePersonId !== effectiveSelectedPersonId
+      ? focusPeople.find((person) => person.canonicalId === comparePersonId) ?? null
+      : null;
   const overallFocusBundle = useMemo(
     () => buildOverallFocusBundle(focusPeople),
     [focusPeople],
@@ -2218,27 +2232,66 @@ export function InsightsDashboard({
                 )}
               </form>
             ) : (
-              <div className="relative">
-                <label className="tm-data-label" htmlFor="player-focus-select">
-                  Player Focus
-                </label>
-                <select
-                  aria-label="Player focus"
-                  className="tm-input mt-2 w-full appearance-none pr-9"
-                  id="player-focus-select"
-                  onChange={(event) => setSelectedPersonId(event.target.value)}
-                  value={selectedPersonId}
-                >
-                  <option value="all">All players</option>
-                  {focusPeople.map((person) => (
-                    <option key={person.canonicalId} value={person.canonicalId}>
-                      {person.displayName}
-                    </option>
-                  ))}
-                </select>
-                <span className="mt-2 block">
-                  <SelectChevron />
-                </span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="relative">
+                  <label className="tm-data-label" htmlFor="player-focus-select">
+                    Player Focus
+                  </label>
+                  <select
+                    aria-label="Player focus"
+                    className="tm-input mt-2 w-full appearance-none pr-9"
+                    disabled={lockFocusToCurrentUser}
+                    id="player-focus-select"
+                    onChange={(event) => {
+                      setSelectedPersonId(event.target.value);
+                      setComparePersonId('none');
+                    }}
+                    value={effectiveSelectedPersonId}
+                  >
+                    {lockFocusToCurrentUser ? null : (
+                      <option value="all">All players</option>
+                    )}
+                    {focusPeople.map((person) => (
+                      <option key={person.canonicalId} value={person.canonicalId}>
+                        {person.displayName}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-2 block">
+                    <SelectChevron />
+                  </span>
+                  {lockFocusToCurrentUser ? (
+                    <p className="tm-muted-copy mt-2 text-xs">
+                      Individual Insights always follows your signed-in player.
+                    </p>
+                  ) : null}
+                </div>
+                {selectedPerson !== null && !lockFocusToCurrentUser && focusPeople.length > 1 ? (
+                  <div className="relative">
+                    <label className="tm-data-label" htmlFor="player-compare-select">
+                      Compare With
+                    </label>
+                    <select
+                      aria-label="Compare with player"
+                      className="tm-input mt-2 w-full appearance-none pr-9"
+                      id="player-compare-select"
+                      onChange={(event) => setComparePersonId(event.target.value)}
+                      value={comparePersonId}
+                    >
+                      <option value="none">— no comparison —</option>
+                      {focusPeople
+                        .filter((person) => person.canonicalId !== effectiveSelectedPersonId)
+                        .map((person) => (
+                          <option key={person.canonicalId} value={person.canonicalId}>
+                            {person.displayName}
+                          </option>
+                        ))}
+                    </select>
+                     <span className="mt-2 block">
+                       <SelectChevron />
+                     </span>
+                   </div>
+                 ) : null}
               </div>
             )}
             {fixedFocusScope ? null : (
@@ -2364,6 +2417,19 @@ export function InsightsDashboard({
                 ))}
               </div>
             </ChartFrame>
+          ) : null}
+
+          {comparePerson !== null ? (
+            <PlayerComparisonSummary
+              analytics={overallAnalytics}
+              currentUserCanonicalId={currentUserCanonicalId}
+              extended={overallExtended}
+              focusPeople={focusPeople}
+              selectedCanonicalIds={[
+                effectiveSelectedPersonId,
+                comparePerson.canonicalId,
+              ]}
+            />
           ) : null}
 
           {isGroupScope && selectedPerson && !selectedPerson.inActiveGroup ? (
