@@ -132,7 +132,7 @@ describe('ProfileDashboard', () => {
     expect(screen.getAllByText(/friday mars/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/second seat/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /score source radar/i })).toBeInTheDocument();
-    expect(screen.getByText(/group average/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/group average/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/declared vs inferred style/i)).toBeInTheDocument();
     expect(screen.getByText(/based on 4 finalized games/i)).toBeInTheDocument();
     expect(screen.getByText(/efficiency summary/i)).toBeInTheDocument();
