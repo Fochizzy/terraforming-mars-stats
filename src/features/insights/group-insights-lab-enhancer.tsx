@@ -35,6 +35,12 @@ function findStepLabel(panel: HTMLElement, labels: string[]) {
   );
 }
 
+function setText(element: HTMLElement | null | undefined, value: string) {
+  if (element && normalizedText(element) !== value) {
+    element.textContent = value;
+  }
+}
+
 function formatGameCount(value: string) {
   const match = value.match(/^(\d+)(?:\s+games?)?$/i);
 
@@ -75,14 +81,16 @@ function enhancePlayerRows(form: HTMLFormElement) {
 
     if (count) {
       const formattedCount = formatGameCount(normalizedText(count));
-      if (normalizedText(count) !== formattedCount) count.textContent = formattedCount;
+      setText(count, formattedCount);
       count.classList.add(styles.gameCount);
     }
 
     const visibilityButton = row.querySelector<HTMLButtonElement>('button');
     if (visibilityButton) {
       visibilityButton.classList.add(styles.visibilityButton);
-      visibilityButton.title = 'Hide player';
+      if (visibilityButton.title !== 'Hide player') {
+        visibilityButton.title = 'Hide player';
+      }
     }
 
     if (row.dataset.groupInsightsClickable !== 'true') {
@@ -143,7 +151,7 @@ function enhanceSummaryBadge(panel: HTMLElement) {
   badge.setAttribute('aria-label', `${primary}. ${secondaryLabel}.`);
 }
 
-function enhanceFooter(panel: HTMLElement, inner: HTMLElement) {
+function enhanceFooter(inner: HTMLElement) {
   const originalFooter = Array.from(inner.children).find(
     (child): child is HTMLParagraphElement =>
       child instanceof HTMLParagraphElement &&
@@ -207,6 +215,13 @@ function enhanceGroupInsightsLab() {
   layout.classList.add(styles.layout);
   playerForm.classList.add(styles.playerForm);
 
+  if (playerForm.dataset.groupInsightsChangeListener !== 'true') {
+    playerForm.dataset.groupInsightsChangeListener = 'true';
+    playerForm.addEventListener('change', () => {
+      window.setTimeout(enhanceGroupInsightsLab, 0);
+    });
+  }
+
   const playersLabel = findStepLabel(panel, ['players', '1 select players']);
   const playersHeader = playersLabel?.parentElement;
   const originalAnalyze = playerForm.querySelector<HTMLButtonElement>(
@@ -215,7 +230,7 @@ function enhanceGroupInsightsLab() {
   const { checkboxes } = enhancePlayerRows(playerForm);
   const selectedCount = checkboxes.filter((checkbox) => checkbox.checked).length;
 
-  if (playersLabel) playersLabel.textContent = '1 Select players';
+  setText(playersLabel, '1 Select players');
   playersHeader?.classList.add(styles.stepHeader);
   originalAnalyze?.classList.add(styles.originalAnalyze);
 
@@ -231,12 +246,12 @@ function enhanceGroupInsightsLab() {
     }
 
     counter.className = styles.selectionCount;
-    counter.textContent = `${selectedCount} of ${checkboxes.length} selected`;
+    setText(counter, `${selectedCount} of ${checkboxes.length} selected`);
   }
 
   if (originalAnalyze) {
     const disabled = selectedCount === 0;
-    originalAnalyze.disabled = disabled;
+    if (originalAnalyze.disabled !== disabled) originalAnalyze.disabled = disabled;
 
     let headerAction = panel.querySelector<HTMLButtonElement>(
       '[data-group-insights-analyze]',
@@ -247,15 +262,21 @@ function enhanceGroupInsightsLab() {
       headerAction.type = 'button';
       headerAction.dataset.groupInsightsAnalyze = 'true';
       headerAction.textContent = 'Analyze';
-      headerAction.addEventListener('click', () => originalAnalyze.click());
+      headerAction.addEventListener('click', () => {
+        const activeSubmit = panel.querySelector<HTMLButtonElement>(
+          'form button[type="submit"]',
+        );
+        activeSubmit?.click();
+      });
       caption.after(headerAction);
     }
 
     headerAction.className = styles.headerAction;
-    headerAction.disabled = disabled;
-    headerAction.title = disabled
+    if (headerAction.disabled !== disabled) headerAction.disabled = disabled;
+    const title = disabled
       ? 'Select at least one player to analyze'
       : 'Analyze selected players';
+    if (headerAction.title !== title) headerAction.title = title;
   }
 
   const selectedGroupLabel = findStepLabel(panel, [
@@ -265,9 +286,7 @@ function enhanceGroupInsightsLab() {
   const selectedGroupWrapper = selectedGroupLabel?.parentElement;
   const selectedGroupForm = selectedGroupWrapper?.querySelector<HTMLFormElement>('form');
 
-  if (selectedGroupLabel) {
-    selectedGroupLabel.textContent = '2 Choose group configuration';
-  }
+  setText(selectedGroupLabel, '2 Choose group configuration');
   selectedGroupWrapper?.classList.add(styles.groupWrapper);
   selectedGroupForm?.classList.add(styles.groupForm);
   selectedGroupForm
@@ -278,7 +297,7 @@ function enhanceGroupInsightsLab() {
     ?.classList.add(styles.groupButton);
 
   enhanceSummaryBadge(panel);
-  enhanceFooter(panel, inner);
+  enhanceFooter(inner);
 
   return panel;
 }
