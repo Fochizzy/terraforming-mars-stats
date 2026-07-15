@@ -5,7 +5,6 @@ import {
   Bar,
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
   ResponsiveContainer,
   Tooltip,
@@ -15,7 +14,6 @@ import {
 import {
   chartAxisTick,
   chartSeriesColors,
-  chartTooltipStyle,
 } from '@/components/charts/chart-theme';
 import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
 import type { CorporationTagDatum } from './tag-outcomes-section';
@@ -28,7 +26,8 @@ type SortKey =
   | 'results'
   | 'tagUseRate'
   | 'winRate'
-  | 'winsWithTag';
+  | 'winsWithTag'
+  | 'withTagResults';
 
 type AxisTickProps = {
   payload?: { value?: string };
@@ -36,7 +35,19 @@ type AxisTickProps = {
   y?: number;
 };
 
-const SOFT_GRID_STROKE = 'rgba(120, 113, 108, 0.22)';
+type TooltipPayloadItem = {
+  payload?: CorporationTagDatum;
+};
+
+type CorporationTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+};
+
+type RateTone = 'amber' | 'blue' | 'green' | 'muted' | 'rose';
+
+const SOFT_GRID_STROKE = 'rgba(120, 113, 108, 0.2)';
+const LIMITED_SAMPLE_SIZE = 3;
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat('en-US', {
@@ -45,8 +56,20 @@ function formatNumber(value: number) {
   }).format(value);
 }
 
-function shortenLabel(value: string, maxLength = 17) {
+function shortenLabel(value: string, maxLength = 18) {
   return value.length <= maxLength ? value : `${value.slice(0, maxLength - 1)}…`;
+}
+
+function pluralizeGames(value: number) {
+  return `${value} ${value === 1 ? 'game' : 'games'}`;
+}
+
+function limitedSampleLabel(value: number) {
+  if (value === 0) {
+    return 'Limited · no tagged games';
+  }
+
+  return `Limited · ${value} tagged ${value === 1 ? 'game' : 'games'}`;
 }
 
 function compareRows(
@@ -72,6 +95,34 @@ function compareRows(
     : comparison * multiplier;
 }
 
+function getAriaSort(
+  activeKey: SortKey,
+  columnKey: SortKey,
+  direction: SortDirection,
+): 'ascending' | 'descending' | 'none' {
+  if (activeKey !== columnKey) {
+    return 'none';
+  }
+
+  return direction === 'asc' ? 'ascending' : 'descending';
+}
+
+function getWinRateTone(value: number | null, limited: boolean): RateTone {
+  if (value === null || limited) {
+    return 'muted';
+  }
+
+  if (value >= 60) {
+    return 'green';
+  }
+
+  if (value >= 40) {
+    return 'amber';
+  }
+
+  return 'rose';
+}
+
 function CorporationAxisTick({ payload, x = 0, y = 0 }: AxisTickProps) {
   const name = payload?.value ?? '';
 
@@ -82,7 +133,7 @@ function CorporationAxisTick({ payload, x = 0, y = 0 }: AxisTickProps) {
         fill="#cfc7bc"
         fontSize={11}
         textAnchor="end"
-        transform="rotate(-38)"
+        transform="rotate(-36)"
         x={-5}
         y={7}
       >
@@ -106,7 +157,10 @@ function SummaryMetric({
       <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-stone-500">
         {label}
       </dt>
-      <dd className="mt-1 truncate text-base font-semibold tabular-nums text-stone-100" title={value}>
+      <dd
+        className="mt-1 truncate text-base font-semibold tabular-nums text-stone-100"
+        title={value}
+      >
         {value}
       </dd>
       {detail ? (
@@ -118,25 +172,42 @@ function SummaryMetric({
   );
 }
 
-function RateCell({ tone, value }: { tone: 'green' | 'blue'; value: number }) {
-  const fillClass = tone === 'green' ? 'bg-lime-400/20' : 'bg-sky-400/20';
+function RateCell({
+  limited = false,
+  tone,
+  value,
+}: {
+  limited?: boolean;
+  tone: 'usage' | 'win';
+  value: number | null;
+}) {
+  const resolvedTone =
+    tone === 'usage' ? 'blue' : getWinRateTone(value, limited);
+  const toneClasses: Record<RateTone, { fill: string; text: string }> = {
+    amber: { fill: 'bg-amber-300/20', text: 'text-amber-100' },
+    blue: { fill: 'bg-sky-400/20', text: 'text-sky-100' },
+    green: { fill: 'bg-lime-400/20', text: 'text-lime-100' },
+    muted: { fill: 'bg-stone-400/10', text: 'text-stone-400' },
+    rose: { fill: 'bg-rose-400/20', text: 'text-rose-100' },
+  };
+  const classes = toneClasses[resolvedTone];
 
   return (
     <div
-      aria-label={`${value}%`}
+      aria-label={value === null ? 'No tagged games' : `${value}%`}
       className="relative ml-auto h-7 w-24 overflow-hidden rounded-lg border border-white/[0.07] bg-black/20"
     >
+      {value !== null ? (
+        <span
+          aria-hidden="true"
+          className={`absolute inset-y-0 left-0 ${classes.fill}`}
+          style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+        />
+      ) : null}
       <span
-        aria-hidden="true"
-        className={`absolute inset-y-0 left-0 ${fillClass}`}
-        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
-      />
-      <span
-        className={`relative z-10 flex h-full items-center justify-end px-2 font-medium tabular-nums ${
-          value === 100 ? 'text-stone-300' : 'text-stone-100'
-        }`}
+        className={`relative z-10 flex h-full items-center justify-end px-2 font-medium tabular-nums ${classes.text}`}
       >
-        {value}%
+        {value === null ? '—' : `${value}%`}
       </span>
     </div>
   );
@@ -155,6 +226,8 @@ function SortButton({
 }) {
   return (
     <button
+      aria-label={`Sort by ${label}`}
+      aria-pressed={activeDirection !== null}
       className={`inline-flex w-full items-center gap-1 rounded px-1 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-stone-400 transition hover:bg-white/[0.045] hover:text-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/60 ${
         align === 'right' ? 'justify-end' : 'justify-start'
       }`}
@@ -169,6 +242,47 @@ function SortButton({
   );
 }
 
+function CorporationTooltip({ active, payload }: CorporationTooltipProps) {
+  const row = payload?.[0]?.payload;
+
+  if (!active || !row) {
+    return null;
+  }
+
+  const losses = Math.max(0, row.withTagResults - row.winsWithTag);
+
+  return (
+    <div className="min-w-56 rounded-xl border border-orange-300/20 bg-[#11171f]/95 p-3 text-xs shadow-xl backdrop-blur">
+      <p className="font-semibold text-stone-100">{row.corporationName}</p>
+      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 tabular-nums">
+        <dt className="text-stone-500">Tagged games</dt>
+        <dd className="text-right text-stone-200">
+          {row.withTagResults}/{row.results}
+        </dd>
+        <dt className="text-stone-500">Use rate</dt>
+        <dd className="text-right text-stone-200">{row.tagUseRate}%</dd>
+        <dt className="text-stone-500">Average tags</dt>
+        <dd className="text-right text-stone-200">
+          {formatNumber(row.averageTagCount)}
+        </dd>
+        <dt className="text-stone-500">Record</dt>
+        <dd className="text-right text-stone-200">
+          {row.winsWithTag}-{losses}
+        </dd>
+        <dt className="text-stone-500">Win rate</dt>
+        <dd className="text-right font-semibold text-lime-100">
+          {row.withTagResults > 0 ? `${row.winRate}%` : '—'}
+        </dd>
+      </dl>
+      {row.withTagResults < LIMITED_SAMPLE_SIZE ? (
+        <p className="mt-2 border-t border-white/[0.07] pt-2 text-[0.68rem] text-amber-100/80">
+          Limited sample: {pluralizeGames(row.withTagResults)} with this tag.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function CorporationRelationshipPanel({
   data,
   dialogData,
@@ -177,15 +291,30 @@ export function CorporationRelationshipPanel({
   dialogData?: SelectionDialogData;
 }) {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [sortKey, setSortKey] = useState<SortKey>('results');
+  const [sortKey, setSortKey] = useState<SortKey>('withTagResults');
 
   const sortedData = useMemo(
     () => [...data].sort((left, right) => compareRows(left, right, sortKey, sortDirection)),
     [data, sortDirection, sortKey],
   );
 
+  const chartData = useMemo(
+    () =>
+      [...data].sort(
+        (left, right) =>
+          right.withTagResults - left.withTagResults ||
+          right.winRate - left.winRate ||
+          left.corporationName.localeCompare(right.corporationName),
+      ),
+    [data],
+  );
+
   const summary = useMemo(() => {
     const totalResults = data.reduce((sum, entry) => sum + entry.results, 0);
+    const totalTaggedResults = data.reduce(
+      (sum, entry) => sum + entry.withTagResults,
+      0,
+    );
     const averageCount =
       totalResults > 0
         ? data.reduce(
@@ -193,14 +322,17 @@ export function CorporationRelationshipPanel({
             0,
           ) / totalResults
         : 0;
-    const mostUsed = [...data].sort(
+    const mostTagged = [...data].sort(
       (left, right) =>
         right.withTagResults - left.withTagResults ||
         right.tagUseRate - left.tagUseRate ||
         right.results - left.results ||
         left.corporationName.localeCompare(right.corporationName),
     )[0];
-    const highestWinRate = [...data]
+    const reliableWinRates = data.filter(
+      (entry) => entry.withTagResults >= LIMITED_SAMPLE_SIZE,
+    );
+    const highestWinRate = [...(reliableWinRates.length > 0 ? reliableWinRates : data)]
       .filter((entry) => entry.withTagResults > 0)
       .sort(
         (left, right) =>
@@ -212,10 +344,21 @@ export function CorporationRelationshipPanel({
     return {
       averageCount,
       highestWinRate,
-      mostUsed,
+      mostTagged,
       totalResults,
+      totalTaggedResults,
     };
   }, [data]);
+
+  const showUseRate = useMemo(
+    () => new Set(data.map((entry) => entry.tagUseRate)).size > 1,
+    [data],
+  );
+  const maxTaggedGames = Math.max(
+    1,
+    ...chartData.map((entry) => entry.withTagResults),
+  );
+  const chartMinWidth = Math.max(760, chartData.length * 92);
 
   const handleSort = (nextKey: SortKey) => {
     if (sortKey === nextKey) {
@@ -236,241 +379,344 @@ export function CorporationRelationshipPanel({
       className="rounded-2xl border border-white/10 bg-[rgba(7,10,15,0.42)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:p-5"
       data-corporation-relationship-panel
     >
-      <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-orange-200 sm:text-base">
-          Corporation relationship
+      <div className="flex flex-col gap-1 border-b border-white/[0.07] pb-4">
+        <h3 className="font-serif text-xl font-semibold text-stone-100">
+          Corporation performance
         </h3>
         <p className="max-w-3xl text-xs leading-5 text-stone-400 sm:text-sm">
-          Compare how often each corporation used the selected tag with the win rate of those tagged results.
+          Compare how often the selected tag appeared for each corporation and how those tagged games performed.
         </p>
       </div>
 
-      <dl className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        <SummaryMetric label="Corporations tracked" value={String(data.length)} />
-        <SummaryMetric label="Corporation results" value={String(summary.totalResults)} />
-        <SummaryMetric
-          detail={summary.mostUsed ? `${summary.mostUsed.tagUseRate}% use rate` : undefined}
-          label="Most used"
-          value={summary.mostUsed?.corporationName ?? '—'}
-        />
-        <SummaryMetric
-          detail={
-            summary.highestWinRate
-              ? `${summary.highestWinRate.winsWithTag}/${summary.highestWinRate.withTagResults} wins`
-              : undefined
-          }
-          label="Highest win rate"
-          value={
-            summary.highestWinRate
-              ? `${summary.highestWinRate.corporationName} · ${summary.highestWinRate.winRate}%`
-              : '—'
-          }
-        />
-        <SummaryMetric
-          label="Average tag count"
-          value={formatNumber(summary.averageCount)}
-        />
-      </dl>
-
-      <div className="mt-5 overflow-x-auto rounded-xl border border-white/[0.07] bg-black/15 px-2 pt-2">
-        <div className="min-w-[760px]">
-          <ResponsiveContainer height={260} width="100%">
-            <ComposedChart
-              barCategoryGap="34%"
-              data={data}
-              margin={{ bottom: 60, left: 2, right: 16, top: 10 }}
-            >
-              <CartesianGrid stroke={SOFT_GRID_STROKE} strokeDasharray="3 4" vertical={false} />
-              <XAxis
-                dataKey="corporationName"
-                height={70}
-                interval={0}
-                tick={<CorporationAxisTick />}
-                tickLine={false}
-              />
-              <YAxis
-                domain={[0, 100]}
-                tick={chartAxisTick}
-                tickFormatter={(value) => `${value}%`}
-                tickLine={false}
-                width={42}
-              />
-              <Tooltip contentStyle={chartTooltipStyle} />
-              <Legend
-                iconSize={10}
-                verticalAlign="top"
-                wrapperStyle={{ fontSize: '12px', paddingBottom: '8px' }}
-              />
-              <Bar
-                barSize={24}
-                dataKey="tagUseRate"
-                fill={chartSeriesColors.accent}
-                name="Use rate"
-                radius={[7, 7, 0, 0]}
-                unit="%"
-              />
-              <Line
-                activeDot={{ r: 6, strokeWidth: 2 }}
-                dataKey="winRate"
-                dot={{ fill: chartSeriesColors.greenery, r: 4, strokeWidth: 2 }}
-                name="Win rate"
-                stroke={chartSeriesColors.greenery}
-                strokeWidth={3}
-                type="monotone"
-                unit="%"
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+      <section className="mt-4 rounded-xl border border-white/[0.07] bg-black/10 p-3 sm:p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-orange-300/80">
+              Overview
+            </p>
+            <p className="mt-1 text-xs text-stone-500">
+              Summary metrics use corporation-game records and flag limited samples separately.
+            </p>
+          </div>
         </div>
-      </div>
+        <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <SummaryMetric label="Corporations" value={String(data.length)} />
+          <SummaryMetric
+            detail={`${summary.totalResults} corporation-game records`}
+            label="Tagged games"
+            value={String(summary.totalTaggedResults)}
+          />
+          <SummaryMetric
+            detail={
+              summary.mostTagged
+                ? `${summary.mostTagged.tagUseRate}% use rate`
+                : undefined
+            }
+            label="Most tagged"
+            value={summary.mostTagged?.corporationName ?? '—'}
+          />
+          <SummaryMetric
+            detail={
+              summary.highestWinRate
+                ? `${summary.highestWinRate.winsWithTag}/${summary.highestWinRate.withTagResults} wins${
+                    summary.highestWinRate.withTagResults < LIMITED_SAMPLE_SIZE
+                      ? ' · limited data'
+                      : ''
+                  }`
+                : undefined
+            }
+            label="Best win rate"
+            value={
+              summary.highestWinRate
+                ? `${summary.highestWinRate.corporationName} · ${summary.highestWinRate.winRate}%`
+                : '—'
+            }
+          />
+          <SummaryMetric
+            label="Average tags"
+            value={formatNumber(summary.averageCount)}
+          />
+        </dl>
+      </section>
 
-      <div className="mt-4 max-h-[430px] overflow-auto rounded-xl border border-white/[0.08] bg-black/15">
-        <table className="min-w-[760px] w-full table-fixed text-xs text-stone-300">
-          <thead className="sticky top-0 z-10 bg-[#11171f]/95 shadow-[0_1px_0_rgba(255,255,255,0.08)] backdrop-blur">
-            <tr>
-              <th
-                aria-sort={
-                  sortKey === 'corporationName'
-                    ? sortDirection === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : 'none'
-                }
-                className="w-[30%] px-3 py-2 text-left"
+      <section className="mt-4 overflow-hidden rounded-xl border border-white/[0.07] bg-black/15">
+        <div className="flex flex-col gap-3 border-b border-white/[0.07] px-3 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-4">
+          <div>
+            <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-orange-300/80">
+              Comparison chart
+            </p>
+            <h4 className="mt-1 text-sm font-semibold text-stone-100">
+              Tagged games and win rate
+            </h4>
+            <p className="mt-1 text-xs leading-5 text-stone-500">
+              Bars show sample volume on the left axis; the line shows win rate on the right axis.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400">
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="h-2.5 w-2.5 rounded-sm bg-sky-400/80"
+              />
+              Tagged games
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden="true" className="relative h-2.5 w-5">
+                <span className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 bg-lime-400" />
+                <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#11171f] bg-lime-400" />
+              </span>
+              Win rate
+            </span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto px-2 pt-2">
+          <div style={{ minWidth: `${chartMinWidth}px` }}>
+            <ResponsiveContainer height={240} width="100%">
+              <ComposedChart
+                barCategoryGap="36%"
+                data={chartData}
+                margin={{ bottom: 54, left: 0, right: 2, top: 8 }}
               >
-                <SortButton
-                  activeDirection={sortKey === 'corporationName' ? sortDirection : null}
-                  align="left"
-                  label="Corporation"
-                  onClick={() => handleSort('corporationName')}
+                <CartesianGrid
+                  stroke={SOFT_GRID_STROKE}
+                  strokeDasharray="3 4"
+                  vertical={false}
                 />
-              </th>
-              <th
-                aria-sort={
-                  sortKey === 'results'
-                    ? sortDirection === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : 'none'
-                }
-                className="w-[12%] px-2 py-2 text-right"
-              >
-                <SortButton
-                  activeDirection={sortKey === 'results' ? sortDirection : null}
-                  label="Results"
-                  onClick={() => handleSort('results')}
+                <XAxis
+                  dataKey="corporationName"
+                  height={64}
+                  interval={0}
+                  tick={<CorporationAxisTick />}
+                  tickLine={false}
                 />
-              </th>
-              <th
-                aria-sort={
-                  sortKey === 'tagUseRate'
-                    ? sortDirection === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : 'none'
-                }
-                className="w-[16%] px-2 py-2 text-right"
-              >
-                <SortButton
-                  activeDirection={sortKey === 'tagUseRate' ? sortDirection : null}
-                  label="Use rate"
-                  onClick={() => handleSort('tagUseRate')}
+                <YAxis
+                  allowDecimals={false}
+                  domain={[0, Math.max(2, maxTaggedGames + 1)]}
+                  tick={chartAxisTick}
+                  tickLine={false}
+                  width={34}
+                  yAxisId="games"
                 />
-              </th>
-              <th
-                aria-sort={
-                  sortKey === 'averageTagCount'
-                    ? sortDirection === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : 'none'
-                }
-                className="w-[13%] px-2 py-2 text-right"
-              >
-                <SortButton
-                  activeDirection={sortKey === 'averageTagCount' ? sortDirection : null}
-                  label="Avg count"
-                  onClick={() => handleSort('averageTagCount')}
+                <YAxis
+                  domain={[0, 100]}
+                  orientation="right"
+                  tick={chartAxisTick}
+                  tickFormatter={(value) => `${value}%`}
+                  tickLine={false}
+                  width={42}
+                  yAxisId="rate"
                 />
-              </th>
-              <th
-                aria-sort={
-                  sortKey === 'winRate'
-                    ? sortDirection === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : 'none'
-                }
-                className="w-[16%] px-2 py-2 text-right"
-              >
-                <SortButton
-                  activeDirection={sortKey === 'winRate' ? sortDirection : null}
-                  label="Win rate"
-                  onClick={() => handleSort('winRate')}
-                />
-              </th>
-              <th
-                aria-sort={
-                  sortKey === 'winsWithTag'
-                    ? sortDirection === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : 'none'
-                }
-                className="w-[13%] px-3 py-2 text-right"
-              >
-                <SortButton
-                  activeDirection={sortKey === 'winsWithTag' ? sortDirection : null}
-                  label="Wins"
-                  onClick={() => handleSort('winsWithTag')}
-                />
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedData.map((entry) => (
-              <tr
-                className="border-t border-white/[0.055] odd:bg-white/[0.015] transition-colors hover:bg-white/[0.045]"
-                key={entry.corporationId ?? entry.corporationName}
-              >
-                <td className="px-4 py-3 text-left">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <SelectionNameButton
-                      className="min-w-0 truncate text-left font-medium text-stone-200 transition hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/60"
-                      dialogData={dialogData}
-                      kind="Corporation"
-                      name={entry.corporationName}
+                <Tooltip
+                  content={({ active, payload }) => (
+                    <CorporationTooltip
+                      active={active}
+                      payload={payload as TooltipPayloadItem[] | undefined}
                     />
-                    {entry.results < 3 ? (
-                      <span className="rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2 py-0.5 text-[0.62rem] text-amber-100/80">
-                        Small sample
-                      </span>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="px-3 py-3 text-right font-medium tabular-nums text-stone-200">
-                  {entry.results}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  <RateCell tone="blue" value={entry.tagUseRate} />
-                </td>
-                <td className="px-3 py-3 text-right font-medium tabular-nums text-stone-200">
-                  {formatNumber(entry.averageTagCount)}
-                </td>
-                <td className="px-3 py-3 text-right">
-                  <RateCell tone="green" value={entry.winRate} />
-                </td>
-                <td className="px-4 py-3 text-right font-medium tabular-nums text-stone-200">
-                  {entry.winsWithTag}/{entry.withTagResults}
-                </td>
+                  )}
+                  cursor={{ fill: 'rgba(255,255,255,0.035)' }}
+                />
+                <Bar
+                  barSize={24}
+                  dataKey="withTagResults"
+                  fill={chartSeriesColors.accent}
+                  name="Tagged games"
+                  radius={[7, 7, 0, 0]}
+                  yAxisId="games"
+                />
+                <Line
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                  dataKey="winRate"
+                  dot={{ fill: chartSeriesColors.greenery, r: 4, strokeWidth: 2 }}
+                  name="Win rate"
+                  stroke={chartSeriesColors.greenery}
+                  strokeWidth={3}
+                  type="monotone"
+                  unit="%"
+                  yAxisId="rate"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-4 overflow-hidden rounded-xl border border-white/[0.08] bg-black/15">
+        <div className="flex flex-col gap-2 border-b border-white/[0.07] px-3 py-3 sm:flex-row sm:items-end sm:justify-between sm:px-4">
+          <div>
+            <p className="text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-orange-300/80">
+              Corporation detail
+            </p>
+            <h4 className="mt-1 text-sm font-semibold text-stone-100">
+              Sortable performance table
+            </h4>
+          </div>
+          <p className="text-xs text-stone-500">
+            Select any column heading to reorder the rows.
+          </p>
+        </div>
+
+        {!showUseRate ? (
+          <p className="border-b border-white/[0.07] bg-sky-400/[0.035] px-4 py-2 text-[0.68rem] leading-5 text-stone-500">
+            Use rate is identical for every corporation in this view, so that column is hidden until it provides a meaningful comparison.
+          </p>
+        ) : null}
+
+        <div className="max-h-[440px] overflow-auto">
+          <table
+            className={`w-full table-fixed text-xs text-stone-300 ${
+              showUseRate ? 'min-w-[900px]' : 'min-w-[780px]'
+            }`}
+          >
+            <thead className="sticky top-0 z-10 bg-[#11171f]/95 shadow-[0_1px_0_rgba(255,255,255,0.08)] backdrop-blur">
+              <tr>
+                <th
+                  aria-sort={getAriaSort(sortKey, 'corporationName', sortDirection)}
+                  className="w-[27%] px-3 py-2 text-left"
+                >
+                  <SortButton
+                    activeDirection={
+                      sortKey === 'corporationName' ? sortDirection : null
+                    }
+                    align="left"
+                    label="Corporation"
+                    onClick={() => handleSort('corporationName')}
+                  />
+                </th>
+                <th
+                  aria-sort={getAriaSort(sortKey, 'results', sortDirection)}
+                  className="w-[10%] px-2 py-2 text-right"
+                >
+                  <SortButton
+                    activeDirection={sortKey === 'results' ? sortDirection : null}
+                    label="Games"
+                    onClick={() => handleSort('results')}
+                  />
+                </th>
+                <th
+                  aria-sort={getAriaSort(sortKey, 'withTagResults', sortDirection)}
+                  className="w-[11%] px-2 py-2 text-right"
+                >
+                  <SortButton
+                    activeDirection={
+                      sortKey === 'withTagResults' ? sortDirection : null
+                    }
+                    label="Tagged"
+                    onClick={() => handleSort('withTagResults')}
+                  />
+                </th>
+                {showUseRate ? (
+                  <th
+                    aria-sort={getAriaSort(sortKey, 'tagUseRate', sortDirection)}
+                    className="w-[15%] px-2 py-2 text-right"
+                  >
+                    <SortButton
+                      activeDirection={
+                        sortKey === 'tagUseRate' ? sortDirection : null
+                      }
+                      label="Use rate"
+                      onClick={() => handleSort('tagUseRate')}
+                    />
+                  </th>
+                ) : null}
+                <th
+                  aria-sort={getAriaSort(sortKey, 'averageTagCount', sortDirection)}
+                  className="w-[12%] px-2 py-2 text-right"
+                >
+                  <SortButton
+                    activeDirection={
+                      sortKey === 'averageTagCount' ? sortDirection : null
+                    }
+                    label="Avg tags"
+                    onClick={() => handleSort('averageTagCount')}
+                  />
+                </th>
+                <th
+                  aria-sort={getAriaSort(sortKey, 'winRate', sortDirection)}
+                  className="w-[15%] px-2 py-2 text-right"
+                >
+                  <SortButton
+                    activeDirection={sortKey === 'winRate' ? sortDirection : null}
+                    label="Win rate"
+                    onClick={() => handleSort('winRate')}
+                  />
+                </th>
+                <th
+                  aria-sort={getAriaSort(sortKey, 'winsWithTag', sortDirection)}
+                  className="w-[12%] px-3 py-2 text-right"
+                >
+                  <SortButton
+                    activeDirection={
+                      sortKey === 'winsWithTag' ? sortDirection : null
+                    }
+                    label="Record"
+                    onClick={() => handleSort('winsWithTag')}
+                  />
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {sortedData.map((entry) => {
+                const limited = entry.withTagResults < LIMITED_SAMPLE_SIZE;
+
+                return (
+                  <tr
+                    className={`border-t border-white/[0.055] odd:bg-white/[0.015] transition-colors hover:bg-white/[0.045] focus-within:bg-white/[0.055] ${
+                      limited ? 'text-stone-400' : ''
+                    }`}
+                    key={entry.corporationId ?? entry.corporationName}
+                  >
+                    <td className="px-4 py-3 text-left">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <SelectionNameButton
+                          className="min-w-0 truncate text-left font-medium text-stone-200 transition hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/60"
+                          dialogData={dialogData}
+                          kind="Corporation"
+                          name={entry.corporationName}
+                        />
+                        {limited ? (
+                          <span className="rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2 py-0.5 text-[0.62rem] text-amber-100/80">
+                            {limitedSampleLabel(entry.withTagResults)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-right font-medium tabular-nums text-stone-200">
+                      {entry.results}
+                    </td>
+                    <td className="px-3 py-3 text-right font-medium tabular-nums text-stone-200">
+                      {entry.withTagResults}
+                    </td>
+                    {showUseRate ? (
+                      <td className="px-3 py-3 text-right">
+                        <RateCell tone="usage" value={entry.tagUseRate} />
+                      </td>
+                    ) : null}
+                    <td className="px-3 py-3 text-right font-medium tabular-nums text-stone-200">
+                      {formatNumber(entry.averageTagCount)}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <RateCell
+                        limited={limited}
+                        tone="win"
+                        value={entry.withTagResults > 0 ? entry.winRate : null}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium tabular-nums text-stone-200">
+                      {entry.withTagResults > 0
+                        ? `${entry.winsWithTag}/${entry.withTagResults}`
+                        : '—'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <p className="mt-3 text-[0.68rem] leading-5 text-stone-500">
-        Win rate is based only on results where the selected tag appeared. Rows with fewer than three results are marked as small samples.
+        Win rate and record use only games where the selected tag appeared. Rows with fewer than three tagged games are marked as limited data and should not be treated as conclusive.
       </p>
     </section>
   );
