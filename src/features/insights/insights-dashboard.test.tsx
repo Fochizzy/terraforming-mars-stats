@@ -441,7 +441,7 @@ describe('InsightsDashboard', () => {
     expect(screen.getByRole('heading', { name: /Global Map Meta/i })).toBeInTheDocument();
     expect(screen.getAllByText(/hellas/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: /Global Corporation Meta/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Global Award Meta/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Award Funding ROI/i })).toBeInTheDocument();
     expect(screen.getByText(/4-player games/i)).toBeInTheDocument();
     expect(screen.getAllByText(/persisted efficiency/i).length).toBeGreaterThan(0);
     expect(
