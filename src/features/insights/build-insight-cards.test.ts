@@ -155,18 +155,6 @@ describe('buildInsightCards', () => {
           wins: 2,
         },
       ],
-      styleAgreementRows: [
-        {
-          averageInferredConfidence: 0.8,
-          comparedGames: 4,
-          exactMatchRate: 0.5,
-          groupId: 'group-1',
-          mismatchRate: 0.25,
-          partialMatchRate: 0.25,
-          playerId: 'p1',
-          playerName: 'Friday Mars',
-        },
-      ],
       trendRows: [
         {
           gameId: 'g1',
@@ -225,10 +213,13 @@ describe('buildInsightCards', () => {
     expect(cards[1].body).toMatch(/Second Seat/);
     expect(cards[2].body).toMatch(/Second Seat, Third Seat/);
     expect(cards[3].body).toMatch(/Hellas \| Prelude/);
-    expect(cards[4].body).toMatch(/50%/);
-    expect(cards[5].body).toMatch(/Jovian payoff/i);
-    expect(cards[6].body).toMatch(/persisted efficiency/i);
-    expect(cards[6].body).toMatch(/8.45 pts\/gen/i);
+    expect(cards[4].body).toMatch(/Jovian payoff/i);
+    expect(cards[5].body).toMatch(/persisted efficiency/i);
+    expect(cards[5].body).toMatch(/8.45 pts\/gen/i);
+    expect(cards[6].body).toMatch(/moved from/i);
+    expect(cards.some((card) => /declared-versus-inferred/i.test(card.body))).toBe(
+      false,
+    );
   });
 
   it('builds a persisted metric card from global map metrics when player rows are absent', () => {

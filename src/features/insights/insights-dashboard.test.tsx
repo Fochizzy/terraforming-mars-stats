@@ -429,11 +429,19 @@ describe('InsightsDashboard', () => {
       />,
     );
 
-    expect(screen.getByText(/Friday Mars currently leads the group/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Group Score Profile/i })).toBeInTheDocument();
+    expect(screen.getByText(/Friday Mars currently leads the dataset/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /All-Player Score Profile/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Best Style Snapshot/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /Group Style Agreement/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/declared-versus-inferred/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/declared style coverage/i)).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Trend Over Time/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Persisted Efficiency/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: /Global Statistics/i }),
+    ).toHaveAttribute('id', 'global-statistics');
     expect(screen.getAllByText(/8.45 pts\/gen/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: /Global Map Meta/i })).toBeInTheDocument();
     expect(screen.getAllByText(/hellas/i).length).toBeGreaterThan(0);

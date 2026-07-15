@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 import {
   Bar,
   BarChart,
@@ -8,6 +8,7 @@ import {
   Cell,
   Line,
   LineChart,
+  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -26,6 +27,7 @@ import type {
 } from '@/lib/db/analytics-repo';
 import type { PromoCardOption, PromoSetOption } from '@/lib/db/reference-repo';
 import { buildInsightCards } from './build-insight-cards';
+import { LineupEffectsPanel } from './lineup-effects-panel';
 
 type PlayerOption = {
   displayName: string;
@@ -79,12 +81,6 @@ const leaderboardColors = {
   focused: '#22d3ee',
 };
 
-const styleColors = {
-  exact: '#22c55e',
-  mismatch: '#ef4444',
-  partial: '#f59e0b',
-};
-
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
@@ -109,14 +105,6 @@ function formatPersistedMetric(value: number | null) {
     maximumFractionDigits: 2,
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
   }).format(value);
-}
-
-function truncateLabel(value: string, length = 18) {
-  if (value.length <= length) {
-    return value;
-  }
-
-  return `${value.slice(0, length - 1)}…`;
 }
 
 function humanizeStyleCode(styleCode: string | null) {
@@ -166,6 +154,26 @@ function buildStylePerformanceChartData(rows: GroupStylePerformanceRow[]) {
     styleLabel: humanizeStyleCode(row.styleCode),
     winRate: Math.round(row.winRate * 100),
   }));
+}
+
+function DashboardChart({
+  children,
+  heightClass = 'h-[280px]',
+  minWidthClass = 'min-w-[620px]',
+}: {
+  children: ReactElement;
+  heightClass?: string;
+  minWidthClass?: string;
+}) {
+  return (
+    <div className="w-full overflow-x-auto">
+      <div className={`${heightClass} ${minWidthClass}`}>
+        <ResponsiveContainer height="100%" width="100%">
+          {children}
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
 }
 
 function buildTrendChartData(rows: TrendRow[], isFocusedPlayer: boolean) {
@@ -313,12 +321,9 @@ export function InsightsDashboard({
     ? analytics.playerCoverages.find((row) => row.playerId === selectedPlayer.id) ??
       analytics.coverage
     : analytics.coverage;
-  const selectedStyleRows = selectedPlayer
-    ? analytics.styleAgreementRows.filter((row) => row.playerId === selectedPlayer.id)
-    : analytics.styleAgreementRows.slice(0, 6);
   const selectedLineupRows = selectedPlayer
     ? analytics.lineupEffectRows.filter((row) => row.playerId === selectedPlayer.id)
-    : analytics.lineupEffectRows.slice(0, 6);
+    : analytics.lineupEffectRows;
   const selectedInteractionRows: DashboardInteractionRow[] = selectedPlayer
     ? analytics.playerInteractionRows.filter((row) => row.playerId === selectedPlayer.id)
     : analytics.groupInteractionRows.slice(0, 6);
@@ -354,7 +359,6 @@ export function InsightsDashboard({
         playerEfficiencySummaries: selectedEfficiencyRows,
         playerMapMetricRows: selectedMapMetricRows,
         stylePerformanceRows: selectedStylePerformanceRows,
-        styleAgreementRows: analytics.styleAgreementRows,
         trendRows: analytics.playerTrendRows,
       }),
     [
@@ -363,7 +367,6 @@ export function InsightsDashboard({
       analytics.leaderboardRows,
       analytics.lineupEffectRows,
       analytics.playerTrendRows,
-      analytics.styleAgreementRows,
       selectedCoverage,
       selectedEfficiencyRows,
       selectedInteractionRows,
@@ -385,12 +388,6 @@ export function InsightsDashboard({
         value: Number(entry.value.toFixed(1)),
       }))
     : [];
-  const styleAgreementData = selectedStyleRows.map((row) => ({
-    exact: Math.round(row.exactMatchRate * 100),
-    mismatch: Math.round(row.mismatchRate * 100),
-    partial: Math.round(row.partialMatchRate * 100),
-    playerName: row.playerName,
-  }));
   const stylePerformanceData = buildStylePerformanceChartData(selectedStylePerformanceRows);
   const trendChartData = buildTrendChartData(
     selectedTrendRows,
@@ -405,10 +402,6 @@ export function InsightsDashboard({
         { label: 'Microbe', value: Math.round(selectedCoverage.microbeCoverage * 100) },
         { label: 'Animal', value: Math.round(selectedCoverage.animalCoverage * 100) },
         { label: 'Jovian', value: Math.round(selectedCoverage.jovianCoverage * 100) },
-        {
-          label: 'Declared',
-          value: Math.round(selectedCoverage.declaredStyleCoverage * 100),
-        },
         { label: 'Key Cards', value: Math.round(selectedCoverage.keyCardCoverage * 100) },
       ]
     : [];
@@ -429,7 +422,6 @@ export function InsightsDashboard({
     analytics.playerEfficiencySummaries.length > 0 ||
     analytics.playerMapMetricRows.length > 0 ||
     analytics.lineupEffectRows.length > 0 ||
-    analytics.styleAgreementRows.length > 0 ||
     analytics.scoreAverages !== null ||
     analytics.coverage !== null;
 
@@ -463,12 +455,12 @@ export function InsightsDashboard({
             <p className="rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1 text-xs text-orange-100">
               {selectedPlayer
                 ? `Focused on ${selectedPlayer.displayName}`
-                : 'Focused on group-wide finalized results'}
+                : 'Focused on all finalized results'}
             </p>
           </div>
           <p className="text-sm text-stone-300">
             Compare weighted leaderboard form, score-source patterns, style
-            agreement, head-to-head edges, lineup effects, interaction pairings,
+            performance, head-to-head edges, lineup effects, interaction pairings,
             and promo catalog references from finalized games only.
           </p>
         </div>
@@ -504,12 +496,10 @@ export function InsightsDashboard({
                 Finalized leaderboard rows will appear here once games are logged.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <DashboardChart>
                 <BarChart
                   data={leaderboardChartData}
-                  height={260}
                   margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  width={340}
                 >
                   <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
                   <XAxis
@@ -541,7 +531,7 @@ export function InsightsDashboard({
                     ))}
                   </Bar>
                 </BarChart>
-              </div>
+              </DashboardChart>
             )}
           </ChartFrame>
 
@@ -609,23 +599,29 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
-          <GlobalMetricBoard globalMapMetricRows={analytics.globalMapMetricRows} />
+          <section
+            aria-label="Global Statistics"
+            className="flex scroll-mt-28 flex-col gap-4"
+            id="global-statistics"
+          >
+            <GlobalMetricBoard globalMapMetricRows={analytics.globalMapMetricRows} />
 
-          <GlobalSummaryBoard
-            globalAwardMetricRows={analytics.globalAwardMetricRows}
-            globalCorporationMetricRows={analytics.globalCorporationMetricRows}
-            globalGenerationMetricRows={analytics.globalGenerationMetricRows}
-            globalMilestoneMetricRows={analytics.globalMilestoneMetricRows}
-            globalPlayerCountMetricRows={analytics.globalPlayerCountMetricRows}
-            globalStyleMetricRows={analytics.globalStyleMetricRows}
-            globalTagMetricRows={analytics.globalTagMetricRows}
-          />
+            <GlobalSummaryBoard
+              globalAwardMetricRows={analytics.globalAwardMetricRows}
+              globalCorporationMetricRows={analytics.globalCorporationMetricRows}
+              globalGenerationMetricRows={analytics.globalGenerationMetricRows}
+              globalMilestoneMetricRows={analytics.globalMilestoneMetricRows}
+              globalPlayerCountMetricRows={analytics.globalPlayerCountMetricRows}
+              globalStyleMetricRows={analytics.globalStyleMetricRows}
+              globalTagMetricRows={analytics.globalTagMetricRows}
+            />
+          </section>
 
           <ChartFrame
             title={
               selectedPlayer
                 ? `Score Profile for ${selectedPlayer.displayName}`
-                : 'Group Score Profile'
+                : 'All-Player Score Profile'
             }
           >
             {scoreSourceData.length === 0 ? (
@@ -633,13 +629,11 @@ export function InsightsDashboard({
                 Score-source averages will appear here after finalized games exist.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <DashboardChart heightClass="h-[360px]">
                 <BarChart
                   data={scoreSourceData}
-                  height={340}
                   layout="vertical"
-                  margin={{ bottom: 12, left: 48, right: 12, top: 12 }}
-                  width={340}
+                  margin={{ bottom: 12, left: 8, right: 24, top: 12 }}
                 >
                   <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
                   <XAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} type="number" />
@@ -647,7 +641,7 @@ export function InsightsDashboard({
                     dataKey="label"
                     tick={{ fill: '#d6d3d1', fontSize: 12 }}
                     type="category"
-                    width={88}
+                    width={132}
                   />
                   <Tooltip
                     contentStyle={{
@@ -659,52 +653,7 @@ export function InsightsDashboard({
                   />
                   <Bar dataKey="value" fill="#38bdf8" radius={[0, 10, 10, 0]} />
                 </BarChart>
-              </div>
-            )}
-          </ChartFrame>
-
-          <ChartFrame
-            title={
-              selectedPlayer
-                ? `Style Agreement for ${selectedPlayer.displayName}`
-                : 'Group Style Agreement'
-            }
-          >
-            {styleAgreementData.length === 0 ? (
-              <p className="text-sm text-stone-400">
-                Declared-versus-inferred style comparisons will appear once both
-                style inputs are recorded.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <BarChart
-                  data={styleAgreementData}
-                  height={260}
-                  margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  width={340}
-                >
-                  <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
-                  <XAxis
-                    angle={-20}
-                    dataKey="playerName"
-                    height={60}
-                    textAnchor="end"
-                    tick={{ fill: '#d6d3d1', fontSize: 12 }}
-                  />
-                  <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#1c1917',
-                      border: '1px solid #7c2d12',
-                      borderRadius: '12px',
-                      color: '#f5f5f4',
-                    }}
-                  />
-                  <Bar dataKey="exact" fill={styleColors.exact} stackId="style" />
-                  <Bar dataKey="partial" fill={styleColors.partial} stackId="style" />
-                  <Bar dataKey="mismatch" fill={styleColors.mismatch} stackId="style" />
-                </BarChart>
-              </div>
+              </DashboardChart>
             )}
           </ChartFrame>
 
@@ -716,12 +665,10 @@ export function InsightsDashboard({
               </p>
             ) : (
               <div className="flex flex-col gap-4">
-                <div className="overflow-x-auto">
+                <DashboardChart heightClass="h-[300px]">
                   <BarChart
                     data={stylePerformanceData}
-                    height={260}
                     margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                    width={340}
                   >
                     <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
                     <XAxis
@@ -742,7 +689,7 @@ export function InsightsDashboard({
                     />
                     <Bar dataKey="winRate" fill="#fb923c" radius={[10, 10, 0, 0]} />
                   </BarChart>
-                </div>
+                </DashboardChart>
                 <div className="grid gap-3">
                   {selectedStylePerformanceRows.slice(0, 3).map((row) => (
                     <article
@@ -775,12 +722,10 @@ export function InsightsDashboard({
               </p>
             ) : (
               <div className="flex flex-col gap-4">
-                <div className="overflow-x-auto">
+                <DashboardChart heightClass="h-[320px]">
                   <LineChart
                     data={trendChartData}
-                    height={280}
                     margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                    width={340}
                   >
                     <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
                     <XAxis
@@ -807,7 +752,7 @@ export function InsightsDashboard({
                       type="monotone"
                     />
                   </LineChart>
-                </div>
+                </DashboardChart>
                 <div className="grid gap-3">
                   {trendChartData.slice(-4).reverse().map((row) => (
                     <article
@@ -859,36 +804,14 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
-          <ChartFrame title="Lineup Effects">
-            {selectedLineupRows.length === 0 ? (
-              <p className="text-sm text-stone-400">
-                Lineup effects will appear after repeated finalized group mixes are
-                logged.
-              </p>
-            ) : (
-              <div className="grid gap-3">
-                {selectedLineupRows.map((row) => (
-                  <article
-                    className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
-                    key={`${row.playerId}-${row.lineupLabel}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-stone-100">
-                        {selectedPlayer ? row.lineupLabel : row.playerName}
-                      </h3>
-                      <p className="text-sm text-cyan-200">
-                        {formatPercent(row.winRate)}
-                      </p>
-                    </div>
-                    <p className="mt-2 text-sm text-stone-300">
-                      {selectedPlayer
-                        ? `${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points | ${formatAverage(row.averageGenerationCount)} gens`
-                        : `${truncateLabel(row.lineupLabel)} | ${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points`}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            )}
+          <ChartFrame
+            description="See how each player performs with different table lineups."
+            title="Lineup Effects"
+          >
+            <LineupEffectsPanel
+              rows={selectedLineupRows}
+              selectedPlayerName={selectedPlayer?.displayName ?? null}
+            />
           </ChartFrame>
 
           <ChartFrame title="Interaction Insights">
@@ -925,7 +848,7 @@ export function InsightsDashboard({
             title={
               selectedPlayer
                 ? `Optional Data Coverage for ${selectedPlayer.displayName}`
-                : 'Group Optional Data Coverage'
+                : 'All-Player Optional Data Coverage'
             }
           >
             {coverageData.length === 0 ? (
@@ -934,12 +857,10 @@ export function InsightsDashboard({
               </p>
             ) : (
               <div className="flex flex-col gap-4">
-                <div className="overflow-x-auto">
+                <DashboardChart>
                   <BarChart
                     data={coverageData}
-                    height={260}
                     margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                    width={340}
                   >
                     <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
                     <XAxis
@@ -960,7 +881,7 @@ export function InsightsDashboard({
                     />
                     <Bar dataKey="value" fill="#14b8a6" radius={[10, 10, 0, 0]} />
                   </BarChart>
-                </div>
+                </DashboardChart>
                 <div className="flex flex-wrap gap-2">
                   {selectedCoverage ? (
                     <>
@@ -979,10 +900,6 @@ export function InsightsDashboard({
                       <CoverageBadge
                         label="Jovian coverage"
                         value={selectedCoverage.jovianCoverage}
-                      />
-                      <CoverageBadge
-                        label="Declared style coverage"
-                        value={selectedCoverage.declaredStyleCoverage}
                       />
                       <CoverageBadge
                         label="Key-card coverage"

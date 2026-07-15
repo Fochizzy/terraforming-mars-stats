@@ -8,7 +8,6 @@ import type {
   LineupEffectRow,
   PlayerEfficiencySummary,
   PlayerMapMetricRow,
-  StyleAgreementRow,
   TrendRow,
 } from '@/lib/db/analytics-repo';
 
@@ -61,7 +60,6 @@ type BuildInsightCardsInput = {
       playerName?: string;
     }
   >;
-  styleAgreementRows?: StyleAgreementRow[];
   trendRows?: TrendRow[];
 };
 
@@ -195,7 +193,6 @@ export function buildInsightCards({
   playerEfficiencySummaries = [],
   playerMapMetricRows = [],
   stylePerformanceRows = [],
-  styleAgreementRows = [],
   trendRows = [],
 }: BuildInsightCardsInput): InsightCard[] {
   const cards: InsightCard[] = [];
@@ -213,7 +210,7 @@ export function buildInsightCards({
       confidence: getConfidence(focusPerformance.gamesPlayed),
       body: isFocusedPlayer
         ? `${focusPerformance.playerName} has a ${formatPercent(focusPerformance.winRate)} win rate with a ${formatAverage(focusPerformance.weightedScore)} weighted score and ${formatAverage(focusPerformance.averageScore)} average points across ${focusPerformance.gamesPlayed} finalized games.`
-        : `${focusPerformance.playerName} currently leads the group with a ${formatPercent(focusPerformance.winRate)} win rate, ${formatAverage(focusPerformance.weightedScore)} weighted score, and ${formatAverage(focusPerformance.averageScore)} average points over ${focusPerformance.gamesPlayed} finalized games.`,
+        : `${focusPerformance.playerName} currently leads the dataset with a ${formatPercent(focusPerformance.winRate)} win rate, ${formatAverage(focusPerformance.weightedScore)} weighted score, and ${formatAverage(focusPerformance.averageScore)} average points over ${focusPerformance.gamesPlayed} finalized games.`,
     });
   }
 
@@ -284,21 +281,7 @@ export function buildInsightCards({
       confidence: getConfidence(interactionRow.gamesPlayed),
       body: focusPlayerName
         ? `${focusPlayerName} performs best with the ${interactionRow.label} ${interactionLabel}, winning ${formatPercent(interactionRow.winRate)} of ${interactionRow.gamesPlayed} finalized results and averaging ${formatAverage(interactionRow.averageScore)} points.`
-        : `${interactionRow.label} is the strongest current ${interactionLabel} in the group, producing a ${formatPercent(interactionRow.winRate)} win rate across ${interactionRow.gamesPlayed} finalized results with ${formatAverage(interactionRow.averageScore)} average points.`,
-    });
-  }
-
-  const styleRow = focusPlayerId
-    ? styleAgreementRows.find((row) => row.playerId === focusPlayerId) ?? null
-    : styleAgreementRows[0] ?? null;
-
-  if (styleRow) {
-    cards.push({
-      title: 'Style Agreement',
-      tone: 'style',
-      sampleSize: styleRow.comparedGames,
-      confidence: getConfidence(styleRow.comparedGames),
-      body: `${styleRow.playerName} has exact declared-versus-inferred style agreement in ${formatPercent(styleRow.exactMatchRate)} of ${styleRow.comparedGames} tagged finalized games, with ${formatPercent(styleRow.partialMatchRate)} partial matches.`,
+        : `${interactionRow.label} is the strongest current ${interactionLabel} in the dataset, producing a ${formatPercent(interactionRow.winRate)} win rate across ${interactionRow.gamesPlayed} finalized results with ${formatAverage(interactionRow.averageScore)} average points.`,
     });
   }
 
@@ -319,7 +302,7 @@ export function buildInsightCards({
       confidence: getConfidence(bestStyleRow.gamesPlayed),
       body: focusPlayerName
         ? `${focusPlayerName}'s strongest current inferred lane is ${styleLabel}, with a ${formatPercent(bestStyleRow.winRate)} win rate across ${bestStyleRow.gamesPlayed} finalized games and ${formatAverage(bestStyleRow.averageScore)} average points.`
-        : `${styleLabel} is the group's strongest current inferred style, winning ${formatPercent(bestStyleRow.winRate)} of ${bestStyleRow.gamesPlayed} finalized results with ${formatAverage(bestStyleRow.averageScore)} average points.`,
+        : `${styleLabel} is the dataset's strongest current inferred style, winning ${formatPercent(bestStyleRow.winRate)} of ${bestStyleRow.gamesPlayed} finalized results with ${formatAverage(bestStyleRow.averageScore)} average points.`,
     });
   }
 
@@ -412,7 +395,7 @@ export function buildInsightCards({
       confidence: getConfidence(relevantTrendRows.length),
       body: focusPlayerName
         ? `In recent finalized games, ${focusPlayerName} moved from ${formatPercent(earlyWinRate)} to ${formatPercent(recentWinRate)} wins and from ${formatAverage(earlyAverageScore)} to ${formatAverage(recentAverageScore)} average points${styleFragment}.`
-        : `Across recent finalized group results, win rate moved from ${formatPercent(earlyWinRate)} to ${formatPercent(recentWinRate)} and average points moved from ${formatAverage(earlyAverageScore)} to ${formatAverage(recentAverageScore)}${styleFragment}.`,
+        : `Across recent finalized results, win rate moved from ${formatPercent(earlyWinRate)} to ${formatPercent(recentWinRate)} and average points moved from ${formatAverage(earlyAverageScore)} to ${formatAverage(recentAverageScore)}${styleFragment}.`,
     });
   } else if (coverage) {
     cards.push({
