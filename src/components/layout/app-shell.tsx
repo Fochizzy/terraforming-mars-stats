@@ -1,16 +1,28 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { BottomNav, type BottomNavItem } from '@/components/navigation/bottom-nav';
-import { TopNav } from '@/components/navigation/top-nav';
-import { signOut } from '@/features/auth/sign-out';
+import bannerImage from '../../../assets/banner.png';
+import type { BottomNavItem } from '@/components/navigation/bottom-nav';
+import { LogoutButton } from '@/components/navigation/logout-button';
+import styles from './app-shell.module.css';
+
+type PrimaryNavigationItem = {
+  href: string;
+  label: string;
+  highlighted?: boolean;
+};
+
+const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
+  { href: '/log-game', label: 'Log a Game', highlighted: true },
+  { href: '/profile', label: 'My Profile' },
+  { href: '/insights/individual', label: 'Individual Insights' },
+  { href: '/insights/group', label: 'Group Insights' },
+  { href: '/comparisons', label: 'Compare' },
+];
 
 export function AppShell({
   title,
   children,
   headerActions,
-  navItems,
-  showReviewSavedGamesLink = false,
-  wide = false,
 }: {
   title: string;
   children: React.ReactNode;
@@ -21,60 +33,58 @@ export function AppShell({
 }) {
   return (
     <main className="tm-app-shell">
-      <div
-        className={`mx-auto flex min-h-screen flex-col ${wide ? 'max-w-6xl' : 'max-w-md'}`}
-      >
+      <div className="flex min-h-screen w-full flex-col">
+        <div className={styles.bannerFrame}>
+          <Image
+            alt="Terraforming Mars Statistics"
+            className={styles.bannerImage}
+            height={793}
+            priority
+            sizes="100vw"
+            src={bannerImage}
+            width={2048}
+          />
+        </div>
+
+        <nav
+          aria-label="Saved games and account"
+          className={styles.utilityBar}
+        >
+          <div className={styles.utilityActions}>
+            <Link className={styles.utilityLink} href="/log-game/review">
+              Saved Games
+            </Link>
+            <LogoutButton className={styles.logoutButton} />
+          </div>
+        </nav>
+
+        <nav aria-label="Primary navigation" className={styles.primaryNavigation}>
+          {primaryNavigationItems.map((item) => (
+            <Link
+              className={`${styles.primaryNavigationLink} ${
+                item.highlighted ? styles.primaryNavigationLinkHighlighted : ''
+              }`}
+              data-highlighted={item.highlighted ? 'true' : undefined}
+              href={item.href}
+              key={item.label}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
         <header className="tm-app-header">
-          <div className="tm-app-header__inner">
-            <div className="tm-app-header-banner tm-landing-hero-module">
-              <div className="tm-landing-banner-frame tm-landing-banner-frame--cropped">
-                <Image
-                  alt="Terraforming Mars Statistics"
-                  className="tm-landing-banner-image"
-                  height={793}
-                  src="/banner.png"
-                  unoptimized
-                  width={1983}
-                />
-              </div>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="tm-display-eyebrow text-[11px]">
+                Terraforming Mars Stats
+              </p>
+              <h1 className="tm-display-title mt-2 text-2xl font-bold">{title}</h1>
             </div>
-            <div className="tm-app-header__content">
-              <div className="tm-app-header__title-group">
-                <p className="tm-display-eyebrow">Mission Control</p>
-                <h1 className="tm-display-title text-2xl font-bold lg:text-3xl">
-                  {title}
-                </h1>
-              </div>
-              <div className="tm-app-header__actions">
-                <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
-                  {headerActions}
-                  {showReviewSavedGamesLink ? (
-                    <Link
-                      className="tm-button-secondary px-4 py-2 text-xs"
-                      href="/log-game/review"
-                    >
-                      Review Saved Games
-                    </Link>
-                  ) : null}
-                  <form action={signOut}>
-                    <button className="tm-button-secondary px-4 py-2 text-xs" type="submit">
-                      Log Out
-                    </button>
-                  </form>
-                </div>
-                <Link
-                  className="tm-button-leaderboard w-full px-4 py-2 text-xs"
-                  href="/leaderboard"
-                >
-                  Leaderboard
-                </Link>
-              </div>
-            </div>
-            <TopNav />
+            {headerActions}
           </div>
         </header>
-        <section className="flex-1 px-5 py-5 lg:px-8 lg:py-8">{children}</section>
-        <BottomNav items={navItems} />
+        <section className="flex-1 w-full px-5 py-5">{children}</section>
       </div>
     </main>
   );
