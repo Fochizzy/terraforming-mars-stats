@@ -655,22 +655,25 @@ a {
   }
 
   .tm-elo-hero {
-    @apply relative overflow-hidden rounded-3xl border px-6 py-8;
+    @apply relative overflow-hidden rounded-2xl border px-5 py-5;
     background: radial-gradient(circle at 78% 20%, rgba(255, 142, 52, 0.3), transparent 28%), linear-gradient(135deg, #2b100b, #0b0d13 62%);
     border-color: rgba(255, 157, 70, 0.62);
     box-shadow: 0 0 46px rgba(224, 80, 24, 0.18), inset 0 1px rgba(255,255,255,.08);
   }
 
-  .tm-elo-panel { @apply rounded-3xl border p-5; background: linear-gradient(145deg, rgba(34,25,24,.96), rgba(13,16,22,.98)); border-color: rgba(218,126,58,.42); }
-  .tm-elo-table { @apply flex flex-col gap-2; }
-  .tm-elo-row { @apply flex items-center gap-3 rounded-2xl border px-3 py-3; background: rgba(4,7,12,.52); border-color: rgba(255,255,255,.08); }
-  .tm-elo-row--leader { @apply relative overflow-hidden pl-20 sm:pl-24; background: linear-gradient(90deg, rgba(174,62,20,.28), rgba(20,15,17,.82)); border-color: rgba(255,177,84,.58); box-shadow: 0 0 22px rgba(232,99,31,.12); }
+  .tm-elo-panel { @apply rounded-2xl border p-4; background: linear-gradient(145deg, rgba(34,25,24,.96), rgba(13,16,22,.98)); border-color: rgba(218,126,58,.42); }
+  .tm-elo-table { @apply flex flex-col gap-1.5; }
+  .tm-elo-row { @apply flex items-center gap-2 rounded-xl border px-3 py-2; min-height: 3.75rem; background: rgba(4,7,12,.52); border-color: rgba(255,255,255,.08); }
+  .tm-elo-row--podium { @apply py-2; min-height: 9rem; }
+  .tm-elo-row--leader { @apply relative overflow-hidden; background: linear-gradient(90deg, rgba(174,62,20,.28), rgba(20,15,17,.82)); border-color: rgba(255,177,84,.58); box-shadow: 0 0 22px rgba(232,99,31,.12); }
+  .tm-elo-crest { @apply flex w-32 shrink-0 items-center justify-center sm:w-40; }
+  .tm-elo-emblem { @apply h-28 w-28 object-contain sm:h-32 sm:w-32; object-position: center; filter: drop-shadow(0 0 14px rgba(255, 150, 54, 0.28)); }
   .tm-elo-first-trophy { @apply absolute -bottom-6 left-1 h-24 w-auto object-contain sm:h-28; filter: drop-shadow(0 0 14px rgba(255,150,54,.5)); }
-  .tm-elo-rank { @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-black; background: #20100d; border: 1px solid rgba(246,157,78,.5); color: #ffc27d; }
-  .tm-elo-rating { @apply text-xl font-black; color: #ffb15e; text-shadow: 0 0 14px rgba(255,112,39,.42); }
-  .tm-elo-save input { @apply h-5 w-5 accent-orange-500; }
+  .tm-elo-rank { @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black; background: #20100d; border: 1px solid rgba(246,157,78,.5); color: #ffc27d; }
+  .tm-elo-rating { @apply text-lg font-black; color: #ffb15e; text-shadow: 0 0 14px rgba(255,112,39,.42); }
+  .tm-elo-save input { @apply h-4 w-4 accent-orange-500; }
   .tm-elo-badge { @apply rounded-full border px-3 py-1 text-xs uppercase tracking-widest; border-color: rgba(255,157,70,.5); color: #ffc68b; }
-  .tm-elo-heat { @apply rounded-2xl border p-4 text-sm leading-6 text-stone-200; background: rgba(99,29,13,.22); border-color: rgba(244,113,41,.32); }
+  .tm-elo-heat { @apply rounded-xl border p-3 text-sm leading-6 text-stone-200; background: rgba(99,29,13,.22); border-color: rgba(244,113,41,.32); }
 
   .tm-banner-success {
     @apply flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm;

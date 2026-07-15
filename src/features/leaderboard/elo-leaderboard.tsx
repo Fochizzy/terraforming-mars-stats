@@ -5,6 +5,21 @@ import Image from 'next/image';
 import { buildLeaderboardHeatNarratives, type EloLeaderboardRow } from '@/lib/elo-leaderboard-model';
 import { toggleSavedLeaderboardPlayer } from '@/app/(app)/leaderboard/actions';
 
+const podiumEmblems = [
+  {
+    alt: 'Gold first-place Terraforming Mars emblem',
+    src: '/leaderboard-gold.png',
+  },
+  {
+    alt: 'Silver second-place Terraforming Mars emblem',
+    src: '/leaderboard-silver.png',
+  },
+  {
+    alt: 'Bronze third-place Terraforming Mars emblem',
+    src: '/leaderboard-bronze.png',
+  },
+] as const;
+
 function RatingTable({ personal, rows, savedIds, onToggle }: {
   personal?: boolean;
   rows: EloLeaderboardRow[];
@@ -15,18 +30,21 @@ function RatingTable({ personal, rows, savedIds, onToggle }: {
     <div className="tm-elo-table" role="table" aria-label={personal ? 'Personal Elo leaderboard' : 'Global Elo leaderboard'}>
       {rows.map((row, index) => {
         const saved = savedIds.has(row.playerId);
+        const emblem = podiumEmblems[index] ?? null;
         return (
-          <article className={`tm-elo-row${index === 0 ? ' tm-elo-row--leader' : ''}`} key={row.playerId} role="row">
-            {index === 0 ? <Image alt="Gold first-place Terraforming Mars emblem" className="tm-elo-emblem" height={512} src="/leaderboard-gold.png" width={512} /> : null}
-            {index === 1 ? <Image alt="Silver second-place Terraforming Mars emblem" className="tm-elo-emblem" height={512} src="/leaderboard-silver.png" width={512} /> : null}
-            {index === 2 ? <Image alt="Bronze third-place Terraforming Mars emblem" className="tm-elo-emblem" height={512} src="/leaderboard-bronze.png" width={512} /> : null}
+          <article className={`tm-elo-row${emblem ? ' tm-elo-row--podium' : ''}${index === 0 ? ' tm-elo-row--leader' : ''}`} key={row.playerId} role="row">
+            {emblem ? (
+              <div className="tm-elo-crest">
+                <Image alt={emblem.alt} className="tm-elo-emblem" height={512} src={emblem.src} width={512} />
+              </div>
+            ) : null}
             <div className="tm-elo-rank">{index + 1}</div>
             <label className="tm-elo-save">
               <input checked={saved} onChange={(event) => onToggle(row.playerId, event.target.checked)} type="checkbox" />
               <span className="sr-only">{saved ? 'Remove' : 'Add'} {row.playerName} {saved ? 'from' : 'to'} personal leaderboard</span>
             </label>
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-base font-bold text-stone-50">{row.playerName}</h3>
+              <h3 className="truncate text-sm font-bold text-stone-50">{row.playerName}</h3>
               <p className="tm-muted-copy text-xs">{row.wins} wins · {(row.winRate * 100).toFixed(0)}% · {row.gamesPlayed} games</p>
             </div>
             <div className="text-right">
@@ -60,29 +78,29 @@ export function EloLeaderboard({ initialSavedIds, rows }: { initialSavedIds: str
   };
 
   return (
-    <div className="flex flex-col gap-6" aria-busy={pending}>
+    <div className="flex flex-col gap-4" aria-busy={pending}>
       <section className="tm-elo-hero">
         <div className="relative z-10 max-w-3xl">
           <p className="tm-display-eyebrow">The Race for Mars</p>
-          <h2 className="text-3xl font-black uppercase tracking-[0.12em] text-orange-100">Elo Command Rankings</h2>
+          <h2 className="text-2xl font-black uppercase tracking-[0.12em] text-orange-100 sm:text-3xl">Elo Command Rankings</h2>
           <p className="text-sm text-stone-300">Every finalized game shifts the field. Victories drive the result, score margin raises the stakes, and defeating a stronger opponent produces the largest rating gain.</p>
         </div>
       </section>
 
       <section className="tm-elo-panel">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div><p className="tm-data-label">Private Watchlist</p><h2 className="tm-panel-title text-xl">My Leaderboard</h2></div>
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div><p className="tm-data-label">Private Watchlist</p><h2 className="tm-panel-title text-lg">My Leaderboard</h2></div>
           <span className="tm-elo-badge">{personalRows.length} tracked</span>
         </div>
         {personalRows.length ? <RatingTable personal rows={personalRows} savedIds={savedIds} onToggle={toggle} /> : <p className="tm-muted-copy">Check players in the global field to create your personal leaderboard. Your choices follow your login.</p>}
-        <div className="tm-elo-heat mt-5">
+        <div className="tm-elo-heat mt-4">
           <h3 className="tm-data-label mb-2">Leaderboard Heat</h3>
           {buildLeaderboardHeatNarratives(personalRows).map((sentence) => <p key={sentence}>{sentence}</p>)}
         </div>
       </section>
 
       <section className="tm-elo-panel">
-        <div className="mb-4"><p className="tm-data-label">All Finalized Games</p><h2 className="tm-panel-title text-xl">Global Field</h2></div>
+        <div className="mb-3"><p className="tm-data-label">All Finalized Games</p><h2 className="tm-panel-title text-lg">Global Field</h2></div>
         <RatingTable rows={rows} savedIds={savedIds} onToggle={toggle} />
       </section>
     </div>
