@@ -1,0 +1,39 @@
+name: Apply profile tempo formatting once
+
+on:
+  push:
+    branches:
+      - tm-stats-app
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: format/profile-tempo-cards
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply formatting refactor
+        run: node scripts/apply-profile-tempo-formatting.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused tests
+        run: npm run test -- --run src/features/analytics/profile-tempo-fit-cards.test.tsx src/features/analytics/profile-dashboard.test.tsx
+
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/analytics/profile-dashboard.tsx src/features/analytics/profile-tempo-fit-cards.tsx src/features/analytics/profile-tempo-fit-cards.test.tsx scripts/apply-profile-tempo-formatting.mjs .github/workflows/apply-profile-tempo-formatting.yml
+          git commit -m "Improve tempo and game-fit card formatting"
+          git push origin HEAD:format/profile-tempo-cards
