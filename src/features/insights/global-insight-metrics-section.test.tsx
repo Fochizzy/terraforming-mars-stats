@@ -132,10 +132,30 @@ describe('GlobalInsightMetricsSection', () => {
     expect(screen.getByText('Terraforming Share')).toBeInTheDocument();
     expect(screen.getByText('Objective Conversion')).toBeInTheDocument();
     expect(screen.getByText('Map & Table-Size Meta')).toBeInTheDocument();
-    expect(screen.getByText('Opening Combo Strength')).toBeInTheDocument();
-    expect(screen.getByText('Log-Derived Card Timing')).toBeInTheDocument();
+    expect(screen.getByText('Opening combo strength')).toBeInTheDocument();
+    expect(screen.getByText('Log-derived card timing')).toBeInTheDocument();
     expect(screen.getByText('Tharsis Republic')).toBeInTheDocument();
     expect(screen.getByText('Friday Mars')).toBeInTheDocument();
     expect(screen.getByText('Mars University')).toBeInTheDocument();
+    expect(screen.getByText('↑ +42 pts')).toBeInTheDocument();
+    expect(screen.getByLabelText('4 early plays to 3 late plays')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Plays' })).toBeInTheDocument();
+    expect(screen.queryByText('Early Plays')).not.toBeInTheDocument();
+    expect(screen.queryByText('Late Plays')).not.toBeInTheDocument();
+  });
+
+  it('uses a contained confidence callout when opening samples are missing', () => {
+    render(
+      <GlobalInsightMetricsSection
+        metrics={{ ...metrics, openingCombos: [] }}
+      />,
+    );
+
+    expect(screen.getByText('Limited confidence')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'More repeated corporation and prelude pairings are needed before drawing strong conclusions.',
+      ),
+    ).toBeInTheDocument();
   });
 });
