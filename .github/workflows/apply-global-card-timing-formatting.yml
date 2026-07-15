@@ -1,0 +1,36 @@
+name: Apply global card timing formatting
+
+on:
+  push:
+    branches:
+      - feature/global-card-timing-formatting-v2
+    paths:
+      - .github/workflows/apply-global-card-timing-formatting.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/global-card-timing-formatting-v2
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Load and apply formatting patch
+        run: |
+          mkdir -p scripts
+          curl -fsSL https://raw.githubusercontent.com/Fochizzy/terraforming-mars-stats/feature/global-card-timing-formatting/scripts/apply-global-card-timing-formatting.mjs -o scripts/apply-global-card-timing-formatting.mjs
+          node scripts/apply-global-card-timing-formatting.mjs
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Improve opening combo and card timing formatting"
+          git push origin HEAD:feature/global-card-timing-formatting-v2
