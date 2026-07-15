@@ -480,6 +480,7 @@ describe('InsightsDashboard', () => {
   });
 
   it('renders all expanded individual metrics for a focused player', async () => {
+    const user = userEvent.setup();
     const personalSelectionStats: SelectionStats = {
       awardFunding: [],
       baselineWinRate: 0.5,
@@ -689,6 +690,18 @@ describe('InsightsDashboard', () => {
             displayName: 'Friday Mars',
             playerIds: ['p1'],
           }),
+          buildFocusPerson({
+            bundle: {
+              coverage: null,
+              headToHeadRows: [],
+              performance: null,
+              scoreAverages: emptyScoreAverages,
+              trendRows: [],
+            },
+            canonicalId: 'name:second seat',
+            displayName: 'Second Seat',
+            playerIds: ['p2'],
+          }),
         ]}
         overallAnalytics={{
           ...buildEmptyGroupAnalyticsFixture(),
@@ -849,11 +862,13 @@ describe('InsightsDashboard', () => {
       />,
     );
 
-    expect(screen.getByLabelText(/player focus/i)).toBeDisabled();
-    expect(screen.getByLabelText(/player focus/i)).toHaveValue('user:me');
+    const playerFocus = screen.getByLabelText(/player focus/i);
+
+    expect(playerFocus).not.toBeDisabled();
+    expect(playerFocus).toHaveValue('user:me');
     expect(
-      screen.getByText(/always follows your signed-in player/i),
-    ).toBeInTheDocument();
+      screen.queryByText(/always follows your signed-in player/i),
+    ).not.toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { name: /Expanded Individual Metrics/i }),
@@ -876,6 +891,11 @@ describe('InsightsDashboard', () => {
 
     expect(screen.getAllByText('Tharsis Republic').length).toBeGreaterThan(0);
     expect(screen.getAllByText('greenery').length).toBeGreaterThan(0);
+
+    await user.selectOptions(playerFocus, 'name:second seat');
+
+    expect(playerFocus).toHaveValue('name:second seat');
+    expect(screen.getByText(/Focused on Second Seat overall/i)).toBeInTheDocument();
   });
 
   it('does not surface promo catalog or map expansion interactions as stats', () => {
