@@ -30,11 +30,13 @@ describe('AppShell', () => {
     expect(
       within(primaryNavigation).getByRole('link', { name: /group insights/i }),
     ).toBeInTheDocument();
-    expect(
-      within(primaryNavigation).getByRole('link', { name: /leaderboard/i }),
-    )
-      .toHaveAttribute('href', '/group')
-      .toHaveAttribute('data-leaderboard-button', 'true');
+
+    const leaderboardLink = within(primaryNavigation).getByRole('link', {
+      name: /leaderboard/i,
+    });
+    expect(leaderboardLink).toHaveAttribute('href', '/group#leaderboard');
+    expect(leaderboardLink).toHaveAttribute('data-leaderboard-button', 'true');
+
     expect(
       within(primaryNavigation).getByRole('link', { name: /global statistics/i }),
     ).toHaveAttribute('href', '/insights#global-statistics');
