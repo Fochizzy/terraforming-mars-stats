@@ -1,4 +1,19 @@
-import { buildScoreSourceEntries, type ScoreSourceAverages } from '@/lib/db/analytics-repo';
+import type { ScoreSourceAverages } from '@/lib/db/analytics-repo';
+
+function buildScoreSourceEntries(row: ScoreSourceAverages) {
+  return [
+    { label: 'Terraform Rating', value: row.averageTrPoints },
+    { label: 'Card Points', value: row.averageCardPoints },
+    { label: 'Other Card', value: row.averageOtherCardPoints },
+    { label: 'Greenery', value: row.averageGreeneryPoints },
+    { label: 'Cities', value: row.averageCitiesPoints },
+    { label: 'Milestones', value: row.averageMilestonePoints },
+    { label: 'Awards', value: row.averageAwardPoints },
+    { label: 'Jovian', value: row.averageJovianPoints },
+    { label: 'Microbe', value: row.averageMicrobePoints },
+    { label: 'Animal', value: row.averageAnimalPoints },
+  ];
+}
 
 function formatAverage(value: number) {
   return new Intl.NumberFormat('en-US', {
