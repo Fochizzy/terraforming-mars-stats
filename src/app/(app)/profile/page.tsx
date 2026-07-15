@@ -66,14 +66,6 @@ export default async function ProfilePage(_props: ProfilePageProps) {
         </ChartFrame>
       ) : (
         <>
-          <div className="flex flex-wrap gap-3">
-            <Link className="tm-button-secondary" href="/profile/compare">
-              Compare Players
-            </Link>
-            <Link className="tm-button-secondary" href="/profile/comparison">
-              Open My Play vs Overall
-            </Link>
-          </div>
           <ProfileDashboard
             cardOutcomes={profileAnalytics?.cardOutcomes ?? []}
             coverage={profileAnalytics?.coverage ?? null}

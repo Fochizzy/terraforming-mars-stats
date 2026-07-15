@@ -161,7 +161,7 @@ describe('ProfilePage', () => {
     expect(screen.getByText(/10 finalized games overall/i)).toBeInTheDocument();
   });
 
-  it('links to the play comparison screen instead of fanning out per-group queries', async () => {
+  it('loads overall analytics once without profile comparison shortcut buttons', async () => {
     vi.mocked(getCurrentGroupContext).mockResolvedValue({
       groupId: 'group-1',
       groupName: 'Mars Club',
@@ -212,11 +212,11 @@ describe('ProfilePage', () => {
     expect(getProfileAnalytics).toHaveBeenCalledTimes(1);
     expect(getProfileAnalytics).toHaveBeenCalledWith('user-1');
     expect(
-      screen.getByRole('link', { name: /compare players/i }),
-    ).toHaveAttribute('href', '/profile/compare');
+      screen.queryByRole('link', { name: /compare players/i }),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /open my play vs overall/i }),
-    ).toHaveAttribute('href', '/profile/comparison');
+      screen.queryByRole('link', { name: /open my play vs overall/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders a safe fallback when loading analytics throws', async () => {
