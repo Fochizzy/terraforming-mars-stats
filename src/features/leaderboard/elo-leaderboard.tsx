@@ -1,13 +1,14 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
-import { toggleHiddenLeaderboardPlayer } from '@/app/(app)/leaderboard/actions';
 import {
   buildLeaderboardHeatNarratives,
   type EloLeaderboardRow,
 } from '@/lib/elo-leaderboard-model';
+
+const hiddenLeaderboardStorageKey = 'tm-stats:hidden-leaderboard-player-ids';
 
 const podiumEmblems = [
   {
@@ -140,14 +141,11 @@ function HiddenPlayersList({
 }
 
 export function EloLeaderboard({
-  initialHiddenIds,
   rows,
 }: {
-  initialHiddenIds: string[];
   rows: EloLeaderboardRow[];
 }) {
-  const [hiddenIds, setHiddenIds] = useState(() => new Set(initialHiddenIds));
-  const [pending, startTransition] = useTransition();
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set());
   const visibleRows = useMemo(
     () => rows.filter((row) => !hiddenIds.has(row.playerId)),
     [hiddenIds, rows],
@@ -157,6 +155,19 @@ export function EloLeaderboard({
     [hiddenIds, rows],
   );
 
+  useEffect(() => {
+    try {
+      const rawHiddenIds = window.localStorage.getItem(hiddenLeaderboardStorageKey);
+      const parsedHiddenIds = rawHiddenIds ? JSON.parse(rawHiddenIds) : [];
+
+      if (Array.isArray(parsedHiddenIds)) {
+        setHiddenIds(new Set(parsedHiddenIds.map(String)));
+      }
+    } catch {
+      setHiddenIds(new Set());
+    }
+  }, []);
+
   const toggleHidden = (playerId: string, hidden: boolean) => {
     setHiddenIds((current) => {
       const next = new Set(current);
@@ -165,13 +176,20 @@ export function EloLeaderboard({
       } else {
         next.delete(playerId);
       }
+      try {
+        window.localStorage.setItem(
+          hiddenLeaderboardStorageKey,
+          JSON.stringify([...next]),
+        );
+      } catch {
+        // The UI should still respond if storage is unavailable.
+      }
       return next;
     });
-    startTransition(async () => toggleHiddenLeaderboardPlayer(playerId, hidden));
   };
 
   return (
-    <div className="flex flex-col gap-4" aria-busy={pending}>
+    <div className="flex flex-col gap-4">
       <section className="tm-elo-hero">
         <div className="relative z-10 max-w-3xl">
           <p className="tm-display-eyebrow">The Race for Mars</p>

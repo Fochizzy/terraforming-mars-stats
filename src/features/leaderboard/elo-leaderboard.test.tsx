@@ -1,15 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { EloLeaderboard } from './elo-leaderboard';
 import type { EloLeaderboardRow } from '@/lib/elo-leaderboard-model';
-
-const actionMocks = vi.hoisted(() => ({
-  toggleHiddenLeaderboardPlayer: vi.fn(),
-}));
-
-vi.mock('@/app/(app)/leaderboard/actions', () => ({
-  toggleHiddenLeaderboardPlayer: actionMocks.toggleHiddenLeaderboardPlayer,
-}));
 
 const rows: EloLeaderboardRow[] = [
   {
@@ -55,9 +47,13 @@ const rows: EloLeaderboardRow[] = [
 ];
 
 describe('EloLeaderboard', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('uses gold, silver, and bronze emblems for the first three places', () => {
     const { container } = render(
-      <EloLeaderboard initialHiddenIds={[]} rows={rows} />,
+      <EloLeaderboard rows={rows} />,
     );
 
     expect(
@@ -79,7 +75,12 @@ describe('EloLeaderboard', () => {
   });
 
   it('uses hidden players instead of a duplicate tracked leaderboard', () => {
-    render(<EloLeaderboard initialHiddenIds={['player-2']} rows={rows} />);
+    window.localStorage.setItem(
+      'tm-stats:hidden-leaderboard-player-ids',
+      JSON.stringify(['player-2']),
+    );
+
+    render(<EloLeaderboard rows={rows} />);
 
     expect(screen.queryByText(/private watchlist/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/global field/i)).not.toBeInTheDocument();
@@ -93,7 +94,7 @@ describe('EloLeaderboard', () => {
   });
 
   it('hides and restores players from the personal leaderboard', () => {
-    render(<EloLeaderboard initialHiddenIds={[]} rows={rows} />);
+    render(<EloLeaderboard rows={rows} />);
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -101,20 +102,15 @@ describe('EloLeaderboard', () => {
       }),
     );
 
-    expect(actionMocks.toggleHiddenLeaderboardPlayer).toHaveBeenCalledWith(
-      'player-1',
-      true,
-    );
     expect(
       screen.queryByRole('heading', { name: /gold player/i }),
     ).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('tm-stats:hidden-leaderboard-player-ids')).toContain(
+      'player-1',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /gold player/i }));
 
-    expect(actionMocks.toggleHiddenLeaderboardPlayer).toHaveBeenCalledWith(
-      'player-1',
-      false,
-    );
     expect(
       screen.getByRole('heading', { name: /gold player/i }),
     ).toBeInTheDocument();
