@@ -2,14 +2,13 @@ import { AppShell } from '@/components/layout/app-shell';
 import { LogGameImportShell } from '@/features/imports/log-game-import-shell';
 import { saveDraftGame } from '@/lib/db/game-draft-repo';
 import { saveGameLogImport } from '@/lib/db/game-import-repo';
+import { correctAndSaveOcrText } from '@/lib/db/ocr-correction-repo';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
 import {
   buildImportDraft,
   type CreateImportDraftInput,
 } from '@/lib/imports/build-import-draft';
-import { createOcrProvider } from '@/lib/ocr/create-ocr-provider';
-import { processImportScreenshot } from '@/lib/ocr/process-import-screenshot';
 import { listPlayers } from '@/lib/db/player-repo';
 import { listMaps } from '@/lib/db/reference-repo';
 import { revalidatePath } from 'next/cache';
@@ -54,28 +53,45 @@ export default async function LogGameImportPage() {
       | null = null;
     let ocrWarning: string | null = null;
 
-    if (values.endgameScreenshot) {
+    if (values.rawOcrText?.trim()) {
       try {
-        const result = await processImportScreenshot({
-          file: values.endgameScreenshot,
+        const result = await correctAndSaveOcrText({
+          engineName: 'tesseract.js',
+          engineVersion: '6.0.1',
           gameLogImportId: gameLogImport.id,
-          ocrProvider: createOcrProvider(),
+          meanConfidence: values.ocrConfidence ?? null,
+          metadata: {
+            execution_environment: 'browser',
+            screenshot_name: values.endgameScreenshotName ?? null,
+          },
+          preprocessingVariant: 'original',
+          rawOcrText: values.rawOcrText.trim(),
+          regionType: 'full_image',
         });
+
+        const needsReviewCount = result.needsReview.length;
+        const unresolvedCount = result.unresolved.length;
 
         ocr = {
           attemptId: result.attemptId,
-          needsReviewCount: result.needsReviewCount,
-          status: result.status,
-          unresolvedCount: result.unresolvedCount,
+          needsReviewCount,
+          status:
+            needsReviewCount > 0 || unresolvedCount > 0
+              ? 'needs_review'
+              : 'ready_to_parse',
+          unresolvedCount,
         };
       } catch (error) {
-        console.error('OCR processing failed', {
+        console.error('OCR correction persistence failed', {
           error,
           gameLogImportId: gameLogImport.id,
         });
         ocrWarning =
-          'The import was saved, but the screenshot could not be processed.';
+          'The import was saved, but its recognized screenshot text could not be processed.';
       }
+    } else if (values.endgameScreenshot) {
+      ocrWarning =
+        'The import was saved, but no readable screenshot text was available.';
     }
 
     revalidatePath('/log-game');
