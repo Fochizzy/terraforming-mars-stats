@@ -5,7 +5,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ComposedChart,
+  LabelList,
   Legend,
   Line,
   ResponsiveContainer,
@@ -21,11 +23,18 @@ import {
   chartTooltipStyle,
 } from '@/components/charts/chart-theme';
 import { SelectChevron } from '@/components/ui/select-chevron';
-import { TagLabel } from '@/components/ui/tag-icon';
+import { TagIcon } from '@/components/ui/tag-icon';
 import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { TagOutcomeRow } from '@/lib/db/extended-analytics-repo';
 import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
 import { CorporationRelationshipPanel } from './corporation-relationship-panel';
+import {
+  buildTagWinRateSummary,
+  formatTagName,
+  getTagWinRateBand,
+  isLowSampleTag,
+  type TagWinRatePresentationDatum,
+} from './tag-outcomes-presentation';
 
 export function listAvailableTagCodes(rows: TagOutcomeRow[]) {
   return [...new Set(rows.map((row) => row.tagCode))].sort((left, right) =>
@@ -66,14 +75,7 @@ function getScopedPlayerResultRows(
   return [...byPlayerResult.values()];
 }
 
-export type TagWinRateDatum = {
-  averageTagCount: number;
-  maxTagCount: number;
-  results: number;
-  tagCode: string;
-  winRate: number;
-  wins: number;
-};
+export type TagWinRateDatum = TagWinRatePresentationDatum;
 
 export function buildTagWinRateData(
   rows: TagOutcomeRow[],
@@ -118,10 +120,6 @@ export function buildTagWinRateData(
         right.results - left.results ||
         left.tagCode.localeCompare(right.tagCode),
     );
-}
-
-function formatTagName(tagCode: string) {
-  return tagCode.charAt(0).toUpperCase() + tagCode.slice(1);
 }
 
 function tagEvidenceLabel(results: number) {
@@ -309,35 +307,137 @@ export function buildCorporationTagData(
     );
 }
 
+const WIN_RATE_PRESENTATION = {
+  competitive: {
+    chartColor: '#a3a34f',
+    pillClass: 'border-amber-300/25 bg-amber-300/[0.08] text-amber-100',
+  },
+  mixed: {
+    chartColor: '#78716c',
+    pillClass: 'border-stone-500/30 bg-stone-500/10 text-stone-300',
+  },
+  strong: {
+    chartColor: '#65a30d',
+    pillClass: 'border-lime-400/30 bg-lime-400/10 text-lime-200',
+  },
+  winless: {
+    chartColor: '#9f4a45',
+    pillClass: 'border-rose-400/25 bg-rose-400/[0.08] text-rose-200',
+  },
+} as const;
+
+function getWinRatePresentation(winRate: number) {
+  return WIN_RATE_PRESENTATION[getTagWinRateBand(winRate)];
+}
+
+function TagDisplay({
+  className,
+  code,
+  size = 20,
+}: {
+  className?: string;
+  code: string;
+  size?: number;
+}) {
+  return (
+    <span className={`inline-flex items-center gap-2 ${className ?? ''}`}>
+      <TagIcon code={code} size={size} />
+      <span>{formatTagName(code)}</span>
+    </span>
+  );
+}
+
+function TagSummaryCard({
+  detail,
+  entry,
+  label,
+  value,
+}: {
+  detail: string;
+  entry: TagWinRateDatum;
+  label: string;
+  value: string;
+}) {
+  const presentation = getWinRatePresentation(entry.winRate);
+
+  return (
+    <article className="rounded-xl border border-white/[0.08] bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <p className="tm-data-label text-[0.65rem]">{label}</p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <TagDisplay className="min-w-0 font-semibold text-stone-100" code={entry.tagCode} />
+        <span
+          className={`shrink-0 rounded-full border px-2 py-1 text-xs font-semibold tabular-nums ${presentation.pillClass}`}
+        >
+          {value}
+        </span>
+      </div>
+      <p className="tm-muted-copy mt-2 text-xs tabular-nums">{detail}</p>
+    </article>
+  );
+}
+
 function TagWinRateTable({ data }: { data: TagWinRateDatum[] }) {
   return (
-    <div className="mt-2 overflow-x-auto">
-      <table className="w-full text-left text-xs">
-        <thead>
-          <tr className="tm-data-label">
-            <th className="py-1 pr-3">Tag</th>
-            <th className="py-1 pr-3">Results</th>
-            <th className="py-1 pr-3">Win rate</th>
-            <th className="py-1 pr-3">Wins</th>
-            <th className="py-1 pr-3">Avg count</th>
-            <th className="py-1 pr-3">Max count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((entry) => (
-            <tr className="border-t border-white/5" key={entry.tagCode}>
-              <td className="py-1 pr-3 font-semibold text-stone-100">
-                <TagLabel code={entry.tagCode} />
-              </td>
-              <td className="py-1 pr-3">{entry.results}</td>
-              <td className="py-1 pr-3">{entry.winRate}%</td>
-              <td className="py-1 pr-3">{entry.wins}/{entry.results}</td>
-              <td className="py-1 pr-3">{entry.averageTagCount}</td>
-              <td className="py-1 pr-3">{entry.maxTagCount}</td>
+    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-black/15">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm tabular-nums">
+          <thead className="bg-black/25">
+            <tr className="tm-data-label border-b border-white/[0.08] text-[0.65rem]">
+              <th className="px-3 py-2.5 text-left">Tag</th>
+              <th className="px-3 py-2.5 text-right">Games</th>
+              <th className="px-3 py-2.5 text-right">Win Rate</th>
+              <th className="px-3 py-2.5 text-right">Record</th>
+              <th className="px-3 py-2.5 text-right">Avg. Cards</th>
+              <th className="px-3 py-2.5 text-right">Most Cards</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((entry, index) => {
+              const presentation = getWinRatePresentation(entry.winRate);
+              const lowSample = isLowSampleTag(entry.results);
+
+              return (
+                <tr
+                  className={`border-t border-white/[0.055] transition hover:bg-white/[0.045] ${
+                    index % 2 === 1 ? 'bg-white/[0.018]' : 'bg-transparent'
+                  }`}
+                  key={entry.tagCode}
+                >
+                  <td className="px-3 py-2.5 font-semibold text-stone-100">
+                    <div className="flex items-center gap-2.5">
+                      <TagDisplay code={entry.tagCode} />
+                      {lowSample ? (
+                        <span className="rounded-full border border-amber-300/20 bg-amber-300/[0.06] px-2 py-0.5 text-[0.62rem] font-medium uppercase tracking-[0.12em] text-amber-200/80">
+                          Low sample
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-stone-300">
+                    {entry.results}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <span
+                      className={`inline-flex min-w-14 justify-center rounded-full border px-2 py-1 text-xs font-semibold ${presentation.pillClass}`}
+                    >
+                      {entry.winRate}%
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-medium text-stone-200">
+                    {entry.wins}/{entry.results}
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-stone-300">
+                    {entry.averageTagCount}
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-stone-300">
+                    {entry.maxTagCount}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -383,6 +483,13 @@ export function TagOutcomesSection(props: {
     ? selectedTagCode
     : tagCodes[0] ?? '';
   const winRateData = buildTagWinRateData(props.rows, props.focusPlayerId);
+  const winRateSummary = buildTagWinRateSummary(winRateData);
+  const winRateChartData = winRateData.map((entry) => ({
+    ...entry,
+    barLabel: `${entry.winRate}% · ${entry.wins}/${entry.results}`,
+    tagLabel: formatTagName(entry.tagCode),
+  }));
+  const winRateChartHeight = Math.max(320, winRateChartData.length * 38 + 44);
   const narratives = buildTagOutcomeNarratives(props.rows, props.focusPlayerId);
   const distributionData = buildTagCountDistributionData(
     props.rows,
@@ -414,38 +521,117 @@ export function TagOutcomesSection(props: {
           </GlossaryRichText>
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
-          <section>
-            <h3 className="tm-data-label mb-2 text-xs">Win Rate by Tag</h3>
-            <p className="tm-muted-copy mb-2 text-xs">
-              {activeTagCode ? <TagLabel code={activeTagCode} /> : null}
-            </p>
-            <ResponsiveContainer height={260} width="100%">
-              <BarChart
-                data={winRateData}
-                margin={{ bottom: 24, left: 0, right: 12, top: 8 }}
-              >
-                <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                <XAxis dataKey="tagCode" tick={chartAxisTick} />
-                <YAxis
-                  domain={[0, 100]}
-                  tick={chartAxisTick}
-                  tickFormatter={(value) => `${value}%`}
+        <div className="-mt-1 flex flex-col gap-4">
+          <section className="space-y-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 className="tm-data-label text-xs">Win Rate by Tag</h3>
+                <p className="tm-muted-copy mt-1 text-xs">
+                  Sorted by performance. Each bar includes the win record and sample size.
+                </p>
+              </div>
+              <p className="text-[0.68rem] text-stone-500">
+                Dashed bars and badges mark fewer than 5 games.
+              </p>
+            </div>
+
+            {winRateSummary ? (
+              <div className="grid gap-2 sm:grid-cols-3">
+                <TagSummaryCard
+                  detail={`${winRateSummary.best.wins}/${winRateSummary.best.results} record`}
+                  entry={winRateSummary.best}
+                  label="Best Win Rate"
+                  value={`${winRateSummary.best.winRate}%`}
                 />
-                <Tooltip contentStyle={chartTooltipStyle} />
-                <Legend />
-                <Bar
-                  dataKey="winRate"
-                  fill={chartSeriesColors.greenery}
-                  name="Win rate"
-                  radius={[10, 10, 0, 0]}
-                  unit="%"
+                <TagSummaryCard
+                  detail={`${winRateSummary.mostPlayed.averageTagCount} avg. cards · ${winRateSummary.mostPlayed.winRate}% win rate`}
+                  entry={winRateSummary.mostPlayed}
+                  label="Most Played"
+                  value={`${winRateSummary.mostPlayed.results} games`}
                 />
-              </BarChart>
-            </ResponsiveContainer>
+                <TagSummaryCard
+                  detail={`${winRateSummary.weakest.wins}/${winRateSummary.weakest.results} record`}
+                  entry={winRateSummary.weakest}
+                  label="Biggest Drag"
+                  value={`${winRateSummary.weakest.winRate}%`}
+                />
+              </div>
+            ) : null}
+
+            <div className="rounded-xl border border-white/[0.08] bg-black/15 px-2 py-3 sm:px-3">
+              <ResponsiveContainer height={winRateChartHeight} width="100%">
+                <BarChart
+                  data={winRateChartData}
+                  layout="vertical"
+                  margin={{ bottom: 6, left: 4, right: 100, top: 4 }}
+                >
+                  <CartesianGrid
+                    horizontal={false}
+                    stroke={chartGridStroke}
+                    strokeDasharray="3 5"
+                    strokeOpacity={0.42}
+                  />
+                  <XAxis
+                    axisLine={{ stroke: '#57534e' }}
+                    domain={[0, 100]}
+                    tick={{ ...chartAxisTick, fill: '#a8a29e', fontSize: 11 }}
+                    tickFormatter={(value) => `${value}%`}
+                    tickLine={false}
+                    ticks={[0, 25, 50, 75, 100]}
+                    type="number"
+                  />
+                  <YAxis
+                    axisLine={false}
+                    dataKey="tagLabel"
+                    interval={0}
+                    tick={{ ...chartAxisTick, fill: '#e7e5e4', fontSize: 12, fontWeight: 600 }}
+                    tickLine={false}
+                    type="category"
+                    width={88}
+                  />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle}
+                    cursor={{ fill: 'rgba(255,255,255,0.035)' }}
+                    formatter={(value) => [`${value}%`, 'Win rate']}
+                  />
+                  <Bar
+                    barSize={22}
+                    dataKey="winRate"
+                    minPointSize={3}
+                    name="Win rate"
+                    radius={[0, 8, 8, 0]}
+                    unit="%"
+                  >
+                    {winRateChartData.map((entry) => {
+                      const presentation = getWinRatePresentation(entry.winRate);
+                      const lowSample = isLowSampleTag(entry.results);
+
+                      return (
+                        <Cell
+                          fill={presentation.chartColor}
+                          fillOpacity={lowSample ? 0.52 : 0.92}
+                          key={entry.tagCode}
+                          stroke={lowSample ? presentation.chartColor : 'transparent'}
+                          strokeDasharray={lowSample ? '4 3' : undefined}
+                          strokeWidth={lowSample ? 1.5 : 0}
+                        />
+                      );
+                    })}
+                    <LabelList
+                      dataKey="barLabel"
+                      fill="#e7e5e4"
+                      fontSize={11}
+                      fontWeight={600}
+                      position="right"
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
             <TagWinRateTable data={winRateData} />
             {narratives.length > 0 ? (
-              <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-3">
+              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                 <h4 className="tm-data-label text-xs">What the tag data says</h4>
                 <ul className="tm-muted-copy mt-2 space-y-2 text-sm">
                   {narratives.map((narrative) => (
@@ -469,14 +655,14 @@ export function TagOutcomesSection(props: {
               >
                 {tagCodes.map((tagCode) => (
                   <option key={tagCode} value={tagCode}>
-                    {tagCode}
+                    {formatTagName(tagCode)}
                   </option>
                 ))}
               </select>
               <span className="mt-2 block"><SelectChevron /></span>
               {activeTagCode ? (
                 <span className="tm-muted-copy mt-2 flex text-xs">
-                  <TagLabel code={activeTagCode} />
+                  <TagDisplay code={activeTagCode} />
                 </span>
               ) : null}
             </div>
