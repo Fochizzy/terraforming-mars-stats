@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Info, Key } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { isRenderableCardImage } from '@/features/catalog/card-image';
@@ -18,6 +19,9 @@ const adjustmentFactors = [
 
 const impactGridClass =
   'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_8rem_10rem] lg:items-start';
+
+const keyCardGridClass =
+  'grid grid-cols-[3rem_minmax(0,1fr)] gap-x-3 gap-y-3 lg:grid-cols-[4.5rem_minmax(20rem,1fr)_9rem_8rem_6rem] lg:items-center lg:gap-4';
 
 function contextChips(contextLabel: string | undefined) {
   return (
@@ -57,11 +61,11 @@ function ConfidenceBadge({
   );
 }
 
-function AdjustmentFactors() {
+function AdjustmentFactors({ className = 'mb-4' }: { className?: string }) {
   return (
     <div
       aria-label="Adjusted for"
-      className="mb-4 flex flex-wrap items-center gap-1.5"
+      className={`${className} flex flex-wrap items-center gap-1.5`}
     >
       <span className="mr-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
         Adjusted for
@@ -166,6 +170,20 @@ function formatImpactPoints(impact: number | undefined) {
   return `${points > 0 ? '+' : points < 0 ? '−' : ''}${Math.abs(points)} pp`;
 }
 
+function formatImpactScore(impact: number | undefined) {
+  if (impact === undefined) {
+    return '—';
+  }
+
+  const points = impact * 100;
+  const value = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(points) ? 0 : 1,
+  }).format(Math.abs(points));
+
+  return `${points > 0 ? '+' : points < 0 ? '−' : ''}${value} pts`;
+}
+
 function impactToneClass(impact: number | undefined) {
   if (impact === undefined || Math.round(impact * 100) === 0) {
     return 'text-stone-300';
@@ -196,6 +214,19 @@ function cardResultSummary(card: ProfileCardStat) {
   const direction = card.victoryImpact >= 0 ? 'higher' : 'lower';
 
   return `Why it ranked: ${card.wins} ${winLabel} in ${card.plays} comparable ${gameLabel}; adjusted win rate was ${points} ${pointLabel} ${direction}.`;
+}
+
+function keyCardSummary(card: ProfileCardStat) {
+  const gameLabel = card.plays === 1 ? 'play' : 'plays';
+  const confidence = card.evidenceConfidence
+    ? `${card.evidenceConfidence.toLowerCase()}-confidence evidence`
+    : 'context-adjusted evidence';
+
+  if (card.victoryImpact === undefined) {
+    return `${formatPercent(card.winRate)} win rate across ${card.plays} ${gameLabel}, using ${confidence}.`;
+  }
+
+  return `${formatPercent(card.winRate)} win rate across ${card.plays} ${gameLabel}. Estimated lift is ${formatImpactScore(card.victoryImpact)} after context and play-count adjustment, using ${confidence}.`;
 }
 
 function MetricCell({
@@ -245,6 +276,160 @@ function SampleCell({
         {sampleCountLabel(countLabel, card.plays)}
       </span>
     </MetricCell>
+  );
+}
+
+function KeyCardMetric({
+  children,
+  className = '',
+  label,
+}: {
+  children: ReactNode;
+  className?: string;
+  label: string;
+}) {
+  return (
+    <span
+      className={`col-start-2 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-2.5 text-sm tabular-nums lg:col-auto lg:block lg:border-0 lg:pt-0 lg:text-right ${className}`}
+    >
+      <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-stone-500 lg:hidden">
+        {label}
+      </span>
+      <span>{children}</span>
+    </span>
+  );
+}
+
+function keyCardRankClass(index: number) {
+  if (index === 0) {
+    return 'border-amber-300/55 bg-amber-400/15 text-amber-100 shadow-[0_0_24px_rgba(251,191,36,0.12)]';
+  }
+  if (index < 3) {
+    return 'border-amber-400/35 bg-amber-400/10 text-amber-200';
+  }
+  return 'border-white/10 bg-white/[0.035] text-stone-400';
+}
+
+function KeyCardsPanel({
+  cards,
+  emptyCopy,
+}: {
+  cards: ProfileCardStat[];
+  emptyCopy: string;
+}) {
+  return (
+    <section className="tm-panel mx-auto w-full max-w-6xl overflow-hidden !border-sky-400/15 !p-0">
+      <header className="border-b border-sky-300/10 bg-[linear-gradient(135deg,rgba(14,38,62,0.78),rgba(6,16,29,0.72))] px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/10 text-amber-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <Key aria-hidden="true" className="h-6 w-6" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-amber-400">
+              Card statistics
+            </p>
+            <h2 className="mt-1.5 text-xl font-semibold tracking-[0.03em] text-stone-50 sm:text-2xl">
+              Key Cards <span className="text-amber-300">(Highest Victory Impact)</span>
+            </h2>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-stone-300 sm:text-[0.95rem]">
+              Ranked by estimated win-rate lift after accounting for recorded game
+              context and repeated evidence. Play-count confidence holds back
+              one-off results; the top 10 are shown first.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {cards.length === 0 ? (
+        <p className="tm-muted-copy px-5 py-6 text-sm sm:px-6">{emptyCopy}</p>
+      ) : (
+        <>
+          <div
+            className={`${keyCardGridClass} tm-data-label hidden border-b border-white/[0.06] bg-sky-950/20 px-5 py-3 lg:grid lg:px-6`}
+          >
+            <span className="text-center">Rank</span>
+            <span>Card</span>
+            <span className="flex items-center justify-end gap-1.5 text-right">
+              Impact score
+              <Info aria-hidden="true" className="h-3.5 w-3.5 text-stone-500" />
+            </span>
+            <span className="text-right">Win rate</span>
+            <span className="text-right">Plays</span>
+          </div>
+
+          <ol className="divide-y divide-white/[0.065] bg-black/[0.1]" role="list">
+            {cards.slice(0, 10).map((card, index) => (
+              <li
+                className="transition-colors hover:bg-sky-300/[0.035]"
+                key={card.cardId}
+              >
+                <CardStatsButton
+                  card={{
+                    cardName: card.cardName,
+                    fullImageUrl: card.fullImageUrl,
+                    id: card.cardId,
+                    thumbnailUrl: card.thumbnailUrl,
+                  }}
+                  className={`${keyCardGridClass} group w-full px-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400/60 sm:px-5 lg:px-6`}
+                >
+                  <span
+                    aria-label={`Rank ${index + 1}`}
+                    className={`row-span-5 flex h-9 min-w-9 items-center justify-center self-start rounded-lg border px-2 text-sm font-semibold tabular-nums lg:row-span-1 lg:self-center ${keyCardRankClass(index)}`}
+                  >
+                    {index + 1}
+                  </span>
+
+                  <span className="col-start-2 flex min-w-0 items-start gap-3 lg:col-auto">
+                    <CardThumbnail card={card} compact />
+                    <span className="min-w-0 pt-0.5">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="break-words font-semibold text-stone-50 transition-colors group-hover:text-white">
+                          {card.cardName}
+                        </span>
+                        <ConfidenceBadge confidence={card.evidenceConfidence} />
+                      </span>
+                      <span className="mt-1 block max-w-3xl text-xs leading-5 text-stone-400 sm:text-sm">
+                        {keyCardSummary(card)}
+                      </span>
+                    </span>
+                  </span>
+
+                  <KeyCardMetric
+                    className={`font-semibold ${impactToneClass(card.victoryImpact)}`}
+                    label="Impact score"
+                  >
+                    {formatImpactScore(card.victoryImpact)}
+                  </KeyCardMetric>
+                  <KeyCardMetric className="font-semibold text-stone-100" label="Win rate">
+                    {formatPercent(card.winRate)}
+                  </KeyCardMetric>
+                  <KeyCardMetric className="font-semibold text-stone-100" label="Plays">
+                    {card.plays.toLocaleString('en-US')}
+                  </KeyCardMetric>
+                </CardStatsButton>
+              </li>
+            ))}
+          </ol>
+
+          <details className="border-t border-white/[0.06] bg-black/15 px-5 py-3 text-xs sm:px-6">
+            <summary className="cursor-pointer font-medium text-stone-300 transition hover:text-stone-100">
+              How the ranking works
+            </summary>
+            <div className="mt-3">
+              <AdjustmentFactors className="mb-3" />
+              <p className="tm-muted-copy max-w-4xl leading-relaxed">
+                <GlossaryRichText>
+                  Key cards are not picked by hand. Context-adjusted impact compares
+                  each result with your normal performance in similar games, then
+                  blends in global card performance and play-count confidence so a
+                  single lucky result cannot dominate the ranking.
+                </GlossaryRichText>
+              </p>
+            </div>
+          </details>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -424,23 +609,10 @@ export function ProfileCardPanels({
 }) {
   return (
     <>
-      <ChartFrame
-        description="Cards with the strongest estimated win-rate lift after accounting for play count and your recorded game context. Click a card to open its full image."
-        title="My Key Cards"
-      >
-        <ProfileCardTable
-          cards={keyCards}
-          countLabel="Games"
-          emptyCopy={`No key cards yet for ${playerName}. Import a finalized game log so we can measure which cards lift your win rate the most.`}
-        />
-        {keyCards.length > 0 ? (
-          <MethodologyDetails title="How adjusted impact is calculated">
-            <GlossaryRichText>
-              Key cards are not picked by hand. Context-adjusted impact compares each result with your normal performance using that corporation, play style, scoring method, game pace, table size, and map, then blends in global card performance and play-count confidence.
-            </GlossaryRichText>
-          </MethodologyDetails>
-        ) : null}
-      </ChartFrame>
+      <KeyCardsPanel
+        cards={keyCards}
+        emptyCopy={`No key cards yet for ${playerName}. Import a finalized game log so we can measure which cards lift your win rate the most.`}
+      />
       <ChartFrame
         description="Cards associated with worse results after accounting for the context of each game."
         title="Cards Linked to Lower Win Rates"
