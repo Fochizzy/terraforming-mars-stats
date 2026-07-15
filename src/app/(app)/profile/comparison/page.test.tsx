@@ -8,6 +8,11 @@ const mockState = vi.hoisted(() => ({
   getProfileAnalytics: vi.fn(),
   listCurrentUserGroups: vi.fn(),
   requireGroupContextOrRedirect: vi.fn(),
+  routerPush: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockState.routerPush }),
 }));
 
 vi.mock('@/components/layout/app-shell', () => ({
@@ -126,9 +131,9 @@ describe('ProfileComparisonPage', () => {
     expect(mockState.getProfileAnalytics).toHaveBeenCalledWith('user-1', {
       groupId: 'group-1',
     });
-    expect(
-      screen.getByText('4 finalized games in this group | 10 overall'),
-    ).toBeInTheDocument();
+    const badges = screen.getByTestId('metadata-badges');
+    expect(badges).toHaveTextContent('4 group games');
+    expect(badges).toHaveTextContent('10 total games');
     expect(screen.getByText('+10')).toBeInTheDocument();
     expect(screen.getByText('+25 pp')).toBeInTheDocument();
   });
