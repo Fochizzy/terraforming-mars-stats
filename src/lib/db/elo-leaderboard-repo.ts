@@ -99,10 +99,10 @@ export function mergeEloRowsByUsername(rows: EloLeaderboardRow[]) {
     );
 }
 
-export async function getSavedLeaderboardPlayerIds(userId: string) {
+export async function getHiddenLeaderboardPlayerIds(userId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
-    .from('user_leaderboard_players')
+    .from('user_hidden_leaderboard_players')
     .select('player_id')
     .eq('user_id', userId);
 
@@ -110,19 +110,19 @@ export async function getSavedLeaderboardPlayerIds(userId: string) {
   return (data ?? []).map((row) => String(row.player_id));
 }
 
-export async function setSavedLeaderboardPlayer(input: {
+export async function setHiddenLeaderboardPlayer(input: {
+  hidden: boolean;
   playerId: string;
-  saved: boolean;
   userId: string;
 }) {
   const supabase = await createSupabaseServerClient();
-  const query = input.saved
-    ? supabase.from('user_leaderboard_players').upsert(
+  const query = input.hidden
+    ? supabase.from('user_hidden_leaderboard_players').upsert(
         { player_id: input.playerId, user_id: input.userId },
         { onConflict: 'user_id,player_id' },
       )
     : supabase
-        .from('user_leaderboard_players')
+        .from('user_hidden_leaderboard_players')
         .delete()
         .eq('user_id', input.userId)
         .eq('player_id', input.playerId);

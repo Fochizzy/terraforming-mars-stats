@@ -1,10 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { EloLeaderboard } from './elo-leaderboard';
 import type { EloLeaderboardRow } from '@/lib/elo-leaderboard-model';
 
+const actionMocks = vi.hoisted(() => ({
+  toggleHiddenLeaderboardPlayer: vi.fn(),
+}));
+
 vi.mock('@/app/(app)/leaderboard/actions', () => ({
-  toggleSavedLeaderboardPlayer: vi.fn(),
+  toggleHiddenLeaderboardPlayer: actionMocks.toggleHiddenLeaderboardPlayer,
 }));
 
 const rows: EloLeaderboardRow[] = [
@@ -53,7 +57,7 @@ const rows: EloLeaderboardRow[] = [
 describe('EloLeaderboard', () => {
   it('uses gold, silver, and bronze emblems for the first three places', () => {
     const { container } = render(
-      <EloLeaderboard initialSavedIds={[]} rows={rows} />,
+      <EloLeaderboard initialHiddenIds={[]} rows={rows} />,
     );
 
     expect(
@@ -72,5 +76,47 @@ describe('EloLeaderboard', () => {
       }),
     ).toBeInTheDocument();
     expect(container.querySelector('[src*="leaderboard-trophy"]')).toBeNull();
+  });
+
+  it('uses hidden players instead of a duplicate tracked leaderboard', () => {
+    render(<EloLeaderboard initialHiddenIds={['player-2']} rows={rows} />);
+
+    expect(screen.queryByText(/private watchlist/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/global field/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /my leaderboard/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /silver player/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /silver player/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides and restores players from the personal leaderboard', () => {
+    render(<EloLeaderboard initialHiddenIds={[]} rows={rows} />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /hide gold player from my leaderboard/i,
+      }),
+    );
+
+    expect(actionMocks.toggleHiddenLeaderboardPlayer).toHaveBeenCalledWith(
+      'player-1',
+      true,
+    );
+    expect(
+      screen.queryByRole('heading', { name: /gold player/i }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /gold player/i }));
+
+    expect(actionMocks.toggleHiddenLeaderboardPlayer).toHaveBeenCalledWith(
+      'player-1',
+      false,
+    );
+    expect(
+      screen.getByRole('heading', { name: /gold player/i }),
+    ).toBeInTheDocument();
   });
 });

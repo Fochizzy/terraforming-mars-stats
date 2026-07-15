@@ -671,9 +671,13 @@ a {
   .tm-elo-first-trophy { @apply absolute -bottom-6 left-1 h-24 w-auto object-contain sm:h-28; filter: drop-shadow(0 0 14px rgba(255,150,54,.5)); }
   .tm-elo-rank { @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black; background: #20100d; border: 1px solid rgba(246,157,78,.5); color: #ffc27d; }
   .tm-elo-rating { @apply text-lg font-black; color: #ffb15e; text-shadow: 0 0 14px rgba(255,112,39,.42); }
-  .tm-elo-save input { @apply h-4 w-4 accent-orange-500; }
   .tm-elo-badge { @apply rounded-full border px-3 py-1 text-xs uppercase tracking-widest; border-color: rgba(255,157,70,.5); color: #ffc68b; }
   .tm-elo-heat { @apply rounded-xl border p-3 text-sm leading-6 text-stone-200; background: rgba(99,29,13,.22); border-color: rgba(244,113,41,.32); }
+  .tm-elo-hidden-list { @apply mt-4 flex flex-col gap-3 rounded-xl border p-3; background: rgba(4,7,12,.36); border-color: rgba(255,255,255,.08); }
+  .tm-elo-restore-button,
+  .tm-elo-visibility-button { @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wider transition; border-color: rgba(255,157,70,.36); color: #ffd1a0; background: rgba(255,157,70,.08); }
+  .tm-elo-restore-button:hover,
+  .tm-elo-visibility-button:hover { border-color: rgba(255,190,117,.72); background: rgba(255,157,70,.16); color: #fff2de; }
 
   .tm-banner-success {
     @apply flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm;
