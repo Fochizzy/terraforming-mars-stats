@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import bannerImage from '../../../assets/banner.png';
+import { LogoutButton } from '@/components/navigation/logout-button';
 import styles from './app-shell.module.css';
 
 const primaryNavigationItems = [
@@ -41,11 +42,7 @@ export function AppShell({
             <Link className={styles.utilityLink} href="/saved-games">
               Saved Games
             </Link>
-            <form action="/auth/logout" method="post">
-              <button className={styles.logoutButton} type="submit">
-                Log Out
-              </button>
-            </form>
+            <LogoutButton className={styles.logoutButton} />
           </div>
         </nav>
 
