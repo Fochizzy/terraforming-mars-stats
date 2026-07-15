@@ -8,6 +8,7 @@ import type {
   GlobalStyleMetricRow,
   GlobalTagMetricRow,
 } from '@/lib/db/analytics-repo';
+import { AwardMapSummary } from './award-map-summary';
 import { CorporationMetaPanel } from './corporation-meta-panel';
 
 type GlobalSummaryBoardProps = {
@@ -196,45 +197,7 @@ export function GlobalSummaryBoard({
         </div>
       </ChartFrame>
 
-      <ChartFrame title="Global Award Meta">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {globalAwardMetricRows.slice(0, 6).map((row) => {
-            const context = contextLine(row);
-
-            return (
-              <article
-                className="tm-stat-card"
-                key={`${row.awardId}-${row.mapId ?? 'all'}-${row.playerCount}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-stone-100">
-                      {row.awardName ?? humanizeCode(row.awardId)}
-                    </p>
-                    <p className="tm-muted-copy mt-1 text-sm">
-                      {row.gamesPlayed} games | {row.funderWins} funder wins
-                    </p>
-                  </div>
-                  <p className="tm-accent-copy text-sm">
-                    {formatPercent(row.funderSuccessRate)}
-                  </p>
-                </div>
-                <p className="tm-muted-copy mt-3 text-sm">
-                  winner win {formatPercent(row.awardWinnerWinRate)} | ROI{' '}
-                  {formatDecimal(row.averageAwardRoi)}
-                  {row.averageFundedGeneration !== null
-                    ? ` | funded gen ${formatDecimal(row.averageFundedGeneration)}`
-                    : ''}
-                </p>
-                <p className="tm-muted-copy mt-2 text-sm">
-                  mismatch {formatPercent(row.winnerFunderMismatchRate)}
-                  {context ? ` | ${context}` : ''}
-                </p>
-              </article>
-            );
-          })}
-        </div>
-      </ChartFrame>
+      <AwardMapSummary rows={globalAwardMetricRows} />
 
       <ChartFrame title="Global Player Count Baselines">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
