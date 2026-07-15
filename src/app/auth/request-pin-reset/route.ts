@@ -8,10 +8,11 @@ import {
   requestPinReset,
   type RequestPinResetClient,
 } from '@/features/auth/request-pin-reset';
+import { createResendEmailSender } from '@/lib/email/resend';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 const GENERIC_SUCCESS_STATUS = {
-  message: 'If that username is registered, a recovery link has been sent.',
+  message: 'If that username or email is registered, a recovery link has been sent.',
   state: 'success' as const,
 };
 
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
         new URL(request.url).origin,
         buildAuthResetPinPath(nextPath),
       ),
+      emailSender: createResendEmailSender(),
       username: body.username,
     });
 

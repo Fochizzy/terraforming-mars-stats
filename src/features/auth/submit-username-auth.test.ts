@@ -73,6 +73,25 @@ describe('submitUsernameAuth', () => {
     });
   });
 
+  it('signs in directly with an email address without a profile lookup', async () => {
+    const result = await submitUsernameAuth({
+      client: createClient(),
+      mode: 'sign-in',
+      pin: '123456',
+      username: ' Friday.Mars@Example.com ',
+    });
+
+    expect(authMocks.from).not.toHaveBeenCalled();
+    expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
+      email: 'friday.mars@example.com',
+      password: '123456',
+    });
+    expect(result).toEqual({
+      action: 'signed-in',
+      ok: true,
+    });
+  });
+
   it('creates an account with the real email and username metadata', async () => {
     const result = await submitUsernameAuth({
       client: createClient(),

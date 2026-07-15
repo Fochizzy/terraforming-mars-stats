@@ -5,8 +5,13 @@
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `RESEND_FROM_NAME`
 
-Do not add `SUPABASE_SERVICE_ROLE_KEY` to the deployed Worker unless a future server-only feature truly requires it.
+The username PIN recovery route uses the Supabase service role only on the
+server to generate recovery links, then sends those links through Resend.
 
 ## Local-only admin and catalog env
 

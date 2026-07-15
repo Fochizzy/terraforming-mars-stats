@@ -22,6 +22,12 @@ export async function lookupAuthEmailForUsername(input: {
   client: UserProfileEmailLookupClient;
   username: string;
 }) {
+  const parsedDirectEmail = authEmailSchema.safeParse(input.username);
+
+  if (parsedDirectEmail.success) {
+    return parsedDirectEmail.data;
+  }
+
   const normalizedUsername = normalizeUsername(input.username);
 
   if (!normalizedUsername) {

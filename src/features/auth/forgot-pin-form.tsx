@@ -1,12 +1,20 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { buildAuthCallbackUrl } from './build-auth-callback-url';
-import { authEmailSchema } from './username-auth';
+
+type PinResetEndpointResult = {
+  ok: boolean;
+  status?: {
+    message: string;
+    state: 'error' | 'success';
+  };
+};
+
+const GENERIC_SUCCESS_MESSAGE =
+  'If that username or email is registered, a recovery link has been sent.';
 
 export function ForgotPinForm() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,22 +26,26 @@ export function ForgotPinForm() {
     setIsError(false);
 
     try {
-      const parsedEmail = authEmailSchema.parse(email);
-      const supabase = createSupabaseBrowserClient();
-      const redirectTo = buildAuthCallbackUrl(
-        window.location.origin,
-        '/reset-pin',
-      );
-
-      const { error } = await supabase.auth.resetPasswordForEmail(parsedEmail, {
-        redirectTo,
+      const response = await fetch('/auth/request-pin-reset', {
+        body: JSON.stringify({
+          nextPath: '/profile',
+          username,
+        }),
+        headers: {
+          'content-type': 'application/json',
+        },
+        method: 'POST',
       });
+      const result = (await response.json()) as PinResetEndpointResult;
 
-      if (error) {
-        throw error;
+      if (!response.ok || !result.ok) {
+        setIsError(true);
+        setMessage(result.status?.message ?? 'Could not request a PIN reset.');
+        return;
       }
 
-      setMessage('Check your email for a secure PIN reset link.');
+      setIsError(result.status?.state === 'error');
+      setMessage(result.status?.message ?? GENERIC_SUCCESS_MESSAGE);
     } catch (error) {
       setIsError(true);
       setMessage(
@@ -49,17 +61,16 @@ export function ForgotPinForm() {
   return (
     <form className="tm-panel flex flex-col gap-4" onSubmit={onSubmit}>
       <label className="flex flex-col gap-2 text-sm">
-        <span className="tm-data-label">Email</span>
+        <span className="tm-data-label">Username or Email</span>
         <input
-          aria-label="Email"
+          aria-label="Username or Email"
           autoCapitalize="none"
-          autoComplete="email"
           autoCorrect="off"
           className="tm-input"
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={(event) => setUsername(event.target.value)}
           required
-          type="email"
-          value={email}
+          type="text"
+          value={username}
         />
       </label>
 
@@ -72,7 +83,11 @@ export function ForgotPinForm() {
       </button>
 
       {message ? (
-        <p className={isError ? 'text-sm tm-text-danger' : 'text-sm text-green-300'}>
+        <p
+          className={
+            isError ? 'text-sm tm-text-danger' : 'text-sm text-green-300'
+          }
+        >
           {message}
         </p>
       ) : null}

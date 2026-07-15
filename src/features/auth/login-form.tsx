@@ -63,6 +63,7 @@ export function LoginForm({
   });
   const [username, setUsername] = useState('');
   const usernameInputRef = useRef<HTMLInputElement>(null);
+  const usernameLabel = mode === 'sign-in' ? 'Username or Email' : 'Username';
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -185,14 +186,14 @@ export function LoginForm({
         </button>
       </div>
       <label className="flex flex-col gap-2 text-sm">
-        <span className="tm-data-label">Username</span>
+        <span className="tm-data-label">{usernameLabel}</span>
         <input
-          aria-label="Username"
+          aria-label={usernameLabel}
           autoCapitalize="none"
           autoCorrect="off"
           className="tm-input"
           onChange={(event) => setUsername(event.target.value)}
-          placeholder="friday-mars"
+          placeholder={mode === 'sign-in' ? 'friday-mars or you@example.com' : 'friday-mars'}
           required
           ref={usernameInputRef}
           type="text"

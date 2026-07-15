@@ -7,7 +7,8 @@ export default function ForgotPinPage() {
         <p className="tm-display-eyebrow">Account Recovery</p>
         <h1 className="tm-display-title text-3xl font-bold">Reset Your PIN</h1>
         <p className="tm-body-copy text-sm">
-          Enter the email address on your account. We will send a secure link to create a new 6-digit PIN.
+          Enter your username or email. We will send a secure link to the
+          recovery email on your account.
         </p>
         <ForgotPinForm />
       </section>

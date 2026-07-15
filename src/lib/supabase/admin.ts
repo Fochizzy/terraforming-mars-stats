@@ -3,7 +3,7 @@ import { getPublicEnv } from '@/lib/env';
 
 export function createSupabaseAdminClient() {
   const { NEXT_PUBLIC_SUPABASE_URL } = getPublicEnv();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
   if (!serviceRoleKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured.');

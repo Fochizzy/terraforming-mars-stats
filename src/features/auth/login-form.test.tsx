@@ -9,7 +9,6 @@ import { LoginForm } from './login-form';
 
 const authMocks = vi.hoisted(() => ({
   fetch: vi.fn(),
-  resetPasswordForEmail: vi.fn(),
   rpc: vi.fn(),
   select: vi.fn(),
   signInWithPassword: vi.fn(),
@@ -19,7 +18,6 @@ const authMocks = vi.hoisted(() => ({
 vi.mock('@/lib/supabase/browser', () => ({
   createSupabaseBrowserClient: () => ({
     auth: {
-      resetPasswordForEmail: authMocks.resetPasswordForEmail,
       signInWithPassword: authMocks.signInWithPassword,
       signUp: authMocks.signUp,
     },
@@ -38,7 +36,6 @@ describe('LoginForm', () => {
       },
       error: null,
     });
-    authMocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     authMocks.rpc.mockResolvedValue({ data: true, error: null });
     authMocks.fetch.mockImplementation(async (_url, init) => {
       const url = String(_url);
@@ -48,7 +45,7 @@ describe('LoginForm', () => {
           ? {
               ok: false,
               status: {
-                message: 'Enter your username first.',
+                message: 'Enter your username or email first.',
                 state: 'error',
               },
             }
@@ -57,7 +54,7 @@ describe('LoginForm', () => {
               redirectPath: buildAuthCompletePath(body.nextPath ?? '/profile'),
               status: {
                 message:
-                  'If that username is registered, a recovery link has been sent.',
+                  'If that username or email is registered, a recovery link has been sent.',
                 state: 'success',
               },
             };
@@ -86,7 +83,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm nextPath="/profile" />);
 
-    await user.type(screen.getByLabelText(/^username$/i), 'Friday Mars');
+    await user.type(screen.getByLabelText(/^username or email$/i), 'Friday Mars');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
@@ -114,7 +111,7 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    await user.type(screen.getByLabelText(/^username$/i), 'Friday Mars');
+    await user.type(screen.getByLabelText(/^username or email$/i), 'Friday Mars');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
@@ -322,12 +319,12 @@ describe('LoginForm', () => {
     expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
   });
 
-  it('requests a pin reset with the typed username and shows the generic success message', async () => {
+  it('requests a pin reset with the typed username or email and shows the generic success message', async () => {
     const user = userEvent.setup();
 
     render(<LoginForm nextPath="/profile" />);
 
-    await user.type(screen.getByLabelText(/^username$/i), 'Friday Mars');
+    await user.type(screen.getByLabelText(/^username or email$/i), 'Friday Mars');
     await user.click(screen.getByRole('button', { name: /reset pin/i }));
 
     await waitFor(() =>
@@ -343,16 +340,15 @@ describe('LoginForm', () => {
       ),
     );
 
-    expect(authMocks.resetPasswordForEmail).not.toHaveBeenCalled();
     expect(
       screen.getByText(
-        /if that username is registered, a recovery link has been sent\./i,
+        /if that username or email is registered, a recovery link has been sent\./i,
       ),
     ).toBeInTheDocument();
     expect(window.location.assign).not.toHaveBeenCalled();
   });
 
-  it('asks for an email before requesting a pin reset', async () => {
+  it('asks for a username or email before requesting a pin reset', async () => {
     const user = userEvent.setup();
 
     render(<LoginForm nextPath="/profile" />);
@@ -369,7 +365,6 @@ describe('LoginForm', () => {
         method: 'POST',
       }),
     );
-    expect(authMocks.resetPasswordForEmail).not.toHaveBeenCalled();
-    expect(screen.getByText(/enter your username first\./i)).toBeInTheDocument();
+    expect(screen.getByText(/enter your username or email first\./i)).toBeInTheDocument();
   });
 });
