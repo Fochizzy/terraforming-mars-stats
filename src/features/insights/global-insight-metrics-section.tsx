@@ -373,93 +373,238 @@ function MapTableCards({ rows }: { rows: GlobalMapTableMetric[] }) {
   );
 }
 
-function OpeningComboCards({ rows }: { rows: GlobalOpeningComboMetric[] }) {
+function TimingDeltaBadge({ value }: { value: number }) {
+  const points = Math.round(value * 100);
+  let ariaLabel = 'Early and late win rates are equal';
+  let label = '→ 0 pts';
+  let toneClass = 'border-white/10 bg-white/5 text-stone-300';
+
+  if (points > 0) {
+    ariaLabel =
+      'Early win rate is ' + points + ' points higher than late win rate';
+    label = '↑ +' + points + ' pts';
+    toneClass =
+      'border-[#34d399]/25 bg-[#34d399]/10 text-[#34d399]';
+  } else if (points < 0) {
+    ariaLabel =
+      'Early win rate is ' + Math.abs(points) + ' points lower than late win rate';
+    label = '↓ −' + Math.abs(points) + ' pts';
+    toneClass =
+      'border-[#fb7185]/25 bg-[#fb7185]/10 text-[#fb7185]';
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      <SectionHeading>Opening Combo Strength</SectionHeading>
-      {rows.length === 0 ? (
-        <EmptyMetric>
-          Opening combo strength needs repeated corporation and prelude pairings.
-        </EmptyMetric>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-3">
-          {compactRows(rows, 9).map((row, index) => (
-            <article
-              className="tm-stat-card"
-              key={`${row.signalType}-${row.label}-${index}`}
+    <span
+      aria-label={ariaLabel}
+      className={[
+        'inline-flex min-w-[6.75rem] items-center justify-center rounded-full border',
+        'px-2.5 py-1 text-xs font-semibold tabular-nums',
+        toneClass,
+      ].join(' ')}
+    >
+      {label}
+    </span>
+  );
+}
+
+function OpeningComboCards({ rows }: { rows: GlobalOpeningComboMetric[] }) {
+  const displayedRows = compactRows(rows, 9);
+
+  return (
+    <section
+      aria-labelledby="opening-combo-strength-title"
+      className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-[#263241] bg-[#111821] shadow-[0_18px_50px_rgba(0,0,0,0.22)]"
+    >
+      <header className="border-b border-[#263241] bg-black/10 px-5 py-5 sm:px-7 sm:py-6">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f6b94a]">
+          Opening analysis
+        </p>
+        <h3
+          className="mt-2 text-2xl font-semibold tracking-tight text-[#f1f5f9]"
+          id="opening-combo-strength-title"
+        >
+          Opening combo strength
+        </h3>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#94a3b8]">
+          Compare repeated corporation and prelude pairings across finalized games.
+        </p>
+      </header>
+
+      <div className="p-5 sm:p-7">
+        {displayedRows.length === 0 ? (
+          <div
+            className="flex items-start gap-3 rounded-xl border border-[#f6b94a]/25 bg-[#f6b94a]/[0.07] px-4 py-3.5"
+            role="note"
+          >
+            <span
+              aria-hidden="true"
+              className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#f6b94a]/35 text-xs font-bold text-[#f6b94a]"
             >
-              <p className="tm-data-label">
-                {OPENING_SIGNAL_LABELS[row.signalType]}
+              !
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-[#f1f5f9]">
+                Limited confidence
               </p>
-              <h4 className="mt-1 font-semibold text-stone-100">
-                {row.corporationName}
-              </h4>
-              <p className="tm-muted-copy mt-1 text-xs">{row.preludeLabel}</p>
-              <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                <div>
-                  <dt className="tm-data-label">Win Rate</dt>
-                  <dd>{formatPercent(row.winRate)}</dd>
-                </div>
-                <div>
-                  <dt className="tm-data-label">Plays</dt>
-                  <dd>{row.plays}</dd>
-                </div>
-                <div>
-                  <dt className="tm-data-label">Score SD</dt>
-                  <dd>{formatAverage(row.scoreDeviation)}</dd>
-                </div>
-              </dl>
-            </article>
-          ))}
-        </div>
-      )}
-    </div>
+              <p className="mt-1 text-sm leading-6 text-[#94a3b8]">
+                More repeated corporation and prelude pairings are needed before
+                drawing strong conclusions.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-3">
+            {displayedRows.map((row, index) => (
+              <article
+                className="rounded-xl border border-[#263241] bg-black/20 p-4 transition-colors hover:border-white/20 hover:bg-white/[0.035]"
+                key={[row.signalType, row.label, index].join('-')}
+              >
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">
+                  {OPENING_SIGNAL_LABELS[row.signalType]}
+                </p>
+                <h4 className="mt-2 font-semibold text-[#f1f5f9]">
+                  {row.corporationName}
+                </h4>
+                <p className="mt-1 text-xs text-[#94a3b8]">{row.preludeLabel}</p>
+                <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-[#263241] pt-3 text-right text-sm tabular-nums">
+                  <div>
+                    <dt className="text-[0.62rem] uppercase tracking-[0.1em] text-[#94a3b8]">
+                      Win rate
+                    </dt>
+                    <dd className="mt-1 font-semibold text-[#f1f5f9]">
+                      {formatPercent(row.winRate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[0.62rem] uppercase tracking-[0.1em] text-[#94a3b8]">
+                      Plays
+                    </dt>
+                    <dd className="mt-1 font-semibold text-[#f1f5f9]">
+                      {row.plays}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[0.62rem] uppercase tracking-[0.1em] text-[#94a3b8]">
+                      Score SD
+                    </dt>
+                    <dd className="mt-1 font-semibold text-[#f1f5f9]">
+                      {formatAverage(row.scoreDeviation)}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
 function CardTimingTable({ rows }: { rows: GlobalCardTimingMetric[] }) {
+  const displayedRows = compactRows(rows, 8);
+  const displayedCountLabel =
+    displayedRows.length === 1 ? '1 card' : displayedRows.length + ' cards';
+
   return (
-    <div className="flex flex-col gap-3">
-      <SectionHeading>Log-Derived Card Timing</SectionHeading>
-      {rows.length === 0 ? (
-        <EmptyMetric>
+    <section
+      aria-labelledby="log-derived-card-timing-title"
+      className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-[#263241] bg-[#111821] shadow-[0_18px_50px_rgba(0,0,0,0.22)]"
+    >
+      <header className="flex flex-col gap-4 border-b border-[#263241] bg-black/10 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7 sm:py-6">
+        <div>
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#f6b94a]">
+            Card statistics
+          </p>
+          <h3
+            className="mt-2 text-2xl font-semibold tracking-tight text-[#f1f5f9]"
+            id="log-derived-card-timing-title"
+          >
+            Log-derived card timing
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#94a3b8]">
+            Compare how the same cards perform when played early versus late.
+          </p>
+        </div>
+        {displayedRows.length > 0 ? (
+          <span className="w-fit rounded-full border border-[#263241] bg-black/20 px-3 py-1 text-xs font-medium tabular-nums text-[#94a3b8]">
+            {displayedCountLabel}
+          </span>
+        ) : null}
+      </header>
+
+      {displayedRows.length === 0 ? (
+        <p className="px-5 py-5 text-sm leading-6 text-[#94a3b8] sm:px-7">
           Card timing needs repeated early and late logged plays of the same card.
-        </EmptyMetric>
+        </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="max-h-[32rem] overflow-auto">
+          <table className="w-full min-w-[680px] border-separate border-spacing-0 text-sm">
             <thead>
-              <tr className="tm-data-label">
-                <th className="py-1 pr-3">Card</th>
-                <th className="py-1 pr-3">Early Win</th>
-                <th className="py-1 pr-3">Late Win</th>
-                <th className="py-1 pr-3">Delta</th>
-                <th className="py-1 pr-3">Early Plays</th>
-                <th className="py-1 pr-3">Late Plays</th>
+              <tr>
+                <th className="sticky top-0 z-10 w-[38%] border-b-2 border-[#263241] bg-[#111821] px-4 py-3 text-left text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#94a3b8] sm:px-6">
+                  Card
+                </th>
+                <th className="sticky top-0 z-10 w-[14%] border-b-2 border-[#263241] bg-[#111821] px-3 py-3 text-right text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">
+                  Early win
+                </th>
+                <th className="sticky top-0 z-10 w-[14%] border-b-2 border-[#263241] bg-[#111821] px-3 py-3 text-right text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">
+                  Late win
+                </th>
+                <th className="sticky top-0 z-10 w-[17%] border-b-2 border-[#263241] bg-[#111821] px-3 py-3 text-right text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">
+                  Change
+                </th>
+                <th className="sticky top-0 z-10 w-[17%] border-b-2 border-[#263241] bg-[#111821] px-4 py-3 text-right text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#94a3b8] sm:px-6">
+                  Plays
+                </th>
               </tr>
             </thead>
-            <tbody>
-              {compactRows(rows, 8).map((row) => (
-                <tr className="border-t border-white/5" key={row.cardName}>
-                  <td className="py-1 pr-3 font-semibold text-stone-100">
+            <tbody className="text-[#f1f5f9]">
+              {displayedRows.map((row) => (
+                <tr
+                  className="h-[46px] transition-colors odd:bg-white/[0.018] hover:bg-amber-400/[0.045]"
+                  key={row.cardName}
+                >
+                  <td className="border-b border-[#263241]/70 px-4 py-3 text-left font-semibold sm:px-6">
                     {row.cardName}
                   </td>
-                  <td className="py-1 pr-3">
+                  <td className="border-b border-[#263241]/70 px-3 py-3 text-right tabular-nums">
                     {formatPercent(row.earlyWinRate)}
                   </td>
-                  <td className="py-1 pr-3">{formatPercent(row.lateWinRate)}</td>
-                  <td className={`py-1 pr-3 ${metricTone(row.winRateDelta)}`}>
-                    {formatSignedPercent(row.winRateDelta)}
+                  <td className="border-b border-[#263241]/70 px-3 py-3 text-right tabular-nums">
+                    {formatPercent(row.lateWinRate)}
                   </td>
-                  <td className="py-1 pr-3">{row.earlyPlays}</td>
-                  <td className="py-1 pr-3">{row.latePlays}</td>
+                  <td className="border-b border-[#263241]/70 px-3 py-3 text-right">
+                    <TimingDeltaBadge value={row.winRateDelta} />
+                  </td>
+                  <td className="border-b border-[#263241]/70 px-4 py-3 text-right tabular-nums sm:px-6">
+                    <span
+                      aria-label={
+                        row.earlyPlays +
+                        ' early plays to ' +
+                        row.latePlays +
+                        ' late plays'
+                      }
+                      className="inline-flex min-w-[5.5rem] items-center justify-end gap-2"
+                    >
+                      <span className="font-semibold text-[#f1f5f9]">
+                        {row.earlyPlays}
+                      </span>
+                      <span aria-hidden="true" className="text-[#94a3b8]">
+                        →
+                      </span>
+                      <span className="font-semibold text-[#f1f5f9]">
+                        {row.latePlays}
+                      </span>
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
