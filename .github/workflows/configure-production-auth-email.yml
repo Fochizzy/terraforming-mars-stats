@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_ACCESS_TOKEN: ${{ sbp_0a18f34c4a0aae651d4e2fdd1dd3e47aed649d75 }}
       SUPABASE_PROJECT_ID: qjtwgrjjwnqafbvkkfex
       SUPABASE_AUTH_SITE_URL: https://tm-stats.com
       SUPABASE_AUTH_FROM_EMAIL: no-reply@mail.tm-stats.com
