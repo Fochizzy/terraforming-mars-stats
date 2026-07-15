@@ -35,6 +35,7 @@ export default async function ProfilePage() {
         <ProfileDashboard
           coverage={profileAnalytics?.coverage ?? null}
           efficiencySummary={profileAnalytics?.efficiencySummary ?? null}
+          groupScoreAverages={groupAnalytics.scoreAverages}
           headToHeadRows={profileAnalytics?.headToHeadRows ?? []}
           mapMetricRows={profileAnalytics?.mapMetricRows ?? []}
           performance={profileAnalytics?.performance ?? null}
