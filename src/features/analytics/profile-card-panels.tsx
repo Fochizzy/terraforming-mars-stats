@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { Fragment } from 'react';
+import type { ReactNode } from 'react';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { isRenderableCardImage } from '@/features/catalog/card-image';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
@@ -7,58 +7,120 @@ import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { ProfileCardStat } from '@/lib/db/analytics-repo';
 import { formatPercent } from './performance-delta';
 
-function CardCell({ card }: { card: ProfileCardStat }) {
+const impactGridClass =
+  'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_7.5rem_5rem_7.5rem] lg:items-center';
+const playsGridClass =
+  'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_5rem_7.5rem] lg:items-center';
+
+function contextChips(contextLabel: string | undefined) {
+  return (
+    contextLabel
+      ?.split(/\s*·\s*/)
+      .map((part) => part.trim())
+      .filter(Boolean) ?? []
+  );
+}
+
+function confidenceToneClass(confidence: ProfileCardStat['evidenceConfidence']) {
+  switch (confidence) {
+    case 'High':
+      return 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200';
+    case 'Medium':
+      return 'border-sky-400/30 bg-sky-400/10 text-sky-200';
+    default:
+      return 'border-white/10 bg-white/5 text-stone-300';
+  }
+}
+
+function ConfidenceBadge({
+  confidence,
+}: {
+  confidence: ProfileCardStat['evidenceConfidence'];
+}) {
+  if (!confidence) {
+    return null;
+  }
+
+  return (
+    <span
+      className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-[0.65rem] font-medium uppercase tracking-[0.12em] ${confidenceToneClass(confidence)}`}
+    >
+      {confidence} confidence
+    </span>
+  );
+}
+
+function CardCell({
+  card,
+  showConfidence,
+}: {
+  card: ProfileCardStat;
+  showConfidence: boolean;
+}) {
   // Cards whose art hasn't been backfilled into Supabase Storage carry the
   // `/file.svg` placeholder or a Heroku search-page URL, which would render as a
   // generic document icon. Show a neutral tile for those instead.
   const thumbnail = isRenderableCardImage(card.thumbnailUrl) ? (
     <Image
       alt={`${card.cardName} thumbnail`}
-      className="h-[56px] w-[41px] shrink-0 rounded-sm object-cover"
-      height={56}
+      className="h-[70px] w-[52px] shrink-0 rounded-sm object-contain"
+      height={70}
       src={card.thumbnailUrl}
       unoptimized
-      width={41}
+      width={52}
     />
   ) : (
     <span
       aria-hidden="true"
-      className="h-[56px] w-[41px] shrink-0 rounded-sm border border-white/10 bg-white/5"
+      className="h-[70px] w-[52px] shrink-0 rounded-sm border border-white/10 bg-white/5"
     />
   );
+  const chips = contextChips(card.contextLabel);
 
   return (
-    <CardStatsButton
-      card={{
-        cardName: card.cardName,
-        fullImageUrl: card.fullImageUrl,
-        id: card.cardId,
-        thumbnailUrl: card.thumbnailUrl,
-      }}
-      className="flex items-center gap-3 text-left transition hover:text-[rgb(221,161,93)]"
-    >
-      {thumbnail}
-      <span className="min-w-0 break-words font-semibold text-stone-100">
-        {card.cardName}
-        {card.contextLabel ? (
-          <span className="tm-muted-copy mt-1 block text-xs font-normal">
-            {card.contextLabel} · {card.evidenceConfidence} confidence
-          </span>
-        ) : null}
-      </span>
-    </CardStatsButton>
+    <div className="min-w-0">
+      <CardStatsButton
+        card={{
+          cardName: card.cardName,
+          fullImageUrl: card.fullImageUrl,
+          id: card.cardId,
+          thumbnailUrl: card.thumbnailUrl,
+        }}
+        className="group flex min-w-0 items-start gap-3 text-left"
+      >
+        {thumbnail}
+        <span className="min-w-0 pt-1 break-words font-semibold text-stone-100 transition group-hover:text-white">
+          {card.cardName}
+        </span>
+      </CardStatsButton>
+      {chips.length > 0 || (showConfidence && card.evidenceConfidence) ? (
+        <div className="ml-16 mt-2 flex flex-wrap items-center gap-1.5">
+          {chips.map((chip) => (
+            <span
+              className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs font-normal text-stone-300"
+              key={chip}
+            >
+              {chip}
+            </span>
+          ))}
+          {showConfidence ? (
+            <ConfidenceBadge confidence={card.evidenceConfidence} />
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
-// Victory impact is a signed win-rate lift stored as a fraction; show it as
-// whole percentage points with an explicit sign so a boost reads as "+12 pts".
+// Estimated lift is a signed win-rate change stored as a fraction. Display it
+// as percentage points so the unit cannot be confused with victory points.
 function formatImpactPoints(impact: number | undefined) {
   if (impact === undefined) {
     return '—';
   }
 
   const points = Math.round(impact * 100);
-  return `${points > 0 ? '+' : points < 0 ? '−' : ''}${Math.abs(points)} pts`;
+  return `${points > 0 ? '+' : points < 0 ? '−' : ''}${Math.abs(points)} pp`;
 }
 
 function impactToneClass(impact: number | undefined) {
@@ -68,22 +130,30 @@ function impactToneClass(impact: number | undefined) {
   return impact > 0 ? 'text-emerald-400' : 'text-rose-400';
 }
 
-function cardImpactReason(card: ProfileCardStat) {
-  const impact = card.victoryImpact ?? 0;
-  const points = Math.abs(Math.round(impact * 100));
-  const result = `${card.wins} of ${card.plays} ${card.plays === 1 ? 'game' : 'games'}`;
-  const context = card.contextLabel
-    ? ` after accounting for your ${card.contextLabel} context`
-    : ' after accounting for your recorded corporation, play style, scoring method, game pace, table size, and map';
-  const confidence = card.evidenceConfidence
-    ? ` This is ${card.evidenceConfidence.toLowerCase()}-confidence evidence based on ${card.plays} ${card.plays === 1 ? 'play' : 'plays'}.`
-    : '';
+function cardResultSummary(card: ProfileCardStat) {
+  const gameLabel = card.plays === 1 ? 'game' : 'games';
+  return `Won ${card.wins} of ${card.plays} ${gameLabel} · Estimate adjusted for your recorded game context.`;
+}
 
-  if (impact >= 0) {
-    return `It made the list because you won ${result} with it and${context}, it raised your expected win rate by ${points} ${points === 1 ? 'point' : 'points'}.${confidence}`;
-  }
-
-  return `It made the list because you won ${result} with it and${context}, it lowered your expected win rate by ${points} ${points === 1 ? 'point' : 'points'}.${confidence}`;
+function MetricCell({
+  children,
+  className = '',
+  label,
+}: {
+  children: ReactNode;
+  className?: string;
+  label: string;
+}) {
+  return (
+    <div
+      className={`flex items-baseline justify-between gap-3 border-t border-white/10 pt-3 tabular-nums lg:block lg:border-0 lg:pt-0 lg:text-right ${className}`}
+    >
+      <span className="text-[0.65rem] uppercase tracking-[0.14em] text-stone-500 lg:hidden">
+        {label}
+      </span>
+      <span>{children}</span>
+    </div>
+  );
 }
 
 function ProfileCardTable({
@@ -102,57 +172,59 @@ function ProfileCardTable({
   }
 
   const showImpact = variant === 'impact';
+  const gridClass = showImpact ? impactGridClass : playsGridClass;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="tm-data-label">
-            <th className="py-1 pr-3">Card</th>
+    <div className="grid gap-3">
+      <div className={`${gridClass} tm-data-label hidden px-4 lg:grid`}>
+        <span>Card</span>
+        {showImpact ? <span className="text-right">Estimated lift</span> : null}
+        <span className="text-right">{countLabel}</span>
+        <span className="text-right">Win rate</span>
+      </div>
+      <div className="grid gap-3" role="list">
+        {cards.map((card) => (
+          <article
+            className={`${gridClass} rounded-xl border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
+            key={card.cardId}
+            role="listitem"
+          >
+            <CardCell card={card} showConfidence={showImpact} />
             {showImpact ? (
-              <th className="py-1 pr-3">Victory impact</th>
+              <MetricCell
+                className={`font-semibold ${impactToneClass(card.victoryImpact)}`}
+                label="Estimated lift"
+              >
+                {formatImpactPoints(card.victoryImpact)}
+              </MetricCell>
             ) : null}
-            <th className="py-1 pr-3">{countLabel}</th>
-            <th className="py-1 pr-3">Win rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cards.map((card) => (
-            <Fragment key={card.cardId}>
-            <tr className="border-t border-white/5">
-              <td className="py-2 pr-3">
-                <CardCell card={card} />
-              </td>
-              {showImpact ? (
-                <td
-                  className={`py-2 pr-3 align-middle font-semibold ${impactToneClass(card.victoryImpact)}`}
-                >
-                  {formatImpactPoints(card.victoryImpact)}
-                </td>
-              ) : null}
-              <td className="py-2 pr-3 align-middle">{card.plays}</td>
-              <td className="py-2 pr-3 align-middle">
-                {formatPercent(card.winRate)}
-                <span className="tm-muted-copy ml-1 text-xs">
-                  ({card.wins}/{card.plays})
-                </span>
-              </td>
-            </tr>
+            <MetricCell label={countLabel}>{card.plays}</MetricCell>
+            <MetricCell label="Win rate">
+              {formatPercent(card.winRate)}
+              <span className="ml-1 text-xs font-normal text-stone-500">
+                ({card.wins}/{card.plays})
+              </span>
+            </MetricCell>
             {showImpact ? (
-              <tr className="border-t border-white/5">
-                <td
-                  className="tm-muted-copy pb-3 pr-3 text-xs leading-relaxed"
-                  colSpan={4}
-                >
-                  {cardImpactReason(card)}
-                </td>
-              </tr>
+              <p className="tm-muted-copy border-t border-white/10 pt-3 text-xs leading-relaxed lg:col-span-4">
+                {cardResultSummary(card)}
+              </p>
             ) : null}
-            </Fragment>
-          ))}
-        </tbody>
-      </table>
+          </article>
+        ))}
+      </div>
     </div>
+  );
+}
+
+function MethodologyDetails({ children, title }: { children: ReactNode; title: string }) {
+  return (
+    <details className="mt-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-xs">
+      <summary className="cursor-pointer font-medium text-stone-300 transition hover:text-stone-100">
+        {title}
+      </summary>
+      <p className="tm-muted-copy mt-2 leading-relaxed">{children}</p>
+    </details>
   );
 }
 
@@ -170,7 +242,7 @@ export function ProfileCardPanels({
   return (
     <>
       <ChartFrame
-        description="The cards that most raise your odds of winning after accounting for play count, corporation, play style, scoring method, game pace, table size, and map. Click a card to open its full image."
+        description="Cards with the strongest estimated win-rate lift after accounting for play count and your recorded game context. Click a card to open its full image."
         title="My Key Cards"
       >
         <ProfileCardTable
@@ -180,15 +252,15 @@ export function ProfileCardPanels({
           variant="impact"
         />
         {keyCards.length > 0 ? (
-          <p className="tm-muted-copy mt-3 text-xs">
+          <MethodologyDetails title="How estimated lift is calculated">
             <GlossaryRichText>
-              Key cards are not picked by hand. Context-adjusted victory impact compares each result with your normal performance using that corporation, play style, scoring method, game pace, table size, and map, then blends in global card performance and play-count confidence.
+              Key cards are not picked by hand. Context-adjusted estimated lift compares each result with your normal performance using that corporation, play style, scoring method, game pace, table size, and map, then blends in global card performance and play-count confidence.
             </GlossaryRichText>
-          </p>
+          </MethodologyDetails>
         ) : null}
       </ChartFrame>
       <ChartFrame
-        description="The cards most correlated with losses after accounting for play count, corporation, play style, scoring method, game pace, table size, and map."
+        description="Cards with the lowest estimated win-rate lift after accounting for play count and your recorded game context."
         title="My Loss-Correlated Cards"
       >
         <ProfileCardTable
@@ -198,11 +270,11 @@ export function ProfileCardPanels({
           variant="impact"
         />
         {lossCards.length > 0 ? (
-          <p className="tm-muted-copy mt-3 text-xs">
+          <MethodologyDetails title="How loss correlation is calculated">
             <GlossaryRichText>
-              Loss-correlated cards use the same context adjustment and play-count confidence, so one bad game or a naturally difficult corporation/style combination cannot condemn a card.
+              Loss-correlated cards use the same context adjustment and play-count confidence, so one bad game or a naturally difficult corporation and style combination cannot condemn a card.
             </GlossaryRichText>
-          </p>
+          </MethodologyDetails>
         ) : null}
       </ChartFrame>
       <ChartFrame
