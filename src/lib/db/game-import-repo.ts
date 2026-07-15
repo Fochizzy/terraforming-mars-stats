@@ -155,6 +155,19 @@ function buildTagSummaryRow(input: {
   };
 }
 
+export async function validateGameLogImport(gameLogImportId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('validate_game_log_import', {
+    p_game_log_import_id: gameLogImportId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function saveGameLogTagSummaries(input: {
   gameLogImportId: string;
   summaries: SaveGameLogTagSummaryInput[];
@@ -171,6 +184,17 @@ export async function saveGameLogTagSummaries(input: {
 
   if (error) {
     throw error;
+  }
+
+  const { error: validationError } = await supabase.rpc(
+    'validate_game_log_import',
+    {
+      p_game_log_import_id: input.gameLogImportId,
+    },
+  );
+
+  if (validationError) {
+    throw validationError;
   }
 
   const savedRows = (data ?? []) as RawSavedGameLogTagSummaryRow[];
