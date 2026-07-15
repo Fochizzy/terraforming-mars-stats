@@ -30,8 +30,10 @@ export function LogGameImportShell({
     exportedGameLog: string;
     generationCount: number;
     mapId: string;
+    ocrConfidence: number | null;
     playedOn: string;
     playerCount: number;
+    rawOcrText: string;
   }): Promise<WebImportActionResult> {
     try {
       const result = await onCreateImportDraft({
@@ -40,8 +42,10 @@ export function LogGameImportShell({
         exportedGameLog: values.exportedGameLog,
         generationCount: values.generationCount,
         mapId: values.mapId,
+        ocrConfidence: values.ocrConfidence,
         playedOn: values.playedOn,
         playerCount: values.playerCount,
+        rawOcrText: values.rawOcrText,
       });
 
       if (result.status === 'success' && result.gameId) {
