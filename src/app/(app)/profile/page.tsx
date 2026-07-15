@@ -1,13 +1,13 @@
-import Link from 'next/link';
-import { ChartFrame } from '@/components/charts/chart-frame';
-import { AppShell } from '@/components/layout/app-shell';
-import { ProfileDashboard } from '@/features/analytics/profile-dashboard';
-import { getProfileAnalytics } from '@/lib/db/analytics-repo';
-import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
+import Link from "next/link";
+import { ChartFrame } from "@/components/charts/chart-frame";
+import { AppShell } from "@/components/layout/app-shell";
+import { ProfileDashboard } from "@/features/analytics/profile-dashboard";
+import { getCurrentGroupContext } from "@/lib/db/group-context-repo";
+import { getProfileAnalyticsWithCardRates } from "@/lib/db/profile-card-rate-repo";
 
 const noGroupNavItems = [
-  { href: '/profile', label: 'My Profile' },
-  { href: '/log-game', label: 'Log Game' },
+  { href: "/profile", label: "My Profile" },
+  { href: "/log-game", label: "Log Game" },
 ] as const;
 
 type ProfilePageProps = {
@@ -34,7 +34,10 @@ export default async function ProfilePage(_props: ProfilePageProps) {
             Claim a saved player profile to join the group that already has your
             history and unlock your personal analytics.
           </p>
-          <Link className="tm-button-primary mt-4 inline-flex w-fit" href="/claim-player">
+          <Link
+            className="tm-button-primary mt-4 inline-flex w-fit"
+            href="/claim-player"
+          >
             Review Saved Player Matches
           </Link>
         </ChartFrame>
@@ -46,10 +49,10 @@ export default async function ProfilePage(_props: ProfilePageProps) {
   let profileAnalyticsUnavailable = false;
 
   try {
-    profileAnalytics = await getProfileAnalytics(context.userId);
+    profileAnalytics = await getProfileAnalyticsWithCardRates(context.userId);
   } catch (error) {
     profileAnalyticsUnavailable = true;
-    console.error('Profile analytics load failed', error);
+    console.error("Profile analytics load failed", error);
   }
 
   return (
@@ -60,7 +63,10 @@ export default async function ProfilePage(_props: ProfilePageProps) {
             We couldn&apos;t load your finalized-game profile analytics right
             now. Your saved players and logged games are still intact.
           </p>
-          <Link className="tm-button-primary mt-4 inline-flex w-fit" href="/group/players">
+          <Link
+            className="tm-button-primary mt-4 inline-flex w-fit"
+            href="/group/players"
+          >
             Open Saved Players
           </Link>
         </ChartFrame>
@@ -82,7 +88,9 @@ export default async function ProfilePage(_props: ProfilePageProps) {
             performance={profileAnalytics?.performance ?? null}
             phaseTempoProfile={profileAnalytics?.phaseTempoProfile ?? null}
             playerName={profileAnalytics?.playerName ?? null}
-            resourceRemovalProfile={profileAnalytics?.resourceRemovalProfile ?? null}
+            resourceRemovalProfile={
+              profileAnalytics?.resourceRemovalProfile ?? null
+            }
             scoreAverages={profileAnalytics?.scoreAverages ?? null}
             scorePace={profileAnalytics?.scorePace ?? null}
             styleBreakdownRows={profileAnalytics?.styleBreakdownRows ?? []}
