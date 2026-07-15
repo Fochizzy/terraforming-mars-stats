@@ -1,5 +1,5 @@
-import { ZodError } from 'zod';
-import { authEmailSchema } from './username-auth';
+import { normalizeUsername } from './username-auth';
+import { lookupAuthEmailForUsername } from './username-email-lookup';
 
 export type RequestPinResetStatus = {
   message: string;
@@ -18,51 +18,101 @@ export type RequestPinResetResult =
 
 type Awaitable<T> = PromiseLike<T> | T;
 
-type RequestPinResetClient = {
+export type RequestPinResetClient = {
   auth: {
-    resetPasswordForEmail(
-      email: string,
-      options?: { redirectTo?: string },
-    ): Awaitable<{ error: { message?: string | null } | null }>;
+    admin: {
+      generateLink(params: {
+        email: string;
+        options?: { redirectTo?: string };
+        type: 'recovery';
+      }): Awaitable<{
+        data: {
+          properties?: {
+            action_link?: string | null;
+          } | null;
+        } | null;
+        error: { message?: string | null } | null;
+      }>;
+    };
+  };
+  from(table: 'user_profiles'): {
+    select(columns: 'email'): {
+      eq(
+        column: 'username',
+        value: string,
+      ): {
+        maybeSingle(): Awaitable<{
+          data: { email?: string | null } | null;
+          error: { message?: string | null } | null;
+        }>;
+      };
+    };
   };
 };
 
+export type PinResetEmailSender = {
+  sendPinResetEmail(input: {
+    recoveryUrl: string;
+    to: string;
+  }): Awaitable<void>;
+};
+
 const GENERIC_SUCCESS_MESSAGE =
-  'If that email is registered, a recovery link has been sent.';
-
-function getValidationErrorMessage(error: unknown) {
-  if (error instanceof ZodError) {
-    return error.issues[0]?.message ?? 'Enter a valid email address.';
-  }
-
-  return 'Enter a valid email address.';
-}
+  'If that username or email is registered, a recovery link has been sent.';
 
 export async function requestPinReset(input: {
   client: RequestPinResetClient;
-  email: string;
   emailRedirectTo?: string;
+  emailSender: PinResetEmailSender;
+  username: string;
 }): Promise<RequestPinResetResult> {
-  if (!input.email.trim()) {
+  if (!input.username.trim()) {
     return {
       ok: false,
       status: {
-        message: 'Enter your email first.',
+        message: 'Enter your username or email first.',
+        state: 'error',
+      },
+    };
+  }
+
+  if (!normalizeUsername(input.username)) {
+    return {
+      ok: false,
+      status: {
+        message: 'Enter a username or email using letters or numbers.',
         state: 'error',
       },
     };
   }
 
   try {
-    const parsedEmail = authEmailSchema.parse(input.email);
-    const { error } = await input.client.auth.resetPasswordForEmail(parsedEmail, {
-      ...(input.emailRedirectTo
-        ? { redirectTo: input.emailRedirectTo }
-        : {}),
+    const authEmail = await lookupAuthEmailForUsername({
+      client: input.client,
+      username: input.username,
     });
 
-    if (error) {
-      console.error('Supabase PIN reset request failed', error);
+    if (authEmail) {
+      const { data, error } = await input.client.auth.admin.generateLink({
+        email: authEmail,
+        options: {
+          ...(input.emailRedirectTo
+            ? { redirectTo: input.emailRedirectTo }
+            : {}),
+        },
+        type: 'recovery',
+      });
+
+      if (error) {
+        console.error('Supabase PIN reset request failed', error);
+      } else if (data?.properties?.action_link) {
+        await input.emailSender.sendPinResetEmail({
+          recoveryUrl: data.properties.action_link,
+          to: authEmail,
+        });
+      } else {
+        console.error('Supabase PIN reset request did not return a recovery link');
+      }
     }
 
     return {
@@ -73,17 +123,7 @@ export async function requestPinReset(input: {
       },
     };
   } catch (error) {
-    if (error instanceof ZodError) {
-      return {
-        ok: false,
-        status: {
-          message: getValidationErrorMessage(error),
-          state: 'error',
-        },
-      };
-    }
-
-    console.error('Supabase PIN reset request failed', error);
+    console.error('PIN reset request failed', error);
 
     return {
       ok: true,

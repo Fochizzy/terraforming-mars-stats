@@ -4,12 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildAuthCallbackUrl,
   buildAuthCompletePath,
-  buildAuthResetPinPath,
 } from './build-auth-callback-url';
 import { LoginForm } from './login-form';
 
 const authMocks = vi.hoisted(() => ({
-  resetPasswordForEmail: vi.fn(),
+  fetch: vi.fn(),
   rpc: vi.fn(),
   select: vi.fn(),
   signInWithPassword: vi.fn(),
@@ -19,7 +18,6 @@ const authMocks = vi.hoisted(() => ({
 vi.mock('@/lib/supabase/browser', () => ({
   createSupabaseBrowserClient: () => ({
     auth: {
-      resetPasswordForEmail: authMocks.resetPasswordForEmail,
       signInWithPassword: authMocks.signInWithPassword,
       signUp: authMocks.signUp,
     },
@@ -38,8 +36,39 @@ describe('LoginForm', () => {
       },
       error: null,
     });
-    authMocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     authMocks.rpc.mockResolvedValue({ data: true, error: null });
+    authMocks.fetch.mockImplementation(async (_url, init) => {
+      const url = String(_url);
+      const body = JSON.parse(String((init as RequestInit | undefined)?.body ?? '{}'));
+      const result =
+        url === '/auth/request-pin-reset' && !body.username
+          ? {
+              ok: false,
+              status: {
+                message: 'Enter your username or email first.',
+                state: 'error',
+              },
+            }
+          : {
+              ok: true,
+              redirectPath: buildAuthCompletePath(body.nextPath ?? '/profile'),
+              status: {
+                message:
+                  'If that username or email is registered, a recovery link has been sent.',
+                state: 'success',
+              },
+            };
+
+      return new Response(
+        JSON.stringify(result),
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+        },
+      );
+    });
+    vi.stubGlobal('fetch', authMocks.fetch);
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: {
@@ -49,21 +78,29 @@ describe('LoginForm', () => {
     });
   });
 
-  it('signs in with email and pin', async () => {
+  it('signs in with username and a six-digit pin', async () => {
     const user = userEvent.setup();
 
     render(<LoginForm nextPath="/profile" />);
 
-    await user.type(screen.getByLabelText(/^email$/i), 'Friday.Mars@Example.com');
+    await user.type(screen.getByLabelText(/^username or email$/i), 'Friday Mars');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
     await waitFor(() =>
-      expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
-        email: 'friday.mars@example.com',
-        password: '123456',
-      }),
+      expect(authMocks.fetch).toHaveBeenCalledWith(
+        '/auth/username-login',
+        expect.objectContaining({
+          body: JSON.stringify({
+            nextPath: '/profile',
+            pin: '123456',
+            username: 'Friday Mars',
+          }),
+          method: 'POST',
+        }),
+      ),
     );
+    expect(authMocks.signInWithPassword).not.toHaveBeenCalled();
     expect(window.location.assign).toHaveBeenCalledWith(
       buildAuthCompletePath('/profile'),
     );
@@ -74,15 +111,22 @@ describe('LoginForm', () => {
 
     render(<LoginForm />);
 
-    await user.type(screen.getByLabelText(/^email$/i), 'Friday.Mars@Example.com');
+    await user.type(screen.getByLabelText(/^username or email$/i), 'Friday Mars');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
     await waitFor(() =>
-      expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
-        email: 'friday.mars@example.com',
-        password: '123456',
-      }),
+      expect(authMocks.fetch).toHaveBeenCalledWith(
+        '/auth/username-login',
+        expect.objectContaining({
+          body: JSON.stringify({
+            nextPath: '/log-game/import-single',
+            pin: '123456',
+            username: 'Friday Mars',
+          }),
+          method: 'POST',
+        }),
+      ),
     );
     expect(window.location.assign).toHaveBeenCalledWith(
       buildAuthCompletePath('/log-game/import-single'),
@@ -275,42 +319,52 @@ describe('LoginForm', () => {
     expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
   });
 
-  it('requests a pin reset with the typed email and shows the generic success message', async () => {
+  it('requests a pin reset with the typed username or email and shows the generic success message', async () => {
     const user = userEvent.setup();
 
     render(<LoginForm nextPath="/profile" />);
 
-    await user.type(screen.getByLabelText(/^email$/i), 'Friday.Mars@Example.com');
+    await user.type(screen.getByLabelText(/^username or email$/i), 'Friday Mars');
     await user.click(screen.getByRole('button', { name: /reset pin/i }));
 
     await waitFor(() =>
-      expect(authMocks.resetPasswordForEmail).toHaveBeenCalledWith(
-        'friday.mars@example.com',
-        {
-          redirectTo: buildAuthCallbackUrl(
-            'https://tm-stats.com',
-            buildAuthResetPinPath('/profile'),
-          ),
-        },
+      expect(authMocks.fetch).toHaveBeenCalledWith(
+        '/auth/request-pin-reset',
+        expect.objectContaining({
+          body: JSON.stringify({
+            nextPath: '/profile',
+            username: 'Friday Mars',
+          }),
+          method: 'POST',
+        }),
       ),
     );
 
     expect(
       screen.getByText(
-        /if that email is registered, a recovery link has been sent\./i,
+        /if that username or email is registered, a recovery link has been sent\./i,
       ),
     ).toBeInTheDocument();
     expect(window.location.assign).not.toHaveBeenCalled();
   });
 
-  it('asks for an email before requesting a pin reset', async () => {
+  it('asks for a username or email before requesting a pin reset', async () => {
     const user = userEvent.setup();
 
     render(<LoginForm nextPath="/profile" />);
 
     await user.click(screen.getByRole('button', { name: /reset pin/i }));
 
-    expect(authMocks.resetPasswordForEmail).not.toHaveBeenCalled();
-    expect(screen.getByText(/enter your email first\./i)).toBeInTheDocument();
+    expect(authMocks.fetch).toHaveBeenCalledWith(
+      '/auth/request-pin-reset',
+      expect.objectContaining({
+        body: JSON.stringify({
+          nextPath: '/profile',
+          username: '',
+        }),
+        method: 'POST',
+      }),
+    );
+    expect(screen.getByText(/enter your username or email first\./i)).toBeInTheDocument();
   });
 });

@@ -14,8 +14,7 @@ describe('LoginPage', () => {
     expect(button).toBeInTheDocument();
     expect(button).toHaveClass('tm-button-primary');
     expect(
-      screen.getByText(/email and 6-digit pin/i),
+      screen.getByText(/username or email and 6-digit pin/i),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /reset pin/i })).toBeInTheDocument();
   });
 });

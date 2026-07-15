@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { submitUsernameAuth } from './submit-username-auth';
 
 const authMocks = vi.hoisted(() => ({
+  eq: vi.fn(),
+  from: vi.fn(),
+  maybeSingle: vi.fn(),
   rpc: vi.fn(),
+  select: vi.fn(),
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
 }));
@@ -13,6 +17,7 @@ function createClient() {
       signInWithPassword: authMocks.signInWithPassword,
       signUp: authMocks.signUp,
     },
+    from: authMocks.from,
     rpc: authMocks.rpc,
   };
 }
@@ -22,6 +27,22 @@ describe('submitUsernameAuth', () => {
     vi.clearAllMocks();
     authMocks.rpc.mockResolvedValue({ data: true, error: null });
     authMocks.signInWithPassword.mockResolvedValue({ error: null });
+    authMocks.from.mockReturnValue({
+      eq: authMocks.eq,
+      maybeSingle: authMocks.maybeSingle,
+      select: authMocks.select,
+    });
+    authMocks.select.mockReturnValue({
+      eq: authMocks.eq,
+      maybeSingle: authMocks.maybeSingle,
+    });
+    authMocks.eq.mockReturnValue({
+      maybeSingle: authMocks.maybeSingle,
+    });
+    authMocks.maybeSingle.mockResolvedValue({
+      data: { email: 'friday.mars@example.com' },
+      error: null,
+    });
     authMocks.signUp.mockResolvedValue({
       data: {
         session: { access_token: 'session-token' },
@@ -31,14 +52,36 @@ describe('submitUsernameAuth', () => {
     });
   });
 
-  it('signs in with the normalized real email and 6-digit pin', async () => {
+  it('signs in by looking up the normalized username and using the stored email', async () => {
     const result = await submitUsernameAuth({
       client: createClient(),
-      email: ' Friday.Mars@Example.com ',
       mode: 'sign-in',
       pin: '123456',
+      username: ' Friday Mars ',
     });
 
+    expect(authMocks.from).toHaveBeenCalledWith('user_profiles');
+    expect(authMocks.select).toHaveBeenCalledWith('email');
+    expect(authMocks.eq).toHaveBeenCalledWith('username', 'friday-mars');
+    expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
+      email: 'friday.mars@example.com',
+      password: '123456',
+    });
+    expect(result).toEqual({
+      action: 'signed-in',
+      ok: true,
+    });
+  });
+
+  it('signs in directly with an email address without a profile lookup', async () => {
+    const result = await submitUsernameAuth({
+      client: createClient(),
+      mode: 'sign-in',
+      pin: '123456',
+      username: ' Friday.Mars@Example.com ',
+    });
+
+    expect(authMocks.from).not.toHaveBeenCalled();
     expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
       email: 'friday.mars@example.com',
       password: '123456',
@@ -241,9 +284,9 @@ describe('submitUsernameAuth', () => {
   it('returns a clean validation message for an invalid sign-in pin', async () => {
     const result = await submitUsernameAuth({
       client: createClient(),
-      email: 'friday@example.com',
       mode: 'sign-in',
       pin: '12345',
+      username: 'friday-mars',
     });
 
     expect(result).toEqual({
@@ -256,12 +299,14 @@ describe('submitUsernameAuth', () => {
     expect(authMocks.signInWithPassword).not.toHaveBeenCalled();
   });
 
-  it('returns a clean validation message for an invalid auth email', async () => {
+  it('returns a clean validation message for an invalid signup email', async () => {
     const result = await submitUsernameAuth({
       client: createClient(),
       email: 'friday-mars',
-      mode: 'sign-in',
+      fullName: 'Friday Mars',
+      mode: 'sign-up',
       pin: '123456',
+      username: 'friday-mars',
     });
 
     expect(result).toEqual({

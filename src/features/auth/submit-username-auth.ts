@@ -1,4 +1,4 @@
-import {
+﻿import {
   authEmailSchema,
   normalizeUsername,
   pinSchema,
@@ -6,6 +6,7 @@ import {
   signupFullNameSchema,
 } from './username-auth';
 import { ZodError } from 'zod';
+import { lookupAuthEmailForUsername } from './username-email-lookup';
 
 export type UsernameAuthMode = 'sign-in' | 'sign-up';
 
@@ -41,7 +42,7 @@ type SignupResponse = {
   error: { message?: string | null } | null;
 };
 
-type UsernameAuthClient = {
+export type UsernameAuthClient = {
   auth: {
     signInWithPassword(input: {
       email: string;
@@ -63,6 +64,19 @@ type UsernameAuthClient = {
     fn: string,
     args?: Record<string, unknown>,
   ): Awaitable<{ data: unknown; error: unknown | null }>;
+  from(table: 'user_profiles'): {
+    select(columns: 'email'): {
+      eq(
+        column: 'username',
+        value: string,
+      ): {
+        maybeSingle(): Awaitable<{
+          data: { email?: string | null } | null;
+          error: { message?: string | null } | null;
+        }>;
+      };
+    };
+  };
 };
 
 function getSignupErrorMessage(error: { message?: string | null } | null) {
@@ -102,20 +116,34 @@ function getAuthInputErrorMessage(error: unknown) {
 
 export async function submitUsernameAuth(input: {
   client: UsernameAuthClient;
-  email: string;
+  email?: string;
   emailRedirectTo?: string;
   fullName?: string;
+  lookupClient?: UsernameAuthClient;
   mode: UsernameAuthMode;
   pin: string;
   username?: string;
 }): Promise<UsernameAuthResult> {
   try {
-    const parsedEmail = authEmailSchema.parse(input.email);
-
     if (input.mode === 'sign-in') {
       const parsedPin = signInPinSchema.parse(input.pin);
+      const authEmail = await lookupAuthEmailForUsername({
+        client: input.lookupClient ?? input.client,
+        username: input.username ?? '',
+      });
+
+      if (!authEmail) {
+        return {
+          ok: false,
+          status: {
+            message: 'Unknown username or incorrect PIN.',
+            state: 'error',
+          },
+        };
+      }
+
       const { error } = await input.client.auth.signInWithPassword({
-        email: parsedEmail,
+        email: authEmail,
         password: parsedPin,
       });
 
@@ -123,7 +151,7 @@ export async function submitUsernameAuth(input: {
         return {
           ok: false,
           status: {
-            message: 'Unknown email or incorrect PIN.',
+            message: 'Unknown username or incorrect PIN.',
             state: 'error',
           },
         };
@@ -135,6 +163,7 @@ export async function submitUsernameAuth(input: {
       };
     }
 
+    const parsedEmail = authEmailSchema.parse(input.email ?? '');
     const parsedPin = pinSchema.parse(input.pin);
     const parsedFullName = signupFullNameSchema.parse(input.fullName ?? '');
     const normalizedUsername = normalizeUsername(input.username ?? '');
@@ -227,3 +256,4 @@ export async function submitUsernameAuth(input: {
     };
   }
 }
+

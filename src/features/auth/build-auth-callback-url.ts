@@ -1,4 +1,4 @@
-const DEFAULT_NEXT_PATH = '/log-game/import-single';
+﻿const DEFAULT_NEXT_PATH = '/profile';
 
 export function normalizeNextPath(nextPath: string | null | undefined) {
   if (!nextPath || !nextPath.startsWith('/') || nextPath.startsWith('//')) {
@@ -25,3 +25,4 @@ export function buildAuthCallbackUrl(origin: string, nextPath: string) {
   url.searchParams.set('next', normalizeNextPath(nextPath));
   return url.toString();
 }
+

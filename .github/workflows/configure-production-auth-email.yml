@@ -1,0 +1,64 @@
+name: Configure production auth email
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/configure-production-auth-email.yml
+      - scripts/auth/**
+      - supabase/templates/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-auth-email
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: qjtwgrjjwnqafbvkkfex
+      SUPABASE_AUTH_SITE_URL: https://tm-stats.com
+      SUPABASE_AUTH_FROM_EMAIL: no-reply@mail.tm-stats.com
+      SUPABASE_AUTH_SENDER_NAME: Terraforming Mars Stats
+      SUPABASE_AUTH_EMAILS_PER_HOUR: '30'
+      SUPABASE_AUTH_EMAIL_MIN_INTERVAL_SECONDS: '60'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify configuration files
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/auth/configure-email-auth.mjs
+          grep -Fq '{{ .ConfirmationURL }}' supabase/templates/confirmation.html
+          grep -Fq '{{ .ConfirmationURL }}' supabase/templates/recovery.html
+          grep -Fq '{{ .SiteURL }}' supabase/templates/password-changed.html
+
+      - name: Verify required secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::Repository secret SUPABASE_ACCESS_TOKEN is required to configure hosted Supabase Auth."
+            exit 1
+          fi
+
+      - name: Apply branded auth email configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run auth:configure

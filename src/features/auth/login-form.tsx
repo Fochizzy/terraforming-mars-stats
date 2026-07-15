@@ -5,12 +5,45 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   buildAuthCallbackUrl,
   buildAuthCompletePath,
-  buildAuthResetPinPath,
 } from './build-auth-callback-url';
-import { requestPinReset } from './request-pin-reset';
-import { submitUsernameAuth } from './submit-username-auth';
+import {
+  submitUsernameAuth,
+  type UsernameAuthClient,
+} from './submit-username-auth';
 
 type AuthMode = 'sign-in' | 'sign-up';
+type AuthEndpointStatus = {
+  message: string;
+  state: 'error' | 'success';
+};
+type AuthEndpointResult = {
+  ok: boolean;
+  redirectPath?: string;
+  status?: AuthEndpointStatus;
+};
+
+async function postAuthEndpoint(path: string, body: Record<string, string>) {
+  const response = await fetch(path, {
+    body: JSON.stringify(body),
+    headers: {
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+  });
+  const result = (await response.json()) as AuthEndpointResult;
+
+  if (!result.ok && !result.status) {
+    return {
+      ok: false,
+      status: {
+        message: 'Could not complete authentication right now.',
+        state: 'error',
+      },
+    } satisfies AuthEndpointResult;
+  }
+
+  return result;
+}
 
 export function LoginForm({
   nextPath = '/log-game/import-single',
@@ -30,6 +63,7 @@ export function LoginForm({
   });
   const [username, setUsername] = useState('');
   const usernameInputRef = useRef<HTMLInputElement>(null);
+  const usernameLabel = mode === 'sign-in' ? 'Username or Email' : 'Username';
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,7 +71,29 @@ export function LoginForm({
     setStatus({ message: '', state: 'idle' });
 
     try {
-      const supabase = createSupabaseBrowserClient();
+      if (mode === 'sign-in') {
+        const result = await postAuthEndpoint('/auth/username-login', {
+          nextPath,
+          pin,
+          username,
+        });
+
+        if (!result.ok) {
+          setStatus(
+            result.status ?? {
+              message: 'Unknown username or incorrect PIN.',
+              state: 'error',
+            },
+          );
+          return;
+        }
+
+        window.location.assign(result.redirectPath ?? buildAuthCompletePath(nextPath));
+        return;
+      }
+
+      const supabase =
+        createSupabaseBrowserClient() as unknown as UsernameAuthClient;
       const completionPath = buildAuthCompletePath(nextPath);
       const result = await submitUsernameAuth({
         client: supabase,
@@ -85,17 +141,17 @@ export function LoginForm({
     setStatus({ message: '', state: 'idle' });
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const result = await requestPinReset({
-        client: supabase,
-        email,
-        emailRedirectTo: buildAuthCallbackUrl(
-          window.location.origin,
-          buildAuthResetPinPath(nextPath),
-        ),
+      const result = await postAuthEndpoint('/auth/request-pin-reset', {
+        nextPath,
+        username,
       });
 
-      setStatus(result.status);
+      setStatus(
+        result.status ?? {
+          message: 'Could not send a PIN reset link right now.',
+          state: 'error',
+        },
+      );
     } catch (error) {
       setStatus({
         message:
@@ -130,21 +186,36 @@ export function LoginForm({
         </button>
       </div>
       <label className="flex flex-col gap-2 text-sm">
-        <span className="tm-data-label">Email</span>
+        <span className="tm-data-label">{usernameLabel}</span>
         <input
-          aria-label="Email"
+          aria-label={usernameLabel}
           autoCapitalize="none"
           autoCorrect="off"
           className="tm-input"
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
+          onChange={(event) => setUsername(event.target.value)}
+          placeholder={mode === 'sign-in' ? 'friday-mars or you@example.com' : 'friday-mars'}
           required
-          type="email"
-          value={email}
+          ref={usernameInputRef}
+          type="text"
+          value={username}
         />
       </label>
       {mode === 'sign-up' ? (
         <>
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="tm-data-label">Email</span>
+            <input
+              aria-label="Email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="tm-input"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              required
+              type="email"
+              value={email}
+            />
+          </label>
           <label className="flex flex-col gap-2 text-sm">
             <span className="tm-data-label">Full Name</span>
             <input
@@ -158,26 +229,9 @@ export function LoginForm({
             />
           </label>
           <p className="tm-body-copy text-xs text-stone-300">
-            Your email is used for sign in and PIN recovery.
+            Your email is only used for PIN recovery.
           </p>
         </>
-      ) : null}
-      {mode === 'sign-up' ? (
-        <label className="flex flex-col gap-2 text-sm">
-          <span className="tm-data-label">Username</span>
-          <input
-            aria-label="Username"
-            autoCapitalize="none"
-            autoCorrect="off"
-            className="tm-input"
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="friday-mars"
-            ref={usernameInputRef}
-            required
-            type="text"
-            value={username}
-          />
-        </label>
       ) : null}
       <label className="flex flex-col gap-2 text-sm">
         <span className="tm-data-label">6-Digit PIN</span>
@@ -213,3 +267,4 @@ export function LoginForm({
     </form>
   );
 }
+

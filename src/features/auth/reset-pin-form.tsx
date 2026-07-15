@@ -1,13 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { normalizeNextPath } from './build-auth-callback-url';
 import { pinSchema } from './username-auth';
 
-export function ResetPinForm({ nextPath }: { nextPath: string }) {
+type RecoveryState = 'checking' | 'error' | 'ready';
+
+function describeRecoveryError(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  return 'This recovery link is invalid or has expired. Request a new PIN reset email.';
+}
+
+export function ResetPinForm({ nextPath = '/profile' }: { nextPath?: string }) {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [confirmPin, setConfirmPin] = useState('');
   const [newPin, setNewPin] = useState('');
+  const [recoveryState, setRecoveryState] =
+    useState<RecoveryState>('checking');
   const [status, setStatus] = useState<{
     message: string;
     state: 'error' | 'idle';
@@ -16,8 +29,82 @@ export function ResetPinForm({ nextPath }: { nextPath: string }) {
     state: 'idle',
   });
 
+  useEffect(() => {
+    let active = true;
+
+    async function prepareRecoverySession() {
+      try {
+        const hashParams = new URLSearchParams(
+          window.location.hash.startsWith('#')
+            ? window.location.hash.slice(1)
+            : window.location.hash,
+        );
+
+        const errorDescription = hashParams.get('error_description');
+
+        if (errorDescription) {
+          throw new Error(errorDescription);
+        }
+
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          window.history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${window.location.search}`,
+          );
+        } else {
+          const { data, error } = await supabase.auth.getSession();
+
+          if (error) {
+            throw error;
+          }
+
+          if (!data.session) {
+            throw new Error(
+              'This recovery link is invalid or has expired. Request a new PIN reset email.',
+            );
+          }
+        }
+
+        if (active) {
+          setRecoveryState('ready');
+        }
+      } catch (error) {
+        if (active) {
+          setRecoveryState('error');
+          setStatus({
+            message: describeRecoveryError(error),
+            state: 'error',
+          });
+        }
+      }
+    }
+
+    void prepareRecoverySession();
+
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (recoveryState !== 'ready') {
+      return;
+    }
 
     setStatus({ message: '', state: 'idle' });
 
@@ -32,14 +119,14 @@ export function ResetPinForm({ nextPath }: { nextPath: string }) {
         return;
       }
 
-      const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.updateUser({
         password: parsedPin,
       });
 
       if (error) {
         setStatus({
-          message: error.message?.trim() || 'Could not update your PIN right now.',
+          message:
+            error.message?.trim() || 'Could not update your PIN right now.',
           state: 'error',
         });
         return;
@@ -49,7 +136,9 @@ export function ResetPinForm({ nextPath }: { nextPath: string }) {
     } catch (error) {
       setStatus({
         message:
-          error instanceof Error ? error.message : 'Could not update your PIN right now.',
+          error instanceof Error
+            ? error.message
+            : 'Could not update your PIN right now.',
         state: 'error',
       });
     }
@@ -71,6 +160,7 @@ export function ResetPinForm({ nextPath }: { nextPath: string }) {
           value={newPin}
         />
       </label>
+
       <label className="flex flex-col gap-2 text-sm">
         <span className="tm-data-label">Confirm 6-Digit PIN</span>
         <input
@@ -85,9 +175,15 @@ export function ResetPinForm({ nextPath }: { nextPath: string }) {
           value={confirmPin}
         />
       </label>
-      <button className="tm-button-primary" type="submit">
-        Update PIN
+
+      <button
+        className="tm-button-primary"
+        disabled={recoveryState !== 'ready'}
+        type="submit"
+      >
+        {recoveryState === 'checking' ? 'Verifying Link…' : 'Update PIN'}
       </button>
+
       {status.state === 'error' ? (
         <p className="text-sm tm-text-danger">{status.message}</p>
       ) : null}
