@@ -273,7 +273,7 @@ describe('GroupDashboard', () => {
     expect(screen.getAllByText(/Science/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: /Global Milestone Meta/i })).toBeInTheDocument();
     expect(screen.getByText(/Gardener/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Global Award Meta/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Award Funding ROI/i })).toBeInTheDocument();
     expect(screen.getByText(/Banker/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Global Player Count Baselines/i })).toBeInTheDocument();
     expect(screen.getByText(/4-player games/i)).toBeInTheDocument();
