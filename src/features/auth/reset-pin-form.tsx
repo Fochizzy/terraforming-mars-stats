@@ -16,7 +16,10 @@ function describeRecoveryError(error: unknown) {
 }
 
 export function ResetPinForm({ nextPath = '/profile' }: { nextPath?: string }) {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const supabase = useMemo(
+    () => createSupabaseBrowserClient({ detectSessionInUrl: false }),
+    [],
+  );
   const [confirmPin, setConfirmPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [recoveryState, setRecoveryState] =

@@ -3,23 +3,24 @@
 import { useEffect } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
-function getRecoveryDestination() {
-  const currentPath = `${window.location.pathname}${window.location.search}`;
+const RESET_PIN_PATHS = new Set(['/auth/reset-pin', '/reset-pin']);
 
-  if (
-    window.location.pathname === '/reset-pin' ||
-    window.location.pathname === '/auth/reset-pin'
-  ) {
-    return currentPath;
-  }
+function normalizePathname(pathname: string) {
+  return pathname.replace(/\/+$/, '') || '/';
+}
 
-  return '/auth/reset-pin';
+export function shouldHandleGlobalRecoveryRedirect(pathname: string) {
+  return !RESET_PIN_PATHS.has(normalizePathname(pathname));
 }
 
 // Handles Supabase implicit recovery links before any client auto-consumes the URL hash.
 export function RecoveryHashRedirect() {
   useEffect(() => {
     async function recoverSession() {
+      if (!shouldHandleGlobalRecoveryRedirect(window.location.pathname)) {
+        return;
+      }
+
       const hash = window.location.hash.startsWith('#')
         ? window.location.hash.slice(1)
         : window.location.hash;
@@ -50,7 +51,6 @@ export function RecoveryHashRedirect() {
         return;
       }
 
-      const recoveryDestination = getRecoveryDestination();
       const supabase = createSupabaseBrowserClient({
         detectSessionInUrl: false,
       });
@@ -73,7 +73,7 @@ export function RecoveryHashRedirect() {
         return;
       }
 
-      window.location.replace(recoveryDestination);
+      window.location.replace('/auth/reset-pin');
     }
 
     void recoverSession();

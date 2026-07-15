@@ -4,24 +4,26 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResetPinForm } from './reset-pin-form';
 
 const authMocks = vi.hoisted(() => ({
+  createSupabaseBrowserClient: vi.fn(),
   getSession: vi.fn(),
   setSession: vi.fn(),
   updateUser: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/browser', () => ({
-  createSupabaseBrowserClient: () => ({
-    auth: {
-      getSession: authMocks.getSession,
-      setSession: authMocks.setSession,
-      updateUser: authMocks.updateUser,
-    },
-  }),
+  createSupabaseBrowserClient: authMocks.createSupabaseBrowserClient,
 }));
 
 describe('ResetPinForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.createSupabaseBrowserClient.mockReturnValue({
+      auth: {
+        getSession: authMocks.getSession,
+        setSession: authMocks.setSession,
+        updateUser: authMocks.updateUser,
+      },
+    });
 
     authMocks.getSession.mockResolvedValue({
       data: {
@@ -74,6 +76,10 @@ describe('ResetPinForm', () => {
     });
 
     render(<ResetPinForm nextPath="/profile" />);
+
+    expect(authMocks.createSupabaseBrowserClient).toHaveBeenCalledWith({
+      detectSessionInUrl: false,
+    });
 
     await waitFor(() =>
       expect(authMocks.setSession).toHaveBeenCalledWith({
