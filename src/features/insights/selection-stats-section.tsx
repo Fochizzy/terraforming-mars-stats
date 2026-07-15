@@ -1,5 +1,6 @@
 import { TagLabel } from '@/components/ui/tag-icon';
 import { ObjectiveInfoButton } from '@/components/ui/objective-info-button';
+import { Clock3, Scale, Sparkles, Target, TrendingUp, Trophy } from 'lucide-react';
 import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { MapAwardGroup } from '@/lib/db/reference-repo';
 import type {
@@ -696,6 +697,7 @@ export function FinalTerraformingActionBlock(props: {
   }
 
   const narratives = buildFinalTerraformingActionNarratives(props.rows);
+  const narrativeIcons = [Target, Scale, Clock3, TrendingUp];
 
   return (
     <div className="flex flex-col gap-3">
@@ -753,14 +755,51 @@ export function FinalTerraformingActionBlock(props: {
           </tbody>
         </table>
       </div>
-      <div className="rounded border border-[var(--tm-copper-700)]/50 bg-black/10 p-3 text-sm text-stone-200">
-        <p className="tm-data-label mb-2">What the finishing patterns suggest</p>
-        <div className="flex flex-col gap-1">
-          {narratives.map((narrative) => (
-            <p key={narrative}>{narrative}</p>
-          ))}
+      <section className="overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-br from-slate-950/80 via-slate-900/70 to-amber-950/20 px-4 py-5 shadow-[inset_0_1px_0_rgba(255,232,196,0.06)] sm:px-6">
+        <div className="grid gap-5 lg:grid-cols-[132px_1fr] lg:items-center">
+          <div className="hidden lg:flex lg:justify-center">
+            <span className="flex h-24 w-24 items-center justify-center rounded-full border border-amber-300/30 bg-amber-300/[0.06] shadow-[inset_0_0_28px_rgba(251,191,36,0.08)]">
+              <Trophy aria-hidden="true" className="h-12 w-12 text-amber-300" />
+            </span>
+          </div>
+
+          <div>
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-300/30 bg-amber-300/[0.06] lg:hidden">
+                <Trophy aria-hidden="true" className="h-5 w-5 text-amber-300" />
+              </span>
+              <h4 className="tm-panel-title text-base font-semibold sm:text-lg">
+                <GlossaryRichText maxLinks={2}>
+                  What the finishing patterns suggest
+                </GlossaryRichText>
+              </h4>
+            </div>
+
+            <div className="grid gap-3">
+              {narratives.map((narrative, index) => {
+                const NarrativeIcon = narrativeIcons[index] ?? Sparkles;
+
+                return (
+                  <div
+                    className="grid grid-cols-[auto_1fr] items-start gap-3"
+                    key={narrative}
+                  >
+                    <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg border border-amber-300/20 bg-black/20">
+                      <NarrativeIcon
+                        aria-hidden="true"
+                        className="h-4 w-4 text-amber-300"
+                      />
+                    </span>
+                    <p className="text-sm leading-6 text-stone-200 sm:text-base">
+                      <GlossaryRichText>{narrative}</GlossaryRichText>
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
