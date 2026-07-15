@@ -25,7 +25,7 @@ describe('AppShell', () => {
       'href',
       '/insights/group',
     );
-    expect(nav.getByRole('link', { name: /cards/i })).toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: /cards/i })).not.toBeInTheDocument();
     expect(nav.getByRole('link', { name: /glossary/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');

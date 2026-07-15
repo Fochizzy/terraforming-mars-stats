@@ -53,8 +53,8 @@ type ShareRow = Record<OriginSeriesKey, number> & {
 };
 type AxisTickProps = {
   payload?: { value?: string };
-  x?: number;
-  y?: number;
+  x?: number | string;
+  y?: number | string;
 };
 
 function formatNumber(value: number) {
@@ -311,9 +311,11 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
     const name = payload?.value ?? '';
     const row = data.find((entry) => entry.name === name);
     const shortenedName = name.length > 22 ? `${name.slice(0, 21)}…` : name;
+    const tickX = Number(x) || 0;
+    const tickY = Number(y) || 0;
 
     return (
-      <g transform={`translate(${x},${y})`}>
+      <g transform={`translate(${tickX},${tickY})`}>
         <text
           dominantBaseline="central"
           fill="#e7ded1"

@@ -17,7 +17,6 @@ export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
   { href: '/comparisons', label: 'Comparisons' },
-  { href: '/cards', label: 'Cards' },
   { href: '/glossary', label: 'Glossary' },
 ];
 
@@ -71,7 +70,6 @@ export function BottomNav({
   const pathname = usePathname() ?? '';
   const [showInsightsLoading, setShowInsightsLoading] = useState(false);
   const navigationItems = items;
-  const cardsItem = navigationItems.find((item) => item.href === '/cards');
   const glossaryItem = navigationItems.find((item) => item.href === '/glossary');
   // When a custom navigation set has a single Insights link, keep the compact
   // chart icon. The default set has Individual + Group Insights, so both render
@@ -80,7 +78,7 @@ export function BottomNav({
     item.href.startsWith('/insights'),
   );
   const insightsIconItem = insightsItems.length === 1 ? insightsItems[0] : null;
-  const edgeItems = [cardsItem, glossaryItem].filter(
+  const edgeItems = [glossaryItem].filter(
     (item): item is BottomNavItem => Boolean(item),
   );
   const stripItems = navigationItems.filter(

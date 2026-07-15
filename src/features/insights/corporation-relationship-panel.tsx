@@ -511,7 +511,9 @@ export function CorporationRelationshipPanel({
                   content={({ active, payload }) => (
                     <CorporationTooltip
                       active={active}
-                      payload={payload as TooltipPayloadItem[] | undefined}
+                      payload={
+                        payload as unknown as TooltipPayloadItem[] | undefined
+                      }
                     />
                   )}
                   cursor={{ fill: 'rgba(255,255,255,0.035)' }}
