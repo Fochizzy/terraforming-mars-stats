@@ -3,14 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { AppShell } from './app-shell';
 
 describe('AppShell', () => {
-  it('renders the mission control banner, utilities, and navigation', () => {
+  it('renders the banner, utility controls, and navigation', () => {
     const { container } = render(<AppShell title="My Profile">content</AppShell>);
 
     expect(
       screen.getByRole('img', { name: /terraforming mars statistics/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/mission control/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /my profile/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /saved games/i })).toHaveAttribute(
       'href',
       '/saved-games',
@@ -27,17 +25,11 @@ describe('AppShell', () => {
       within(primaryNavigation).getByRole('link', { name: /my profile/i }),
     ).toBeInTheDocument();
     expect(
-      within(primaryNavigation).getByRole('link', { name: /global data/i }),
-    ).toHaveAttribute('href', '/insights#global-statistics');
-    expect(
       within(primaryNavigation).getByRole('link', { name: /individual insights/i }),
     ).toBeInTheDocument();
     expect(
       within(primaryNavigation).getByRole('link', { name: /group insights/i }),
     ).toBeInTheDocument();
-    expect(
-      within(primaryNavigation).getByRole('link', { name: /comparisons/i }),
-    ).toHaveAttribute('href', '/insights?scope=compare');
 
     const leaderboardLink = within(primaryNavigation).getByRole('link', {
       name: /leaderboard/i,
@@ -45,6 +37,12 @@ describe('AppShell', () => {
     expect(leaderboardLink).toHaveAttribute('href', '/group');
     expect(leaderboardLink).toHaveAttribute('data-leaderboard-button', 'true');
 
+    expect(
+      within(primaryNavigation).getByRole('link', { name: /global statistics/i }),
+    ).toHaveAttribute('href', '/insights#global-statistics');
+    expect(
+      within(primaryNavigation).getByRole('link', { name: /compare/i }),
+    ).toBeInTheDocument();
     expect(
       within(primaryNavigation).queryByRole('link', { name: /glossary/i }),
     ).not.toBeInTheDocument();
