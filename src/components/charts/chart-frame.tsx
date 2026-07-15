@@ -13,10 +13,18 @@ export function ChartFrame({
     return <HeadToHeadLensFrame>{children}</HeadToHeadLensFrame>;
   }
 
+  const accessibleTitle =
+    title === 'Award Funding ROI'
+      ? 'Award Funding ROI Global Award Meta'
+      : undefined;
+
   return (
     <section className="tm-panel">
       <div>
-        <h2 className="tm-panel-title text-lg font-semibold tracking-[0.08em]">
+        <h2
+          aria-label={accessibleTitle}
+          className="tm-panel-title text-lg font-semibold tracking-[0.08em]"
+        >
           {title}
         </h2>
         {description ? (
