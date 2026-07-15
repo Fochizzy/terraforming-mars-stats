@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import bannerImage from '../../../assets/banner.png';
+import { BottomNav } from '@/components/navigation/bottom-nav';
 import { LogoutButton } from '@/components/navigation/logout-button';
 import styles from './app-shell.module.css';
 
@@ -8,6 +9,7 @@ type PrimaryNavigationItem = {
   href: string;
   label: string;
   highlighted?: boolean;
+  leaderboard?: boolean;
 };
 
 const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
@@ -15,6 +17,7 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { href: '/profile', label: 'My Profile' },
   { href: '/insights?scope=individual', label: 'Individual Insights' },
   { href: '/group', label: 'Group Insights' },
+  { href: '/group#leaderboard', label: 'Leaderboard', leaderboard: true },
   { href: '/insights#global-statistics', label: 'Global Statistics' },
   { href: '/insights?scope=compare', label: 'Compare' },
 ] as const;
@@ -60,8 +63,9 @@ export function AppShell({
             <Link
               className={`${styles.primaryNavigationLink} ${
                 item.highlighted ? styles.primaryNavigationLinkHighlighted : ''
-              }`}
+              } ${item.leaderboard ? styles.primaryNavigationLinkLeaderboard : ''}`}
               data-highlighted={item.highlighted ? 'true' : undefined}
+              data-leaderboard-button={item.leaderboard ? 'true' : undefined}
               href={item.href}
               key={item.label}
             >
@@ -84,6 +88,7 @@ export function AppShell({
         <section className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
           {children}
         </section>
+        <BottomNav />
       </div>
     </main>
   );
