@@ -17,6 +17,7 @@ export const defaultBottomNavItems: BottomNavItem[] = [
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
   { href: '/comparisons', label: 'Comparisons' },
+  { href: '/cards', label: 'Cards' },
   { href: '/glossary', label: 'Glossary' },
 ];
 

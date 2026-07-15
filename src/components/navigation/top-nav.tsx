@@ -19,7 +19,6 @@ export const defaultTopNavItems: TopNavItem[] = [
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
   { href: '/comparisons', label: 'Comparisons' },
-  { href: '/glossary', label: 'Glossary' },
   { href: '/leaderboard', label: 'Leaderboard', align: 'end' },
 ];
 

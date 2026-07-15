@@ -10,6 +10,14 @@ function getBottomNav(container: HTMLElement) {
   return within(bottomNav);
 }
 
+function getTopNav(container: HTMLElement) {
+  const topNav = container.querySelector<HTMLElement>('.tm-top-nav');
+  if (!topNav) {
+    throw new Error('top navigation not found');
+  }
+  return within(topNav);
+}
+
 describe('AppShell', () => {
   it('renders the default bottom navigation items', () => {
     const { container } = render(<AppShell title="My Profile">content</AppShell>);
@@ -25,7 +33,10 @@ describe('AppShell', () => {
       'href',
       '/insights/group',
     );
-    expect(nav.queryByRole('link', { name: /cards/i })).not.toBeInTheDocument();
+    expect(nav.getByRole('link', { name: /cards/i })).toHaveAttribute(
+      'href',
+      '/cards',
+    );
     expect(nav.getByRole('link', { name: /glossary/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');
@@ -78,6 +89,7 @@ describe('AppShell', () => {
         content
       </AppShell>,
     );
+    const topNav = getTopNav(container);
 
     expect(
       screen.getByRole('link', { name: /review saved games/i }),
@@ -98,6 +110,9 @@ describe('AppShell', () => {
       'data-nav-position',
       'end',
     );
+    expect(
+      topNav.queryByRole('link', { name: /glossary/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the shared header with the login-style cropped banner', () => {
