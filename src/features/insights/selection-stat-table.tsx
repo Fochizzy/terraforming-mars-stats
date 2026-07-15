@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, type ReactNode, useMemo, useState } from 'react';
+import { Fragment, type ReactNode, useId, useMemo, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
   Columns3,
+  Search,
 } from 'lucide-react';
 import type {
   SelectionDialogData,
@@ -55,6 +56,7 @@ type Column = {
 };
 
 const LOW_SAMPLE_PLAYS = 3;
+const UNAVAILABLE = '\u2014';
 
 const groupLabels: Record<ColumnGroup, string> = {
   identity: 'Selection',
@@ -114,6 +116,17 @@ const presetColumnKeys: Record<Exclude<ColumnPreset, 'custom'>, string[]> = {
   ],
 };
 
+const scoreSourceLegend = [
+  { label: 'Terraform rating', shortLabel: 'TR' },
+  { label: 'Cards', shortLabel: 'Cards' },
+  { label: 'Microbes', shortLabel: 'Microbes' },
+  { label: 'Animals', shortLabel: 'Animals' },
+  { label: 'Greenery', shortLabel: 'Greenery' },
+  { label: 'Cities', shortLabel: 'Cities' },
+  { label: 'Milestones', shortLabel: 'Milestones' },
+  { label: 'Awards', shortLabel: 'Awards' },
+];
+
 const metricToneClasses: Record<MetricTone, string> = {
   neutral: 'border-white/10 bg-white/[0.045] text-stone-100',
   positive: 'border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-100',
@@ -140,7 +153,7 @@ function formatWinRate(winRate: number) {
 
 function formatPlayRate(plays: number, totalGames: number) {
   if (!totalGames || totalGames <= 0) {
-    return '—';
+    return UNAVAILABLE;
   }
 
   return `${Math.round((plays / totalGames) * 100)}%`;
@@ -221,7 +234,10 @@ function MetricValue({
 
 function TabularValue({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-block min-w-[3.5rem] text-right font-medium tabular-nums text-stone-200">
+    <span
+      className="inline-block min-w-[3.5rem] text-right font-medium tabular-nums text-stone-200"
+      data-numeric-value
+    >
       {children}
     </span>
   );
@@ -279,9 +295,10 @@ function buildColumns(
             {context.lowSample ? (
               <span
                 className="mt-1 inline-flex rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-amber-200"
+                data-low-sample-indicator
                 title={`Performance metrics are based on fewer than ${LOW_SAMPLE_PLAYS} plays.`}
               >
-                Small sample
+                Low sample
               </span>
             ) : null}
           </div>
@@ -531,6 +548,16 @@ function compareValues(leftValue: number | string, rightValue: number | string) 
   return leftValue - rightValue;
 }
 
+function parseMinimumPlays(value: string) {
+  const parsed = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 0;
+  }
+
+  return parsed;
+}
+
 export function SelectionStatTable(props: {
   rows: NamedStatRow[];
   scopeTotalGames: number;
@@ -539,6 +566,10 @@ export function SelectionStatTable(props: {
   kind: SelectionKind;
   dialogData?: SelectionDialogData;
 }) {
+  const reactId = useId();
+  const searchId = `${reactId}-search`;
+  const minimumSampleId = `${reactId}-min-plays`;
+
   const columns = useMemo(
     () =>
       buildColumns(
@@ -558,6 +589,8 @@ export function SelectionStatTable(props: {
   ]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [minimumPlays, setMinimumPlays] = useState(0);
 
   const augmented = useMemo<AugmentedRow[]>(
     () =>
@@ -567,6 +600,18 @@ export function SelectionStatTable(props: {
       })),
     [props.rows, props.globalPlaysByName],
   );
+
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return augmented.filter((row) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        row.name.toLowerCase().includes(normalizedSearch);
+
+      return matchesSearch && row.plays >= minimumPlays;
+    });
+  }, [augmented, minimumPlays, searchTerm]);
 
   const visibleColumns = useMemo(
     () => columns.filter((column) => visibleColumnKeys.has(column.key)),
@@ -590,7 +635,7 @@ export function SelectionStatTable(props: {
   );
 
   const sorted = useMemo(() => {
-    return [...augmented].sort((left, right) => {
+    return [...filteredRows].sort((left, right) => {
       for (const rule of sortRules) {
         const column = columns.find((entry) => entry.key === rule.key);
 
@@ -606,7 +651,7 @@ export function SelectionStatTable(props: {
 
       return left.name.localeCompare(right.name);
     });
-  }, [augmented, columns, sortRules]);
+  }, [columns, filteredRows, sortRules]);
 
   const summary = useMemo(() => {
     const totalPlays = augmented.reduce((total, row) => total + row.plays, 0);
@@ -618,11 +663,11 @@ export function SelectionStatTable(props: {
 
     return {
       competitiveRows: augmented.filter((row) => row.win_rate >= 0.5).length,
-      lowSampleRows: augmented.filter((row) => row.plays < LOW_SAMPLE_PLAYS).length,
+      lowSampleRows: filteredRows.filter((row) => row.plays < LOW_SAMPLE_PLAYS).length,
       totalPlays,
       weightedVp,
     };
-  }, [augmented]);
+  }, [augmented, filteredRows]);
 
   function applyPreset(nextPreset: Exclude<ColumnPreset, 'custom'>) {
     setPreset(nextPreset);
@@ -708,14 +753,15 @@ export function SelectionStatTable(props: {
   const entityLabel = props.kind === 'Corporation' ? 'corporations' : 'preludes';
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_18px_45px_rgba(0,0,0,0.18)]">
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_18px_45px_rgba(0,0,0,0.18)]">
+      {/* Summary strip */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-t-2xl border-b border-white/10 bg-white/10 lg:grid-cols-4">
         <div className="bg-[#111821] px-4 py-3">
           <p className="text-[0.64rem] font-semibold uppercase tracking-[0.15em] text-stone-500">
-            Recorded
+            Showing
           </p>
           <p className="mt-1 text-base font-semibold tabular-nums text-stone-100">
-            {augmented.length} {entityLabel}
+            {filteredRows.length} / {augmented.length} {entityLabel}
           </p>
         </div>
         <div className="bg-[#111821] px-4 py-3">
@@ -744,75 +790,156 @@ export function SelectionStatTable(props: {
         </div>
       </div>
 
-      <div className="relative z-40 flex flex-col gap-3 border-b border-white/10 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-[0.72rem] font-medium text-stone-300">
-            Click a heading to sort. Hold Shift to add a secondary sort.
-          </p>
-          <p className="mt-1 text-[0.66rem] text-stone-500">
-            {summary.lowSampleRows > 0
-              ? `${summary.lowSampleRows} low-sample ${summary.lowSampleRows === 1 ? 'row is' : 'rows are'} visually de-emphasized.`
-              : 'All rows meet the minimum three-play sample.'}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            aria-label="Column presets"
-            className="inline-flex flex-wrap rounded-lg border border-white/10 bg-black/25 p-1"
-            role="group"
-          >
-            {(Object.keys(presetLabels) as Array<Exclude<ColumnPreset, 'custom'>>).map(
-              (key) => (
-                <button
-                  aria-pressed={preset === key}
-                  className={`rounded-md px-2.5 py-1.5 text-[0.68rem] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
-                    preset === key
-                      ? 'bg-amber-300/[0.12] text-amber-100 shadow-[inset_0_0_0_1px_rgba(252,211,77,0.18)]'
-                      : 'text-stone-400 hover:bg-white/[0.05] hover:text-stone-100'
-                  }`}
-                  key={key}
-                  onClick={() => applyPreset(key)}
-                  type="button"
-                >
-                  {presetLabels[key]}
-                </button>
-              ),
-            )}
-          </div>
-
-          <details className="relative">
-            <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-[0.68rem] font-semibold text-stone-300 transition hover:border-white/20 hover:text-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60">
-              <Columns3 aria-hidden className="h-3.5 w-3.5" />
-              Columns
-            </summary>
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-xl border border-white/10 bg-[#111821] p-3 shadow-2xl">
-              <p className="mb-2 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                Visible metrics
-              </p>
-              <div className="grid max-h-72 gap-1 overflow-auto pr-1">
-                {columns.map((column) => (
-                  <label
-                    className="flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs text-stone-300 hover:bg-white/[0.045]"
-                    key={column.key}
-                    title={column.description}
-                  >
-                    <span>{column.label}</span>
-                    <input
-                      checked={visibleColumnKeys.has(column.key)}
-                      className="accent-amber-400"
-                      disabled={column.key === 'name'}
-                      onChange={() => toggleColumn(column.key)}
-                      type="checkbox"
-                    />
-                  </label>
-                ))}
+      {/* Search + min-sample + column controls */}
+      <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="grid gap-3 sm:grid-cols-[minmax(14rem,1fr)_9rem]">
+            <div>
+              <label
+                className="mb-1.5 block text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-stone-500"
+                htmlFor={searchId}
+              >
+                Search
+              </label>
+              <div className="relative">
+                <Search
+                  aria-hidden
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500"
+                />
+                <input
+                  className="w-full rounded-lg border border-white/10 bg-black/25 py-2.5 pl-9 pr-3 text-sm text-stone-100 outline-none transition placeholder:text-stone-600 hover:border-white/20 focus:border-amber-300/50 focus:ring-2 focus:ring-amber-300/20"
+                  id={searchId}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={`Search ${entityLabel}`}
+                  type="search"
+                  value={searchTerm}
+                />
               </div>
             </div>
-          </details>
+
+            <div>
+              <label
+                className="mb-1.5 block text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-stone-500"
+                htmlFor={minimumSampleId}
+              >
+                Min plays
+              </label>
+              <input
+                className="w-full rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 text-right text-sm font-semibold tabular-nums text-stone-100 outline-none transition hover:border-white/20 focus:border-amber-300/50 focus:ring-2 focus:ring-amber-300/20"
+                id={minimumSampleId}
+                min={0}
+                onChange={(event) => setMinimumPlays(parseMinimumPlays(event.target.value))}
+                type="number"
+                value={minimumPlays}
+              />
+            </div>
+          </div>
+
+          <div className="relative z-40 flex flex-wrap items-end gap-2">
+            <div>
+              <p className="mb-1.5 text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                Columns
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <div
+                  aria-label="Column presets"
+                  className="inline-flex flex-wrap rounded-lg border border-white/10 bg-black/25 p-1"
+                  role="group"
+                >
+                  {(Object.keys(presetLabels) as Array<Exclude<ColumnPreset, 'custom'>>).map(
+                    (key) => (
+                      <button
+                        aria-pressed={preset === key}
+                        className={`rounded-md px-2.5 py-1.5 text-[0.68rem] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
+                          preset === key
+                            ? 'bg-amber-300/[0.12] text-amber-100 shadow-[inset_0_0_0_1px_rgba(252,211,77,0.18)]'
+                            : 'text-stone-400 hover:bg-white/[0.05] hover:text-stone-100'
+                        }`}
+                        key={key}
+                        onClick={() => applyPreset(key)}
+                        type="button"
+                      >
+                        {presetLabels[key]}
+                      </button>
+                    ),
+                  )}
+                </div>
+
+                <details className="relative">
+                  <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-[0.68rem] font-semibold text-stone-300 transition hover:border-white/20 hover:text-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60">
+                    <Columns3 aria-hidden className="h-3.5 w-3.5" />
+                    Columns
+                  </summary>
+                  <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-xl border border-white/10 bg-[#111821] p-3 shadow-2xl">
+                    <p className="mb-2 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                      Visible metrics
+                    </p>
+                    <div className="grid max-h-72 gap-1 overflow-auto pr-1">
+                      {columns.map((column) => (
+                        <label
+                          className="flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs text-stone-300 hover:bg-white/[0.045]"
+                          key={column.key}
+                          title={column.description}
+                        >
+                          <span>{column.label}</span>
+                          <input
+                            checked={visibleColumnKeys.has(column.key)}
+                            className="accent-amber-400"
+                            disabled={column.key === 'name'}
+                            onChange={() => toggleColumn(column.key)}
+                            type="checkbox"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status + low-sample warning */}
+        <div className="flex flex-col gap-2 text-[0.72rem] text-stone-400 lg:flex-row lg:items-center lg:justify-between">
+          <p aria-live="polite" role="status">
+            Showing {sorted.length} of {augmented.length} {entityLabel}. Click a heading
+            to sort; hold Shift to add a secondary sort.
+          </p>
+          {summary.lowSampleRows > 0 ? (
+            <p
+              className="rounded-lg border border-amber-300/20 bg-amber-300/[0.07] px-3 py-2 text-amber-100"
+              data-low-sample-summary
+            >
+              {summary.lowSampleRows} low-sample{' '}
+              {summary.lowSampleRows === 1 ? 'row has' : 'rows have'} muted performance
+              cells.
+            </p>
+          ) : null}
         </div>
       </div>
 
+      {/* Score-source legend — separated from table header */}
+      <div
+        aria-label="Score source legend"
+        className="border-b border-white/10 px-4 py-3 text-[0.72rem] text-stone-400"
+      >
+        <span className="mr-2 font-semibold uppercase tracking-[0.12em] text-stone-500">
+          Score sources
+        </span>
+        <span className="inline-flex flex-wrap gap-1.5 align-middle">
+          {scoreSourceLegend.map((item) => (
+            <span
+              className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-stone-300"
+              key={item.label}
+              title={item.label}
+            >
+              {item.shortLabel}
+            </span>
+          ))}
+        </span>
+      </div>
+
+      {/* Active sort indicator */}
       <div className="border-b border-white/10 px-4 py-2 text-[0.66rem] text-stone-500">
         <span className="font-semibold text-stone-400">Sort:</span>{' '}
         {sortRules.map((rule, index) => {
@@ -826,187 +953,219 @@ export function SelectionStatTable(props: {
         })}
       </div>
 
-      <div
-        className="max-h-[44rem] overflow-auto overscroll-contain rounded-b-2xl"
-        style={{ scrollbarGutter: 'stable' }}
-      >
-        <table
-          aria-label={`${props.kind} statistics`}
-          className="w-full min-w-[43rem] border-separate border-spacing-0 text-[0.8rem] md:min-w-[1600px]"
+      {/* Scroll container with right-edge shadow affordance */}
+      <div className="relative overflow-hidden rounded-b-2xl">
+        <div
+          aria-label={`${props.kind} table scroll area`}
+          className="max-h-[44rem] overflow-auto overscroll-contain"
+          data-scroll-container
+          style={{ scrollbarGutter: 'stable' }}
         >
-          <caption className="sr-only">
-            {props.kind} play frequency, outcomes, and average victory-point sources.
-          </caption>
-          <thead>
-            <tr className="hidden md:table-row">
-              {groupedColumns.map((entry, index) => (
-                <th
-                  className={`sticky top-0 border-b border-r border-white/10 bg-[#17202a]/[0.99] px-4 py-2 text-left text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-stone-500 ${
-                    index === 0 ? 'left-0 z-50' : 'z-30'
-                  }`}
-                  colSpan={entry.columns.length}
-                  key={entry.group}
-                  scope="colgroup"
-                >
-                  {groupLabels[entry.group]}
-                </th>
-              ))}
-            </tr>
-            <tr>
-              {visibleColumns.map((column, index) => {
-                const sortIndex = sortRules.findIndex((rule) => rule.key === column.key);
-                const activeRule = sortIndex >= 0 ? sortRules[sortIndex] : null;
-                const SortIcon = activeRule
-                  ? activeRule.direction === 'asc'
-                    ? ArrowUp
-                    : ArrowDown
-                  : ChevronsUpDown;
-                const stickyName = index === 0;
-
-                return (
+          <table
+            aria-label={`${props.kind} statistics`}
+            className="w-full min-w-[43rem] border-separate border-spacing-0 text-[0.8rem] md:min-w-[1600px]"
+          >
+            <caption className="sr-only">
+              {props.kind} play frequency, outcomes, and average victory-point sources.
+            </caption>
+            <thead>
+              <tr className="hidden md:table-row">
+                {groupedColumns.map((entry, index) => (
                   <th
-                    aria-sort={
-                      sortIndex === 0
-                        ? activeRule?.direction === 'asc'
-                          ? 'ascending'
-                          : 'descending'
-                        : 'none'
-                    }
-                    className={`sticky top-0 border-b border-r border-white/10 bg-[#151e28]/[0.99] px-4 py-3 md:top-[2rem] ${alignmentClasses(column.align)} ${
-                      stickyName
-                        ? 'left-0 z-50 min-w-[16rem]'
-                        : 'z-30'
-                    } ${column.mobile ? '' : 'hidden md:table-cell'}`}
-                    key={column.key}
-                  >
-                    <button
-                      className={`inline-flex w-full items-center gap-1.5 whitespace-nowrap text-[0.72rem] font-semibold tracking-[0.025em] transition hover:text-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
-                        column.align === 'right'
-                          ? 'justify-end'
-                          : column.align === 'center'
-                            ? 'justify-center'
-                            : 'justify-start'
-                      } ${activeRule ? 'text-amber-100' : 'text-stone-300'}`}
-                      onClick={(event) =>
-                        toggleSort(column.key, column.type, event.shiftKey)
-                      }
-                      title={`${column.description}. Click to sort; hold Shift to add it as a secondary sort.`}
-                      type="button"
-                    >
-                      {column.label}
-                      {activeRule ? (
-                        <span
-                          aria-label={`Sort priority ${sortIndex + 1}`}
-                          className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-300/[0.14] px-1 text-[0.58rem] font-bold text-amber-100"
-                        >
-                          {sortIndex + 1}
-                        </span>
-                      ) : null}
-                      <SortIcon
-                        aria-hidden
-                        className={`h-3 w-3 ${activeRule ? 'opacity-100' : 'opacity-35'}`}
-                      />
-                    </button>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((row) => {
-              const expanded = expandedRows.has(row.name);
-              const selected = selectedName === row.name;
-              const lowSample = row.plays < LOW_SAMPLE_PLAYS;
-
-              return (
-                <Fragment key={row.name}>
-                  <tr
-                    aria-selected={selected}
-                    className={`group cursor-default odd:bg-white/[0.014] even:bg-white/[0.032] transition-colors hover:bg-amber-300/[0.06] focus:bg-amber-300/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300/50 ${
-                      selected ? 'bg-amber-300/[0.075] shadow-[inset_3px_0_0_rgba(252,211,77,0.7)]' : ''
+                    className={`sticky top-0 border-b border-r border-white/10 bg-[#17202a]/[0.99] px-4 py-2 text-left text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-stone-500 ${
+                      index === 0 ? 'left-0 z-50' : 'z-30'
                     }`}
-                    onClick={() => setSelectedName(row.name)}
-                    onKeyDown={(event) => {
-                      if (event.currentTarget !== event.target) {
-                        return;
-                      }
-
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setSelectedName(row.name);
-                      }
-                    }}
-                    tabIndex={0}
+                    colSpan={entry.columns.length}
+                    data-column-group={entry.group}
+                    key={entry.group}
+                    scope="colgroup"
                   >
-                    {visibleColumns.map((column, index) => {
-                      const stickyName = index === 0;
+                    {groupLabels[entry.group]}
+                  </th>
+                ))}
+              </tr>
+              <tr>
+                {visibleColumns.map((column, index) => {
+                  const sortIndex = sortRules.findIndex((rule) => rule.key === column.key);
+                  const activeRule = sortIndex >= 0 ? sortRules[sortIndex] : null;
+                  const SortIcon = activeRule
+                    ? activeRule.direction === 'asc'
+                      ? ArrowUp
+                      : ArrowDown
+                    : ChevronsUpDown;
+                  const stickyName = index === 0;
 
-                      return (
-                        <td
-                          className={`border-b border-r border-white/[0.075] px-4 py-3.5 align-middle ${alignmentClasses(column.align)} ${
-                            stickyName
-                              ? 'sticky left-0 z-20 bg-[#111820] group-hover:bg-[#211e19] group-focus:bg-[#211e19]'
-                              : ''
-                          } ${column.mobile ? '' : 'hidden md:table-cell'} ${
-                            lowSample && column.group === 'results' ? 'opacity-55' : ''
-                          }`}
-                          key={column.key}
-                        >
-                          {column.render(row, {
-                            averageVp: summary.weightedVp,
-                            expanded,
-                            hasMobileDetails: hiddenMobileColumns.length > 0,
-                            lowSample,
-                            toggleExpanded: () => toggleExpandedRow(row.name),
-                          })}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  {expanded && hiddenMobileColumns.length > 0 ? (
-                    <tr className="md:hidden">
-                      <td
-                        className="border-b border-white/10 bg-[#0f151d] px-4 py-4"
-                        colSpan={visibleColumns.length}
+                  return (
+                    <th
+                      aria-sort={
+                        sortIndex === 0
+                          ? activeRule?.direction === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : 'none'
+                      }
+                      className={`sticky top-0 border-b border-r border-white/10 bg-[#151e28]/[0.99] px-4 py-3 md:top-[2rem] ${alignmentClasses(column.align)} ${
+                        stickyName
+                          ? 'left-0 z-50 min-w-[16rem]'
+                          : 'z-30'
+                      } ${column.mobile ? '' : 'hidden md:table-cell'}`}
+                      data-sticky-column={stickyName ? 'name' : undefined}
+                      key={column.key}
+                      scope="col"
+                    >
+                      <button
+                        className={`group/sort inline-flex w-full items-center gap-1.5 whitespace-nowrap text-[0.72rem] font-semibold tracking-[0.025em] transition hover:text-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
+                          column.align === 'right'
+                            ? 'justify-end'
+                            : column.align === 'center'
+                              ? 'justify-center'
+                              : 'justify-start'
+                        } ${activeRule ? 'text-amber-100' : 'text-stone-300'}`}
+                        onClick={(event) =>
+                          toggleSort(column.key, column.type, event.shiftKey)
+                        }
+                        title={`${column.description}. Click to sort; hold Shift to add it as a secondary sort.`}
+                        type="button"
                       >
-                        <div
-                          aria-label={`Mobile details for ${row.name}`}
-                          className="grid grid-cols-2 gap-3"
-                        >
-                          {hiddenMobileColumns.map((column) => (
-                            <div
-                              className="rounded-lg border border-white/[0.07] bg-white/[0.025] p-3"
+                        {column.label}
+                        <span className="sr-only">{` sort by ${column.key === 'name' ? 'name' : column.label}`}</span>
+                        {activeRule ? (
+                          <span
+                            aria-label={`Sort priority ${sortIndex + 1}`}
+                            className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-300/[0.14] px-1 text-[0.58rem] font-bold text-amber-100"
+                          >
+                            {sortIndex + 1}
+                          </span>
+                        ) : null}
+                        <SortIcon
+                          aria-hidden
+                          className={`h-3 w-3 transition-opacity ${
+                            activeRule
+                              ? 'opacity-100'
+                              : 'opacity-0 group-hover/sort:opacity-60 group-focus-visible/sort:opacity-60'
+                          }`}
+                          data-sort-icon-state={activeRule ? 'active' : 'idle'}
+                        />
+                      </button>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.length === 0 ? (
+                <tr>
+                  <td
+                    className="border-b border-white/[0.075] px-5 py-8 text-center text-sm text-stone-400"
+                    colSpan={visibleColumns.length}
+                  >
+                    No {entityLabel} match the current filters.
+                  </td>
+                </tr>
+              ) : (
+                sorted.map((row) => {
+                  const expanded = expandedRows.has(row.name);
+                  const selected = selectedName === row.name;
+                  const lowSample = row.plays < LOW_SAMPLE_PLAYS;
+
+                  return (
+                    <Fragment key={row.name}>
+                      <tr
+                        aria-selected={selected}
+                        className={`group cursor-default odd:bg-white/[0.014] even:bg-white/[0.032] transition-colors hover:bg-amber-300/[0.06] focus:bg-amber-300/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300/50 ${
+                          selected ? 'bg-amber-300/[0.075] shadow-[inset_3px_0_0_rgba(252,211,77,0.7)]' : ''
+                        }`}
+                        onClick={() => setSelectedName(row.name)}
+                        onKeyDown={(event) => {
+                          if (event.currentTarget !== event.target) {
+                            return;
+                          }
+
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedName(row.name);
+                          }
+                        }}
+                        tabIndex={0}
+                      >
+                        {visibleColumns.map((column, index) => {
+                          const stickyName = index === 0;
+
+                          return (
+                            <td
+                              className={`border-b border-r border-white/[0.075] px-4 py-3.5 align-middle ${alignmentClasses(column.align)} ${
+                                stickyName
+                                  ? 'sticky left-0 z-20 bg-[#111820] group-hover:bg-[#211e19] group-focus:bg-[#211e19]'
+                                  : ''
+                              } ${column.mobile ? '' : 'hidden md:table-cell'} ${
+                                lowSample && column.group === 'results' ? 'opacity-55' : ''
+                              }`}
+                              data-sticky-column={stickyName ? 'name' : undefined}
                               key={column.key}
                             >
-                              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.11em] text-stone-500">
-                                {column.label}
-                              </p>
-                              <div
-                                className={`mt-1.5 ${alignmentClasses(column.align)} ${
-                                  lowSample && column.group === 'results'
-                                    ? 'opacity-55'
-                                    : ''
-                                }`}
-                              >
-                                {column.render(row, {
-                                  averageVp: summary.weightedVp,
-                                  expanded,
-                                  hasMobileDetails: true,
-                                  lowSample,
-                                  toggleExpanded: () => toggleExpandedRow(row.name),
-                                })}
-                              </div>
+                              {column.render(row, {
+                                averageVp: summary.weightedVp,
+                                expanded,
+                                hasMobileDetails: hiddenMobileColumns.length > 0,
+                                lowSample,
+                                toggleExpanded: () => toggleExpandedRow(row.name),
+                              })}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      {expanded && hiddenMobileColumns.length > 0 ? (
+                        <tr className="md:hidden">
+                          <td
+                            className="border-b border-white/10 bg-[#0f151d] px-4 py-4"
+                            colSpan={visibleColumns.length}
+                          >
+                            <div
+                              aria-label={`Mobile details for ${row.name}`}
+                              className="grid grid-cols-2 gap-3"
+                            >
+                              {hiddenMobileColumns.map((column) => (
+                                <div
+                                  className="rounded-lg border border-white/[0.07] bg-white/[0.025] p-3"
+                                  key={column.key}
+                                >
+                                  <p className="text-[0.62rem] font-semibold uppercase tracking-[0.11em] text-stone-500">
+                                    {column.label}
+                                  </p>
+                                  <div
+                                    className={`mt-1.5 ${alignmentClasses(column.align)} ${
+                                      lowSample && column.group === 'results'
+                                        ? 'opacity-55'
+                                        : ''
+                                    }`}
+                                  >
+                                    {column.render(row, {
+                                      averageVp: summary.weightedVp,
+                                      expanded,
+                                      hasMobileDetails: true,
+                                      lowSample,
+                                      toggleExpanded: () => toggleExpandedRow(row.name),
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* Right-edge scroll affordance */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 z-40 w-10 bg-gradient-to-l from-[#0f151d] via-[#0f151d]/80 to-transparent"
+          data-scroll-shadow="right"
+        />
       </div>
     </div>
   );

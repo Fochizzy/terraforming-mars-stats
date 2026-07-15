@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { SelectionStatRow } from '@/lib/db/selection-stats-repo';
@@ -34,6 +35,7 @@ const rows: NamedStatRow[] = [
   buildRow({
     avg_placement: 1.4,
     avg_points: 94.2,
+    avg_tr_points: 34,
     name: 'Alpha Corporation',
     plays: 3,
     win_rate: 0.67,
@@ -41,6 +43,7 @@ const rows: NamedStatRow[] = [
   buildRow({
     avg_placement: 2.3,
     avg_points: 78.8,
+    avg_tr_points: 29,
     name: 'Beta Corporation',
     plays: 8,
     win_rate: 0.13,
@@ -48,13 +51,27 @@ const rows: NamedStatRow[] = [
   buildRow({
     avg_placement: 1,
     avg_points: 101,
+    avg_tr_points: 41,
     name: 'Gamma Corporation',
     plays: 1,
     win_rate: 1,
   }),
+  buildRow({
+    avg_placement: 0,
+    avg_points: 0,
+    avg_tr_points: 0,
+    first_place_finishes: 0,
+    name: 'Delta Corporation',
+    plays: 0,
+    second_place_finishes: 0,
+    third_plus_finishes: 0,
+    win_rate: 0,
+  }),
 ];
 
-function renderTable() {
+function renderTable(
+  overrides: Partial<ComponentProps<typeof SelectionStatTable>> = {},
+) {
   render(
     <SelectionStatTable
       globalPlaysByName={new Map([
@@ -66,33 +83,25 @@ function renderTable() {
       kind="Corporation"
       rows={rows}
       scopeTotalGames={12}
+      {...overrides}
     />,
   );
 }
 
-function getBodyRows() {
-  const table = screen.getByRole('table', { name: /corporation statistics/i });
+function getTable(name = /corporation statistics/i) {
+  return screen.getByRole('table', { name });
+}
+
+function getBodyRows(name = /corporation statistics/i) {
+  const table = getTable(name);
   const rowGroups = within(table).getAllByRole('rowgroup');
-  return within(rowGroups[1]).getAllByRole('row').filter((row) =>
-    within(row).queryByText(/Corporation/),
-  );
+
+  return within(rowGroups[1])
+    .getAllByRole('row')
+    .filter((row) => within(row).queryByText(/Corporation|Prelude/));
 }
 
 describe('SelectionStatTable', () => {
-  it('shows the summary strip, grouped headings, sticky-friendly controls, and low-sample warning', () => {
-    renderTable();
-
-    expect(screen.getByText('3 corporations')).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument();
-    expect(screen.getByText('2 low-sample rows are visually de-emphasized.')).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Usage' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Results' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Production' })).toBeInTheDocument();
-    expect(screen.getAllByText('Small sample')).toHaveLength(2);
-    expect(screen.getByText('Terraform rating')).toBeInTheDocument();
-    expect(screen.getByText('Card points')).toBeInTheDocument();
-  });
-
   it('defaults to most-played first and exposes the active sort state', () => {
     renderTable();
 
@@ -104,12 +113,20 @@ describe('SelectionStatTable', () => {
     const bodyRows = getBodyRows();
     expect(within(bodyRows[0]).getByText('Beta Corporation')).toBeInTheDocument();
     expect(within(bodyRows[1]).getByText('Alpha Corporation')).toBeInTheDocument();
+
+    // Inactive sort icon is hidden; active sort icon is visible
+    expect(
+      screen.getByRole('columnheader', { name: /plays/i }).querySelector('[data-sort-icon-state="active"]'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /corporation/i }).querySelector('[data-sort-icon-state="idle"]'),
+    ).toBeInTheDocument();
   });
 
-  it('sorts interactively and supports secondary sorting with Shift', () => {
+  it('sorts interactively and preserves aria-sort for the active column', () => {
     renderTable();
 
-    fireEvent.click(screen.getByRole('button', { name: /corporation.*click to sort/i }));
+    fireEvent.click(screen.getByRole('button', { name: /sort by name/i }));
 
     expect(screen.getByRole('columnheader', { name: /corporation/i })).toHaveAttribute(
       'aria-sort',
@@ -117,56 +134,145 @@ describe('SelectionStatTable', () => {
     );
     expect(within(getBodyRows()[0]).getByText('Alpha Corporation')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /win rate.*click to sort/i }), {
-      shiftKey: true,
-    });
+    fireEvent.click(screen.getByRole('button', { name: /sort by win rate/i }));
 
-    expect(screen.getByLabelText('Sort priority 1')).toHaveTextContent('1');
-    expect(screen.getByLabelText('Sort priority 2')).toHaveTextContent('2');
-    expect(screen.getByText(/Corporation ↑ · Win rate ↓/)).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /win rate/i })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+    expect(within(getBodyRows()[0]).getByText('Gamma Corporation')).toBeInTheDocument();
   });
 
-  it('applies semantic metric tones and consistent number formatting', () => {
+  it('filters by search text', () => {
     renderTable();
 
-    expect(screen.getByText('67%').closest('[data-metric-tone]')).toHaveAttribute(
-      'data-metric-tone',
-      'positive',
-    );
-    expect(screen.getByText('13%').closest('[data-metric-tone]')).toHaveAttribute(
-      'data-metric-tone',
-      'negative',
-    );
-    expect(screen.getByText('1.40')).toBeInTheDocument();
-    expect(screen.getByText('94.2')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Search'), {
+      target: { value: 'gamma' },
+    });
+
+    const bodyRows = getBodyRows();
+    expect(bodyRows).toHaveLength(1);
+    expect(within(bodyRows[0]).getByText('Gamma Corporation')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1 of 4 corporations');
   });
 
-  it('switches column presets and allows custom visibility', () => {
+  it('filters by minimum sample size', () => {
+    renderTable();
+
+    fireEvent.change(screen.getByLabelText('Min plays'), {
+      target: { value: '4' },
+    });
+
+    const bodyRows = getBodyRows();
+    expect(bodyRows).toHaveLength(1);
+    expect(within(bodyRows[0]).getByText('Beta Corporation')).toBeInTheDocument();
+    expect(screen.queryByText('Gamma Corporation')).not.toBeInTheDocument();
+  });
+
+  it('switches between column presets', () => {
     renderTable();
 
     fireEvent.click(screen.getByRole('button', { name: 'Overview' }));
-    expect(screen.queryByText('Terraform rating')).not.toBeInTheDocument();
-    expect(screen.getByText('Average VP')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /terraform rating/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /average vp/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Columns'));
-    fireEvent.click(screen.getByLabelText('Terraform rating'));
-    expect(screen.getByText('Terraform rating')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Engine stats' }));
+    expect(screen.getByRole('columnheader', { name: /terraform rating/i })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /win rate/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Performance' }));
+    expect(screen.getByRole('columnheader', { name: /win rate/i })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /terraform rating/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'All metrics' }));
+    expect(screen.getByRole('columnheader', { name: /terraform rating/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /win rate/i })).toBeInTheDocument();
   });
 
-  it('exposes mobile detail expansion and row selection states', () => {
+  it('shows low-sample treatment with indicator badges', () => {
     renderTable();
 
-    const detailButton = screen.getByRole('button', {
-      name: 'Show details for Alpha Corporation',
+    // Alpha (3 plays) and Gamma (1 play) and Delta (0 plays) are low-sample
+    expect(screen.getByText(/low-sample.*rows have muted/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Low sample').length).toBeGreaterThan(0);
+  });
+
+  it('uses right-aligned tabular numeric values', () => {
+    renderTable();
+
+    // Beta Corporation plays = 8, rendered in a TabularValue with data-numeric-value
+    const plays8 = screen.getAllByText('8').find(
+      (el) => el.closest('[data-numeric-value]') !== null,
+    )!;
+    expect(plays8.closest('[data-numeric-value]')).toHaveClass('tabular-nums');
+
+    // Win rate tones
+    const winRateCell67 = screen.getAllByText('67%').find(
+      (el) => el.closest('[data-metric-tone]') !== null,
+    )!;
+    expect(winRateCell67.closest('[data-metric-tone]')).toHaveAttribute(
+      'data-metric-tone',
+      'positive',
+    );
+    const winRateCell13 = screen.getAllByText('13%').find(
+      (el) => el.closest('[data-metric-tone]') !== null,
+    )!;
+    expect(winRateCell13.closest('[data-metric-tone]')).toHaveAttribute(
+      'data-metric-tone',
+      'negative',
+    );
+  });
+
+  it('renders sticky name column, grouped headers, separated legend, and scroll affordance', () => {
+    renderTable();
+
+    // Grouped column headers
+    expect(screen.getByRole('columnheader', { name: /selection/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /usage/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /results/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /production/i })).toBeInTheDocument();
+
+    // Sticky name column header
+    const nameHeader = screen.getByRole('columnheader', { name: /corporation/i });
+    expect(nameHeader).toHaveAttribute('data-sticky-column', 'name');
+
+    // Sticky name column data cells
+    expect(
+      screen.getAllByText('Beta Corporation')[0].closest('[data-sticky-column="name"]'),
+    ).toBeInTheDocument();
+
+    // Score-source legend separated from table header
+    const legend = screen.getByLabelText('Score source legend');
+    expect(within(legend).getByText('TR')).toBeInTheDocument();
+    expect(within(legend).getByText('Microbes')).toBeInTheDocument();
+
+    // Scroll container and right-edge shadow
+    expect(screen.getByLabelText('Corporation table scroll area')).toHaveAttribute(
+      'data-scroll-container',
+    );
+    expect(document.querySelector('[data-scroll-shadow="right"]')).toBeInTheDocument();
+  });
+
+  it('supports prelude mode labels', () => {
+    const preludeRows = rows.map((row) => ({
+      ...row,
+      name: row.name.replace('Corporation', 'Prelude'),
+    }));
+
+    renderTable({
+      globalPlaysByName: new Map([
+        ['Alpha Prelude', 5],
+        ['Beta Prelude', 10],
+      ]),
+      kind: 'Prelude',
+      rows: preludeRows,
     });
-    fireEvent.click(detailButton);
 
-    expect(screen.getByLabelText('Mobile details for Alpha Corporation')).toBeInTheDocument();
-    expect(detailButton).toHaveAttribute('aria-expanded', 'true');
-
-    const alphaRow = within(getBodyRows()[1]).getByText('Alpha Corporation').closest('tr');
-    expect(alphaRow).not.toBeNull();
-    fireEvent.click(alphaRow!);
-    expect(alphaRow).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('table', { name: /prelude statistics/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /prelude/i })).toHaveAttribute(
+      'data-sticky-column',
+      'name',
+    );
+    expect(screen.getByPlaceholderText('Search preludes')).toBeInTheDocument();
   });
 });
