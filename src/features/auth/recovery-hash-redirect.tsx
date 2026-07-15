@@ -16,7 +16,7 @@ function getRecoveryDestination() {
   return '/auth/reset-pin';
 }
 
-// Handles Supabase implicit recovery links that arrive at the site root or reset page.
+// Handles Supabase implicit recovery links before any client auto-consumes the URL hash.
 export function RecoveryHashRedirect() {
   useEffect(() => {
     async function recoverSession() {
@@ -51,25 +51,9 @@ export function RecoveryHashRedirect() {
       }
 
       const recoveryDestination = getRecoveryDestination();
-      const supabase = createSupabaseBrowserClient();
-
-      // createBrowserClient can consume the recovery hash automatically during
-      // initialization. Reuse that session instead of setting the same rotating
-      // refresh token a second time.
-      const {
-        data: { session: existingSession },
-      } = await supabase.auth.getSession();
-
-      if (existingSession) {
-        window.history.replaceState(
-          {},
-          '',
-          window.location.pathname + window.location.search,
-        );
-        window.location.replace(recoveryDestination);
-        return;
-      }
-
+      const supabase = createSupabaseBrowserClient({
+        detectSessionInUrl: false,
+      });
       const { error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
