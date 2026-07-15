@@ -192,7 +192,7 @@ async function listRelevantEvents(importIds: string[]): Promise<RawEventRow[]> {
       throw error;
     }
 
-    const page = (data ?? []) as RawEventRow[];
+    const page = (data ?? []) as unknown as RawEventRow[];
     rows.push(...page);
 
     if (page.length < EVENT_PAGE_SIZE) {
