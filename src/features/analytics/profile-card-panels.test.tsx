@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { ProfileCardStat } from '@/lib/db/analytics-repo';
 import { ProfileCardPanels } from './profile-card-panels';
@@ -15,6 +15,18 @@ const keyCard: ProfileCardStat = {
   victoryImpact: 0.49,
   winRate: 1,
   wins: 2,
+};
+
+const mostPlayedCard: ProfileCardStat = {
+  ...keyCard,
+  cardId: 'solar-wind-power',
+  cardName: 'Solar Wind Power',
+  contextLabel: undefined,
+  evidenceConfidence: undefined,
+  plays: 12,
+  victoryImpact: undefined,
+  winRate: 0.25,
+  wins: 3,
 };
 
 describe('ProfileCardPanels', () => {
@@ -43,5 +55,32 @@ describe('ProfileCardPanels', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/it made the list because/i)).not.toBeInTheDocument();
     expect(screen.getByRole('listitem')).toHaveClass('rounded-xl');
+  });
+
+  it('renders most-played cards as ranked, clickable rows with metric pills', () => {
+    render(
+      <ProfileCardPanels
+        cardOutcomes={[mostPlayedCard]}
+        keyCards={[]}
+        lossCards={[]}
+        playerName="Friday Mars"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Most-played cards' }),
+    ).toHaveClass('tracking-tight');
+    expect(screen.getByText('Card statistics')).toBeInTheDocument();
+    expect(screen.getByLabelText('Rank 1')).toBeInTheDocument();
+
+    const row = screen.getByRole('button', {
+      name: /show statistics for solar wind power/i,
+    });
+
+    expect(row).toHaveClass('w-full');
+    expect(within(row).getByText('12')).toBeInTheDocument();
+    expect(within(row).getByText('plays')).toBeInTheDocument();
+    expect(within(row).getByText('25%')).toBeInTheDocument();
+    expect(within(row).getByText('3/12')).toBeInTheDocument();
   });
 });
