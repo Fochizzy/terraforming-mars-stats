@@ -30,6 +30,10 @@ function formatRoi(funding: AwardFundingStat) {
     : 0;
 }
 
+function formatCount(value: number) {
+  return value.toLocaleString('en-US');
+}
+
 function zeroFunding(awardName: string): AwardFundingStat {
   return { award_name: awardName, funded_count: 0, funder_won_count: 0 };
 }
@@ -150,84 +154,155 @@ export function AwardFundingByMap({
     () => new Map((personalRows ?? []).map((row) => [row.award_name, row])),
     [personalRows],
   );
+  const rankedAwards = useMemo(() => {
+    if (!activeGroup) {
+      return [];
+    }
+
+    return [...activeGroup.awards].sort(
+      (left, right) =>
+        Number(right.funded_count > 0) - Number(left.funded_count > 0) ||
+        formatRoi(right) - formatRoi(left) ||
+        right.funded_count - left.funded_count ||
+        left.award_name.localeCompare(right.award_name),
+    );
+  }, [activeGroup]);
+  const bestRoi = rankedAwards.reduce(
+    (best, funding) =>
+      funding.funded_count > 0 ? Math.max(best, formatRoi(funding)) : best,
+    -1,
+  );
 
   if (groups.length === 0) {
     return null;
   }
 
   return (
-    <div>
-      <h4 className="mb-2 text-xs font-semibold tm-accent-copy">
-        Award Funding ROI
-      </h4>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-1">
-          <div className="relative max-w-[240px]">
-            <label className="tm-data-label" htmlFor="award-funding-map-select">
-              Map
-            </label>
-            <select
-              className="tm-input mt-2 w-full appearance-none pr-9"
-              id="award-funding-map-select"
-              onChange={(event) => setSelectedMap(event.target.value)}
-              value={activeGroup?.mapName ?? ''}
-            >
-              {groups.map((group) => (
-                <option key={group.mapName} value={group.mapName}>
-                  {group.mapName}
-                </option>
-              ))}
-            </select>
-            <span className="mt-2 block">
-              <SelectChevron />
-            </span>
-          </div>
-          {activeGroup?.mapCode ? (
-            <p className="text-sm">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h4 className="text-sm font-semibold text-stone-100">
+            Award Funding ROI
+          </h4>
+          <p className="tm-muted-copy mt-1 text-xs">
+            Ranked by how often the funding player finished 1st in the award.
+          </p>
+        </div>
+        <div className="relative w-full max-w-[270px]">
+          <label className="tm-data-label" htmlFor="award-funding-map-select">
+            Map
+          </label>
+          <select
+            className="tm-input mt-2 w-full appearance-none pr-9"
+            id="award-funding-map-select"
+            onChange={(event) => setSelectedMap(event.target.value)}
+            value={activeGroup?.mapName ?? ''}
+          >
+            {groups.map((group) => (
+              <option key={group.mapName} value={group.mapName}>
+                {group.mapName}
+              </option>
+            ))}
+          </select>
+          <span className="mt-2 block">
+            <SelectChevron />
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,340px)] lg:items-start">
+        <div className="overflow-hidden rounded-lg border border-white/10 bg-black/15">
+          {activeGroup ? (
+            <>
+              <div className="tm-data-label hidden grid-cols-[minmax(9rem,1fr)_5rem_5rem_5rem_6rem] gap-3 border-b border-white/10 px-4 py-2 text-[0.68rem] sm:grid">
+                <span>Award</span>
+                <span className="text-right">Funded</span>
+                <span className="text-right">1st</span>
+                <span className="text-right">ROI</span>
+                <span className="text-right">Signal</span>
+              </div>
+              <ul className="divide-y divide-white/10 text-xs">
+                {rankedAwards.map((funding) => {
+                  const roi = formatRoi(funding);
+                  const isBest =
+                    funding.funded_count > 0 && roi === bestRoi && bestRoi >= 0;
+
+                  return (
+                    <li
+                      className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(9rem,1fr)_5rem_5rem_5rem_6rem] sm:items-center"
+                      key={funding.award_name}
+                    >
+                      <div className="min-w-0">
+                        <ObjectiveInfoButton
+                          awardStats={{
+                            global: mapAwardStats(
+                              globalRowsByName.get(funding.award_name),
+                            ),
+                            personal: mapAwardStats(
+                              personalRowsByName.get(funding.award_name),
+                            ),
+                          }}
+                          className="font-semibold text-stone-100 transition hover:text-[rgb(221,161,93)]"
+                          kind="award"
+                          name={funding.award_name}
+                        />
+                        <p className="tm-muted-copy mt-1 sm:hidden">
+                          {funding.funded_count > 0
+                            ? `${formatCount(funding.funded_count)} funded, ${formatCount(
+                                funding.funder_won_count,
+                              )} firsts`
+                            : 'Not funded yet'}
+                        </p>
+                      </div>
+                      <span className="hidden text-right text-stone-100 sm:block">
+                        {formatCount(funding.funded_count)}
+                      </span>
+                      <span className="hidden text-right text-stone-100 sm:block">
+                        {formatCount(funding.funder_won_count)}
+                      </span>
+                      <span className="text-left font-semibold text-stone-100 sm:text-right">
+                        {funding.funded_count > 0 ? `${roi}%` : '-'}
+                      </span>
+                      <span className="text-left sm:text-right">
+                        {isBest ? (
+                          <span className="inline-flex rounded-full border border-emerald-300/30 bg-emerald-300/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-emerald-200">
+                            Best ROI
+                          </span>
+                        ) : funding.funded_count > 0 ? (
+                          <span className="tm-muted-copy">Recorded</span>
+                        ) : (
+                          <span className="tm-muted-copy">No data</span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : null}
+        </div>
+
+        {activeGroup && activeGroup.mapCode ? (
+          <aside className="flex flex-col gap-3 lg:items-center">
+            <div className="flex items-center justify-between gap-3 lg:w-full">
+              <p className="tm-data-label text-xs">
+                {activeGroup.mapName} map reference
+              </p>
               <MapInfoButton
                 awardNames={activeGroup.awardNames}
                 mapCode={activeGroup.mapCode}
                 mapName={activeGroup.mapName}
                 milestoneNames={activeGroup.milestoneNames}
               />
-            </p>
-          ) : null}
-          {activeGroup ? (
-            <ul className="flex flex-col gap-1 text-xs">
-              {activeGroup.awards.map((funding) => (
-                <li key={funding.award_name}>
-                  <ObjectiveInfoButton
-                    awardStats={{
-                      global: mapAwardStats(globalRowsByName.get(funding.award_name)),
-                      personal: mapAwardStats(
-                        personalRowsByName.get(funding.award_name),
-                      ),
-                    }}
-                    kind="award"
-                    name={funding.award_name}
-                  />
-                  :{' '}
-                  {funding.funded_count > 0 ? (
-                    <>
-                      funded {funding.funded_count}×, funder took 1st{' '}
-                      {funding.funder_won_count}× ({formatRoi(funding)}% ROI)
-                    </>
-                  ) : (
-                    <span className="tm-muted-copy">not funded yet</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        {activeGroup && activeGroup.mapCode ? (
-          <MapImage
-            className="w-full max-w-[320px] rounded-lg object-contain sm:w-[280px]"
-            code={activeGroup.mapCode}
-            height={210}
-            mapName={activeGroup.mapName}
-            width={280}
-          />
+            </div>
+            <MapImage
+              className="w-full max-w-[340px] rounded-lg object-contain lg:max-w-full"
+              code={activeGroup.mapCode}
+              height={255}
+              mapName={activeGroup.mapName}
+              width={340}
+            />
+          </aside>
         ) : null}
       </div>
     </div>
