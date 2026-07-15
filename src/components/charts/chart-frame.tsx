@@ -2,9 +2,11 @@ import { HeadToHeadLensFrame } from './head-to-head-lens-frame';
 
 export function ChartFrame({
   title,
+  description,
   children,
 }: {
   title: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   if (title === 'Head-to-Head Lens') {
@@ -13,7 +15,16 @@ export function ChartFrame({
 
   return (
     <section className="tm-panel">
-      <h2 className="tm-panel-title text-lg font-semibold">{title}</h2>
+      <div>
+        <h2 className="tm-panel-title text-lg font-semibold tracking-[0.08em]">
+          {title}
+        </h2>
+        {description ? (
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-300">
+            {description}
+          </p>
+        ) : null}
+      </div>
       <div className="mt-4">{children}</div>
     </section>
   );
