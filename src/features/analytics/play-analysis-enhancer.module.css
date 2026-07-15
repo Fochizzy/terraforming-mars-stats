@@ -104,8 +104,69 @@
   white-space: nowrap;
 }
 
+.finishingCard {
+  background:
+    radial-gradient(circle at 8% 35%, rgba(221, 161, 93, 0.12), transparent 18%),
+    linear-gradient(135deg, rgba(9, 20, 31, 0.96), rgba(10, 16, 24, 0.94) 58%, rgba(49, 25, 14, 0.74));
+  border-color: rgba(221, 161, 93, 0.5) !important;
+  border-left: 5px solid rgba(238, 181, 93, 0.88) !important;
+  border-radius: 1.25rem !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 238, 214, 0.08);
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem !important;
+}
+
+.finishingTitle {
+  color: #f2bc68 !important;
+  font-size: 0.86rem !important;
+  letter-spacing: 0.18em !important;
+  margin-bottom: 1rem !important;
+}
+
+.finishingList {
+  display: grid !important;
+  gap: 0.75rem !important;
+}
+
+.finishingItem {
+  align-items: start;
+  color: #eee6dc;
+  display: grid;
+  font-size: 0.95rem;
+  gap: 0.75rem;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.finishingItem::before {
+  align-items: center;
+  background: rgba(221, 161, 93, 0.08);
+  border: 1px solid rgba(221, 161, 93, 0.24);
+  border-radius: 0.65rem;
+  color: #f2bc68;
+  content: attr(data-insight-index);
+  display: flex;
+  font-family: var(--tm-font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  height: 2rem;
+  justify-content: center;
+  margin-top: 0.05rem;
+  width: 2rem;
+}
+
 @media (min-width: 768px) {
   .panel {
     padding: 1.5rem;
+  }
+
+  .finishingCard {
+    padding: 1.5rem 1.75rem !important;
+  }
+
+  .finishingItem {
+    font-size: 1rem;
   }
 }
