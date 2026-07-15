@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type MouseEvent, useState } from 'react';
 import { InsightsLoadingPopup } from './insights-loading-popup';
+import styles from './top-nav.module.css';
 
 export type TopNavItem = {
   href: string;
@@ -57,32 +58,51 @@ export function TopNav({
 }) {
   const pathname = usePathname() ?? '';
   const [showInsightsLoading, setShowInsightsLoading] = useState(false);
+  const primaryItems = items.filter((item) => item.align !== 'end');
+  const utilityItems = items.filter((item) => item.align === 'end');
 
-  const firstEndHref = items.find((item) => item.align === 'end')?.href;
+  const renderItem = (item: TopNavItem) => {
+    const active = isItemActive(pathname, item.href);
+    const isLogGame = item.href === '/log-game';
+    const className = [
+      'tm-top-nav__link',
+      styles.link,
+      isLogGame ? styles.logGame : '',
+      active ? styles.active : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    return (
+      <Link
+        aria-current={active ? 'page' : undefined}
+        className={className}
+        href={item.href}
+        key={item.href}
+        onClick={(event) => {
+          if (shouldShowInsightsLoading(event, item.href, pathname)) {
+            setShowInsightsLoading(true);
+          }
+        }}
+      >
+        {item.label}
+      </Link>
+    );
+  };
 
   return (
     <>
-      <nav aria-label="Primary" className="tm-top-nav">
-        {items.map((item) => {
-          const active = isItemActive(pathname, item.href);
-          const spacer = item.href === firstEndHref;
-          const isLogGame = item.href === '/log-game';
-          return (
-            <Link
-              aria-current={active ? 'page' : undefined}
-              className={`tm-top-nav__link${isLogGame ? ' tm-top-nav__link--log-game' : ''}${active ? ' tm-top-nav__link--active' : ''}${spacer ? ' tm-top-nav__link--end' : ''}`}
-              href={item.href}
-              key={item.href}
-              onClick={(event) => {
-                if (shouldShowInsightsLoading(event, item.href, pathname)) {
-                  setShowInsightsLoading(true);
-                }
-              }}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav aria-label="Primary" className={`tm-top-nav ${styles.nav}`}>
+        <div className={styles.inner}>
+          <div className={`${styles.group} ${styles.primaryGroup}`}>
+            {primaryItems.map(renderItem)}
+          </div>
+          {utilityItems.length > 0 ? (
+            <div className={`${styles.group} ${styles.utilityGroup}`}>
+              {utilityItems.map(renderItem)}
+            </div>
+          ) : null}
+        </div>
       </nav>
       {showInsightsLoading ? <InsightsLoadingPopup /> : null}
     </>
