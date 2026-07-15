@@ -9,15 +9,17 @@ type PrimaryNavigationItem = {
   href: string;
   label: string;
   highlighted?: boolean;
+  leaderboard?: boolean;
 };
 
 const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { href: '/log-game', label: 'Log a Game', highlighted: true },
   { href: '/profile', label: 'My Profile' },
-  { href: '/insights#global-statistics', label: 'Global Data' },
   { href: '/insights?scope=individual', label: 'Individual Insights' },
   { href: '/group', label: 'Group Insights' },
-  { href: '/insights?scope=compare', label: 'Comparisons' },
+  { href: '/group', label: 'Leaderboard', leaderboard: true },
+  { href: '/insights#global-statistics', label: 'Global Statistics' },
+  { href: '/insights?scope=compare', label: 'Compare' },
 ] as const;
 
 export function AppShell({
@@ -31,83 +33,63 @@ export function AppShell({
 }) {
   return (
     <main className="tm-app-shell">
-      <div className={styles.pageFrame}>
-        <section className={styles.shellHeader}>
-          <div className={styles.bannerFrame}>
-            <Image
-              alt="Terraforming Mars Statistics"
-              className={styles.bannerImage}
-              height={793}
-              priority
-              sizes="(min-width: 1800px) 1720px, calc(100vw - 48px)"
-              src={bannerImage}
-              width={1983}
-            />
+      <div className="flex min-h-screen w-full flex-col">
+        <div className={styles.bannerFrame}>
+          <Image
+            alt="Terraforming Mars Statistics"
+            className={styles.bannerImage}
+            height={793}
+            priority
+            sizes="100vw"
+            src={bannerImage}
+            width={1983}
+          />
+        </div>
+
+        <nav
+          aria-label="Saved games and account"
+          className={styles.utilityBar}
+        >
+          <div className={styles.utilityActions}>
+            <Link className={styles.utilityLink} href="/saved-games">
+              Saved Games
+            </Link>
+            <LogoutButton className={styles.logoutButton} />
           </div>
+        </nav>
 
-          <div className={styles.controlDeck}>
-            <div className={styles.headerRow}>
-              <header className={styles.pageHeader}>
-                <p className={styles.eyebrow}>Mission Control</p>
-                <h1 className={styles.pageTitle}>{title}</h1>
-              </header>
-
-              <div className={styles.headerControls}>
-                <nav
-                  aria-label="Saved games and account"
-                  className={styles.utilityBar}
-                >
-                  <LogoutButton className={styles.logoutButton} />
-                  <Link className={styles.utilityLink} href="/saved-games">
-                    Saved Games
-                  </Link>
-                </nav>
-                {headerActions ? (
-                  <div className={styles.headerActions}>{headerActions}</div>
-                ) : null}
-              </div>
-            </div>
-
-            <nav
-              aria-label="Primary navigation"
-              className={styles.navigationRow}
+        <nav aria-label="Primary navigation" className={styles.primaryNavigation}>
+          {primaryNavigationItems.map((item) => (
+            <Link
+              className={`${styles.primaryNavigationLink} ${
+                item.highlighted ? styles.primaryNavigationLinkHighlighted : ''
+              } ${item.leaderboard ? styles.primaryNavigationLinkLeaderboard : ''}`}
+              data-highlighted={item.highlighted ? 'true' : undefined}
+              data-leaderboard-button={item.leaderboard ? 'true' : undefined}
+              href={item.href}
+              key={item.label}
             >
-              <div className={styles.primaryNavigation}>
-                {primaryNavigationItems.map((item) => (
-                  <Link
-                    className={`${styles.primaryNavigationLink} ${
-                      item.highlighted
-                        ? styles.primaryNavigationLinkHighlighted
-                        : ''
-                    }`}
-                    data-highlighted={item.highlighted ? 'true' : undefined}
-                    href={item.href}
-                    key={item.label}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-              <Link
-                className={styles.leaderboardCard}
-                data-leaderboard-button="true"
-                href="/group"
-              >
-                <span aria-hidden="true" className={styles.leaderboardIcon}>
-                  <span />
-                  <span />
-                  <span />
-                </span>
-                <span className={styles.leaderboardLabel}>Leaderboard</span>
-              </Link>
-            </nav>
+        <header className="tm-app-header">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="tm-display-eyebrow text-[11px]">
+                Terraforming Mars Stats
+              </p>
+              <h1 className="tm-display-title mt-2 text-2xl font-bold">{title}</h1>
+            </div>
+            {headerActions}
           </div>
+        </header>
+        <section className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+          {children}
         </section>
-
-        <section className={styles.content}>{children}</section>
+        <BottomNav />
       </div>
-      <BottomNav />
     </main>
   );
 }
