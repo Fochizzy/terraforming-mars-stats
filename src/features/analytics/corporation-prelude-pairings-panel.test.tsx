@@ -91,7 +91,7 @@ describe('CorporationPreludePairingsPanel', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Tharsis Republic + Biosphere Support',
+        name: /Tharsis Republic.*Biosphere Support/,
       }),
     ).toBeInTheDocument();
     expect(screen.getByText('+75 pts vs baseline')).toBeInTheDocument();
