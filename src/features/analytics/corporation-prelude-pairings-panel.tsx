@@ -460,6 +460,7 @@ export function CorporationPreludePairingsPanel({
                     Selected pairing
                   </p>
                   <h3
+                    aria-label={`${selectedPairing.corporation} + ${selectedPairing.prelude}`}
                     className="mt-2 flex flex-wrap items-center gap-2 font-serif text-2xl font-semibold text-stone-50"
                     id="selected-pairing-heading"
                   >
