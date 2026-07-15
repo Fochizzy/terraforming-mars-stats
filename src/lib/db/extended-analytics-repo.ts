@@ -397,6 +397,50 @@ type RawCardOutcomeRow = {
   thumbnail_url: string | null;
 };
 
+type RawImportedGameResultRow = {
+  game_id: string;
+  group_id: string;
+  is_winner: boolean;
+  played_on: string;
+  player_id: string;
+  player_name: string;
+  total_points: number | string;
+};
+
+type ImportedGameResultRow = {
+  gameId: string;
+  groupId: string;
+  isWinner: boolean;
+  playedOn: string;
+  playerId: string;
+  playerName: string;
+  totalPoints: number;
+};
+
+type RawImportedGameLogImportRow = {
+  game_id: string;
+  id: string;
+};
+
+type RawImportedGameLogEventRow = {
+  card_id: string | null;
+  event_type: string;
+  game_log_import_id: string;
+  payload: Record<string, unknown> | null;
+};
+
+type RawImportedGameLogAliasRow = {
+  group_id: string;
+  normalized_alias: string;
+  player_id: string;
+};
+
+type RawImportedCardCatalogRow = {
+  card_name: string;
+  gameplay_tags: string[] | null;
+  id: string;
+};
+
 function toNumber(value: number | string | null | undefined) {
   if (value === null || typeof value === 'undefined') {
     return 0;
@@ -416,6 +460,144 @@ function toGameLengthBucket(value: string): GameLengthBucket {
 
 function getAnalyticsClient(supabase: ExtendedAnalyticsSupabaseClient) {
   return supabase.schema('analytics');
+}
+
+function normalizeAnalyticsToken(value: null | string | undefined) {
+  return (value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function normalizeTagCode(value: string) {
+  return normalizeAnalyticsToken(value).replace(/\s+/g, '_');
+}
+
+function getPayloadString(
+  payload: RawImportedGameLogEventRow['payload'],
+  key: string,
+) {
+  const value = payload?.[key];
+
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function getPayloadStringFromKeys(
+  payload: RawImportedGameLogEventRow['payload'],
+  keys: string[],
+) {
+  for (const key of keys) {
+    const value = getPayloadString(payload, key);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getEventActorName(event: RawImportedGameLogEventRow) {
+  return getPayloadStringFromKeys(event.payload, [
+    'actor',
+    'playerName',
+    'player',
+    'player_name',
+    'sourcePlayerName',
+    'sourceActor',
+    'sourcePlayer',
+  ]);
+}
+
+function getEventCardName(event: RawImportedGameLogEventRow) {
+  return getPayloadStringFromKeys(event.payload, [
+    'cardName',
+    'card',
+    'card_name',
+    'sourceCardName',
+    'sourceCard',
+  ]);
+}
+
+function normalizeGameplayTags(tags: string[] | null) {
+  return (tags ?? [])
+    .map((tag) => normalizeTagCode(tag))
+    .filter(Boolean);
+}
+
+function mapImportedGameResultRow(
+  row: RawImportedGameResultRow,
+): ImportedGameResultRow {
+  return {
+    gameId: row.game_id,
+    groupId: row.group_id,
+    isWinner: row.is_winner,
+    playedOn: row.played_on,
+    playerId: row.player_id,
+    playerName: row.player_name,
+    totalPoints: toNumber(row.total_points),
+  };
+}
+
+function buildImportedActorLookup(
+  rows: ImportedGameResultRow[],
+  aliases: RawImportedGameLogAliasRow[],
+) {
+  const gameGroupIdByGameId = new Map<string, string>();
+  const rowsByGameAndName = new Map<string, Map<string, ImportedGameResultRow>>();
+  const rowsByGameAndPlayerId = new Map<string, Map<string, ImportedGameResultRow>>();
+  const aliasPlayerIdByGroupAndName = new Map<string, string>();
+
+  for (const row of rows) {
+    gameGroupIdByGameId.set(row.gameId, row.groupId);
+
+    const gameRows = rowsByGameAndName.get(row.gameId) ?? new Map();
+    const normalizedName = normalizeAnalyticsToken(row.playerName);
+
+    if (normalizedName) {
+      gameRows.set(normalizedName, row);
+    }
+
+    rowsByGameAndName.set(row.gameId, gameRows);
+
+    const playerRows = rowsByGameAndPlayerId.get(row.gameId) ?? new Map();
+    playerRows.set(row.playerId, row);
+    rowsByGameAndPlayerId.set(row.gameId, playerRows);
+  }
+
+  for (const alias of aliases) {
+    if (!alias.group_id || !alias.normalized_alias || !alias.player_id) {
+      continue;
+    }
+
+    aliasPlayerIdByGroupAndName.set(
+      `${alias.group_id}|${alias.normalized_alias}`,
+      alias.player_id,
+    );
+  }
+
+  return (gameId: string, actor: null | string) => {
+    const normalizedActor = normalizeAnalyticsToken(actor);
+
+    if (!normalizedActor) {
+      return null;
+    }
+
+    const exactNameMatch = rowsByGameAndName.get(gameId)?.get(normalizedActor);
+
+    if (exactNameMatch) {
+      return exactNameMatch;
+    }
+
+    const groupId = gameGroupIdByGameId.get(gameId);
+    const aliasPlayerId = groupId
+      ? aliasPlayerIdByGroupAndName.get(`${groupId}|${normalizedActor}`)
+      : null;
+
+    return aliasPlayerId
+      ? rowsByGameAndPlayerId.get(gameId)?.get(aliasPlayerId) ?? null
+      : null;
+  };
 }
 
 function mapPlacementDistributionRow(
@@ -682,6 +864,238 @@ async function listView<TRaw, TRow>(
   return rows.map(mapRow);
 }
 
+async function listImportedCardAndTagOutcomes(
+  groupId: string | string[],
+): Promise<{
+  cardOutcomeRows: CardOutcomeRow[];
+  tagOutcomeRows: TagOutcomeRow[];
+}> {
+  const groupIds = Array.isArray(groupId) ? groupId : [groupId];
+
+  if (groupIds.length === 0) {
+    return { cardOutcomeRows: [], tagOutcomeRows: [] };
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const resultBase = getAnalyticsClient(supabase)
+      .from('player_game_results')
+      .select('game_id, group_id, is_winner, played_on, player_id, player_name, total_points');
+    const { data: resultData, error: resultError } = await (Array.isArray(groupId)
+      ? resultBase.in('group_id', groupIds)
+      : resultBase.eq('group_id', groupId));
+
+    if (resultError) {
+      throw resultError;
+    }
+
+    const labeledResultRows = await resolvePlayerLabelsInRows(
+      supabase,
+      (resultData ?? []) as RawImportedGameResultRow[],
+    );
+    const gameRows = labeledResultRows.map(mapImportedGameResultRow);
+    const gameIds = [...new Set(gameRows.map((row) => row.gameId).filter(Boolean))];
+
+    if (gameIds.length === 0) {
+      return { cardOutcomeRows: [], tagOutcomeRows: [] };
+    }
+
+    const { data: imports, error: importsError } = await supabase
+      .from('game_log_imports')
+      .select('id, game_id')
+      .in('game_id', gameIds);
+
+    if (importsError) {
+      throw importsError;
+    }
+
+    const importRows = (imports as RawImportedGameLogImportRow[] | null) ?? [];
+
+    if (importRows.length === 0) {
+      return { cardOutcomeRows: [], tagOutcomeRows: [] };
+    }
+
+    const { data: events, error: eventsError } = await supabase
+      .from('game_log_events')
+      .select('card_id, event_type, game_log_import_id, payload')
+      .in(
+        'game_log_import_id',
+        importRows.map((row) => row.id),
+      );
+
+    if (eventsError) {
+      throw eventsError;
+    }
+
+    const { data: aliases, error: aliasesError } = await supabase
+      .from('player_import_aliases')
+      .select('group_id, normalized_alias, player_id')
+      .in('group_id', groupIds)
+      .eq('source_type', 'game_log');
+
+    if (aliasesError) {
+      throw aliasesError;
+    }
+
+    const eventRows = (events as RawImportedGameLogEventRow[] | null) ?? [];
+    const uniqueCardIds = [
+      ...new Set(
+        eventRows
+          .map((event) => event.card_id)
+          .filter((cardId): cardId is string => Boolean(cardId)),
+      ),
+    ];
+    const cardRows =
+      uniqueCardIds.length > 0
+        ? await supabase
+            .from('cards')
+            .select('id, card_name, gameplay_tags')
+            .in('id', uniqueCardIds)
+        : { data: [], error: null };
+
+    if (cardRows.error) {
+      throw cardRows.error;
+    }
+
+    const importedGameIdByImportId = new Map(
+      importRows.map((row) => [row.id, row.game_id] as const),
+    );
+    const cardById = new Map(
+      ((cardRows.data as RawImportedCardCatalogRow[] | null) ?? []).map((card) => [
+        card.id,
+        card,
+      ]),
+    );
+    const cardByName = new Map(
+      [...cardById.values()].map((card) => [
+        normalizeAnalyticsToken(card.card_name),
+        card,
+      ]),
+    );
+    const lookupActor = buildImportedActorLookup(
+      gameRows,
+      (aliases as RawImportedGameLogAliasRow[] | null) ?? [],
+    );
+    const cardOutcomeRows: CardOutcomeRow[] = [];
+    const seenCardRows = new Set<string>();
+    const tagTotals = new Map<
+      string,
+      {
+        gameId: string;
+        isWinner: boolean;
+        playedOn: string;
+        playerId: string;
+        playerName: string;
+        groupId: string;
+        tagCode: string;
+        tagCount: number;
+        totalPoints: number;
+      }
+    >();
+
+    for (const event of eventRows) {
+      if (event.event_type !== 'card_played') {
+        continue;
+      }
+
+      const gameId = importedGameIdByImportId.get(event.game_log_import_id);
+
+      if (!gameId) {
+        continue;
+      }
+
+      const actor = lookupActor(gameId, getEventActorName(event));
+
+      if (!actor) {
+        continue;
+      }
+
+      const eventCardName = getEventCardName(event);
+      const card =
+        (event.card_id ? cardById.get(event.card_id) : null) ??
+        (eventCardName
+          ? cardByName.get(normalizeAnalyticsToken(eventCardName))
+          : null) ??
+        null;
+      const cardName = card?.card_name ?? eventCardName;
+
+      if (!cardName) {
+        continue;
+      }
+
+      const normalizedCardName = normalizeAnalyticsToken(cardName);
+      const cardId =
+        card?.id ?? event.card_id ?? (normalizedCardName ? `name:${normalizedCardName}` : null);
+
+      if (!cardId) {
+        continue;
+      }
+
+      const rowKey = `${actor.gameId}|${actor.playerId}|${cardId}`;
+
+      if (seenCardRows.has(rowKey)) {
+        continue;
+      }
+
+      seenCardRows.add(rowKey);
+      cardOutcomeRows.push({
+        cardId,
+        cardName,
+        fullImageUrl: null,
+        gameId: actor.gameId,
+        groupId: actor.groupId,
+        isWinner: actor.isWinner,
+        playedOn: actor.playedOn,
+        playerId: actor.playerId,
+        playerName: actor.playerName,
+        thumbnailUrl: null,
+      });
+
+      if (!card) {
+        continue;
+      }
+
+      for (const tagCode of normalizeGameplayTags(card.gameplay_tags)) {
+        const tagKey = `${actor.gameId}|${actor.playerId}|${tagCode}`;
+        const tagRow = tagTotals.get(tagKey) ?? {
+          gameId: actor.gameId,
+          groupId: actor.groupId,
+          isWinner: actor.isWinner,
+          playedOn: actor.playedOn,
+          playerId: actor.playerId,
+          playerName: actor.playerName,
+          tagCode,
+          tagCount: 0,
+          totalPoints: actor.totalPoints,
+        };
+
+        tagRow.tagCount += 1;
+        tagTotals.set(tagKey, tagRow);
+      }
+    }
+
+    return {
+      cardOutcomeRows,
+      tagOutcomeRows: [...tagTotals.values()].map((row) => ({
+        corporationId: null,
+        corporationName: 'Logged cards',
+        gameId: row.gameId,
+        groupId: row.groupId,
+        isWinner: row.isWinner,
+        playedOn: row.playedOn,
+        playerId: row.playerId,
+        playerName: row.playerName,
+        tagCode: row.tagCode,
+        tagCount: row.tagCount,
+        totalPoints: row.totalPoints,
+      })),
+    };
+  } catch (error) {
+    console.warn('[insights] Optional imported card/tag fallback failed', error);
+    return { cardOutcomeRows: [], tagOutcomeRows: [] };
+  }
+}
+
 export async function listPlacementDistribution(groupId: string) {
   return sortPlacementDistributionRows(
     await listView(
@@ -860,8 +1274,12 @@ export async function listTilePlacements(groupId: string) {
 
 export async function listTagOutcomes(groupId: string) {
   const rows = await listView('player_tag_outcomes', groupId, mapTagOutcomeRow);
+  const finalRows =
+    rows.length > 0
+      ? rows
+      : (await listImportedCardAndTagOutcomes(groupId)).tagOutcomeRows;
 
-  return rows.sort(
+  return finalRows.sort(
     (left, right) =>
       left.playerName.localeCompare(right.playerName) ||
       left.playedOn.localeCompare(right.playedOn) ||
@@ -875,8 +1293,12 @@ export async function listCardOutcomes(groupId: string) {
     groupId,
     mapCardOutcomeRow,
   );
+  const finalRows =
+    rows.length > 0
+      ? rows
+      : (await listImportedCardAndTagOutcomes(groupId)).cardOutcomeRows;
 
-  return rows.sort(
+  return finalRows.sort(
     (left, right) =>
       left.playerName.localeCompare(right.playerName) ||
       left.playedOn.localeCompare(right.playedOn) ||
@@ -1115,6 +1537,18 @@ export async function getOverallExtendedAnalytics(
       mapCardOutcomeRow,
     ),
   ]);
+  const importedOutcomes =
+    tagOutcomeRaw.length === 0 || cardOutcomeRaw.length === 0
+      ? await listImportedCardAndTagOutcomes(groupIds)
+      : null;
+  const tagOutcomeRows =
+    tagOutcomeRaw.length > 0
+      ? tagOutcomeRaw
+      : importedOutcomes?.tagOutcomeRows ?? [];
+  const cardOutcomeRows =
+    cardOutcomeRaw.length > 0
+      ? cardOutcomeRaw
+      : importedOutcomes?.cardOutcomeRows ?? [];
 
   return {
     placementDistributionRows: sortPlacementDistributionRows(
@@ -1203,13 +1637,13 @@ export async function getOverallExtendedAnalytics(
         left.gameId.localeCompare(right.gameId) ||
         Number(left.boardSpace) - Number(right.boardSpace),
     ),
-    tagOutcomeRows: remapTagOutcomes(tagOutcomeRaw, lookup).sort(
+    tagOutcomeRows: remapTagOutcomes(tagOutcomeRows, lookup).sort(
       (left, right) =>
         left.playerName.localeCompare(right.playerName) ||
         left.playedOn.localeCompare(right.playedOn) ||
         left.tagCode.localeCompare(right.tagCode),
     ),
-    cardOutcomeRows: remapCardOutcomes(cardOutcomeRaw, lookup).sort(
+    cardOutcomeRows: remapCardOutcomes(cardOutcomeRows, lookup).sort(
       (left, right) =>
         left.playerName.localeCompare(right.playerName) ||
         left.playedOn.localeCompare(right.playedOn) ||

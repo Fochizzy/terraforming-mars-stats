@@ -22,127 +22,155 @@ describe('getGlobalInsightMetrics', () => {
   });
 
   it('loads and normalizes the seven global insight metric groups', async () => {
-    const rpc = vi.fn().mockResolvedValue({
-      data: {
-        cardTiming: [
-          {
-            cardName: 'Mars University',
-            earlyPlays: '4',
-            earlyWinRate: '0.75',
-            earlyWins: '3',
-            latePlays: '3',
-            lateWinRate: '0.3333',
-            lateWins: '1',
-            winRateDelta: '0.4167',
+    const rpc = vi.fn(async (fn: string) => {
+      if (fn === 'get_player_usernames') {
+        return {
+          data: [{ player_id: 'player-1', username: 'friday' }],
+          error: null,
+        };
+      }
+
+      return {
+        data: {
+          cardTiming: [
+            {
+              cardName: 'Mars University',
+              earlyPlays: '4',
+              earlyWinRate: '0.75',
+              earlyWins: '3',
+              latePlays: '3',
+              lateWinRate: '0.3333',
+              lateWins: '1',
+              winRateDelta: '0.4167',
+            },
+          ],
+          mapTableMeta: [
+            {
+              averageGeneration: '10.5',
+              averageScore: '82.25',
+              category: 'map',
+              games: '6',
+              label: 'Tharsis',
+              playerResults: '24',
+              winRate: null,
+            },
+          ],
+          metaSignals: [
+            {
+              averageScore: '88.5',
+              baselineWinRate: '0.25',
+              direction: 'overperformer',
+              label: 'Tharsis Republic',
+              sampleSize: '5',
+              sourceType: 'Corporation',
+              winRate: '0.6',
+              winRateDelta: '0.35',
+              wins: '3',
+            },
+            {
+              averageScore: '74',
+              baselineWinRate: '0.36',
+              direction: 'dragger',
+              label: 'Project Eden',
+              sampleSize: '5',
+              sourceType: 'Card',
+              winRate: '0',
+              winRateDelta: '-0.36',
+              wins: '0',
+            },
+            {
+              averageScore: '74',
+              baselineWinRate: '0.36',
+              direction: 'dragger',
+              label: 'Project Eden',
+              sampleSize: '5',
+              sourceType: 'Prelude',
+              winRate: '0',
+              winRateDelta: '-0.36',
+              wins: '0',
+            },
+          ],
+          objectiveConversion: [
+            {
+              actions: '4',
+              conversionRate: '0.5',
+              label: 'Gardener',
+              objectiveType: 'milestone',
+              snipedActions: null,
+              snipedRate: null,
+              winRate: '0.75',
+              wins: '3',
+            },
+          ],
+          openingCombos: [
+            {
+              averageScore: '91.5',
+              corporationName: 'Ecoline',
+              label: 'Ecoline | Mohole',
+              plays: '4',
+              preludeLabel: 'Mohole',
+              scoreDeviation: '8.5',
+              signalType: 'best',
+              winRate: '0.75',
+              wins: '3',
+            },
+          ],
+          summary: {
+            average_generation: '10.5',
+            average_score: '82.25',
+            baseline_win_rate: '0.25',
+            player_results: '24',
+            total_games: '6',
           },
-        ],
-        mapTableMeta: [
-          {
-            averageGeneration: '10.5',
-            averageScore: '82.25',
-            category: 'map',
-            games: '6',
-            label: 'Tharsis',
-            playerResults: '24',
-            winRate: null,
-          },
-        ],
-        metaSignals: [
-          {
-            averageScore: '88.5',
-            baselineWinRate: '0.25',
-            direction: 'overperformer',
-            label: 'Tharsis Republic',
-            sampleSize: '5',
-            sourceType: 'Corporation',
-            winRate: '0.6',
-            winRateDelta: '0.35',
-            wins: '3',
-          },
-          {
-            averageScore: '74',
-            baselineWinRate: '0.36',
-            direction: 'dragger',
-            label: 'Project Eden',
-            sampleSize: '5',
-            sourceType: 'Card',
-            winRate: '0',
-            winRateDelta: '-0.36',
-            wins: '0',
-          },
-          {
-            averageScore: '74',
-            baselineWinRate: '0.36',
-            direction: 'dragger',
-            label: 'Project Eden',
-            sampleSize: '5',
-            sourceType: 'Prelude',
-            winRate: '0',
-            winRateDelta: '-0.36',
-            wins: '0',
-          },
-        ],
-        objectiveConversion: [
-          {
-            actions: '4',
-            conversionRate: '0.5',
-            label: 'Gardener',
-            objectiveType: 'milestone',
-            snipedActions: null,
-            snipedRate: null,
-            winRate: '0.75',
-            wins: '3',
-          },
-        ],
-        openingCombos: [
-          {
-            averageScore: '91.5',
-            corporationName: 'Ecoline',
-            label: 'Ecoline | Mohole',
-            plays: '4',
-            preludeLabel: 'Mohole',
-            scoreDeviation: '8.5',
-            signalType: 'best',
-            winRate: '0.75',
-            wins: '3',
-          },
-        ],
-        summary: {
-          average_generation: '10.5',
-          average_score: '82.25',
-          baseline_win_rate: '0.25',
-          player_results: '24',
-          total_games: '6',
+          tempoProfile: [
+            {
+              averageGeneration: '10',
+              averagePointsPerGeneration: '8.1',
+              averageScore: '81',
+              bucket: 'standard',
+              games: '4',
+              label: 'Standard games',
+              playerResults: '16',
+              winRate: '0.25',
+              wins: '4',
+            },
+          ],
+          terraformingShare: [
+            {
+              actionShare: '0.4',
+              heatActions: '2',
+              oceanActions: '1',
+              oxygenActions: '5',
+              playerId: 'player-1',
+              playerName: 'Friday Mars',
+              totalActions: '8',
+            },
+          ],
         },
-        tempoProfile: [
-          {
-            averageGeneration: '10',
-            averagePointsPerGeneration: '8.1',
-            averageScore: '81',
-            bucket: 'standard',
-            games: '4',
-            label: 'Standard games',
-            playerResults: '16',
-            winRate: '0.25',
-            wins: '4',
-          },
-        ],
-        terraformingShare: [
-          {
-            actionShare: '0.4',
-            heatActions: '2',
-            oceanActions: '1',
-            oxygenActions: '5',
-            playerId: 'player-1',
-            playerName: 'Friday Mars',
-            totalActions: '8',
-          },
-        ],
-      },
+        error: null,
+      };
+    });
+    const playersIn = vi.fn().mockResolvedValue({
+      data: [
+        {
+          display_name: 'Friday Mars',
+          id: 'player-1',
+          linked_user_id: 'user-friday',
+          normalized_display_name: 'friday mars',
+        },
+      ],
       error: null,
     });
+    const playersSelect = vi.fn().mockReturnValue({ in: playersIn });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playersSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
       rpc,
     } as never);
 
@@ -161,7 +189,7 @@ describe('getGlobalInsightMetrics', () => {
         totalGames: 6,
       },
       tempoProfile: [{ bucket: 'standard', games: 4 }],
-      terraformingShare: [{ playerName: 'Friday Mars', totalActions: 8 }],
+      terraformingShare: [{ playerName: 'friday', totalActions: 8 }],
     });
     const metrics = await getGlobalInsightMetrics();
     expect(
@@ -170,6 +198,129 @@ describe('getGlobalInsightMetrics', () => {
       expect.objectContaining({ sourceType: 'Prelude', sampleSize: 5 }),
     ]);
     expect(rpc).toHaveBeenCalledWith('get_global_insight_metrics');
+  });
+
+  it('combines terraforming share by linked user and renders usernames', async () => {
+    const rpc = vi.fn(async (fn: string) => {
+      if (fn === 'get_player_usernames') {
+        return {
+          data: [
+            { player_id: 'izzy-home', username: 'Fochizzy' },
+            { player_id: 'izzy-weekend', username: 'Fochizzy' },
+            { player_id: 'corey-home', username: 'RevLoki' },
+          ],
+          error: null,
+        };
+      }
+
+      return {
+        data: {
+          cardTiming: [],
+          mapTableMeta: [],
+          metaSignals: [],
+          objectiveConversion: [],
+          openingCombos: [],
+          summary: {},
+          tempoProfile: [],
+          terraformingShare: [
+            {
+              actionShare: '0.14',
+              oceanActions: '38',
+              oxygenActions: '89',
+              playerId: 'izzy-home',
+              playerName: 'Izzy Hodnett',
+              temperatureActions: '7',
+              totalActions: '134',
+            },
+            {
+              actionShare: '0.10',
+              heatActions: '3',
+              oceans: '21',
+              oxygen: '71',
+              playerId: 'izzy-weekend',
+              playerName: 'Izzy Hodnett',
+              total: '95',
+            },
+            {
+              actionShare: '0.12',
+              oceanActions: '43',
+              oxygenActions: '72',
+              playerId: 'corey-home',
+              playerName: 'Corey Jansen',
+              temperature: '4',
+              totalActions: '119',
+            },
+          ],
+        },
+        error: null,
+      };
+    });
+    const playersIn = vi.fn().mockResolvedValue({
+      data: [
+        {
+          display_name: 'Izzy Hodnett',
+          id: 'izzy-home',
+          linked_user_id: 'user-izzy',
+          normalized_display_name: 'izzy hodnett',
+        },
+        {
+          display_name: 'Izzy Hodnett',
+          id: 'izzy-weekend',
+          linked_user_id: 'user-izzy',
+          normalized_display_name: 'izzy hodnett',
+        },
+        {
+          display_name: 'Corey Jansen',
+          id: 'corey-home',
+          linked_user_id: 'user-corey',
+          normalized_display_name: 'corey jansen',
+        },
+      ],
+      error: null,
+    });
+    const playersSelect = vi.fn().mockReturnValue({ in: playersIn });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'players') {
+          return { select: playersSelect };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc,
+    } as never);
+
+    const metrics = await getGlobalInsightMetrics();
+
+    expect(metrics.terraformingShare).toEqual([
+      {
+        actionShare: 0.24,
+        heatActions: 10,
+        oceanActions: 59,
+        oxygenActions: 160,
+        playerId: 'user:user-izzy',
+        playerName: 'Fochizzy',
+        totalActions: 229,
+      },
+      {
+        actionShare: 0.12,
+        heatActions: 4,
+        oceanActions: 43,
+        oxygenActions: 72,
+        playerId: 'user:user-corey',
+        playerName: 'RevLoki',
+        totalActions: 119,
+      },
+    ]);
+    expect(playersSelect).toHaveBeenCalledWith(
+      'id, display_name, linked_user_id, normalized_display_name',
+    );
+    expect(playersIn).toHaveBeenCalledWith('id', [
+      'izzy-home',
+      'izzy-weekend',
+      'corey-home',
+    ]);
   });
 });
 
@@ -202,7 +353,13 @@ describe('getProfileAnalytics', () => {
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      rpc: vi.fn(async () => ({ data: [], error: null })),
+      rpc: vi.fn(async (fn: string) => ({
+        data:
+          fn === 'get_player_usernames'
+            ? [{ player_id: 'player-1', username: 'friday' }]
+            : [],
+        error: null,
+      })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return {
@@ -244,13 +401,14 @@ describe('getProfileAnalytics', () => {
       phaseTempoProfile: null,
       performance: null,
       playerId: 'player-1',
-      playerName: 'Friday',
+      playerName: 'friday',
       resourceRemovalProfile: null,
       scoreAverages: null,
       scorePace: null,
       styleAgreement: null,
       styleBreakdownRows: [],
       styleInsights: [],
+      tagOutcomes: [],
     });
   });
 
@@ -281,7 +439,13 @@ describe('getProfileAnalytics', () => {
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      rpc: vi.fn(async () => ({ data: [], error: null })),
+      rpc: vi.fn(async (fn: string) => ({
+        data:
+          fn === 'get_player_usernames'
+            ? [{ player_id: 'player-2', username: 'weeknight' }]
+            : [],
+        error: null,
+      })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return {
@@ -314,7 +478,7 @@ describe('getProfileAnalytics', () => {
       getProfileAnalytics('user-1', { groupId: 'group-2' }),
     ).resolves.toMatchObject({
       playerId: 'player-2',
-      playerName: 'Weeknight',
+      playerName: 'weeknight',
     });
 
     expect(playersSelect).toHaveBeenCalledWith('id, display_name, group_id');
@@ -432,7 +596,13 @@ describe('getProfileAnalytics', () => {
     const playersSelect = vi.fn().mockReturnValue({ eq: playersEqLinkedUserId });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      rpc: vi.fn(async () => ({ data: [], error: null })),
+      rpc: vi.fn(async (fn: string) => ({
+        data:
+          fn === 'get_player_usernames'
+            ? [{ player_id: 'me-1', username: 'Fochizzy' }]
+            : [],
+        error: null,
+      })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };
@@ -850,7 +1020,13 @@ describe('getProfileAnalytics', () => {
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      rpc: vi.fn(async () => ({ data: [], error: null })),
+      rpc: vi.fn(async (fn: string) => ({
+        data:
+          fn === 'get_player_usernames'
+            ? [{ player_id: 'me-1', username: 'Fochizzy' }]
+            : [],
+        error: null,
+      })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };
@@ -896,6 +1072,13 @@ describe('getProfileAnalytics', () => {
     } as never);
 
     await expect(getProfileAnalytics('user-1')).resolves.toMatchObject({
+      cardOutcomes: [
+        expect.objectContaining({
+          cardName: 'Asteroid',
+          plays: 1,
+          wins: 1,
+        }),
+      ],
       expansionProfile: {
         improvements: expect.arrayContaining([expect.stringMatching(/stabilize/i)]),
         sections: expect.arrayContaining([
@@ -931,6 +1114,13 @@ describe('getProfileAnalytics', () => {
           expect.stringMatching(/expanded profile backs/i),
         ]),
       },
+      keyCards: [
+        expect.objectContaining({
+          cardName: 'Asteroid',
+          plays: 1,
+          wins: 1,
+        }),
+      ],
       gameLengthProfile: {
         bestBucket: expect.objectContaining({
           averageGenerationCount: 8,
@@ -1121,6 +1311,14 @@ describe('getProfileAnalytics', () => {
           }),
         ],
       },
+      tagOutcomes: [
+        expect.objectContaining({
+          games: 1,
+          tagCode: 'Space',
+          totalTags: 1,
+          wins: 1,
+        }),
+      ],
     });
   });
 
@@ -1454,7 +1652,18 @@ describe('getProfileAnalytics', () => {
     });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      rpc: vi.fn(async () => ({ data: [], error: null })),
+      rpc: vi.fn(async (fn: string) => ({
+        data:
+          fn === 'get_player_usernames'
+            ? [
+                { player_id: 'me-1', username: 'Fochizzy' },
+                { player_id: 'me-2', username: 'Fochizzy' },
+                { player_id: 'corey-a', username: 'RevLoki' },
+                { player_id: 'corey-b', username: 'RevLoki' },
+              ]
+            : [],
+        error: null,
+      })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };
@@ -1487,8 +1696,7 @@ describe('getProfileAnalytics', () => {
 
     expect(result?.headToHeadRows).toEqual([
       expect.objectContaining({
-        // personLabel shows unregistered opponents by first name only (privacy).
-        opponentName: 'Corey',
+        opponentName: 'RevLoki',
         gamesPlayed: 2,
         wins: 1,
         losses: 1,
@@ -1658,7 +1866,16 @@ describe('getCrossGroupFocusData', () => {
     const analyticsSelect = vi.fn().mockReturnValue({ in: analyticsIn });
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      rpc: vi.fn(async () => ({ data: [], error: null })),
+      rpc: vi.fn(async (fn: string) => ({
+        data:
+          fn === 'get_player_usernames'
+            ? [
+                { player_id: 'izzy-1', username: 'Fochizzy' },
+                { player_id: 'colette-1', username: 'ColetteUser' },
+              ]
+            : [],
+        error: null,
+      })),
       from: vi.fn((table: string) => {
         if (table === 'players') {
           return { select: playersSelect };
@@ -1685,11 +1902,11 @@ describe('getCrossGroupFocusData', () => {
 
     const people = await getCrossGroupFocusData('user-1', 'group-1');
 
-    // The signed-in user is offered first, then their opponent. Unregistered
-    // people are labelled by first name only (personLabel privacy rule).
+    // The signed-in user is offered first, then their opponent, and analytics
+    // labels are usernames only.
     expect(people.map((person) => person.displayName)).toEqual([
-      'Izzy',
-      'Colette',
+      'Fochizzy',
+      'ColetteUser',
     ]);
 
     const colette = people.find(
@@ -1704,7 +1921,7 @@ describe('getCrossGroupFocusData', () => {
       {
         averageScoreDifferential: -10,
         gamesPlayed: 1,
-        label: 'Colette vs Izzy',
+        label: 'ColetteUser vs Fochizzy',
         losses: 1,
         ties: 0,
         wins: 0,
@@ -1760,12 +1977,12 @@ describe('rewriteLineupLabels', () => {
     expect(rows[0].lineup_label).toBe('corey, jimmy');
   });
 
-  it('leaves the label untouched when a co-player can not be resolved', () => {
+  it('uses a placeholder when a co-player can not be resolved', () => {
     const rows = [makeRow('id-a,id-unknown', 'Corey Jansen, Someone Else')];
 
     rewriteLineupLabels(rows, (id) => (id === 'id-a' ? 'corey' : undefined));
 
-    expect(rows[0].lineup_label).toBe('Corey Jansen, Someone Else');
+    expect(rows[0].lineup_label).toBe('corey, Unclaimed player 1');
   });
 
   it('skips solo rows with no lineup key', () => {

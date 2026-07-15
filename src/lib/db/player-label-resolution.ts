@@ -1,11 +1,11 @@
-import { personLabel } from '@/lib/people/person-label';
-
 type RpcCapableClient = {
   rpc: (
     fn: string,
     args: Record<string, unknown>,
   ) => PromiseLike<{ data: unknown; error: unknown }>;
 };
+
+const UNCLAIMED_ANALYTICS_PLAYER_LABEL = 'Unclaimed player';
 
 /**
  * Batch-resolve `players.id -> user_profiles.username` for linked accounts.
@@ -43,10 +43,32 @@ export async function fetchUsernamesByPlayerId(
   return usernameById;
 }
 
+export function buildAnalyticsPlayerLabelMap(
+  playerIds: string[],
+  usernameById: Map<string, string>,
+) {
+  const labelById = new Map<string, string>();
+  let unclaimedIndex = 1;
+
+  for (const id of [...new Set(playerIds.filter(Boolean))]) {
+    const username = usernameById.get(id)?.trim();
+    if (username) {
+      labelById.set(id, username);
+      continue;
+    }
+
+    labelById.set(id, `${UNCLAIMED_ANALYTICS_PLAYER_LABEL} ${unclaimedIndex}`);
+    unclaimedIndex += 1;
+  }
+
+  return labelById;
+}
+
 /**
  * The (id column -> name column) pairs carried by analytics rows. Each name
- * column is rewritten in place to the canonical person label (username, or
- * first name when unregistered) resolved from its sibling id column.
+ * column is rewritten in place to the analytics-safe person label resolved from
+ * its sibling id column: username when claimed, otherwise a non-identifying
+ * placeholder.
  */
 const DEFAULT_LABEL_PAIRS: ReadonlyArray<readonly [idKey: string, nameKey: string]> = [
   ['player_id', 'player_name'],
@@ -58,10 +80,9 @@ const DEFAULT_LABEL_PAIRS: ReadonlyArray<readonly [idKey: string, nameKey: strin
 
 /**
  * Rewrite the person-name columns of raw analytics rows to the canonical
- * display label in place, so downstream row mappers and renderers never expose
- * a raw `display_name`. Rows are matched by their sibling player-id column, so
- * two unregistered people who share a first name stay distinct rows (they are
- * only ever collapsed for display, never for aggregation).
+ * analytics label in place, so downstream row mappers and renderers never
+ * expose a raw `display_name`. Rows are matched by their sibling player-id
+ * column, so unclaimed people stay distinct rows without leaking names.
  */
 export async function resolvePlayerLabelsInRows<T>(
   supabase: RpcCapableClient,
@@ -85,16 +106,15 @@ export async function resolvePlayerLabelsInRows<T>(
   }
 
   const usernameById = await fetchUsernamesByPlayerId(supabase, ids);
+  const labelById = buildAnalyticsPlayerLabelMap(ids, usernameById);
 
   for (const row of list) {
     const record = row as Record<string, unknown>;
     for (const [idKey, nameKey] of pairs) {
       const id = record[idKey];
       if (typeof id === 'string' && typeof record[nameKey] === 'string') {
-        record[nameKey] = personLabel({
-          username: usernameById.get(id),
-          displayName: record[nameKey] as string,
-        });
+        record[nameKey] =
+          labelById.get(id) ?? UNCLAIMED_ANALYTICS_PLAYER_LABEL;
       }
     }
   }

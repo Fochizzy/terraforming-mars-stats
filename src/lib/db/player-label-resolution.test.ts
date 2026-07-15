@@ -36,7 +36,7 @@ describe('fetchUsernamesByPlayerId', () => {
 });
 
 describe('resolvePlayerLabelsInRows', () => {
-  it('rewrites player_name to the username when registered, first name otherwise', async () => {
+  it('rewrites player_name to the username when registered, placeholder otherwise', async () => {
     const client = clientReturning([{ player_id: 'p1', username: 'Fochizzy' }]);
 
     const rows = await resolvePlayerLabelsInRows(client, [
@@ -45,7 +45,7 @@ describe('resolvePlayerLabelsInRows', () => {
     ]);
 
     expect(rows[0]?.player_name).toBe('Fochizzy');
-    expect(rows[1]?.player_name).toBe('Grace');
+    expect(rows[1]?.player_name).toBe('Unclaimed player 1');
     // non-name fields are untouched
     expect(rows[0]?.wins).toBe(3);
   });
@@ -70,7 +70,7 @@ describe('resolvePlayerLabelsInRows', () => {
     );
 
     expect(rows[0]?.left_player_name).toBe('RevLoki');
-    expect(rows[0]?.right_player_name).toBe('Corey');
+    expect(rows[0]?.right_player_name).toBe('Unclaimed player 1');
   });
 
   it('returns the list unchanged when empty without calling the RPC', async () => {

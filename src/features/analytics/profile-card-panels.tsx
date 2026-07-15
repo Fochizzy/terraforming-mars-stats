@@ -2,10 +2,11 @@ import Image from "next/image";
 import { Info, Key } from "lucide-react";
 import type { ReactNode } from "react";
 import { ChartFrame } from "@/components/charts/chart-frame";
+import { TagLabel } from "@/components/ui/tag-icon";
 import { isRenderableCardImage } from "@/features/catalog/card-image";
 import { CardStatsButton } from "@/features/catalog/card-stats-dialog";
 import { GlossaryRichText } from "@/features/glossary/glossary-rich-text";
-import type { ProfileCardStat } from "@/lib/db/analytics-repo";
+import type { ProfileCardStat, ProfileTagStat } from "@/lib/db/analytics-repo";
 import { formatPercent } from "./performance-delta";
 import { MostPlayedCardsDashboard } from "./most-played-cards-dashboard";
 
@@ -323,7 +324,7 @@ function KeyCardsPanel({
               Card statistics
             </p>
             <h2 className="mt-1.5 text-xl font-semibold tracking-[0.03em] text-stone-50 sm:text-2xl">
-              Key Cards{" "}
+              My Most Helpful Cards{" "}
               <span className="text-amber-300">(Highest Victory Impact)</span>
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-stone-300 sm:text-[0.95rem]">
@@ -506,16 +507,72 @@ function MethodologyDetails({
   );
 }
 
+function ProfileTagTable({
+  playerName,
+  tags,
+}: {
+  playerName: string;
+  tags: ProfileTagStat[];
+}) {
+  if (tags.length === 0) {
+    return (
+      <p className="tm-muted-copy text-sm">
+        No logged tag data yet for {playerName}. Import finalized game logs with
+        matched card plays to see your strongest tag patterns.
+      </p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead>
+          <tr className="tm-data-label">
+            <th className="py-1 pr-3">Tag</th>
+            <th className="py-1 pr-3">Tags</th>
+            <th className="py-1 pr-3">Games</th>
+            <th className="py-1 pr-3">Win rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tags.map((tag) => (
+            <tr className="border-t border-white/5" key={tag.tagCode}>
+              <td className="py-2 pr-3 font-semibold text-stone-100">
+                <TagLabel code={tag.tagCode} />
+              </td>
+              <td className="py-2 pr-3 align-middle">{tag.totalTags}</td>
+              <td className="py-2 pr-3 align-middle">
+                {tag.games}
+                <span className="tm-muted-copy ml-1 text-xs">
+                  ({tag.averageTagsPerGame}/game)
+                </span>
+              </td>
+              <td className="py-2 pr-3 align-middle">
+                {formatPercent(tag.winRate)}
+                <span className="tm-muted-copy ml-1 text-xs">
+                  ({tag.wins}/{tag.games})
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function ProfileCardPanels({
   cardOutcomes,
   keyCards,
   lossCards,
   playerName,
+  tagOutcomes,
 }: {
   cardOutcomes: ProfileCardStat[];
   keyCards: ProfileCardStat[];
   lossCards: ProfileCardStat[];
   playerName: string;
+  tagOutcomes: ProfileTagStat[];
 }) {
   return (
     <>
@@ -525,7 +582,7 @@ export function ProfileCardPanels({
       />
       <ChartFrame
         description="Cards associated with worse results after accounting for the context of each game."
-        title="Cards Linked to Lower Win Rates"
+        title="My Most Harmful Cards"
       >
         <ProfileCardTable
           cards={lossCards}
@@ -546,6 +603,12 @@ export function ProfileCardPanels({
         cards={cardOutcomes}
         emptyCopy={`No logged card plays for ${playerName} yet. Import a finalized game log to see your most-played cards.`}
       />
+      <ChartFrame
+        description="Your most-used card tags from imported game logs, with win rate across games where each tag appeared."
+        title="My Tags"
+      >
+        <ProfileTagTable playerName={playerName} tags={tagOutcomes} />
+      </ChartFrame>
     </>
   );
 }

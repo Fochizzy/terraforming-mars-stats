@@ -17,6 +17,7 @@ import {
   type ProfileScorePace,
   type ProfileStyleBreakdownRow,
   type ProfileStyleInsight,
+  type ProfileTagStat,
   type ScoreSourceAverages,
 } from '@/lib/db/analytics-repo';
 import { CardStatsButton } from '@/features/catalog/card-stats-dialog';
@@ -146,6 +147,7 @@ type ProfileDashboardProps = {
   scorePace?: ProfileScorePace | null;
   styleBreakdownRows?: ProfileStyleBreakdownRow[];
   styleInsights?: ProfileStyleInsight[];
+  tagOutcomes?: ProfileTagStat[];
   linkHref?: string;
 };
 
@@ -630,6 +632,7 @@ export function ProfileDashboard({
   scorePace = null,
   styleBreakdownRows = [],
   styleInsights = [],
+  tagOutcomes = [],
 }: ProfileDashboardProps) {
   if (!playerName) {
     return (
@@ -1103,6 +1106,7 @@ export function ProfileDashboard({
         keyCards={keyCards}
         lossCards={lossCards}
         playerName={playerName}
+        tagOutcomes={tagOutcomes}
       />
       {styleEffectivenessScopes.length > 0 ? (
         <StyleEffectivenessPanel

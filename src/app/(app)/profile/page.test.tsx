@@ -142,6 +142,7 @@ describe('ProfilePage', () => {
       styleAgreement: null,
       styleBreakdownRows: [],
       styleInsights: [],
+      tagOutcomes: [],
     });
 
     render(
@@ -151,7 +152,7 @@ describe('ProfilePage', () => {
     );
 
     expect(getProfileAnalytics).toHaveBeenCalledTimes(1);
-    expect(getProfileAnalytics).toHaveBeenCalledWith('user-1');
+    expect(getProfileAnalytics).toHaveBeenCalledWith('user-1', {});
     expect(screen.queryByText(/group switcher/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/profile group/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/view group stats/i)).not.toBeInTheDocument();
@@ -203,6 +204,7 @@ describe('ProfilePage', () => {
       styleAgreement: null,
       styleBreakdownRows: [],
       styleInsights: [],
+      tagOutcomes: [],
     });
 
     render(await ProfilePage({}));
@@ -210,7 +212,7 @@ describe('ProfilePage', () => {
     // The profile page loads overall analytics once; per-group deltas are the
     // comparison screen's job now.
     expect(getProfileAnalytics).toHaveBeenCalledTimes(1);
-    expect(getProfileAnalytics).toHaveBeenCalledWith('user-1');
+    expect(getProfileAnalytics).toHaveBeenCalledWith('user-1', {});
     expect(
       screen.queryByRole('link', { name: /compare players/i }),
     ).not.toBeInTheDocument();

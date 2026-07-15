@@ -487,6 +487,41 @@ describe('ProfileDashboard', () => {
           scoreShare: 0.2994,
         },
       },
+      cardOutcomes: [
+        {
+          cardId: 'card-commercial-district',
+          cardName: 'Commercial District',
+          fullImageUrl: null,
+          plays: 2,
+          thumbnailUrl: null,
+          winRate: 0.5,
+          wins: 1,
+        },
+      ],
+      keyCards: [
+        {
+          cardId: 'card-commercial-district',
+          cardName: 'Commercial District',
+          fullImageUrl: null,
+          plays: 2,
+          thumbnailUrl: null,
+          victoryImpact: 0.12,
+          winRate: 0.5,
+          wins: 1,
+        },
+      ],
+      lossCards: [
+        {
+          cardId: 'card-hackers',
+          cardName: 'Hackers',
+          fullImageUrl: null,
+          plays: 1,
+          thumbnailUrl: null,
+          victoryImpact: -0.08,
+          winRate: 0,
+          wins: 0,
+        },
+      ],
       styleBreakdownRows: [
         {
           averagePlacement: 1.5,
@@ -523,6 +558,17 @@ describe('ProfileDashboard', () => {
           evidenceLabel: '2 logged card plays',
           sampleSize: 2,
           title: 'Game Log Signal',
+        },
+      ],
+      tagOutcomes: [
+        {
+          averageTagsPerGame: 1.5,
+          games: 2,
+          tagCode: 'Space',
+          tagName: 'Space',
+          totalTags: 3,
+          winRate: 0.5,
+          wins: 1,
         },
       ],
     };
@@ -626,8 +672,8 @@ describe('ProfileDashboard', () => {
       screen.getByRole('heading', { name: /opponent-adjusted performance/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: /^board control$/i }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('heading', { name: /^board control$/i }).length,
+    ).toBeGreaterThan(0);
     expect(
       screen.getByRole('heading', { name: /interaction personality/i }),
     ).toBeInTheDocument();
@@ -644,6 +690,10 @@ describe('ProfileDashboard', () => {
       getByTextContent(/you fare best in fast oxygen \+ oceans games and worst in fast heat games/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
+    expect(screen.getByText(/my most helpful cards/i)).toBeInTheDocument();
+    expect(screen.getByText(/my most harmful cards/i)).toBeInTheDocument();
+    expect(getByTextContent(/my tags/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Space/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/styles breakdown/i)).toBeInTheDocument();
     expect(screen.getByText(/most played/i)).toBeInTheDocument();
     expect(screen.getByText(/most wins/i)).toBeInTheDocument();
@@ -652,7 +702,7 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/style insights/i)).toBeInTheDocument();
     expect(screen.getByText(/style identity/i)).toBeInTheDocument();
     expect(screen.getByText(/game log signal/i)).toBeInTheDocument();
-    expect(screen.getByText(/commercial district/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/commercial district/i).length).toBeGreaterThan(0);
   });
 
   it('does not present zero removal totals as measured pressure when no parsed removal events exist', () => {

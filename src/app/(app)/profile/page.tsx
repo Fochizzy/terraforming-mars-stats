@@ -95,6 +95,7 @@ export default async function ProfilePage(_props: ProfilePageProps) {
             scorePace={profileAnalytics?.scorePace ?? null}
             styleBreakdownRows={profileAnalytics?.styleBreakdownRows ?? []}
             styleInsights={profileAnalytics?.styleInsights ?? []}
+            tagOutcomes={profileAnalytics?.tagOutcomes ?? []}
           />
         </>
       )}

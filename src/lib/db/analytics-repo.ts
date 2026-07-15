@@ -14,12 +14,12 @@ import {
   mergeStyleAgreement,
 } from '@/lib/db/overall-analytics-aggregators';
 import {
+  buildAnalyticsPlayerLabelMap,
   fetchUsernamesByPlayerId,
   resolvePlayerLabelsInRows,
 } from '@/lib/db/player-label-resolution';
 import { getBoardSpaceMap } from '@/lib/imports/board-space-maps';
 import { getSelectionStats } from '@/lib/db/selection-stats-repo';
-import { personLabel } from '@/lib/people/person-label';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type LeaderboardRow = {
@@ -343,6 +343,16 @@ export type ProfileCardStat = {
   victoryImpact?: number;
 };
 
+export type ProfileTagStat = {
+  averageTagsPerGame: number;
+  games: number;
+  tagCode: string;
+  tagName: string;
+  totalTags: number;
+  winRate: number;
+  wins: number;
+};
+
 export type ProfileStyleBreakdownRow = {
   averagePlacement: number;
   averageScore: number;
@@ -494,6 +504,7 @@ export type ProfileAnalytics = {
   styleAgreement: StyleAgreementRow | null;
   styleBreakdownRows: ProfileStyleBreakdownRow[];
   styleInsights: ProfileStyleInsight[];
+  tagOutcomes: ProfileTagStat[];
 };
 
 export type GroupAnalytics = {
@@ -813,6 +824,16 @@ function readNumberField(row: Record<string, unknown>, key: string) {
   return toNumber(row[key] as number | string | null | undefined);
 }
 
+function readFirstNumberField(row: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    if (typeof row[key] !== 'undefined') {
+      return readNumberField(row, key);
+    }
+  }
+
+  return 0;
+}
+
 function readNullableNumberField(row: Record<string, unknown>, key: string) {
   return toNullableNumber(row[key] as number | string | null | undefined);
 }
@@ -1039,13 +1060,104 @@ function mapGlobalTerraformingShareMetric(
 ): GlobalTerraformingShareMetric {
   return {
     actionShare: readNumberField(row, 'actionShare'),
-    heatActions: readNumberField(row, 'heatActions'),
-    oceanActions: readNumberField(row, 'oceanActions'),
-    oxygenActions: readNumberField(row, 'oxygenActions'),
+    heatActions: readFirstNumberField(row, [
+      'heatActions',
+      'temperatureActions',
+      'temperature',
+    ]),
+    oceanActions: readFirstNumberField(row, ['oceanActions', 'oceans']),
+    oxygenActions: readFirstNumberField(row, ['oxygenActions', 'oxygen']),
     playerId: readString(row.playerId),
     playerName: readString(row.playerName),
-    totalActions: readNumberField(row, 'totalActions'),
+    totalActions: readFirstNumberField(row, ['totalActions', 'total']),
   };
+}
+
+async function normalizeGlobalTerraformingShareMetrics(
+  supabase: AnalyticsSupabaseClient,
+  rows: GlobalTerraformingShareMetric[],
+): Promise<GlobalTerraformingShareMetric[]> {
+  const playerIds = [...new Set(rows.map((row) => row.playerId).filter(Boolean))];
+
+  if (playerIds.length === 0) {
+    return rows;
+  }
+
+  const { data: players, error } = await supabase
+    .from('players')
+    .select('id, display_name, linked_user_id, normalized_display_name')
+    .in('id', playerIds);
+
+  if (error) {
+    throw error;
+  }
+
+  const usernameByPlayerId = await fetchUsernamesByPlayerId(supabase, playerIds);
+  const labelByPlayerId = buildAnalyticsPlayerLabelMap(
+    playerIds,
+    usernameByPlayerId,
+  );
+  const identityByPlayerId = new Map<string, CanonicalIdentity>();
+  const displayNameByCanonical = new Map<string, string>();
+  const linkedPreferredCanonicals = new Set<string>();
+
+  for (const player of (players ?? []) as PlayerIdentityRow[]) {
+    const canonicalId = canonicalPersonId(player);
+    const label = labelByPlayerId.get(player.id) ?? 'Unclaimed player';
+    identityByPlayerId.set(player.id, {
+      canonicalId,
+      displayName: label,
+    });
+
+    const isLinked = Boolean(player.linked_user_id);
+    const shouldPreferName =
+      !displayNameByCanonical.has(canonicalId) ||
+      (isLinked && !linkedPreferredCanonicals.has(canonicalId));
+
+    if (shouldPreferName) {
+      displayNameByCanonical.set(canonicalId, label);
+
+      if (isLinked) {
+        linkedPreferredCanonicals.add(canonicalId);
+      }
+    }
+  }
+
+  const merged = new Map<string, GlobalTerraformingShareMetric>();
+
+  for (const row of rows) {
+    const identity = identityByPlayerId.get(row.playerId);
+    const canonicalId = identity?.canonicalId ?? row.playerId;
+    const playerName =
+      (canonicalId ? displayNameByCanonical.get(canonicalId) : null) ??
+      identity?.displayName ??
+      labelByPlayerId.get(row.playerId) ??
+      'Unclaimed player';
+    const key = canonicalId || row.playerName;
+    const existing = merged.get(key);
+
+    if (existing) {
+      existing.actionShare = roundNumber(existing.actionShare + row.actionShare, 4);
+      existing.heatActions += row.heatActions;
+      existing.oceanActions += row.oceanActions;
+      existing.oxygenActions += row.oxygenActions;
+      existing.totalActions += row.totalActions;
+      continue;
+    }
+
+    merged.set(key, {
+      ...row,
+      playerId: canonicalId || row.playerId,
+      playerName,
+    });
+  }
+
+  return [...merged.values()].sort(
+    (left, right) =>
+      right.totalActions - left.totalActions ||
+      right.actionShare - left.actionShare ||
+      left.playerName.localeCompare(right.playerName),
+  );
 }
 
 function mapGlobalObjectiveConversionMetric(
@@ -1278,11 +1390,9 @@ function compactRows<T>(rows: Array<T | null>) {
 
 /**
  * Rewrite each lineup row's comma-joined `lineup_label` (built in SQL from the
- * co-players' raw `display_name`s) to canonical person labels — username, or
- * first name when unregistered. The co-player ids come from the parallel
- * `lineup_key`; `labelForId` resolves each to its display label. If any
- * co-player can't be resolved the row's label is left untouched, so we never
- * silently drop a name.
+ * co-players' raw `display_name`s) to analytics-safe labels. If any co-player
+ * cannot be resolved to a username, use a non-identifying placeholder instead
+ * of preserving the raw SQL label.
  */
 export function rewriteLineupLabels(
   rows: RawLineupEffectRow[],
@@ -1296,11 +1406,18 @@ export function rewriteLineupLabels(
     if (ids.length === 0) {
       continue;
     }
-    const labels = ids.map(labelForId);
-    if (labels.some((label) => label === undefined)) {
-      continue;
-    }
-    row.lineup_label = (labels as string[])
+    let unclaimedIndex = 1;
+    const labels = ids.map((id) => {
+      const label = labelForId(id);
+      if (label) {
+        return label;
+      }
+      const fallback = `Unclaimed player ${unclaimedIndex}`;
+      unclaimedIndex += 1;
+      return fallback;
+    });
+
+    row.lineup_label = labels
       .sort((a, b) => a.localeCompare(b))
       .join(', ');
   }
@@ -1504,12 +1621,12 @@ function resolveProfileLabel(
     return fallbackPlayerName;
   }
 
-  const uniqueNames = [
+  const uniqueLabels = [
     ...new Set(linkedPlayers.map((player) => player.display_name.trim()).filter(Boolean)),
   ];
 
-  if (uniqueNames.length === 1) {
-    return uniqueNames[0] ?? 'My Profile';
+  if (uniqueLabels.length === 1) {
+    return uniqueLabels[0] ?? 'My Profile';
   }
 
   return 'Your linked profiles';
@@ -1817,6 +1934,7 @@ function buildProfileAnalyticsFromRows(input: {
       styleAgreement: null,
       styleBreakdownRows: [],
       styleInsights: [],
+      tagOutcomes: [],
       coverage: null,
       headToHeadRows: [],
       keyCards: [],
@@ -2164,6 +2282,7 @@ function buildProfileAnalyticsFromRows(input: {
     styleAgreement,
     styleBreakdownRows,
     styleInsights,
+    tagOutcomes: [],
     coverage,
     headToHeadRows,
     // Card lists come from dedicated analytics views, filled in by
@@ -2280,7 +2399,15 @@ export async function getGlobalInsightMetrics(): Promise<GlobalInsightMetrics> {
     throw error;
   }
 
-  return mapGlobalInsightMetrics(data);
+  const metrics = mapGlobalInsightMetrics(data);
+
+  return {
+    ...metrics,
+    terraformingShare: await normalizeGlobalTerraformingShareMetrics(
+      supabase,
+      metrics.terraformingShare,
+    ),
+  };
 }
 
 export async function listGroupLeaderboard(groupId: string) {
@@ -4787,6 +4914,191 @@ async function listProfileCardCatalogRows(
   }
 }
 
+function getEventActorName(event: RawGameLogEventRow) {
+  return getPayloadStringFromKeys(event.payload, [
+    'actor',
+    'playerName',
+    'player',
+    'player_name',
+    'sourcePlayerName',
+    'sourceActor',
+    'sourcePlayer',
+  ]);
+}
+
+function getFallbackEventCardName(
+  event: RawGameLogEventRow,
+  card: RawProfileCardCatalogRow | null,
+) {
+  return (
+    card?.card_name ??
+    getPayloadStringFromKeys(event.payload, [
+      'cardName',
+      'card',
+      'card_name',
+      'sourceCardName',
+      'sourceCard',
+    ])
+  );
+}
+
+function buildProfileCardRowsFromResourceLog({
+  aliases,
+  cardCatalogRows,
+  events,
+  imports,
+  linkedPlayerIds,
+  sharedRows,
+}: {
+  aliases: RawProfileGameLogAliasRow[];
+  cardCatalogRows: RawProfileCardCatalogRow[];
+  events: RawGameLogEventRow[];
+  imports: RawGameLogImportRow[];
+  linkedPlayerIds: string[];
+  sharedRows: ProfileGameResultRow[];
+}): RawProfileCardRow[] {
+  if (events.length === 0 || imports.length === 0 || linkedPlayerIds.length === 0) {
+    return [];
+  }
+
+  const ownPlayerIds = new Set(linkedPlayerIds);
+  const importGameIds = new Map(
+    imports.map((row) => [row.id, row.game_id] as const),
+  );
+  const lookupActor = buildProfileActorLookup(sharedRows, aliases);
+  const cardById = new Map(cardCatalogRows.map((card) => [card.id, card]));
+  const cardByName = new Map(
+    cardCatalogRows.map((card) => [
+      normalizeAnalyticsToken(card.card_name),
+      card,
+    ]),
+  );
+  const rows: RawProfileCardRow[] = [];
+
+  for (const event of events) {
+    if (event.event_type !== 'card_played') {
+      continue;
+    }
+
+    const gameId = importGameIds.get(event.game_log_import_id);
+
+    if (!gameId) {
+      continue;
+    }
+
+    const actor = lookupActor(gameId, getEventActorName(event));
+
+    if (!actor || !ownPlayerIds.has(actor.playerId)) {
+      continue;
+    }
+
+    const card = getCardCatalogEntry(event, cardById, cardByName);
+    const cardName = getFallbackEventCardName(event, card);
+
+    if (!cardName) {
+      continue;
+    }
+
+    const normalizedCardName = normalizeAnalyticsToken(cardName);
+    const cardId =
+      card?.id ?? event.card_id ?? (normalizedCardName ? `name:${normalizedCardName}` : null);
+
+    if (!cardId) {
+      continue;
+    }
+
+    rows.push({
+      card_id: cardId,
+      card_name: cardName,
+      game_id: gameId,
+      is_winner: actor.isWinner,
+      player_id: actor.playerId,
+      style_code: actor.inferredPrimaryStyleCode,
+    });
+  }
+
+  return rows;
+}
+
+function buildProfileTagStats(
+  rows: RawProfileCardRow[],
+  cardCatalogRows: RawProfileCardCatalogRow[],
+): ProfileTagStat[] {
+  if (rows.length === 0 || cardCatalogRows.length === 0) {
+    return [];
+  }
+
+  const cardById = new Map(cardCatalogRows.map((card) => [card.id, card]));
+  const cardByName = new Map(
+    cardCatalogRows.map((card) => [
+      normalizeAnalyticsToken(card.card_name),
+      card,
+    ]),
+  );
+  const totals = new Map<
+    string,
+    {
+      gameIds: Set<string>;
+      totalTags: number;
+      winningGameIds: Set<string>;
+    }
+  >();
+
+  for (const row of uniqueProfileCardRows(rows)) {
+    const card =
+      cardById.get(row.card_id) ??
+      cardByName.get(normalizeAnalyticsToken(row.card_name));
+
+    if (!card) {
+      continue;
+    }
+
+    for (const tagCode of normalizeGameplayTags(card.gameplay_tags)) {
+      const entry = totals.get(tagCode) ?? {
+        gameIds: new Set<string>(),
+        totalTags: 0,
+        winningGameIds: new Set<string>(),
+      };
+      const gameKey = `${row.game_id}|${row.player_id}`;
+
+      entry.gameIds.add(gameKey);
+      entry.totalTags += 1;
+
+      if (row.is_winner) {
+        entry.winningGameIds.add(gameKey);
+      }
+
+      totals.set(tagCode, entry);
+    }
+  }
+
+  return [...totals.entries()]
+    .map(([tagCode, entry]) => {
+      const games = entry.gameIds.size;
+
+      return {
+        averageTagsPerGame:
+          games > 0 ? roundNumber(entry.totalTags / games, 3) : 0,
+        games,
+        tagCode,
+        tagName: formatStyleName(tagCode),
+        totalTags: entry.totalTags,
+        winRate:
+          games > 0 ? roundNumber(entry.winningGameIds.size / games, 4) : 0,
+        wins: entry.winningGameIds.size,
+      };
+    })
+    .filter((row) => row.totalTags > 0)
+    .sort(
+      (left, right) =>
+        right.totalTags - left.totalTags ||
+        right.games - left.games ||
+        right.winRate - left.winRate ||
+        left.tagName.localeCompare(right.tagName),
+    )
+    .slice(0, PROFILE_CARD_LIMIT);
+}
+
 function uniqueProfileCardRows(rows: RawProfileCardRow[]) {
   const seen = new Set<string>();
   const uniqueRows: RawProfileCardRow[] = [];
@@ -5414,7 +5726,7 @@ export async function getProfileAnalytics(
     }
   }
 
-  const [cardOutcomeRows, globalCardWinRates, resourceLogData] = await Promise.all([
+  const [viewCardOutcomeRows, globalCardWinRates, resourceLogData] = await Promise.all([
     listProfileCardRows(supabase, 'player_card_outcomes', linkedPlayerIds),
     loadGlobalCardWinRates(),
     listProfileResourceLogData(supabase, sharedGameIds),
@@ -5425,6 +5737,31 @@ export async function getProfileAnalytics(
         resourceLookupRows.map((row) => row.groupId),
       )
     : [];
+  const profileCardIds = viewCardOutcomeRows
+    .map((row) => row.card_id)
+    .filter((cardId): cardId is string => Boolean(cardId));
+  const eventCardIds = resourceLogData
+    ? resourceLogData.events
+        .map((event) => event.card_id)
+        .filter((cardId): cardId is string => Boolean(cardId))
+    : [];
+  const cardCatalogRows = await listProfileCardCatalogRows(supabase, [
+    ...profileCardIds,
+    ...eventCardIds,
+  ]);
+  const resourceCardOutcomeRows =
+    viewCardOutcomeRows.length === 0 && resourceLogData
+      ? buildProfileCardRowsFromResourceLog({
+          aliases: resourceAliasRows,
+          cardCatalogRows,
+          events: resourceLogData.events,
+          imports: resourceLogData.imports,
+          linkedPlayerIds,
+          sharedRows: resourceLookupRows,
+        })
+      : [];
+  const cardOutcomeRows =
+    viewCardOutcomeRows.length > 0 ? viewCardOutcomeRows : resourceCardOutcomeRows;
 
   const built = buildProfileAnalyticsFromRows({
     cardOutcomeRows,
@@ -5433,14 +5770,6 @@ export async function getProfileAnalytics(
     ownRows: normalizedOwnRows,
     sharedRows: normalizedSharedRows,
   });
-  const cardCatalogRows = resourceLogData
-    ? await listProfileCardCatalogRows(
-        supabase,
-        resourceLogData.events
-          .map((event) => event.card_id)
-          .filter((cardId): cardId is string => Boolean(cardId)),
-      )
-    : [];
   const globalParameterTempoProfile = resourceLogData
     ? buildProfileGlobalParameterTempoProfile({
         aliases: resourceAliasRows,
@@ -5504,6 +5833,7 @@ export async function getProfileAnalytics(
     globalParameterTempoProfile,
     phaseTempoProfile,
     resourceRemovalProfile,
+    tagOutcomes: buildProfileTagStats(cardOutcomeRows, cardCatalogRows),
   };
 }
 
@@ -5582,15 +5912,16 @@ export async function getCrossGroupFocusData(
       supabase,
       ((participants ?? []) as PlayerIdentityRow[]).map((player) => player.id),
     );
+    const labelByPlayerId = buildAnalyticsPlayerLabelMap(
+      ((participants ?? []) as PlayerIdentityRow[]).map((player) => player.id),
+      usernameByPlayerId,
+    );
 
     for (const player of (participants ?? []) as PlayerIdentityRow[]) {
       const canonicalId = canonicalPersonId(player);
       identityByPlayerId.set(player.id, {
         canonicalId,
-        displayName: personLabel({
-          username: usernameByPlayerId.get(player.id),
-          displayName: player.display_name,
-        }),
+        displayName: labelByPlayerId.get(player.id) ?? 'Unclaimed player',
       });
 
       const existing = playerIdsByCanonical.get(canonicalId) ?? new Set<string>();
@@ -6007,13 +6338,14 @@ export async function getOverallAnalytics(
     supabase,
     ((players ?? []) as PlayerIdentityRow[]).map((player) => player.id),
   );
+  const labelByPlayerId = buildAnalyticsPlayerLabelMap(
+    ((players ?? []) as PlayerIdentityRow[]).map((player) => player.id),
+    usernameByPlayerId,
+  );
 
   for (const player of (players ?? []) as PlayerIdentityRow[]) {
     const canonicalId = canonicalPersonId(player);
-    const label = personLabel({
-      username: usernameByPlayerId.get(player.id),
-      displayName: player.display_name,
-    });
+    const label = labelByPlayerId.get(player.id) ?? 'Unclaimed player';
     identityByPlayerId.set(player.id, {
       canonicalId,
       displayName: label,
@@ -6033,7 +6365,7 @@ export async function getOverallAnalytics(
     }
   }
 
-  const lookup: IdentityLookup = (playerId, fallbackName) => {
+  const lookup: IdentityLookup = (playerId, _fallbackName) => {
     const identity = identityByPlayerId.get(playerId);
     const canonicalId = identity?.canonicalId ?? playerId;
 
@@ -6042,7 +6374,7 @@ export async function getOverallAnalytics(
       displayName:
         displayNameByCanonical.get(canonicalId) ??
         identity?.displayName ??
-        fallbackName,
+        'Unclaimed player',
     };
   };
 

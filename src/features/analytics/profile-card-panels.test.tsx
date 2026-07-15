@@ -52,19 +52,20 @@ describe("ProfileCardPanels", () => {
         keyCards={[keyCard]}
         lossCards={[lossCard]}
         playerName="Friday Mars"
+        tagOutcomes={[]}
       />,
     );
 
     expect(
       screen.getByRole("heading", {
-        name: /key cards \(highest victory impact\)/i,
+        name: /my most helpful cards \(highest victory impact\)/i,
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Card statistics").length).toBeGreaterThan(0);
     expect(screen.getByText("Rank")).toBeInTheDocument();
-    expect(screen.getByText("Impact score")).toBeInTheDocument();
-    expect(screen.getByText("Win rate")).toBeInTheDocument();
-    expect(screen.getByText("Plays")).toBeInTheDocument();
+    expect(screen.getAllByText("Impact score").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Win rate").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Plays").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Rank 1")).toHaveTextContent("1");
     expect(screen.getByText("+49 pts")).toBeInTheDocument();
     expect(screen.getByText("100%")).toBeInTheDocument();
@@ -77,9 +78,7 @@ describe("ProfileCardPanels", () => {
     expect(screen.getByText("Low confidence")).toBeInTheDocument();
     expect(screen.getByText(/how the ranking works/i)).toBeInTheDocument();
 
-    expect(
-      screen.getByText("Cards Linked to Lower Win Rates"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("My Most Harmful Cards")).toBeInTheDocument();
     expect(screen.getAllByText("Adjusted impact").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Sample").length).toBeGreaterThan(0);
     expect(screen.getByText("−21 pp")).toBeInTheDocument();
@@ -112,6 +111,7 @@ describe("ProfileCardPanels", () => {
         keyCards={[]}
         lossCards={[]}
         playerName="Friday Mars"
+        tagOutcomes={[]}
       />,
     );
 
