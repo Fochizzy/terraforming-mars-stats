@@ -38,3 +38,5 @@ jobs:
           git add src/features/analytics/profile-dashboard.tsx src/features/analytics/profile-tempo-fit-cards.tsx src/features/analytics/profile-tempo-fit-cards.test.tsx scripts/apply-profile-tempo-formatting.mjs .github/workflows/apply-profile-tempo-formatting.yml
           git commit -m "Improve tempo and game-fit card formatting"
           git push origin HEAD:format/profile-tempo-cards
+
+# Trigger the one-time integration workflow.
