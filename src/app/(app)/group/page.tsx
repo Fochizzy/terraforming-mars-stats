@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
+import { FinalTerraformingActionTable } from '@/features/insights/final-terraforming-action-table';
 import {
   GlobalKeyCardsSection,
 } from '@/features/insights/global-key-cards-section';
@@ -10,10 +11,7 @@ import {
   buildGlobalCardImpactData,
   GLOBAL_CARD_IMPACT_MIN_PLAYS,
 } from '@/features/insights/global-card-impact';
-import {
-  FinalTerraformingActionBlock,
-  SelectionStatsScope,
-} from '@/features/insights/selection-stats-section';
+import { SelectionStatsScope } from '@/features/insights/selection-stats-section';
 import { StyleEffectivenessPanel } from '@/features/insights/style-effectiveness';
 import {
   buildStyleScope,
@@ -223,7 +221,7 @@ export default async function GlobalStatisticsPage() {
           stats={globalStats}
         />
         <GlobalInsightMetricsSection metrics={globalInsightMetrics} />
-        <FinalTerraformingActionBlock rows={finalTerraformingActionStats} />
+        <FinalTerraformingActionTable rows={finalTerraformingActionStats} />
         <StyleEffectivenessPanel scopes={styleEffectivenessScopes} />
         <GlobalKeyCardsSection
           baselineWinRate={globalStats.baselineWinRate}
