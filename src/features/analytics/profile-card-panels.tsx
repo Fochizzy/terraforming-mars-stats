@@ -7,10 +7,19 @@ import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { ProfileCardStat } from '@/lib/db/analytics-repo';
 import { formatPercent } from './performance-delta';
 
+const adjustmentFactors = [
+  'Corporation',
+  'Play style',
+  'Scoring',
+  'Pace',
+  'Players',
+  'Map',
+];
+
 const impactGridClass =
-  'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_7.5rem_5rem_7.5rem] lg:items-center';
+  'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_8rem_10rem] lg:items-start';
 const playsGridClass =
-  'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_5rem_7.5rem] lg:items-center';
+  'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_10rem] lg:items-start';
 
 function contextChips(contextLabel: string | undefined) {
   return (
@@ -47,6 +56,27 @@ function ConfidenceBadge({
     >
       {confidence} confidence
     </span>
+  );
+}
+
+function AdjustmentFactors() {
+  return (
+    <div
+      aria-label="Adjusted for"
+      className="mb-4 flex flex-wrap items-center gap-1.5"
+    >
+      <span className="mr-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
+        Adjusted for
+      </span>
+      {adjustmentFactors.map((factor) => (
+        <span
+          className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-xs text-stone-400"
+          key={factor}
+        >
+          {factor}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -95,10 +125,10 @@ function CardCell({
       </CardStatsButton>
       {chips.length > 0 || (showConfidence && card.evidenceConfidence) ? (
         <div className="ml-16 mt-2 flex flex-wrap items-center gap-1.5">
-          {chips.map((chip) => (
+          {chips.map((chip, index) => (
             <span
               className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs font-normal text-stone-300"
-              key={chip}
+              key={`${chip}-${index}`}
             >
               {chip}
             </span>
@@ -112,7 +142,7 @@ function CardCell({
   );
 }
 
-// Estimated lift is a signed win-rate change stored as a fraction. Display it
+// Adjusted impact is a signed win-rate change stored as a fraction. Display it
 // as percentage points so the unit cannot be confused with victory points.
 function formatImpactPoints(impact: number | undefined) {
   if (impact === undefined) {
@@ -132,7 +162,17 @@ function impactToneClass(impact: number | undefined) {
 
 function cardResultSummary(card: ProfileCardStat) {
   const gameLabel = card.plays === 1 ? 'game' : 'games';
-  return `Won ${card.wins} of ${card.plays} ${gameLabel} · Estimate adjusted for your recorded game context.`;
+  const winLabel = card.wins === 1 ? 'win' : 'wins';
+
+  if (card.victoryImpact === undefined) {
+    return `Why it ranked: ${card.wins} ${winLabel} in ${card.plays} comparable ${gameLabel}; estimate adjusted for your recorded game context.`;
+  }
+
+  const points = Math.abs(Math.round(card.victoryImpact * 100));
+  const pointLabel = points === 1 ? 'percentage point' : 'percentage points';
+  const direction = card.victoryImpact >= 0 ? 'higher' : 'lower';
+
+  return `Why it ranked: ${card.wins} ${winLabel} in ${card.plays} comparable ${gameLabel}; adjusted win rate was ${points} ${pointLabel} ${direction}.`;
 }
 
 function MetricCell({
@@ -156,6 +196,35 @@ function MetricCell({
   );
 }
 
+function sampleCountLabel(countLabel: string, count: number) {
+  const singular = countLabel.endsWith('s')
+    ? countLabel.slice(0, -1)
+    : countLabel;
+  return `${count} ${(count === 1 ? singular : countLabel).toLowerCase()}`;
+}
+
+function SampleCell({
+  card,
+  countLabel,
+}: {
+  card: ProfileCardStat;
+  countLabel: string;
+}) {
+  const winLabel = card.wins === 1 ? 'win' : 'wins';
+
+  return (
+    <MetricCell label="Sample">
+      <span className="block font-semibold text-stone-100">
+        {card.wins} / {card.plays} {winLabel}
+      </span>
+      <span className="mt-0.5 block text-xs font-normal text-stone-500">
+        {formatPercent(card.winRate)} win rate ·{' '}
+        {sampleCountLabel(countLabel, card.plays)}
+      </span>
+    </MetricCell>
+  );
+}
+
 function ProfileCardTable({
   cards,
   countLabel,
@@ -175,49 +244,56 @@ function ProfileCardTable({
   const gridClass = showImpact ? impactGridClass : playsGridClass;
 
   return (
-    <div className="grid gap-3">
-      <div className={`${gridClass} tm-data-label hidden px-4 lg:grid`}>
-        <span>Card</span>
-        {showImpact ? <span className="text-right">Estimated lift</span> : null}
-        <span className="text-right">{countLabel}</span>
-        <span className="text-right">Win rate</span>
-      </div>
-      <div className="grid gap-3" role="list">
-        {cards.map((card) => (
-          <article
-            className={`${gridClass} rounded-xl border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
-            key={card.cardId}
-            role="listitem"
-          >
-            <CardCell card={card} showConfidence={showImpact} />
-            {showImpact ? (
-              <MetricCell
-                className={`font-semibold ${impactToneClass(card.victoryImpact)}`}
-                label="Estimated lift"
-              >
-                {formatImpactPoints(card.victoryImpact)}
-              </MetricCell>
-            ) : null}
-            <MetricCell label={countLabel}>{card.plays}</MetricCell>
-            <MetricCell label="Win rate">
-              {formatPercent(card.winRate)}
-              <span className="ml-1 text-xs font-normal text-stone-500">
-                ({card.wins}/{card.plays})
-              </span>
-            </MetricCell>
-            {showImpact ? (
-              <p className="tm-muted-copy border-t border-white/10 pt-3 text-xs leading-relaxed lg:col-span-4">
-                {cardResultSummary(card)}
-              </p>
-            ) : null}
-          </article>
-        ))}
+    <div>
+      {showImpact ? <AdjustmentFactors /> : null}
+      <div className="grid gap-3">
+        <div className={`${gridClass} tm-data-label hidden px-4 lg:grid`}>
+          <span>Card</span>
+          {showImpact ? (
+            <span className="text-right">Adjusted impact</span>
+          ) : null}
+          <span className="text-right">Sample</span>
+        </div>
+        <div className="grid gap-3" role="list">
+          {cards.map((card) => (
+            <article
+              className={`${gridClass} rounded-xl border border-white/10 bg-black/20 px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:border-white/20 hover:bg-white/[0.035]`}
+              key={card.cardId}
+              role="listitem"
+            >
+              <CardCell card={card} showConfidence={showImpact} />
+              {showImpact ? (
+                <MetricCell
+                  className={`font-semibold ${impactToneClass(card.victoryImpact)}`}
+                  label="Adjusted impact"
+                >
+                  {formatImpactPoints(card.victoryImpact)}
+                  <span className="mt-0.5 block text-xs font-normal text-stone-500">
+                    Expected win rate
+                  </span>
+                </MetricCell>
+              ) : null}
+              <SampleCell card={card} countLabel={countLabel} />
+              {showImpact ? (
+                <p className="tm-muted-copy border-t border-white/10 pt-3 text-xs leading-relaxed lg:col-span-3 lg:ml-16">
+                  {cardResultSummary(card)}
+                </p>
+              ) : null}
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function MethodologyDetails({ children, title }: { children: ReactNode; title: string }) {
+function MethodologyDetails({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  title: string;
+}) {
   return (
     <details className="mt-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-xs">
       <summary className="cursor-pointer font-medium text-stone-300 transition hover:text-stone-100">
@@ -252,21 +328,21 @@ export function ProfileCardPanels({
           variant="impact"
         />
         {keyCards.length > 0 ? (
-          <MethodologyDetails title="How estimated lift is calculated">
+          <MethodologyDetails title="How adjusted impact is calculated">
             <GlossaryRichText>
-              Key cards are not picked by hand. Context-adjusted estimated lift compares each result with your normal performance using that corporation, play style, scoring method, game pace, table size, and map, then blends in global card performance and play-count confidence.
+              Key cards are not picked by hand. Context-adjusted impact compares each result with your normal performance using that corporation, play style, scoring method, game pace, table size, and map, then blends in global card performance and play-count confidence.
             </GlossaryRichText>
           </MethodologyDetails>
         ) : null}
       </ChartFrame>
       <ChartFrame
-        description="Cards with the lowest estimated win-rate lift after accounting for play count and your recorded game context."
-        title="My Loss-Correlated Cards"
+        description="Cards associated with worse results after accounting for the context of each game."
+        title="Cards Linked to Lower Win Rates"
       >
         <ProfileCardTable
           cards={lossCards}
           countLabel="Games"
-          emptyCopy={`No loss-correlated cards yet for ${playerName}. Import a finalized game log so we can measure which cards drag your win rate down the most.`}
+          emptyCopy={`No loss-correlated cards yet for ${playerName}. Import a finalized game log so we can measure which cards lower your adjusted win rate the most.`}
           variant="impact"
         />
         {lossCards.length > 0 ? (
