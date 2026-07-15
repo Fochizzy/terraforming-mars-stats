@@ -1,0 +1,27 @@
+name: Apply selection statistics UI
+
+on:
+  push:
+    branches:
+      - style/selection-stat-table-complete-ui
+    paths:
+      - .github/workflows/apply-selection-stat-table-ui.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: style/selection-stat-table-complete-ui
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply component and tests
+        shell: bash
+        env:
+          COMPONENT_B64: H4sIADCMV2oC/9U9aZfbRnLf51fAjOJH2rxnRpE518ryEb+1ZEWydt/L
