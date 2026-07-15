@@ -43,17 +43,48 @@ export function formatPercentagePointDelta(value: number) {
   return '0 pp';
 }
 
+/** Returns 'positive' when the delta is beneficial, 'negative' when harmful, 'neutral' otherwise. */
+export function deltaDirection(
+  delta: number,
+  lowerIsBetter = false,
+): 'positive' | 'negative' | 'neutral' {
+  if (delta === 0) return 'neutral';
+  const beneficial = lowerIsBetter ? delta < 0 : delta > 0;
+  return beneficial ? 'positive' : 'negative';
+}
+
+/** 'Early trend' | 'Developing trend' | 'Established trend' */
+export function sampleStrength(gamesPlayed: number): string {
+  if (gamesPlayed >= 10) return 'Established trend';
+  if (gamesPlayed >= 5) return 'Developing trend';
+  return 'Early trend';
+}
+
+export type StatEntry = {
+  label: string;
+  value: string;
+  /** Raw numeric delta (group − overall) used for direction colouring. */
+  numericDelta: number | null;
+  /** Formatted delta string. */
+  delta: string | null;
+  /** Whether lower values for this metric are better (e.g. placement). */
+  lowerIsBetter?: boolean;
+};
+
 export function buildGroupStatEntries({
   overallPerformance,
   performance,
 }: {
   overallPerformance: LeaderboardRow | null;
   performance: LeaderboardRow;
-}) {
+}): StatEntry[] {
   return [
     {
       label: 'Weighted Score',
       value: formatAverage(performance.weightedScore),
+      numericDelta: overallPerformance
+        ? performance.weightedScore - overallPerformance.weightedScore
+        : null,
       delta: overallPerformance
         ? formatSignedAverage(
             performance.weightedScore - overallPerformance.weightedScore,
@@ -63,6 +94,9 @@ export function buildGroupStatEntries({
     {
       label: 'Win Rate',
       value: formatPercent(performance.winRate),
+      numericDelta: overallPerformance
+        ? performance.winRate - overallPerformance.winRate
+        : null,
       delta: overallPerformance
         ? formatPercentagePointDelta(
             performance.winRate - overallPerformance.winRate,
@@ -72,6 +106,10 @@ export function buildGroupStatEntries({
     {
       label: 'Average Placement',
       value: formatAverage(performance.averagePlacement),
+      lowerIsBetter: true,
+      numericDelta: overallPerformance
+        ? performance.averagePlacement - overallPerformance.averagePlacement
+        : null,
       delta: overallPerformance
         ? (() => {
             const difference =
@@ -86,6 +124,9 @@ export function buildGroupStatEntries({
     {
       label: 'Average Score',
       value: formatAverage(performance.averageScore),
+      numericDelta: overallPerformance
+        ? performance.averageScore - overallPerformance.averageScore
+        : null,
       delta: overallPerformance
         ? formatSignedAverage(
             performance.averageScore - overallPerformance.averageScore,
