@@ -25,7 +25,7 @@ import { TagLabel } from '@/components/ui/tag-icon';
 import { GlossaryRichText } from '@/features/glossary/glossary-rich-text';
 import type { TagOutcomeRow } from '@/lib/db/extended-analytics-repo';
 import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
-import { SelectionNameButton } from './selection-name-link';
+import { CorporationRelationshipPanel } from './corporation-relationship-panel';
 
 export function listAvailableTagCodes(rows: TagOutcomeRow[]) {
   return [...new Set(rows.map((row) => row.tagCode))].sort((left, right) =>
@@ -215,7 +215,6 @@ export function buildTagCountDistributionData(
 
   for (const row of relevantRows) {
     const entry = totals.get(row.tagCount) ?? { results: 0, wins: 0 };
-
     entry.results += 1;
     entry.wins += row.isWinner ? 1 : 0;
     totals.set(row.tagCount, entry);
@@ -310,6 +309,68 @@ export function buildCorporationTagData(
     );
 }
 
+function TagWinRateTable({ data }: { data: TagWinRateDatum[] }) {
+  return (
+    <div className="mt-2 overflow-x-auto">
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="tm-data-label">
+            <th className="py-1 pr-3">Tag</th>
+            <th className="py-1 pr-3">Results</th>
+            <th className="py-1 pr-3">Win rate</th>
+            <th className="py-1 pr-3">Wins</th>
+            <th className="py-1 pr-3">Avg count</th>
+            <th className="py-1 pr-3">Max count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((entry) => (
+            <tr className="border-t border-white/5" key={entry.tagCode}>
+              <td className="py-1 pr-3 font-semibold text-stone-100">
+                <TagLabel code={entry.tagCode} />
+              </td>
+              <td className="py-1 pr-3">{entry.results}</td>
+              <td className="py-1 pr-3">{entry.winRate}%</td>
+              <td className="py-1 pr-3">{entry.wins}/{entry.results}</td>
+              <td className="py-1 pr-3">{entry.averageTagCount}</td>
+              <td className="py-1 pr-3">{entry.maxTagCount}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DistributionTable({ data }: { data: TagCountDistributionDatum[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="tm-data-label">
+            <th className="py-1 pr-3">Count</th>
+            <th className="py-1 pr-3">Results</th>
+            <th className="py-1 pr-3">Share</th>
+            <th className="py-1 pr-3">Win rate</th>
+            <th className="py-1 pr-3">Wins</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((entry) => (
+            <tr className="border-t border-white/5" key={entry.tagCount}>
+              <td className="py-1 pr-3 font-semibold text-stone-100">{entry.tagCount}</td>
+              <td className="py-1 pr-3">{entry.results}</td>
+              <td className="py-1 pr-3">{entry.resultShare}%</td>
+              <td className="py-1 pr-3">{entry.winRate}%</td>
+              <td className="py-1 pr-3">{entry.wins}/{entry.results}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function TagOutcomesSection(props: {
   dialogData?: SelectionDialogData;
   focusPlayerId: string | null;
@@ -321,14 +382,8 @@ export function TagOutcomesSection(props: {
   const activeTagCode = tagCodes.includes(selectedTagCode)
     ? selectedTagCode
     : tagCodes[0] ?? '';
-  const winRateData = buildTagWinRateData(
-    props.rows,
-    props.focusPlayerId,
-  );
-  const narratives = buildTagOutcomeNarratives(
-    props.rows,
-    props.focusPlayerId,
-  );
+  const winRateData = buildTagWinRateData(props.rows, props.focusPlayerId);
+  const narratives = buildTagOutcomeNarratives(props.rows, props.focusPlayerId);
   const distributionData = buildTagCountDistributionData(
     props.rows,
     activeTagCode,
@@ -360,7 +415,7 @@ export function TagOutcomesSection(props: {
         </p>
       ) : (
         <div className="flex flex-col gap-4">
-          <div>
+          <section>
             <h3 className="tm-data-label mb-2 text-xs">Win Rate by Tag</h3>
             <p className="tm-muted-copy mb-2 text-xs">
               {activeTagCode ? <TagLabel code={activeTagCode} /> : null}
@@ -388,36 +443,7 @@ export function TagOutcomesSection(props: {
                 />
               </BarChart>
             </ResponsiveContainer>
-            <div className="mt-2 overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="tm-data-label">
-                    <th className="py-1 pr-3">Tag</th>
-                    <th className="py-1 pr-3">Results</th>
-                    <th className="py-1 pr-3">Win rate</th>
-                    <th className="py-1 pr-3">Wins</th>
-                    <th className="py-1 pr-3">Avg count</th>
-                    <th className="py-1 pr-3">Max count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {winRateData.map((entry) => (
-                    <tr className="border-t border-white/5" key={entry.tagCode}>
-                      <td className="py-1 pr-3 font-semibold text-stone-100">
-                        <TagLabel code={entry.tagCode} />
-                      </td>
-                      <td className="py-1 pr-3">{entry.results}</td>
-                      <td className="py-1 pr-3">{entry.winRate}%</td>
-                      <td className="py-1 pr-3">
-                        {entry.wins}/{entry.results}
-                      </td>
-                      <td className="py-1 pr-3">{entry.averageTagCount}</td>
-                      <td className="py-1 pr-3">{entry.maxTagCount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TagWinRateTable data={winRateData} />
             {narratives.length > 0 ? (
               <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-3">
                 <h4 className="tm-data-label text-xs">What the tag data says</h4>
@@ -428,9 +454,9 @@ export function TagOutcomesSection(props: {
                 </ul>
               </div>
             ) : null}
-          </div>
+          </section>
 
-          <div className="flex flex-col gap-3">
+          <section className="flex flex-col gap-3">
             <div className="relative max-w-[220px]">
               <label className="tm-data-label" htmlFor="tag-outcome-select">
                 Tag Distribution
@@ -447,9 +473,7 @@ export function TagOutcomesSection(props: {
                   </option>
                 ))}
               </select>
-              <span className="mt-2 block">
-                <SelectChevron />
-              </span>
+              <span className="mt-2 block"><SelectChevron /></span>
               {activeTagCode ? (
                 <span className="tm-muted-copy mt-2 flex text-xs">
                   <TagLabel code={activeTagCode} />
@@ -489,11 +513,7 @@ export function TagOutcomesSection(props: {
                   name={`${activeTagCode} count`}
                   tick={chartAxisTick}
                 />
-                <YAxis
-                  allowDecimals={false}
-                  tick={chartAxisTick}
-                  yAxisId="results"
-                />
+                <YAxis allowDecimals={false} tick={chartAxisTick} yAxisId="results" />
                 <YAxis
                   domain={[0, 100]}
                   orientation="right"
@@ -521,117 +541,14 @@ export function TagOutcomesSection(props: {
                 />
               </ComposedChart>
             </ResponsiveContainer>
+            <DistributionTable data={distributionData} />
+          </section>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="tm-data-label">
-                    <th className="py-1 pr-3">Count</th>
-                    <th className="py-1 pr-3">Results</th>
-                    <th className="py-1 pr-3">Share</th>
-                    <th className="py-1 pr-3">Win rate</th>
-                    <th className="py-1 pr-3">Wins</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {distributionData.map((entry) => (
-                    <tr className="border-t border-white/5" key={entry.tagCount}>
-                      <td className="py-1 pr-3 font-semibold text-stone-100">
-                        {entry.tagCount}
-                      </td>
-                      <td className="py-1 pr-3">{entry.results}</td>
-                      <td className="py-1 pr-3">{entry.resultShare}%</td>
-                      <td className="py-1 pr-3">{entry.winRate}%</td>
-                      <td className="py-1 pr-3">
-                        {entry.wins}/{entry.results}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <CorporationRelationshipPanel
+            data={corporationTagData}
+            dialogData={props.dialogData}
+          />
 
-          <div>
-            <h3 className="tm-data-label mb-2 text-xs">
-              Corporation Relationship
-            </h3>
-            <ResponsiveContainer height={320} width="100%">
-              <ComposedChart
-                data={corporationTagData}
-                margin={{ bottom: 96, left: 0, right: 12, top: 8 }}
-              >
-                <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                <XAxis
-                  angle={-90}
-                  dataKey="corporationName"
-                  height={110}
-                  interval={0}
-                  textAnchor="end"
-                  tick={chartAxisTick}
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  tick={chartAxisTick}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip contentStyle={chartTooltipStyle} />
-                <Legend />
-                <Bar
-                  dataKey="tagUseRate"
-                  fill={chartSeriesColors.accent}
-                  name="Use rate"
-                  radius={[10, 10, 0, 0]}
-                  unit="%"
-                />
-                <Line
-                  dataKey="winRate"
-                  name="Win rate"
-                  stroke={chartSeriesColors.greenery}
-                  strokeWidth={2}
-                  type="monotone"
-                  unit="%"
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-            <div className="mt-2 overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="tm-data-label">
-                    <th className="py-1 pr-3">Corporation</th>
-                    <th className="py-1 pr-3">Results</th>
-                    <th className="py-1 pr-3">Use rate</th>
-                    <th className="py-1 pr-3">Avg count</th>
-                    <th className="py-1 pr-3">Win rate</th>
-                    <th className="py-1 pr-3">Wins</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {corporationTagData.map((entry) => (
-                    <tr
-                      className="border-t border-white/5"
-                      key={entry.corporationId ?? entry.corporationName}
-                    >
-                      <td className="py-1 pr-3 font-semibold text-stone-100">
-                        <SelectionNameButton
-                          dialogData={props.dialogData}
-                          kind="Corporation"
-                          name={entry.corporationName}
-                        />
-                      </td>
-                      <td className="py-1 pr-3">{entry.results}</td>
-                      <td className="py-1 pr-3">{entry.tagUseRate}%</td>
-                      <td className="py-1 pr-3">{entry.averageTagCount}</td>
-                      <td className="py-1 pr-3">{entry.winRate}%</td>
-                      <td className="py-1 pr-3">
-                        {entry.winsWithTag}/{entry.withTagResults}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
           {winRateData.length === 0 ? (
             <p className="tm-muted-copy text-sm">
               <GlossaryRichText>
