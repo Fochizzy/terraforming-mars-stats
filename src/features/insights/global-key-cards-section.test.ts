@@ -6,6 +6,7 @@ import type { CardWinStat } from '@/lib/db/selection-stats-repo';
 import {
   buildGlobalKeyCardData,
   GlobalKeyCardsSection,
+  GLOBAL_KEY_CARD_LIMIT,
 } from './global-key-cards-section';
 
 function card(
@@ -95,15 +96,34 @@ describe('buildGlobalKeyCardData', () => {
       }),
     );
 
+    expect(
+      screen.getByRole('heading', { name: /key cards \(highest victory impact\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/rankings combine win-rate difference and sample/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/how this is calculated/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/only cards with at least 5 recorded plays are ranked/i),
+    ).toBeInTheDocument();
+
     expect(screen.getByText('Positive 10')).toBeInTheDocument();
     expect(screen.queryByText('Positive 11')).not.toBeInTheDocument();
-    expect(screen.getAllByText(/composite impact score/i)).toHaveLength(10);
+    expect(screen.getByLabelText('Rank 1')).toBeInTheDocument();
+    expect(screen.getByLabelText(`Rank ${GLOBAL_KEY_CARD_LIMIT}`)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/positive 1 positive impact strength/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/play-count confidence is/i)).not.toBeInTheDocument();
 
     await user.click(
-      screen.getByRole('button', { name: /see more positive cards/i }),
+      screen.getByRole('button', { name: /view all 2 positive cards/i }),
     );
 
     expect(screen.getByText('Positive 11')).toBeInTheDocument();
     expect(screen.getByText('Positive 12')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /show top 10/i }),
+    ).toHaveAttribute('aria-expanded', 'true');
   });
 });

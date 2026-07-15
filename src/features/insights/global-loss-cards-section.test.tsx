@@ -41,9 +41,7 @@ describe('GlobalLossCardsSection', () => {
       screen.getByRole('heading', { name: /cards most correlated with losses/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /rankings combine win-rate difference and sample confidence/i,
-      ),
+      screen.getByText(/rankings combine win-rate difference and sample/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/how this is calculated/i)).toBeInTheDocument();
     expect(
