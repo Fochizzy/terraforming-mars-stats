@@ -3,9 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type { LeaderboardRow, ProfileAnalytics, ScoreSourceAverages } from '@/lib/db/analytics-repo';
 import { GroupPlayComparison } from './group-play-comparison';
 
+const routerMock = vi.hoisted(() => ({ push: vi.fn() }));
+
 // next/navigation is used for auto-submit on select change
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => routerMock,
 }));
 
 function leaderboardRow(overrides: Partial<LeaderboardRow> = {}): LeaderboardRow {
