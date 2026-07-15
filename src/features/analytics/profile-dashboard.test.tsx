@@ -19,6 +19,18 @@ describe('ProfileDashboard', () => {
         playerId: 'p1',
         playerName: 'Friday Mars',
       },
+      groupScoreAverages: {
+        averageAnimalPoints: 1.7,
+        averageAwardPoints: 4.2,
+        averageCardPoints: 18.6,
+        averageCitiesPoints: 8.1,
+        averageGreeneryPoints: 10.4,
+        averageJovianPoints: 2.9,
+        averageMicrobePoints: 1.3,
+        averageMilestonePoints: 3.6,
+        averageOtherCardPoints: 9.8,
+        averageTrPoints: 27.8,
+      },
       headToHeadRows: [
         {
           averagePlacementEdge: 0.75,
@@ -114,14 +126,13 @@ describe('ProfileDashboard', () => {
       },
     };
 
-    render(
-      <ProfileDashboard {...props} />,
-    );
+    render(<ProfileDashboard {...props} />);
 
     expect(screen.getByText(/my performance/i)).toBeInTheDocument();
-    expect(screen.getByText(/friday mars/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/friday mars/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/second seat/i)).toBeInTheDocument();
-    expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /score source radar/i })).toBeInTheDocument();
+    expect(screen.getByText(/group average/i)).toBeInTheDocument();
     expect(screen.getByText(/declared vs inferred style/i)).toBeInTheDocument();
     expect(screen.getByText(/based on 4 finalized games/i)).toBeInTheDocument();
     expect(screen.getByText(/efficiency summary/i)).toBeInTheDocument();
