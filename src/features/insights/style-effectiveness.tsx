@@ -299,11 +299,11 @@ function MetricCell({
 }) {
   return (
     <div className="min-w-0 bg-black/15 px-3 py-3 first:rounded-l-lg last:rounded-r-lg">
-      <dt className="flex items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
-        <Icon aria-hidden="true" className="h-3.5 w-3.5 text-amber-300/80" />
+      <dt className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.62rem] font-semibold uppercase leading-4 tracking-[0.14em] text-stone-500">
+        <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-amber-300/80" />
         {label}
       </dt>
-      <dd className={`mt-1 text-sm font-semibold tabular-nums ${valueClassName}`}>
+      <dd className={`mt-1 break-words text-sm font-semibold tabular-nums ${valueClassName}`}>
         {value}
       </dd>
     </div>
@@ -344,23 +344,23 @@ function SummaryBody({ scope }: { scope: StyleEffectivenessScopeInput }) {
               key={style.styleCode}
               role="listitem"
             >
-              <div className="grid gap-4 xl:grid-cols-[minmax(190px,0.8fr)_minmax(260px,1.15fr)_minmax(410px,1.45fr)_minmax(180px,0.7fr)] xl:items-center">
-                <div className="flex items-center gap-3">
+              <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,0.8fr)] xl:items-center">
+                <div className="flex min-w-0 items-center gap-3">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-amber-300/35 bg-amber-300/[0.07] shadow-[inset_0_0_18px_rgba(251,191,36,0.05)]">
                     <StyleIcon aria-hidden="true" className="h-6 w-6 text-amber-300" />
                   </span>
-                  <h3 className="text-base font-semibold text-amber-200 sm:text-lg">
+                  <h3 className="min-w-0 text-base font-semibold text-amber-200 sm:text-lg">
                     <GlossaryRichText maxLinks={1}>{style.label}</GlossaryRichText>
                   </h3>
                 </div>
 
-                <p className="text-sm leading-6 text-stone-300">
+                <p className="min-w-0 text-sm leading-6 text-stone-300">
                   <GlossaryRichText>{style.description}</GlossaryRichText>{' '}
                   Appears in {style.gamesPlayed.toLocaleString('en-US')}{' '}
                   {style.gamesPlayed === 1 ? 'game' : 'games'}.
                 </p>
 
-                <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 sm:grid-cols-4">
+                <dl className="grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 sm:grid-cols-4">
                   <MetricCell
                     icon={Star}
                     label="Games"
@@ -385,7 +385,7 @@ function SummaryBody({ scope }: { scope: StyleEffectivenessScopeInput }) {
                 </dl>
 
                 <p
-                  className={`rounded-lg border px-3 py-3 text-xs leading-5 ${tone.badge}`}
+                  className={`min-w-0 break-words rounded-lg border px-3 py-3 text-xs leading-5 ${tone.badge}`}
                 >
                   <GlossaryRichText>{style.verdict}</GlossaryRichText>
                 </p>
