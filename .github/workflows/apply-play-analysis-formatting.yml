@@ -1,0 +1,342 @@
+name: Apply Play Analysis formatting
+
+on:
+  push:
+    branches:
+      - style/play-analysis-formatting
+
+permissions:
+  contents: write
+
+jobs:
+  apply-formatting:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: style/play-analysis-formatting
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply focused Play Analysis patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          dashboard_path = Path('src/features/analytics/profile-dashboard.tsx')
+          dashboard = dashboard_path.read_text()
+
+          helper_anchor = """  return renderLinkedText(insight.body, links);
+          }
+
+          type ProfileDashboardProps = {
+          """
+          helper_replacement = """  return renderLinkedText(insight.body, links);
+          }
+
+          const analysisMetricPattern =
+            /\\b\\d+(?:\\.\\d+)?%\\s+(?:win rate|of finalized games|of inferred-style games|of the stronger-table sample)|\\b\\d+(?:\\.\\d+)?%|[+−-]?\\d+(?:\\.\\d+)?(?:-point|\\s+(?:objective\\s+)?points?|\\s+pts)(?:\\s+per generation)?|\\b\\d+(?:\\.\\d+)?\\s+standard deviation|\\b\\d+(?:\\.\\d+)?\\s+more than\\s+non-wins|\\b\\d+\\s+(?:wins?|non-wins?|finalized games?|games?|attributed removals?)|\\b\\d+-\\d+-\\d+\\b/gi;
+
+          function renderAnalysisSentence(sentence: string): ReactNode[] {
+            const metricMatcher = new RegExp(
+              `(${analysisMetricPattern.source})`,
+              'gi',
+            );
+            const exactMetricMatcher = new RegExp(
+              `^(?:${analysisMetricPattern.source})$`,
+              'i',
+            );
+
+            return sentence
+              .split(metricMatcher)
+              .filter(Boolean)
+              .map((segment, index) =>
+                exactMetricMatcher.test(segment) ? (
+                  <span className="tm-analysis-metric" key={`metric-${index}`}>
+                    {segment}
+                  </span>
+                ) : (
+                  <GlossaryRichText key={`copy-${index}`}>{segment}</GlossaryRichText>
+                ),
+              );
+          }
+
+          type ProfileDashboardProps = {
+          """
+          if helper_anchor not in dashboard:
+              raise SystemExit('Could not find helper insertion point')
+          dashboard = dashboard.replace(helper_anchor, helper_replacement, 1)
+
+          old_section = """      <ChartFrame title="Play Analysis">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <article className="tm-stat-card">
+                    <h3 className="font-semibold text-stone-100">
+                      What {playerName} Does Well
+                    </h3>
+                    <ul
+                      aria-label={`What ${playerName} does well`}
+                      className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300"
+                    >
+                      {playAnalysis.strengths.map((sentence) => (
+                        <li key={sentence}>
+                          <GlossaryRichText>{sentence}</GlossaryRichText>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                  <article className="tm-stat-card">
+                    <h3 className="font-semibold text-stone-100">
+                      How {playerName} Could Improve
+                    </h3>
+                    <ul
+                      aria-label={`How ${playerName} could improve`}
+                      className="mt-3 grid list-disc gap-2 pl-5 text-sm text-stone-300"
+                    >
+                      {playAnalysis.improvements.map((sentence) => (
+                        <li key={sentence}>
+                          <GlossaryRichText>{sentence}</GlossaryRichText>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                </div>
+              </ChartFrame>
+          """
+          new_section = """      <section
+                aria-labelledby="play-analysis-title"
+                className="tm-play-analysis"
+              >
+                <h2 className="tm-play-analysis__eyebrow" id="play-analysis-title">
+                  Play Analysis
+                </h2>
+                <div className="tm-play-analysis__grid">
+                  <article className="tm-play-analysis-card tm-play-analysis-card--strengths">
+                    <h3 className="tm-play-analysis-card__title">
+                      What {playerName} Does Well
+                    </h3>
+                    <ul
+                      aria-label={`What ${playerName} does well`}
+                      className="tm-play-analysis-list"
+                    >
+                      {playAnalysis.strengths.map((sentence) => (
+                        <li className="tm-play-analysis-list__item" key={sentence}>
+                          {renderAnalysisSentence(sentence)}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                  <article className="tm-play-analysis-card tm-play-analysis-card--improvements">
+                    <h3 className="tm-play-analysis-card__title">
+                      How {playerName} Could Improve
+                    </h3>
+                    <ul
+                      aria-label={`How ${playerName} could improve`}
+                      className="tm-play-analysis-list"
+                    >
+                      {playAnalysis.improvements.map((sentence) => (
+                        <li className="tm-play-analysis-list__item" key={sentence}>
+                          {renderAnalysisSentence(sentence)}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                </div>
+              </section>
+          """
+          if old_section not in dashboard:
+              raise SystemExit('Could not find Play Analysis section')
+          dashboard = dashboard.replace(old_section, new_section, 1)
+          dashboard_path.write_text(dashboard)
+
+          css_path = Path('src/app/globals.css')
+          css = css_path.read_text()
+          css_anchor = """  .tm-stat-card {
+              @apply rounded-2xl border p-3;
+              background:
+                linear-gradient(180deg, rgba(32, 19, 16, 0.72), rgba(15, 18, 24, 0.84));
+              border-color: rgba(192, 162, 127, 0.24);
+              box-shadow: inset 0 1px 0 rgba(255, 229, 191, 0.06);
+            }
+          """
+          css_replacement = """  .tm-stat-card {
+              @apply rounded-2xl border p-3;
+              background:
+                linear-gradient(180deg, rgba(32, 19, 16, 0.72), rgba(15, 18, 24, 0.84));
+              border-color: rgba(192, 162, 127, 0.24);
+              box-shadow: inset 0 1px 0 rgba(255, 229, 191, 0.06);
+            }
+
+            .tm-play-analysis {
+              @apply rounded-2xl border px-5 pb-5 pt-6 md:px-6 md:pb-6;
+              background:
+                linear-gradient(180deg, rgba(28, 33, 41, 0.94), rgba(12, 15, 20, 0.96));
+              border-color: rgba(255, 255, 255, 0.12);
+              box-shadow:
+                0 12px 30px rgba(0, 0, 0, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+              overflow: hidden;
+              position: relative;
+            }
+
+            .tm-play-analysis__eyebrow {
+              color: var(--tm-dust-300);
+              font-family: var(--tm-font-display);
+              font-size: 1.125rem;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              line-height: 1.25;
+              text-transform: uppercase;
+            }
+
+            .tm-play-analysis__grid {
+              @apply mt-5 grid gap-4 lg:grid-cols-2;
+            }
+
+            .tm-play-analysis-card {
+              @apply min-w-0 rounded-2xl border p-5 md:p-6;
+              background:
+                linear-gradient(180deg, rgba(30, 20, 19, 0.76), rgba(13, 16, 22, 0.9));
+              border-color: rgba(255, 255, 255, 0.1);
+              border-left-width: 3px;
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            }
+
+            .tm-play-analysis-card--strengths {
+              border-left-color: rgba(139, 195, 79, 0.72);
+            }
+
+            .tm-play-analysis-card--improvements {
+              border-left-color: rgba(221, 161, 93, 0.78);
+            }
+
+            .tm-play-analysis-card__title {
+              color: #f9efe2;
+              font-size: 1.25rem;
+              font-weight: 700;
+              line-height: 1.3;
+            }
+
+            .tm-play-analysis-card--strengths .tm-play-analysis-card__title {
+              color: #dcebc8;
+            }
+
+            .tm-play-analysis-card--improvements .tm-play-analysis-card__title {
+              color: #f0d2a6;
+            }
+
+            .tm-play-analysis-list {
+              @apply mt-5 grid list-disc pl-[1.375rem] text-base;
+              color: var(--tm-text);
+              gap: 0.875rem;
+              line-height: 1.55;
+            }
+
+            .tm-play-analysis-list__item {
+              max-width: 62ch;
+              padding-left: 0.15rem;
+            }
+
+            .tm-play-analysis-card--strengths .tm-play-analysis-list__item::marker {
+              color: rgba(166, 210, 112, 0.9);
+              font-size: 0.82em;
+            }
+
+            .tm-play-analysis-card--improvements .tm-play-analysis-list__item::marker {
+              color: rgba(232, 177, 111, 0.92);
+              font-size: 0.82em;
+            }
+
+            .tm-play-analysis-card .tm-glossary-link {
+              color: var(--tm-dust-300);
+              font-weight: 600;
+              text-decoration: none;
+            }
+
+            .tm-play-analysis-card .tm-glossary-link:hover {
+              color: #fff3e6;
+              text-decoration: none;
+            }
+
+            .tm-analysis-metric {
+              align-items: baseline;
+              background: rgba(221, 161, 93, 0.11);
+              border: 1px solid rgba(221, 161, 93, 0.28);
+              border-radius: 9999px;
+              box-shadow: inset 0 1px 0 rgba(255, 238, 214, 0.06);
+              color: #f2cf9d;
+              display: inline-flex;
+              font-size: 0.92em;
+              font-weight: 600;
+              line-height: 1.35;
+              margin-inline: 0.08rem;
+              padding: 0.05rem 0.42rem;
+              vertical-align: baseline;
+              white-space: nowrap;
+            }
+          """
+          if css_anchor not in css:
+              raise SystemExit('Could not find CSS insertion point')
+          css = css.replace(css_anchor, css_replacement, 1)
+          css_path.write_text(css)
+
+          test_path = Path('src/features/analytics/profile-dashboard.test.tsx')
+          test = test_path.read_text()
+          test_anchor = """    expect(
+              within(
+                screen.getByRole('list', {
+                  name: /how friday mars could improve/i,
+                }),
+              ).getAllByRole('listitem'),
+            ).toHaveLength(4);
+          """
+          test_replacement = """    expect(
+              within(
+                screen.getByRole('list', {
+                  name: /how friday mars could improve/i,
+                }),
+              ).getAllByRole('listitem'),
+            ).toHaveLength(4);
+            const playAnalysisRegion = screen.getByRole('region', {
+              name: /play analysis/i,
+            });
+            expect(
+              within(playAnalysisRegion).getAllByText(/75%/, {
+                selector: '.tm-analysis-metric',
+              }).length,
+            ).toBeGreaterThan(0);
+            expect(
+              within(playAnalysisRegion).getByText(/2\\.5 points/, {
+                selector: '.tm-analysis-metric',
+              }),
+            ).toBeInTheDocument();
+          """
+          if test_anchor not in test:
+              raise SystemExit('Could not find test insertion point')
+          test = test.replace(test_anchor, test_replacement, 1)
+          test_path.write_text(test)
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format changed files
+        run: npx prettier --write src/features/analytics/profile-dashboard.tsx src/features/analytics/profile-dashboard.test.tsx src/app/globals.css
+
+      - name: Run focused tests
+        run: npm run test -- src/features/analytics/profile-dashboard.test.tsx
+
+      - name: Commit generated changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/analytics/profile-dashboard.tsx src/features/analytics/profile-dashboard.test.tsx src/app/globals.css
+          git commit -m "Improve Play Analysis formatting"
+          git push origin HEAD:style/play-analysis-formatting
