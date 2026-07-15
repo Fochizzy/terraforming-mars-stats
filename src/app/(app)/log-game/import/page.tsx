@@ -8,6 +8,8 @@ import {
   buildImportDraft,
   type CreateImportDraftInput,
 } from '@/lib/imports/build-import-draft';
+import { createOcrProvider } from '@/lib/ocr/create-ocr-provider';
+import { processImportScreenshot } from '@/lib/ocr/process-import-screenshot';
 import { listPlayers } from '@/lib/db/player-repo';
 import { listMaps } from '@/lib/db/reference-repo';
 import { revalidatePath } from 'next/cache';
@@ -35,19 +37,59 @@ export default async function LogGameImportPage() {
       form: draftForm,
       userId: activeContext.userId,
     });
-    await saveGameLogImport({
+    const gameLogImport = await saveGameLogImport({
       gameId: draft.gameId,
       rawLogText: values.exportedGameLog,
       screenshotFile: values.endgameScreenshot,
       userId: activeContext.userId,
     });
 
+    let ocr:
+      | {
+          attemptId: string;
+          needsReviewCount: number;
+          status: 'needs_review' | 'ready_to_parse';
+          unresolvedCount: number;
+        }
+      | null = null;
+    let ocrWarning: string | null = null;
+
+    if (values.endgameScreenshot) {
+      try {
+        const result = await processImportScreenshot({
+          file: values.endgameScreenshot,
+          gameLogImportId: gameLogImport.id,
+          ocrProvider: createOcrProvider(),
+        });
+
+        ocr = {
+          attemptId: result.attemptId,
+          needsReviewCount: result.needsReviewCount,
+          status: result.status,
+          unresolvedCount: result.unresolvedCount,
+        };
+      } catch (error) {
+        console.error('OCR processing failed', {
+          error,
+          gameLogImportId: gameLogImport.id,
+        });
+        ocrWarning =
+          'The import was saved, but the screenshot could not be processed.';
+      }
+    }
+
     revalidatePath('/log-game');
 
     return {
       status: 'success' as const,
       gameId: draft.gameId,
-      message: `Import draft ${draft.gameId.slice(0, 8)} saved with evidence.`,
+      gameLogImportId: gameLogImport.id,
+      ocr,
+      message:
+        ocr?.status === 'needs_review'
+          ? `Import draft ${draft.gameId.slice(0, 8)} saved. Some OCR results require review.`
+          : ocrWarning ??
+            `Import draft ${draft.gameId.slice(0, 8)} saved with evidence.`,
     };
   }
 
