@@ -10,7 +10,10 @@ const items = [
 
 export function BottomNav() {
   return (
-    <nav aria-label="Bottom navigation" className="tm-bottom-nav">
+    <nav
+      aria-label="Bottom navigation"
+      className="tm-bottom-nav sticky bottom-0 z-30 grid-cols-5"
+    >
       {items.map((item) => (
         <Link
           className="tm-bottom-nav__link"
