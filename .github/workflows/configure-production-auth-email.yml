@@ -1,13 +1,9 @@
 name: Configure production auth email
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      - opened
-      - synchronize
-      - reopened
     paths:
       - .github/workflows/configure-production-auth-email.yml
       - scripts/auth/**
@@ -23,10 +19,6 @@ concurrency:
 
 jobs:
   configure:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-      github.head_ref == 'auth/resend-branded-emails')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -46,6 +38,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Verify configuration files
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/auth/configure-email-auth.mjs
+          grep -Fq '{{ .ConfirmationURL }}' supabase/templates/confirmation.html
+          grep -Fq '{{ .ConfirmationURL }}' supabase/templates/recovery.html
+          grep -Fq '{{ .SiteURL }}' supabase/templates/password-changed.html
 
       - name: Verify required secret
         shell: bash
