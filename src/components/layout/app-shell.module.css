@@ -141,6 +141,25 @@
   transform: translateY(-1px);
 }
 
+.primaryNavigationLinkLeaderboard {
+  margin: 0 0.7rem;
+  border: 1px solid rgba(205, 238, 152, 0.62);
+  border-radius: 0.3rem;
+  background: linear-gradient(180deg, #a8cf63 0%, #7ba73d 52%, #4f7525 100%);
+  box-shadow:
+    0 8px 18px rgba(42, 72, 24, 0.34),
+    inset 0 1px 0 rgba(241, 255, 214, 0.5);
+  color: #101b0a;
+  font-weight: 700;
+}
+
+.primaryNavigationLinkLeaderboard:hover,
+.primaryNavigationLinkLeaderboard:focus-visible {
+  background: linear-gradient(180deg, #b9dc78 0%, #8ab849 52%, #5a822b 100%);
+  color: #0b1407;
+  transform: translateY(-1px);
+}
+
 @media (min-width: 768px) {
   .utilityBar,
   .primaryNavigation {
