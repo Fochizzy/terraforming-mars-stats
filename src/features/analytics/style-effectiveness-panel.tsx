@@ -120,16 +120,62 @@ function getComparisonLabel(
   return 'In line with global baseline';
 }
 
-function MetricPill({ label, value }: { label: string; value: string }) {
+function getComparisonTone(winRate: number, benchmarkWinRate: number) {
+  const difference = winRate - benchmarkWinRate;
+
+  if (difference >= 0.05) {
+    return 'border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-200';
+  }
+
+  if (difference <= -0.05) {
+    return 'border-rose-400/25 bg-rose-400/[0.08] text-rose-200';
+  }
+
+  return 'border-amber-300/20 bg-amber-300/[0.07] text-amber-100';
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="inline-flex items-baseline gap-1.5 rounded-full border border-stone-700/70 bg-stone-950/35 px-3 py-1.5">
-      <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-stone-500">
+    <div className="rounded-xl border border-white/[0.07] bg-black/20 px-3 py-3">
+      <dt className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-stone-500">
         {label}
       </dt>
-      <dd className="text-sm font-semibold tabular-nums text-stone-100">
+      <dd className="mt-1 text-base font-semibold tabular-nums text-stone-100">
         {value}
       </dd>
     </div>
+  );
+}
+
+function StrategyIcon({ index }: { index: number }) {
+  const paths = [
+    <path d="m5 13 4-4 3 3 7-7" key="path" />,
+    <>
+      <path d="M5 19V9" key="a" />
+      <path d="M12 19V5" key="b" />
+      <path d="M19 19v-7" key="c" />
+    </>,
+    <>
+      <circle cx="12" cy="12" key="a" r="7" />
+      <path d="M12 5v14M5 12h14" key="b" />
+    </>,
+  ];
+
+  return (
+    <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-amber-300/20 bg-amber-300/[0.07] text-amber-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <svg
+        aria-hidden="true"
+        className="size-5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+        viewBox="0 0 24 24"
+      >
+        {paths[index % paths.length]}
+      </svg>
+    </span>
   );
 }
 
@@ -166,129 +212,188 @@ export function StyleEffectivenessPanel({
 
   return (
     <ChartFrame title="Style Effectiveness">
-      <div className="space-y-6">
-        <p className="max-w-2xl text-sm leading-6 text-stone-300 sm:text-base">
-          A plain-language read on the play styles these games fall into—what
-          drives them, and how well each one works.
-        </p>
-
+      <div className="relative -mx-1 overflow-hidden rounded-2xl border border-amber-400/15 bg-stone-950/25 sm:-mx-2">
         <div
-          aria-label="Style effectiveness scope"
-          className="inline-flex rounded-xl border border-stone-700/80 bg-stone-950/40 p-1"
-          role="tablist"
-        >
-          <button
-            aria-selected={scope === 'personal'}
-            className={[
-              'rounded-lg px-4 py-2 text-sm font-medium transition',
-              'focus-visible:outline-none focus-visible:ring-2',
-              'focus-visible:ring-amber-300/70 disabled:cursor-not-allowed',
-              'disabled:opacity-40',
-              scope === 'personal'
-                ? 'bg-stone-700 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-100',
-            ].join(' ')}
-            disabled={personalRows.length === 0}
-            onClick={() => setScope('personal')}
-            role="tab"
-            type="button"
-          >
-            Your games
-          </button>
-          <button
-            aria-selected={scope === 'global'}
-            className={[
-              'rounded-lg px-4 py-2 text-sm font-medium transition',
-              'focus-visible:outline-none focus-visible:ring-2',
-              'focus-visible:ring-amber-300/70 disabled:cursor-not-allowed',
-              'disabled:opacity-40',
-              scope === 'global'
-                ? 'bg-stone-700 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-100',
-            ].join(' ')}
-            disabled={globalRows.length === 0}
-            onClick={() => setScope('global')}
-            role="tab"
-            type="button"
-          >
-            Global
-          </button>
-        </div>
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(circle_at_82%_0%,rgba(194,92,35,0.28),transparent_42%),linear-gradient(180deg,rgba(245,158,11,0.06),transparent)]"
+        />
 
-        {primaryStyle ? (
-          <section className="max-w-3xl rounded-2xl border border-amber-400/15 bg-amber-400/[0.045] p-4 sm:p-5">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-amber-300">
-              Primary style
-            </p>
-            <p className="mt-2 text-sm leading-6 text-stone-200 sm:text-base">
-              {scope === 'personal'
-                ? 'Your points come mostly from '
-                : 'Points in this dataset come mostly from '}
-              <span className="font-semibold text-amber-100">
-                {sourceSummary}
-              </span>
-              —which most often plays as{' '}
-              <span className="font-semibold text-amber-100">
-                {humanizeStyleCode(primaryStyle.styleCode)}
-              </span>
-              .
-            </p>
-          </section>
-        ) : null}
+        <div className="relative p-4 sm:p-6 lg:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 flex items-center gap-3">
+                <span className="grid size-10 place-items-center rounded-xl border border-amber-300/25 bg-amber-300/[0.08] text-amber-300 shadow-[0_0_28px_rgba(245,158,11,0.08)]">
+                  <svg
+                    aria-hidden="true"
+                    className="size-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="12" r="7" />
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                    <circle cx="12" cy="12" r="2" />
+                  </svg>
+                </span>
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-amber-300/90">
+                  Strategy profile
+                </p>
+              </div>
+              <p className="text-sm leading-6 text-stone-300 sm:text-base">
+                A clear read on the play styles these games fall into, what
+                drives them, and how consistently each one performs.
+              </p>
+            </div>
 
-        {displayedRows.length === 0 ? (
-          <p className="rounded-2xl border border-stone-800 bg-stone-950/30 p-4 text-sm text-stone-400">
-            Style performance will appear after finalized games have enough
-            scoring data to classify.
-          </p>
-        ) : (
-          <div role="tabpanel">
-            {displayedRows.map((row) => (
-              <article
-                className="border-t border-stone-800/80 py-5 first:border-t-0 first:pt-0 last:pb-0"
-                key={row.styleCode}
+            <div
+              aria-label="Style effectiveness scope"
+              className="inline-grid w-fit grid-cols-2 rounded-xl border border-white/[0.08] bg-black/30 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+              role="tablist"
+            >
+              <button
+                aria-selected={scope === 'personal'}
+                className={[
+                  'min-w-28 rounded-lg px-4 py-2.5 text-sm font-semibold transition',
+                  'focus-visible:outline-none focus-visible:ring-2',
+                  'focus-visible:ring-amber-300/70 disabled:cursor-not-allowed',
+                  'disabled:opacity-40',
+                  scope === 'personal'
+                    ? 'bg-gradient-to-b from-amber-300/20 to-amber-500/10 text-amber-50 shadow-[inset_0_0_0_1px_rgba(252,211,77,0.28),0_4px_18px_rgba(0,0,0,0.22)]'
+                    : 'text-stone-400 hover:bg-white/[0.04] hover:text-stone-100',
+                ].join(' ')}
+                disabled={personalRows.length === 0}
+                onClick={() => setScope('personal')}
+                role="tab"
+                type="button"
               >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="max-w-2xl">
-                    <h3 className="font-serif text-lg font-semibold text-amber-200">
-                      {humanizeStyleCode(row.styleCode)}
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-stone-400">
-                      {STYLE_DESCRIPTIONS[row.styleCode] ??
-                        'A distinct scoring pattern inferred from finalized games.'}
-                    </p>
-                  </div>
-                  <span className="w-fit rounded-full border border-stone-700 bg-stone-900/70 px-3 py-1 text-xs font-medium text-stone-300">
-                    {getComparisonLabel(
-                      row.winRate,
-                      benchmarkWinRate,
-                      scope,
-                    )}
-                  </span>
-                </div>
-
-                <dl className="mt-4 flex flex-wrap gap-2">
-                  <MetricPill
-                    label="Games"
-                    value={row.gamesPlayed.toLocaleString('en-US')}
-                  />
-                  <MetricPill
-                    label="Avg points"
-                    value={formatAverage(row.averageScore)}
-                  />
-                  <MetricPill
-                    label="Avg finish"
-                    value={formatAverage(row.averagePlacement)}
-                  />
-                  <MetricPill
-                    label="Win rate"
-                    value={formatPercent(row.winRate)}
-                  />
-                </dl>
-              </article>
-            ))}
+                Your games
+              </button>
+              <button
+                aria-selected={scope === 'global'}
+                className={[
+                  'min-w-28 rounded-lg px-4 py-2.5 text-sm font-semibold transition',
+                  'focus-visible:outline-none focus-visible:ring-2',
+                  'focus-visible:ring-amber-300/70 disabled:cursor-not-allowed',
+                  'disabled:opacity-40',
+                  scope === 'global'
+                    ? 'bg-gradient-to-b from-amber-300/20 to-amber-500/10 text-amber-50 shadow-[inset_0_0_0_1px_rgba(252,211,77,0.28),0_4px_18px_rgba(0,0,0,0.22)]'
+                    : 'text-stone-400 hover:bg-white/[0.04] hover:text-stone-100',
+                ].join(' ')}
+                disabled={globalRows.length === 0}
+                onClick={() => setScope('global')}
+                role="tab"
+                type="button"
+              >
+                Global
+              </button>
+            </div>
           </div>
-        )}
+
+          {primaryStyle ? (
+            <section className="mt-6 flex items-start gap-4 rounded-2xl border border-amber-300/20 bg-gradient-to-r from-amber-300/[0.09] via-amber-300/[0.04] to-transparent p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-5">
+              <span className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-xl border border-amber-300/25 bg-black/25 text-amber-300">
+                <svg
+                  aria-hidden="true"
+                  className="size-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M4 18 9 13l3 3 8-9" />
+                  <path d="M15 7h5v5" />
+                </svg>
+              </span>
+              <div>
+                <p className="text-[0.66rem] font-semibold uppercase tracking-[0.2em] text-amber-300">
+                  Primary style
+                </p>
+                <p className="mt-1.5 text-sm leading-6 text-stone-200 sm:text-base">
+                  {scope === 'personal'
+                    ? 'Your points come mostly from '
+                    : 'Points in this dataset come mostly from '}
+                  <span className="font-semibold text-amber-100">
+                    {sourceSummary}
+                  </span>
+                  , which most often plays as{' '}
+                  <span className="font-semibold text-amber-100">
+                    {humanizeStyleCode(primaryStyle.styleCode)}
+                  </span>
+                  .
+                </p>
+              </div>
+            </section>
+          ) : null}
+
+          {displayedRows.length === 0 ? (
+            <p className="mt-6 rounded-2xl border border-white/[0.07] bg-black/20 p-5 text-sm text-stone-400">
+              Style performance will appear after finalized games have enough
+              scoring data to classify.
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-3" role="tabpanel">
+              {displayedRows.map((row, index) => (
+                <article
+                  className="group rounded-2xl border border-white/[0.075] bg-gradient-to-r from-white/[0.035] to-transparent p-4 transition hover:border-amber-300/20 hover:bg-amber-300/[0.025] sm:p-5"
+                  key={row.styleCode}
+                >
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                    <div className="flex min-w-0 items-start gap-4">
+                      <StrategyIcon index={index} />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <h3 className="font-serif text-lg font-semibold text-amber-100 sm:text-xl">
+                            {humanizeStyleCode(row.styleCode)}
+                          </h3>
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-[0.66rem] font-semibold ${getComparisonTone(
+                              row.winRate,
+                              benchmarkWinRate,
+                            )}`}
+                          >
+                            {getComparisonLabel(
+                              row.winRate,
+                              benchmarkWinRate,
+                              scope,
+                            )}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-sm leading-6 text-stone-400">
+                          {STYLE_DESCRIPTIONS[row.styleCode] ??
+                            'A distinct scoring pattern inferred from finalized games.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[31rem]">
+                      <Metric
+                        label="Games"
+                        value={row.gamesPlayed.toLocaleString('en-US')}
+                      />
+                      <Metric
+                        label="Avg points"
+                        value={formatAverage(row.averageScore)}
+                      />
+                      <Metric
+                        label="Avg finish"
+                        value={formatAverage(row.averagePlacement)}
+                      />
+                      <Metric
+                        label="Win rate"
+                        value={formatPercent(row.winRate)}
+                      />
+                    </dl>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </ChartFrame>
   );
