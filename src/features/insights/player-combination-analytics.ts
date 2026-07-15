@@ -217,7 +217,7 @@ export function buildPlayerCombinationOptions(input: {
   }
 
   return input.focusPeople
-    .flatMap((person) => {
+    .map((person) => {
       const gameIds = new Set<string>();
 
       for (const playerId of person.playerIds) {
@@ -226,24 +226,22 @@ export function buildPlayerCombinationOptions(input: {
         }
       }
 
-      if (gameIds.size === 0) {
-        return [];
-      }
+      const fallbackGamesPlayed =
+        person.bundle.performance?.gamesPlayed ??
+        new Set(person.bundle.trendRows.map((row) => row.gameId)).size;
 
-      return [
-        {
-          canonicalId: person.canonicalId,
-          displayName: person.displayName,
-          gamesPlayed: gameIds.size,
-          playerIds: person.playerIds,
-        },
-      ];
+      return {
+        canonicalId: person.canonicalId,
+        displayName: person.displayName,
+        gamesPlayed: gameIds.size > 0 ? gameIds.size : fallbackGamesPlayed,
+        playerIds: person.playerIds,
+      };
     })
-    .sort(
-      (left, right) =>
-        right.gamesPlayed - left.gamesPlayed ||
-        left.displayName.localeCompare(right.displayName),
-    );
+    .sort((left, right) => {
+      if (left.canonicalId === input.currentUserCanonicalId) return -1;
+      if (right.canonicalId === input.currentUserCanonicalId) return 1;
+      return right.gamesPlayed - left.gamesPlayed || left.displayName.localeCompare(right.displayName);
+    });
 }
 
 function findMatchingGameIds(input: {
