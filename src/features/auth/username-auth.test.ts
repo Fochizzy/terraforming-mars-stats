@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildSyntheticAuthEmail,
+  authEmailSchema,
+  normalizeAuthEmail,
   normalizeUsername,
   pinSchema,
   signupFullNameSchema,
+  usernameHandleSchema,
 } from './username-auth';
 
 describe('username auth helpers', () => {
@@ -11,17 +13,51 @@ describe('username auth helpers', () => {
     expect(normalizeUsername('  Friday.Mars  ')).toBe('friday-mars');
   });
 
-  it('builds deterministic synthetic auth emails', () => {
-    expect(buildSyntheticAuthEmail('Friday Mars')).toBe(
-      'friday-mars@users.tmstats.local',
+  it('normalizes auth emails to trimmed lowercase values', () => {
+    expect(normalizeAuthEmail('  Friday.Mars@Example.COM  ')).toBe(
+      'friday.mars@example.com',
     );
   });
 
-  it('rejects non four-digit PIN values', () => {
-    expect(() => pinSchema.parse('12a4')).toThrow(/4 digits/i);
+  it('validates real email addresses for auth', () => {
+    expect(authEmailSchema.parse('  Friday.Mars@Example.COM  ')).toBe(
+      'friday.mars@example.com',
+    );
+    expect(() => authEmailSchema.parse('friday-mars')).toThrow(/email/i);
   });
 
-  it('requires first and last name for signup', () => {
-    expect(() => signupFullNameSchema.parse('Friday')).toThrow(/full name/i);
+  it('accepts exactly six digits for the login PIN', () => {
+    expect(pinSchema.parse('123456')).toBe('123456');
+    expect(() => pinSchema.parse('12a456')).toThrow(/6 digits/i);
+    expect(() => pinSchema.parse('12345')).toThrow(/6 digits/i);
+  });
+
+  it('requires both a first and last name for signup', () => {
+    expect(() => signupFullNameSchema.parse('James')).toThrow(
+      /first and last name/i,
+    );
+    expect(() => signupFullNameSchema.parse('Revloki')).toThrow(
+      /first and last name/i,
+    );
+    // A second token with no letters is not a last name.
+    expect(() => signupFullNameSchema.parse('James .')).toThrow(
+      /first and last name/i,
+    );
+  });
+
+  it('accepts a first and last name for signup', () => {
+    expect(signupFullNameSchema.parse('  James   Hodnett  ')).toBe(
+      'James Hodnett',
+    );
+  });
+
+  it('accepts a single-word username handle and preserves its casing', () => {
+    expect(usernameHandleSchema.parse('  Revloki  ')).toBe('Revloki');
+  });
+
+  it('rejects a username handle with no letters or numbers', () => {
+    expect(() => usernameHandleSchema.parse('!!!')).toThrow(
+      /letters or numbers/i,
+    );
   });
 });

@@ -4,6 +4,10 @@ function collapseWhitespace(value: string) {
   return value.trim().replace(/\s+/g, ' ');
 }
 
+export function normalizeAuthEmail(input: string) {
+  return input.trim().toLowerCase();
+}
+
 export function normalizeUsername(input: string) {
   return collapseWhitespace(input)
     .toLowerCase()
@@ -11,29 +15,36 @@ export function normalizeUsername(input: string) {
     .replace(/^-+|-+$/g, '');
 }
 
-export const emailSchema = z
+export const authEmailSchema = z
   .string()
-  .trim()
-  .toLowerCase()
-  .email('Enter a valid email address.');
+  .transform(normalizeAuthEmail)
+  .refine(
+    (value) => z.email().safeParse(value).success,
+    'Enter a valid email address.',
+  );
 
 export const pinSchema = z
   .string()
   .regex(/^\d{6}$/, 'PIN must be exactly 6 digits.');
 
+export const signInPinSchema = pinSchema;
+
 export const signupFullNameSchema = z
   .string()
   .transform(collapseWhitespace)
-  .refine((value) => value.split(' ').filter(Boolean).length >= 2, {
-    message: 'Enter a full name in First Name Last Name format.',
-  });
+  .refine(
+    (value) =>
+      value.split(' ').filter((part) => /\p{L}/u.test(part)).length >= 2,
+    {
+      message: 'Enter both a first and last name (e.g. James Hodnett).',
+    },
+  );
 
-export const signupUsernameSchema = z
+// A username/handle is a single label (e.g. "Revloki"): case is preserved for
+// display, and it only has to contain something that normalizes to a slug.
+export const usernameHandleSchema = z
   .string()
-  .transform(normalizeUsername)
-  .refine((value) => value.length >= 3, {
-    message: 'Username must contain at least 3 letters or numbers.',
-  })
-  .refine((value) => value.length <= 32, {
-    message: 'Username must be 32 characters or fewer.',
+  .transform(collapseWhitespace)
+  .refine((value) => normalizeUsername(value).length > 0, {
+    message: 'Enter a username using letters or numbers.',
   });
