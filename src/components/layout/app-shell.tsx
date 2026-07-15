@@ -80,7 +80,9 @@ export function AppShell({
             {headerActions}
           </div>
         </header>
-        <section className="flex-1 w-full px-5 py-5">{children}</section>
+        <section className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+          {children}
+        </section>
       </div>
     </main>
   );
