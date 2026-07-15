@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  type ReactNode,
   useEffect,
   useId,
   useMemo,
@@ -26,8 +27,8 @@ import type {
   PreludeSelectionStat,
 } from '@/lib/db/selection-stats-repo';
 
-// Stack order and hues validated together (CVD-safe adjacency on the dark
-// surface) with the dataviz palette validator — keep order and colors paired.
+// Stack order and hues were validated together for adjacent readability on the
+// dark chart surface. Keep the order and colors paired.
 const ORIGIN_SERIES = [
   { color: '#c14e1e', key: 'tr', label: 'TR' },
   { color: '#3388bb', key: 'cities', label: 'Cities' },
@@ -40,19 +41,16 @@ const CHART_SURFACE = '#141a22';
 const AXIS_TICKS = [0, 25, 50, 75, 100];
 
 type OriginSeriesKey = (typeof ORIGIN_SERIES)[number]['key'];
-type SortMode = 'name' | 'plays' | 'vp';
 type OriginKind = 'corporation' | 'prelude';
-
+type SortMode = 'name' | 'plays' | 'vp';
 type OriginRow = (CorporationSelectionStat | PreludeSelectionStat) & {
   name: string;
 };
-
 type ShareRow = Record<OriginSeriesKey, number> & {
   averagePoints: number;
   name: string;
   plays: number;
 };
-
 type AxisTickProps = {
   payload?: { value?: string };
   x?: number;
@@ -98,14 +96,7 @@ function toShareRow(row: OriginRow): ShareRow | null {
       result[series.key] = Math.round((parts[series.key] / total) * 1000) / 10;
       return result;
     },
-    {
-      awards: 0,
-      cards: 0,
-      cities: 0,
-      greenery: 0,
-      milestones: 0,
-      tr: 0,
-    },
+    { awards: 0, cards: 0, cities: 0, greenery: 0, milestones: 0, tr: 0 },
   );
   const roundedTotal = Object.values(shares).reduce(
     (sum, value) => sum + value,
@@ -115,8 +106,8 @@ function toShareRow(row: OriginRow): ShareRow | null {
     shares[series.key] > shares[largest.key] ? series : largest,
   );
 
-  // Rounding six independent shares can produce 99.9% or 100.1%. Correct the
-  // largest segment so the normalized stack and its axis always end at 100%.
+  // Six separately rounded shares can total 99.9% or 100.1%. Correct the
+  // largest segment so every normalized stack ends at exactly 100%.
   shares[largestSeries.key] = Number(
     (shares[largestSeries.key] + (100 - roundedTotal)).toFixed(1),
   );
@@ -152,7 +143,7 @@ function sortRows(rows: OriginRow[], sortMode: SortMode) {
   });
 }
 
-function MetricPill({ children }: { children: React.ReactNode }) {
+function MetricPill({ children }: { children: ReactNode }) {
   return (
     <span className="inline-flex whitespace-nowrap rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-xs tabular-nums text-stone-300">
       {children}
@@ -160,15 +151,7 @@ function MetricPill({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RankingCard({
-  dialogLabel,
-  kind,
-  rows,
-}: {
-  dialogLabel: string;
-  kind: OriginKind;
-  rows: OriginRow[];
-}) {
+function RankingCard({ kind, rows }: { kind: OriginKind; rows: OriginRow[] }) {
   const rankedRows = sortRows(rows, 'vp').slice(0, 2);
   const title = kind === 'corporation' ? 'Top Corporations' : 'Top Preludes';
 
@@ -188,37 +171,30 @@ function RankingCard({
         </span>
       </div>
       <ol className="mt-3 grid gap-2">
-        {rankedRows.map((row, index) => {
-          const isSmallSample = row.plays < 3;
-
-          return (
-            <li
-              className="grid gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3 transition-colors hover:border-white/15 hover:bg-white/[0.04] sm:grid-cols-[2rem_minmax(10rem,1fr)_auto] sm:items-center"
-              key={row.name}
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-orange-300/20 bg-orange-300/[0.08] text-xs font-semibold tabular-nums text-orange-100">
-                {index + 1}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-stone-100" title={row.name}>
-                  {row.name}
-                </p>
-                <p className="mt-0.5 text-xs text-stone-500">{dialogLabel}</p>
-              </div>
-              <div className="flex flex-wrap gap-1.5 sm:justify-end">
-                <MetricPill>{formatNumber(row.avg_points)} VP</MetricPill>
-                <MetricPill>{formatPercent(row.win_rate)} win rate</MetricPill>
-                <MetricPill>{formatNumber(row.avg_placement)} avg place</MetricPill>
-                <MetricPill>{pluralize(row.plays, 'play')}</MetricPill>
-                {isSmallSample ? (
-                  <span className="inline-flex whitespace-nowrap rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2.5 py-1 text-xs text-amber-100/80">
-                    Small sample
-                  </span>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
+        {rankedRows.map((row, index) => (
+          <li
+            className="grid gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3 transition-colors hover:border-white/15 hover:bg-white/[0.04] sm:grid-cols-[2rem_minmax(10rem,1fr)_auto] sm:items-center"
+            key={row.name}
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-orange-300/20 bg-orange-300/[0.08] text-xs font-semibold tabular-nums text-orange-100">
+              {index + 1}
+            </span>
+            <p className="min-w-0 truncate font-semibold text-stone-100" title={row.name}>
+              {row.name}
+            </p>
+            <div className="flex flex-wrap gap-1.5 sm:justify-end">
+              <MetricPill>{formatNumber(row.avg_points)} VP</MetricPill>
+              <MetricPill>{formatPercent(row.win_rate)} win rate</MetricPill>
+              <MetricPill>{formatNumber(row.avg_placement)} avg place</MetricPill>
+              <MetricPill>{pluralize(row.plays, 'play')}</MetricPill>
+              {row.plays < 3 ? (
+                <span className="inline-flex whitespace-nowrap rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2.5 py-1 text-xs text-amber-100/80">
+                  Small sample
+                </span>
+              ) : null}
+            </div>
+          </li>
+        ))}
       </ol>
     </section>
   );
@@ -228,14 +204,11 @@ function findScopeRoot(start: HTMLElement | null) {
   let candidate = start;
 
   while (candidate) {
-    const hasDirectHeading = Array.from(candidate.children).some(
-      (child) => child.tagName === 'H3',
-    );
-
-    if (hasDirectHeading) {
+    if (
+      Array.from(candidate.children).some((child) => child.tagName === 'H3')
+    ) {
       return candidate;
     }
-
     candidate = candidate.parentElement;
   }
 
@@ -266,15 +239,13 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
       ? Array.from(scopeRoot.children).find((child) => child.tagName === 'H3')
       : null;
     const headingText = scopeHeading?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-    const allRecorded = /all recorded games/i.test(headingText);
-    const hiddenElements: HTMLElement[] = [];
+    const visuallyHiddenElements: HTMLElement[] = [];
 
-    setIsAllRecordedGames(allRecorded);
+    setIsAllRecordedGames(/all recorded games/i.test(headingText));
 
     if (wrapperHeading instanceof HTMLElement) {
-      wrapperHeading.hidden = true;
-      wrapperHeading.dataset.selectionOriginHidden = 'true';
-      hiddenElements.push(wrapperHeading);
+      wrapperHeading.classList.add('sr-only');
+      visuallyHiddenElements.push(wrapperHeading);
     }
 
     if (kind === 'corporation' && scopeRoot) {
@@ -288,9 +259,8 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
       const legacySummary = legacySummaryHeading?.parentElement;
 
       if (legacySummary) {
-        legacySummary.hidden = true;
-        legacySummary.dataset.selectionOriginHidden = 'true';
-        hiddenElements.push(legacySummary);
+        legacySummary.classList.add('sr-only');
+        visuallyHiddenElements.push(legacySummary);
       }
     }
 
@@ -299,13 +269,9 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
     }
 
     return () => {
-      for (const element of hiddenElements) {
-        if (element.dataset.selectionOriginHidden === 'true') {
-          element.hidden = false;
-          delete element.dataset.selectionOriginHidden;
-        }
+      for (const element of visuallyHiddenElements) {
+        element.classList.remove('sr-only');
       }
-
       if (scopeHeading instanceof HTMLElement) {
         scopeHeading.classList.remove(
           'text-base',
@@ -390,11 +356,7 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
         </div>
       ) : null}
 
-      <RankingCard
-        dialogLabel={`${pluralize(filteredRows.length, kindLabel)} in the current filter`}
-        kind={kind}
-        rows={filteredRows}
-      />
+      <RankingCard kind={kind} rows={filteredRows} />
 
       <div className="mt-5 flex flex-col gap-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -410,7 +372,10 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="grid gap-1 text-[0.65rem] uppercase tracking-[0.12em] text-stone-500" htmlFor={minPlaysId}>
+            <label
+              className="grid gap-1 text-[0.65rem] uppercase tracking-[0.12em] text-stone-500"
+              htmlFor={minPlaysId}
+            >
               Minimum sample
               <select
                 className="rounded-lg border border-white/10 bg-stone-950/80 px-2.5 py-1.5 text-xs normal-case tracking-normal text-stone-200 outline-none transition focus:border-sky-300/40"
@@ -423,7 +388,10 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
                 <option value={5}>5+ plays</option>
               </select>
             </label>
-            <label className="grid gap-1 text-[0.65rem] uppercase tracking-[0.12em] text-stone-500" htmlFor={sortId}>
+            <label
+              className="grid gap-1 text-[0.65rem] uppercase tracking-[0.12em] text-stone-500"
+              htmlFor={sortId}
+            >
               Sort
               <select
                 className="rounded-lg border border-white/10 bg-stone-950/80 px-2.5 py-1.5 text-xs normal-case tracking-normal text-stone-200 outline-none transition focus:border-sky-300/40"
