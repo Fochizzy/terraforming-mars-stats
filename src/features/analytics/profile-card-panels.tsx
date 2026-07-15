@@ -9,8 +9,6 @@ import { formatPercent } from './performance-delta';
 
 const impactGridClass =
   'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_7.5rem_5rem_7.5rem] lg:items-center';
-const playsGridClass =
-  'grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_5rem_7.5rem] lg:items-center';
 
 function contextChips(contextLabel: string | undefined) {
   return (
@@ -50,6 +48,41 @@ function ConfidenceBadge({
   );
 }
 
+function CardThumbnail({
+  card,
+  compact = false,
+}: {
+  card: ProfileCardStat;
+  compact?: boolean;
+}) {
+  const sizeClass = compact
+    ? 'h-[68px] w-12 rounded-md'
+    : 'h-[70px] w-[52px] rounded-sm';
+  const interactionClass = compact
+    ? 'shadow-md transition-transform group-hover:-translate-y-0.5 group-hover:scale-[1.03]'
+    : '';
+
+  if (isRenderableCardImage(card.thumbnailUrl)) {
+    return (
+      <Image
+        alt={`${card.cardName} thumbnail`}
+        className={`${sizeClass} ${interactionClass} shrink-0 object-contain`}
+        height={compact ? 68 : 70}
+        src={card.thumbnailUrl}
+        unoptimized
+        width={compact ? 48 : 52}
+      />
+    );
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`${sizeClass} ${interactionClass} shrink-0 border border-white/10 bg-white/5`}
+    />
+  );
+}
+
 function CardCell({
   card,
   showConfidence,
@@ -57,24 +90,6 @@ function CardCell({
   card: ProfileCardStat;
   showConfidence: boolean;
 }) {
-  // Cards whose art hasn't been backfilled into Supabase Storage carry the
-  // `/file.svg` placeholder or a Heroku search-page URL, which would render as a
-  // generic document icon. Show a neutral tile for those instead.
-  const thumbnail = isRenderableCardImage(card.thumbnailUrl) ? (
-    <Image
-      alt={`${card.cardName} thumbnail`}
-      className="h-[70px] w-[52px] shrink-0 rounded-sm object-contain"
-      height={70}
-      src={card.thumbnailUrl}
-      unoptimized
-      width={52}
-    />
-  ) : (
-    <span
-      aria-hidden="true"
-      className="h-[70px] w-[52px] shrink-0 rounded-sm border border-white/10 bg-white/5"
-    />
-  );
   const chips = contextChips(card.contextLabel);
 
   return (
@@ -88,7 +103,7 @@ function CardCell({
         }}
         className="group flex min-w-0 items-start gap-3 text-left"
       >
-        {thumbnail}
+        <CardThumbnail card={card} />
         <span className="min-w-0 pt-1 break-words font-semibold text-stone-100 transition group-hover:text-white">
           {card.cardName}
         </span>
@@ -130,6 +145,18 @@ function impactToneClass(impact: number | undefined) {
   return impact > 0 ? 'text-emerald-400' : 'text-rose-400';
 }
 
+function winRateToneClass(winRate: number) {
+  if (winRate >= 0.5) {
+    return 'border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-200';
+  }
+
+  if (winRate >= 0.3) {
+    return 'border-amber-400/20 bg-amber-400/[0.08] text-amber-200';
+  }
+
+  return 'border-rose-400/20 bg-rose-400/[0.08] text-rose-200';
+}
+
 function cardResultSummary(card: ProfileCardStat) {
   const gameLabel = card.plays === 1 ? 'game' : 'games';
   return `Won ${card.wins} of ${card.plays} ${gameLabel} · Estimate adjusted for your recorded game context.`;
@@ -156,48 +183,41 @@ function MetricCell({
   );
 }
 
-function ProfileCardTable({
+function ImpactCardTable({
   cards,
   countLabel,
   emptyCopy,
-  variant = 'plays',
 }: {
   cards: ProfileCardStat[];
   countLabel: string;
   emptyCopy: string;
-  variant?: 'impact' | 'plays';
 }) {
   if (cards.length === 0) {
     return <p className="tm-muted-copy text-sm">{emptyCopy}</p>;
   }
 
-  const showImpact = variant === 'impact';
-  const gridClass = showImpact ? impactGridClass : playsGridClass;
-
   return (
     <div className="grid gap-3">
-      <div className={`${gridClass} tm-data-label hidden px-4 lg:grid`}>
+      <div className={`${impactGridClass} tm-data-label hidden px-4 lg:grid`}>
         <span>Card</span>
-        {showImpact ? <span className="text-right">Estimated lift</span> : null}
+        <span className="text-right">Estimated lift</span>
         <span className="text-right">{countLabel}</span>
         <span className="text-right">Win rate</span>
       </div>
       <div className="grid gap-3" role="list">
         {cards.map((card) => (
           <article
-            className={`${gridClass} rounded-xl border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
+            className={`${impactGridClass} rounded-xl border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
             key={card.cardId}
             role="listitem"
           >
-            <CardCell card={card} showConfidence={showImpact} />
-            {showImpact ? (
-              <MetricCell
-                className={`font-semibold ${impactToneClass(card.victoryImpact)}`}
-                label="Estimated lift"
-              >
-                {formatImpactPoints(card.victoryImpact)}
-              </MetricCell>
-            ) : null}
+            <CardCell card={card} showConfidence />
+            <MetricCell
+              className={`font-semibold ${impactToneClass(card.victoryImpact)}`}
+              label="Estimated lift"
+            >
+              {formatImpactPoints(card.victoryImpact)}
+            </MetricCell>
             <MetricCell label={countLabel}>{card.plays}</MetricCell>
             <MetricCell label="Win rate">
               {formatPercent(card.winRate)}
@@ -205,15 +225,108 @@ function ProfileCardTable({
                 ({card.wins}/{card.plays})
               </span>
             </MetricCell>
-            {showImpact ? (
-              <p className="tm-muted-copy border-t border-white/10 pt-3 text-xs leading-relaxed lg:col-span-4">
-                {cardResultSummary(card)}
-              </p>
-            ) : null}
+            <p className="tm-muted-copy border-t border-white/10 pt-3 text-xs leading-relaxed lg:col-span-4">
+              {cardResultSummary(card)}
+            </p>
           </article>
         ))}
       </div>
     </div>
+  );
+}
+
+function MostPlayedCardTable({
+  cards,
+  emptyCopy,
+}: {
+  cards: ProfileCardStat[];
+  emptyCopy: string;
+}) {
+  if (cards.length === 0) {
+    return <p className="tm-muted-copy px-5 py-5 text-sm sm:px-6">{emptyCopy}</p>;
+  }
+
+  return (
+    <div>
+      <div className="tm-data-label hidden grid-cols-[minmax(0,1fr)_7rem_10rem] gap-6 border-b border-white/[0.06] bg-black/10 px-5 py-3 lg:grid">
+        <span>Card</span>
+        <span className="text-right">Plays</span>
+        <span className="text-right">Win rate</span>
+      </div>
+      <ol className="divide-y divide-white/[0.06]" role="list">
+        {cards.map((card, index) => (
+          <li key={card.cardId}>
+            <CardStatsButton
+              card={{
+                cardName: card.cardName,
+                fullImageUrl: card.fullImageUrl,
+                id: card.cardId,
+                thumbnailUrl: card.thumbnailUrl,
+              }}
+              className="group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 text-left transition-colors hover:bg-white/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400/60 sm:px-5 lg:grid-cols-[minmax(0,1fr)_7rem_10rem] lg:gap-6"
+            >
+              <span className="row-span-2 flex min-w-0 items-center gap-3 lg:row-span-1">
+                <span
+                  aria-label={`Rank ${index + 1}`}
+                  className="w-5 shrink-0 text-right text-sm tabular-nums text-stone-600"
+                >
+                  {index + 1}
+                </span>
+                <CardThumbnail card={card} compact />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-stone-100 transition-colors group-hover:text-white">
+                    {card.cardName}
+                  </span>
+                  <span className="mt-1 block text-xs text-stone-500">
+                    Click for card statistics
+                  </span>
+                </span>
+              </span>
+              <span className="inline-flex justify-self-end rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-sm font-medium tabular-nums text-stone-200">
+                {card.plays}
+                <span className="ml-1 text-xs font-normal text-stone-500">plays</span>
+              </span>
+              <span
+                className={`inline-flex min-w-[8.5rem] items-baseline justify-between gap-3 justify-self-end rounded-full border px-3 py-1.5 tabular-nums ${winRateToneClass(card.winRate)}`}
+              >
+                <strong className="text-sm">{formatPercent(card.winRate)}</strong>
+                <span className="text-xs font-normal opacity-70">
+                  {card.wins}/{card.plays}
+                </span>
+              </span>
+            </CardStatsButton>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function MostPlayedCardsPanel({
+  cards,
+  emptyCopy,
+}: {
+  cards: ProfileCardStat[];
+  emptyCopy: string;
+}) {
+  return (
+    <section className="tm-panel mx-auto w-full max-w-6xl !border-white/10 !p-0">
+      <header className="border-b border-white/[0.06] bg-black/10 px-5 py-5 sm:px-6">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-400">
+          Card statistics
+        </p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-stone-50">
+          Most-played cards
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-400">
+          Your most frequently played cards from imported games, with their
+          performance when included in your tableau.
+        </p>
+      </header>
+      <div className="bg-black/[0.08]">
+        <MostPlayedCardTable cards={cards} emptyCopy={emptyCopy} />
+      </div>
+    </section>
   );
 }
 
@@ -245,11 +358,10 @@ export function ProfileCardPanels({
         description="Cards with the strongest estimated win-rate lift after accounting for play count and your recorded game context. Click a card to open its full image."
         title="My Key Cards"
       >
-        <ProfileCardTable
+        <ImpactCardTable
           cards={keyCards}
           countLabel="Games"
           emptyCopy={`No key cards yet for ${playerName}. Import a finalized game log so we can measure which cards lift your win rate the most.`}
-          variant="impact"
         />
         {keyCards.length > 0 ? (
           <MethodologyDetails title="How estimated lift is calculated">
@@ -263,11 +375,10 @@ export function ProfileCardPanels({
         description="Cards with the lowest estimated win-rate lift after accounting for play count and your recorded game context."
         title="My Loss-Correlated Cards"
       >
-        <ProfileCardTable
+        <ImpactCardTable
           cards={lossCards}
           countLabel="Games"
           emptyCopy={`No loss-correlated cards yet for ${playerName}. Import a finalized game log so we can measure which cards drag your win rate down the most.`}
-          variant="impact"
         />
         {lossCards.length > 0 ? (
           <MethodologyDetails title="How loss correlation is calculated">
@@ -277,16 +388,10 @@ export function ProfileCardPanels({
           </MethodologyDetails>
         ) : null}
       </ChartFrame>
-      <ChartFrame
-        description="Your most-played cards drawn from imported game logs, with your win rate when they were in play. Click a card to open its full image."
-        title="My Most-Played Cards"
-      >
-        <ProfileCardTable
-          cards={cardOutcomes}
-          countLabel="Plays"
-          emptyCopy={`No logged card plays for ${playerName} yet. Import a finalized game log to see your most-played cards.`}
-        />
-      </ChartFrame>
+      <MostPlayedCardsPanel
+        cards={cardOutcomes}
+        emptyCopy={`No logged card plays for ${playerName} yet. Import a finalized game log to see your most-played cards.`}
+      />
     </>
   );
 }
