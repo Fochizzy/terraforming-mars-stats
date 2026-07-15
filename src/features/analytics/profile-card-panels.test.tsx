@@ -32,7 +32,7 @@ const lossCard: ProfileCardStat = {
 };
 
 describe('ProfileCardPanels', () => {
-  it('renders contextual card results with the completed compact format', () => {
+  it('renders the ranked key-card surface and keeps loss context details', () => {
     render(
       <ProfileCardPanels
         cardOutcomes={[]}
@@ -43,24 +43,46 @@ describe('ProfileCardPanels', () => {
     );
 
     expect(
+      screen.getByRole('heading', {
+        name: /key cards \(highest victory impact\)/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Card statistics')).toBeInTheDocument();
+    expect(screen.getByText('Rank')).toBeInTheDocument();
+    expect(screen.getByText('Impact score')).toBeInTheDocument();
+    expect(screen.getByText('Win rate')).toBeInTheDocument();
+    expect(screen.getByText('Plays')).toBeInTheDocument();
+    expect(screen.getByLabelText('Rank 1')).toHaveTextContent('1');
+    expect(screen.getByText('+49 pts')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /estimated lift is \+49 pts after context and play-count adjustment/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Low confidence')).toBeInTheDocument();
+    expect(screen.getByText(/how the ranking works/i)).toBeInTheDocument();
+
+    expect(
       screen.getByText('Cards Linked to Lower Win Rates'),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Adjusted impact').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Sample').length).toBeGreaterThan(0);
-
-    expect(screen.getByText('+49 pp')).toBeInTheDocument();
     expect(screen.getByText('−21 pp')).toBeInTheDocument();
-    expect(screen.getByText('2 / 2 wins')).toBeInTheDocument();
-    expect(screen.getByText('100% win rate · 2 games')).toBeInTheDocument();
     expect(screen.getByText('0 / 4 wins')).toBeInTheDocument();
     expect(screen.getByText('0% win rate · 4 games')).toBeInTheDocument();
-
-    expect(screen.getByText('Factorum + Polaris')).toBeInTheDocument();
-    expect(screen.getByText('Fast Pace')).toBeInTheDocument();
     expect(screen.getByText('Inventrix')).toBeInTheDocument();
     expect(screen.getByText('Long Pace')).toBeInTheDocument();
-    expect(screen.getByText('Low confidence')).toBeInTheDocument();
     expect(screen.getByText('Medium confidence')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /why it ranked: 0 wins in 4 comparable games; adjusted win rate was 21 percentage points lower/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/how loss correlation is calculated/i),
+    ).toBeInTheDocument();
 
     expect(screen.getAllByText('Corporation').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Play style').length).toBeGreaterThan(0);
@@ -68,27 +90,5 @@ describe('ProfileCardPanels', () => {
     expect(screen.getAllByText('Pace').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Players').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Map').length).toBeGreaterThan(0);
-
-    expect(
-      screen.getByText(
-        /why it ranked: 2 wins in 2 comparable games; adjusted win rate was 49 percentage points higher/i,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /why it ranked: 0 wins in 4 comparable games; adjusted win rate was 21 percentage points lower/i,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/how adjusted impact is calculated/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/how loss correlation is calculated/i),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/it made the list because/i)).not.toBeInTheDocument();
-
-    for (const row of screen.getAllByRole('listitem')) {
-      expect(row).toHaveClass('rounded-xl', 'py-5');
-    }
   });
 });
