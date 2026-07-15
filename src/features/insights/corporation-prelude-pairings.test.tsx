@@ -112,6 +112,17 @@ describe('CorporationPreludePairings', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Scoring profile')).toBeInTheDocument();
     expect(screen.getByText(/Terraforming-led/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Scoring channel breakdown' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Objectives: 8 average points'),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('heading', { name: 'Corporation + Prelude Pairings' })
+        .closest('section'),
+    ).toHaveClass('overflow-x-clip');
 
     fireEvent.change(screen.getByLabelText('Corporation'), {
       target: { value: 'Tych(o) Magnetics' },
