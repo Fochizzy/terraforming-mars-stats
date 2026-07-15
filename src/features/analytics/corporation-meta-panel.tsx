@@ -12,15 +12,18 @@ type SortKey =
   | 'gamesPlayed'
   | 'name'
   | 'playShare'
+  | 'weightedPoints'
   | 'winRate'
   | 'wins';
 
 type CorporationDisplayRow = GlobalCorporationMetricRow & {
   name: string;
   playShare: number;
+  weightedPoints: number;
 };
 
 const minimumGameOptions = [0, 2, 3, 5, 10] as const;
+const weightedPointsPriorGames = 5;
 
 function formatDecimal(value: number | null, maximumFractionDigits = 1) {
   if (value === null) {
@@ -86,6 +89,39 @@ function selectSummaryRows(rows: GlobalCorporationMetricRow[]) {
   }
 
   return [...uniqueRows.values()];
+}
+
+function calculateGlobalAveragePoints(rows: GlobalCorporationMetricRow[]) {
+  const totals = rows.reduce(
+    (result, row) => {
+      if (row.gamesPlayed <= 0) {
+        return result;
+      }
+
+      result.points += row.averagePoints * row.gamesPlayed;
+      result.plays += row.gamesPlayed;
+      return result;
+    },
+    { plays: 0, points: 0 },
+  );
+
+  return totals.plays > 0 ? totals.points / totals.plays : 0;
+}
+
+function calculateWeightedPoints(
+  averagePoints: number,
+  gamesPlayed: number,
+  globalAveragePoints: number,
+) {
+  if (gamesPlayed <= 0) {
+    return globalAveragePoints;
+  }
+
+  return (
+    (averagePoints * gamesPlayed +
+      globalAveragePoints * weightedPointsPriorGames) /
+    (gamesPlayed + weightedPointsPriorGames)
+  );
 }
 
 function compareRows(
@@ -188,11 +224,15 @@ export function CorporationMetaPanel({
   const [query, setQuery] = useState('');
   const [minimumGames, setMinimumGames] = useState(0);
   const [showMoreStats, setShowMoreStats] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>('gamesPlayed');
+  const [sortKey, setSortKey] = useState<SortKey>('weightedPoints');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const summaryRows = useMemo(() => selectSummaryRows(rows), [rows]);
   const totalPlays = summaryRows.reduce((total, row) => total + row.gamesPlayed, 0);
+  const globalAveragePoints = useMemo(
+    () => calculateGlobalAveragePoints(summaryRows),
+    [summaryRows],
+  );
 
   const displayRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -202,6 +242,11 @@ export function CorporationMetaPanel({
         ...row,
         name: row.corporationName ?? humanizeCode(row.corporationId),
         playShare: totalPlays > 0 ? row.gamesPlayed / totalPlays : 0,
+        weightedPoints: calculateWeightedPoints(
+          row.averagePoints,
+          row.gamesPlayed,
+          globalAveragePoints,
+        ),
       }))
       .filter(
         (row) =>
@@ -213,21 +258,38 @@ export function CorporationMetaPanel({
         const result = compareRows(left, right, sortKey);
         const directedResult = sortDirection === 'asc' ? result : result * -1;
 
-        return directedResult || left.name.localeCompare(right.name);
+        return (
+          directedResult ||
+          right.gamesPlayed - left.gamesPlayed ||
+          left.name.localeCompare(right.name)
+        );
       });
-  }, [minimumGames, query, sortDirection, sortKey, summaryRows, totalPlays]);
+  }, [
+    globalAveragePoints,
+    minimumGames,
+    query,
+    sortDirection,
+    sortKey,
+    summaryRows,
+    totalPlays,
+  ]);
 
   const chartRows = useMemo(
     () =>
       [...displayRows]
         .sort(
           (left, right) =>
+            right.weightedPoints - left.weightedPoints ||
             right.gamesPlayed - left.gamesPlayed ||
-            right.winRate - left.winRate ||
+            right.averagePoints - left.averagePoints ||
             left.name.localeCompare(right.name),
         )
         .slice(0, 8),
     [displayRows],
+  );
+  const chartMaximum = Math.max(
+    ...chartRows.map((row) => row.weightedPoints),
+    0,
   );
 
   function handleSort(nextSortKey: SortKey) {
@@ -246,8 +308,8 @@ export function CorporationMetaPanel({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="max-w-3xl leading-6 text-stone-300">
-              Compare corporation usage and results without mixing map-specific or
-              player-count variants into duplicate rows.
+              Compare corporation usage and results without letting a one-game score
+              spike automatically outrank corporations with a stronger sample.
             </p>
             <p className="mt-1 text-sm text-stone-500">
               {summaryRows.length} corporation summaries · {totalPlays} recorded
@@ -255,7 +317,7 @@ export function CorporationMetaPanel({
             </p>
           </div>
           <span className="w-fit rounded-full border border-sky-300/20 bg-sky-300/[0.07] px-3 py-1.5 text-xs font-medium text-sky-100">
-            Global dataset
+            Sample-size adjusted
           </span>
         </div>
 
@@ -263,14 +325,15 @@ export function CorporationMetaPanel({
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h3 className="text-base font-semibold text-stone-100 sm:text-lg">
-                Corporation win rate
+                Best corporations
               </h3>
-              <p className="mt-1 text-sm text-stone-500">
-                Top corporations by recorded plays after the current filters.
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-stone-500">
+                Ranked by weighted VP. Average VP is pulled toward the global average
+                when a corporation has only been played a few times.
               </p>
             </div>
             <p className="mt-2 text-xs text-stone-500 sm:mt-0">
-              Percent of games won
+              Weighted VP · {weightedPointsPriorGames}-play baseline
             </p>
           </div>
 
@@ -281,49 +344,42 @@ export function CorporationMetaPanel({
           ) : (
             <div className="mt-5 space-y-3">
               {chartRows.map((row) => (
-                <div
-                  className="grid grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)_3.25rem] items-center gap-3"
+                <article
+                  className="rounded-xl border border-white/[0.06] bg-stone-950/45 p-3"
+                  data-testid="weighted-corporation-row"
                   key={row.corporationId}
-                  title={`${row.name}: ${formatPercent(row.winRate)} win rate across ${row.gamesPlayed} plays`}
+                  title={`${row.name}: ${formatDecimal(row.weightedPoints)} weighted VP, ${formatDecimal(row.averagePoints)} average VP across ${row.gamesPlayed} plays`}
                 >
-                  <span className="truncate text-right text-sm font-medium text-stone-200">
-                    {row.name}
-                  </span>
-                  <div className="relative h-7 overflow-hidden rounded-lg border border-white/[0.06] bg-stone-950/70">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="truncate font-semibold text-stone-100">
+                        {row.name}
+                      </h4>
+                      <p className="mt-1 text-xs text-stone-500">
+                        {formatDecimal(row.averagePoints)} avg VP · {row.gamesPlayed}{' '}
+                        {row.gamesPlayed === 1 ? 'play' : 'plays'}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-300/[0.08] px-2.5 py-1 text-sm font-semibold tabular-nums text-cyan-100">
+                      {formatDecimal(row.weightedPoints)} VP
+                    </span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-stone-800">
                     <div
                       aria-hidden="true"
-                      className="absolute inset-0 opacity-60"
-                      style={{
-                        backgroundImage:
-                          'linear-gradient(to right, transparent calc(25% - 1px), rgba(255,255,255,0.08) 25%, transparent calc(25% + 1px), transparent calc(50% - 1px), rgba(255,255,255,0.08) 50%, transparent calc(50% + 1px), transparent calc(75% - 1px), rgba(255,255,255,0.08) 75%, transparent calc(75% + 1px))',
-                      }}
-                    />
-                    <div
-                      className="relative h-full rounded-md bg-gradient-to-r from-sky-700/80 to-sky-300/80 transition-[width] duration-300"
+                      className="h-full rounded-full bg-gradient-to-r from-sky-700/80 to-cyan-300/85 transition-[width] duration-300"
                       style={{
                         width: `${Math.max(
-                          row.winRate * 100,
-                          row.winRate > 0 ? 2 : 0,
+                          chartMaximum > 0
+                            ? (row.weightedPoints / chartMaximum) * 100
+                            : 0,
+                          row.weightedPoints > 0 ? 4 : 0,
                         )}%`,
                       }}
                     />
                   </div>
-                  <span className="text-right text-sm font-semibold tabular-nums text-stone-100">
-                    {formatPercent(row.winRate)}
-                  </span>
-                </div>
+                </article>
               ))}
-              <div className="grid grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)_3.25rem] gap-3 text-[0.7rem] tabular-nums text-stone-600">
-                <span />
-                <div className="flex justify-between">
-                  <span>0%</span>
-                  <span>25%</span>
-                  <span>50%</span>
-                  <span>75%</span>
-                  <span>100%</span>
-                </div>
-                <span />
-              </div>
             </div>
           )}
         </section>
@@ -335,8 +391,8 @@ export function CorporationMetaPanel({
                 Corporations
               </h3>
               <p className="mt-1 text-sm text-stone-500">
-                {displayRows.length} shown · Sort any column or expand a mobile card
-                for the full context.
+                {displayRows.length} shown · Default order uses weighted VP, with play
+                count as the first tie-breaker.
               </p>
             </div>
 
@@ -383,7 +439,7 @@ export function CorporationMetaPanel({
           ) : (
             <>
               <div className="mt-5 hidden overflow-x-auto rounded-2xl border border-white/[0.08] lg:block">
-                <table className="w-full min-w-[760px] border-separate border-spacing-0 text-[0.8rem] xl:text-sm">
+                <table className="w-full min-w-[820px] border-separate border-spacing-0 text-[0.8rem] xl:text-sm">
                   <thead className="sticky top-0 z-20">
                     <tr>
                       <SortableHeader
@@ -397,17 +453,17 @@ export function CorporationMetaPanel({
                       <SortableHeader
                         activeSortKey={sortKey}
                         direction={sortDirection}
-                        label="Plays"
+                        label="Weighted VP"
                         onSort={handleSort}
-                        sortKey="gamesPlayed"
+                        sortKey="weightedPoints"
+                        title="Average VP adjusted toward the global average based on play count"
                       />
                       <SortableHeader
                         activeSortKey={sortKey}
                         direction={sortDirection}
-                        label="Play share"
+                        label="Plays"
                         onSort={handleSort}
-                        sortKey="playShare"
-                        title="Share of all corporation selections in this global summary"
+                        sortKey="gamesPlayed"
                       />
                       <SortableHeader
                         activeSortKey={sortKey}
@@ -422,16 +478,24 @@ export function CorporationMetaPanel({
                           <SortableHeader
                             activeSortKey={sortKey}
                             direction={sortDirection}
-                            label="Wins"
+                            label="Avg points"
                             onSort={handleSort}
-                            sortKey="wins"
+                            sortKey="averagePoints"
                           />
                           <SortableHeader
                             activeSortKey={sortKey}
                             direction={sortDirection}
-                            label="Avg points"
+                            label="Play share"
                             onSort={handleSort}
-                            sortKey="averagePoints"
+                            sortKey="playShare"
+                            title="Share of all corporation selections in this global summary"
+                          />
+                          <SortableHeader
+                            activeSortKey={sortKey}
+                            direction={sortDirection}
+                            label="Wins"
+                            onSort={handleSort}
+                            sortKey="wins"
                           />
                           <SortableHeader
                             activeSortKey={sortKey}
@@ -476,11 +540,11 @@ export function CorporationMetaPanel({
                             #{index + 1}
                           </span>
                         </th>
-                        <td className="border-b border-white/[0.055] px-3 py-3 text-right align-middle tabular-nums text-stone-200">
-                          {row.gamesPlayed}
+                        <td className="border-b border-white/[0.055] px-3 py-3 text-right align-middle font-semibold tabular-nums text-cyan-100">
+                          {formatDecimal(row.weightedPoints)}
                         </td>
                         <td className="border-b border-white/[0.055] px-3 py-3 text-right align-middle tabular-nums text-stone-200">
-                          {formatPercent(row.playShare)}
+                          {row.gamesPlayed}
                         </td>
                         <td className="border-b border-white/[0.055] px-3 py-3 text-right align-middle">
                           <span
@@ -492,10 +556,13 @@ export function CorporationMetaPanel({
                         {showMoreStats ? (
                           <>
                             <td className="border-b border-white/[0.055] px-3 py-3 text-right align-middle tabular-nums text-stone-200">
-                              {row.wins}
+                              {formatDecimal(row.averagePoints)}
                             </td>
                             <td className="border-b border-white/[0.055] px-3 py-3 text-right align-middle tabular-nums text-stone-200">
-                              {formatDecimal(row.averagePoints)}
+                              {formatPercent(row.playShare)}
+                            </td>
+                            <td className="border-b border-white/[0.055] px-3 py-3 text-right align-middle tabular-nums text-stone-200">
+                              {row.wins}
                             </td>
                             <td className="border-b border-white/[0.055] px-3 py-3 text-right align-middle tabular-nums text-stone-200">
                               {formatDecimal(row.averagePointsPerGeneration, 2)}
@@ -527,23 +594,19 @@ export function CorporationMetaPanel({
                             {row.name}
                           </h4>
                           <p className="mt-1 text-sm text-stone-500">
-                            {row.gamesPlayed} plays · {formatPercent(row.playShare)} of
-                            selections
+                            {row.gamesPlayed} plays · {formatDecimal(row.averagePoints)} avg
+                            VP
                           </p>
                         </div>
-                        <span
-                          className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-sm font-semibold tabular-nums ${getWinRateTone(row.winRate)}`}
-                        >
-                          {formatPercent(row.winRate)}
+                        <span className="inline-flex shrink-0 rounded-full border border-cyan-300/20 bg-cyan-300/[0.08] px-2.5 py-1 text-sm font-semibold tabular-nums text-cyan-100">
+                          {formatDecimal(row.weightedPoints)} VP
                         </span>
                       </div>
                     </summary>
                     <dl className="grid grid-cols-2 gap-2 border-t border-white/[0.07] p-4">
+                      <Metric label="Win rate" value={formatPercent(row.winRate)} />
+                      <Metric label="Play share" value={formatPercent(row.playShare)} />
                       <Metric label="Wins" value={String(row.wins)} />
-                      <Metric
-                        label="Avg points"
-                        value={formatDecimal(row.averagePoints)}
-                      />
                       <Metric
                         label="Pts / gen"
                         value={formatDecimal(row.averagePointsPerGeneration, 2)}
