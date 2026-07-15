@@ -25,7 +25,7 @@ jobs:
       - name: Load and apply formatting patch
         run: |
           mkdir -p scripts
-          curl -fsSL https://raw.githubusercontent.com/Fochizzy/terraforming-mars-stats/feature/global-card-timing-formatting/scripts/apply-global-card-timing-formatting.mjs -o scripts/apply-global-card-timing-formatting.mjs
+          curl --retry 3 -fsSL https://raw.githubusercontent.com/Fochizzy/terraforming-mars-stats/feature/global-card-timing-formatting/scripts/apply-global-card-timing-formatting.mjs -o scripts/apply-global-card-timing-formatting.mjs
           node scripts/apply-global-card-timing-formatting.mjs
       - name: Commit changes
         run: |
