@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { BottomNav, type BottomNavItem } from '@/components/navigation/bottom-nav';
 import { TopNav } from '@/components/navigation/top-nav';
+import { PlayAnalysisEnhancer } from '@/features/analytics/play-analysis-enhancer';
 import { signOut } from '@/features/auth/sign-out';
 
 export function AppShell({
@@ -21,6 +22,7 @@ export function AppShell({
 }) {
   return (
     <main className="tm-app-shell">
+      <PlayAnalysisEnhancer />
       <div
         className={`mx-auto flex min-h-screen flex-col ${wide ? 'max-w-6xl' : 'max-w-md'}`}
       >
