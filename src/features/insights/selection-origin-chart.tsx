@@ -39,12 +39,19 @@ const ORIGIN_SERIES = [
 ] as const;
 const CHART_SURFACE = '#141a22';
 const AXIS_TICKS = [0, 25, 50, 75, 100];
+const WEIGHTED_VP_PRIOR_PLAYS = 5;
 
 type OriginSeriesKey = (typeof ORIGIN_SERIES)[number]['key'];
 type OriginKind = 'corporation' | 'prelude';
-type SortMode = 'name' | 'plays' | 'vp';
+export type SelectionOriginSortMode = 'name' | 'plays' | 'vp' | 'weightedVp';
 type OriginRow = (CorporationSelectionStat | PreludeSelectionStat) & {
   name: string;
+};
+type RankableOriginRow = {
+  avg_points: number;
+  name: string;
+  plays: number;
+  win_rate: number;
 };
 type ShareRow = Record<OriginSeriesKey, number> & {
   averagePoints: number;
@@ -120,7 +127,40 @@ function toShareRow(row: OriginRow): ShareRow | null {
   };
 }
 
-function sortRows(rows: OriginRow[], sortMode: SortMode) {
+function getWeightedVpBaseline(rows: Array<{ avg_points: number; plays: number }>) {
+  const totalPlays = rows.reduce((sum, row) => sum + row.plays, 0);
+
+  if (totalPlays > 0) {
+    return (
+      rows.reduce((sum, row) => sum + row.avg_points * row.plays, 0) /
+      totalPlays
+    );
+  }
+
+  return rows.length > 0
+    ? rows.reduce((sum, row) => sum + row.avg_points, 0) / rows.length
+    : 0;
+}
+
+export function getWeightedSelectionVpScore(
+  row: { avg_points: number; plays: number },
+  baselineVp: number,
+) {
+  if (row.plays <= 0) {
+    return 0;
+  }
+
+  const confidence = row.plays / (row.plays + WEIGHTED_VP_PRIOR_PLAYS);
+
+  return row.avg_points * confidence + baselineVp * (confidence / 4);
+}
+
+export function sortSelectionOriginRows<T extends RankableOriginRow>(
+  rows: T[],
+  sortMode: SelectionOriginSortMode,
+) {
+  const baselineVp = getWeightedVpBaseline(rows);
+
   return [...rows].sort((left, right) => {
     if (sortMode === 'name') {
       return left.name.localeCompare(right.name);
@@ -129,6 +169,17 @@ function sortRows(rows: OriginRow[], sortMode: SortMode) {
     if (sortMode === 'plays') {
       return (
         right.plays - left.plays ||
+        right.avg_points - left.avg_points ||
+        left.name.localeCompare(right.name)
+      );
+    }
+
+    if (sortMode === 'weightedVp') {
+      return (
+        getWeightedSelectionVpScore(right, baselineVp) -
+          getWeightedSelectionVpScore(left, baselineVp) ||
+        right.plays - left.plays ||
+        right.win_rate - left.win_rate ||
         right.avg_points - left.avg_points ||
         left.name.localeCompare(right.name)
       );
@@ -143,16 +194,30 @@ function sortRows(rows: OriginRow[], sortMode: SortMode) {
   });
 }
 
-function MetricPill({ children }: { children: ReactNode }) {
+function sortRows(rows: OriginRow[], sortMode: SelectionOriginSortMode) {
+  return sortSelectionOriginRows(rows, sortMode);
+}
+
+function MetricPill({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  title?: string;
+}) {
   return (
-    <span className="inline-flex whitespace-nowrap rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-xs tabular-nums text-stone-300">
+    <span
+      className="inline-flex whitespace-nowrap rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-xs tabular-nums text-stone-300"
+      title={title}
+    >
       {children}
     </span>
   );
 }
 
 function RankingCard({ kind, rows }: { kind: OriginKind; rows: OriginRow[] }) {
-  const rankedRows = sortRows(rows, 'vp').slice(0, 2);
+  const baselineVp = getWeightedVpBaseline(rows);
+  const rankedRows = sortRows(rows, 'weightedVp').slice(0, 2);
   const title = kind === 'corporation' ? 'Top Corporations' : 'Top Preludes';
 
   if (rankedRows.length === 0) {
@@ -167,34 +232,44 @@ function RankingCard({ kind, rows }: { kind: OriginKind; rows: OriginRow[] }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h5 className="text-sm font-semibold text-stone-100">{title}</h5>
         <span className="text-[0.65rem] uppercase tracking-[0.14em] text-stone-500">
-          Ranked by average VP
+          Ranked by weighted VP
         </span>
       </div>
       <ol className="mt-3 grid gap-2">
-        {rankedRows.map((row, index) => (
-          <li
-            className="grid gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3 transition-colors hover:border-white/15 hover:bg-white/[0.04] sm:grid-cols-[2rem_minmax(10rem,1fr)_auto] sm:items-center"
-            key={row.name}
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-orange-300/20 bg-orange-300/[0.08] text-xs font-semibold tabular-nums text-orange-100">
-              {index + 1}
-            </span>
-            <p className="min-w-0 truncate font-semibold text-stone-100" title={row.name}>
-              {row.name}
-            </p>
-            <div className="flex flex-wrap gap-1.5 sm:justify-end">
-              <MetricPill>{formatNumber(row.avg_points)} VP</MetricPill>
-              <MetricPill>{formatPercent(row.win_rate)} win rate</MetricPill>
-              <MetricPill>{formatNumber(row.avg_placement)} avg place</MetricPill>
-              <MetricPill>{pluralize(row.plays, 'play')}</MetricPill>
-              {row.plays < 3 ? (
-                <span className="inline-flex whitespace-nowrap rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2.5 py-1 text-xs text-amber-100/80">
-                  Small sample
-                </span>
-              ) : null}
-            </div>
-          </li>
-        ))}
+        {rankedRows.map((row, index) => {
+          const weightedVp = getWeightedSelectionVpScore(row, baselineVp);
+
+          return (
+            <li
+              className="grid gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3 transition-colors hover:border-white/15 hover:bg-white/[0.04] sm:grid-cols-[2rem_minmax(10rem,1fr)_auto] sm:items-center"
+              key={row.name}
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-orange-300/20 bg-orange-300/[0.08] text-xs font-semibold tabular-nums text-orange-100">
+                {index + 1}
+              </span>
+              <p
+                className="min-w-0 truncate font-semibold text-stone-100"
+                title={row.name}
+              >
+                {row.name}
+              </p>
+              <div className="flex flex-wrap gap-1.5 sm:justify-end">
+                <MetricPill title="Average VP discounted by play count so one-game spikes do not dominate the best list.">
+                  {formatNumber(weightedVp)} weighted score
+                </MetricPill>
+                <MetricPill>{formatNumber(row.avg_points)} avg VP</MetricPill>
+                <MetricPill>{formatPercent(row.win_rate)} win rate</MetricPill>
+                <MetricPill>{formatNumber(row.avg_placement)} avg place</MetricPill>
+                <MetricPill>{pluralize(row.plays, 'play')}</MetricPill>
+                {row.plays < 3 ? (
+                  <span className="inline-flex whitespace-nowrap rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2.5 py-1 text-xs text-amber-100/80">
+                    Small sample
+                  </span>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </section>
   );
@@ -221,7 +296,8 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
   const sortId = useId();
   const [isAllRecordedGames, setIsAllRecordedGames] = useState(false);
   const [minimumPlays, setMinimumPlays] = useState(1);
-  const [sortMode, setSortMode] = useState<SortMode>('vp');
+  const [sortMode, setSortMode] =
+    useState<SelectionOriginSortMode>('weightedVp');
   const kind: OriginKind = props.rows[0]
     ? getOriginKind(props.rows[0])
     : 'corporation';
@@ -398,9 +474,12 @@ export function SelectionOriginChart(props: { rows: OriginRow[] }) {
               <select
                 className="rounded-lg border border-white/10 bg-stone-950/80 px-2.5 py-1.5 text-xs normal-case tracking-normal text-stone-200 outline-none transition focus:border-sky-300/40"
                 id={sortId}
-                onChange={(event) => setSortMode(event.target.value as SortMode)}
+                onChange={(event) =>
+                  setSortMode(event.target.value as SelectionOriginSortMode)
+                }
                 value={sortMode}
               >
+                <option value="weightedVp">Best weighted VP</option>
                 <option value="vp">Average VP</option>
                 <option value="plays">Most played</option>
                 <option value="name">Name</option>
