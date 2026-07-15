@@ -12,16 +12,160 @@ import { SelectionNameButton } from './selection-name-link';
 
 const TOP_PAIRING_LIMIT = 5;
 
+const SCORE_PROFILE_LABELS = {
+  'board-focused': 'Board-focused',
+  'card-engine': 'Card-engine',
+  'objective-focused': 'Objective-focused',
+  'terraforming-led': 'Terraforming-led',
+} as const;
+
+type PairingConfidence = 'high' | 'low' | 'medium';
+type ScoreProfileKey = keyof typeof SCORE_PROFILE_LABELS;
+type SelectionSource = CorporationSelectionStat | PreludeSelectionStat;
+
+type PairingScoreProfile = {
+  boardPoints: number;
+  cardPoints: number;
+  channelPoints: number;
+  label: string;
+  trPoints: number;
+};
+
+const selectionNameClass =
+  'rounded-sm font-semibold text-stone-100 no-underline transition hover:text-[rgb(221,161,93)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70';
+
 function formatWinRate(winRate: number) {
   return `${Math.round(winRate * 100)}%`;
 }
 
-function StatBlock({ label, value }: { label: string; value: string }) {
+function formatAverage(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
+function formatGameCount(plays: number) {
+  return `${plays} ${plays === 1 ? 'game' : 'games'}`;
+}
+
+function getPairingConfidence(plays: number): PairingConfidence {
+  if (plays >= 6) {
+    return 'high';
+  }
+
+  if (plays >= 3) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+function getPairingScoreProfile(
+  corporation?: CorporationSelectionStat,
+  prelude?: PreludeSelectionStat,
+): PairingScoreProfile | null {
+  const sources = [corporation, prelude].filter(
+    (row): row is SelectionSource => Boolean(row),
+  );
+
+  if (sources.length === 0) {
+    return null;
+  }
+
+  const average = (getValue: (row: SelectionSource) => number) =>
+    sources.reduce((sum, row) => sum + getValue(row), 0) / sources.length;
+  const trPoints = average((row) => row.avg_tr_points);
+  const boardPoints = average(
+    (row) => row.avg_cities_points + row.avg_greenery_points,
+  );
+  const cardPoints = average((row) => row.avg_card_points);
+  const profiles: Array<{ label: ScoreProfileKey; value: number }> = [
+    { label: 'terraforming-led', value: trPoints },
+    { label: 'board-focused', value: boardPoints },
+    { label: 'card-engine', value: cardPoints },
+    {
+      label: 'objective-focused',
+      value: average((row) => row.avg_milestone_points + row.avg_award_points),
+    },
+  ];
+  const primaryProfile = [...profiles].sort(
+    (left, right) => right.value - left.value,
+  )[0];
+
+  return {
+    boardPoints,
+    cardPoints,
+    channelPoints: primaryProfile.value,
+    label: SCORE_PROFILE_LABELS[primaryProfile.label],
+    trPoints,
+  };
+}
+
+function buildPerformanceSummary(
+  pair: SelectionPairStat,
+  baselineWinRate: number,
+) {
+  const wins = Math.round(pair.win_rate * pair.plays);
+  const deltaPoints = Math.round((pair.win_rate - baselineWinRate) * 100);
+  const gameLabel = pair.plays === 1 ? 'game' : 'games';
+  let comparison = `in line with your ${formatWinRate(baselineWinRate)} baseline`;
+
+  if (deltaPoints > 0) {
+    comparison = `${deltaPoints} percentage ${deltaPoints === 1 ? 'point' : 'points'} above your ${formatWinRate(baselineWinRate)} baseline`;
+  } else if (deltaPoints < 0) {
+    const absoluteDelta = Math.abs(deltaPoints);
+    comparison = `${absoluteDelta} percentage ${absoluteDelta === 1 ? 'point' : 'points'} below your ${formatWinRate(baselineWinRate)} baseline`;
+  }
+
+  return `Won ${wins} of ${pair.plays} recorded ${gameLabel}, ${comparison}, while averaging ${formatAverage(pair.avg_points)} VP.`;
+}
+
+function MetricPill({
+  compact = false,
+  label,
+  value,
+}: {
+  compact?: boolean;
+  label: string;
+  value: string;
+}) {
   return (
-    <div>
-      <p className="tm-data-label">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-stone-100">{value}</p>
+    <div
+      className={[
+        'rounded-xl border border-white/10 bg-black/25',
+        compact ? 'px-2.5 py-2' : 'px-3.5 py-3',
+      ].join(' ')}
+    >
+      <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-stone-500">
+        {label}
+      </dt>
+      <dd
+        className={[
+          'mt-1 font-semibold tabular-nums text-stone-100',
+          compact ? 'text-xs sm:text-sm' : 'text-base',
+        ].join(' ')}
+      >
+        {value}
+      </dd>
     </div>
+  );
+}
+
+function ConfidenceBadge({ plays }: { plays: number }) {
+  const confidence = getPairingConfidence(plays);
+  const tone = {
+    high: 'border-emerald-300/20 bg-emerald-300/[0.08] text-emerald-200',
+    low: 'border-amber-300/20 bg-amber-300/[0.08] text-amber-200',
+    medium: 'border-cyan-300/20 bg-cyan-300/[0.08] text-cyan-200',
+  }[confidence];
+
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] ${tone}`}
+    >
+      {confidence} confidence · {formatGameCount(plays)}
+    </span>
   );
 }
 
@@ -141,134 +285,250 @@ export function CorporationPreludePairings({
       ) ?? null,
     [rows, activeCorporation, activePrelude],
   );
-  const activeNarratives = activePair
-    ? buildPairingNarratives({
-        baselineWinRate,
-        corporation: corporationRows.find(
-          (row) => row.corporation_name === activePair.corporation_name,
-        ),
-        pair: activePair,
-        prelude: preludeRows.find(
-          (row) => row.prelude_name === activePair.prelude_name,
-        ),
-      })
-    : [];
+  const activeCorporationRow = activePair
+    ? corporationRows.find(
+        (row) => row.corporation_name === activePair.corporation_name,
+      )
+    : undefined;
+  const activePreludeRow = activePair
+    ? preludeRows.find((row) => row.prelude_name === activePair.prelude_name)
+    : undefined;
+  const scoreProfile = getPairingScoreProfile(
+    activeCorporationRow,
+    activePreludeRow,
+  );
 
   if (corporationNames.length === 0) {
     return null;
   }
 
   return (
-    <div>
-      <h4 className="mb-2 text-xs font-semibold tm-accent-copy">
-        Corporation + Prelude Pairings
-      </h4>
-
-      {topPairings.length > 0 ? (
-        <div className="mb-4">
-          <p className="tm-data-label mb-1 text-xs">Top {topPairings.length} by plays</p>
-          <ul className="flex flex-col gap-1 text-xs">
-            {topPairings.map((pair) => (
-              <li key={`${pair.corporation_name}-${pair.prelude_name}`}>
-                <SelectionNameButton
-                  dialogData={dialogData}
-                  kind="Corporation"
-                  name={pair.corporation_name}
-                />{' '}
-                +{' '}
-                <SelectionNameButton
-                  dialogData={dialogData}
-                  kind="Prelude"
-                  name={pair.prelude_name}
-                />
-                : {pair.plays} plays, {formatWinRate(pair.win_rate)} wins,{' '}
-                {pair.avg_points} avg VP
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap gap-3">
-        <div className="relative w-full max-w-[240px] sm:w-auto sm:flex-1">
-          <label
-            className="tm-data-label"
-            htmlFor="pairing-corporation-select"
-          >
-            Corporation
-          </label>
-          <select
-            className="tm-input mt-2 w-full appearance-none pr-9"
-            id="pairing-corporation-select"
-            onChange={(event) => setSelectedCorporation(event.target.value)}
-            value={activeCorporation}
-          >
-            {corporationNames.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-          <span className="mt-2 block">
-            <SelectChevron />
-          </span>
-        </div>
-        <div className="relative w-full max-w-[240px] sm:w-auto sm:flex-1">
-          <label className="tm-data-label" htmlFor="pairing-prelude-select">
-            Prelude
-          </label>
-          <select
-            className="tm-input mt-2 w-full appearance-none pr-9"
-            id="pairing-prelude-select"
-            onChange={(event) => setSelectedPrelude(event.target.value)}
-            value={activePrelude}
-          >
-            {preludesForCorporation.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-          <span className="mt-2 block">
-            <SelectChevron />
-          </span>
-        </div>
+    <section aria-labelledby="corporation-prelude-pairings-title">
+      <div>
+        <h4
+          className="text-sm font-semibold text-cyan-200"
+          id="corporation-prelude-pairings-title"
+        >
+          Corporation + Prelude Pairings
+        </h4>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-stone-400">
+          Compare the most-played combinations, then inspect one pairing in detail.
+        </p>
       </div>
 
-      {activePair ? (
-        <div className="tm-stat-card mt-3">
-          <p className="text-sm font-semibold text-stone-100">
-            <SelectionNameButton
-              dialogData={dialogData}
-              kind="Corporation"
-              name={activePair.corporation_name}
-            />{' '}
-            +{' '}
-            <SelectionNameButton
-              dialogData={dialogData}
-              kind="Prelude"
-              name={activePair.prelude_name}
-            />
+      {topPairings.length > 0 ? (
+        <section
+          aria-labelledby="top-pairings-title"
+          className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4"
+        >
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h5 className="text-sm font-semibold text-stone-100" id="top-pairings-title">
+              Top pairings
+            </h5>
+            <span className="text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-stone-500">
+              Ranked by plays
+            </span>
+          </div>
+          <ol className="grid gap-2">
+            {topPairings.map((pair, index) => (
+              <li
+                className="grid gap-3 rounded-xl border border-white/[0.08] bg-black/20 p-3 transition hover:border-white/15 hover:bg-white/[0.025] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                key={`${pair.corporation_name}-${pair.prelude_name}`}
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-semibold tabular-nums text-stone-400">
+                    {index + 1}
+                  </span>
+                  <p className="min-w-0 pt-0.5 text-sm leading-6 text-stone-300">
+                    <SelectionNameButton
+                      className={selectionNameClass}
+                      dialogData={dialogData}
+                      kind="Corporation"
+                      name={pair.corporation_name}
+                    />{' '}
+                    <span className="text-stone-600">+</span>{' '}
+                    <SelectionNameButton
+                      className={selectionNameClass}
+                      dialogData={dialogData}
+                      kind="Prelude"
+                      name={pair.prelude_name}
+                    />
+                  </p>
+                </div>
+                <dl className="grid grid-cols-3 gap-2 sm:min-w-[19rem]">
+                  <MetricPill
+                    compact
+                    label="Plays"
+                    value={String(pair.plays)}
+                  />
+                  <MetricPill
+                    compact
+                    label="Win rate"
+                    value={formatWinRate(pair.win_rate)}
+                  />
+                  <MetricPill
+                    compact
+                    label="Avg VP"
+                    value={formatAverage(pair.avg_points)}
+                  />
+                </dl>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
+      <section
+        aria-labelledby="compare-pairing-title"
+        className="mt-4 rounded-2xl border border-white/10 bg-black/15 p-4"
+      >
+        <div>
+          <h5 className="text-sm font-semibold text-stone-100" id="compare-pairing-title">
+            Compare a pairing
+          </h5>
+          <p className="mt-1 text-xs leading-5 text-stone-500">
+            Choose a corporation first; the prelude list only shows recorded matches.
           </p>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-            <StatBlock label="Plays" value={String(activePair.plays)} />
-            <StatBlock
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="tm-data-label" htmlFor="pairing-corporation-select">
+              Corporation
+            </label>
+            <div className="relative mt-2">
+              <select
+                className="tm-input w-full appearance-none pr-10"
+                id="pairing-corporation-select"
+                onChange={(event) => {
+                  setSelectedCorporation(event.target.value);
+                  setSelectedPrelude('');
+                }}
+                value={activeCorporation}
+              >
+                {corporationNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
+          </div>
+          <div>
+            <label className="tm-data-label" htmlFor="pairing-prelude-select">
+              Prelude
+            </label>
+            <div className="relative mt-2">
+              <select
+                className="tm-input w-full appearance-none pr-10"
+                id="pairing-prelude-select"
+                onChange={(event) => setSelectedPrelude(event.target.value)}
+                value={activePrelude}
+              >
+                {preludesForCorporation.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {activePair ? (
+        <section className="mt-4 rounded-2xl border border-amber-300/15 bg-amber-300/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-5">
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                Selected pairing
+              </p>
+              <h5 className="mt-1 font-serif text-lg font-semibold text-stone-100">
+                <SelectionNameButton
+                  className={selectionNameClass}
+                  dialogData={dialogData}
+                  kind="Corporation"
+                  name={activePair.corporation_name}
+                />{' '}
+                <span className="font-sans text-stone-600">+</span>{' '}
+                <SelectionNameButton
+                  className={selectionNameClass}
+                  dialogData={dialogData}
+                  kind="Prelude"
+                  name={activePair.prelude_name}
+                />
+              </h5>
+            </div>
+            <ConfidenceBadge plays={activePair.plays} />
+          </header>
+
+          <dl className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+            <MetricPill label="Plays" value={String(activePair.plays)} />
+            <MetricPill
               label="Win rate"
               value={formatWinRate(activePair.win_rate)}
             />
-            <StatBlock label="Avg VP" value={String(activePair.avg_points)} />
+            <MetricPill
+              label="Avg VP"
+              value={formatAverage(activePair.avg_points)}
+            />
+          </dl>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <article className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-amber-300">
+                Performance
+              </p>
+              <p className="mt-2 text-sm leading-6 text-stone-300">
+                {buildPerformanceSummary(activePair, baselineWinRate)}
+              </p>
+            </article>
+
+            <article className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-amber-300">
+                Scoring profile
+              </p>
+              {scoreProfile ? (
+                <>
+                  <p className="mt-2 text-sm leading-6 text-stone-300">
+                    <span className="font-semibold text-stone-100">
+                      {scoreProfile.label}
+                    </span>{' '}
+                    mix, with {formatAverage(scoreProfile.channelPoints)} points from
+                    its strongest scoring channel on average.
+                  </p>
+                  <dl className="mt-3 grid grid-cols-3 gap-2">
+                    <MetricPill
+                      compact
+                      label="TR"
+                      value={formatAverage(scoreProfile.trPoints)}
+                    />
+                    <MetricPill
+                      compact
+                      label="Board"
+                      value={formatAverage(scoreProfile.boardPoints)}
+                    />
+                    <MetricPill
+                      compact
+                      label="Card"
+                      value={formatAverage(scoreProfile.cardPoints)}
+                    />
+                  </dl>
+                </>
+              ) : (
+                <p className="mt-2 text-sm leading-6 text-stone-400">
+                  A scoring-source breakdown is not available for this pairing yet.
+                </p>
+              )}
+            </article>
           </div>
-          <div className="tm-muted-copy mt-3 space-y-2 text-sm">
-            {activeNarratives.map((narrative) => (
-              <p key={narrative}>{narrative}</p>
-            ))}
-          </div>
-        </div>
+        </section>
       ) : (
         <p className="tm-muted-copy mt-3 text-xs">
           No recorded games used this corporation and prelude together.
         </p>
       )}
-    </div>
+    </section>
   );
 }
