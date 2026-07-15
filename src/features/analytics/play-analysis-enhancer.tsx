@@ -62,6 +62,35 @@ function wrapMetrics(root: HTMLElement) {
   });
 }
 
+function enhanceFinishingPatterns() {
+  const label = Array.from(document.querySelectorAll<HTMLElement>('.tm-data-label')).find(
+    (candidate) =>
+      candidate.textContent?.trim().toLowerCase() ===
+      'what the finishing patterns suggest',
+  );
+  const card = label?.parentElement;
+  const narrativeList = label?.nextElementSibling as HTMLElement | null;
+
+  if (!label || !card || !narrativeList) {
+    return;
+  }
+
+  card.classList.add(styles.finishingCard);
+  label.classList.add(styles.finishingTitle);
+  narrativeList.classList.add(styles.finishingList);
+
+  Array.from(narrativeList.children).forEach((item, index) => {
+    if (!(item instanceof HTMLElement)) {
+      return;
+    }
+
+    item.classList.add(styles.finishingItem);
+    item.dataset.insightIndex = String(index + 1);
+  });
+
+  wrapMetrics(card);
+}
+
 function enhancePlayAnalysis() {
   const heading = Array.from(document.querySelectorAll<HTMLHeadingElement>('h2')).find(
     (candidate) => candidate.textContent?.trim().toLowerCase() === 'play analysis',
@@ -69,7 +98,7 @@ function enhancePlayAnalysis() {
   const panel = heading?.closest<HTMLElement>('.tm-panel');
   const content = heading?.nextElementSibling as HTMLElement | null;
   const grid = content?.firstElementChild as HTMLElement | null;
-  const cards = grid ? Array.from(grid.children) as HTMLElement[] : [];
+  const cards = grid ? (Array.from(grid.children) as HTMLElement[]) : [];
 
   if (!heading || !panel || !content || !grid || cards.length < 2) {
     return;
@@ -105,6 +134,7 @@ function enhancePlayAnalysis() {
 export function PlayAnalysisEnhancer() {
   useEffect(() => {
     enhancePlayAnalysis();
+    enhanceFinishingPatterns();
   }, []);
 
   return null;
