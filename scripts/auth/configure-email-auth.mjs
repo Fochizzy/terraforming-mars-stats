@@ -95,7 +95,7 @@ async function main() {
     process.env.SUPABASE_AUTH_SITE_URL?.trim() || 'https://tm-stats.com',
   );
   const senderEmail =
-    process.env.SUPABASE_AUTH_FROM_EMAIL?.trim() || 'no-reply@mail.tm-stats.com';
+    process.env.SUPABASE_AUTH_FROM_EMAIL?.trim() || 'noreply@mail.tm-stats.com';
   const senderName =
     process.env.SUPABASE_AUTH_SENDER_NAME?.trim() || 'Terraforming Mars Stats';
   const resendApiKey = process.env.RESEND_API_KEY?.trim();
