@@ -45,6 +45,13 @@ const rows: NamedStatRow[] = [
     plays: 8,
     win_rate: 0.13,
   }),
+  buildRow({
+    avg_placement: 1,
+    avg_points: 101,
+    name: 'Gamma Corporation',
+    plays: 1,
+    win_rate: 1,
+  }),
 ];
 
 function renderTable() {
@@ -53,11 +60,12 @@ function renderTable() {
       globalPlaysByName={new Map([
         ['Alpha Corporation', 5],
         ['Beta Corporation', 10],
+        ['Gamma Corporation', 1],
       ])}
       globalTotalGames={20}
       kind="Corporation"
       rows={rows}
-      scopeTotalGames={10}
+      scopeTotalGames={12}
     />,
   );
 }
@@ -65,10 +73,26 @@ function renderTable() {
 function getBodyRows() {
   const table = screen.getByRole('table', { name: /corporation statistics/i });
   const rowGroups = within(table).getAllByRole('rowgroup');
-  return within(rowGroups[1]).getAllByRole('row');
+  return within(rowGroups[1]).getAllByRole('row').filter((row) =>
+    within(row).queryByText(/Corporation/),
+  );
 }
 
 describe('SelectionStatTable', () => {
+  it('shows the summary strip, grouped headings, sticky-friendly controls, and low-sample warning', () => {
+    renderTable();
+
+    expect(screen.getByText('3 corporations')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('2 low-sample rows are visually de-emphasized.')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Usage' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Results' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Production' })).toBeInTheDocument();
+    expect(screen.getAllByText('Small sample')).toHaveLength(2);
+    expect(screen.getByText('Terraform rating')).toBeInTheDocument();
+    expect(screen.getByText('Card points')).toBeInTheDocument();
+  });
+
   it('defaults to most-played first and exposes the active sort state', () => {
     renderTable();
 
@@ -82,24 +106,29 @@ describe('SelectionStatTable', () => {
     expect(within(bodyRows[1]).getByText('Alpha Corporation')).toBeInTheDocument();
   });
 
-  it('sorts interactively and applies restrained metric tones', () => {
+  it('sorts interactively and supports secondary sorting with Shift', () => {
     renderTable();
 
-    fireEvent.click(screen.getByRole('button', { name: /sort by name/i }));
+    fireEvent.click(screen.getByRole('button', { name: /corporation.*click to sort/i }));
 
-    expect(screen.getByRole('columnheader', { name: /name/i })).toHaveAttribute(
+    expect(screen.getByRole('columnheader', { name: /corporation/i })).toHaveAttribute(
       'aria-sort',
       'ascending',
     );
     expect(within(getBodyRows()[0]).getByText('Alpha Corporation')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /sort by win rate/i }));
+    fireEvent.click(screen.getByRole('button', { name: /win rate.*click to sort/i }), {
+      shiftKey: true,
+    });
 
-    expect(screen.getByRole('columnheader', { name: /win rate/i })).toHaveAttribute(
-      'aria-sort',
-      'descending',
-    );
-    expect(within(getBodyRows()[0]).getByText('Alpha Corporation')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sort priority 1')).toHaveTextContent('1');
+    expect(screen.getByLabelText('Sort priority 2')).toHaveTextContent('2');
+    expect(screen.getByText(/Corporation ↑ · Win rate ↓/)).toBeInTheDocument();
+  });
+
+  it('applies semantic metric tones and consistent number formatting', () => {
+    renderTable();
+
     expect(screen.getByText('67%').closest('[data-metric-tone]')).toHaveAttribute(
       'data-metric-tone',
       'positive',
@@ -108,5 +137,36 @@ describe('SelectionStatTable', () => {
       'data-metric-tone',
       'negative',
     );
+    expect(screen.getByText('1.40')).toBeInTheDocument();
+    expect(screen.getByText('94.2')).toBeInTheDocument();
+  });
+
+  it('switches column presets and allows custom visibility', () => {
+    renderTable();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Overview' }));
+    expect(screen.queryByText('Terraform rating')).not.toBeInTheDocument();
+    expect(screen.getByText('Average VP')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Columns'));
+    fireEvent.click(screen.getByLabelText('Terraform rating'));
+    expect(screen.getByText('Terraform rating')).toBeInTheDocument();
+  });
+
+  it('exposes mobile detail expansion and row selection states', () => {
+    renderTable();
+
+    const detailButton = screen.getByRole('button', {
+      name: 'Show details for Alpha Corporation',
+    });
+    fireEvent.click(detailButton);
+
+    expect(screen.getByLabelText('Mobile details for Alpha Corporation')).toBeInTheDocument();
+    expect(detailButton).toHaveAttribute('aria-expanded', 'true');
+
+    const alphaRow = within(getBodyRows()[1]).getByText('Alpha Corporation').closest('tr');
+    expect(alphaRow).not.toBeNull();
+    fireEvent.click(alphaRow!);
+    expect(alphaRow).toHaveAttribute('aria-selected', 'true');
   });
 });
