@@ -1,0 +1,121 @@
+.nav {
+  --tm-top-nav-gutter: 1.25rem;
+  display: flex;
+  align-items: center;
+  min-height: 4.625rem;
+  margin-inline: calc(var(--tm-top-nav-gutter) * -1);
+  overflow-x: auto;
+  padding: 0;
+  border-top: 0;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: max-content;
+  max-width: 90rem;
+  min-height: 4.625rem;
+  margin-inline: auto;
+  padding-inline: var(--tm-top-nav-gutter);
+}
+
+.group {
+  display: flex;
+  align-items: center;
+}
+
+.primaryGroup {
+  gap: 0.75rem;
+}
+
+.utilityGroup {
+  gap: 1.5rem;
+  margin-left: auto;
+  padding-left: 1.5rem;
+}
+
+.link {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.625rem 0.25rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--tm-muted);
+  font-family: var(--tm-font-display);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.link:hover {
+  background: transparent;
+  color: var(--tm-dust-300);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--tm-copper-400);
+  outline-offset: 3px;
+}
+
+.active:not(.logGame) {
+  background: transparent;
+  color: #f9efe2;
+  box-shadow: inset 0 -2px 0 var(--tm-copper-400);
+}
+
+.logGame {
+  min-height: 2.125rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(240, 176, 118, 0.5);
+  background: rgba(240, 106, 50, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 232, 205, 0.12);
+  color: #ffd9b5;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.logGame:hover {
+  border-color: rgba(255, 193, 135, 0.78);
+  background: rgba(240, 106, 50, 0.32);
+  color: #fff3e6;
+  transform: translateY(-1px);
+}
+
+.logGame[aria-current='page'] {
+  border-color: rgba(255, 193, 135, 0.9);
+}
+
+@media (min-width: 768px) {
+  .primaryGroup {
+    gap: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav {
+    --tm-top-nav-gutter: 2rem;
+  }
+
+  .primaryGroup {
+    gap: 1.75rem;
+  }
+}
