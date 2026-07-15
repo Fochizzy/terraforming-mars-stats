@@ -15,7 +15,7 @@ export default async function ResetPinPage({
         <p className="tm-display-eyebrow">Mission Recovery</p>
         <h1 className="tm-display-title text-3xl font-bold">Set A New PIN</h1>
         <p className="tm-body-copy text-sm">
-          Choose and confirm a new 4-digit PIN for your Terraforming Mars
+          Choose and confirm a new 6-digit PIN for your Terraforming Mars
           Stats account.
         </p>
         <ResetPinForm nextPath={nextPath} />

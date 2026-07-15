@@ -22,23 +22,22 @@ const ENTITY_PATTERNS: Array<{
   entityType: DomainEntityType;
   pattern: RegExp;
 }> = [
-  { entityType: 'card', pattern: /^(?<prefix>.*?\bplayed\s+)(?<entity>.+?)(?<suffix>\s*)$/i },
-  { entityType: 'corporation', pattern: /^(?<prefix>.*?\b(?:corporation|started as)\s+)(?<entity>.+?)(?<suffix>\s*)$/i },
-  { entityType: 'milestone', pattern: /^(?<prefix>.*?\b(?:claimed|funded)\s+(?:the\s+)?)(?<entity>.+?)(?<suffix>\s+milestone\b.*|\s*)$/i },
-  { entityType: 'award', pattern: /^(?<prefix>.*?\b(?:funded|won)\s+(?:the\s+)?)(?<entity>.+?)(?<suffix>\s+award\b.*|\s*)$/i },
+  { entityType: 'card', pattern: /^(.*?\bplayed\s+)(.+?)(\s*)$/i },
+  { entityType: 'corporation', pattern: /^(.*?\b(?:corporation|started as)\s+)(.+?)(\s*)$/i },
+  { entityType: 'milestone', pattern: /^(.*?\b(?:claimed|funded)\s+(?:the\s+)?)(.+?)(\s+milestone\b.*|\s*)$/i },
+  { entityType: 'award', pattern: /^(.*?\b(?:funded|won)\s+(?:the\s+)?)(.+?)(\s+award\b.*|\s*)$/i },
 ];
 
 export function extractOcrEntityCandidate(line: string): OcrEntityCandidate | null {
   for (const definition of ENTITY_PATTERNS) {
     const match = definition.pattern.exec(line);
-    const groups = match?.groups;
-    if (!groups?.entity) continue;
+    if (!match?.[2]) continue;
 
     return {
-      entityText: groups.entity.trim(),
+      entityText: match[2].trim(),
       entityType: definition.entityType,
-      prefix: groups.prefix ?? '',
-      suffix: groups.suffix ?? '',
+      prefix: match[1] ?? '',
+      suffix: match[3] ?? '',
     };
   }
 
