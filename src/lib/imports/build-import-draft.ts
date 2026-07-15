@@ -6,8 +6,10 @@ export type ImportDraftValues = {
   exportedGameLog: string;
   generationCount: number;
   mapId: string;
+  ocrConfidence?: number | null;
   playedOn: string;
   playerCount: number;
+  rawOcrText?: string;
 };
 
 export type CreateImportDraftInput = ImportDraftValues & {
