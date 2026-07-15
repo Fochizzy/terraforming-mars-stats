@@ -26,6 +26,9 @@ describe('AppShell', () => {
     expect(
       screen.getByRole('link', { name: /group insights/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /global statistics/i }),
+    ).toHaveAttribute('href', '/insights#global-statistics');
     expect(screen.getByRole('link', { name: /compare/i })).toBeInTheDocument();
 
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');

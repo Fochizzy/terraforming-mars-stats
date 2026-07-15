@@ -609,17 +609,23 @@ export function InsightsDashboard({
             )}
           </ChartFrame>
 
-          <GlobalMetricBoard globalMapMetricRows={analytics.globalMapMetricRows} />
+          <section
+            aria-label="Global Statistics"
+            className="flex scroll-mt-28 flex-col gap-4"
+            id="global-statistics"
+          >
+            <GlobalMetricBoard globalMapMetricRows={analytics.globalMapMetricRows} />
 
-          <GlobalSummaryBoard
-            globalAwardMetricRows={analytics.globalAwardMetricRows}
-            globalCorporationMetricRows={analytics.globalCorporationMetricRows}
-            globalGenerationMetricRows={analytics.globalGenerationMetricRows}
-            globalMilestoneMetricRows={analytics.globalMilestoneMetricRows}
-            globalPlayerCountMetricRows={analytics.globalPlayerCountMetricRows}
-            globalStyleMetricRows={analytics.globalStyleMetricRows}
-            globalTagMetricRows={analytics.globalTagMetricRows}
-          />
+            <GlobalSummaryBoard
+              globalAwardMetricRows={analytics.globalAwardMetricRows}
+              globalCorporationMetricRows={analytics.globalCorporationMetricRows}
+              globalGenerationMetricRows={analytics.globalGenerationMetricRows}
+              globalMilestoneMetricRows={analytics.globalMilestoneMetricRows}
+              globalPlayerCountMetricRows={analytics.globalPlayerCountMetricRows}
+              globalStyleMetricRows={analytics.globalStyleMetricRows}
+              globalTagMetricRows={analytics.globalTagMetricRows}
+            />
+          </section>
 
           <ChartFrame
             title={

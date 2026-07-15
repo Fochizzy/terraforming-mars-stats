@@ -434,6 +434,9 @@ describe('InsightsDashboard', () => {
     expect(screen.getByRole('heading', { name: /Best Style Snapshot/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Trend Over Time/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Persisted Efficiency/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: /Global Statistics/i }),
+    ).toHaveAttribute('id', 'global-statistics');
     expect(screen.getAllByText(/8.45 pts\/gen/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: /Global Map Meta/i })).toBeInTheDocument();
     expect(screen.getAllByText(/hellas/i).length).toBeGreaterThan(0);

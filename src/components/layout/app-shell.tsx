@@ -15,6 +15,7 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { href: '/profile', label: 'My Profile' },
   { href: '/insights?scope=individual', label: 'Individual Insights' },
   { href: '/group', label: 'Group Insights' },
+  { href: '/insights#global-statistics', label: 'Global Statistics' },
   { href: '/insights?scope=compare', label: 'Compare' },
 ] as const;
 
