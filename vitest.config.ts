@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    exclude: [...configDefaults.exclude, '.worktrees/**', 'tests/e2e/**'],
+    exclude: [...configDefaults.exclude, '.worktrees/**', '.claude/worktrees/**', '.deploy-*/**', '.live-*/**', '.tmp-*/**', 'tests/e2e/**'],
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
   },
