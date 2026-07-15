@@ -139,9 +139,10 @@ async function main() {
     mailer_otp_exp: 3600,
     mailer_otp_length: 6,
     mailer_secure_email_change_enabled: true,
-    mailer_subjects_confirmation: 'Confirm your Mission Control access',
-    mailer_subjects_password_changed_notification: 'Your Mission Control PIN was changed',
-    mailer_subjects_recovery: 'Reset your Mission Control PIN',
+    mailer_subjects_confirmation: 'Mission Control: Confirm your access',
+    mailer_subjects_password_changed_notification:
+      'Mission Control: PIN changed',
+    mailer_subjects_recovery: 'Mission Control: Reset your PIN',
     mailer_templates_confirmation_content: confirmationTemplate,
     mailer_templates_password_changed_notification_content: passwordChangedTemplate,
     mailer_templates_recovery_content: recoveryTemplate,

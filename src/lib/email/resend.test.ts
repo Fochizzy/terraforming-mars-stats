@@ -51,10 +51,15 @@ describe('createResendEmailSender', () => {
     );
     expect(body).toMatchObject({
       from: 'Terraforming Mars Stats <no-reply@mail.tm-stats.com>',
-      subject: 'Reset your Terraforming Mars Stats PIN',
+      subject: 'Mission Control: Reset your PIN',
       to: ['friday.mars@example.com'],
     });
-    expect(body.html).toContain('Reset your PIN');
+    expect(body.html).toContain('Mission Control');
+    expect(body.html).toContain('Terraforming Mars Stats | tm-stats.com');
+    expect(body.html).toContain('Open Reset Window');
+    expect(body.html).toContain(
+      'https://supabase.example.com/auth/v1/verify?type=recovery&amp;token=abc',
+    );
     expect(body.text).toContain(
       'https://supabase.example.com/auth/v1/verify?type=recovery&token=abc',
     );
