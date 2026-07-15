@@ -34,7 +34,7 @@ describe('AppShell', () => {
     const leaderboardLink = within(primaryNavigation).getByRole('link', {
       name: /leaderboard/i,
     });
-    expect(leaderboardLink).toHaveAttribute('href', '/group#leaderboard');
+    expect(leaderboardLink).toHaveAttribute('href', '/group');
     expect(leaderboardLink).toHaveAttribute('data-leaderboard-button', 'true');
 
     expect(
