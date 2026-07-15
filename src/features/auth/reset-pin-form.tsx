@@ -2,58 +2,56 @@
 
 import { useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { normalizeNextPath } from './build-auth-callback-url';
 import { pinSchema } from './username-auth';
 
-export function ResetPinForm() {
-  const [pin, setPin] = useState('');
+export function ResetPinForm({ nextPath = '/profile' }: { nextPath?: string }) {
   const [confirmPin, setConfirmPin] = useState('');
-  const [message, setMessage] = useState('');
-  const [isError, setIsError] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [status, setStatus] = useState<{
+    message: string;
+    state: 'error' | 'idle';
+  }>({
+    message: '',
+    state: 'idle',
+  });
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSubmitting(true);
-    setMessage('');
-    setIsError(false);
+
+    setStatus({ message: '', state: 'idle' });
 
     try {
-      const parsedPin = pinSchema.parse(pin);
+      const parsedPin = pinSchema.parse(newPin);
+
       if (parsedPin !== confirmPin) {
-        throw new Error('PIN entries must match.');
+        setStatus({
+          message: 'PIN values must match.',
+          state: 'error',
+        });
+        return;
       }
 
       const supabase = createSupabaseBrowserClient();
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) {
-        throw new Error('Open the secure reset link from your email before changing your PIN.');
-      }
-
-      const { error: updateError } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: parsedPin,
       });
-      if (updateError) {
-        throw updateError;
+
+      if (error) {
+        setStatus({
+          message: error.message?.trim() || 'Could not update your PIN right now.',
+          state: 'error',
+        });
+        return;
       }
 
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .update({
-          credential_reset_required: false,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userData.user.id);
-      if (profileError) {
-        throw profileError;
-      }
-
-      setMessage('Your 6-digit PIN has been updated. Redirecting to your profile...');
-      window.setTimeout(() => window.location.assign('/profile'), 800);
+      window.location.assign(normalizeNextPath(nextPath));
     } catch (error) {
-      setIsError(true);
-      setMessage(error instanceof Error ? error.message : 'Could not update your PIN.');
-    } finally {
-      setIsSubmitting(false);
+      setStatus({
+        message:
+          error instanceof Error ? error.message : 'Could not update your PIN right now.',
+        state: 'error',
+      });
     }
   }
 
@@ -63,38 +61,37 @@ export function ResetPinForm() {
         <span className="tm-data-label">New 6-Digit PIN</span>
         <input
           aria-label="New 6-Digit PIN"
-          autoComplete="new-password"
           className="tm-input"
           inputMode="numeric"
           maxLength={6}
-          minLength={6}
-          onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))}
+          onChange={(event) => setNewPin(event.target.value)}
+          placeholder="123456"
           required
           type="password"
-          value={pin}
+          value={newPin}
         />
       </label>
       <label className="flex flex-col gap-2 text-sm">
         <span className="tm-data-label">Confirm 6-Digit PIN</span>
         <input
           aria-label="Confirm 6-Digit PIN"
-          autoComplete="new-password"
           className="tm-input"
           inputMode="numeric"
           maxLength={6}
-          minLength={6}
-          onChange={(event) => setConfirmPin(event.target.value.replace(/\D/g, ''))}
+          onChange={(event) => setConfirmPin(event.target.value)}
+          placeholder="123456"
           required
           type="password"
           value={confirmPin}
         />
       </label>
-      <button className="tm-button-primary disabled:opacity-60" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Updating...' : 'Update PIN'}
+      <button className="tm-button-primary" type="submit">
+        Update PIN
       </button>
-      {message ? (
-        <p className={isError ? 'text-sm text-red-300' : 'text-sm text-green-300'}>{message}</p>
+      {status.state === 'error' ? (
+        <p className="text-sm tm-text-danger">{status.message}</p>
       ) : null}
     </form>
   );
 }
+
