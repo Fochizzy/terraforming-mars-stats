@@ -4,7 +4,13 @@ import bannerImage from '../../../assets/banner.png';
 import { LogoutButton } from '@/components/navigation/logout-button';
 import styles from './app-shell.module.css';
 
-const primaryNavigationItems = [
+type PrimaryNavigationItem = {
+  href: string;
+  label: string;
+  highlighted?: boolean;
+};
+
+const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { href: '/log-game', label: 'Log a Game', highlighted: true },
   { href: '/profile', label: 'My Profile' },
   { href: '/insights?scope=individual', label: 'Individual Insights' },
@@ -28,9 +34,11 @@ export function AppShell({
           <Image
             alt="Terraforming Mars Statistics"
             className={styles.bannerImage}
+            height={793}
             priority
             sizes="100vw"
             src={bannerImage}
+            width={1983}
           />
         </div>
 
