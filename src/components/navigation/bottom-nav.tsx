@@ -5,11 +5,12 @@ const items = [
   { href: '/log-game', label: 'Log Game' },
   { href: '/group', label: 'Group' },
   { href: '/insights', label: 'Insights' },
+  { href: '/cards', label: 'Cards' },
 ];
 
 export function BottomNav() {
   return (
-    <nav className="tm-bottom-nav">
+    <nav aria-label="Bottom navigation" className="tm-bottom-nav">
       {items.map((item) => (
         <Link
           className="tm-bottom-nav__link"
