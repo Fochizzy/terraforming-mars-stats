@@ -19,8 +19,28 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { href: '/insights/individual', label: 'Individual Insights' },
   { href: '/insights/group', label: 'Group Insights' },
   { href: '/comparisons', label: 'Comparisons' },
-  { href: '/leaderboard', label: 'Leaderboard', leaderboard: true },
 ] as const;
+
+const leaderboardItem: PrimaryNavigationItem = {
+  href: '/leaderboard',
+  label: 'Leaderboard',
+  leaderboard: true,
+};
+
+function PrimaryNavigationLink({ item }: { item: PrimaryNavigationItem }) {
+  return (
+    <Link
+      className={`${styles.primaryNavigationLink} ${
+        item.highlighted ? styles.primaryNavigationLinkHighlighted : ''
+      } ${item.leaderboard ? styles.primaryNavigationLinkLeaderboard : ''}`}
+      data-highlighted={item.highlighted ? 'true' : undefined}
+      data-leaderboard-button={item.leaderboard ? 'true' : undefined}
+      href={item.href}
+    >
+      {item.label}
+    </Link>
+  );
+}
 
 export function AppShell({
   title,
@@ -59,19 +79,14 @@ export function AppShell({
         </nav>
 
         <nav aria-label="Primary navigation" className={styles.primaryNavigation}>
-          {primaryNavigationItems.map((item) => (
-            <Link
-              className={`${styles.primaryNavigationLink} ${
-                item.highlighted ? styles.primaryNavigationLinkHighlighted : ''
-              } ${item.leaderboard ? styles.primaryNavigationLinkLeaderboard : ''}`}
-              data-highlighted={item.highlighted ? 'true' : undefined}
-              data-leaderboard-button={item.leaderboard ? 'true' : undefined}
-              href={item.href}
-              key={item.label}
-            >
-              {item.label}
-            </Link>
-          ))}
+          <div className={styles.primaryNavigationStart}>
+            {primaryNavigationItems.map((item) => (
+              <PrimaryNavigationLink item={item} key={item.label} />
+            ))}
+          </div>
+          <div className={styles.primaryNavigationEnd}>
+            <PrimaryNavigationLink item={leaderboardItem} />
+          </div>
         </nav>
 
         <header className="tm-app-header">
