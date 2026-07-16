@@ -1,7 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { buildFinalizedGamePayload } from '@/features/games/finalize-game';
 import { LogGameWizard } from '@/features/games/log-game/log-game-wizard';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { ImportEvidenceSummary } from '@/features/imports/import-evidence-summary';
 import { mergeDraftIntoInitialValues } from '@/features/games/log-game/use-log-game-draft';
@@ -95,14 +94,9 @@ export default async function LogGamePage({
     : null;
   const importSummary =
     savedDraft && draftGameId
-      ? await getLatestGameLogImportSummary({
-          gameId: draftGameId,
-        })
+      ? await getLatestGameLogImportSummary({ gameId: draftGameId })
       : null;
-  const initialValues = mergeDraftIntoInitialValues(
-    defaultInitialValues,
-    savedDraft,
-  );
+  const initialValues = mergeDraftIntoInitialValues(defaultInitialValues, savedDraft);
 
   async function handleSaveDraft(values: LogGameDraftInput) {
     'use server';
@@ -187,15 +181,8 @@ export default async function LogGamePage({
   }
 
   return (
-    <AppShell
-      headerActions={
-        <GroupSwitcher currentGroupId={context.groupId} returnPath="/log-game" />
-      }
-      title="Log Game"
-    >
-      {importSummary ? (
-        <ImportEvidenceSummary importSummary={importSummary} />
-      ) : null}
+    <AppShell title="Log Game">
+      {importSummary ? <ImportEvidenceSummary importSummary={importSummary} /> : null}
       <LogGameWizard
         awardOptions={awardOptions}
         cardOptions={cardOptions}
