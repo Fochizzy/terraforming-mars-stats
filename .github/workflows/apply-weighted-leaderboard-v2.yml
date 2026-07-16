@@ -1,0 +1,19 @@
+name: Apply weighted leaderboard enhancement v2
+
+on:
+  push:
+    branches:
+      - enhance/weighted-leaderboard-chart-v2
+    paths:
+      - .github/workflows/apply-weighted-leaderboard-v2.yml
+      - scripts/apply-weighted-leaderboard-v2.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC
