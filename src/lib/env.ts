@@ -28,7 +28,7 @@ const bundledPublicEnv = {
   // build-time values for browser-side Supabase initialization.
   NEXT_PUBLIC_SUPABASE_URL: 'https://qjtwgrjjwnqafbvkkfex.supabase.co',
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-    'sb_publishable_bOcMTVbweIlEwP5aQZIjKQ_1LbYrmHG',
+    'sb_publishable_Gbu_8gmDWbs6PSwYXl0ycA_-i6dFG5l',
 } as const;
 
 export function getPublicEnv() {
