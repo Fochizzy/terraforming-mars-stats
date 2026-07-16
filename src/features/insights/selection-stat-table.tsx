@@ -10,6 +10,10 @@ import {
   Columns3,
   Search,
 } from 'lucide-react';
+import {
+  CorporationLogo,
+  hasCorporationLogo,
+} from '@/components/ui/corporation-logo';
 import type {
   SelectionDialogData,
   SelectionStatRow,
@@ -279,12 +283,20 @@ function buildColumns(
               )}
             </button>
           ) : null}
-          <span
-            aria-hidden
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-[0.64rem] font-bold tracking-[0.08em] text-stone-300"
-          >
-            {getInitials(row.name)}
-          </span>
+          {kind === 'Corporation' && hasCorporationLogo(row.name) ? (
+            <CorporationLogo
+              className="h-8 w-8 shrink-0 rounded-lg border border-white/10 bg-white/[0.05] p-0.5"
+              name={row.name}
+              size={32}
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-[0.64rem] font-bold tracking-[0.08em] text-stone-300"
+            >
+              {getInitials(row.name)}
+            </span>
+          )}
           <div className="min-w-0">
             <SelectionNameButton
               className={`${SELECTION_NAME_LINK_CLASS} max-w-[13rem] whitespace-normal text-left text-[0.82rem] font-semibold leading-[1.2] text-stone-50`}
