@@ -586,7 +586,7 @@ export default async function LogGameImportPage() {
     listMaps(),
   ]);
   const groupSettings = context
-    ? await getGroupSettings(context.groupId)
+    ? await getGroupSettings(context.groupId).catch(() => null)
     : null;
 
   async function handleAnalyzeImportEvidence(formData: FormData) {

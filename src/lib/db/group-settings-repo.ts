@@ -49,7 +49,7 @@ export async function getGroupSettings(groupId: string): Promise<GroupSettingsSn
   const supabase = await createSupabaseServerClient();
   const [{ data: group, error: groupError }, { data: settings, error: settingsError }] =
     await Promise.all([
-      supabase.from('groups').select('name').eq('id', groupId).single(),
+      supabase.from('groups').select('name').eq('id', groupId).maybeSingle(),
       supabase
         .from('group_settings')
         .select('global_analytics_enabled, default_map_id')
@@ -59,6 +59,10 @@ export async function getGroupSettings(groupId: string): Promise<GroupSettingsSn
 
   if (groupError) {
     throw groupError;
+  }
+
+  if (!group) {
+    throw new Error(`Group ${groupId} not found`);
   }
 
   if (settingsError) {
