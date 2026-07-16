@@ -1,6 +1,5 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { CorporationPreludePairingsPanel } from '@/features/analytics/corporation-prelude-pairings-panel';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { GamePaceReplay } from '@/features/insights/game-pace-replay';
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
@@ -44,15 +43,7 @@ export default async function InsightsPage() {
     baselineGames > 0 ? baselineWins / baselineGames : null;
 
   return (
-    <AppShell
-      headerActions={
-        <GroupSwitcher
-          currentGroupId={context.groupId}
-          returnPath="/insights"
-        />
-      }
-      title="Insights"
-    >
+    <AppShell title="Insights">
       <div className="flex flex-col gap-4">
         <CorporationPreludePairingsPanel
           baselineWinRate={baselineWinRate}
