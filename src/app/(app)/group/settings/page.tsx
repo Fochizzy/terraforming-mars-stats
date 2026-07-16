@@ -1,6 +1,5 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { GroupSettingsForm } from '@/features/groups/group-settings-form';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { getGroupSettings, saveGroupSettings } from '@/lib/db/group-settings-repo';
@@ -42,15 +41,7 @@ export default async function GroupSettingsPage() {
   }
 
   return (
-    <AppShell
-      headerActions={
-        <GroupSwitcher
-          currentGroupId={context.groupId}
-          returnPath="/group/settings"
-        />
-      }
-      title="Group Settings"
-    >
+    <AppShell title="Group Settings">
       <GroupSettingsForm
         initialValues={{
           groupName: settings.groupName,
