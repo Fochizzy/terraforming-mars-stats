@@ -1681,6 +1681,7 @@ export function InsightsDashboard({
   const [selectedPersonId, setSelectedPersonId] = useState<string>(
     initialSelectedPersonId,
   );
+  const [viewAsPersonId, setViewAsPersonId] = useState<string | null>(null);
   const [comparePersonId, setComparePersonId] = useState<string>('none');
   const [draftCombinationPlayerIds, setDraftCombinationPlayerIds] = useState<
     string[]
@@ -1744,10 +1745,12 @@ export function InsightsDashboard({
   const focusScope = fixedFocusScope ?? selectedFocusScope;
 
   const lockFocusToCurrentUser =
-    scopeMode === 'individual' && Boolean(currentUserCanonicalId);
-  const effectiveSelectedPersonId = lockFocusToCurrentUser
-    ? currentUserCanonicalId ?? 'all'
-    : selectedPersonId;
+    scopeMode === 'individual' && Boolean(currentUserCanonicalId) && viewAsPersonId === null;
+  const effectiveSelectedPersonId = viewAsPersonId
+    ? viewAsPersonId
+    : lockFocusToCurrentUser
+      ? currentUserCanonicalId ?? 'all'
+      : selectedPersonId;
   const selectedPerson =
     isPlayerCombinationMode || effectiveSelectedPersonId === 'all'
       ? null
@@ -2260,12 +2263,68 @@ export function InsightsDashboard({
                   <span className="mt-2 block">
                     <SelectChevron />
                   </span>
-                  {lockFocusToCurrentUser ? (
-                    <p className="tm-muted-copy mt-2 text-xs">
-                      Individual Insights always follows your signed-in player.
-                    </p>
+                  {scopeMode === 'individual' && focusPeople.length > 1 ? (
+                    viewAsPersonId !== null ? (
+                      <button
+                        className="tm-button-secondary mt-2 px-3 py-1 text-xs"
+                        onClick={() => {
+                          setViewAsPersonId(null);
+                          setComparePersonId('none');
+                        }}
+                        type="button"
+                      >
+                        Back to my view
+                      </button>
+                    ) : (
+                      <p className="tm-muted-copy mt-2 text-xs">
+                        Individual Insights always follows your signed-in player.{' '}
+                        <button
+                          className="underline underline-offset-2 hover:text-stone-200"
+                          onClick={() => {
+                            const otherPerson = focusPeople.find(
+                              (p) => p.canonicalId !== currentUserCanonicalId,
+                            );
+                            if (otherPerson) {
+                              setViewAsPersonId(otherPerson.canonicalId);
+                              setComparePersonId('none');
+                            }
+                          }}
+                          type="button"
+                        >
+                          Switch player
+                        </button>
+                      </p>
+                    )
                   ) : null}
                 </div>
+                {scopeMode === 'individual' && viewAsPersonId !== null && focusPeople.length > 1 ? (
+                  <div className="relative">
+                    <label className="tm-data-label" htmlFor="player-switch-select">
+                      View As
+                    </label>
+                    <select
+                      aria-label="Switch to player view"
+                      className="tm-input mt-2 w-full appearance-none pr-9"
+                      id="player-switch-select"
+                      onChange={(event) => {
+                        setViewAsPersonId(event.target.value);
+                        setComparePersonId('none');
+                      }}
+                      value={viewAsPersonId}
+                    >
+                      {focusPeople
+                        .filter((person) => person.canonicalId !== currentUserCanonicalId)
+                        .map((person) => (
+                          <option key={person.canonicalId} value={person.canonicalId}>
+                            {person.displayName}
+                          </option>
+                        ))}
+                    </select>
+                    <span className="mt-2 block">
+                      <SelectChevron />
+                    </span>
+                  </div>
+                ) : null}
                 {selectedPerson !== null && !lockFocusToCurrentUser && focusPeople.length > 1 ? (
                   <div className="relative">
                     <label className="tm-data-label" htmlFor="player-compare-select">
