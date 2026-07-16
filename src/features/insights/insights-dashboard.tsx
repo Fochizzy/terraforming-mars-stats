@@ -68,6 +68,7 @@ import {
   MilestoneEconomicsSection,
 } from './milestone-award-section';
 import { PlacementDistributionChart } from './placement-distribution-chart';
+import { ScoreProfilePanel } from './score-profile-panel';
 import { ScoreSourceRadar } from './score-source-radar';
 import { SelectionPairLabel } from './selection-name-link';
 import {
@@ -2391,6 +2392,10 @@ export function InsightsDashboard({
           </p>
         </div>
       </ChartFrame>
+
+      {scopeMode === 'group' ? (
+        <ScoreProfilePanel averages={baseAnalytics.scoreAverages} />
+      ) : null}
 
       {hasAnalytics ? (
         <>
