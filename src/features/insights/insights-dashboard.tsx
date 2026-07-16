@@ -442,6 +442,69 @@ function isSupportedDashboardInteractionRow(row: DashboardInteractionRow) {
   return row.interactionType === 'corporation_prelude_pair';
 }
 
+// Optimized 96px axis icons uploaded to the public tm-score-icons bucket by
+// scripts/catalog/upload-score-icons.ts. Kept small so the Score Profile chart
+// can render ten of them without pulling the ~1 MB full-res source art.
+const SCORE_ICON_BASE_URL =
+  'https://qjtwgrjjwnqafbvkkfex.supabase.co/storage/v1/object/public/tm-score-icons/axis';
+
+// Score-source label -> axis icon filename. 'Cities' maps to City.png because
+// the source art is singular; every other label matches its icon name.
+const SCORE_SOURCE_ICON_FILES: Record<string, string> = {
+  Animal: 'Animal.png',
+  Awards: 'Awards.png',
+  'Card Points': 'Card_Points.png',
+  Cities: 'City.png',
+  Greenery: 'Greenery.png',
+  Jovian: 'Jovian.png',
+  Microbe: 'Microbe.png',
+  Milestones: 'Milestones.png',
+  'Other Card': 'Other_Card.png',
+  'Terraform Rating': 'Terraform_Rating.png',
+};
+
+const SCORE_AXIS_WIDTH = 132;
+const SCORE_AXIS_ICON_SIZE = 22;
+
+// Custom Y-axis tick for the Score Profile bar chart: the score-source icon on
+// the far left, then the label right-aligned against the axis. Long labels wrap
+// to two lines so they stay legible without stretching the axis gutter.
+function ScoreSourceAxisTick(props: {
+  x?: number;
+  y?: number;
+  payload?: { value?: string };
+}) {
+  const { x = 0, y = 0, payload } = props;
+  const label = payload?.value ?? '';
+  const file = SCORE_SOURCE_ICON_FILES[label];
+  const lines = label.length > 13 ? label.split(' ') : [label];
+
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      {file ? (
+        <image
+          height={SCORE_AXIS_ICON_SIZE}
+          href={`${SCORE_ICON_BASE_URL}/${file}`}
+          width={SCORE_AXIS_ICON_SIZE}
+          x={-SCORE_AXIS_WIDTH}
+          y={-SCORE_AXIS_ICON_SIZE / 2}
+        />
+      ) : null}
+      <text fill="var(--tm-muted)" fontSize={12} textAnchor="end">
+        {lines.map((line, index) => (
+          <tspan
+            key={line}
+            x={-6}
+            y={lines.length > 1 ? (index === 0 ? -2 : 12) : 4}
+          >
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+}
+
 function buildScoreSourceEntries(scoreAverages: ScoreSourceShape) {
   return [
     { label: 'Terraform Rating', value: scoreAverages.averageTrPoints },
@@ -2446,9 +2509,9 @@ export function InsightsDashboard({
                   <XAxis tick={chartAxisTick} type="number" />
                   <YAxis
                     dataKey="label"
-                    tick={chartAxisTick}
+                    tick={<ScoreSourceAxisTick />}
                     type="category"
-                    width={88}
+                    width={SCORE_AXIS_WIDTH}
                   />
                   <Tooltip contentStyle={chartTooltipStyle} />
                   <Bar dataKey="value" fill={chartSeriesColors.accent} radius={[0, 10, 10, 0]} />
