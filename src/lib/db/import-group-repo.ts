@@ -393,7 +393,31 @@ export function selectCurrentGroupPlayerIds(
   });
 }
 
+// The importer creates or routes this game, so they must be able to write the
+// draft under RLS even when none of the imported names is linked to their
+// account. They are added as an `editor` member only when absent, so an
+// existing owner/editor role is never downgraded. This grants group access to
+// the person doing the import — it is not a roster player, so it keeps the
+// membership-from-participation rule in `buildImportGroupMemberRows` intact.
+// Uses the service-role client because the importer is not yet an editor and so
+// could not add themselves under the `group_members` policy.
+async function addImportingUserAsEditor(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  groupId: string,
+  importingUserId: string,
+) {
+  const { error } = await admin.from('group_members').upsert(
+    { group_id: groupId, role: 'editor', user_id: importingUserId },
+    { ignoreDuplicates: true, onConflict: 'group_id,user_id' },
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function resolveOrCreateImportGroup(input: {
+  importingUserId: string;
   participantNames: string[];
 }) {
   const admin = createSupabaseAdminClient();
@@ -451,6 +475,8 @@ export async function resolveOrCreateImportGroup(input: {
         throw membershipError;
       }
 
+      await addImportingUserAsEditor(admin, group.id, input.importingUserId);
+
       return {
         createdNewGroup: false,
         createdProfileNames: [] as string[],
@@ -488,6 +514,8 @@ export async function resolveOrCreateImportGroup(input: {
   if (memberInsertError) {
     throw memberInsertError;
   }
+
+  await addImportingUserAsEditor(admin, group.id, input.importingUserId);
 
   const { error: settingsError } = await admin.from('group_settings').upsert({
     group_id: group.id,

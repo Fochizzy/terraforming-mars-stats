@@ -7,6 +7,7 @@ import {
   findExactGroupRosterMatch,
   planImportGroupReconciliation,
   reconcileImportGroupAfterFinalize,
+  resolveOrCreateImportGroup,
   selectCurrentGroupPlayerIds,
   resolveImportParticipantIdentities,
 } from './import-group-repo';
@@ -480,5 +481,123 @@ describe('selectCurrentGroupPlayerIds', () => {
         [{ display_name: 'Friday Mars', id: 'player-1' }],
       ),
     ).toThrow(/current group/i);
+  });
+});
+
+type ResolveGroupMemberUpsert = { options: unknown; rows: unknown };
+
+type ResolveMockState = {
+  existingPlayers: Array<{
+    created_at: string;
+    display_name: string;
+    group_id: string;
+    id: string;
+    linked_user_id: string | null;
+  }>;
+  insertedGroup: { id: string; name: string };
+  insertedPlayers: Array<{
+    display_name: string;
+    group_id: string;
+    id: string;
+    linked_user_id: string | null;
+  }>;
+};
+
+function createResolveAdminMock(state: ResolveMockState) {
+  const groupMemberUpserts: ResolveGroupMemberUpsert[] = [];
+
+  function createQueryStub(table: string) {
+    const ctx = { didInsert: false };
+    const stub: Record<string, unknown> = {};
+
+    for (const method of ['eq', 'in', 'order', 'select']) {
+      stub[method] = () => stub;
+    }
+
+    stub.insert = () => {
+      ctx.didInsert = true;
+      return stub;
+    };
+    stub.upsert = (rows: unknown, options: unknown) => {
+      if (table === 'group_members') {
+        groupMemberUpserts.push({ options, rows });
+      }
+      return stub;
+    };
+
+    function resolve() {
+      if (table === 'players') {
+        return ctx.didInsert
+          ? { data: state.insertedPlayers, error: null }
+          : { data: state.existingPlayers, error: null };
+      }
+
+      if (table === 'groups') {
+        return { data: state.insertedGroup, error: null };
+      }
+
+      if (table === 'group_members' || table === 'group_settings') {
+        return { data: null, error: null };
+      }
+
+      throw new Error(`Unexpected table ${table}`);
+    }
+
+    stub.single = () => Promise.resolve(resolve());
+    stub.maybeSingle = () => Promise.resolve(resolve());
+    stub.then = (
+      onFulfilled: (value: unknown) => unknown,
+      onRejected: (reason: unknown) => unknown,
+    ) => Promise.resolve(resolve()).then(onFulfilled, onRejected);
+
+    return stub;
+  }
+
+  return {
+    client: { from: (table: string) => createQueryStub(table) },
+    groupMemberUpserts,
+  };
+}
+
+describe('resolveOrCreateImportGroup', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('adds the importing user as an editor of a newly created group even when they are not a participant', async () => {
+    const { client, groupMemberUpserts } = createResolveAdminMock({
+      existingPlayers: [],
+      insertedGroup: { id: 'group-new', name: 'Alice / Bob' },
+      insertedPlayers: [
+        {
+          display_name: 'Alice',
+          group_id: 'group-new',
+          id: 'player-alice',
+          linked_user_id: null,
+        },
+        {
+          display_name: 'Bob',
+          group_id: 'group-new',
+          id: 'player-bob',
+          linked_user_id: null,
+        },
+      ],
+    });
+    vi.mocked(createSupabaseAdminClient).mockReturnValue(client as never);
+
+    const result = await resolveOrCreateImportGroup({
+      importingUserId: 'user-importer',
+      participantNames: ['Alice', 'Bob'],
+    });
+
+    expect(result.createdNewGroup).toBe(true);
+    expect(result.groupId).toBe('group-new');
+    expect(result.selectedPlayerIds).toEqual(['player-alice', 'player-bob']);
+    // The importer is not a roster participant, so they must still be granted
+    // editor access — added only when absent so an existing role is preserved.
+    expect(groupMemberUpserts).toContainEqual({
+      options: { ignoreDuplicates: true, onConflict: 'group_id,user_id' },
+      rows: { group_id: 'group-new', role: 'editor', user_id: 'user-importer' },
+    });
   });
 });
