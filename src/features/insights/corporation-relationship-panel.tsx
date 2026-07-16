@@ -17,6 +17,7 @@ import {
 } from '@/components/charts/chart-theme';
 import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
 import type { CorporationTagDatum } from './tag-outcomes-section';
+import { CorporationLogo } from '@/components/ui/corporation-logo';
 import { SelectionNameButton } from './selection-name-link';
 
 type SortDirection = 'asc' | 'desc';
@@ -670,6 +671,11 @@ export function CorporationRelationshipPanel({
                   >
                     <td className="px-4 py-3 text-left">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <CorporationLogo
+                          className="shrink-0 rounded-sm"
+                          name={entry.corporationName}
+                          size={22}
+                        />
                         <SelectionNameButton
                           className="min-w-0 truncate text-left font-medium text-stone-200 transition hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/60"
                           dialogData={dialogData}

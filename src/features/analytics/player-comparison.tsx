@@ -1,4 +1,5 @@
 import { ChartFrame } from '@/components/charts/chart-frame';
+import { CorporationLogo } from '@/components/ui/corporation-logo';
 import { TagLabel } from '@/components/ui/tag-icon';
 import type {
   CrossGroupFocusPerson,
@@ -370,12 +371,19 @@ function InteractionList({
       {rows.length > 0 ? (
         <ul className="mt-3 grid gap-2 text-sm">
           {rows.map((row) => (
-            <li key={`${row.label}-${row.gamesPlayed}`}>
-              <p className="font-semibold text-stone-100">{row.label}</p>
-              <p className="tm-muted-copy mt-1">
-                {row.gamesPlayed} games | {formatPercent(row.winRate)} wins |
-                avg {formatAverage(row.averageScore)} points
-              </p>
+            <li className="flex items-start gap-2" key={`${row.label}-${row.gamesPlayed}`}>
+              <CorporationLogo
+                className="mt-0.5 h-6 w-6 shrink-0 rounded-sm"
+                name={row.label.split(' | ')[0] ?? row.label}
+                size={24}
+              />
+              <div className="min-w-0">
+                <p className="font-semibold text-stone-100">{row.label}</p>
+                <p className="tm-muted-copy mt-1">
+                  {row.gamesPlayed} games | {formatPercent(row.winRate)} wins |
+                  avg {formatAverage(row.averageScore)} points
+                </p>
+              </div>
             </li>
           ))}
         </ul>

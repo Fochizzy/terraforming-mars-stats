@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { CorporationLogo } from '@/components/ui/corporation-logo';
 import { isRenderableCardImage } from '@/features/catalog/card-image';
 import type { CardImageMeta } from '@/lib/db/selection-stats-repo';
 
@@ -116,6 +117,10 @@ function SelectionStatsDialog({
               unoptimized
               width={315}
             />
+          </div>
+        ) : kind === 'Corporation' ? (
+          <div className="mt-4 flex justify-center">
+            <CorporationLogo className="h-auto max-h-[180px] w-auto" name={name} size={180} />
           </div>
         ) : null}
 
