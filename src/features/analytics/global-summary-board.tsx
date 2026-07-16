@@ -122,43 +122,6 @@ export function GlobalSummaryBoard({
         </div>
       </ChartFrame>
 
-      <ChartFrame title="Global Tag Meta">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {globalTagMetricRows.slice(0, 6).map((row) => {
-            const context = contextLine(row);
-
-            return (
-              <article
-                className="tm-stat-card"
-                key={`${row.tagCode}-${row.mapId ?? 'all'}-${row.playerCount}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-stone-100">
-                      {humanizeCode(row.tagCode)}
-                    </p>
-                    <p className="tm-muted-copy mt-1 text-sm">
-                      {row.gamesPlayed} games | {formatDecimal(row.averageTagCount)}{' '}
-                      avg tags
-                    </p>
-                  </div>
-                  <p className="tm-accent-copy text-sm">
-                    {formatPercent(row.winRate)}
-                  </p>
-                </div>
-                <p className="tm-muted-copy mt-3 text-sm">
-                  {formatDecimal(row.averagePoints)} avg points |{' '}
-                  {formatDecimal(row.averagePointsPerGeneration)} pts/gen
-                </p>
-                {context ? (
-                  <p className="tm-muted-copy mt-2 text-sm">{context}</p>
-                ) : null}
-              </article>
-            );
-          })}
-        </div>
-      </ChartFrame>
-
       <ChartFrame title="Global Milestone Meta">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {globalMilestoneMetricRows.slice(0, 6).map((row) => {
