@@ -6,8 +6,10 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Line,
   LineChart,
+  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -379,6 +381,40 @@ export function InsightsDashboard({
     isFocused: row.playerId === selectedPlayer?.id,
     winRate: Math.round(row.winRate * 100),
   }));
+  const leaderboardLeader =
+    [...leaderboardChartData].sort(
+      (left, right) => right.weightedScore - left.weightedScore,
+    )[0] ?? null;
+  const leaderboardLowest =
+    [...leaderboardChartData].sort(
+      (left, right) => left.weightedScore - right.weightedScore,
+    )[0] ?? null;
+  const leaderboardAverage =
+    leaderboardChartData.length === 0
+      ? 0
+      : leaderboardChartData.reduce(
+          (total, row) => total + row.weightedScore,
+          0,
+        ) / leaderboardChartData.length;
+  const leaderboardSpread =
+    leaderboardLeader && leaderboardLowest
+      ? leaderboardLeader.weightedScore - leaderboardLowest.weightedScore
+      : 0;
+  const leaderboardYAxisMax = Math.max(
+    0.1,
+    Math.ceil(
+      (Math.max(
+        ...leaderboardChartData.map((row) => row.weightedScore),
+        0,
+      ) +
+        0.05) *
+        10,
+    ) / 10,
+  );
+  const leaderboardChartMinWidth = Math.max(
+    640,
+    leaderboardChartData.length * 150,
+  );
   const scoreSourceData = selectedScoreProfile
     ? buildScoreSourceEntries(selectedScoreProfile).map((entry) => ({
         label: entry.label,
@@ -498,49 +534,196 @@ export function InsightsDashboard({
             </div>
           </ChartFrame>
 
-          <ChartFrame title="Weighted Leaderboard Comparison">
+          <ChartFrame
+            description="Compare each player's weighted score across finalized games. Higher bars indicate stronger overall leaderboard performance."
+            title="Weighted Leaderboard Comparison"
+          >
             {leaderboardChartData.length === 0 ? (
               <p className="text-sm text-stone-400">
                 Finalized leaderboard rows will appear here once games are logged.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <BarChart
-                  data={leaderboardChartData}
-                  height={260}
-                  margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  width={340}
-                >
-                  <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
-                  <XAxis
-                    angle={-20}
-                    dataKey="name"
-                    height={60}
-                    textAnchor="end"
-                    tick={{ fill: '#d6d3d1', fontSize: 12 }}
-                  />
-                  <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#1c1917',
-                      border: '1px solid #7c2d12',
-                      borderRadius: '12px',
-                      color: '#f5f5f4',
-                    }}
-                  />
-                  <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
-                    {leaderboardChartData.map((row) => (
-                      <Cell
-                        fill={
-                          row.isFocused
-                            ? leaderboardColors.focused
-                            : leaderboardColors.default
-                        }
-                        key={row.name}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
+              <div className="flex flex-col gap-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div
+                    aria-label="Weighted leaderboard leader"
+                    className="rounded-2xl border border-orange-400/25 bg-gradient-to-br from-orange-500/15 to-stone-950/70 p-4"
+                    role="group"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-200">
+                      Current leader
+                    </p>
+                    <p className="mt-2 truncate text-lg font-semibold text-stone-50">
+                      {leaderboardLeader?.name ?? '—'}
+                    </p>
+                    <p className="mt-1 font-mono text-sm text-orange-200">
+                      {leaderboardLeader?.weightedScore.toFixed(3) ?? '—'} weighted
+                    </p>
+                  </div>
+                  <div
+                    aria-label="Group weighted score average"
+                    className="rounded-2xl border border-stone-700/80 bg-stone-950/55 p-4"
+                    role="group"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+                      Group average
+                    </p>
+                    <p className="mt-2 font-mono text-2xl font-semibold text-stone-50">
+                      {leaderboardAverage.toFixed(3)}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-400">
+                      Across the top {leaderboardChartData.length}
+                    </p>
+                  </div>
+                  <div
+                    aria-label="Weighted score spread"
+                    className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 to-stone-950/70 p-4"
+                    role="group"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">
+                      Leaderboard spread
+                    </p>
+                    <p className="mt-2 font-mono text-2xl font-semibold text-stone-50">
+                      {leaderboardSpread.toFixed(3)}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-400">
+                      Highest to lowest score
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-orange-400/20 bg-gradient-to-b from-stone-900/80 to-stone-950/85 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-11 w-11 place-items-center rounded-xl border border-orange-400/40 bg-orange-500/10 text-orange-300">
+                        <svg
+                          aria-hidden="true"
+                          className="h-6 w-6"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M5 20V10m7 10V4m7 16v-7"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeWidth="2.25"
+                          />
+                        </svg>
+                      </span>
+                      <div>
+                        <p className="font-semibold text-stone-100">Weighted score</p>
+                        <p className="text-sm text-stone-400">Higher is better</p>
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-stone-700 bg-stone-950/70 px-3 py-1 text-xs uppercase tracking-[0.16em] text-stone-300">
+                      {selectedPlayer
+                        ? 'Focused player highlighted'
+                        : 'Top finalized players'}
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto pb-2">
+                    <div
+                      className="h-[360px]"
+                      style={{ minWidth: String(leaderboardChartMinWidth) + 'px' }}
+                    >
+                      <ResponsiveContainer height="100%" width="100%">
+                        <BarChart
+                          data={leaderboardChartData}
+                          margin={{ bottom: 38, left: 18, right: 18, top: 30 }}
+                        >
+                          <CartesianGrid
+                            stroke="#57534e"
+                            strokeDasharray="4 5"
+                            strokeOpacity={0.65}
+                            vertical={false}
+                          />
+                          <XAxis
+                            angle={-14}
+                            axisLine={{ stroke: '#78716c' }}
+                            dataKey="name"
+                            height={68}
+                            interval={0}
+                            textAnchor="end"
+                            tick={{ fill: '#e7e5e4', fontSize: 13 }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            domain={[0, leaderboardYAxisMax]}
+                            label={{
+                              angle: -90,
+                              fill: '#a8a29e',
+                              position: 'insideLeft',
+                              value: 'Weighted score',
+                            }}
+                            tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                            tickFormatter={(value) => Number(value).toFixed(2)}
+                            tickLine={false}
+                            width={66}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: '#0c0a09',
+                              border: '1px solid rgba(251, 146, 60, 0.45)',
+                              borderRadius: '14px',
+                              boxShadow: '0 18px 45px rgba(0, 0, 0, 0.35)',
+                              color: '#fafaf9',
+                            }}
+                            cursor={{ fill: '#fb923c', fillOpacity: 0.06 }}
+                            formatter={(value) => [
+                              Number(value).toFixed(3),
+                              'Weighted score',
+                            ]}
+                          />
+                          <Bar
+                            animationDuration={700}
+                            dataKey="weightedScore"
+                            maxBarSize={112}
+                            name="Weighted score"
+                            radius={[14, 14, 3, 3]}
+                          >
+                            <LabelList
+                              dataKey="weightedScore"
+                              fill="#fed7aa"
+                              fontSize={13}
+                              fontWeight={700}
+                              formatter={(value) => Number(value).toFixed(3)}
+                              position="top"
+                            />
+                            {leaderboardChartData.map((row) => (
+                              <Cell
+                                fill={
+                                  row.isFocused
+                                    ? leaderboardColors.focused
+                                    : leaderboardColors.default
+                                }
+                                key={row.name}
+                                stroke={row.isFocused ? '#a5f3fc' : '#fdba74'}
+                                strokeOpacity={0.55}
+                                strokeWidth={1}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-stone-800 pt-3 text-xs text-stone-400">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+                      Leaderboard players
+                    </span>
+                    {selectedPlayer ? (
+                      <span className="inline-flex items-center gap-2 text-cyan-200">
+                        <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
+                        {selectedPlayer.displayName}
+                      </span>
+                    ) : null}
+                    <span className="sm:ml-auto">Hover a bar for its exact score.</span>
+                  </div>
+                </div>
               </div>
             )}
           </ChartFrame>

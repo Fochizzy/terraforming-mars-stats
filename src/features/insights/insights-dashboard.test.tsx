@@ -445,6 +445,18 @@ describe('InsightsDashboard', () => {
     expect(screen.getByText(/4-player games/i)).toBeInTheDocument();
     expect(screen.getAllByText(/persisted efficiency/i).length).toBeGreaterThan(0);
     expect(
+      screen.getByText(/Compare each player's weighted score/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: /Weighted leaderboard leader/i }),
+    ).toHaveTextContent('Friday Mars');
+    expect(
+      screen.getByRole('group', { name: /Group weighted score average/i }),
+    ).toHaveTextContent('0.596');
+    expect(
+      screen.getByRole('group', { name: /Weighted score spread/i }),
+    ).toHaveTextContent('0.255');
+    expect(
       screen.getByRole('heading', { name: /Interaction Insights/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Hellas \| Prelude/i })).toBeInTheDocument();
