@@ -2,6 +2,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
+import { ScoreProfilePanel } from '@/features/insights/score-profile-panel';
 import { SelectionStatsSection } from '@/features/insights/selection-stats-section';
 import {
   buildStyleScope,
@@ -203,7 +204,14 @@ export async function InsightsPageContent({ mode }: { mode: InsightsPageMode }) 
       [] as SharedGameResultRow[],
     ),
     mode === 'group'
-      ? loadInsightsDataOrDefault('hidden group insight players', getHiddenGroupInsightPlayerIds({ groupId: context.groupId, userId: context.userId }), [] as string[])
+      ? loadInsightsDataOrDefault(
+          'hidden group insight players',
+          getHiddenGroupInsightPlayerIds({
+            groupId: context.groupId,
+            userId: context.userId,
+          }),
+          [] as string[],
+        )
       : Promise.resolve([] as string[]),
   ]);
 
@@ -244,6 +252,9 @@ export async function InsightsPageContent({ mode }: { mode: InsightsPageMode }) 
       title={title}
       wide
     >
+      {mode === 'group' ? (
+        <ScoreProfilePanel averages={analytics.scoreAverages} />
+      ) : null}
       <InsightsDashboard
         analytics={analytics}
         currentUserCanonicalId={`user:${context.userId}`}
