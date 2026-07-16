@@ -73,7 +73,8 @@
 .primaryNavigation {
   display: flex;
   align-items: stretch;
-  gap: 0;
+  justify-content: space-between;
+  gap: 1rem;
   width: 100%;
   overflow-x: auto;
   padding: 0.75rem 1rem;
@@ -89,6 +90,22 @@
 
 .primaryNavigation::-webkit-scrollbar {
   display: none;
+}
+
+.primaryNavigationStart,
+.primaryNavigationEnd {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+}
+
+.primaryNavigationStart {
+  justify-content: flex-start;
+}
+
+.primaryNavigationEnd {
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .primaryNavigationLink {
@@ -111,7 +128,8 @@
     transform 140ms ease;
 }
 
-.primaryNavigationLink:last-child {
+.primaryNavigationStart .primaryNavigationLink:last-child,
+.primaryNavigationEnd .primaryNavigationLink:last-child {
   border-right: none;
 }
 
@@ -142,7 +160,7 @@
 }
 
 .primaryNavigationLinkLeaderboard {
-  margin: 0 0.7rem;
+  margin-left: 0.7rem;
   border: 1px solid rgba(205, 238, 152, 0.62);
   border-radius: 0.3rem;
   background: linear-gradient(180deg, #a8cf63 0%, #7ba73d 52%, #4f7525 100%);
@@ -165,10 +183,6 @@
   .primaryNavigation {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
-  }
-
-  .primaryNavigation {
-    justify-content: center;
   }
 
   .primaryNavigationLink {
