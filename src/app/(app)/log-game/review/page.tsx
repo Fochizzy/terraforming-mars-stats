@@ -12,9 +12,9 @@ import {
   saveDraftGame,
 } from '@/lib/db/game-draft-repo';
 import { getLatestGameLogImportSummary } from '@/lib/db/game-import-repo';
+import { listImportResolutionPlayers } from '@/lib/db/import-player-resolution-repo';
 import { resolveLogGamePlayerReferences } from '@/lib/db/log-game-player-resolution';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
-import { listPlayers } from '@/lib/db/player-repo';
 import {
   getLatestCatalogSnapshotId,
   listCards,
@@ -59,7 +59,7 @@ export default async function LogGameReviewPage({
     listMaps(),
     listExpansions(),
     listPromoSets(),
-    listPlayers(context.groupId),
+    listImportResolutionPlayers(context.groupId),
     listCorporations(),
     listPreludes(),
     listMapMilestones(),
@@ -213,7 +213,12 @@ export default async function LogGameReviewPage({
         milestoneOptions={milestoneOptions}
         onFinalizeGame={handleFinalizeGame}
         onSaveDraft={handleSaveDraft}
-        playerOptions={playerOptions}
+        playerOptions={playerOptions.map((player) => ({
+          id: player.id,
+          display_name: player.displayName,
+          linked_full_name: player.linkedFullName,
+          linked_username: player.linkedUsername,
+        }))}
         preludeOptions={preludeOptions}
         promoSetOptions={promoSetOptions}
         styleOptions={styleOptions}
