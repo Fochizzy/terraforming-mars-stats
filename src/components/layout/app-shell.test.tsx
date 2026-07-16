@@ -16,6 +16,24 @@ describe('AppShell', () => {
     expect(screen.getByRole('navigation')).toHaveClass('tm-bottom-nav');
   });
 
+  it('accepts a reduced navigation set for profile-only access', () => {
+    render(
+      <AppShell
+        navItems={[{ href: '/profile', label: 'My Profile' }]}
+        title="My Profile"
+      >
+        content
+      </AppShell>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: /my profile/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /log game/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /group/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /insights/i })).not.toBeInTheDocument();
+  });
+
   it('renders header controls when provided', () => {
     render(
       <AppShell headerActions={<div>group switcher</div>} title="My Profile">

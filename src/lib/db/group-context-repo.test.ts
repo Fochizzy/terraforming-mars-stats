@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { getCurrentGroupContext } from './group-context-repo';
+import { getCurrentGroupContext, listCurrentUserGroups } from './group-context-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
@@ -127,5 +127,31 @@ describe('getCurrentGroupContext', () => {
       role: 'owner',
       userId: 'user-1',
     });
+  });
+
+  it('treats a missing auth session as signed out instead of throwing', async () => {
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: { name: 'AuthSessionMissingError' },
+        }),
+      },
+    } as never);
+
+    await expect(getCurrentGroupContext()).resolves.toBeNull();
+  });
+
+  it('returns no groups when the session is missing', async () => {
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: null },
+          error: { name: 'AuthSessionMissingError' },
+        }),
+      },
+    } as never);
+
+    await expect(listCurrentUserGroups()).resolves.toEqual([]);
   });
 });

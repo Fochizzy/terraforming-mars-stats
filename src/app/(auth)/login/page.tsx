@@ -15,7 +15,7 @@ export default async function LoginPage({
         <p className="tm-display-eyebrow">Mission Access</p>
         <h1 className="tm-display-title text-3xl font-bold">Join Your Group</h1>
         <p className="tm-body-copy text-sm">
-          Sign in with your username and 4-digit PIN, or create an account
+          Sign in with your username and 6-digit PIN, or create an account
           with your full name.
         </p>
         <LoginForm nextPath={nextPath} />

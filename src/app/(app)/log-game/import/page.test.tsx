@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const importTracker = vi.hoisted(() => ({
+  readOcrTextLines: 0,
   readBoardScreenshotSpaceConfirmations: 0,
   readBoardStateScreenshot: 0,
   readEndgameScreenshot: 0,
@@ -30,6 +31,15 @@ vi.mock('@/lib/imports/card-scoring/read-board-state-screenshot', () => {
   };
 });
 
+vi.mock('@/lib/imports/card-scoring/read-ocr-text-lines', () => {
+  importTracker.readOcrTextLines += 1;
+
+  return {
+    readOcrTextLinesFromFile: vi.fn(),
+    readOcrTextLinesFromUrl: vi.fn(),
+  };
+});
+
 vi.mock('@/lib/imports/read-board-screenshot-space-confirmations', () => {
   importTracker.readBoardScreenshotSpaceConfirmations += 1;
 
@@ -40,6 +50,7 @@ vi.mock('@/lib/imports/read-board-screenshot-space-confirmations', () => {
 
 describe('LogGameImportPage module loading', () => {
   beforeEach(() => {
+    importTracker.readOcrTextLines = 0;
     importTracker.readBoardScreenshotSpaceConfirmations = 0;
     importTracker.readBoardStateScreenshot = 0;
     importTracker.readEndgameScreenshot = 0;
@@ -49,6 +60,7 @@ describe('LogGameImportPage module loading', () => {
   it('does not eagerly load screenshot OCR modules when the page module is imported', async () => {
     await import('./page');
 
+    expect(importTracker.readOcrTextLines).toBe(0);
     expect(importTracker.readEndgameScreenshot).toBe(0);
     expect(importTracker.readBoardStateScreenshot).toBe(0);
     expect(importTracker.readBoardScreenshotSpaceConfirmations).toBe(0);

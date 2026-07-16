@@ -182,7 +182,9 @@ enable_signup = true
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
-# Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
+# Passwords shorter than this value will be rejected as weak. Hosted Supabase
+# Auth currently enforces a minimum of 6 characters, so local config must stay
+# aligned with the live username-and-PIN flow.
 minimum_password_length = 6
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`

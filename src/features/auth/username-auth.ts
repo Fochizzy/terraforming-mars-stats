@@ -13,7 +13,7 @@ export function normalizeUsername(input: string) {
 
 export const pinSchema = z
   .string()
-  .regex(/^\d{4}$/, 'PIN must be exactly 4 digits.');
+  .regex(/^\d{6}$/, 'PIN must be exactly 6 digits.');
 
 export const signupFullNameSchema = z
   .string()

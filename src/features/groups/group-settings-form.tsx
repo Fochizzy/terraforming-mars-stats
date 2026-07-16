@@ -57,10 +57,10 @@ export function GroupSettingsForm({
       })}
     >
       <label className="flex flex-col gap-2 text-sm">
-        <span className="font-semibold text-stone-200">Group Name</span>
+        <span className="tm-data-label">Group Name</span>
         <input
           aria-label="Group Name"
-          className="rounded-xl border border-orange-900/30 bg-stone-950 px-4 py-3"
+          className="tm-input"
           {...form.register('groupName')}
         />
       </label>
@@ -68,14 +68,11 @@ export function GroupSettingsForm({
         <input type="checkbox" {...form.register('globalAnalyticsEnabled')} />
         Contribute anonymous aggregate analytics
       </label>
-      <section className="rounded-2xl border border-orange-900/30 bg-stone-950/40 p-4">
-        <h2 className="font-serif text-lg font-semibold">Default Expansions</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <section className="tm-panel flex flex-col gap-3">
+        <h2 className="tm-panel-title text-lg">Default Expansions</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
           {expansionOptions.map((expansion) => (
-            <label
-              className="flex items-center gap-3 rounded-xl border border-stone-800 bg-black/20 px-3 py-3 text-sm"
-              key={expansion.code}
-            >
+            <label className="tm-stat-card flex items-center gap-3 text-sm" key={expansion.code}>
               <input
                 type="checkbox"
                 value={expansion.code}
@@ -86,19 +83,16 @@ export function GroupSettingsForm({
           ))}
         </div>
       </section>
-      <section className="rounded-2xl border border-orange-900/30 bg-stone-950/40 p-4">
-        <h2 className="font-serif text-lg font-semibold">Default Promo Sets</h2>
-        <div className="mt-3 grid gap-3">
+      <section className="tm-panel flex flex-col gap-3">
+        <h2 className="tm-panel-title text-lg">Default Promo Sets</h2>
+        <div className="grid gap-3">
           {promoSetOptions.length === 0 ? (
-            <p className="text-sm text-stone-400">
+            <p className="tm-muted-copy text-sm">
               No promo sets imported yet for this group.
             </p>
           ) : (
             promoSetOptions.map((promoSet) => (
-              <label
-                className="flex items-center gap-3 rounded-xl border border-stone-800 bg-black/20 px-3 py-3 text-sm"
-                key={promoSet.slug}
-              >
+              <label className="tm-stat-card flex items-center gap-3 text-sm" key={promoSet.slug}>
                 <input
                   type="checkbox"
                   value={promoSet.slug}
@@ -116,14 +110,14 @@ export function GroupSettingsForm({
       {result ? (
         <p
           className={
-            result.status === 'success' ? 'text-sm text-emerald-300' : 'text-sm text-rose-300'
+            result.status === 'success' ? 'text-sm tm-text-success' : 'text-sm tm-text-danger'
           }
         >
           {result.message}
         </p>
       ) : null}
       <button
-        className="rounded-full bg-orange-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+        className="tm-button-primary disabled:cursor-not-allowed disabled:opacity-60"
         disabled={isPending}
         type="submit"
       >

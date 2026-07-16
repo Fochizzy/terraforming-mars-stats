@@ -199,4 +199,36 @@ describe('scoreCardFromEvidence', () => {
       status: 'scored',
     });
   });
+
+  it('returns review for tag-count cards when no matching tag evidence was derived', () => {
+    expect(
+      scoreCardFromEvidence({
+        evidence: {
+          boardStateTextLines: [],
+          cardId: 'card-3',
+          cardName: 'Olympus Conference',
+          playerName: 'Friday Mars',
+          resourceCountsByType: {},
+          selfTagCounts: { corporate_era: 4 },
+          selfTileCounts: {},
+          sourceTags: ['corporate_era'],
+        },
+        rule: {
+          category: 'other',
+          confidence: 1,
+          humanSummary: '1 VP per 2 science tags you have',
+          mode: 'tag_count',
+          pointsPerSet: 1,
+          scope: 'self',
+          setSize: 2,
+          sourceType: 'curated',
+          tag: 'science',
+        },
+      }),
+    ).toEqual({
+      reason:
+        'Olympus Conference needs trusted science tag evidence before it can be scored.',
+      status: 'review',
+    });
+  });
 });

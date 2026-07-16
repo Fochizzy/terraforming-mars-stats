@@ -95,7 +95,7 @@ describe('saveGameLogImport', () => {
         detected_source: 'manual_web_import',
         game_id: 'game-1',
         line_count: 2,
-        parse_status: 'saved_as_draft',
+        parse_status: 'score_extracted',
         parser_version: 'manual-web-import-v1',
         raw_log_text: 'Friday Mars won\nSecond Seat lost',
         unparsed_line_count: 2,
@@ -122,6 +122,184 @@ describe('saveGameLogImport', () => {
         original_name: 'Endgame Results!!.PNG',
         parse_status: 'parsed',
         storage_object_path: result.screenshotObjectPath,
+      }),
+    );
+  });
+
+  it('stores separate endgame and board screenshot rows for one import', async () => {
+    const upload = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: { path: 'game-1/endgame-png' },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { path: 'game-1/board-png' },
+        error: null,
+      });
+    const storageFrom = vi.fn(() => ({
+      upload,
+    }));
+    const importInsert = vi.fn().mockReturnThis();
+    const importSelect = vi.fn().mockReturnThis();
+    const importSingle = vi.fn().mockResolvedValue({
+      data: { id: 'import-1' },
+      error: null,
+    });
+    const screenshotInsert = vi.fn().mockReturnThis();
+    const screenshotSelect = vi.fn().mockReturnThis();
+    const screenshotSingle = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: { id: 'screen-1' },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { id: 'screen-2' },
+        error: null,
+      });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            insert: importInsert,
+            select: importSelect,
+            single: importSingle,
+          };
+        }
+
+        if (table === 'game_result_screenshot_imports') {
+          return {
+            insert: screenshotInsert,
+            select: screenshotSelect,
+            single: screenshotSingle,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      storage: {
+        from: storageFrom,
+      },
+    } as never);
+
+    await repo.saveGameLogImport({
+      gameId: 'game-1',
+      rawLogText: 'Friday Mars played Tardigrades',
+      screenshots: [
+        {
+          file: new File(['endgame'], 'endgame.png', { type: 'image/png' }),
+          kind: 'endgame_score',
+          parse: { parseStatus: 'parsed' },
+        },
+        {
+          file: new File(['board'], 'board.png', { type: 'image/png' }),
+          kind: 'board_state',
+          parse: { parseStatus: 'parsed' },
+        },
+      ],
+      userId: 'user-1',
+    });
+
+    expect(screenshotInsert).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        display_order: 0,
+        evidence_kind: 'endgame_score',
+        original_name: 'endgame.png',
+      }),
+    );
+    expect(screenshotInsert).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        display_order: 0,
+        evidence_kind: 'board_state',
+        original_name: 'board.png',
+      }),
+    );
+  });
+
+  it('stores a combined parse status when the log parsed but screenshot score extraction found no rows', async () => {
+    const upload = vi.fn().mockResolvedValue({
+      data: { path: 'game-9/score-jpg' },
+      error: null,
+    });
+    const storageFrom = vi.fn(() => ({
+      upload,
+    }));
+    const importInsert = vi.fn().mockReturnThis();
+    const importSelect = vi.fn().mockReturnThis();
+    const importSingle = vi.fn().mockResolvedValue({
+      data: { id: 'import-9' },
+      error: null,
+    });
+    const screenshotInsert = vi.fn().mockReturnThis();
+    const screenshotSelect = vi.fn().mockReturnThis();
+    const screenshotSingle = vi.fn().mockResolvedValue({
+      data: { id: 'screenshot-9' },
+      error: null,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            insert: importInsert,
+            select: importSelect,
+            single: importSingle,
+          };
+        }
+
+        if (table === 'game_result_screenshot_imports') {
+          return {
+            insert: screenshotInsert,
+            select: screenshotSelect,
+            single: screenshotSingle,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      storage: {
+        from: storageFrom,
+      },
+    } as never);
+
+    const screenshotFile = new File(['image-bits'], 'Score.jpg', {
+      type: 'image/jpeg',
+    });
+
+    await repo.saveGameLogImport({
+      gameId: 'game-9',
+      logParseSummary: {
+        contextLineCount: 1,
+        drawInfoLineCount: 0,
+        ignoredLineCount: 2,
+        parsedEventCount: 4,
+      },
+      rawLogText: 'Generation 1\nIzzy played Earth Catapult',
+      screenshotParse: {
+        detectedLayout: null,
+        extractedFields: {
+          playerRows: [],
+        },
+        ocrEngineVersion: 'tesseract.js-v7',
+        parseStatus: 'score_extraction_skipped',
+      },
+      screenshotFile,
+      userId: 'user-9',
+    });
+
+    expect(importInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parse_status: 'log_parsed_score_extraction_skipped',
+        parser_version: 'manual-web-import-v2',
+      }),
+    );
+    expect(screenshotInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parse_status: 'score_extraction_skipped',
       }),
     );
   });
@@ -626,6 +804,7 @@ describe('getLatestGameLogImportSummary', () => {
     const screenshotMaybeSingle = vi.fn().mockResolvedValue({
       data: {
         original_name: 'endgame.png',
+        parse_status: 'score_extraction_skipped',
       },
       error: null,
     });
@@ -678,7 +857,7 @@ describe('getLatestGameLogImportSummary', () => {
     expect(eq).toHaveBeenCalledWith('game_id', 'game-1');
     expect(order).toHaveBeenCalledWith('created_at', { ascending: false });
     expect(limit).toHaveBeenCalledWith(1);
-    expect(screenshotSelect).toHaveBeenCalledWith('original_name');
+    expect(screenshotSelect).toHaveBeenCalledWith('original_name, parse_status');
     expect(screenshotEq).toHaveBeenCalledWith('game_log_import_id', 'import-2');
     expect(screenshotOrder).toHaveBeenCalledWith('created_at', {
       ascending: false,
@@ -689,7 +868,7 @@ describe('getLatestGameLogImportSummary', () => {
       detectedSource: 'manual_web_import',
       id: 'import-2',
       lineCount: 3,
-      parseStatus: 'saved_as_draft',
+      parseStatus: 'score_extraction_skipped',
       rawLogText: 'Friday Mars won\nSecond Seat lost\nFinal credits: 8',
       screenshotOriginalName: 'endgame.png',
     });

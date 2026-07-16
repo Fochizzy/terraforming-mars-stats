@@ -129,6 +129,16 @@ export type CoverageRow = {
   playerName?: string;
 };
 
+export type ImportCoverageRow = {
+  gameId: string;
+  groupId: string;
+  hasScoreSourceBreakdown: boolean;
+  ignoredFillerLines: number;
+  lineCount: number;
+  screenshotCount: number;
+  unparsedLineCount: number;
+};
+
 export type ProfileAnalytics = {
   coverage: CoverageRow | null;
   headToHeadRows: ProfileHeadToHeadRow[];
@@ -144,6 +154,7 @@ export type GroupAnalytics = {
   groupStylePerformanceRows: GroupStylePerformanceRow[];
   groupInteractionRows: GroupInteractionRow[];
   headToHeadRows: GroupHeadToHeadRow[];
+  importCoverageRows: ImportCoverageRow[];
   leaderboardRows: LeaderboardRow[];
   lineupEffectRows: LineupEffectRow[];
   playerCoverages: CoverageRow[];
@@ -289,6 +300,16 @@ type RawCoverageRow = {
   player_name?: string;
 };
 
+type RawImportCoverageRow = {
+  game_id: string;
+  group_id: string;
+  has_score_source_breakdown: boolean;
+  ignored_filler_lines: number | string;
+  line_count: number | string;
+  screenshot_count: number | string;
+  unparsed_line_count: number | string;
+};
+
 type RawTrendRow = {
   game_id: string;
   generation_count: number | string;
@@ -300,6 +321,66 @@ type RawTrendRow = {
   player_id: string;
   player_name: string;
   total_points: number | string;
+};
+
+type RawProfileGameResultRow = {
+  award_points: number | string;
+  card_points_animals: number | string | null;
+  card_points_jovian: number | string | null;
+  card_points_microbes: number | string | null;
+  card_points_total: number | string;
+  cities_points: number | string;
+  declared_modifier_style_codes: string[] | null;
+  declared_primary_style_code: null | string;
+  game_id: string;
+  greenery_points: number | string;
+  group_id: string;
+  has_full_card_breakdown: boolean;
+  inferred_primary_style_code: null | string;
+  inferred_style_confidence: number | string | null;
+  is_winner: boolean;
+  key_card_count: number | string;
+  loss_gap_points: number | string | null;
+  milestone_points: number | string;
+  other_card_points: number | string | null;
+  placement: number | string;
+  placement_score: number | string;
+  player_id: string;
+  player_name: string;
+  signed_differential_points: number | string;
+  total_points: number | string;
+  tr_points: number | string;
+  win_differential_points: number | string | null;
+};
+
+type ProfileGameResultRow = {
+  awardPoints: number;
+  cardPointsAnimals: null | number;
+  cardPointsJovian: null | number;
+  cardPointsMicrobes: null | number;
+  cardPointsTotal: number;
+  citiesPoints: number;
+  declaredModifierStyleCodes: string[];
+  declaredPrimaryStyleCode: null | string;
+  gameId: string;
+  greeneryPoints: number;
+  groupId: string;
+  hasFullCardBreakdown: boolean;
+  inferredPrimaryStyleCode: null | string;
+  inferredStyleConfidence: null | number;
+  isWinner: boolean;
+  keyCardCount: number;
+  lossGapPoints: null | number;
+  milestonePoints: number;
+  otherCardPoints: null | number;
+  placement: number;
+  placementScore: number;
+  playerId: string;
+  playerName: string;
+  signedDifferentialPoints: number;
+  totalPoints: number;
+  trPoints: number;
+  winDifferentialPoints: null | number;
 };
 
 function toNumber(value: number | string | null | undefined) {
@@ -321,6 +402,33 @@ function toNullableNumber(value: number | string | null | undefined) {
   }
 
   return toNumber(value);
+}
+
+function roundNumber(value: number, digits: number) {
+  return Number(value.toFixed(digits));
+}
+
+function averageNumbers(values: number[]) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function weightedAverage(entries: Array<{ value: number; weight: number }>) {
+  const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+
+  if (totalWeight <= 0) {
+    return null;
+  }
+
+  const weightedTotal = entries.reduce(
+    (sum, entry) => sum + entry.value * entry.weight,
+    0,
+  );
+
+  return weightedTotal / totalWeight;
 }
 
 function getWeightedScore(row: Record<string, unknown>) {
@@ -487,6 +595,18 @@ function mapCoverageRow(row: RawCoverageRow): CoverageRow {
   };
 }
 
+function mapImportCoverageRow(row: RawImportCoverageRow): ImportCoverageRow {
+  return {
+    gameId: row.game_id,
+    groupId: row.group_id,
+    hasScoreSourceBreakdown: row.has_score_source_breakdown,
+    ignoredFillerLines: toNumber(row.ignored_filler_lines),
+    lineCount: toNumber(row.line_count),
+    screenshotCount: toNumber(row.screenshot_count),
+    unparsedLineCount: toNumber(row.unparsed_line_count),
+  };
+}
+
 function mapTrendRow(row: RawTrendRow): TrendRow {
   return {
     groupId: row.group_id,
@@ -502,53 +622,364 @@ function mapTrendRow(row: RawTrendRow): TrendRow {
   };
 }
 
-function normalizeProfileHeadToHeadRow(
-  playerId: string,
-  row: GroupHeadToHeadRow,
-): ProfileHeadToHeadRow | null {
-  if (row.leftPlayerId === playerId) {
-    return {
-      opponentName: row.rightPlayerName,
-      gamesPlayed: row.gamesPlayed,
-      wins: row.leftWins,
-      losses: row.rightWins,
-      ties: row.ties,
-      averageScoreDifferential: row.averageScoreDifferential,
-      averagePlacementEdge: row.averagePlacementEdge,
-    };
-  }
-
-  if (row.rightPlayerId === playerId) {
-    return {
-      opponentName: row.leftPlayerName,
-      gamesPlayed: row.gamesPlayed,
-      wins: row.rightWins,
-      losses: row.leftWins,
-      ties: row.ties,
-      averageScoreDifferential: row.averageScoreDifferential * -1,
-      averagePlacementEdge: row.averagePlacementEdge * -1,
-    };
-  }
-
-  return null;
+function mapProfileGameResultRow(row: RawProfileGameResultRow): ProfileGameResultRow {
+  return {
+    gameId: row.game_id,
+    groupId: row.group_id,
+    playerId: row.player_id,
+    playerName: row.player_name,
+    placement: toNumber(row.placement),
+    isWinner: row.is_winner,
+    totalPoints: toNumber(row.total_points),
+    citiesPoints: toNumber(row.cities_points),
+    greeneryPoints: toNumber(row.greenery_points),
+    cardPointsTotal: toNumber(row.card_points_total),
+    cardPointsMicrobes: toNullableNumber(row.card_points_microbes),
+    cardPointsAnimals: toNullableNumber(row.card_points_animals),
+    cardPointsJovian: toNullableNumber(row.card_points_jovian),
+    otherCardPoints: toNullableNumber(row.other_card_points),
+    trPoints: toNumber(row.tr_points),
+    milestonePoints: toNumber(row.milestone_points),
+    awardPoints: toNumber(row.award_points),
+    hasFullCardBreakdown: row.has_full_card_breakdown,
+    declaredPrimaryStyleCode: row.declared_primary_style_code,
+    declaredModifierStyleCodes: row.declared_modifier_style_codes ?? [],
+    inferredPrimaryStyleCode: row.inferred_primary_style_code,
+    inferredStyleConfidence: toNullableNumber(row.inferred_style_confidence),
+    keyCardCount: toNumber(row.key_card_count),
+    winDifferentialPoints: toNullableNumber(row.win_differential_points),
+    lossGapPoints: toNullableNumber(row.loss_gap_points),
+    signedDifferentialPoints: toNumber(row.signed_differential_points),
+    placementScore: toNumber(row.placement_score),
+  };
 }
 
-async function getLinkedPlayer(groupId: string, userId: string) {
+async function getLinkedPlayers(userId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('players')
     .select('id, display_name')
-    .eq('group_id', groupId)
     .eq('linked_user_id', userId)
     .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order('display_name', { ascending: true });
 
   if (error) {
     throw error;
   }
 
   return data;
+}
+
+function resolveProfileLabel(
+  linkedPlayers: Array<{ display_name: string }>,
+  fallbackPlayerName: string | null,
+) {
+  if (fallbackPlayerName) {
+    return fallbackPlayerName;
+  }
+
+  const uniqueNames = [
+    ...new Set(linkedPlayers.map((player) => player.display_name.trim()).filter(Boolean)),
+  ];
+
+  if (uniqueNames.length === 1) {
+    return uniqueNames[0] ?? 'My Profile';
+  }
+
+  return 'Your linked profiles';
+}
+
+function buildProfileAnalyticsFromRows(input: {
+  linkedPlayers: Array<{ id: string; display_name: string }>;
+  ownRows: ProfileGameResultRow[];
+  sharedRows: ProfileGameResultRow[];
+}) {
+  const ownPlayerIds = new Set(input.linkedPlayers.map((player) => player.id));
+  const profileGroupId =
+    input.ownRows.length === 1
+      ? input.ownRows[0]?.groupId ?? 'linked-profile'
+      : 'linked-profile';
+  const primaryPlayerId = input.linkedPlayers[0]?.id ?? 'linked-profile';
+  const playerName = resolveProfileLabel(
+    input.linkedPlayers,
+    input.ownRows[0]?.playerName ?? null,
+  );
+
+  if (input.ownRows.length === 0) {
+    return {
+      playerId: primaryPlayerId,
+      playerName,
+      performance: null,
+      scoreAverages: null,
+      styleAgreement: null,
+      coverage: null,
+      headToHeadRows: [],
+    } satisfies ProfileAnalytics;
+  }
+
+  const gamesPlayed = input.ownRows.length;
+  const wins = input.ownRows.filter((row) => row.isWinner).length;
+  const winRate = wins / gamesPlayed;
+  const averagePlacement = averageNumbers(input.ownRows.map((row) => row.placement)) ?? 0;
+  const averageScore = averageNumbers(input.ownRows.map((row) => row.totalPoints)) ?? 0;
+  const averageWinMargin = averageNumbers(
+    input.ownRows
+      .map((row) => row.winDifferentialPoints)
+      .filter((value): value is number => value !== null),
+  );
+  const averageLossGap = averageNumbers(
+    input.ownRows
+      .map((row) => row.lossGapPoints)
+      .filter((value): value is number => value !== null),
+  );
+  const averagePlacementScore =
+    averageNumbers(input.ownRows.map((row) => row.placementScore)) ?? 0;
+  const averageSignedDifferential =
+    averageNumbers(input.ownRows.map((row) => row.signedDifferentialPoints)) ?? 0;
+  const winRateComponent = roundNumber(winRate * 0.5, 4);
+  const placementComponent = roundNumber(averagePlacementScore * 0.3, 4);
+  const differentialComponent = roundNumber(
+    Math.max(Math.min(averageSignedDifferential / 20, 1), -1) * 0.2,
+    4,
+  );
+
+  const scoreAverages = {
+    averageCitiesPoints:
+      roundNumber(averageNumbers(input.ownRows.map((row) => row.citiesPoints)) ?? 0, 3),
+    averageGreeneryPoints:
+      roundNumber(averageNumbers(input.ownRows.map((row) => row.greeneryPoints)) ?? 0, 3),
+    averageCardPoints:
+      roundNumber(averageNumbers(input.ownRows.map((row) => row.cardPointsTotal)) ?? 0, 3),
+    averageMicrobePoints: roundNumber(
+      averageNumbers(input.ownRows.map((row) => row.cardPointsMicrobes ?? 0)) ?? 0,
+      3,
+    ),
+    averageAnimalPoints: roundNumber(
+      averageNumbers(input.ownRows.map((row) => row.cardPointsAnimals ?? 0)) ?? 0,
+      3,
+    ),
+    averageJovianPoints: roundNumber(
+      averageNumbers(input.ownRows.map((row) => row.cardPointsJovian ?? 0)) ?? 0,
+      3,
+    ),
+    averageOtherCardPoints: roundNumber(
+      averageNumbers(input.ownRows.map((row) => row.otherCardPoints ?? 0)) ?? 0,
+      3,
+    ),
+    averageTrPoints:
+      roundNumber(averageNumbers(input.ownRows.map((row) => row.trPoints)) ?? 0, 3),
+    averageMilestonePoints: roundNumber(
+      averageNumbers(input.ownRows.map((row) => row.milestonePoints)) ?? 0,
+      3,
+    ),
+    averageAwardPoints: roundNumber(
+      averageNumbers(input.ownRows.map((row) => row.awardPoints)) ?? 0,
+      3,
+    ),
+  } satisfies ScoreSourceAverages;
+
+  const comparedStyleRows = input.ownRows.filter(
+    (row) =>
+      row.declaredPrimaryStyleCode !== null &&
+      row.inferredPrimaryStyleCode !== null,
+  );
+  const exactMatchGames = comparedStyleRows.filter(
+    (row) => row.declaredPrimaryStyleCode === row.inferredPrimaryStyleCode,
+  ).length;
+  const partialMatchGames = comparedStyleRows.filter(
+    (row) =>
+      row.declaredPrimaryStyleCode !== row.inferredPrimaryStyleCode &&
+      row.inferredPrimaryStyleCode !== null &&
+      row.declaredModifierStyleCodes.includes(row.inferredPrimaryStyleCode),
+  ).length;
+  const mismatchGames =
+    comparedStyleRows.length - exactMatchGames - partialMatchGames;
+  const styleAgreement =
+    comparedStyleRows.length > 0
+      ? {
+          groupId: profileGroupId,
+          playerId: primaryPlayerId,
+          playerName,
+          comparedGames: comparedStyleRows.length,
+          exactMatchRate: roundNumber(
+            exactMatchGames / comparedStyleRows.length,
+            4,
+          ),
+          partialMatchRate: roundNumber(
+            partialMatchGames / comparedStyleRows.length,
+            4,
+          ),
+          mismatchRate: roundNumber(
+            mismatchGames / comparedStyleRows.length,
+            4,
+          ),
+          averageInferredConfidence: toNullableNumber(
+            averageNumbers(
+              comparedStyleRows
+                .map((row) => row.inferredStyleConfidence)
+                .filter((value): value is number => value !== null),
+            ),
+          ),
+        }
+      : null;
+
+  const coverage = {
+    groupId: profileGroupId,
+    playerId: primaryPlayerId,
+    playerName,
+    finalizedGames: gamesPlayed,
+    finalizedPlayerResults: gamesPlayed,
+    microbeCoverage: roundNumber(
+      averageNumbers(
+        input.ownRows.map((row) => Number(row.cardPointsMicrobes !== null)),
+      ) ?? 0,
+      4,
+    ),
+    animalCoverage: roundNumber(
+      averageNumbers(
+        input.ownRows.map((row) => Number(row.cardPointsAnimals !== null)),
+      ) ?? 0,
+      4,
+    ),
+    jovianCoverage: roundNumber(
+      averageNumbers(
+        input.ownRows.map((row) => Number(row.cardPointsJovian !== null)),
+      ) ?? 0,
+      4,
+    ),
+    cardBreakdownCoverage: roundNumber(
+      averageNumbers(
+        input.ownRows.map((row) => Number(row.hasFullCardBreakdown)),
+      ) ?? 0,
+      4,
+    ),
+    declaredStyleCoverage: roundNumber(
+      averageNumbers(
+        input.ownRows.map((row) => Number(row.declaredPrimaryStyleCode !== null)),
+      ) ?? 0,
+      4,
+    ),
+    keyCardCoverage: roundNumber(
+      averageNumbers(
+        input.ownRows.map((row) => Number(row.keyCardCount > 0)),
+      ) ?? 0,
+      4,
+    ),
+  } satisfies CoverageRow;
+
+  const sharedRowsByGameId = new Map<string, ProfileGameResultRow[]>();
+
+  for (const row of input.sharedRows) {
+    const existingRows = sharedRowsByGameId.get(row.gameId) ?? [];
+    existingRows.push(row);
+    sharedRowsByGameId.set(row.gameId, existingRows);
+  }
+
+  const headToHeadByOpponent = new Map<
+    string,
+    {
+      averagePlacementEntries: Array<{ value: number; weight: number }>;
+      averageScoreEntries: Array<{ value: number; weight: number }>;
+      gamesPlayed: number;
+      losses: number;
+      opponentName: string;
+      ties: number;
+      wins: number;
+    }
+  >();
+
+  for (const ownRow of input.ownRows) {
+    const gameRows = sharedRowsByGameId.get(ownRow.gameId) ?? [];
+
+    for (const opponentRow of gameRows) {
+      if (ownPlayerIds.has(opponentRow.playerId)) {
+        continue;
+      }
+
+      const current = headToHeadByOpponent.get(opponentRow.playerId) ?? {
+        averagePlacementEntries: [],
+        averageScoreEntries: [],
+        gamesPlayed: 0,
+        losses: 0,
+        opponentName: opponentRow.playerName,
+        ties: 0,
+        wins: 0,
+      };
+
+      current.gamesPlayed += 1;
+      current.averageScoreEntries.push({
+        value: ownRow.totalPoints - opponentRow.totalPoints,
+        weight: 1,
+      });
+      current.averagePlacementEntries.push({
+        value: opponentRow.placement - ownRow.placement,
+        weight: 1,
+      });
+
+      if (ownRow.placement < opponentRow.placement) {
+        current.wins += 1;
+      } else if (ownRow.placement > opponentRow.placement) {
+        current.losses += 1;
+      } else {
+        current.ties += 1;
+      }
+
+      headToHeadByOpponent.set(opponentRow.playerId, current);
+    }
+  }
+
+  const headToHeadRows = [...headToHeadByOpponent.values()]
+    .map((row) => ({
+      opponentName: row.opponentName,
+      gamesPlayed: row.gamesPlayed,
+      wins: row.wins,
+      losses: row.losses,
+      ties: row.ties,
+      averageScoreDifferential: roundNumber(
+        weightedAverage(row.averageScoreEntries) ?? 0,
+        3,
+      ),
+      averagePlacementEdge: roundNumber(
+        weightedAverage(row.averagePlacementEntries) ?? 0,
+        3,
+      ),
+    }))
+    .sort(
+      (left, right) =>
+        right.gamesPlayed - left.gamesPlayed ||
+        right.wins - left.wins ||
+        left.opponentName.localeCompare(right.opponentName),
+    );
+
+  return {
+    playerId: primaryPlayerId,
+    playerName,
+    performance: {
+      groupId: profileGroupId,
+      playerId: primaryPlayerId,
+      playerName,
+      gamesPlayed,
+      wins,
+      winRate: roundNumber(winRate, 4),
+      averagePlacement: roundNumber(averagePlacement, 3),
+      averageScore: roundNumber(averageScore, 3),
+      averageWinMargin:
+        averageWinMargin === null ? null : roundNumber(averageWinMargin, 3),
+      averageLossGap:
+        averageLossGap === null ? null : roundNumber(averageLossGap, 3),
+      winRateComponent,
+      placementComponent,
+      differentialComponent,
+      weightedScore: roundNumber(
+        winRateComponent + placementComponent + differentialComponent,
+        4,
+      ),
+    },
+    scoreAverages,
+    styleAgreement,
+    coverage,
+    headToHeadRows,
+  } satisfies ProfileAnalytics;
 }
 
 export function sortLeaderboardRows<T extends Record<string, unknown>>(rows: T[]) {
@@ -883,44 +1314,71 @@ export async function listGroupPlayerCoverage(groupId: string) {
     );
 }
 
-export async function getProfileAnalytics(groupId: string, userId: string) {
-  const linkedPlayer = await getLinkedPlayer(groupId, userId);
+export async function listImportCoverage(groupId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await getAnalyticsClient(supabase)
+    .from('import_coverage')
+    .select('game_id, group_id, has_score_source_breakdown, ignored_filler_lines, line_count, screenshot_count, unparsed_line_count')
+    .eq('group_id', groupId);
 
-  if (!linkedPlayer) {
+  if (error) {
+    throw error;
+  }
+
+  return (data as RawImportCoverageRow[]).map(mapImportCoverageRow);
+}
+
+export async function getProfileAnalytics(userId: string) {
+  const linkedPlayers = await getLinkedPlayers(userId);
+
+  if (!linkedPlayers || linkedPlayers.length === 0) {
     return null;
   }
 
-  const [leaderboardRows, scoreAverages, headToHeadRows, styleAgreementRows, coverage] =
-    await Promise.all([
-      listGroupLeaderboard(groupId),
-      getPlayerScoreSourceAverages(groupId, linkedPlayer.id),
-      listGroupHeadToHead(groupId),
-      listGroupStyleAgreement(groupId),
-      getPlayerCoverage(groupId, linkedPlayer.id),
-    ]);
+  const supabase = await createSupabaseServerClient();
+  const linkedPlayerIds = linkedPlayers.map((player) => player.id);
+  const { data: ownRows, error: ownRowsError } = await getAnalyticsClient(supabase)
+    .from('player_game_results')
+    .select(
+      'award_points, card_points_animals, card_points_jovian, card_points_microbes, card_points_total, cities_points, declared_modifier_style_codes, declared_primary_style_code, game_id, greenery_points, group_id, has_full_card_breakdown, inferred_primary_style_code, inferred_style_confidence, is_winner, key_card_count, loss_gap_points, milestone_points, other_card_points, placement, placement_score, player_id, player_name, signed_differential_points, total_points, tr_points, win_differential_points',
+    )
+    .in('player_id', linkedPlayerIds);
 
-  const performance =
-    leaderboardRows.find((row) => row.playerId === linkedPlayer.id) ?? null;
-  const styleAgreement =
-    styleAgreementRows.find((row) => row.playerId === linkedPlayer.id) ?? null;
+  if (ownRowsError) {
+    throw ownRowsError;
+  }
 
-  return {
-    playerId: linkedPlayer.id,
-    playerName: linkedPlayer.display_name,
-    performance,
-    scoreAverages,
-    styleAgreement,
-    coverage,
-    headToHeadRows: headToHeadRows
-      .map((row) => normalizeProfileHeadToHeadRow(linkedPlayer.id, row))
-      .filter((row): row is ProfileHeadToHeadRow => Boolean(row))
-      .sort(
-        (left, right) =>
-          right.gamesPlayed - left.gamesPlayed ||
-          right.wins - left.wins ||
-          left.opponentName.localeCompare(right.opponentName),
-      ),
-  } satisfies ProfileAnalytics;
+  const normalizedOwnRows = ((ownRows as RawProfileGameResultRow[] | null) ?? []).map(
+    mapProfileGameResultRow,
+  );
+  const sharedGameIds = [...new Set(normalizedOwnRows.map((row) => row.gameId))];
+
+  let normalizedSharedRows: ProfileGameResultRow[] = [];
+
+  if (sharedGameIds.length > 0) {
+    const { data: sharedRows, error: sharedRowsError } = await getAnalyticsClient(
+      supabase,
+    )
+      .from('player_game_results')
+      .select(
+        'award_points, card_points_animals, card_points_jovian, card_points_microbes, card_points_total, cities_points, declared_modifier_style_codes, declared_primary_style_code, game_id, greenery_points, group_id, has_full_card_breakdown, inferred_primary_style_code, inferred_style_confidence, is_winner, key_card_count, loss_gap_points, milestone_points, other_card_points, placement, placement_score, player_id, player_name, signed_differential_points, total_points, tr_points, win_differential_points',
+      )
+      .in('game_id', sharedGameIds);
+
+    if (sharedRowsError) {
+      throw sharedRowsError;
+    }
+
+    normalizedSharedRows = ((sharedRows as RawProfileGameResultRow[] | null) ?? []).map(
+      mapProfileGameResultRow,
+    );
+  }
+
+  return buildProfileAnalyticsFromRows({
+    linkedPlayers,
+    ownRows: normalizedOwnRows,
+    sharedRows: normalizedSharedRows,
+  });
 }
 
 export async function getGroupAnalytics(groupId: string) {
@@ -938,6 +1396,7 @@ export async function getGroupAnalytics(groupId: string) {
     styleAgreementRows,
     coverage,
     playerCoverages,
+    importCoverageRows,
   ] = await Promise.all([
     listGroupLeaderboard(groupId),
     getGroupScoreSourceAverages(groupId),
@@ -952,6 +1411,7 @@ export async function getGroupAnalytics(groupId: string) {
     listGroupStyleAgreement(groupId),
     getGroupCoverage(groupId),
     listGroupPlayerCoverage(groupId),
+    listImportCoverage(groupId),
   ]);
 
   return {
@@ -968,5 +1428,6 @@ export async function getGroupAnalytics(groupId: string) {
     styleAgreementRows,
     coverage,
     playerCoverages,
+    importCoverageRows,
   } satisfies GroupAnalytics;
 }

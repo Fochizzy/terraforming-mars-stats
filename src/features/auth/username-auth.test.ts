@@ -17,8 +17,9 @@ describe('username auth helpers', () => {
     );
   });
 
-  it('rejects non four-digit PIN values', () => {
-    expect(() => pinSchema.parse('12a4')).toThrow(/4 digits/i);
+  it('rejects non six-digit PIN values', () => {
+    expect(() => pinSchema.parse('12a456')).toThrow(/6 digits/i);
+    expect(() => pinSchema.parse('1234')).toThrow(/6 digits/i);
   });
 
   it('requires first and last name for signup', () => {

@@ -5,10 +5,17 @@ import {
 } from '@/lib/db/card-scoring-rule-cache-repo';
 import { buildBoardEvidenceContext } from '@/lib/imports/build-board-evidence-context';
 import { calculateImportCardScores } from './calculate-import-card-scores';
+import { readOcrTextLinesFromUrl } from './read-ocr-text-lines';
 
 vi.mock('@/lib/db/card-scoring-rule-cache-repo', () => ({
   getCardScoringRuleCache: vi.fn(),
   upsertCardScoringRuleCache: vi.fn(),
+}));
+
+vi.mock('./read-ocr-text-lines', () => ({
+  readOcrTextLinesFromBuffer: vi.fn(),
+  readOcrTextLinesFromFile: vi.fn(),
+  readOcrTextLinesFromUrl: vi.fn(),
 }));
 
 describe('calculateImportCardScores', () => {
@@ -16,6 +23,7 @@ describe('calculateImportCardScores', () => {
     vi.clearAllMocks();
     vi.mocked(getCardScoringRuleCache).mockResolvedValue(null);
     vi.mocked(upsertCardScoringRuleCache).mockResolvedValue(undefined);
+    vi.mocked(readOcrTextLinesFromUrl).mockResolvedValue([]);
   });
 
   it('scores supported resource and science-tag cards and leaves ambiguous cards pending review', async () => {
@@ -381,5 +389,46 @@ describe('calculateImportCardScores', () => {
         },
       },
     ]);
+  });
+
+  it('does not OCR every played card when the only extra evidence is player tile ownership', async () => {
+    const result = await calculateImportCardScores({
+      cardReferences: [
+        {
+          cardName: 'Acquired Company',
+          cardNumber: '106',
+          cardType: 'Project',
+          expansionCode: 'corporate_era',
+          fullImageUrl: 'https://example.com/acquired-company.png',
+          id: 'card-acquired-company',
+          imageUrl: 'https://example.com/acquired-company.png',
+          promoSetSlug: null,
+          requiredExpansionCodes: ['corporate_era'],
+          sourceCardId: 'project:corporate_era:106',
+          sourceTags: ['Base'],
+          thumbnailUrl: 'https://example.com/acquired-company-thumb.png',
+        },
+      ],
+      events: [
+        {
+          actor: 'Friday Mars',
+          card: 'Acquired Company',
+          eventType: 'card_played',
+          lineNumber: 1,
+          rawLine: 'Friday Mars played Acquired Company',
+        },
+        {
+          actor: 'Friday Mars',
+          eventType: 'tile_placed',
+          lineNumber: 2,
+          rawLine: 'Friday Mars placed city tile at 10',
+          space: '10',
+          tile: 'city',
+        },
+      ],
+    });
+
+    expect(readOcrTextLinesFromUrl).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
   });
 });

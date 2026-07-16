@@ -1,0 +1,296 @@
+import { useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { nativeSupabase } from '@/lib/supabase/native';
+import {
+  submitUsernameAuth,
+  type UsernameAuthMode,
+  type UsernameAuthStatus,
+} from './submit-username-auth';
+
+export function NativeAuthScreen() {
+  const router = useRouter();
+  const [mode, setMode] = useState<UsernameAuthMode>('sign-in');
+  const [fullName, setFullName] = useState('');
+  const [pin, setPin] = useState('');
+  const [status, setStatus] = useState<UsernameAuthStatus | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [username, setUsername] = useState('');
+
+  async function onSubmit() {
+    setSubmitting(true);
+    setStatus(null);
+
+    const result = await submitUsernameAuth({
+      client: nativeSupabase,
+      fullName,
+      mode,
+      pin,
+      username,
+    });
+
+    setSubmitting(false);
+
+    if (!result.ok) {
+      if (result.nextMode) {
+        setMode(result.nextMode);
+      }
+
+      setStatus(result.status);
+      return;
+    }
+
+    if (result.action === 'awaiting-email') {
+      setStatus(result.status);
+      return;
+    }
+
+    router.replace('/ready');
+  }
+
+  const submitLabel = submitting
+    ? mode === 'sign-in'
+      ? 'Signing In...'
+      : 'Creating Account...'
+    : mode === 'sign-in'
+      ? 'Sign In'
+      : 'Create Account';
+
+  return (
+    <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardShell}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.card}>
+            <Text style={styles.title}>Terraforming Mars Stats</Text>
+            <Text style={styles.body}>
+              Sign in with the same username and 6-digit PIN flow the current web
+              app uses while the native-first rebuild takes shape.
+            </Text>
+            <View style={styles.toggleRow}>
+              <Pressable
+                onPress={() => setMode('sign-in')}
+                style={[
+                  styles.toggleButton,
+                  mode === 'sign-in'
+                    ? styles.toggleButtonMuted
+                    : styles.toggleButtonAccent,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.toggleButtonText,
+                    mode === 'sign-in'
+                      ? styles.toggleButtonTextLight
+                      : styles.toggleButtonTextDark,
+                  ]}
+                >
+                  Sign In
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setMode('sign-up')}
+                style={[
+                  styles.toggleButton,
+                  mode === 'sign-up'
+                    ? styles.toggleButtonAccent
+                    : styles.toggleButtonMuted,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.toggleButtonText,
+                    mode === 'sign-up'
+                      ? styles.toggleButtonTextDark
+                      : styles.toggleButtonTextLight,
+                  ]}
+                >
+                  Create Account
+                </Text>
+              </Pressable>
+            </View>
+            {mode === 'sign-up' ? (
+              <View style={styles.field}>
+                <Text style={styles.label}>Full Name</Text>
+                <TextInput
+                  onChangeText={setFullName}
+                  placeholder="First Name Last Name"
+                  placeholderTextColor="#64748b"
+                  style={styles.input}
+                  value={fullName}
+                />
+              </View>
+            ) : null}
+            <View style={styles.field}>
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                autoCapitalize="none"
+                autoCorrect={false}
+                onChangeText={setUsername}
+                placeholder="friday-mars"
+                placeholderTextColor="#64748b"
+                style={styles.input}
+                value={username}
+              />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>6-Digit PIN</Text>
+              <TextInput
+                keyboardType="number-pad"
+                maxLength={6}
+                onChangeText={setPin}
+                placeholder="123456"
+                placeholderTextColor="#64748b"
+                secureTextEntry
+                style={styles.input}
+                value={pin}
+              />
+            </View>
+            <Pressable
+              disabled={submitting}
+              onPress={onSubmit}
+              style={[
+                styles.submitButton,
+                submitting ? styles.submitButtonDisabled : null,
+              ]}
+            >
+              <Text style={styles.submitButtonText}>{submitLabel}</Text>
+            </Pressable>
+            {status ? (
+              <Text
+                style={[
+                  styles.status,
+                  status.state === 'error'
+                    ? styles.statusError
+                    : styles.statusSuccess,
+                ]}
+              >
+                {status.message}
+              </Text>
+            ) : null}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: '#08101d',
+    flex: 1,
+  },
+  keyboardShell: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+  },
+  card: {
+    backgroundColor: '#162334',
+    borderColor: '#27364d',
+    borderRadius: 28,
+    borderWidth: 1,
+    gap: 18,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+  },
+  title: {
+    color: '#f8fafc',
+    fontSize: 34,
+    fontWeight: '800',
+    lineHeight: 40,
+  },
+  body: {
+    color: '#cbd5e1',
+    fontSize: 18,
+    lineHeight: 28,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  toggleButton: {
+    alignItems: 'center',
+    borderRadius: 22,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 56,
+    paddingHorizontal: 18,
+  },
+  toggleButtonMuted: {
+    backgroundColor: '#364255',
+  },
+  toggleButtonAccent: {
+    backgroundColor: '#f59e0b',
+  },
+  toggleButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  toggleButtonTextLight: {
+    color: '#f8fafc',
+  },
+  toggleButtonTextDark: {
+    color: '#08101d',
+  },
+  field: {
+    gap: 10,
+  },
+  label: {
+    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  input: {
+    backgroundColor: '#08101d',
+    borderColor: '#3a475d',
+    borderRadius: 18,
+    borderWidth: 1,
+    color: '#f8fafc',
+    fontSize: 18,
+    minHeight: 64,
+    paddingHorizontal: 18,
+  },
+  submitButton: {
+    alignItems: 'center',
+    backgroundColor: '#f59e0b',
+    borderRadius: 22,
+    justifyContent: 'center',
+    minHeight: 64,
+    paddingHorizontal: 20,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: '#08101d',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  status: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  statusError: {
+    color: '#fda4af',
+  },
+  statusSuccess: {
+    color: '#86efac',
+  },
+});

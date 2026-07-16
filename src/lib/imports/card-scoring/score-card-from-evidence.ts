@@ -109,8 +109,16 @@ export function scoreCardFromEvidence(input: {
       };
     }
     case 'tag_count': {
-      const tagCount =
-        input.evidence.selfTagCounts[normalizeEvidenceToken(input.rule.tag)] ?? 0;
+      const tagKey = normalizeEvidenceToken(input.rule.tag);
+      const tagCount = input.evidence.selfTagCounts[tagKey];
+
+      if (typeof tagCount !== 'number') {
+        return {
+          reason: `${input.evidence.cardName} needs trusted ${input.rule.tag} tag evidence before it can be scored.`,
+          status: 'review' as const,
+        };
+      }
+
       const scored = scoreBySets({
         itemCount: tagCount,
         itemLabel: `${input.rule.tag} tags`,

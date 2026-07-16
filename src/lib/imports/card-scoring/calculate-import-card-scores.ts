@@ -18,12 +18,13 @@ function isLikelyVariableScoreCandidate(evidence: {
 }, input: {
   ocrTextLinesByCardId?: Record<string, string[]>;
 }) {
+  void evidence.selfTileCounts;
+  void evidence.sourceTags;
+
   return (
     (input.ocrTextLinesByCardId?.[evidence.cardId]?.length ?? 0) > 0 ||
     getCuratedCardScoringRule({ cardName: evidence.cardName }) !== null ||
-    Object.keys(evidence.resourceCountsByType).length > 0 ||
-    evidence.sourceTags.length > 0 ||
-    Object.keys(evidence.selfTileCounts).length > 0
+    Object.keys(evidence.resourceCountsByType).length > 0
   );
 }
 

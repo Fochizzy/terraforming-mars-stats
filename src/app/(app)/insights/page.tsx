@@ -21,6 +21,7 @@ export default async function InsightsPage() {
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/insights" />
       }
       title="Insights"
+      wide
     >
       <InsightsDashboard
         analytics={analytics}

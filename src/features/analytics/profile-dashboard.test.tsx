@@ -80,8 +80,11 @@ describe('ProfileDashboard', () => {
   });
 
   it('renders an onboarding empty state when no linked player is available', () => {
-    render(<ProfileDashboard playerName={null} />);
+    render(<ProfileDashboard linkHref="/group/players" playerName={null} />);
 
     expect(screen.getByText(/link a saved player profile/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /link saved player/i }),
+    ).toHaveAttribute('href', '/group/players');
   });
 });
