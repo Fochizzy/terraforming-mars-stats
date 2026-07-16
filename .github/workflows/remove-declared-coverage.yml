@@ -1,0 +1,69 @@
+name: Remove declared coverage category
+
+on:
+  push:
+    branches:
+      - chore/remove-declared-coverage
+
+permissions:
+  contents: write
+
+jobs:
+  update-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/remove-declared-coverage
+          fetch-depth: 0
+
+      - name: Remove Declared from optional data coverage
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/insights/insights-dashboard.tsx')
+          source = path.read_text()
+
+          chart_entry = """        {
+            label: 'Declared',
+            value: Math.round(selectedCoverage.declaredStyleCoverage * 100),
+          },
+"""
+          badge = """                      <CoverageBadge
+                        label=\"Declared style coverage\"
+                        value={selectedCoverage.declaredStyleCoverage}
+                      />
+"""
+
+          if source.count(chart_entry) != 1:
+              raise SystemExit('Expected exactly one Declared chart entry')
+          if source.count(badge) != 1:
+              raise SystemExit('Expected exactly one Declared coverage badge')
+
+          source = source.replace(chart_entry, '').replace(badge, '')
+          path.write_text(source)
+          PY
+
+      - name: Validate update
+        shell: bash
+        run: |
+          if grep -n "label: 'Declared'" src/features/insights/insights-dashboard.tsx; then
+            echo "Declared chart category is still present"
+            exit 1
+          fi
+          if grep -n 'label="Declared style coverage"' src/features/insights/insights-dashboard.tsx; then
+            echo "Declared coverage badge is still present"
+            exit 1
+          fi
+
+      - name: Commit the change
+        shell: bash
+        run: |
+          rm .github/workflows/remove-declared-coverage.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Remove declared category from coverage chart"
+          git push origin HEAD:chore/remove-declared-coverage
