@@ -11,7 +11,7 @@ describe('ImportEvidenceSummary', () => {
           detectedSource: 'manual_web_import',
           id: 'import-2',
           lineCount: 4,
-          parseStatus: 'saved_as_draft',
+          parseStatus: 'log_parsed_score_extracted',
           rawLogText:
             'Friday Mars won by 6 points.\nSecond Seat lost the tiebreak.\nGeneration 12.\nAward funded.',
           screenshotOriginalName: 'endgame.png',
@@ -24,6 +24,9 @@ describe('ImportEvidenceSummary', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/4 log lines saved/i)).toBeInTheDocument();
     expect(screen.getByText(/screenshot: endgame\.png/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/log parsed \+ score extracted/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/friday mars won by 6 points\./i),
     ).toBeInTheDocument();

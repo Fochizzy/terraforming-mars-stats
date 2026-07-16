@@ -6,11 +6,13 @@ import {
   buildAuthCallbackUrl,
   buildAuthCompletePath,
 } from './build-auth-callback-url';
+import { requestPinReset } from './request-pin-reset';
 import { submitUsernameAuth } from './submit-username-auth';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
 export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string }) {
+  const [email, setEmail] = useState('');
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [fullName, setFullName] = useState('');
   const [pin, setPin] = useState('');
@@ -33,6 +35,7 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
       const completionPath = buildAuthCompletePath(nextPath);
       const result = await submitUsernameAuth({
         client: supabase,
+        email,
         emailRedirectTo: buildAuthCallbackUrl(window.location.origin, nextPath),
         fullName,
         mode,
@@ -66,6 +69,29 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
     }
   }
 
+  async function onResetPin() {
+    setStatus({ message: '', state: 'idle' });
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const result = await requestPinReset({
+        client: supabase,
+        email,
+        emailRedirectTo: buildAuthCallbackUrl(window.location.origin, nextPath),
+      });
+
+      setStatus(result.status);
+    } catch (error) {
+      setStatus({
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Could not send a PIN reset link right now.',
+        state: 'error',
+      });
+    }
+  }
+
   return (
     <form className="tm-panel flex flex-col gap-4" onSubmit={onSubmit}>
       <div className="flex gap-3">
@@ -88,34 +114,55 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
           Use Create Account
         </button>
       </div>
-      {mode === 'sign-up' ? (
-        <label className="flex flex-col gap-2 text-sm">
-          <span className="tm-data-label">Full Name</span>
-          <input
-            aria-label="Full Name"
-            className="tm-input"
-            onChange={(event) => setFullName(event.target.value)}
-            placeholder="First Name Last Name"
-            required
-            type="text"
-            value={fullName}
-          />
-        </label>
-      ) : null}
       <label className="flex flex-col gap-2 text-sm">
-        <span className="tm-data-label">Username</span>
+        <span className="tm-data-label">Email</span>
         <input
-          aria-label="Username"
+          aria-label="Email"
           autoCapitalize="none"
           autoCorrect="off"
           className="tm-input"
-          onChange={(event) => setUsername(event.target.value)}
-          placeholder="friday-mars"
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@example.com"
           required
-          type="text"
-          value={username}
+          type="email"
+          value={email}
         />
       </label>
+      {mode === 'sign-up' ? (
+        <>
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="tm-data-label">Full Name</span>
+            <input
+              aria-label="Full Name"
+              className="tm-input"
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder="First Name Last Name"
+              required
+              type="text"
+              value={fullName}
+            />
+          </label>
+          <p className="tm-body-copy text-xs text-stone-300">
+            Your email is used for sign in and PIN recovery.
+          </p>
+        </>
+      ) : null}
+      {mode === 'sign-up' ? (
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="tm-data-label">Username</span>
+          <input
+            aria-label="Username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            className="tm-input"
+            onChange={(event) => setUsername(event.target.value)}
+            placeholder="friday-mars"
+            required
+            type="text"
+            value={username}
+          />
+        </label>
+      ) : null}
       <label className="flex flex-col gap-2 text-sm">
         <span className="tm-data-label">6-Digit PIN</span>
         <input
@@ -133,6 +180,11 @@ export function LoginForm({ nextPath = '/log-game/import' }: { nextPath?: string
       <button className="tm-button-primary" type="submit">
         {mode === 'sign-in' ? 'Sign In' : 'Create Account'}
       </button>
+      {mode === 'sign-in' ? (
+        <button className="tm-button-secondary" onClick={onResetPin} type="button">
+          Reset PIN
+        </button>
+      ) : null}
       {status.state !== 'idle' ? (
         <p
           className={

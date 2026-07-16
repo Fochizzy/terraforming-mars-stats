@@ -12,6 +12,7 @@
     "test:e2e": "playwright test --pass-with-no-tests",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "backfill:fochizzy-email": "node scripts/backfill-fochizzy-email.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "catalog:fetch": "tsx scripts/catalog/fetch-hadronikle.ts",
     "catalog:publish": "tsx scripts/catalog/publish-reference-data.ts"

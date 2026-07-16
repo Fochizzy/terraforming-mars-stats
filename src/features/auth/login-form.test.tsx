@@ -8,22 +8,18 @@ import {
 import { LoginForm } from './login-form';
 
 const authMocks = vi.hoisted(() => ({
-  insert: vi.fn(),
-  select: vi.fn(),
+  resetPasswordForEmail: vi.fn(),
   signInWithPassword: vi.fn(),
   signUp: vi.fn(),
-  single: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/browser', () => ({
   createSupabaseBrowserClient: () => ({
     auth: {
+      resetPasswordForEmail: authMocks.resetPasswordForEmail,
       signInWithPassword: authMocks.signInWithPassword,
       signUp: authMocks.signUp,
     },
-    from: vi.fn(() => ({
-      insert: authMocks.insert,
-    })),
   }),
 }));
 
@@ -38,7 +34,7 @@ describe('LoginForm', () => {
       },
       error: null,
     });
-    authMocks.insert.mockResolvedValue({ error: null });
+    authMocks.resetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: {
@@ -48,18 +44,18 @@ describe('LoginForm', () => {
     });
   });
 
-  it('signs in with username and pin', async () => {
+  it('signs in with email and pin', async () => {
     const user = userEvent.setup();
 
     render(<LoginForm nextPath="/profile" />);
 
-    await user.type(screen.getByLabelText(/username/i), 'friday-mars');
+    await user.type(screen.getByLabelText(/^email$/i), 'Friday.Mars@Example.com');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
     await waitFor(() =>
       expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
-        email: 'friday-mars@users.tmstats.local',
+        email: 'friday.mars@example.com',
         password: '123456',
       }),
     );
@@ -68,7 +64,7 @@ describe('LoginForm', () => {
     );
   });
 
-  it('creates an account with full name, username, and pin', async () => {
+  it('creates an account with full name, username, email, and pin', async () => {
     const user = userEvent.setup();
 
     render(<LoginForm nextPath="/profile" />);
@@ -78,15 +74,17 @@ describe('LoginForm', () => {
     );
     await user.type(screen.getByLabelText(/full name/i), 'Friday Mars');
     await user.type(screen.getByLabelText(/username/i), 'friday-mars');
+    await user.type(screen.getByLabelText(/^email$/i), 'Friday.Mars@Example.com');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
     await waitFor(() =>
       expect(authMocks.signUp).toHaveBeenCalledWith({
-        email: 'friday-mars@users.tmstats.local',
+        email: 'friday.mars@example.com',
         options: {
           data: {
             full_name: 'Friday Mars',
+            username: 'friday-mars',
           },
           emailRedirectTo: buildAuthCallbackUrl(
             'https://terraforming-mars-stats.workers.dev',
@@ -96,7 +94,6 @@ describe('LoginForm', () => {
         password: '123456',
       }),
     );
-    expect(authMocks.insert).not.toHaveBeenCalled();
     expect(window.location.assign).toHaveBeenCalledWith(
       buildAuthCompletePath('/profile'),
     );
@@ -120,15 +117,17 @@ describe('LoginForm', () => {
     );
     await user.type(screen.getByLabelText(/full name/i), 'Friday Mars');
     await user.type(screen.getByLabelText(/username/i), 'friday-mars');
+    await user.type(screen.getByLabelText(/^email$/i), 'friday@example.com');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
     await waitFor(() =>
       expect(authMocks.signUp).toHaveBeenCalledWith({
-        email: 'friday-mars@users.tmstats.local',
+        email: 'friday@example.com',
         options: {
           data: {
             full_name: 'Friday Mars',
+            username: 'friday-mars',
           },
           emailRedirectTo: buildAuthCallbackUrl(
             'https://terraforming-mars-stats.workers.dev',
@@ -139,16 +138,15 @@ describe('LoginForm', () => {
       }),
     );
 
-    expect(authMocks.insert).not.toHaveBeenCalled();
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(
       screen.getByText(
-        /check your email for the Supabase sign-in link to finish creating this account\./i,
+        /check your email for the sign-in link to finish creating this account\./i,
       ),
     ).toBeInTheDocument();
   });
 
-  it('guides duplicate usernames back to sign in when create account hits an existing account error', async () => {
+  it('guides duplicate email signups back to sign in when create account hits an existing account error', async () => {
     const user = userEvent.setup();
 
     authMocks.signUp.mockResolvedValueOnce({
@@ -168,13 +166,14 @@ describe('LoginForm', () => {
     );
     await user.type(screen.getByLabelText(/full name/i), 'Friday Mars');
     await user.type(screen.getByLabelText(/username/i), 'friday-mars');
+    await user.type(screen.getByLabelText(/^email$/i), 'friday@example.com');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
     await waitFor(() =>
       expect(
         screen.getByText(
-          /that username already has an account\. sign in with the existing 6-digit pin\./i,
+          /that email already has an account\. sign in or reset your pin\./i,
         ),
       ).toBeInTheDocument(),
     );
@@ -204,18 +203,58 @@ describe('LoginForm', () => {
     );
     await user.type(screen.getByLabelText(/full name/i), 'Friday Mars');
     await user.type(screen.getByLabelText(/username/i), 'friday-mars');
+    await user.type(screen.getByLabelText(/^email$/i), 'friday@example.com');
     await user.type(screen.getByLabelText(/6-digit pin/i), '123456');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
     await waitFor(() =>
       expect(
         screen.getByText(
-          /that username already has an account\. sign in with the existing 6-digit pin\./i,
+          /that email already has an account\. sign in or reset your pin\./i,
         ),
       ).toBeInTheDocument(),
     );
 
     expect(screen.getByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
+  });
+
+  it('requests a pin reset with the typed email and shows the generic success message', async () => {
+    const user = userEvent.setup();
+
+    render(<LoginForm nextPath="/profile" />);
+
+    await user.type(screen.getByLabelText(/^email$/i), 'Friday.Mars@Example.com');
+    await user.click(screen.getByRole('button', { name: /reset pin/i }));
+
+    await waitFor(() =>
+      expect(authMocks.resetPasswordForEmail).toHaveBeenCalledWith(
+        'friday.mars@example.com',
+        {
+          redirectTo: buildAuthCallbackUrl(
+            'https://terraforming-mars-stats.workers.dev',
+            '/profile',
+          ),
+        },
+      ),
+    );
+
+    expect(
+      screen.getByText(
+        /if that email is registered, a recovery link has been sent\./i,
+      ),
+    ).toBeInTheDocument();
+    expect(window.location.assign).not.toHaveBeenCalled();
+  });
+
+  it('asks for an email before requesting a pin reset', async () => {
+    const user = userEvent.setup();
+
+    render(<LoginForm nextPath="/profile" />);
+
+    await user.click(screen.getByRole('button', { name: /reset pin/i }));
+
+    expect(authMocks.resetPasswordForEmail).not.toHaveBeenCalled();
+    expect(screen.getByText(/enter your email first\./i)).toBeInTheDocument();
   });
 });

@@ -38,10 +38,11 @@ describe('completeAuthSession', () => {
         getUser: vi.fn().mockResolvedValue({
           data: {
             user: {
-              email: 'friday-mars@users.tmstats.local',
+              email: 'friday@example.com',
               id: 'user-1',
               user_metadata: {
                 full_name: 'Friday Mars',
+                username: 'friday-mars',
               },
             },
           },
@@ -68,6 +69,69 @@ describe('completeAuthSession', () => {
       completeAuthSession({ nextPath: '/log-game/import' }),
     ).resolves.toEqual({
       redirectPath: '/log-game/import',
+    });
+  });
+
+  it('creates a missing profile row from auth metadata and the real account email', async () => {
+    profileQuery.maybeSingle.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+    vi.mocked(getCurrentGroupContext).mockResolvedValue({
+      groupId: 'group-1',
+      groupName: 'Mars Club',
+      role: 'editor',
+      userId: 'user-1',
+    });
+
+    await expect(completeAuthSession({ nextPath: '/profile' })).resolves.toEqual({
+      redirectPath: '/profile',
+    });
+
+    expect(profileQuery.insert).toHaveBeenCalledWith({
+      email: 'friday@example.com',
+      full_name: 'Friday Mars',
+      user_id: 'user-1',
+      username: 'friday-mars',
+    });
+  });
+
+  it('falls back to creating the profile without email when the live column is not available yet', async () => {
+    profileQuery.maybeSingle.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+    profileQuery.insert
+      .mockResolvedValueOnce({
+        error: {
+          code: 'PGRST204',
+          message: "Could not find the 'email' column of 'user_profiles' in the schema cache",
+        },
+      })
+      .mockResolvedValueOnce({
+        error: null,
+      });
+    vi.mocked(getCurrentGroupContext).mockResolvedValue({
+      groupId: 'group-1',
+      groupName: 'Mars Club',
+      role: 'editor',
+      userId: 'user-1',
+    });
+
+    await expect(completeAuthSession({ nextPath: '/profile' })).resolves.toEqual({
+      redirectPath: '/profile',
+    });
+
+    expect(profileQuery.insert).toHaveBeenNthCalledWith(1, {
+      email: 'friday@example.com',
+      full_name: 'Friday Mars',
+      user_id: 'user-1',
+      username: 'friday-mars',
+    });
+    expect(profileQuery.insert).toHaveBeenNthCalledWith(2, {
+      full_name: 'Friday Mars',
+      user_id: 'user-1',
+      username: 'friday-mars',
     });
   });
 

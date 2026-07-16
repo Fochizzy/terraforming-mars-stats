@@ -1,0 +1,903 @@
+
+--- 2026-07-08T00:55:24.526Z debug
+🪵  Writing logs to "C:\Users\izzyh\Documents\Terraforming Mars\.worktrees\import-roster-signature-impl\.wrangler-home\.wrangler\logs\wrangler-2026-07-08_00-55-24_392.log"
+---
+
+--- 2026-07-08T00:55:24.526Z debug
+.env file not found at "C:\Users\izzyh\Documents\Terraforming Mars\.worktrees\import-roster-signature-impl\.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-08T00:55:24.527Z debug
+.env file not found at "C:\Users\izzyh\Documents\Terraforming Mars\.worktrees\import-roster-signature-impl\.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---
+
+--- 2026-07-08T00:55:24.535Z log
+
+ ⛅️ wrangler 4.107.0
+────────────────────
+---
+
+--- 2026-07-08T00:55:24.545Z debug
+Running autoconfig detection in C:\Users\izzyh\Documents\Terraforming Mars\.worktrees\import-roster-signature-impl...
+---
+
+--- 2026-07-08T00:55:24.547Z debug
+Metrics dispatcher: Posting data {"deviceId":"bd5432cc-89db-494c-9d6b-e6bea2c1c472","event":"wrangler command started","timestamp":1783472124547,"properties":{"amplitude_session_id":1783472124539,"amplitude_event_id":0,"wranglerVersion":"4.107.0","wranglerMajorVersion":4,"wranglerMinorVersion":107,"wranglerPatchVersion":0,"osPlatform":"Windows","osVersion":"Windows 11 Home","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":true,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"currentAgentSkillsInstalled":"manual"}}
+---
+
+--- 2026-07-08T00:55:24.551Z debug
+Metrics dispatcher: Posting data {"deviceId":"bd5432cc-89db-494c-9d6b-e6bea2c1c472","event":"autoconfig_process_started","timestamp":1783472124551,"properties":{"amplitude_session_id":1783472124545,"amplitude_event_id":0,"wranglerVersion":"4.107.0","wranglerMajorVersion":4,"wranglerMinorVersion":107,"wranglerPatchVersion":0,"osPlatform":"Windows","osVersion":"Windows 11 Home","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"win32:x64","autoConfigId":"d488322d-04f2-43c9-b831-6480e68f3c90","command":"wrangler deploy","dryRun":false,"currentAgentSkillsInstalled":"manual"}}
+---
+
+--- 2026-07-08T00:55:24.552Z debug
+Metrics dispatcher: Posting data {"deviceId":"bd5432cc-89db-494c-9d6b-e6bea2c1c472","event":"autoconfig_detection_started","timestamp":1783472124552,"properties":{"amplitude_session_id":1783472124545,"amplitude_event_id":0,"wranglerVersion":"4.107.0","wranglerMajorVersion":4,"wranglerMinorVersion":107,"wranglerPatchVersion":0,"osPlatform":"Windows","osVersion":"Windows 11 Home","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"win32:x64","autoConfigId":"d488322d-04f2-43c9-b831-6480e68f3c90","command":"wrangler deploy","currentAgentSkillsInstalled":"manual"}}
+---
+
+--- 2026-07-08T00:55:24.552Z debug
+Metrics dispatcher: Posting data {"deviceId":"bd5432cc-89db-494c-9d6b-e6bea2c1c472","event":"autoconfig_detection_completed","timestamp":1783472124552,"properties":{"amplitude_session_id":1783472124546,"amplitude_event_id":0,"wranglerVersion":"4.107.0","wranglerMajorVersion":4,"wranglerMinorVersion":107,"wranglerPatchVersion":0,"osPlatform":"Windows","osVersion":"Windows 11 Home","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"win32:x64","autoConfigId":"d488322d-04f2-43c9-b831-6480e68f3c90","configured":true,"success":true,"currentAgentSkillsInstalled":"manual"}}
+---
+
+--- 2026-07-08T00:55:24.560Z debug
+Metrics dispatcher: Posting data {"deviceId":"bd5432cc-89db-494c-9d6b-e6bea2c1c472","event":"autoconfig_process_ended","timestamp":1783472124560,"properties":{"amplitude_session_id":1783472124546,"amplitude_event_id":0,"wranglerVersion":"4.107.0","wranglerMajorVersion":4,"wranglerMinorVersion":107,"wranglerPatchVersion":0,"osPlatform":"Windows","osVersion":"Windows 11 Home","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"win32:x64","autoConfigId":"d488322d-04f2-43c9-b831-6480e68f3c90","command":"wrangler deploy","dryRun":false,"success":true,"currentAgentSkillsInstalled":"manual"}}
+---
+
+--- 2026-07-08T00:55:25.004Z debug
+Starting verifyWorkerMatchesCITag() with tag: undefined, name: terraforming-mars-stats
+---
+
+--- 2026-07-08T00:55:25.004Z debug
+No WRANGLER_CI_MATCH_TAG variable provided, aborting verifyWorkerMatchesCITag()
+---
+
+--- 2026-07-08T00:55:25.004Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/services/terraforming-mars-stats
+---
+
+--- 2026-07-08T00:55:25.005Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.005Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.005Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.005Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:25.393Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:25.393Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.393Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.394Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:25.394Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/secrets
+---
+
+--- 2026-07-08T00:55:25.394Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.394Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.394Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.394Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:25.593Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:25.593Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.593Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.593Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:25.594Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/deployments
+---
+
+--- 2026-07-08T00:55:25.594Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.594Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.594Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:25.594Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:26.084Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:26.085Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:26.085Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:26.085Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:26.086Z info
+🌀 Building list of assets...
+---
+
+--- 2026-07-08T00:55:26.090Z info
+✨ Read 66 files from the assets directory C:\Users\izzyh\Documents\Terraforming Mars\.worktrees\import-roster-signature-impl\.open-next\assets
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/BUILD_ID
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/favicon.ico
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/file.svg
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/globe.svg
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/next.svg
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/vercel.svg
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/window.svg
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\css
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\zgRfihRkIUxBeEJOBn7Pg
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\zgRfihRkIUxBeEJOBn7Pg\_buildManifest.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\zgRfihRkIUxBeEJOBn7Pg\_ssgManifest.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\css\bb81b4b20cc42869.css
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\139.7a5a8e93a21948c1.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\255-3981a3d1f3561bd8.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\44530001-f5212f80b137756d.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\4bd1b696-c023c6e3521b1417.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\545-a23f3cc523538486.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\619-ba102abea3e3d0e4.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\646.f342b7cffc01feb0.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\918-cfb9b64ee168e13b.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\942-e5f0be55b6426471.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\962-74cf5d887e297a36.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\framework-de98b93a850cfc71.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\main-44c8ecea1b522dd0.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\main-app-fdad7367da7a93dd.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\pages
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\polyfills-42372ed130431b0a.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\webpack-d4ab01cf7b5dbc52.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\pages\_app-82835f42865034fa.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\pages\_error-013f4188946cdd04.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\(app)
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\(auth)
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\auth
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\layout-dc2c7ab1cee2f350.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\page-5be29e95a9a687af.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\_not-found
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\_not-found\page-2e5deab28282ffc4.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\auth\callback
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\auth\complete
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\auth\reset-pin
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\auth\reset-pin\page-7ad8a00e5bfbc6b7.js
+---
+
+--- 2026-07-08T00:55:26.091Z debug
+/_next\static\chunks\app\auth\complete\route-63ff48bcd7a57475.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\auth\callback\route-63ff48bcd7a57475.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(auth)\login
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(auth)\login\page-bb33a44445236364.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\claim-player
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\group
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\insights
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\layout-63ff48bcd7a57475.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\log-game
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\profile
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\profile\page-73205700b110ca93.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\log-game\import
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\log-game\page-ccf7ef7500798055.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\log-game\import\page-f85dd4b0f4692c42.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\insights\page-a685c899cfc816c7.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\group\page-5be29e95a9a687af.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\group\players
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\group\settings
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\group\settings\page-9ce70cf4ef7567b9.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\group\players\page-2bf575a180baf761.js
+---
+
+--- 2026-07-08T00:55:26.092Z debug
+/_next\static\chunks\app\(app)\claim-player\page-5be29e95a9a687af.js
+---
+
+--- 2026-07-08T00:55:26.102Z info
+🌀 Starting asset upload...
+---
+
+--- 2026-07-08T00:55:26.103Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/assets-upload-session
+---
+
+--- 2026-07-08T00:55:26.103Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:26.103Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:26.103Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:26.103Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:27.868Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:27.868Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.868Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.868Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:27.869Z info
+🌀 Found 2 new or modified static assets to upload. Proceeding with upload...
+---
+
+--- 2026-07-08T00:55:27.869Z info
++ /BUILD_ID
+---
+
+--- 2026-07-08T00:55:27.869Z info
++ /_next/static/css/bb81b4b20cc42869.css
+---
+
+--- 2026-07-08T00:55:27.871Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/assets/upload?base64=true
+---
+
+--- 2026-07-08T00:55:27.871Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.871Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.871Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.872Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/assets/upload?base64=true
+---
+
+--- 2026-07-08T00:55:27.872Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.872Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.872Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.872Z debug
+BODY: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.872Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:27.873Z debug
+BODY: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:27.873Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:28.440Z debug
+-- START CF API RESPONSE: Accepted 202
+---
+
+--- 2026-07-08T00:55:28.440Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:28.440Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:28.440Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:28.440Z info
+Uploaded 1 of 2 assets
+---
+
+--- 2026-07-08T00:55:28.440Z debug
+✨ /BUILD_ID
+---
+
+--- 2026-07-08T00:55:28.691Z debug
+-- START CF API RESPONSE: Created 201
+---
+
+--- 2026-07-08T00:55:28.691Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:28.691Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:28.691Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:28.692Z info
+Uploaded 2 of 2 assets
+---
+
+--- 2026-07-08T00:55:28.692Z debug
+✨ /_next/static/css/bb81b4b20cc42869.css
+---
+
+--- 2026-07-08T00:55:28.692Z log
+✨ Success! Uploaded 2 files (41 already uploaded) (0.82 sec)
+
+---
+
+--- 2026-07-08T00:55:28.779Z log
+Total Upload: 6621.70 KiB / gzip: 1351.38 KiB
+---
+
+--- 2026-07-08T00:55:28.780Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/settings
+---
+
+--- 2026-07-08T00:55:28.780Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:28.780Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:28.780Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:28.780Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:29.048Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:29.048Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:29.048Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:29.048Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:29.055Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/versions
+---
+
+--- 2026-07-08T00:55:29.055Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:29.055Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:29.055Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:29.060Z debug
+BODY: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:29.061Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:31.749Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:31.749Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:31.750Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:31.750Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:31.750Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/deployments
+---
+
+--- 2026-07-08T00:55:31.750Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:31.750Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:31.750Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:31.750Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:32.169Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:32.169Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.169Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.169Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:32.170Z debug
+-- START CF API REQUEST: PATCH https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/script-settings
+---
+
+--- 2026-07-08T00:55:32.170Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.170Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.170Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.170Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:32.607Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:32.607Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.608Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.608Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:32.608Z log
+Worker Startup Time: 31 ms
+---
+
+--- 2026-07-08T00:55:32.609Z log
+Your Worker has access to the following bindings:
+---
+
+--- 2026-07-08T00:55:32.609Z log
+Binding                                                                                       Resource                  
+---
+
+--- 2026-07-08T00:55:32.609Z log
+env.ASSETS                                                                                    Assets                    
+---
+
+--- 2026-07-08T00:55:32.609Z log
+env.NEXT_PUBLIC_SUPABASE_URL ("https://qjtwgrjjwnqafbvkkfex.supabase...")                     Environment Variable      
+---
+
+--- 2026-07-08T00:55:32.609Z log
+env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ("sb_publishable_bOcMTVbweIlEwP5aQZIjKQ...")         Environment Variable      
+---
+
+--- 2026-07-08T00:55:32.609Z log
+env.SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE ("tm-import-evidence")                            Environment Variable      
+---
+
+--- 2026-07-08T00:55:32.609Z log
+
+---
+
+--- 2026-07-08T00:55:32.609Z log
+Uploaded terraforming-mars-stats (7.02 sec)
+---
+
+--- 2026-07-08T00:55:32.610Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/subdomain
+---
+
+--- 2026-07-08T00:55:32.610Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.610Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.610Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.610Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/subdomain
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:32.874Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:33.061Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:33.061Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:33.061Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:33.061Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:33.062Z debug
+-- START CF API REQUEST: POST https://api.cloudflare.com/client/v4/accounts/ff8a138ce7094a59bf20b88becff3f99/workers/scripts/terraforming-mars-stats/subdomain
+---
+
+--- 2026-07-08T00:55:33.062Z debug
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:33.062Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:33.062Z debug
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:33.062Z debug
+-- END CF API REQUEST
+---
+
+--- 2026-07-08T00:55:33.320Z debug
+-- START CF API RESPONSE: OK 200
+---
+
+--- 2026-07-08T00:55:33.320Z debug
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:33.320Z debug
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+---
+
+--- 2026-07-08T00:55:33.320Z debug
+-- END CF API RESPONSE
+---
+
+--- 2026-07-08T00:55:33.321Z log
+Deployed terraforming-mars-stats triggers (0.71 sec)
+---
+
+--- 2026-07-08T00:55:33.321Z log
+  https://terraforming-mars-stats.izzy-hodnett.workers.dev
+---
+
+--- 2026-07-08T00:55:33.321Z log
+Current Version ID: 69e6b05a-ffac-41a7-85d8-397a0646c9d3
+---
+
+--- 2026-07-08T00:55:33.328Z debug
+Metrics dispatcher: Posting data {"deviceId":"bd5432cc-89db-494c-9d6b-e6bea2c1c472","event":"deploy worker script","timestamp":1783472133328,"properties":{"amplitude_session_id":1783472133322,"amplitude_event_id":0,"wranglerVersion":"4.107.0","wranglerMajorVersion":4,"wranglerMinorVersion":107,"wranglerPatchVersion":0,"osPlatform":"Windows","osVersion":"Windows 11 Home","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"win32:x64","usesTypeScript":false,"durationMs":8731,"assetUploadDurationMs":823,"assetUploadIsBulk":true,"assetUploadFileCount":2,"assetUploadTotalBytes":21117,"currentAgentSkillsInstalled":"manual"}}
+---
+
+--- 2026-07-08T00:55:33.330Z debug
+Metrics dispatcher: Posting data {"deviceId":"bd5432cc-89db-494c-9d6b-e6bea2c1c472","event":"wrangler command completed","timestamp":1783472133330,"properties":{"amplitude_session_id":1783472124539,"amplitude_event_id":1,"wranglerVersion":"4.107.0","wranglerMajorVersion":4,"wranglerMinorVersion":107,"wranglerPatchVersion":0,"osPlatform":"Windows","osVersion":"Windows 11 Home","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"jsonc","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":true,"agent":"codex","argsUsed":[],"argsCombination":"","sanitizedCommand":"deploy","sanitizedArgs":{},"durationMs":8797,"currentAgentSkillsInstalled":"manual"}}
+---
+
+--- 2026-07-08T00:55:33.331Z debug
+Metrics dispatcher: Posting data {"deviceId":"bd5432cc-89db-494c-9d6b-e6bea2c1c472","event":"skills_install_skipped","timestamp":1783472133331,"properties":{"amplitude_session_id":1783472133331,"amplitude_event_id":0,"wranglerVersion":"4.107.0","wranglerMajorVersion":4,"wranglerMinorVersion":107,"wranglerPatchVersion":0,"osPlatform":"Windows","osVersion":"Windows 11 Home","nodeVersion":24,"packageManager":"npm","isFirstUsage":false,"configFileType":"none","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"agent":"codex","category":"Workers","os":"win32:x64","reason":"Non-interactive terminal","command":"deploy","currentAgentSkillsInstalled":"manual"}}
+---

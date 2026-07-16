@@ -1,0 +1,8 @@
+
+--- 2026-07-08T00:34:30.516Z debug
+🪵  Writing logs to "C:\Users\izzyh\Documents\Terraforming Mars\.worktrees\import-roster-signature-impl\.wrangler-home\.wrangler\logs\wrangler-2026-07-08_00-34-30_373.log"
+---
+
+--- 2026-07-08T00:34:30.516Z debug
+local dev variables file not found at ".dev.vars". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+---

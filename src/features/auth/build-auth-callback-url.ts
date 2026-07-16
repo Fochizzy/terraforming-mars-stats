@@ -12,6 +12,10 @@ export function buildAuthCompletePath(nextPath: string) {
   return `/auth/complete?next=${encodeURIComponent(normalizeNextPath(nextPath))}`;
 }
 
+export function buildAuthResetPinPath(nextPath: string) {
+  return `/auth/reset-pin?next=${encodeURIComponent(normalizeNextPath(nextPath))}`;
+}
+
 export function buildAuthCompleteClaimPath(nextPath: string) {
   return `/claim-player?next=${encodeURIComponent(normalizeNextPath(nextPath))}`;
 }

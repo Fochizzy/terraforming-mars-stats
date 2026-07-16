@@ -26,6 +26,18 @@ function getJoinedGroupName(value: unknown) {
   return '';
 }
 
+function isMissingAuthSessionError(error: unknown) {
+  const namedError =
+    error && typeof error === 'object' && 'name' in error
+      ? (error as { name?: unknown })
+      : null;
+
+  return (
+    namedError !== null &&
+    namedError.name === 'AuthSessionMissingError'
+  );
+}
+
 export async function listCurrentUserGroups(): Promise<CurrentUserGroup[]> {
   const supabase = await createSupabaseServerClient();
   const {
@@ -33,7 +45,7 @@ export async function listCurrentUserGroups(): Promise<CurrentUserGroup[]> {
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError) {
+  if (userError && !isMissingAuthSessionError(userError)) {
     throw userError;
   }
 
@@ -65,7 +77,7 @@ export async function getCurrentGroupContext(): Promise<CurrentGroupContext | nu
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError) {
+  if (userError && !isMissingAuthSessionError(userError)) {
     throw userError;
   }
 

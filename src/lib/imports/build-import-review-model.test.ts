@@ -51,6 +51,13 @@ describe('buildImportReviewModel', () => {
             },
           },
         ],
+        groupResolution: {
+          action: 'reuse',
+          groupName: 'Friday / Second',
+          participantCount: 2,
+          summary:
+            'This import will reuse Friday / Second because its roster exactly matches an existing group.',
+        },
         logScoreCandidates: [
           {
             awardPoints: 2,
@@ -110,6 +117,11 @@ describe('buildImportReviewModel', () => {
       ],
       detectedParticipantNames: ['Izzy'],
       drawInfoLineCount: 1,
+      groupResolution: {
+        action: 'reuse',
+        groupName: 'Friday / Second',
+        participantCount: 2,
+      },
       ignoredLineCount: 2,
       logScoreCandidates: [{ playerName: 'Izzy H.', totalPoints: 61 }],
       parsedEventCount: 1,

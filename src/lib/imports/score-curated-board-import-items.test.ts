@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildImportBoardSnapshot } from './build-import-board-snapshot';
+import type { BoardSpaceConfirmation } from './read-board-screenshot-space-confirmations';
 import { scoreCuratedBoardImportItems } from './score-curated-board-import-items';
 
 describe('scoreCuratedBoardImportItems', () => {
@@ -381,8 +382,8 @@ describe('scoreCuratedBoardImportItems', () => {
             status: 'confirmed',
             tileKind: 'occupied_other',
           },
-        },
-      } as any),
+        } satisfies Record<string, BoardSpaceConfirmation>,
+      }),
     ).toContainEqual(
       expect.objectContaining({
         cardName: 'Commercial District',
@@ -470,8 +471,8 @@ describe('scoreCuratedBoardImportItems', () => {
             status: 'confirmed',
             tileKind: 'empty',
           },
-        },
-      } as any),
+        } satisfies Record<string, BoardSpaceConfirmation>,
+      }),
     ).toContainEqual(
       expect.objectContaining({
         cardName: 'Commercial District',

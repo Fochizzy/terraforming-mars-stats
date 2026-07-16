@@ -13,11 +13,19 @@ export type ImportScoreCrossCheck = {
   status: 'conflict' | 'log_only' | 'matched' | 'screenshot_only';
 };
 
+export type ImportGroupResolutionReview = {
+  action: 'create' | 'reuse';
+  groupName: string;
+  participantCount: number;
+  summary: string;
+};
+
 export type ImportReviewModel = {
   boardReviewItems?: CuratedBoardImportItem[];
   cardScoring?: ImportPlayerCardScoringSummary[];
   detectedParticipantNames: string[];
   drawInfoLineCount: number;
+  groupResolution: ImportGroupResolutionReview;
   ignoredLineCount: number;
   logScoreCandidates?: ParsedEndgameScoreScreenshot['playerRows'];
   parsedEventCount: number;
@@ -127,6 +135,7 @@ function buildScoreCrossChecks(input: {
 export function buildImportReviewModel(input: {
   boardReviewItems?: CuratedBoardImportItem[];
   cardScoring?: ImportPlayerCardScoringSummary[];
+  groupResolution: ImportGroupResolutionReview;
   logScoreCandidates?: ParsedEndgameScoreScreenshot['playerRows'];
   logParse: Pick<
     ParsedGameLog,
@@ -145,6 +154,7 @@ export function buildImportReviewModel(input: {
     cardScoring: input.cardScoring ?? [],
     detectedParticipantNames: extractGameLogParticipantNames(input.logParse),
     drawInfoLineCount: input.logParse.drawInfoLineCount,
+    groupResolution: input.groupResolution,
     ignoredLineCount: input.logParse.ignoredLineCount,
     logScoreCandidates,
     parsedEventCount: input.logParse.events.length,

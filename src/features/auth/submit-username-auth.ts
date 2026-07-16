@@ -1,9 +1,11 @@
 import {
-  buildSyntheticAuthEmail,
+  authEmailSchema,
   normalizeUsername,
   pinSchema,
+  signInPinSchema,
   signupFullNameSchema,
 } from './username-auth';
+import { ZodError } from 'zod';
 
 export type UsernameAuthMode = 'sign-in' | 'sign-up';
 
@@ -49,6 +51,7 @@ type UsernameAuthClient = {
       options: {
         data: {
           full_name: string;
+          username: string;
         };
         emailRedirectTo?: string;
       };
@@ -82,21 +85,32 @@ function isExistingAccountSignupAttempt(input: SignupResponse) {
   );
 }
 
+function getAuthInputErrorMessage(error: unknown) {
+  if (error instanceof ZodError) {
+    return error.issues[0]?.message ?? 'Could not complete authentication right now.';
+  }
+
+  return error instanceof Error
+    ? error.message
+    : 'Could not complete authentication right now.';
+}
+
 export async function submitUsernameAuth(input: {
   client: UsernameAuthClient;
+  email: string;
   emailRedirectTo?: string;
   fullName?: string;
   mode: UsernameAuthMode;
   pin: string;
-  username: string;
+  username?: string;
 }): Promise<UsernameAuthResult> {
   try {
-    const normalizedUsername = normalizeUsername(input.username);
-    const parsedPin = pinSchema.parse(input.pin);
+    const parsedEmail = authEmailSchema.parse(input.email);
 
     if (input.mode === 'sign-in') {
+      const parsedPin = signInPinSchema.parse(input.pin);
       const { error } = await input.client.auth.signInWithPassword({
-        email: buildSyntheticAuthEmail(normalizedUsername),
+        email: parsedEmail,
         password: parsedPin,
       });
 
@@ -104,7 +118,7 @@ export async function submitUsernameAuth(input: {
         return {
           ok: false,
           status: {
-            message: 'Unknown username or incorrect PIN.',
+            message: 'Unknown email or incorrect PIN.',
             state: 'error',
           },
         };
@@ -116,12 +130,15 @@ export async function submitUsernameAuth(input: {
       };
     }
 
+    const parsedPin = pinSchema.parse(input.pin);
     const parsedFullName = signupFullNameSchema.parse(input.fullName ?? '');
+    const normalizedUsername = normalizeUsername(input.username ?? '');
     const signupResult = await input.client.auth.signUp({
-      email: buildSyntheticAuthEmail(normalizedUsername),
+      email: parsedEmail,
       options: {
         data: {
           full_name: parsedFullName,
+          username: normalizedUsername,
         },
         ...(input.emailRedirectTo
           ? { emailRedirectTo: input.emailRedirectTo }
@@ -135,8 +152,7 @@ export async function submitUsernameAuth(input: {
         nextMode: 'sign-in',
         ok: false,
         status: {
-          message:
-            'That username already has an account. Sign in with the existing 6-digit PIN.',
+          message: 'That email already has an account. Sign in or reset your PIN.',
           state: 'error',
         },
       };
@@ -157,8 +173,7 @@ export async function submitUsernameAuth(input: {
         action: 'awaiting-email',
         ok: true,
         status: {
-          message:
-            'Check your email for the Supabase sign-in link to finish creating this account.',
+          message: 'Check your email for the sign-in link to finish creating this account.',
           state: 'success',
         },
       };
@@ -172,10 +187,7 @@ export async function submitUsernameAuth(input: {
     return {
       ok: false,
       status: {
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Could not complete authentication right now.',
+        message: getAuthInputErrorMessage(error),
         state: 'error',
       },
     };

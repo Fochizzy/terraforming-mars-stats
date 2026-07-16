@@ -58,6 +58,9 @@ describe('ProfilePage', () => {
     expect(
       screen.getByRole('link', { name: /review saved player matches/i }),
     ).toHaveAttribute('href', '/claim-player');
+    expect(
+      screen.getByRole('link', { name: /log a game now/i }),
+    ).toHaveAttribute('href', '/log-game');
     expect(navigationMocks.redirect).not.toHaveBeenCalled();
     expect(getProfileAnalytics).not.toHaveBeenCalled();
   });

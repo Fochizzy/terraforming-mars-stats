@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import {
   buildGroupRosterSignature,
   findExactGroupRosterMatch,
+  previewImportGroupResolution,
   resolveOrCreateImportGroup,
   selectCurrentGroupPlayerIds,
   resolveImportParticipantIdentities,
@@ -335,14 +336,8 @@ describe('previewImportGroupResolution', () => {
       ],
     });
 
-    const module = (await import('./import-group-repo')) as typeof import('./import-group-repo') & {
-      previewImportGroupResolution?: (input: {
-        participantNames: string[];
-      }) => Promise<unknown>;
-    };
-
     await expect(
-      module.previewImportGroupResolution?.({
+      previewImportGroupResolution({
         participantNames: ['Second Seat', 'Friday Mars'],
       }),
     ).resolves.toEqual({
@@ -352,6 +347,7 @@ describe('previewImportGroupResolution', () => {
       groupName: 'Friday Mars / Second Seat',
       selectedPlayerIds: ['player-2', 'player-1'],
     });
+    expect(setCurrentUserLastActiveGroup).not.toHaveBeenCalled();
   });
 });
 

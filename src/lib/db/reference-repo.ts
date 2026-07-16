@@ -74,6 +74,21 @@ export type PromoCardOption = {
   fullImageUrl: string;
 };
 
+export type CardScoringReference = {
+  id: string;
+  sourceCardId: string;
+  cardNumber: string;
+  cardName: string;
+  cardType: string;
+  expansionCode: string;
+  promoSetSlug: string | null;
+  requiredExpansionCodes: string[];
+  imageUrl: string;
+  thumbnailUrl: string;
+  fullImageUrl: string;
+  sourceTags: string[];
+};
+
 type JoinedName = {
   name: string;
 };
@@ -360,6 +375,78 @@ export async function listPromoCards(): Promise<PromoCardOption[]> {
       thumbnailUrl: card.thumbnail_path ?? card.full_image_path ?? card.image_url,
       fullImageUrl: card.full_image_path ?? card.image_url,
     }));
+}
+
+export async function listCardScoringReferences(): Promise<CardScoringReference[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('cards')
+    .select(
+      [
+        'id',
+        'source_card_id',
+        'card_number',
+        'card_name',
+        'card_type',
+        'expansion_code',
+        'promo_set_id',
+        'required_expansion_codes',
+        'image_url',
+        'thumbnail_path',
+        'full_image_path',
+        'sync_metadata',
+      ].join(', '),
+    )
+    .eq('card_type', 'Project')
+    .order('card_name');
+
+  if (error) {
+    throw error;
+  }
+
+  const cardRows = data as unknown as Array<{
+    card_name: string;
+    card_number: string;
+    card_type: string;
+    expansion_code: string;
+    full_image_path: string | null;
+    id: string;
+    image_url: string;
+    promo_set_id: string | null;
+    required_expansion_codes: unknown;
+    source_card_id: string;
+    sync_metadata: Record<string, unknown> | null;
+    thumbnail_path: string | null;
+  }>;
+
+  const promoSetSlugById = await resolvePromoSetSlugByIdMap(
+    cardRows
+      .map((card) => card.promo_set_id)
+      .filter((promoSetId): promoSetId is string => Boolean(promoSetId)),
+  );
+
+  return cardRows.map((card) => ({
+    id: card.id,
+    sourceCardId: card.source_card_id,
+    cardNumber: card.card_number,
+    cardName: card.card_name,
+    cardType: card.card_type,
+    expansionCode: card.expansion_code,
+    promoSetSlug: card.promo_set_id
+      ? promoSetSlugById.get(card.promo_set_id) ?? null
+      : null,
+    requiredExpansionCodes: normalizeExpansionCodeList(
+      card.required_expansion_codes,
+    ),
+    imageUrl: card.image_url,
+    thumbnailUrl: card.thumbnail_path ?? card.full_image_path ?? card.image_url,
+    fullImageUrl: card.full_image_path ?? card.image_url,
+    sourceTags: Array.isArray(card.sync_metadata?.sourceTags)
+      ? card.sync_metadata.sourceTags.filter(
+          (tag): tag is string => typeof tag === 'string',
+        )
+      : [],
+  }));
 }
 
 export async function getLatestCatalogSnapshotId(): Promise<string | null> {

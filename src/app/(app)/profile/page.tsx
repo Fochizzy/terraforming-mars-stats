@@ -6,7 +6,10 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { getProfileAnalytics } from '@/lib/db/analytics-repo';
 import { getCurrentGroupContext } from '@/lib/db/group-context-repo';
 
-const noGroupNavItems = [{ href: '/profile', label: 'My Profile' }] as const;
+const noGroupNavItems = [
+  { href: '/profile', label: 'My Profile' },
+  { href: '/log-game', label: 'Log Game' },
+] as const;
 
 export default async function ProfilePage() {
   const context = await getCurrentGroupContext();
@@ -19,9 +22,18 @@ export default async function ProfilePage() {
             Claim a saved player profile to join the group that already has your
             history and unlock your personal analytics.
           </p>
-          <Link className="tm-button-primary mt-4 inline-flex w-fit" href="/claim-player">
-            Review Saved Player Matches
-          </Link>
+          <p className="mt-3 text-sm text-stone-300">
+            You can also log a game now, and we&apos;ll create your first group
+            automatically when you save.
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <Link className="tm-button-primary inline-flex w-fit" href="/log-game">
+              Log A Game Now
+            </Link>
+            <Link className="tm-button-secondary inline-flex w-fit" href="/claim-player">
+              Review Saved Player Matches
+            </Link>
+          </div>
         </ChartFrame>
       </AppShell>
     );
@@ -31,7 +43,7 @@ export default async function ProfilePage() {
   let profileAnalyticsUnavailable = false;
 
   try {
-    profileAnalytics = await getProfileAnalytics(context.userId);
+    profileAnalytics = await getProfileAnalytics(context.groupId, context.userId);
   } catch (error) {
     profileAnalyticsUnavailable = true;
     console.error('Profile analytics load failed', error);
@@ -58,7 +70,6 @@ export default async function ProfilePage() {
         <ProfileDashboard
           coverage={profileAnalytics?.coverage ?? null}
           headToHeadRows={profileAnalytics?.headToHeadRows ?? []}
-          linkHref="/group/players"
           performance={profileAnalytics?.performance ?? null}
           playerName={profileAnalytics?.playerName ?? null}
           scoreAverages={profileAnalytics?.scoreAverages ?? null}
