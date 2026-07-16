@@ -12,6 +12,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { CombinationLeaderboard } from './combination-leaderboard';
+import { CombinationScoreProfile } from './combination-score-profile';
+import type { ScoreProfileEntry } from './combination-score-profile';
 import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
 import { PromoSetBrowser } from '@/features/catalog/promo-set-browser';
@@ -144,18 +147,18 @@ function humanizeInteractionType(
   return 'Map + Expansions';
 }
 
-function buildScoreSourceEntries(scoreAverages: ScoreSourceShape) {
+function buildScoreSourceEntries(scoreAverages: ScoreSourceShape): ScoreProfileEntry[] {
   return [
-    { label: 'Terraform Rating', value: scoreAverages.averageTrPoints },
-    { label: 'Card Points', value: scoreAverages.averageCardPoints },
-    { label: 'Other Card', value: scoreAverages.averageOtherCardPoints },
-    { label: 'Greenery', value: scoreAverages.averageGreeneryPoints },
-    { label: 'Cities', value: scoreAverages.averageCitiesPoints },
-    { label: 'Milestones', value: scoreAverages.averageMilestonePoints },
-    { label: 'Awards', value: scoreAverages.averageAwardPoints },
-    { label: 'Jovian', value: scoreAverages.averageJovianPoints },
-    { label: 'Microbe', value: scoreAverages.averageMicrobePoints },
-    { label: 'Animal', value: scoreAverages.averageAnimalPoints },
+    { categoryId: 'terraformRating', value: scoreAverages.averageTrPoints },
+    { categoryId: 'cardPoints', value: scoreAverages.averageCardPoints },
+    { categoryId: 'otherCard', value: scoreAverages.averageOtherCardPoints },
+    { categoryId: 'greenery', value: scoreAverages.averageGreeneryPoints },
+    { categoryId: 'cities', value: scoreAverages.averageCitiesPoints },
+    { categoryId: 'milestones', value: scoreAverages.averageMilestonePoints },
+    { categoryId: 'awards', value: scoreAverages.averageAwardPoints },
+    { categoryId: 'jovian', value: scoreAverages.averageJovianPoints },
+    { categoryId: 'microbe', value: scoreAverages.averageMicrobePoints },
+    { categoryId: 'animal', value: scoreAverages.averageAnimalPoints },
   ];
 }
 
@@ -379,9 +382,9 @@ export function InsightsDashboard({
     isFocused: row.playerId === selectedPlayer?.id,
     winRate: Math.round(row.winRate * 100),
   }));
-  const scoreSourceData = selectedScoreProfile
+  const scoreSourceData: ScoreProfileEntry[] = selectedScoreProfile
     ? buildScoreSourceEntries(selectedScoreProfile).map((entry) => ({
-        label: entry.label,
+        categoryId: entry.categoryId,
         value: Number(entry.value.toFixed(1)),
       }))
     : [];
@@ -435,6 +438,44 @@ export function InsightsDashboard({
 
   return (
     <div className="flex flex-col gap-4">
+      {scoreSourceData.length > 0 ? (
+        <ChartFrame
+          title={
+            selectedPlayer
+              ? `Score Profile for ${selectedPlayer.displayName}`
+              : 'Group Score Profile'
+          }
+        >
+          <div className="overflow-x-auto">
+            <BarChart
+              data={scoreSourceData}
+              height={340}
+              layout="vertical"
+              margin={{ bottom: 12, left: 48, right: 12, top: 12 }}
+              width={340}
+            >
+              <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
+              <XAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} type="number" />
+              <YAxis
+                dataKey="label"
+                tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                type="category"
+                width={88}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: '#1c1917',
+                  border: '1px solid #7c2d12',
+                  borderRadius: '12px',
+                  color: '#f5f5f4',
+                }}
+              />
+              <Bar dataKey="value" fill="#38bdf8" radius={[0, 10, 10, 0]} />
+            </BarChart>
+          </div>
+        </ChartFrame>
+      ) : null}
+
       <ChartFrame title="Insights Lab">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end gap-3">
@@ -626,48 +667,6 @@ export function InsightsDashboard({
               globalTagMetricRows={analytics.globalTagMetricRows}
             />
           </section>
-
-          <ChartFrame
-            title={
-              selectedPlayer
-                ? `Score Profile for ${selectedPlayer.displayName}`
-                : 'Group Score Profile'
-            }
-          >
-            {scoreSourceData.length === 0 ? (
-              <p className="text-sm text-stone-400">
-                Score-source averages will appear here after finalized games exist.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <BarChart
-                  data={scoreSourceData}
-                  height={340}
-                  layout="vertical"
-                  margin={{ bottom: 12, left: 48, right: 12, top: 12 }}
-                  width={340}
-                >
-                  <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
-                  <XAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} type="number" />
-                  <YAxis
-                    dataKey="label"
-                    tick={{ fill: '#d6d3d1', fontSize: 12 }}
-                    type="category"
-                    width={88}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#1c1917',
-                      border: '1px solid #7c2d12',
-                      borderRadius: '12px',
-                      color: '#f5f5f4',
-                    }}
-                  />
-                  <Bar dataKey="value" fill="#38bdf8" radius={[0, 10, 10, 0]} />
-                </BarChart>
-              </div>
-            )}
-          </ChartFrame>
 
           <ChartFrame
             title={
