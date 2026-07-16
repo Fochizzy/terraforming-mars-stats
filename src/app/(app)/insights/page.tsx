@@ -71,7 +71,6 @@ export default async function InsightsPage() {
           scoreAverages={analytics.scoreAverages}
         />
         <GamePaceReplay games={gamePaceReplays} />
-        <ScoreProfilePanel entries={scoreProfileEntries} />
         <div className="[&>div>section:last-child]:hidden">
           <InsightsDashboard
             analytics={dashboardAnalytics}
@@ -83,6 +82,7 @@ export default async function InsightsPage() {
             promoSets={[]}
           />
         </div>
+        <ScoreProfilePanel entries={scoreProfileEntries} />
       </div>
     </AppShell>
   );
