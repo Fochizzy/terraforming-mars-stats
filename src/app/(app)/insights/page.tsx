@@ -71,7 +71,7 @@ export default async function InsightsPage() {
           scoreAverages={analytics.scoreAverages}
         />
         <GamePaceReplay games={gamePaceReplays} />
-        <div className="[&>div>section:last-child]:hidden">
+        <div className="contents [&>div]:contents [&>div>section]:order-2 [&>div>section:first-child]:order-none [&>div>section:last-child]:hidden">
           <InsightsDashboard
             analytics={dashboardAnalytics}
             players={players.map((player) => ({
@@ -82,7 +82,9 @@ export default async function InsightsPage() {
             promoSets={[]}
           />
         </div>
-        <ScoreProfilePanel entries={scoreProfileEntries} />
+        <div className="order-1">
+          <ScoreProfilePanel entries={scoreProfileEntries} />
+        </div>
       </div>
     </AppShell>
   );
