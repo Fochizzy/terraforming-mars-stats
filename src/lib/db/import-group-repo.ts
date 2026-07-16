@@ -428,35 +428,37 @@ export async function resolveOrCreateImportGroup(input: {
       .from('groups')
       .select('id, name')
       .eq('id', matchingGroupId)
-      .single();
+      .maybeSingle();
 
     if (groupError) {
       throw groupError;
     }
 
-    const existingMemberRows = buildImportGroupMemberRows({
-      groupId: matchingGroupId,
-      participantIdentities,
-    });
-
-    const { error: membershipError } = await admin
-      .from('group_members')
-      .upsert(existingMemberRows, {
-        ignoreDuplicates: false,
-        onConflict: 'group_id,user_id',
+    if (group) {
+      const existingMemberRows = buildImportGroupMemberRows({
+        groupId: matchingGroupId,
+        participantIdentities,
       });
 
-    if (membershipError) {
-      throw membershipError;
-    }
+      const { error: membershipError } = await admin
+        .from('group_members')
+        .upsert(existingMemberRows, {
+          ignoreDuplicates: false,
+          onConflict: 'group_id,user_id',
+        });
 
-    return {
-      createdNewGroup: false,
-      createdProfileNames: [] as string[],
-      groupId: group.id,
-      groupName: group.name,
-      selectedPlayerIds,
-    };
+      if (membershipError) {
+        throw membershipError;
+      }
+
+      return {
+        createdNewGroup: false,
+        createdProfileNames: [] as string[],
+        groupId: group.id,
+        groupName: group.name,
+        selectedPlayerIds,
+      };
+    }
   }
 
   const { data: group, error: groupError } = await admin
