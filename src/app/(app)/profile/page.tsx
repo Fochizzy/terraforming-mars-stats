@@ -1,7 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { ProfileDashboard } from '@/features/analytics/profile-dashboard';
 import { StyleEffectivenessPanel } from '@/features/analytics/style-effectiveness-panel';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { getGroupAnalytics, getProfileAnalytics } from '@/lib/db/analytics-repo';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 
@@ -19,12 +18,7 @@ export default async function ProfilePage() {
     : [];
 
   return (
-    <AppShell
-      headerActions={
-        <GroupSwitcher currentGroupId={context.groupId} returnPath="/profile" />
-      }
-      title="My Profile"
-    >
+    <AppShell title="My Profile">
       <div className="flex flex-col gap-4">
         <StyleEffectivenessPanel
           globalRows={groupAnalytics.groupStylePerformanceRows}
