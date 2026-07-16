@@ -160,6 +160,34 @@ function buildLogScoreCandidates(input: {
   });
 }
 
+function formatCountLabel(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function buildImportSuccessMessage(input: {
+  logEventCount: number;
+  logScoreRowCount: number;
+  screenshotScoreRowCount: number;
+}) {
+  const logEventLabel = formatCountLabel(input.logEventCount, 'log event');
+  const screenshotScoreRowLabel = formatCountLabel(
+    input.screenshotScoreRowCount,
+    'screenshot score row',
+  );
+
+  if (input.logScoreRowCount === 0) {
+    return `Parsed ${logEventLabel} and ${screenshotScoreRowLabel}.`;
+  }
+
+  const logScoreRowLabel = formatCountLabel(input.logScoreRowCount, 'log score row');
+  const fallbackMessage =
+    input.screenshotScoreRowCount === 0
+      ? " We'll use the log score breakdown where available."
+      : '';
+
+  return `Parsed ${logEventLabel}, ${logScoreRowLabel}, and ${screenshotScoreRowLabel}.${fallbackMessage}`;
+}
+
 function isCuratedBoardCardItem(
   item: CuratedBoardImportItem,
 ): item is Extract<CuratedBoardImportItem, { itemType: 'card' }> {
@@ -396,7 +424,11 @@ export default async function LogGameImportPage() {
 
       return {
         status: 'success' as const,
-        message: `Parsed ${parsedGameLog.events.length} log events and ${parsedScreenshot.playerRows.length} screenshot score rows.`,
+        message: buildImportSuccessMessage({
+          logEventCount: parsedGameLog.events.length,
+          logScoreRowCount: logScoreCandidates.length,
+          screenshotScoreRowCount: parsedScreenshot.playerRows.length,
+        }),
         review: buildImportReviewModel({
           boardReviewItems: curatedBoardItems,
           cardScoring,
@@ -563,6 +595,16 @@ export default async function LogGameImportPage() {
       const boardStateTextLines = boardScreenshotEvidence.flatMap(
         (screenshot) => screenshot.textLines,
       );
+      const importedNames = Array.from(
+        new Set([
+          ...detectedParticipantNames,
+          ...parsedScreenshot.playerRows.map((row) => row.playerName),
+        ]),
+      );
+      const logScoreCandidates = buildLogScoreCandidates({
+        playerNames: importedNames,
+        rawLogText: values.exportedGameLog,
+      });
       const initialBoardEvidenceContext =
         boardSnapshot == null
           ? undefined
@@ -752,8 +794,16 @@ export default async function LogGameImportPage() {
         status: 'success' as const,
         gameId: draft.gameId,
         message: importGroup.createdNewGroup
-          ? `Created ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. Parsed ${parsedGameLog.events.length} log events and ${parsedScreenshot.playerRows.length} screenshot score rows.`
-          : `Matched ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. Parsed ${parsedGameLog.events.length} log events and ${parsedScreenshot.playerRows.length} screenshot score rows.`,
+          ? `Created ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. ${buildImportSuccessMessage({
+              logEventCount: parsedGameLog.events.length,
+              logScoreRowCount: logScoreCandidates.length,
+              screenshotScoreRowCount: parsedScreenshot.playerRows.length,
+            })}`
+          : `Matched ${importGroup.groupName} and saved import draft ${draft.gameId.slice(0, 8)}. ${buildImportSuccessMessage({
+              logEventCount: parsedGameLog.events.length,
+              logScoreRowCount: logScoreCandidates.length,
+              screenshotScoreRowCount: parsedScreenshot.playerRows.length,
+            })}`,
       };
     } catch (error) {
       console.error('Web import draft save failed', serializeUnknownError(error));

@@ -148,4 +148,36 @@ describe('ImportReviewPanel', () => {
       selectedManualReviewJumpTarget,
     );
   });
+
+  it('calls out when the draft will fall back to log score rows', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          detectedParticipantNames: ['Friday Mars', 'Second Seat'],
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          logScoreCandidates: [
+            { playerName: 'Friday Mars', totalPoints: 61, trPoints: 18 },
+            { playerName: 'Second Seat', totalPoints: 54, trPoints: 16 },
+          ],
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(/no screenshot score rows were detected/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/the draft will use the log score breakdown where available/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /log score breakdown/i }),
+    ).toBeInTheDocument();
+  });
 });

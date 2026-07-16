@@ -75,7 +75,7 @@ export function LogGameImportShell({
           });
         }
 
-        router.push(`/log-game?gameId=${result.gameId}`);
+        router.push(`/log-game/review?gameId=${result.gameId}`);
       }
 
       return {

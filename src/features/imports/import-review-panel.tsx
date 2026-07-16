@@ -41,6 +41,10 @@ function formatScoreFieldList(fields: string[]) {
   return fields.map(formatScoreFieldLabel).join(', ');
 }
 
+function formatCountLabel(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function buildScoreCrossCheckMessage(check: ImportScoreCrossCheck) {
   switch (check.status) {
     case 'conflict': {
@@ -142,6 +146,8 @@ export function ImportReviewPanel({
     return jumpTarget ? [jumpTarget] : [];
   });
   const scoreCrossChecks = review.scoreCrossChecks ?? [];
+  const shouldExplainLogScoreFallback =
+    logScoreCandidates.length > 0 && review.scoreCandidates.length === 0;
 
   return (
     <section className="tm-panel flex flex-col gap-3">
@@ -164,9 +170,19 @@ export function ImportReviewPanel({
           scoring.
         </p>
       ) : null}
+      {shouldExplainLogScoreFallback ? (
+        <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4">
+          <h3 className="tm-data-label text-xs">Score Row Fallback</h3>
+          <p className="mt-3 text-sm text-emerald-50">
+            No screenshot score rows were detected. The log includes{' '}
+            {formatCountLabel(logScoreCandidates.length, 'score row')}, so the
+            draft will use the log score breakdown where available.
+          </p>
+        </div>
+      ) : null}
       {logScoreCandidates.length > 0 ? (
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-          <h3 className="tm-data-label text-xs">Log Score Hints</h3>
+          <h3 className="tm-data-label text-xs">Log Score Breakdown</h3>
           <ul className="mt-3 flex flex-col gap-2 text-sm">
             {logScoreCandidates.map((candidate) => (
               <li

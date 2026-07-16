@@ -344,6 +344,31 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('surfaces log score rows in the success message when screenshot parsing finds none', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      boardScreenshots: [],
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog:
+        `${EXPORTED_GAME_LOG}\n` +
+        'Friday Mars: TR 18, Milestones 5, Awards 2, Total 61',
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message:
+        "Parsed 2 log events, 1 log score row, and 0 screenshot score rows. We'll use the log score breakdown where available.",
+      status: 'success',
+    });
+  });
+
   it('creates an import draft through the real page action and persists the parsed output', async () => {
     const shellProps = await renderPageAndCaptureShellProps();
     const createDraftFormData = buildCreateImportDraftFormData({

@@ -169,7 +169,9 @@ describe('LogGameImportShell', () => {
     });
 
     await waitFor(() =>
-      expect(navigationMocks.push).toHaveBeenCalledWith('/log-game?gameId=game-1'),
+      expect(navigationMocks.push).toHaveBeenCalledWith(
+        '/log-game/review?gameId=game-1',
+      ),
     );
   });
 
