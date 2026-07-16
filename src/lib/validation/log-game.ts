@@ -151,6 +151,7 @@ const playerScoreSchema = z.object({
   awardPoints: optionalNonNegativeNumberSchema,
   totalPoints: optionalNonNegativeNumberSchema,
   finalMegacredits: optionalNonNegativeNumberSchema,
+  heatActions: optionalNonNegativeNumberSchema,
 });
 
 const playerStyleSchema = z.object({

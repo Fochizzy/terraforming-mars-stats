@@ -597,6 +597,11 @@ export function buildImportDraft(input: {
           logValue: logScore.trPoints,
           screenshotValue: scoreCandidate?.trPoints,
         }),
+        heatActions: mergeCrossCheckedScoreValue({
+          authoritativeValue: structuredLogScore.heatActions,
+          logValue: logScore.heatActions,
+          screenshotValue: scoreCandidate?.heatActions,
+        }),
       };
 
       if (

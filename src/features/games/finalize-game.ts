@@ -93,6 +93,7 @@ export type FinalizedGamePayload = {
     corporationIds: string[];
     finalMegacredits: number;
     greeneryPoints: number;
+    heatActions: number | null;
     isWinner: boolean;
     milestonePoints: number;
     otherCardPoints: number | null;
@@ -532,6 +533,7 @@ export function buildFinalizedGamePayload(
       milestonePoints: requireScoreField(score, 'milestonePoints'),
       awardPoints: requireScoreField(score, 'awardPoints'),
       otherCardPoints: computeOtherCardPoints(score),
+      heatActions: score.heatActions ?? null,
     };
   });
 

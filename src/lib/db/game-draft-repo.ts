@@ -656,6 +656,7 @@ export async function finalizeGameLog(payload: {
         milestone_points: player.milestonePoints,
         award_points: player.awardPoints,
         other_card_points: player.otherCardPoints,
+        heat_actions: player.heatActions,
       })),
     )
     .select('id, player_id');

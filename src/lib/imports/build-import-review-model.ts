@@ -52,6 +52,7 @@ const scoreCrossCheckFields = [
   'citiesPoints',
   'finalMegacredits',
   'greeneryPoints',
+  'heatActions',
   'milestonePoints',
   'totalPoints',
   'trPoints',

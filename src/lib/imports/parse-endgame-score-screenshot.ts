@@ -9,6 +9,7 @@ export type ParsedScreenshotPlayerRow = {
   citiesPoints?: number;
   finalMegacredits?: number;
   greeneryPoints?: number;
+  heatActions?: number;
   milestonePoints?: number;
   playerName: string;
   totalPoints?: number;
@@ -165,6 +166,7 @@ function mergeRows(
     finalMegacredits:
       preferred.finalMegacredits ?? fallback.finalMegacredits,
     greeneryPoints: preferred.greeneryPoints ?? fallback.greeneryPoints,
+    heatActions: preferred.heatActions ?? fallback.heatActions,
     milestonePoints: preferred.milestonePoints ?? fallback.milestonePoints,
     playerName: preferred.playerName,
     totalPoints: preferred.totalPoints ?? fallback.totalPoints,
@@ -305,6 +307,7 @@ const RECONCILABLE_COMPONENT_FIELDS = [
   'greeneryPoints',
   'milestonePoints',
   'trPoints',
+  'heatActions',
 ] as const;
 const MAX_RECONCILE_COMBINATIONS = 256;
 

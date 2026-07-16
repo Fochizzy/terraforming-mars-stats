@@ -12,7 +12,8 @@ export type ImportScoreField =
   | 'milestonePoints'
   | 'awardPoints'
   | 'totalPoints'
-  | 'finalMegacredits';
+  | 'finalMegacredits'
+  | 'heatActions';
 
 export type ImportScorePlayer = {
   id?: string;
@@ -59,6 +60,7 @@ const scoreFields: ReadonlyArray<ImportScoreField> = [
   'awardPoints',
   'totalPoints',
   'finalMegacredits',
+  'heatActions',
 ];
 
 const fieldPatterns: Record<ImportScoreField, { aliases: string[] }> = {
@@ -88,6 +90,7 @@ const fieldPatterns: Record<ImportScoreField, { aliases: string[] }> = {
     ],
   },
   greeneryPoints: { aliases: ['greenery points', 'greenery'] },
+  heatActions: { aliases: ['heat actions', 'temperature raises', 'heat raises', 'heat'] },
   milestonePoints: { aliases: ['milestone points', 'milestones', 'milestone'] },
   totalPoints: { aliases: ['total points', 'total'] },
   trPoints: { aliases: ['terraform rating', 'tr'] },
@@ -108,10 +111,14 @@ const finalScoreFieldByKey: Record<string, ImportScoreField> = {
   city: 'citiesPoints',
   cities: 'citiesPoints',
   greenery: 'greeneryPoints',
+  heat: 'heatActions',
+  heatactions: 'heatActions',
+  heatraises: 'heatActions',
   m: 'finalMegacredits',
   mc: 'finalMegacredits',
   milestone: 'milestonePoints',
   milestones: 'milestonePoints',
+  temperatureraises: 'heatActions',
   total: 'totalPoints',
   tr: 'trPoints',
   vp: 'cardPointsTotal',
