@@ -72,13 +72,7 @@ describe('resolveImportPlayerLinks', () => {
   });
 
   it('matches a linked username before asking for confirmation', () => {
-    expect(
-      resolveImportPlayerLinks(
-        ['izzy-h'],
-        groupPlayers,
-        [],
-      ),
-    ).toMatchObject({
+    expect(resolveImportPlayerLinks(['izzy-h'], groupPlayers, [])).toMatchObject({
       matches: [
         {
           importedName: 'izzy-h',
@@ -144,6 +138,56 @@ describe('resolveImportPlayerLinks', () => {
       displayName: 'Izzy',
       id: 'player-1',
       matchReason: 'username_exact',
+    });
+  });
+
+  it('collapses duplicate cross-group rows while retaining aliases for every row id', () => {
+    const result = resolveImportPlayerLinks(
+      ['Iz'],
+      [
+        {
+          canonicalKey: 'user:user-izzy',
+          displayName: 'fochizzy',
+          gamesPlayed: 3,
+          id: 'izzy-group-a',
+          linkedFullName: 'Izzy Hodnett',
+          linkedUsername: 'fochizzy',
+        },
+        {
+          canonicalKey: 'user:user-izzy',
+          displayName: 'fochizzy',
+          gamesPlayed: 12,
+          id: 'izzy-group-b',
+          linkedFullName: 'Izzy Hodnett',
+          linkedUsername: 'fochizzy',
+        },
+      ],
+      [
+        {
+          aliasText: 'Iz',
+          normalizedAlias: 'iz',
+          playerId: 'izzy-group-a',
+          sourceType: 'game_log',
+        },
+      ],
+    );
+
+    expect(result).toMatchObject({
+      matches: [
+        {
+          candidates: [
+            {
+              gamesPlayed: 15,
+              id: 'izzy-group-b',
+              matchReason: 'alias_exact',
+            },
+          ],
+          requiresConfirmation: false,
+          selectedPlayerId: 'izzy-group-b',
+          status: 'alias',
+        },
+      ],
+      unresolvedCount: 0,
     });
   });
 
@@ -252,9 +296,7 @@ describe('resolveImportPlayerLinks', () => {
   });
 
   it('leaves unmatched players unresolved while still listing the roster as fallback choices', () => {
-    expect(
-      resolveImportPlayerLinks(['Morgan'], groupPlayers, []),
-    ).toMatchObject({
+    expect(resolveImportPlayerLinks(['Morgan'], groupPlayers, [])).toMatchObject({
       matches: [
         {
           candidates: [
