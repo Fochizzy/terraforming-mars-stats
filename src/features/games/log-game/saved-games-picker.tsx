@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { SavedGameListItem } from '@/lib/db/game-draft-repo';
 import { StepHeading } from '@/components/ui/step-heading';
+import { DeleteGameConfirmation } from './delete-game-confirmation';
 
 type DeleteGameAction = (formData: FormData) => Promise<void>;
 type ReopenGameAction = (formData: FormData) => Promise<void>;
@@ -76,19 +77,13 @@ function SavedGameCard({
               </button>
             </form>
           ) : null}
-          <form action={deleteGameAction}>
-            <input name="gameId" type="hidden" value={game.gameId} />
-            <input name="groupId" type="hidden" value={game.groupId} />
-            <button
-              aria-label={`Delete ${game.status === 'draft' ? 'draft' : 'game'} ${
-                game.playerNames.join(', ') || game.gameId
-              }`}
-              className="tm-button-secondary tm-text-danger px-4 py-2 text-xs"
-              type="submit"
-            >
-              {game.status === 'draft' ? 'Delete Draft' : 'Delete Game'}
-            </button>
-          </form>
+          <DeleteGameConfirmation
+            deleteGameAction={deleteGameAction}
+            gameId={game.gameId}
+            groupId={game.groupId}
+            playerNames={game.playerNames}
+            status={game.status}
+          />
         </div>
       </div>
     </article>
