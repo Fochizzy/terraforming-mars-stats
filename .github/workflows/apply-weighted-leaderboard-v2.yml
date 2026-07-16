@@ -7,6 +7,12 @@ on:
     paths:
       - .github/workflows/apply-weighted-leaderboard-v2.yml
       - scripts/apply-weighted-leaderboard-v2.mjs
+  pull_request:
+    branches:
+      - tm-stats-app
+    paths:
+      - .github/workflows/apply-weighted-leaderboard-v2.yml
+      - scripts/apply-weighted-leaderboard-v2.mjs
 
 permissions:
   contents: write
@@ -16,4 +22,37 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+    steps:
+      - name: Check out enhancement branch
+        uses: actions/checkout@v4
+        with:
+          ref: enhance/weighted-leaderboard-chart-v2
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply targeted chart enhancement
+        run: node scripts/apply-weighted-leaderboard-v2.mjs
+
+      - name: Test group selection and dashboard
+        run: npm run test -- --run src/features/insights/player-combination-options.test.ts src/features/insights/insights-dashboard.test.tsx
+
+      - name: Build application
+        run: npm run build
+
+      - name: Commit validated implementation
+        run: |
+          rm scripts/apply-weighted-leaderboard-v2.mjs
+          rm .github/workflows/apply-weighted-leaderboard-v2.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/insights/insights-dashboard.tsx scripts/apply-weighted-leaderboard-v2.mjs .github/workflows/apply-weighted-leaderboard-v2.yml
+          git commit -m "Enhance weighted leaderboard without UI drift"
+          git push origin HEAD:enhance/weighted-leaderboard-chart-v2
