@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -16,6 +16,7 @@ import {
   chartSeriesColors,
 } from '@/components/charts/chart-theme';
 import type { SelectionDialogData } from '@/lib/db/selection-stats-repo';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import type { CorporationTagDatum } from './tag-outcomes-section';
 import { SelectionNameButton } from './selection-name-link';
 
@@ -46,6 +47,12 @@ type CorporationTooltipProps = {
 
 type RateTone = 'amber' | 'blue' | 'green' | 'muted' | 'rose';
 
+type CorporationLogoRow = {
+  id: string;
+  logo_path: string | null;
+};
+
+const CORPORATION_LOGO_BUCKET = 'tm-corporation-logos';
 const SOFT_GRID_STROKE = 'rgba(120, 113, 108, 0.2)';
 const LIMITED_SAMPLE_SIZE = 3;
 
@@ -70,6 +77,48 @@ function limitedSampleLabel(value: number) {
   }
 
   return `Limited · ${value} tagged ${value === 1 ? 'game' : 'games'}`;
+}
+
+function getCorporationInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+function CorporationLogo({ name, src }: { name: string; src: string | null }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  return (
+    <span
+      className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/[0.08] bg-white/[0.02]"
+      data-corporation-logo
+    >
+      {src && !failed ? (
+        <img
+          alt=""
+          className="h-7 w-7 object-contain"
+          loading="lazy"
+          onError={() => setFailed(true)}
+          src={src}
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="text-[0.62rem] font-semibold uppercase tracking-wide text-stone-500"
+        >
+          {getCorporationInitials(name)}
+        </span>
+      )}
+    </span>
+  );
 }
 
 function compareRows(
@@ -292,6 +341,78 @@ export function CorporationRelationshipPanel({
 }) {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [sortKey, setSortKey] = useState<SortKey>('withTagResults');
+  const [logoUrlByCorporationId, setLogoUrlByCorporationId] = useState<
+    Record<string, string>
+  >({});
+  const corporationIdKey = useMemo(
+    () =>
+      [...new Set(
+        data
+          .map((entry) => entry.corporationId)
+          .filter((id): id is string => Boolean(id)),
+      )]
+        .sort()
+        .join('|'),
+    [data],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const corporationIds = corporationIdKey ? corporationIdKey.split('|') : [];
+
+    if (corporationIds.length === 0) {
+      setLogoUrlByCorporationId({});
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    async function loadCorporationLogos() {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: logoRows, error } = await supabase
+          .from('corporations')
+          .select('id, logo_path')
+          .in('id', corporationIds);
+
+        if (error) {
+          throw error;
+        }
+
+        const nextLogoUrls: Record<string, string> = {};
+
+        for (const row of (logoRows ?? []) as CorporationLogoRow[]) {
+          if (!row.logo_path) {
+            continue;
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from(CORPORATION_LOGO_BUCKET)
+            .getPublicUrl(row.logo_path);
+
+          if (publicUrlData.publicUrl) {
+            nextLogoUrls[row.id] = publicUrlData.publicUrl;
+          }
+        }
+
+        if (!cancelled) {
+          setLogoUrlByCorporationId(nextLogoUrls);
+        }
+      } catch (error) {
+        console.warn('[insights] Failed to load corporation logos', error);
+
+        if (!cancelled) {
+          setLogoUrlByCorporationId({});
+        }
+      }
+    }
+
+    void loadCorporationLogos();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [corporationIdKey]);
 
   const sortedData = useMemo(
     () => [...data].sort((left, right) => compareRows(left, right, sortKey, sortDirection)),
@@ -670,12 +791,22 @@ export function CorporationRelationshipPanel({
                   >
                     <td className="px-4 py-3 text-left">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <SelectionNameButton
-                          className="min-w-0 truncate text-left font-medium text-stone-200 transition hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/60"
-                          dialogData={dialogData}
-                          kind="Corporation"
-                          name={entry.corporationName}
-                        />
+                        <div className="flex min-w-0 items-center gap-3">
+                          <CorporationLogo
+                            name={entry.corporationName}
+                            src={
+                              entry.corporationId
+                                ? logoUrlByCorporationId[entry.corporationId] ?? null
+                                : null
+                            }
+                          />
+                          <SelectionNameButton
+                            className="min-w-0 truncate text-left font-medium text-stone-200 transition hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/60"
+                            dialogData={dialogData}
+                            kind="Corporation"
+                            name={entry.corporationName}
+                          />
+                        </div>
                         {limited ? (
                           <span className="rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2 py-0.5 text-[0.62rem] text-amber-100/80">
                             {limitedSampleLabel(entry.withTagResults)}
