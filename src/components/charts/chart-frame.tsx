@@ -1,4 +1,5 @@
 import { HeadToHeadLensFrame } from './head-to-head-lens-frame';
+import styles from './chart-frame.module.css';
 
 export function ChartFrame({
   title,
@@ -17,23 +18,52 @@ export function ChartFrame({
     title === 'Award Funding ROI'
       ? 'Award Funding ROI Global Award Meta'
       : undefined;
+  const isBestStyleSnapshot = title === 'Best Style Snapshot';
+  const resolvedDescription = isBestStyleSnapshot
+    ? 'Compare your strongest inferred play styles and the results behind each one.'
+    : description;
 
   return (
-    <section className="tm-panel">
-      <div>
-        <h2
-          aria-label={accessibleTitle}
-          className="tm-panel-title text-lg font-semibold tracking-[0.08em]"
-        >
-          {title}
-        </h2>
-        {description ? (
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-300">
-            {description}
-          </p>
-        ) : null}
+    <section
+      className={['tm-panel', isBestStyleSnapshot ? styles.snapshot : '']
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {isBestStyleSnapshot ? (
+        <div className={styles.snapshotHeader}>
+          <div className={styles.snapshotTitleGroup}>
+            <p className={styles.snapshotEyebrow}>Performance profile</p>
+            <h2
+              aria-label={accessibleTitle}
+              className="tm-panel-title text-lg font-semibold tracking-[0.08em]"
+            >
+              {title}
+            </h2>
+            <p className={styles.snapshotDescription}>{resolvedDescription}</p>
+          </div>
+          <div className={styles.snapshotBadge}>
+            <span aria-hidden="true">★</span>
+            Top styles
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h2
+            aria-label={accessibleTitle}
+            className="tm-panel-title text-lg font-semibold tracking-[0.08em]"
+          >
+            {title}
+          </h2>
+          {resolvedDescription ? (
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-300">
+              {resolvedDescription}
+            </p>
+          ) : null}
+        </div>
+      )}
+      <div className={isBestStyleSnapshot ? styles.snapshotBody : 'mt-4'}>
+        {children}
       </div>
-      <div className="mt-4">{children}</div>
     </section>
   );
 }
