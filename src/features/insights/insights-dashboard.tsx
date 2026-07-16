@@ -7,6 +7,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -173,6 +174,41 @@ function formatAverage(value: number | null) {
 
 function roundNumber(value: number, digits = 3) {
   return Number(value.toFixed(digits));
+}
+
+type LeaderboardDatum = {
+  isFocused: boolean;
+  name: string;
+  rank: number;
+  weightedScore: number;
+  winRate: number;
+};
+
+function LeaderboardTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: LeaderboardDatum }>;
+}) {
+  const datum = payload?.[0]?.payload;
+
+  if (!active || !datum) {
+    return null;
+  }
+
+  return (
+    <div className="px-3 py-2 text-xs" style={chartTooltipStyle}>
+      <p className="font-semibold">
+        #{datum.rank} {datum.name}
+        {datum.isFocused ? ' · focus' : ''}
+      </p>
+      <p className="tm-muted-copy mt-1">
+        Weighted score {datum.weightedScore.toFixed(3)}
+      </p>
+      <p className="tm-muted-copy">Win rate {datum.winRate}%</p>
+    </div>
+  );
 }
 
 function weightedAverage(entries: Array<{ value: number; weight: number }>) {
@@ -1898,8 +1934,9 @@ export function InsightsDashboard({
   );
 
   const leaderboardRows = isGroupScope ? analytics.leaderboardRows : overallLeaderboardRows;
-  const leaderboardChartData = leaderboardRows.slice(0, 6).map((row) => ({
+  const leaderboardChartData = leaderboardRows.slice(0, 6).map((row, index) => ({
     name: row.playerName,
+    rank: index + 1,
     weightedScore: Number(row.weightedScore.toFixed(3)),
     isFocused: isGroupScope
       ? row.playerId === activeGroupPlayerId
@@ -2466,7 +2503,7 @@ export function InsightsDashboard({
                 <ResponsiveContainer height={260} width="100%">
                   <BarChart
                     data={leaderboardChartData}
-                    margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
+                    margin={{ bottom: 36, left: 0, right: 12, top: 24 }}
                   >
                     <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
                     <XAxis
@@ -2476,8 +2513,11 @@ export function InsightsDashboard({
                       textAnchor="end"
                       tick={chartAxisTick}
                     />
-                    <YAxis tick={chartAxisTick} />
-                    <Tooltip contentStyle={chartTooltipStyle} />
+                    <YAxis
+                      domain={[0, (dataMax: number) => roundNumber(dataMax * 1.15)]}
+                      tick={chartAxisTick}
+                    />
+                    <Tooltip content={<LeaderboardTooltip />} cursor={{ fill: chartGridStroke }} />
                     <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
                       {leaderboardChartData.map((row) => (
                         <Cell
@@ -2487,8 +2527,19 @@ export function InsightsDashboard({
                               : chartSeriesColors.default
                           }
                           key={row.name}
+                          stroke={row.isFocused ? 'var(--tm-text)' : undefined}
+                          strokeWidth={row.isFocused ? 2 : 0}
                         />
                       ))}
+                      <LabelList
+                        dataKey="weightedScore"
+                        fill="var(--tm-muted)"
+                        fontSize={11}
+                        formatter={(value) =>
+                          typeof value === 'number' ? value.toFixed(2) : value
+                        }
+                        position="top"
+                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
