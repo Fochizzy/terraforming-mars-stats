@@ -1,9 +1,12 @@
+import { ChartFrame } from '@/components/charts/chart-frame';
 import { AppShell } from '@/components/layout/app-shell';
+import { CorporationScoreSourceChart } from '@/features/analytics/corporation-score-source-chart';
 import { GroupDashboard } from '@/features/analytics/group-dashboard';
 import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { FinalTerraformingActionTable } from '@/features/insights/final-terraforming-action-table';
 import { getGroupAnalytics } from '@/lib/db/analytics-repo';
+import { listCorporationScoreSources } from '@/lib/db/corporation-score-source-repo';
 import {
   getFinalTerraformingActionStats,
   type FinalTerraformingActionStat,
@@ -26,11 +29,25 @@ async function loadFinalTerraformingActionStats(
   }
 }
 
+async function loadCorporationScoreSources(groupId: string) {
+  try {
+    return await listCorporationScoreSources(groupId);
+  } catch (error) {
+    console.error('[group] Failed to load corporation score-source analytics', error);
+    return [];
+  }
+}
+
 export default async function GroupPage() {
   const context = await requireGroupContextOrRedirect();
-  const [groupAnalytics, finalTerraformingActionStats] = await Promise.all([
+  const [
+    groupAnalytics,
+    finalTerraformingActionStats,
+    corporationScoreSources,
+  ] = await Promise.all([
     getGroupAnalytics(context.groupId),
     loadFinalTerraformingActionStats(context.groupId),
+    loadCorporationScoreSources(context.groupId),
   ]);
 
   return (
@@ -41,6 +58,9 @@ export default async function GroupPage() {
       title="Group"
     >
       <div className="flex flex-col gap-6">
+        <ChartFrame title="Scoring Composition by Corporation">
+          <CorporationScoreSourceChart rows={corporationScoreSources} />
+        </ChartFrame>
         <GroupDashboard
           coverage={groupAnalytics.coverage}
           globalAwardMetricRows={groupAnalytics.globalAwardMetricRows}
