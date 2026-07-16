@@ -1,0 +1,19 @@
+name: Apply screenshot award winner fix
+
+on:
+  push:
+    branches:
+      - fix/screenshot-award-winners
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/screenshot-award-winners
+          fetch-depth: 0
