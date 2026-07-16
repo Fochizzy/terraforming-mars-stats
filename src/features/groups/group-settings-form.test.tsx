@@ -2,71 +2,64 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { GroupSettingsForm } from './group-settings-form';
-import { groupSettingsSchema } from '@/lib/validation/group-settings';
+import { groupRenameSchema } from '@/lib/validation/group-settings';
 
-describe('groupSettingsSchema', () => {
-  it('requires a group name and allows promo and expansion defaults', () => {
-    const parsed = groupSettingsSchema.parse({
+describe('groupRenameSchema', () => {
+  it('requires a target group and a useful group name', () => {
+    const parsed = groupRenameSchema.parse({
+      groupId: '550e8400-e29b-41d4-a716-446655440000',
       groupName: 'Friday Mars',
-      globalAnalyticsEnabled: true,
-      defaultExpansionCodes: ['base', 'prelude', 'colonies'],
-      defaultPromoSetSlugs: ['2021-seasonal-promos'],
     });
 
+    expect(parsed.groupId).toBe('550e8400-e29b-41d4-a716-446655440000');
     expect(parsed.groupName).toBe('Friday Mars');
-    expect(parsed.defaultExpansionCodes).toHaveLength(3);
   });
 });
 
 describe('GroupSettingsForm', () => {
-  it('submits the selected defaults and analytics preference', async () => {
+  it('lists memberships and submits a rename for the selected group', async () => {
     const user = userEvent.setup();
-    const onSave = vi.fn().mockResolvedValue({
+    const activeGroupId = '550e8400-e29b-41d4-a716-446655440001';
+    const weeknightGroupId = '550e8400-e29b-41d4-a716-446655440002';
+    const onRename = vi.fn().mockResolvedValue({
       status: 'success' as const,
-      message: 'Saved.',
+      message: 'Renamed.',
     });
 
     render(
       <GroupSettingsForm
-        expansionOptions={[
-          { id: 'e1', code: 'base', name: 'Base Game' },
-          { id: 'e2', code: 'prelude', name: 'Prelude' },
-          { id: 'e3', code: 'colonies', name: 'Colonies' },
-        ]}
-        initialValues={{
-          groupName: 'Friday Mars',
-          globalAnalyticsEnabled: false,
-          defaultExpansionCodes: ['base', 'prelude'],
-          defaultPromoSetSlugs: [],
-        }}
-        onSave={onSave}
-        promoSetOptions={[
+        currentGroupId={activeGroupId}
+        groups={[
+          { groupId: activeGroupId, groupName: 'Friday Mars', role: 'owner' },
           {
-            id: 'promo-2021',
-            slug: '2021-seasonal-promos',
-            displayName: 'Seasonal Promos',
-            editionLabel: 'Seasonal promo',
-            promoYear: 2021,
+            groupId: weeknightGroupId,
+            groupName: 'Tuesday Terraformers',
+            role: 'editor',
           },
         ]}
+        onRename={onRename}
       />,
     );
 
-    await user.clear(screen.getByLabelText(/group name/i));
-    await user.type(screen.getByLabelText(/group name/i), 'Friday Terraformers');
-    await user.click(screen.getByLabelText(/contribute anonymous aggregate analytics/i));
-    await user.click(screen.getByLabelText(/colonies/i));
-    await user.click(screen.getByLabelText(/seasonal promos \(2021\)/i));
+    expect(screen.getByRole('heading', { name: /your groups/i })).toBeInTheDocument();
+    expect(screen.getByText(/active group/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Tuesday Terraformers')).toBeInTheDocument();
+    expect(screen.queryByText(/default expansions/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/default promo sets/i)).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText(/rename Tuesday Terraformers/i));
+    await user.type(
+      screen.getByLabelText(/rename Tuesday Terraformers/i),
+      'Weeknight Mars',
+    );
     await user.click(
-      screen.getByRole('button', { name: /save group defaults/i }),
+      screen.getByRole('button', { name: /save Tuesday Terraformers/i }),
     );
 
     await waitFor(() =>
-      expect(onSave).toHaveBeenCalledWith({
-        groupName: 'Friday Terraformers',
-        globalAnalyticsEnabled: true,
-        defaultExpansionCodes: ['base', 'prelude', 'colonies'],
-        defaultPromoSetSlugs: ['2021-seasonal-promos'],
+      expect(onRename).toHaveBeenCalledWith({
+        groupId: weeknightGroupId,
+        groupName: 'Weeknight Mars',
       }),
     );
   });

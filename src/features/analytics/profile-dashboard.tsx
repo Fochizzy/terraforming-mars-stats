@@ -12,10 +12,18 @@ import { ScoreSourceList } from './score-source-list';
 
 type ProfileDashboardProps = {
   coverage?: CoverageRow | null;
+  groupOptions?: Array<{
+    groupId: string;
+    groupName: string;
+    role: 'owner' | 'editor' | 'viewer';
+  }>;
   headToHeadRows?: ProfileHeadToHeadRow[];
+  overallPerformance?: LeaderboardRow | null;
   performance?: LeaderboardRow | null;
   playerName: string | null;
   scoreAverages?: ScoreSourceAverages | null;
+  selectedGroupId?: string | null;
+  selectedGroupName?: string | null;
   styleAgreement?: Pick<
     StyleAgreementRow,
     'comparedGames' | 'exactMatchRate' | 'mismatchRate' | 'partialMatchRate'
@@ -38,13 +46,84 @@ function formatAverage(value: number | null) {
   }).format(value);
 }
 
+function formatSignedAverage(value: number) {
+  const formatted = formatAverage(Math.abs(value));
+
+  if (value > 0) {
+    return `+${formatted}`;
+  }
+
+  if (value < 0) {
+    return `-${formatted}`;
+  }
+
+  return formatted;
+}
+
+function formatPercentagePointDelta(value: number) {
+  const percentagePoints = Math.round(value * 100);
+
+  if (percentagePoints > 0) {
+    return `+${percentagePoints} pp`;
+  }
+
+  if (percentagePoints < 0) {
+    return `${percentagePoints} pp`;
+  }
+
+  return '0 pp';
+}
+
+function buildPerformanceDeltas({
+  overallPerformance,
+  performance,
+}: {
+  overallPerformance: LeaderboardRow | null;
+  performance: LeaderboardRow | null;
+}) {
+  if (!performance || !overallPerformance) {
+    return [];
+  }
+
+  return [
+    {
+      label: 'Weighted Score',
+      value: formatSignedAverage(
+        performance.weightedScore - overallPerformance.weightedScore,
+      ),
+    },
+    {
+      label: 'Win Rate',
+      value: formatPercentagePointDelta(
+        performance.winRate - overallPerformance.winRate,
+      ),
+    },
+    {
+      label: 'Average Placement',
+      value: formatSignedAverage(
+        performance.averagePlacement - overallPerformance.averagePlacement,
+      ),
+    },
+    {
+      label: 'Average Score',
+      value: formatSignedAverage(
+        performance.averageScore - overallPerformance.averageScore,
+      ),
+    },
+  ];
+}
+
 export function ProfileDashboard({
   coverage = null,
+  groupOptions = [],
   headToHeadRows = [],
   linkHref,
+  overallPerformance = null,
   performance = null,
   playerName,
   scoreAverages = null,
+  selectedGroupId = null,
+  selectedGroupName = null,
   styleAgreement = null,
 }: ProfileDashboardProps) {
   if (!playerName) {
@@ -63,8 +142,36 @@ export function ProfileDashboard({
     );
   }
 
+  const performanceDeltas = buildPerformanceDeltas({
+    overallPerformance,
+    performance,
+  });
+
   return (
     <div className="flex flex-col gap-4">
+      {groupOptions.length > 0 ? (
+        <ChartFrame title="Profile Group">
+          <form action="/profile" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <label className="flex flex-1 flex-col gap-2 text-sm">
+              <span className="tm-data-label">Profile Group</span>
+              <select
+                className="tm-input"
+                defaultValue={selectedGroupId ?? groupOptions[0]?.groupId}
+                name="groupId"
+              >
+                {groupOptions.map((group) => (
+                  <option key={group.groupId} value={group.groupId}>
+                    {group.groupName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="tm-button-secondary px-4 py-2 text-xs" type="submit">
+              View Group Stats
+            </button>
+          </form>
+        </ChartFrame>
+      ) : null}
       <ChartFrame title="My Performance">
         {performance ? (
           <div className="grid gap-4">
@@ -74,6 +181,7 @@ export function ProfileDashboard({
               </p>
               <p className="tm-muted-copy mt-1 text-sm">
                 {performance.gamesPlayed} finalized games
+                {selectedGroupName ? ` in ${selectedGroupName}` : ''}
               </p>
             </div>
             <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -110,6 +218,21 @@ export function ProfileDashboard({
                 </dd>
               </div>
             </dl>
+            {performanceDeltas.length > 0 ? (
+              <section className="grid gap-3">
+                <h3 className="tm-data-label">Delta vs Overall</h3>
+                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {performanceDeltas.map((delta) => (
+                    <div className="tm-stat-card" key={delta.label}>
+                      <dt className="tm-data-label">{delta.label}</dt>
+                      <dd className="mt-2 text-lg font-semibold text-stone-100">
+                        {delta.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ) : null}
           </div>
         ) : (
           <p className="text-sm text-stone-400">

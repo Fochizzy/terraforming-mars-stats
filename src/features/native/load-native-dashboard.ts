@@ -49,6 +49,22 @@ export type NativeDashboardSection = {
   trendRows?: NativeDashboardTrendRow[];
 };
 
+export type NativeDashboardIndividualProfile = {
+  groupId: string;
+  groupName: string;
+  profile: NativeDashboardSection | null;
+};
+
+export type NativeDashboardScope = {
+  global: NativeDashboardSection | null;
+  group: NativeDashboardSection | null;
+  groupName: string;
+  id: string;
+  individualProfiles?: NativeDashboardIndividualProfile[];
+  label: string;
+  profile: NativeDashboardSection | null;
+};
+
 export type NativeDashboardData = {
   emptyState?: {
     body: string;
@@ -58,6 +74,8 @@ export type NativeDashboardData = {
   group: NativeDashboardSection | null;
   groupName: null | string;
   profile: NativeDashboardSection | null;
+  scopes?: NativeDashboardScope[];
+  selectedScopeId?: string;
   sessionEmail: string;
 };
 
@@ -313,12 +331,7 @@ function buildLeaderboardRows(
   rows: RawLeaderboardRow[],
   focusPlayerId?: string,
 ): NativeDashboardBarRow[] {
-  return [...rows]
-    .sort(
-      (left, right) =>
-        toNumber(right.weighted_score) - toNumber(left.weighted_score) ||
-        right.player_name.localeCompare(left.player_name),
-    )
+  return sortLeaderboardRows(rows)
     .slice(0, 5)
     .map((row) => ({
       accent: row.player_id === focusPlayerId ? 'heat' : 'copper',
@@ -328,6 +341,42 @@ function buildLeaderboardRows(
       label: row.player_name,
       value: toNumber(row.weighted_score),
     }));
+}
+
+function sortLeaderboardRows(rows: RawLeaderboardRow[]) {
+  return [...rows].sort(
+    (left, right) =>
+      toNumber(right.weighted_score) - toNumber(left.weighted_score) ||
+      toNumber(right.win_rate) - toNumber(left.win_rate) ||
+      toNumber(right.average_score) - toNumber(left.average_score) ||
+      left.player_name.localeCompare(right.player_name),
+  );
+}
+
+function resolveStatsGroupName(
+  savedGroupName: string,
+  leaderboardRows: RawLeaderboardRow[],
+) {
+  const savedNameSegments = savedGroupName
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  if (savedNameSegments.length < 2 || leaderboardRows.length === 0) {
+    return savedGroupName;
+  }
+
+  const finalizedPlayerNames = [
+    ...new Set(
+      leaderboardRows
+        .map((row) => row.player_name.trim())
+        .filter((playerName) => playerName.length > 0),
+    ),
+  ].sort((left, right) => left.localeCompare(right));
+
+  return finalizedPlayerNames.length > 0
+    ? finalizedPlayerNames.join(' / ')
+    : savedGroupName;
 }
 
 function buildTrendRows(rows: RawTrendRow[]): NativeDashboardTrendRow[] {
@@ -411,6 +460,353 @@ function selectCurrentMembership(
     memberships[0] ??
     null
   );
+}
+
+type LoadedNativeDashboardScope = NativeDashboardScope & {
+  playerPerformance: RawLeaderboardRow | null;
+};
+
+type AnalyticsClient = ReturnType<typeof nativeSupabase.schema>;
+
+async function loadGroupDashboardScope({
+  analyticsClient,
+  globalSection,
+  linkedPlayers,
+  membership,
+}: {
+  analyticsClient: AnalyticsClient;
+  globalSection: NativeDashboardSection | null;
+  linkedPlayers: LinkedPlayerRow[];
+  membership: GroupMembershipRow;
+}): Promise<LoadedNativeDashboardScope> {
+  const currentGroupId = membership.group_id;
+  const currentGroupName = getJoinedGroupName(membership.groups) || 'Your Group';
+  const currentPlayer =
+    linkedPlayers.find((player) => player.group_id === currentGroupId) ?? null;
+
+  const [
+    leaderboardResult,
+    headToHeadResult,
+    lineupResult,
+    styleAgreementResult,
+    trendResult,
+    playerPerformanceResult,
+    playerScoreResult,
+    playerCoverageResult,
+  ] = await Promise.all([
+    analyticsClient
+      .from('group_leaderboard')
+      .select('player_id, player_name, weighted_score, win_rate, average_score, games_played')
+      .eq('group_id', currentGroupId),
+    analyticsClient
+      .from('head_to_head')
+      .select('left_player_id, left_player_name, right_player_id, right_player_name, games_played, left_wins, right_wins, ties, average_score_differential')
+      .eq('group_id', currentGroupId),
+    analyticsClient
+      .from('lineup_effects')
+      .select('player_name, lineup_label, games_played, win_rate, average_score')
+      .eq('group_id', currentGroupId),
+    analyticsClient
+      .from('style_agreement')
+      .select('player_id, player_name, exact_match_rate, partial_match_rate, mismatch_rate')
+      .eq('group_id', currentGroupId),
+    analyticsClient
+      .from('player_trends')
+      .select('played_on, total_points')
+      .eq('group_id', currentGroupId),
+    currentPlayer
+      ? analyticsClient
+          .from('group_leaderboard')
+          .select('player_id, player_name, weighted_score, win_rate, average_score, games_played')
+          .eq('group_id', currentGroupId)
+          .eq('player_id', currentPlayer.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    currentPlayer
+      ? analyticsClient
+          .from('player_score_source_averages')
+          .select(
+            'average_animal_points, average_award_points, average_card_points, average_cities_points, average_greenery_points, average_jovian_points, average_microbe_points, average_milestone_points, average_other_card_points, average_tr_points',
+          )
+          .eq('group_id', currentGroupId)
+          .eq('player_id', currentPlayer.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    currentPlayer
+      ? analyticsClient
+          .from('player_data_coverage')
+          .select(
+            'animal_coverage, card_breakdown_coverage, declared_style_coverage, jovian_coverage, key_card_coverage, microbe_coverage',
+          )
+          .eq('group_id', currentGroupId)
+          .eq('player_id', currentPlayer.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+
+  for (const result of [
+    leaderboardResult,
+    headToHeadResult,
+    lineupResult,
+    styleAgreementResult,
+    trendResult,
+    playerPerformanceResult,
+    playerScoreResult,
+    playerCoverageResult,
+  ]) {
+    if (result?.error) {
+      throw result.error;
+    }
+  }
+
+  const leaderboardRows = (leaderboardResult.data ?? []) as RawLeaderboardRow[];
+  const headToHeadRows = (headToHeadResult.data ?? []) as RawHeadToHeadRow[];
+  const lineupRows = (lineupResult.data ?? []) as RawLineupEffectRow[];
+  const styleRows = (styleAgreementResult.data ?? []) as RawStyleAgreementRow[];
+  const trendRows = (trendResult.data ?? []) as RawTrendRow[];
+  const playerPerformance = playerPerformanceResult.data as RawLeaderboardRow | null;
+  const playerScoreRow = playerScoreResult.data as RawPlayerScoreAveragesRow | null;
+  const playerCoverageRow = playerCoverageResult.data as RawPlayerCoverageRow | null;
+
+  const sortedLeaderboardRows = sortLeaderboardRows(leaderboardRows);
+  const statsGroupName = resolveStatsGroupName(
+    currentGroupName,
+    sortedLeaderboardRows,
+  );
+  const topGroupLeader = sortedLeaderboardRows[0] ?? null;
+  const lineupHighlight = [...lineupRows]
+    .sort(
+      (left, right) =>
+        toNumber(right.win_rate) - toNumber(left.win_rate) ||
+        right.games_played - left.games_played,
+    )
+    .at(0);
+
+  const playerStyle = currentPlayer
+    ? styleRows.find((row) => row.player_id === currentPlayer.id) ?? null
+    : null;
+
+  const profileSection: NativeDashboardSection = currentPlayer
+    ? {
+        coverageBadges: buildCoverageBadges(playerCoverageRow),
+        headline: currentPlayer.display_name,
+        metrics: [
+          {
+            label: 'Weighted Score',
+            value: playerPerformance
+              ? formatAverage(toNumber(playerPerformance.weighted_score))
+              : '--',
+          },
+          {
+            label: 'Win Rate',
+            value: playerPerformance
+              ? formatPercent(toNumber(playerPerformance.win_rate))
+              : '--',
+          },
+          {
+            label: 'Average Score',
+            value: playerPerformance
+              ? formatAverage(toNumber(playerPerformance.average_score))
+              : '--',
+          },
+          {
+            label: 'Style Match',
+            value: playerStyle
+              ? formatPercent(toNumber(playerStyle.exact_match_rate))
+              : '--',
+          },
+        ],
+        rivalRows: buildProfileRivalRows(headToHeadRows, currentPlayer.id),
+        scoreSourceRows: buildScoreSourceRows(playerScoreRow),
+        subtitle: playerPerformance
+          ? `${playerPerformance.games_played} finalized games in ${statsGroupName}`
+          : `Link more finalized results to ${statsGroupName} to deepen the profile view.`,
+        title: 'Personal Stats',
+      }
+    : {
+        headline: 'Claim Your Saved Player',
+        metrics: [],
+        rivalRows: [],
+        scoreSourceRows: [],
+        subtitle:
+          'Link the saved player seat that belongs to you in this group so the native dashboard can unlock your personal charts.',
+        title: 'Personal Stats',
+      };
+
+  const groupSection: NativeDashboardSection = {
+    headToHeadRows: buildGroupHeadToHeadRows(headToHeadRows),
+    leaderboardRows: buildLeaderboardRows(
+      leaderboardRows,
+      currentPlayer?.id,
+    ),
+    summary: topGroupLeader
+      ? `${topGroupLeader.player_name} currently leads ${statsGroupName} at ${formatPercent(
+          toNumber(topGroupLeader.win_rate),
+        )} across ${topGroupLeader.games_played} finalized games.`
+      : lineupHighlight
+        ? `${lineupHighlight.player_name} has the sharpest current lineup form in ${statsGroupName}.`
+        : `Finalize a few more games in ${statsGroupName} to light up the comparative charts.`,
+    title: 'Comparative Stats',
+    trendRows: buildTrendRows(trendRows),
+  };
+
+  return {
+    global: globalSection,
+    group: groupSection,
+    groupName: statsGroupName,
+    id: currentGroupId,
+    label: statsGroupName,
+    playerPerformance,
+    profile: profileSection,
+  };
+}
+
+function buildAllGroupsScope(
+  groupScopes: LoadedNativeDashboardScope[],
+  globalSection: NativeDashboardSection | null,
+): NativeDashboardScope | null {
+  if (groupScopes.length < 2) {
+    return null;
+  }
+
+  const scopesWithPerformance = groupScopes.filter(
+    (scope) => scope.playerPerformance && scope.playerPerformance.games_played > 0,
+  );
+  const totalGames = scopesWithPerformance.reduce(
+    (sum, scope) => sum + (scope.playerPerformance?.games_played ?? 0),
+    0,
+  );
+  const weightedScore =
+    totalGames > 0
+      ? scopesWithPerformance.reduce(
+          (sum, scope) =>
+            sum +
+            toNumber(scope.playerPerformance?.weighted_score) *
+              (scope.playerPerformance?.games_played ?? 0),
+          0,
+        ) / totalGames
+      : 0;
+  const winRate =
+    totalGames > 0
+      ? scopesWithPerformance.reduce(
+          (sum, scope) =>
+            sum +
+            toNumber(scope.playerPerformance?.win_rate) *
+              (scope.playerPerformance?.games_played ?? 0),
+          0,
+        ) / totalGames
+      : 0;
+  const averageScore =
+    totalGames > 0
+      ? scopesWithPerformance.reduce(
+          (sum, scope) =>
+            sum +
+            toNumber(scope.playerPerformance?.average_score) *
+              (scope.playerPerformance?.games_played ?? 0),
+          0,
+        ) / totalGames
+      : 0;
+  const profileNames = [
+    ...new Set(
+      scopesWithPerformance
+        .map(
+          (scope) =>
+            scope.playerPerformance?.player_name ??
+            scope.profile?.headline ??
+            '',
+        )
+        .filter(Boolean),
+    ),
+  ];
+  const headline = profileNames.length === 1 ? profileNames[0] : 'All Groups';
+  const profileSection: NativeDashboardSection = {
+    coverageBadges: [],
+    headline,
+    metrics:
+      totalGames > 0
+        ? [
+            {
+              label: 'Weighted Score',
+              value: formatAverage(weightedScore),
+            },
+            {
+              label: 'Win Rate',
+              value: formatPercent(winRate),
+            },
+            {
+              label: 'Average Score',
+              value: formatAverage(averageScore),
+            },
+          ]
+        : [
+            { label: 'Weighted Score', value: '--' },
+            { label: 'Win Rate', value: '--' },
+            { label: 'Average Score', value: '--' },
+          ],
+    rivalRows: [],
+    scoreSourceRows: [],
+    subtitle:
+      totalGames > 0
+        ? `${totalGames} finalized games across ${groupScopes.length} groups`
+        : `No finalized games across ${groupScopes.length} groups yet.`,
+    title: 'Personal Stats',
+  };
+  const leaderboardRows = groupScopes
+    .map((scope, index) => {
+      const performance = scope.playerPerformance;
+
+      return {
+        accent: index === 0 ? 'heat' : 'copper',
+        detail: performance
+          ? `${performance.games_played} games | ${formatPercent(
+              toNumber(performance.win_rate),
+            )} win rate`
+          : 'No linked finalized games yet',
+        label: scope.groupName,
+        value: performance ? toNumber(performance.weighted_score) : 0,
+      } satisfies NativeDashboardBarRow;
+    })
+    .sort(
+      (left, right) =>
+        right.value - left.value || left.label.localeCompare(right.label),
+    );
+  const groupSection: NativeDashboardSection = {
+    headToHeadRows: [],
+    leaderboardRows,
+    summary:
+      totalGames > 0
+        ? `${headline} has ${totalGames} finalized games across ${groupScopes.length} groups with a ${formatPercent(
+            winRate,
+          )} win rate.`
+        : `Finalize games in your groups to light up the all-groups comparison.`,
+    title: 'Comparative Stats',
+    trendRows: [],
+  };
+
+  return {
+    global: globalSection,
+    group: groupSection,
+    groupName: 'All Groups',
+    id: 'all',
+    individualProfiles: groupScopes.map((scope) => ({
+      groupId: scope.id,
+      groupName: scope.groupName,
+      profile: scope.profile,
+    })),
+    label: 'All Groups',
+    profile: profileSection,
+  };
+}
+
+function toPublicScope(scope: LoadedNativeDashboardScope): NativeDashboardScope {
+  return {
+    global: scope.global,
+    group: scope.group,
+    groupName: scope.groupName,
+    id: scope.id,
+    label: scope.label,
+    profile: scope.profile,
+  };
 }
 
 export async function loadNativeDashboard(): Promise<NativeDashboardData | null> {
@@ -575,7 +971,12 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
   const playerScoreRow = playerScoreResult.data as RawPlayerScoreAveragesRow | null;
   const playerCoverageRow = playerCoverageResult.data as RawPlayerCoverageRow | null;
 
-  const topGroupLeader = leaderboardRows[0] ?? null;
+  const sortedLeaderboardRows = sortLeaderboardRows(leaderboardRows);
+  const statsGroupName = resolveStatsGroupName(
+    currentGroupName,
+    sortedLeaderboardRows,
+  );
+  const topGroupLeader = sortedLeaderboardRows[0] ?? null;
   const topGlobalCorporation = buildGlobalLeaderboardRows(globalRows)[0] ?? null;
   const lineupHighlight = [...lineupRows]
     .sort(
@@ -622,8 +1023,8 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
         rivalRows: buildProfileRivalRows(headToHeadRows, currentPlayer.id),
         scoreSourceRows: buildScoreSourceRows(playerScoreRow),
         subtitle: playerPerformance
-          ? `${playerPerformance.games_played} finalized games in ${currentGroupName}`
-          : `Link more finalized results to ${currentGroupName} to deepen the profile view.`,
+          ? `${playerPerformance.games_played} finalized games in ${statsGroupName}`
+          : `Link more finalized results to ${statsGroupName} to deepen the profile view.`,
         title: 'Personal Stats',
       }
     : {
@@ -643,12 +1044,12 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
       currentPlayer?.id,
     ),
     summary: topGroupLeader
-      ? `${topGroupLeader.player_name} currently leads ${currentGroupName} at ${formatPercent(
+      ? `${topGroupLeader.player_name} currently leads ${statsGroupName} at ${formatPercent(
           toNumber(topGroupLeader.win_rate),
         )} across ${topGroupLeader.games_played} finalized games.`
       : lineupHighlight
-        ? `${lineupHighlight.player_name} has the sharpest current lineup form in ${currentGroupName}.`
-        : `Finalize a few more games in ${currentGroupName} to light up the comparative charts.`,
+        ? `${lineupHighlight.player_name} has the sharpest current lineup form in ${statsGroupName}.`
+        : `Finalize a few more games in ${statsGroupName} to light up the comparative charts.`,
     title: 'Comparative Stats',
     trendRows: buildTrendRows(trendRows),
   };
@@ -664,12 +1065,51 @@ export async function loadNativeDashboard(): Promise<NativeDashboardData | null>
           title: 'Global Stats',
         }
       : null;
+  const membershipRows = (memberships ?? []) as GroupMembershipRow[];
+  const linkedPlayerRows = (linkedPlayers ?? []) as LinkedPlayerRow[];
+  const currentLoadedScope: LoadedNativeDashboardScope = {
+    global: globalSection,
+    group: groupSection,
+    groupName: statsGroupName,
+    id: currentGroupId,
+    label: statsGroupName,
+    playerPerformance,
+    profile: profileSection,
+  };
+  const additionalLoadedScopes = await Promise.all(
+    membershipRows
+      .filter((membership) => membership.group_id !== currentGroupId)
+      .map((membership) =>
+        loadGroupDashboardScope({
+          analyticsClient,
+          globalSection,
+          linkedPlayers: linkedPlayerRows,
+          membership,
+        }),
+      ),
+  );
+  const loadedScopesById = new Map(
+    [currentLoadedScope, ...additionalLoadedScopes].map((scope) => [
+      scope.id,
+      scope,
+    ]),
+  );
+  const loadedGroupScopes = membershipRows
+    .map((membership) => loadedScopesById.get(membership.group_id))
+    .filter((scope): scope is LoadedNativeDashboardScope => Boolean(scope));
+  const publicGroupScopes = loadedGroupScopes.map(toPublicScope);
+  const allGroupsScope = buildAllGroupsScope(loadedGroupScopes, globalSection);
+  const scopes = allGroupsScope
+    ? [allGroupsScope, ...publicGroupScopes]
+    : publicGroupScopes;
 
   return {
     global: globalSection,
     group: groupSection,
-    groupName: currentGroupName,
+    groupName: statsGroupName,
     profile: profileSection,
+    scopes,
+    selectedScopeId: allGroupsScope ? allGroupsScope.id : currentGroupId,
     sessionEmail,
   };
 }

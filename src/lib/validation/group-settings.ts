@@ -8,3 +8,10 @@ export const groupSettingsSchema = z.object({
 });
 
 export type GroupSettingsInput = z.input<typeof groupSettingsSchema>;
+
+export const groupRenameSchema = z.object({
+  groupId: z.string().uuid(),
+  groupName: z.string().trim().min(2),
+});
+
+export type GroupRenameInput = z.input<typeof groupRenameSchema>;
