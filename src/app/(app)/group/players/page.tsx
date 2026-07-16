@@ -1,5 +1,4 @@
 import { AppShell } from '@/components/layout/app-shell';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { PlayerList } from '@/features/groups/player-list';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
@@ -31,15 +30,7 @@ export default async function PlayersPage() {
   }
 
   return (
-    <AppShell
-      headerActions={
-        <GroupSwitcher
-          currentGroupId={context.groupId}
-          returnPath="/group/players"
-        />
-      }
-      title="Players"
-    >
+    <AppShell title="Players">
       <PlayerList onAddPlayer={handleAddPlayer} players={players} />
     </AppShell>
   );
