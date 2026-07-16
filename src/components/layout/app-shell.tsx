@@ -15,11 +15,11 @@ type PrimaryNavigationItem = {
 const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { href: '/log-game', label: 'Log a Game', highlighted: true },
   { href: '/profile', label: 'My Profile' },
-  { href: '/insights?scope=individual', label: 'Individual Insights' },
-  { href: '/group', label: 'Group Insights' },
-  { href: '/group', label: 'Leaderboard', leaderboard: true },
-  { href: '/insights#global-statistics', label: 'Global Statistics' },
-  { href: '/insights?scope=compare', label: 'Compare' },
+  { href: '/group', label: 'Global Data' },
+  { href: '/insights/individual', label: 'Individual Insights' },
+  { href: '/insights/group', label: 'Group Insights' },
+  { href: '/comparisons', label: 'Comparisons' },
+  { href: '/leaderboard', label: 'Leaderboard', leaderboard: true },
 ] as const;
 
 export function AppShell({
