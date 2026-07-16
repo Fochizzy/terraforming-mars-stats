@@ -4,6 +4,7 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { GamePaceReplay } from '@/features/insights/game-pace-replay';
 import { InsightsDashboard } from '@/features/insights/insights-dashboard';
+import { ScoreProfilePanel } from '@/features/insights/score-profile-panel';
 import { getGroupAnalytics } from '@/lib/db/analytics-repo';
 import { listGamePaceReplays } from '@/lib/db/game-pace-repo';
 import { listPlayers } from '@/lib/db/player-repo';
@@ -38,6 +39,20 @@ export default async function InsightsPage() {
   );
   const baselineWinRate =
     baselineGames > 0 ? baselineWins / baselineGames : null;
+  const scoreProfileEntries = analytics.scoreAverages
+    ? [
+        { label: 'Terraform Rating', value: analytics.scoreAverages.averageTrPoints },
+        { label: 'Card Points', value: analytics.scoreAverages.averageCardPoints },
+        { label: 'Other Card', value: analytics.scoreAverages.averageOtherCardPoints },
+        { label: 'Greenery', value: analytics.scoreAverages.averageGreeneryPoints },
+        { label: 'Cities', value: analytics.scoreAverages.averageCitiesPoints },
+        { label: 'Milestones', value: analytics.scoreAverages.averageMilestonePoints },
+        { label: 'Awards', value: analytics.scoreAverages.averageAwardPoints },
+        { label: 'Jovian', value: analytics.scoreAverages.averageJovianPoints },
+        { label: 'Microbe', value: analytics.scoreAverages.averageMicrobePoints },
+        { label: 'Animal', value: analytics.scoreAverages.averageAnimalPoints },
+      ]
+    : [];
 
   return (
     <AppShell
@@ -56,6 +71,7 @@ export default async function InsightsPage() {
           scoreAverages={analytics.scoreAverages}
         />
         <GamePaceReplay games={gamePaceReplays} />
+        <ScoreProfilePanel entries={scoreProfileEntries} />
         <div className="[&>div>section:last-child]:hidden">
           <InsightsDashboard
             analytics={dashboardAnalytics}
