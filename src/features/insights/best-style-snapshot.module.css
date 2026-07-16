@@ -1,0 +1,441 @@
+/* ============================================================
+   BestStyleSnapshot – compact horizontal style-ranking panel
+   ============================================================ */
+
+/* Section wrapper — overrides tm-panel padding */
+.snapshot {
+  padding: 1.25rem;
+}
+
+/* ---- Header ---- */
+.header {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.9rem;
+  justify-content: space-between;
+}
+
+.titleGroup {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--tm-copper-400, #dda15d);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.heading {
+  color: var(--tm-dust-300, #ecd09f);
+  font-family: var(--tm-font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.description {
+  color: #b8afa6;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-top: 0.45rem;
+  max-width: 46rem;
+}
+
+.tooltipHost {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+
+.insight {
+  background: rgba(201, 119, 56, 0.08);
+  border: 1px solid rgba(201, 119, 56, 0.2);
+  border-radius: 0.5rem;
+  color: var(--tm-dust-300, #ecd09f);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin-top: 0.65rem;
+  max-width: 42rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.badge {
+  align-items: center;
+  background: rgba(201, 119, 56, 0.08);
+  border: 1px solid rgba(201, 119, 56, 0.22);
+  border-radius: 999px;
+  color: var(--tm-dust-300, #ecd09f);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  gap: 0.4rem;
+  letter-spacing: 0.1em;
+  padding: 0.45rem 0.7rem;
+  text-transform: uppercase;
+}
+
+/* ---- Methodology tooltip ---- */
+.tooltipWrap {
+  display: inline-block;
+  position: relative;
+}
+
+.infoBtn {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--tm-muted, #d1c1ad);
+  cursor: default;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0 0.1rem;
+  transition: color 120ms ease;
+  vertical-align: middle;
+}
+
+.infoBtn:hover,
+.infoBtn:focus-visible {
+  color: var(--tm-copper-400, #dda15d);
+  outline: 2px solid rgba(201, 119, 56, 0.4);
+  outline-offset: 1px;
+}
+
+.tooltip {
+  background: var(--tm-space-850, #141a22);
+  border: 1px solid var(--tm-panel-border, rgba(214, 130, 66, 0.42));
+  border-radius: 0.6rem;
+  bottom: calc(100% + 0.4rem);
+  color: var(--tm-text, #f6eddf);
+  font-size: 0.78rem;
+  left: 50%;
+  line-height: 1.45;
+  max-width: 18rem;
+  min-width: 11rem;
+  opacity: 0;
+  padding: 0.5rem 0.7rem;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  transition: opacity 120ms ease;
+  white-space: normal;
+  z-index: 20;
+}
+
+.infoBtn:hover + .tooltip,
+.infoBtn:focus-visible + .tooltip,
+.tooltipWrap:hover .tooltip,
+.tooltipWrap:focus-within .tooltip {
+  opacity: 1;
+}
+
+/* ---- Chart area ---- */
+.chartArea {
+  margin-top: 1.1rem;
+  position: relative;
+}
+
+.chartHeader {
+  align-items: center;
+  display: grid;
+  font-size: 0.68rem;
+  grid-template-columns: 2rem 7rem 1fr 2.5rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  padding: 0 0.1rem;
+}
+
+.chartAxisLabel {
+  color: var(--tm-muted, #d1c1ad);
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+/* Subtle gridlines rendered behind bars */
+.gridLines {
+  bottom: 0;
+  left: calc(2rem + 7rem);
+  pointer-events: none;
+  position: absolute;
+  right: 2.5rem;
+  top: 0;
+}
+
+.gridLine {
+  border-left: 1px solid rgba(192, 162, 127, 0.14);
+  bottom: 0;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.gridLineLabel {
+  color: var(--tm-muted, #d1c1ad);
+  font-size: 0.6rem;
+  left: 0.25rem;
+  opacity: 0.55;
+  position: absolute;
+  top: 0;
+  transform: translateY(-1.2em);
+  white-space: nowrap;
+}
+
+/* Individual chart rows */
+.chartRow {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  cursor: default;
+  display: grid;
+  gap: 0;
+  grid-template-columns: 2rem 7rem 1fr 2.5rem;
+  min-height: 2.5rem;
+  outline: none;
+  padding: 0.3rem 0.1rem;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.chartRow:focus-visible {
+  border-color: var(--tm-copper-500, #c97738);
+  outline: none;
+}
+
+.chartRowHighlighted {
+  background: rgba(201, 119, 56, 0.07);
+  border-color: rgba(201, 119, 56, 0.22);
+}
+
+.chartRank {
+  color: var(--tm-muted, #d1c1ad);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: right;
+  padding-right: 0.4rem;
+}
+
+.chartLabel {
+  color: var(--tm-text, #f6eddf);
+  font-size: 0.82rem;
+  font-weight: 500;
+  overflow: hidden;
+  padding-right: 0.6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barTrack {
+  background: rgba(201, 119, 56, 0.12);
+  border-radius: 0 0.3rem 0.3rem 0;
+  height: 1.1rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.barFill {
+  background: var(--tm-copper-500, #c97738);
+  border-radius: inherit;
+  height: 100%;
+  transition: width 320ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill {
+    transition: none;
+  }
+}
+
+.chartPct {
+  color: var(--tm-dust-300, #ecd09f);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding-left: 0.45rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---- Detail list ---- */
+.detailList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+}
+
+.detailRow {
+  border: 1px solid rgba(192, 162, 127, 0.18);
+  border-radius: 0.7rem;
+  cursor: default;
+  outline: none;
+  padding: 0.6rem 0.8rem;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.detailRow:focus-visible {
+  border-color: var(--tm-copper-500, #c97738);
+  outline: none;
+}
+
+.detailRowFirst {
+  border-color: rgba(201, 119, 56, 0.35);
+  border-left: 3px solid var(--tm-copper-500, #c97738);
+}
+
+.detailRowHighlighted {
+  background: rgba(201, 119, 56, 0.07);
+  border-color: rgba(201, 119, 56, 0.3);
+}
+
+.detailPrimary {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+}
+
+.detailRank {
+  color: var(--tm-muted, #d1c1ad);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.detailName {
+  color: var(--tm-text, #f6eddf);
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailRateGroup {
+  align-items: baseline;
+  display: flex;
+  flex: 1;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.topBadge {
+  background: rgba(201, 119, 56, 0.1);
+  border: 1px solid rgba(201, 119, 56, 0.3);
+  border-radius: 999px;
+  color: var(--tm-copper-400, #dda15d);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.5rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.detailRate {
+  color: var(--tm-dust-300, #ecd09f);
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.detailRateLabel {
+  color: var(--tm-muted, #d1c1ad);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+.detailMeta {
+  color: #9a9188;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin: 0.2rem 0 0;
+}
+
+/* ---- Empty state ---- */
+.emptyHeader {
+  margin-bottom: 0.5rem;
+}
+
+.emptyState {
+  background: rgba(26, 33, 42, 0.6);
+  border: 1px dashed rgba(192, 162, 127, 0.22);
+  border-radius: 0.75rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+}
+
+.emptyTitle {
+  color: var(--tm-text, #f6eddf);
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+}
+
+.emptyDesc {
+  color: var(--tm-muted, #d1c1ad);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 32rem;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+/* Tablet: tighten grid columns slightly */
+@media (max-width: 900px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chartHeader,
+  .chartRow {
+    grid-template-columns: 1.8rem 6rem 1fr 2.5rem;
+  }
+
+  .gridLines {
+    left: calc(1.8rem + 6rem);
+  }
+}
+
+/* Mobile: collapse label column width */
+@media (max-width: 640px) {
+  .snapshot {
+    padding: 1rem;
+  }
+
+  .chartHeader,
+  .chartRow {
+    grid-template-columns: 1.6rem 5rem 1fr 2.5rem;
+  }
+
+  .gridLines {
+    left: calc(1.6rem + 5rem);
+  }
+
+  .chartLabel {
+    font-size: 0.75rem;
+  }
+
+  .detailPrimary {
+    flex-wrap: wrap;
+  }
+
+  .detailRateGroup {
+    flex: none;
+    justify-content: flex-start;
+    width: 100%;
+  }
+}

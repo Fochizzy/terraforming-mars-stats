@@ -168,12 +168,20 @@ export type PlayerMapMetricRow = {
   bestTagLaneOnMap: string | null;
   gamesPlayed: number;
   groupId: string;
+  /** map code — populated by listPlayerMapPerformance, null from older queries */
+  mapCode?: string | null;
   mapId: string;
   mapName: string | null;
   mapRankForPlayer: number | null;
   playerId: string;
   winRate: number;
   wins: number;
+  // Extended fields from analytics.player_map_performance view
+  losses?: number;
+  highestScore?: number | null;
+  lastPlayedAt?: string | null;
+  recentWinsLast5?: number;
+  hasSufficientRecentForm?: boolean;
 };
 
 export type GlobalMapMetricRow = {
@@ -2053,6 +2061,97 @@ export async function listGroupPlayerMapMetrics(groupId: string) {
   );
 }
 
+// Raw type for the enriched player_map_performance view (flat, no nested relation)
+type RawPlayerMapPerformanceRow = {
+  average_generations: number | string;
+  average_normalized_efficiency: number | string | null;
+  average_points: number | string;
+  average_points_per_generation: number | string;
+  average_score_delta_vs_expected: number | string | null;
+  best_score_source_on_map: string | null;
+  best_tag_lane_on_map: string | null;
+  games_played: number | string;
+  group_id: string;
+  has_sufficient_recent_form: boolean;
+  highest_score: number | string | null;
+  last_played_at: string | null;
+  losses: number | string;
+  map_code: string | null;
+  map_id: string;
+  map_name: string | null;
+  map_rank_for_player: number | string | null;
+  player_id: string;
+  recent_wins_last_5: number | string;
+  win_rate: number | string;
+  wins: number | string;
+};
+
+const playerMapPerformanceSelect =
+  'average_generations, average_normalized_efficiency, average_points, average_points_per_generation, average_score_delta_vs_expected, best_score_source_on_map, best_tag_lane_on_map, games_played, group_id, has_sufficient_recent_form, highest_score, last_played_at, losses, map_code, map_id, map_name, map_rank_for_player, player_id, recent_wins_last_5, win_rate, wins';
+
+function mapPlayerMapPerformanceRow(row: RawPlayerMapPerformanceRow): PlayerMapMetricRow {
+  // Build a compatible raw row for the base mapper by synthesising the maps relation
+  const baseRaw: RawPlayerMapMetricRow = {
+    average_generations: row.average_generations,
+    average_normalized_efficiency: row.average_normalized_efficiency,
+    average_points: row.average_points,
+    average_points_per_generation: row.average_points_per_generation,
+    average_score_delta_vs_expected: row.average_score_delta_vs_expected,
+    best_score_source_on_map: row.best_score_source_on_map,
+    best_tag_lane_on_map: row.best_tag_lane_on_map,
+    games_played: row.games_played,
+    group_id: row.group_id,
+    map_id: row.map_id,
+    map_rank_for_player: row.map_rank_for_player,
+    maps: row.map_name != null ? [{ name: row.map_name }] : null,
+    player_id: row.player_id,
+    win_rate: row.win_rate,
+    wins: row.wins,
+  };
+
+  return {
+    ...mapPlayerMapMetricRow(baseRaw),
+    mapCode: row.map_code,
+    losses: toNumber(row.losses),
+    highestScore: toNullableNumber(row.highest_score),
+    lastPlayedAt: row.last_played_at,
+    recentWinsLast5: toNumber(row.recent_wins_last_5),
+    hasSufficientRecentForm: row.has_sufficient_recent_form,
+  };
+}
+
+/**
+ * Fetches enriched per-player, per-map performance rows from the
+ * analytics.player_map_performance view. Includes wins/losses, highest score,
+ * last played date, and recent form. Scoped to the given player IDs.
+ */
+export async function listPlayerMapPerformanceByPlayerIds(
+  playerIds: string[],
+): Promise<PlayerMapMetricRow[]> {
+  if (playerIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await getAnalyticsClient(supabase)
+    .from('player_map_performance')
+    .select(playerMapPerformanceSelect)
+    .in('player_id', playerIds)
+    .order('map_rank_for_player', { ascending: true })
+    .order('games_played', { ascending: false });
+
+  if (error) {
+    // Fall back gracefully to the summaries table if the view is not yet deployed
+    return listPlayerMapMetricsByPlayerIds(playerIds);
+  }
+
+  return sortPlayerMapMetricRows(
+    ((data as RawPlayerMapPerformanceRow[] | null) ?? []).map(
+      mapPlayerMapPerformanceRow,
+    ),
+  );
+}
+
 export async function listGlobalMapMetrics() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -2210,7 +2309,7 @@ export async function listGlobalGenerationMetrics() {
 async function getProfilePersistedMetrics(playerIds: string[]) {
   const [efficiencyResult, mapResult] = await Promise.allSettled([
     listPlayerEfficiencySummariesByPlayerIds(playerIds),
-    listPlayerMapMetricsByPlayerIds(playerIds),
+    listPlayerMapPerformanceByPlayerIds(playerIds),
   ]);
 
   if (efficiencyResult.status === 'rejected' || mapResult.status === 'rejected') {

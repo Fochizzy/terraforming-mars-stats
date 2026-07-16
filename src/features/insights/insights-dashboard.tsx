@@ -1,34 +1,35 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  Dot,
   Line,
   LineChart,
+  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
-import { CombinationLeaderboard } from './combination-leaderboard';
-import { CombinationScoreProfile } from './combination-score-profile';
-import type { ScoreProfileEntry } from './combination-score-profile';
-import { CoverageBadge } from '@/components/charts/coverage-badge';
-import { ChartFrame } from '@/components/charts/chart-frame';
-import { PromoSetBrowser } from '@/features/catalog/promo-set-browser';
-import { GlobalMetricBoard } from '@/features/analytics/global-metric-board';
-import { GlobalSummaryBoard } from '@/features/analytics/global-summary-board';
+} from "recharts";
+import { BestStyleSnapshot } from "./best-style-snapshot";
+import { GroupScoringProfile } from "./group-scoring-profile";
+import { CoverageBadge } from "@/components/charts/coverage-badge";
+import { ChartFrame } from "@/components/charts/chart-frame";
+import { PromoSetBrowser } from "@/features/catalog/promo-set-browser";
+import { GlobalMetricBoard } from "@/features/analytics/global-metric-board";
+import { GlobalSummaryBoard } from "@/features/analytics/global-summary-board";
 import type {
   GroupAnalytics,
   GroupHeadToHeadRow,
   GroupInteractionRow,
   GroupStylePerformanceRow,
   TrendRow,
-} from '@/lib/db/analytics-repo';
-import type { PromoCardOption, PromoSetOption } from '@/lib/db/reference-repo';
-import { buildInsightCards } from './build-insight-cards';
+} from "@/lib/db/analytics-repo";
+import type { PromoCardOption, PromoSetOption } from "@/lib/db/reference-repo";
+import { buildInsightCards } from "./build-insight-cards";
 
 type PlayerOption = {
   displayName: string;
@@ -51,19 +52,6 @@ type FocusedHeadToHeadRow = {
   wins: number;
 };
 
-type ScoreSourceShape = {
-  averageAnimalPoints: number;
-  averageAwardPoints: number;
-  averageCardPoints: number;
-  averageCitiesPoints: number;
-  averageGreeneryPoints: number;
-  averageJovianPoints: number;
-  averageMicrobePoints: number;
-  averageMilestonePoints: number;
-  averageOtherCardPoints: number;
-  averageTrPoints: number;
-};
-
 type TrendChartPoint = {
   count: number;
   label: string;
@@ -78,26 +66,40 @@ type DashboardInteractionRow = GroupInteractionRow & {
 };
 
 const leaderboardColors = {
-  default: '#f97316',
-  focused: '#22d3ee',
+  default: "#f97316",
+  focused: "#22d3ee",
 };
 
 const styleColors = {
-  exact: '#22c55e',
-  mismatch: '#ef4444',
-  partial: '#f59e0b',
+  exact: "#22c55e",
+  mismatch: "#ef4444",
+  partial: "#f59e0b",
 };
 
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatTrendDate(iso: string) {
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatScoreChange(
+  current: number,
+  previous: number | undefined,
+): number | null {
+  if (previous === undefined) return null;
+  return current - previous;
+}
+
 function formatAverage(value: number | null) {
   if (value === null) {
-    return '—';
+    return "—";
   }
 
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
   }).format(value);
@@ -105,10 +107,10 @@ function formatAverage(value: number | null) {
 
 function formatPersistedMetric(value: number | null) {
   if (value === null) {
-    return '-';
+    return "-";
   }
 
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
   }).format(value);
@@ -124,13 +126,13 @@ function truncateLabel(value: string, length = 18) {
 
 function humanizeStyleCode(styleCode: string | null) {
   if (!styleCode) {
-    return 'Unclassified';
+    return "Unclassified";
   }
 
   return styleCode
-    .split('_')
+    .split("_")
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
+    .join(" ");
 }
 
 function getMapLabel(row: { mapId: string; mapName?: string | null }) {
@@ -138,37 +140,13 @@ function getMapLabel(row: { mapId: string; mapName?: string | null }) {
 }
 
 function humanizeInteractionType(
-  interactionType: GroupInteractionRow['interactionType'],
+  interactionType: GroupInteractionRow["interactionType"],
 ) {
-  if (interactionType === 'corporation_prelude_pair') {
-    return 'Corporation + Prelude';
+  if (interactionType === "corporation_prelude_pair") {
+    return "Corporation + Prelude";
   }
 
-  return 'Map + Expansions';
-}
-
-function buildScoreSourceEntries(scoreAverages: ScoreSourceShape): ScoreProfileEntry[] {
-  return [
-    { categoryId: 'terraformRating', value: scoreAverages.averageTrPoints },
-    { categoryId: 'cardPoints', value: scoreAverages.averageCardPoints },
-    { categoryId: 'otherCard', value: scoreAverages.averageOtherCardPoints },
-    { categoryId: 'greenery', value: scoreAverages.averageGreeneryPoints },
-    { categoryId: 'cities', value: scoreAverages.averageCitiesPoints },
-    { categoryId: 'milestones', value: scoreAverages.averageMilestonePoints },
-    { categoryId: 'awards', value: scoreAverages.averageAwardPoints },
-    { categoryId: 'jovian', value: scoreAverages.averageJovianPoints },
-    { categoryId: 'microbe', value: scoreAverages.averageMicrobePoints },
-    { categoryId: 'animal', value: scoreAverages.averageAnimalPoints },
-  ];
-}
-
-function buildStylePerformanceChartData(rows: GroupStylePerformanceRow[]) {
-  return rows.slice(0, 5).map((row) => ({
-    averageScore: Number(row.averageScore.toFixed(1)),
-    gamesPlayed: row.gamesPlayed,
-    styleLabel: humanizeStyleCode(row.styleCode),
-    winRate: Math.round(row.winRate * 100),
-  }));
+  return "Map + Expansions";
 }
 
 function buildTrendChartData(rows: TrendRow[], isFocusedPlayer: boolean) {
@@ -188,22 +166,25 @@ function buildTrendChartData(rows: TrendRow[], isFocusedPlayer: boolean) {
       }));
   }
 
-  const grouped = rows.reduce<Record<string, TrendChartPoint>>((accumulator, row) => {
-    const existing = accumulator[row.playedOn] ?? {
-      count: 0,
-      label: row.playedOn,
-      score: 0,
-      styleLabel: '',
-      winRate: 0,
-    };
+  const grouped = rows.reduce<Record<string, TrendChartPoint>>(
+    (accumulator, row) => {
+      const existing = accumulator[row.playedOn] ?? {
+        count: 0,
+        label: row.playedOn,
+        score: 0,
+        styleLabel: "",
+        winRate: 0,
+      };
 
-    existing.count += 1;
-    existing.score += row.totalPoints;
-    existing.winRate += row.isWinner ? 1 : 0;
+      existing.count += 1;
+      existing.score += row.totalPoints;
+      existing.winRate += row.isWinner ? 1 : 0;
 
-    accumulator[row.playedOn] = existing;
-    return accumulator;
-  }, {});
+      accumulator[row.playedOn] = existing;
+      return accumulator;
+    },
+    {},
+  );
 
   const styleByDate = rows.reduce<Record<string, Record<string, number>>>(
     (accumulator, row) => {
@@ -288,42 +269,491 @@ function normalizeHeadToHeadRows(
     .slice(0, 6);
 }
 
+// ─── Trend Over Time sub-components ───────────────────────────────────────────
+
+type TrendOverTimeProps = { trendChartData: TrendChartPoint[] };
+
+function TrendMetricSummary({ trendChartData }: TrendOverTimeProps) {
+  const latestPoint = trendChartData.at(-1);
+  const previousPoint = trendChartData.at(-2);
+
+  if (!latestPoint) return null;
+
+  const latestScore = latestPoint.score;
+  const prevScore = previousPoint?.score;
+  const change = formatScoreChange(latestScore, prevScore);
+
+  const totalResults = trendChartData.reduce((sum, p) => sum + p.count, 0);
+  const totalWins = trendChartData.reduce(
+    (sum, p) => sum + Math.round((p.winRate / 100) * p.count),
+    0,
+  );
+  const periodWinRate =
+    totalResults > 0 ? Math.round((totalWins / totalResults) * 100) : 0;
+
+  const metrics: Array<{ label: string; value: string; sub?: string }> = [
+    {
+      label: "Latest score",
+      value: `${formatAverage(latestScore)} pts`,
+    },
+    {
+      label: "Change",
+      value:
+        change === null
+          ? "—"
+          : change >= 0
+            ? `↑ ${formatAverage(Math.abs(change))} pts`
+            : `↓ ${formatAverage(Math.abs(change))} pts`,
+      sub: change === null ? "No prior date" : "vs previous date",
+    },
+    {
+      label: "Period win rate",
+      value: `${periodWinRate}%`,
+      sub: `${totalResults} result${totalResults !== 1 ? "s" : ""}`,
+    },
+    {
+      label: "Total results",
+      value: String(totalResults),
+      sub: `across ${trendChartData.length} date${trendChartData.length !== 1 ? "s" : ""}`,
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        borderBottom: "1px solid rgba(120,113,108,0.3)",
+        display: "grid",
+        gap: 0,
+        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+        marginBottom: "1rem",
+        paddingBottom: "1rem",
+      }}
+    >
+      {metrics.map((m, i) => (
+        <div
+          key={m.label}
+          style={{
+            borderLeft: i > 0 ? "1px solid rgba(120,113,108,0.3)" : undefined,
+            padding: "0.25rem 0.75rem 0.25rem",
+          }}
+        >
+          <p
+            style={{
+              color: "#a8a29e",
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              marginBottom: "0.2rem",
+              textTransform: "uppercase",
+            }}
+          >
+            {m.label}
+          </p>
+          <p
+            style={{
+              color:
+                m.label === "Change" && change !== null
+                  ? change >= 0
+                    ? "#93c5fd"
+                    : "#fca5a5"
+                  : "#f6eddf",
+              fontSize: "1.05rem",
+              fontWeight: 700,
+            }}
+          >
+            {m.value}
+          </p>
+          {m.sub ? (
+            <p
+              style={{
+                color: "#78716c",
+                fontSize: "0.7rem",
+                marginTop: "0.1rem",
+              }}
+            >
+              {m.sub}
+            </p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TrendDot(props: {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  payload?: TrendChartPoint;
+  dataLength: number;
+}) {
+  const { cx = 0, cy = 0, index = 0, dataLength } = props;
+  const isLast = index === dataLength - 1;
+  if (isLast) {
+    return (
+      <Dot
+        cx={cx}
+        cy={cy}
+        fill="#38bdf8"
+        r={6}
+        stroke="#ffffff"
+        strokeWidth={2}
+      />
+    );
+  }
+  return (
+    <Dot
+      cx={cx}
+      cy={cy}
+      fill="#38bdf8"
+      r={3}
+      stroke="#0f172a"
+      strokeWidth={1}
+    />
+  );
+}
+
+function TrendTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: TrendChartPoint }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const point = payload[0]?.payload;
+  if (!point) return null;
+
+  return (
+    <div
+      style={{
+        background: "#141a22",
+        border: "1px solid rgba(214,130,66,0.42)",
+        borderRadius: "0.75rem",
+        fontSize: "0.8rem",
+        padding: "0.7rem 0.9rem",
+      }}
+    >
+      <p style={{ color: "#dda15d", fontWeight: 700, marginBottom: "0.35rem" }}>
+        {formatTrendDate(point.label)}
+      </p>
+      <p style={{ color: "#93c5fd" }}>
+        Score: <strong>{formatAverage(point.score)} pts</strong>
+      </p>
+      <p style={{ color: "#d1c1ad" }}>Win rate: {point.winRate}%</p>
+      <p style={{ color: "#d1c1ad" }}>Playstyle: {point.styleLabel}</p>
+      <p style={{ color: "#d1c1ad" }}>Results: {point.count}</p>
+    </div>
+  );
+}
+
+function TrendResultRow({
+  row,
+  change,
+  isFirst,
+}: {
+  row: TrendChartPoint;
+  change: number | null;
+  isFirst: boolean;
+}) {
+  const changeText =
+    change === null
+      ? "—"
+      : change >= 0
+        ? `↑ ${formatAverage(Math.abs(change))}`
+        : `↓ ${formatAverage(Math.abs(change))}`;
+  const changeColor =
+    change === null ? "#78716c" : change >= 0 ? "#93c5fd" : "#fca5a5";
+
+  return (
+    <div
+      style={{
+        alignItems: "center",
+        borderTop: isFirst ? "none" : "1px solid rgba(120,113,108,0.2)",
+        display: "grid",
+        gap: "0.5rem",
+        gridTemplateColumns: "5rem 1fr auto auto",
+        padding: "0.65rem 0.25rem",
+        transition: "background 120ms ease",
+      }}
+    >
+      {/* Date — h3 so existing test assertion on heading role continues to pass */}
+      <h3
+        style={{
+          color: "#d1c1ad",
+          fontSize: "0.82rem",
+          fontWeight: 600,
+          margin: 0,
+        }}
+      >
+        {row.label}
+      </h3>
+
+      {/* Playstyle badge */}
+      <span
+        style={{
+          background: "rgba(56,189,248,0.1)",
+          border: "1px solid rgba(56,189,248,0.2)",
+          borderRadius: "999px",
+          color: "#93c5fd",
+          display: "inline-block",
+          fontSize: "0.7rem",
+          fontWeight: 600,
+          letterSpacing: "0.05em",
+          maxWidth: "11rem",
+          overflow: "hidden",
+          padding: "0.15rem 0.55rem",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {row.styleLabel}
+      </span>
+
+      {/* Win rate + count */}
+      <span
+        style={{
+          color: "#a8a29e",
+          fontSize: "0.8rem",
+          textAlign: "right",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {row.winRate}%
+        {row.count > 1 ? (
+          <span
+            style={{
+              color: "#6b7280",
+              fontSize: "0.72rem",
+              marginLeft: "0.35rem",
+            }}
+          >
+            {row.count}
+          </span>
+        ) : null}
+      </span>
+
+      {/* Score + change */}
+      <div style={{ minWidth: "6rem", textAlign: "right" }}>
+        <span style={{ color: "#bae6fd", fontSize: "0.9rem", fontWeight: 700 }}>
+          {formatAverage(row.score)} pts
+        </span>
+        <span
+          aria-label={changeText === "—" ? "No previous result" : changeText}
+          style={{ color: changeColor, display: "block", fontSize: "0.72rem" }}
+        >
+          {changeText}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function TrendOverTimeContent({ trendChartData }: TrendOverTimeProps) {
+  const latestIndex = trendChartData.length - 1;
+
+  // Padded y-axis domain around actual values
+  const scores = trendChartData.map((p) => p.score);
+  const minScore = Math.min(...scores);
+  const maxScore = Math.max(...scores);
+  const pad = Math.max((maxScore - minScore) * 0.15, 8);
+  const yMin = Math.max(0, Math.floor(minScore - pad));
+  const yMax = Math.ceil(maxScore + pad);
+
+  // Limit x-axis ticks to ~6
+  const maxTicks = 6;
+  const tickInterval =
+    trendChartData.length <= maxTicks
+      ? 0
+      : Math.ceil((trendChartData.length - 1) / (maxTicks - 1));
+
+  const recentRows = trendChartData.slice(-4).reverse();
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {/* Sub-header: description */}
+      <p
+        style={{
+          color: "#a8a29e",
+          fontSize: "0.82rem",
+          margin: "0 0 0.75rem",
+        }}
+      >
+        Average score by game date
+      </p>
+
+      {/* 4-metric summary row */}
+      <TrendMetricSummary trendChartData={trendChartData} />
+
+      {/* Responsive chart */}
+      <div style={{ width: "100%" }}>
+        <ResponsiveContainer height={280} width="100%">
+          <LineChart
+            data={trendChartData}
+            margin={{ bottom: 28, left: 0, right: 20, top: 12 }}
+          >
+            <CartesianGrid
+              stroke="rgba(120,113,108,0.18)"
+              strokeDasharray="4 4"
+            />
+            <XAxis
+              angle={-15}
+              axisLine={{ stroke: "rgba(120,113,108,0.25)" }}
+              dataKey="label"
+              height={52}
+              interval={tickInterval}
+              textAnchor="end"
+              tick={{ fill: "#78716c", fontSize: 11 }}
+              tickFormatter={formatTrendDate}
+              tickLine={false}
+            />
+            <YAxis
+              axisLine={false}
+              domain={[yMin, yMax]}
+              tick={{ fill: "#78716c", fontSize: 11 }}
+              tickLine={false}
+              width={36}
+            />
+            <Tooltip content={<TrendTooltip />} />
+            <Line
+              dataKey="score"
+              dot={(dotProps) => (
+                <TrendDot
+                  key={`dot-${dotProps.index}`}
+                  {...dotProps}
+                  dataLength={trendChartData.length}
+                />
+              )}
+              label={(labelProps) => {
+                if (labelProps.index !== latestIndex) return <g key="empty" />;
+                return (
+                  <text
+                    fill="#bae6fd"
+                    fontSize={11}
+                    fontWeight={700}
+                    key={`label-${labelProps.index}`}
+                    textAnchor="middle"
+                    x={labelProps.x}
+                    y={(labelProps.y as number) - 12}
+                  >
+                    {formatAverage(trendChartData[latestIndex]?.score ?? 0)}
+                  </text>
+                );
+              }}
+              stroke="#38bdf8"
+              strokeWidth={2}
+              type="linear"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Recent results list */}
+      <div style={{ marginTop: "1.5rem" }}>
+        <p
+          style={{
+            borderBottom: "1px solid rgba(120,113,108,0.25)",
+            color: "#a8a29e",
+            fontSize: "0.68rem",
+            fontWeight: 700,
+            letterSpacing: "0.15em",
+            margin: 0,
+            paddingBottom: "0.4rem",
+            textTransform: "uppercase",
+          }}
+        >
+          Recent results
+        </p>
+
+        {/* Column header row */}
+        <div
+          aria-hidden="true"
+          style={{
+            borderBottom: "1px solid rgba(120,113,108,0.15)",
+            color: "#6b7280",
+            display: "grid",
+            fontSize: "0.66rem",
+            fontWeight: 600,
+            gap: "0.5rem",
+            gridTemplateColumns: "5rem 1fr auto auto",
+            letterSpacing: "0.1em",
+            padding: "0.35rem 0.25rem",
+            textTransform: "uppercase",
+          }}
+        >
+          <span>Date</span>
+          <span>Playstyle</span>
+          <span style={{ textAlign: "right" }}>Win rate</span>
+          <span style={{ textAlign: "right" }}>Score / Δ</span>
+        </div>
+
+        <div>
+          {recentRows.map((row, i) => {
+            const prevRow = recentRows[i + 1];
+            const change =
+              prevRow !== undefined
+                ? formatScoreChange(row.score, prevRow.score)
+                : null;
+
+            return (
+              <TrendResultRow
+                change={change}
+                isFirst={i === 0}
+                key={`${row.label}-${row.styleLabel}`}
+                row={row}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main dashboard ────────────────────────────────────────────────────────────
+
 export function InsightsDashboard({
   analytics,
   players,
   promoCards,
   promoSets,
 }: InsightsDashboardProps) {
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string>('all');
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>("all");
 
   const selectedPlayer =
-    selectedPlayerId === 'all'
+    selectedPlayerId === "all"
       ? null
-      : players.find((player) => player.id === selectedPlayerId) ?? null;
-  const selectedStylePerformanceRows: GroupStylePerformanceRow[] = selectedPlayer
-    ? analytics.playerStylePerformanceRows.filter(
+      : (players.find((player) => player.id === selectedPlayerId) ?? null);
+  const selectedStylePerformanceRows: GroupStylePerformanceRow[] =
+    selectedPlayer
+      ? analytics.playerStylePerformanceRows.filter(
+          (row) => row.playerId === selectedPlayer.id,
+        )
+      : analytics.groupStylePerformanceRows;
+  const selectedTrendRows = selectedPlayer
+    ? analytics.playerTrendRows.filter(
         (row) => row.playerId === selectedPlayer.id,
       )
-    : analytics.groupStylePerformanceRows;
-  const selectedTrendRows = selectedPlayer
-    ? analytics.playerTrendRows.filter((row) => row.playerId === selectedPlayer.id)
     : analytics.playerTrendRows;
-  const selectedScoreProfile = selectedPlayer
-    ? analytics.playerScoreAverages.find((row) => row.playerId === selectedPlayer.id) ??
-      analytics.scoreAverages
-    : analytics.scoreAverages;
   const selectedCoverage = selectedPlayer
-    ? analytics.playerCoverages.find((row) => row.playerId === selectedPlayer.id) ??
-      analytics.coverage
+    ? (analytics.playerCoverages.find(
+        (row) => row.playerId === selectedPlayer.id,
+      ) ?? analytics.coverage)
     : analytics.coverage;
   const selectedStyleRows = selectedPlayer
-    ? analytics.styleAgreementRows.filter((row) => row.playerId === selectedPlayer.id)
+    ? analytics.styleAgreementRows.filter(
+        (row) => row.playerId === selectedPlayer.id,
+      )
     : analytics.styleAgreementRows.slice(0, 6);
   const selectedLineupRows = selectedPlayer
-    ? analytics.lineupEffectRows.filter((row) => row.playerId === selectedPlayer.id)
+    ? analytics.lineupEffectRows.filter(
+        (row) => row.playerId === selectedPlayer.id,
+      )
     : analytics.lineupEffectRows.slice(0, 6);
   const selectedInteractionRows: DashboardInteractionRow[] = selectedPlayer
-    ? analytics.playerInteractionRows.filter((row) => row.playerId === selectedPlayer.id)
+    ? analytics.playerInteractionRows.filter(
+        (row) => row.playerId === selectedPlayer.id,
+      )
     : analytics.groupInteractionRows.slice(0, 6);
   const selectedEfficiencyRows = selectedPlayer
     ? analytics.playerEfficiencySummaries.filter(
@@ -331,7 +761,9 @@ export function InsightsDashboard({
       )
     : analytics.playerEfficiencySummaries;
   const selectedMapMetricRows = selectedPlayer
-    ? analytics.playerMapMetricRows.filter((row) => row.playerId === selectedPlayer.id)
+    ? analytics.playerMapMetricRows.filter(
+        (row) => row.playerId === selectedPlayer.id,
+      )
     : analytics.playerMapMetricRows;
   const focusedHeadToHeadRows = useMemo(
     () =>
@@ -376,25 +808,20 @@ export function InsightsDashboard({
     ],
   );
 
-  const leaderboardChartData = analytics.leaderboardRows.slice(0, 6).map((row) => ({
-    name: row.playerName,
-    weightedScore: Number(row.weightedScore.toFixed(3)),
-    isFocused: row.playerId === selectedPlayer?.id,
-    winRate: Math.round(row.winRate * 100),
-  }));
-  const scoreSourceData: ScoreProfileEntry[] = selectedScoreProfile
-    ? buildScoreSourceEntries(selectedScoreProfile).map((entry) => ({
-        categoryId: entry.categoryId,
-        value: Number(entry.value.toFixed(1)),
-      }))
-    : [];
+  const leaderboardChartData = analytics.leaderboardRows
+    .slice(0, 6)
+    .map((row) => ({
+      name: row.playerName,
+      weightedScore: Number(row.weightedScore.toFixed(3)),
+      isFocused: row.playerId === selectedPlayer?.id,
+      winRate: Math.round(row.winRate * 100),
+    }));
   const styleAgreementData = selectedStyleRows.map((row) => ({
     exact: Math.round(row.exactMatchRate * 100),
     mismatch: Math.round(row.mismatchRate * 100),
     partial: Math.round(row.partialMatchRate * 100),
     playerName: row.playerName,
   }));
-  const stylePerformanceData = buildStylePerformanceChartData(selectedStylePerformanceRows);
   const trendChartData = buildTrendChartData(
     selectedTrendRows,
     Boolean(selectedPlayer),
@@ -402,17 +829,29 @@ export function InsightsDashboard({
   const coverageData = selectedCoverage
     ? [
         {
-          label: 'Full Card',
+          label: "Full Card",
           value: Math.round(selectedCoverage.cardBreakdownCoverage * 100),
         },
-        { label: 'Microbe', value: Math.round(selectedCoverage.microbeCoverage * 100) },
-        { label: 'Animal', value: Math.round(selectedCoverage.animalCoverage * 100) },
-        { label: 'Jovian', value: Math.round(selectedCoverage.jovianCoverage * 100) },
         {
-          label: 'Declared',
+          label: "Microbe",
+          value: Math.round(selectedCoverage.microbeCoverage * 100),
+        },
+        {
+          label: "Animal",
+          value: Math.round(selectedCoverage.animalCoverage * 100),
+        },
+        {
+          label: "Jovian",
+          value: Math.round(selectedCoverage.jovianCoverage * 100),
+        },
+        {
+          label: "Declared",
           value: Math.round(selectedCoverage.declaredStyleCoverage * 100),
         },
-        { label: 'Key Cards', value: Math.round(selectedCoverage.keyCardCoverage * 100) },
+        {
+          label: "Key Cards",
+          value: Math.round(selectedCoverage.keyCardCoverage * 100),
+        },
       ]
     : [];
 
@@ -436,45 +875,18 @@ export function InsightsDashboard({
     analytics.scoreAverages !== null ||
     analytics.coverage !== null;
 
+  const groupGameCount = analytics.coverage?.finalizedGames ?? null;
+
   return (
     <div className="flex flex-col gap-4">
-      {scoreSourceData.length > 0 ? (
-        <ChartFrame
-          title={
-            selectedPlayer
-              ? `Score Profile for ${selectedPlayer.displayName}`
-              : 'Group Score Profile'
-          }
-        >
-          <div className="overflow-x-auto">
-            <BarChart
-              data={scoreSourceData}
-              height={340}
-              layout="vertical"
-              margin={{ bottom: 12, left: 48, right: 12, top: 12 }}
-              width={340}
-            >
-              <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
-              <XAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} type="number" />
-              <YAxis
-                dataKey="label"
-                tick={{ fill: '#d6d3d1', fontSize: 12 }}
-                type="category"
-                width={88}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: '#1c1917',
-                  border: '1px solid #7c2d12',
-                  borderRadius: '12px',
-                  color: '#f5f5f4',
-                }}
-              />
-              <Bar dataKey="value" fill="#38bdf8" radius={[0, 10, 10, 0]} />
-            </BarChart>
-          </div>
-        </ChartFrame>
-      ) : null}
+      <GroupScoringProfile
+        focusedPlayerId={selectedPlayer?.id ?? null}
+        focusedPlayerName={selectedPlayer?.displayName ?? null}
+        gameCount={groupGameCount}
+        groupAverages={analytics.scoreAverages}
+        playerScoreAverages={analytics.playerScoreAverages}
+        players={players}
+      />
 
       <ChartFrame title="Insights Lab">
         <div className="flex flex-col gap-4">
@@ -504,7 +916,7 @@ export function InsightsDashboard({
             <p className="rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1 text-xs text-orange-100">
               {selectedPlayer
                 ? `Focused on ${selectedPlayer.displayName}`
-                : 'Focused on group-wide finalized results'}
+                : "Focused on group-wide finalized results"}
             </p>
           </div>
           <p className="text-sm text-stone-300">
@@ -525,7 +937,9 @@ export function InsightsDashboard({
                   key={`${card.title}-${card.body}`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-semibold text-stone-100">{card.title}</h3>
+                    <h3 className="font-semibold text-stone-100">
+                      {card.title}
+                    </h3>
                     <p className="text-xs uppercase tracking-[0.2em] text-cyan-200">
                       {card.confidence}
                     </p>
@@ -542,7 +956,8 @@ export function InsightsDashboard({
           <ChartFrame title="Weighted Leaderboard Comparison">
             {leaderboardChartData.length === 0 ? (
               <p className="text-sm text-stone-400">
-                Finalized leaderboard rows will appear here once games are logged.
+                Finalized leaderboard rows will appear here once games are
+                logged.
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -558,15 +973,15 @@ export function InsightsDashboard({
                     dataKey="name"
                     height={60}
                     textAnchor="end"
-                    tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                    tick={{ fill: "#d6d3d1", fontSize: 12 }}
                   />
-                  <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
+                  <YAxis tick={{ fill: "#d6d3d1", fontSize: 12 }} />
                   <Tooltip
                     contentStyle={{
-                      background: '#1c1917',
-                      border: '1px solid #7c2d12',
-                      borderRadius: '12px',
-                      color: '#f5f5f4',
+                      background: "#1c1917",
+                      border: "1px solid #7c2d12",
+                      borderRadius: "12px",
+                      color: "#f5f5f4",
                     }}
                   />
                   <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
@@ -590,13 +1005,14 @@ export function InsightsDashboard({
             title={
               selectedPlayer
                 ? `Persisted Efficiency for ${selectedPlayer.displayName}`
-                : 'Persisted Efficiency'
+                : "Persisted Efficiency"
             }
           >
-            {selectedEfficiencyRows.length === 0 && selectedMapMetricRows.length === 0 ? (
+            {selectedEfficiencyRows.length === 0 &&
+            selectedMapMetricRows.length === 0 ? (
               <p className="tm-muted-copy text-sm">
-                Persisted efficiency and map rows will appear after Supabase summaries
-                refresh.
+                Persisted efficiency and map rows will appear after Supabase
+                summaries refresh.
               </p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -614,15 +1030,16 @@ export function InsightsDashboard({
                           row.playerId}
                       </h3>
                       <p className="tm-accent-copy text-sm">
-                        {formatPersistedMetric(row.averagePointsPerGeneration)} pts/gen
+                        {formatPersistedMetric(row.averagePointsPerGeneration)}{" "}
+                        pts/gen
                       </p>
                     </div>
                     <p className="tm-muted-copy mt-2 text-sm">
-                      {row.gamesPlayed} games | avg{' '}
+                      {row.gamesPlayed} games | avg{" "}
                       {formatPersistedMetric(row.averageScore)} points
                       {row.averageExpectedScore !== null
                         ? ` | expected ${formatPersistedMetric(row.averageExpectedScore)}`
-                        : ''}
+                        : ""}
                     </p>
                   </article>
                 ))}
@@ -636,12 +1053,13 @@ export function InsightsDashboard({
                         {getMapLabel(row)}
                       </h3>
                       <p className="tm-accent-copy text-sm">
-                        {formatPersistedMetric(row.averagePointsPerGeneration)} pts/gen
+                        {formatPersistedMetric(row.averagePointsPerGeneration)}{" "}
+                        pts/gen
                       </p>
                     </div>
                     <p className="tm-muted-copy mt-2 text-sm">
-                      {row.gamesPlayed} games | avg{' '}
-                      {formatPersistedMetric(row.averagePoints)} points |{' '}
+                      {row.gamesPlayed} games | avg{" "}
+                      {formatPersistedMetric(row.averagePoints)} points |{" "}
                       {formatPersistedMetric(row.averageGenerations)} gens
                     </p>
                   </article>
@@ -655,14 +1073,20 @@ export function InsightsDashboard({
             className="flex scroll-mt-28 flex-col gap-4"
             id="global-statistics"
           >
-            <GlobalMetricBoard globalMapMetricRows={analytics.globalMapMetricRows} />
+            <GlobalMetricBoard
+              globalMapMetricRows={analytics.globalMapMetricRows}
+            />
 
             <GlobalSummaryBoard
               globalAwardMetricRows={analytics.globalAwardMetricRows}
-              globalCorporationMetricRows={analytics.globalCorporationMetricRows}
+              globalCorporationMetricRows={
+                analytics.globalCorporationMetricRows
+              }
               globalGenerationMetricRows={analytics.globalGenerationMetricRows}
               globalMilestoneMetricRows={analytics.globalMilestoneMetricRows}
-              globalPlayerCountMetricRows={analytics.globalPlayerCountMetricRows}
+              globalPlayerCountMetricRows={
+                analytics.globalPlayerCountMetricRows
+              }
               globalStyleMetricRows={analytics.globalStyleMetricRows}
               globalTagMetricRows={analytics.globalTagMetricRows}
             />
@@ -672,7 +1096,7 @@ export function InsightsDashboard({
             title={
               selectedPlayer
                 ? `Style Agreement for ${selectedPlayer.displayName}`
-                : 'Group Style Agreement'
+                : "Group Style Agreement"
             }
           >
             {styleAgreementData.length === 0 ? (
@@ -694,84 +1118,38 @@ export function InsightsDashboard({
                     dataKey="playerName"
                     height={60}
                     textAnchor="end"
-                    tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                    tick={{ fill: "#d6d3d1", fontSize: 12 }}
                   />
-                  <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
+                  <YAxis tick={{ fill: "#d6d3d1", fontSize: 12 }} />
                   <Tooltip
                     contentStyle={{
-                      background: '#1c1917',
-                      border: '1px solid #7c2d12',
-                      borderRadius: '12px',
-                      color: '#f5f5f4',
+                      background: "#1c1917",
+                      border: "1px solid #7c2d12",
+                      borderRadius: "12px",
+                      color: "#f5f5f4",
                     }}
                   />
-                  <Bar dataKey="exact" fill={styleColors.exact} stackId="style" />
-                  <Bar dataKey="partial" fill={styleColors.partial} stackId="style" />
-                  <Bar dataKey="mismatch" fill={styleColors.mismatch} stackId="style" />
+                  <Bar
+                    dataKey="exact"
+                    fill={styleColors.exact}
+                    stackId="style"
+                  />
+                  <Bar
+                    dataKey="partial"
+                    fill={styleColors.partial}
+                    stackId="style"
+                  />
+                  <Bar
+                    dataKey="mismatch"
+                    fill={styleColors.mismatch}
+                    stackId="style"
+                  />
                 </BarChart>
               </div>
             )}
           </ChartFrame>
 
-          <ChartFrame title="Best Style Snapshot">
-            {stylePerformanceData.length === 0 ? (
-              <p className="text-sm text-stone-400">
-                Best-style snapshots will appear once inferred styles have been
-                recorded on finalized games.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <div className="overflow-x-auto">
-                  <BarChart
-                    data={stylePerformanceData}
-                    height={260}
-                    margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                    width={340}
-                  >
-                    <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
-                    <XAxis
-                      angle={-20}
-                      dataKey="styleLabel"
-                      height={72}
-                      textAnchor="end"
-                      tick={{ fill: '#d6d3d1', fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#1c1917',
-                        border: '1px solid #7c2d12',
-                        borderRadius: '12px',
-                        color: '#f5f5f4',
-                      }}
-                    />
-                    <Bar dataKey="winRate" fill="#fb923c" radius={[10, 10, 0, 0]} />
-                  </BarChart>
-                </div>
-                <div className="grid gap-3">
-                  {selectedStylePerformanceRows.slice(0, 3).map((row) => (
-                    <article
-                      className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
-                      key={`${row.styleCode}-${row.gamesPlayed}`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-semibold text-stone-100">
-                          {humanizeStyleCode(row.styleCode)}
-                        </h3>
-                        <p className="text-sm text-cyan-200">
-                          {formatPercent(row.winRate)}
-                        </p>
-                      </div>
-                      <p className="mt-2 text-sm text-stone-300">
-                        {row.gamesPlayed} games | avg {formatAverage(row.averageScore)} points
-                        | avg place {formatAverage(row.averagePlacement)}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            )}
-          </ChartFrame>
+          <BestStyleSnapshot rows={selectedStylePerformanceRows} />
 
           <ChartFrame title="Trend Over Time">
             {trendChartData.length === 0 ? (
@@ -779,60 +1157,7 @@ export function InsightsDashboard({
                 Trend evidence will appear after finalized games are logged.
               </p>
             ) : (
-              <div className="flex flex-col gap-4">
-                <div className="overflow-x-auto">
-                  <LineChart
-                    data={trendChartData}
-                    height={280}
-                    margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                    width={340}
-                  >
-                    <CartesianGrid stroke="#44403c" strokeDasharray="3 3" />
-                    <XAxis
-                      angle={-20}
-                      dataKey="label"
-                      height={72}
-                      textAnchor="end"
-                      tick={{ fill: '#d6d3d1', fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#1c1917',
-                        border: '1px solid #7c2d12',
-                        borderRadius: '12px',
-                        color: '#f5f5f4',
-                      }}
-                    />
-                    <Line
-                      dataKey="score"
-                      dot
-                      stroke="#38bdf8"
-                      strokeWidth={3}
-                      type="monotone"
-                    />
-                  </LineChart>
-                </div>
-                <div className="grid gap-3">
-                  {trendChartData.slice(-4).reverse().map((row) => (
-                    <article
-                      className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
-                      key={`${row.label}-${row.styleLabel}`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-semibold text-stone-100">{row.label}</h3>
-                        <p className="text-sm text-cyan-200">
-                          {formatAverage(row.score)} pts
-                        </p>
-                      </div>
-                      <p className="mt-2 text-sm text-stone-300">
-                        {row.styleLabel} | {row.winRate}% win rate
-                        {row.count > 1 ? ` | ${row.count} results` : ''}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              </div>
+              <TrendOverTimeContent trendChartData={trendChartData} />
             )}
           </ChartFrame>
 
@@ -850,13 +1175,16 @@ export function InsightsDashboard({
                     key={row.label}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-stone-100">{row.label}</h3>
+                      <h3 className="font-semibold text-stone-100">
+                        {row.label}
+                      </h3>
                       <p className="text-sm text-cyan-200">
                         {formatAverage(row.averageScoreDifferential)} pts
                       </p>
                     </div>
                     <p className="mt-2 text-sm text-stone-300">
-                      {row.wins}-{row.losses}-{row.ties} over {row.gamesPlayed} games
+                      {row.wins}-{row.losses}-{row.ties} over {row.gamesPlayed}{" "}
+                      games
                     </p>
                   </article>
                 ))}
@@ -867,8 +1195,8 @@ export function InsightsDashboard({
           <ChartFrame title="Lineup Effects">
             {selectedLineupRows.length === 0 ? (
               <p className="text-sm text-stone-400">
-                Lineup effects will appear after repeated finalized group mixes are
-                logged.
+                Lineup effects will appear after repeated finalized group mixes
+                are logged.
               </p>
             ) : (
               <div className="grid gap-3">
@@ -907,17 +1235,20 @@ export function InsightsDashboard({
                 {selectedInteractionRows.map((row) => (
                   <article
                     className="rounded-2xl border border-stone-800 bg-stone-950/60 p-3"
-                    key={`${row.playerId ?? 'group'}-${row.interactionType}-${row.label}`}
+                    key={`${row.playerId ?? "group"}-${row.interactionType}-${row.label}`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-stone-100">{row.label}</h3>
+                      <h3 className="font-semibold text-stone-100">
+                        {row.label}
+                      </h3>
                       <p className="text-sm text-cyan-200">
                         {formatPercent(row.winRate)}
                       </p>
                     </div>
                     <p className="mt-2 text-sm text-stone-300">
-                      {humanizeInteractionType(row.interactionType)} | {row.gamesPlayed}{' '}
-                      results | avg {formatAverage(row.averageScore)} points | avg place{' '}
+                      {humanizeInteractionType(row.interactionType)} |{" "}
+                      {row.gamesPlayed} results | avg{" "}
+                      {formatAverage(row.averageScore)} points | avg place{" "}
                       {formatAverage(row.averagePlacement)}
                     </p>
                   </article>
@@ -930,7 +1261,7 @@ export function InsightsDashboard({
             title={
               selectedPlayer
                 ? `Optional Data Coverage for ${selectedPlayer.displayName}`
-                : 'Group Optional Data Coverage'
+                : "Group Optional Data Coverage"
             }
           >
             {coverageData.length === 0 ? (
@@ -952,18 +1283,22 @@ export function InsightsDashboard({
                       dataKey="label"
                       height={60}
                       textAnchor="end"
-                      tick={{ fill: '#d6d3d1', fontSize: 12 }}
+                      tick={{ fill: "#d6d3d1", fontSize: 12 }}
                     />
-                    <YAxis tick={{ fill: '#d6d3d1', fontSize: 12 }} />
+                    <YAxis tick={{ fill: "#d6d3d1", fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{
-                        background: '#1c1917',
-                        border: '1px solid #7c2d12',
-                        borderRadius: '12px',
-                        color: '#f5f5f4',
+                        background: "#1c1917",
+                        border: "1px solid #7c2d12",
+                        borderRadius: "12px",
+                        color: "#f5f5f4",
                       }}
                     />
-                    <Bar dataKey="value" fill="#14b8a6" radius={[10, 10, 0, 0]} />
+                    <Bar
+                      dataKey="value"
+                      fill="#14b8a6"
+                      radius={[10, 10, 0, 0]}
+                    />
                   </BarChart>
                 </div>
                 <div className="flex flex-wrap gap-2">

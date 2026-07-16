@@ -11,7 +11,7 @@ import type {
 } from '@/lib/db/analytics-repo';
 import { AwardMilestoneSummary } from './award-milestone-summary';
 import { EfficiencySummary } from './efficiency-summary';
-import { MapPerformanceList } from './map-performance-list';
+import { MapPerformanceSection } from './map-performance-section';
 import { ScoreSourceRadar } from './score-source-radar';
 
 type ProfileDashboardProps = {
@@ -121,7 +121,7 @@ export function ProfileDashboard({
         )}
       </ChartFrame>
       <EfficiencySummary efficiencySummary={efficiencySummary} />
-      <MapPerformanceList mapMetricRows={mapMetricRows} />
+      <MapPerformanceSection mapMetricRows={mapMetricRows} playerName={playerName} />
       <AwardMilestoneSummary efficiencySummary={efficiencySummary} />
       <ScoreSourceRadar
         groupAverages={groupScoreAverages}

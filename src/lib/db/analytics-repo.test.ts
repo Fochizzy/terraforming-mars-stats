@@ -382,12 +382,60 @@ describe('getProfileAnalytics', () => {
   });
 
   it('includes persisted efficiency and map metric rows for linked players', async () => {
-    const { publicQueries } = mockSupabase({
+    const { analyticsQueries, publicQueries } = mockSupabase({
       players: [
         { display_name: 'Friday Mars', id: 'player-1' },
         { display_name: 'Friday Mars', id: 'player-2' },
       ],
       'analytics.player_game_results': null,
+      'analytics.player_map_performance': [
+        {
+          average_generations: '10.2500',
+          average_normalized_efficiency: '1.0800',
+          average_points: '84.5000',
+          average_points_per_generation: '8.4500',
+          average_score_delta_vs_expected: '5.7500',
+          best_score_source_on_map: 'cards',
+          best_tag_lane_on_map: 'science',
+          games_played: 3,
+          group_id: 'group-1',
+          has_sufficient_recent_form: true,
+          highest_score: 90,
+          last_played_at: '2025-06-01',
+          losses: 1,
+          map_code: 'tharsis',
+          map_id: 'map-a',
+          map_name: 'Tharsis',
+          map_rank_for_player: '2',
+          player_id: 'player-1',
+          recent_wins_last_5: 2,
+          win_rate: '0.6667',
+          wins: 2,
+        },
+        {
+          average_generations: '9.0000',
+          average_normalized_efficiency: '1.2000',
+          average_points: '81.0000',
+          average_points_per_generation: '9.0000',
+          average_score_delta_vs_expected: null,
+          best_score_source_on_map: 'greenery',
+          best_tag_lane_on_map: null,
+          games_played: 4,
+          group_id: 'group-1',
+          has_sufficient_recent_form: false,
+          highest_score: null,
+          last_played_at: null,
+          losses: 2,
+          map_code: null,
+          map_id: 'map-b',
+          map_name: null,
+          map_rank_for_player: '1',
+          player_id: 'player-1',
+          recent_wins_last_5: 0,
+          win_rate: '0.5000',
+          wins: 2,
+        },
+      ],
       player_metric_summaries: [
         {
           average_award_roi: '1.5000',
@@ -486,7 +534,7 @@ describe('getProfileAnalytics', () => {
 
     const result = await getProfileAnalytics('group-1', 'user-1');
     const efficiencyQuery = publicQueries.get('player_metric_summaries');
-    const mapQuery = publicQueries.get('player_map_metric_summaries');
+    const mapQuery = analyticsQueries.get('player_map_performance');
 
     expect(result?.efficiencySummary).toEqual({
       averageAwardRoi: 1.5,
@@ -527,10 +575,16 @@ describe('getProfileAnalytics', () => {
         bestTagLaneOnMap: null,
         gamesPlayed: 4,
         groupId: 'group-1',
+        hasSufficientRecentForm: false,
+        highestScore: null,
+        lastPlayedAt: null,
+        losses: 2,
+        mapCode: null,
         mapId: 'map-b',
         mapName: null,
         mapRankForPlayer: 1,
         playerId: 'player-1',
+        recentWinsLast5: 0,
         winRate: 0.5,
         wins: 2,
       },
@@ -544,10 +598,16 @@ describe('getProfileAnalytics', () => {
         bestTagLaneOnMap: 'science',
         gamesPlayed: 3,
         groupId: 'group-1',
+        hasSufficientRecentForm: true,
+        highestScore: 90,
+        lastPlayedAt: '2025-06-01',
+        losses: 1,
+        mapCode: 'tharsis',
         mapId: 'map-a',
         mapName: 'Tharsis',
         mapRankForPlayer: 2,
         playerId: 'player-1',
+        recentWinsLast5: 2,
         winRate: 0.6667,
         wins: 2,
       },
@@ -583,6 +643,7 @@ describe('getProfileAnalytics', () => {
     mockSupabase({
       players: [{ display_name: 'Friday Mars', id: 'player-1' }],
       'analytics.player_game_results': [createProfileGameResultRow()],
+      'analytics.player_map_performance': new Error('persisted map view unavailable'),
       player_metric_summaries: new Error('persisted summary unavailable'),
       player_map_metric_summaries: new Error('persisted map unavailable'),
     });

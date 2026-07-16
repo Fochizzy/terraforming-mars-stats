@@ -137,7 +137,7 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/based on 4 finalized games/i)).toBeInTheDocument();
     expect(screen.getByText(/efficiency summary/i)).toBeInTheDocument();
     expect(screen.getAllByText(/8\.4 pts\/gen/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/84\.5 avg points/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/84\.5/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/science/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/awards\/milestones\/coverage/i)).toBeInTheDocument();
     expect(screen.getByText(/award roi/i)).toBeInTheDocument();

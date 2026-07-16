@@ -1,0 +1,532 @@
+/* ─── Section header ──────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.eyebrow {
+  color: #fb923c;
+  font-family: var(--tm-font-display);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.title {
+  color: var(--tm-dust-300);
+  font-family: var(--tm-font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.description {
+  color: var(--tm-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-top: 0.1rem;
+  max-width: 52ch;
+}
+
+/* ─── Controls row ────────────────────────────────────────────────────────── */
+
+.controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+}
+
+.controlGroup {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Filter toggle */
+.filterToggle {
+  align-items: center;
+  background: rgba(20, 26, 34, 0.6);
+  border: 1px solid rgba(192, 162, 127, 0.24);
+  border-radius: 999px;
+  display: flex;
+  overflow: hidden;
+  padding: 2px;
+}
+
+.filterBtn {
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: var(--tm-muted);
+  cursor: pointer;
+  font-family: var(--tm-font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  padding: 0.35rem 0.75rem;
+  text-transform: uppercase;
+  transition: color 120ms ease;
+}
+
+.filterBtn:hover {
+  color: var(--tm-text);
+}
+
+.filterBtn:focus-visible {
+  outline: 2px solid rgba(240, 106, 50, 0.5);
+  outline-offset: 1px;
+}
+
+.filterBtnActive {
+  background: linear-gradient(180deg, rgba(214, 130, 66, 0.26), rgba(142, 61, 31, 0.3));
+  border: 1px solid rgba(214, 130, 66, 0.42);
+  color: var(--tm-dust-300);
+}
+
+/* Sort select */
+.sortWrap {
+  position: relative;
+}
+
+.sortSelect {
+  appearance: none;
+  background: rgba(20, 26, 34, 0.6);
+  border: 1px solid rgba(192, 162, 127, 0.24);
+  border-radius: 999px;
+  color: var(--tm-muted);
+  cursor: pointer;
+  font-family: var(--tm-font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  padding: 0.38rem 2rem 0.38rem 0.85rem;
+  text-transform: uppercase;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.sortSelect:focus {
+  border-color: rgba(221, 161, 93, 0.62);
+  color: var(--tm-text);
+  outline: 2px solid rgba(240, 106, 50, 0.16);
+  outline-offset: 2px;
+}
+
+.sortChevron {
+  color: var(--tm-muted);
+  pointer-events: none;
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ─── Metric selector ─────────────────────────────────────────────────────── */
+
+.metricSelector {
+  border-bottom: 1px solid rgba(192, 162, 127, 0.16);
+  display: flex;
+  gap: 0;
+  margin-top: 1.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.metricSelector::-webkit-scrollbar {
+  display: none;
+}
+
+.metricBtn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--tm-muted);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-family: var(--tm-font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  margin-bottom: -1px;
+  padding: 0.6rem 1rem;
+  text-transform: uppercase;
+  transition: color 120ms ease, border-color 120ms ease;
+  white-space: nowrap;
+}
+
+.metricBtn:hover {
+  color: var(--tm-text);
+}
+
+.metricBtn:focus-visible {
+  color: var(--tm-text);
+  outline: 2px solid rgba(240, 106, 50, 0.5);
+  outline-offset: -2px;
+}
+
+.metricBtnActive {
+  border-bottom-color: #fb923c;
+  color: var(--tm-dust-300);
+}
+
+/* ─── Chart area ──────────────────────────────────────────────────────────── */
+
+.chartWrap {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(192, 162, 127, 0.14);
+  border-radius: 1rem;
+  margin-top: 1.25rem;
+  overflow: hidden;
+  padding: 1rem 0.5rem 0.5rem;
+}
+
+.referenceLine {
+  stroke: rgba(221, 161, 93, 0.55);
+  stroke-dasharray: 4 3;
+}
+
+/* ─── Map card grid ───────────────────────────────────────────────────────── */
+
+.cardGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .cardGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ─── Map card ────────────────────────────────────────────────────────────── */
+
+.mapCard {
+  background: linear-gradient(180deg, rgba(32, 19, 16, 0.72), rgba(15, 18, 24, 0.84));
+  border: 1px solid rgba(192, 162, 127, 0.2);
+  border-radius: 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+  width: 100%;
+}
+
+.mapCard:hover {
+  border-color: rgba(192, 162, 127, 0.42);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.mapCard:focus-visible {
+  border-color: rgba(221, 161, 93, 0.7);
+  box-shadow: 0 0 0 2px rgba(240, 106, 50, 0.28);
+  outline: none;
+}
+
+.mapCardSelected {
+  border-color: rgba(240, 106, 50, 0.7);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(240, 106, 50, 0.18);
+}
+
+.mapCardSelected:hover,
+.mapCardSelected:focus-visible {
+  border-color: rgba(240, 106, 50, 0.8);
+}
+
+/* Image container */
+.mapImageWrap {
+  aspect-ratio: 16 / 9;
+  background: radial-gradient(ellipse at center, rgba(42, 28, 20, 0.9), rgba(8, 11, 15, 0.95));
+  overflow: hidden;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.mapImageEl {
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  width: 100%;
+}
+
+/* Card content */
+.mapCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+}
+
+.mapCardHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.mapCardName {
+  color: var(--tm-text);
+  font-family: var(--tm-font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mapCardGames {
+  color: var(--tm-muted);
+  font-family: var(--tm-font-display);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.mapCardMetricValue {
+  color: var(--tm-dust-300);
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.1;
+  margin-top: 0.2rem;
+}
+
+.mapCardMetricLabel {
+  color: var(--tm-muted);
+  font-family: var(--tm-font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mapCardMeta {
+  color: var(--tm-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  margin-top: 0.35rem;
+}
+
+.mapCardDelta {
+  font-size: 0.73rem;
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.2rem;
+}
+
+.mapCardDeltaPositive {
+  color: #7ba73d;
+}
+
+.mapCardDeltaNegative {
+  color: #fb7185;
+}
+
+.mapCardSampleLabel {
+  color: var(--tm-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  margin-top: 0.25rem;
+  opacity: 0.75;
+}
+
+/* No-data state */
+.mapCardNoData {
+  color: var(--tm-muted);
+  font-size: 0.75rem;
+  font-style: italic;
+  padding: 0.5rem 0.75rem;
+}
+
+/* ─── Detail panel ────────────────────────────────────────────────────────── */
+
+.detailPanel {
+  background: linear-gradient(135deg, rgba(38, 24, 18, 0.85), rgba(11, 14, 20, 0.9));
+  border: 1px solid rgba(214, 130, 66, 0.28);
+  border-radius: 1rem;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  margin-top: 1.25rem;
+  overflow: hidden;
+  padding: 1.25rem;
+}
+
+@media (max-width: 700px) {
+  .detailPanel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.detailImageWrap {
+  aspect-ratio: 4 / 3;
+  background: radial-gradient(ellipse at center, rgba(42, 28, 20, 0.9), rgba(8, 11, 15, 0.95));
+  border-radius: 0.75rem;
+  overflow: hidden;
+  padding: 0.5rem;
+}
+
+.detailImageEl {
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  width: 100%;
+}
+
+.detailStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.detailMapName {
+  color: var(--tm-dust-300);
+  font-family: var(--tm-font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.detailGrid {
+  column-gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .detailGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.detailStat {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(192, 162, 127, 0.14);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.6rem;
+}
+
+.detailStatLabel {
+  color: var(--tm-copper-400);
+  font-family: var(--tm-font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.detailStatValue {
+  color: var(--tm-text);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+.detailStatMuted {
+  color: var(--tm-muted);
+  font-size: 0.72rem;
+  margin-top: 0.1rem;
+}
+
+.detailDeltaRow {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.detailDeltaChip {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.2rem 0.55rem;
+}
+
+.detailDeltaPositive {
+  background: rgba(123, 167, 61, 0.18);
+  border: 1px solid rgba(123, 167, 61, 0.3);
+  color: #7ba73d;
+}
+
+.detailDeltaNegative {
+  background: rgba(251, 113, 133, 0.14);
+  border: 1px solid rgba(251, 113, 133, 0.25);
+  color: #fb7185;
+}
+
+.detailLastPlayed {
+  color: var(--tm-muted);
+  font-size: 0.72rem;
+}
+
+.recentFormRow {
+  align-items: center;
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+}
+
+.recentFormDot {
+  border-radius: 50%;
+  flex: 0 0 8px;
+  height: 8px;
+  width: 8px;
+}
+
+.recentFormDotWin {
+  background: #7ba73d;
+}
+
+.recentFormDotLoss {
+  background: rgba(192, 162, 127, 0.3);
+}
+
+/* ─── Empty and error states ──────────────────────────────────────────────── */
+
+.emptyState {
+  align-items: center;
+  color: var(--tm-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.emptyStateTitle {
+  color: var(--tm-text);
+  font-family: var(--tm-font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.emptyStateCopy {
+  color: var(--tm-muted);
+  font-size: 0.85rem;
+  max-width: 40ch;
+}
+
+.inlineError {
+  background: rgba(251, 113, 133, 0.08);
+  border: 1px solid rgba(251, 113, 133, 0.2);
+  border-radius: 0.75rem;
+  color: #fca5b4;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+}

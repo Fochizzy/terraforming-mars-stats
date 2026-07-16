@@ -275,9 +275,9 @@ describe('GroupDashboard', () => {
     expect(screen.getByText(/Gardener/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Award Funding ROI/i })).toBeInTheDocument();
     expect(screen.getByText(/Banker/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Global Player Count Baselines/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Table Size Performance/i })).toBeInTheDocument();
     expect(screen.getByText(/4-player games/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Global Generation Baselines/i })).toBeInTheDocument();
-    expect(screen.getByText(/10 generations/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Game Length/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/10.{1,3}11 gens/i).length).toBeGreaterThan(0);
   });
 });
