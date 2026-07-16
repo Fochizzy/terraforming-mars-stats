@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 const CORPORATION_LOGO_BASE_URL =
   'https://qjtwgrjjwnqafbvkkfex.supabase.co/storage/v1/object/public/tm-corporation-logos';
+const CORPORATION_LOGO_VERSION = '20260716-transparent-normalized';
 
 const filenameOverrides: Record<string, string> = {
   'Ambient Terraforming Solutions':
@@ -15,6 +16,8 @@ const filenameOverrides: Record<string, string> = {
   'Gagarin Mobile Base': 'Gagarian_Mobile_Base.png',
   'Interplanetary Cinematics': 'Interplanetary _Cinematics.png',
   'Martian Insurance Group': 'Martian_Insurance_Group.png',
+  Polaris:
+    "Polaris_Terraforming_Solutions_Guiding_Humanity's_Next_Frontier.png",
   'Polaris Terraforming Solutions':
     "Polaris_Terraforming_Solutions_Guiding_Humanity's_Next_Frontier.png",
   'Ringcom Terraforming Solutions':
@@ -22,7 +25,9 @@ const filenameOverrides: Record<string, string> = {
   'Robin Haulings': 'Robin_Hauling.png',
   Steelaris:
     'Steelaris_Forging_a_Future_in_Steel_Building_Tomorrow_On_Mars.png',
+  ThorGate: 'Thorgate.png',
   'Tharsis Republic': 'Tharsis_Republic.png',
+  'United Nations Mars Initiative': 'United_Nations_Mars_Initiative.png',
   'Utopia Invest': 'Utopia_Invevst.png',
 };
 
@@ -35,6 +40,12 @@ function candidateFilenames(name: string) {
   ].filter((value): value is string => Boolean(value));
 
   return [...new Set(candidates)];
+}
+
+function getLogoUrl(filename: string) {
+  return `${CORPORATION_LOGO_BASE_URL}/${encodeURIComponent(
+    filename,
+  )}?v=${CORPORATION_LOGO_VERSION}`;
 }
 
 function createLogo(name: string) {
@@ -53,15 +64,13 @@ function createLogo(name: string) {
   image.style.background = 'transparent';
   image.style.border = '0';
   image.style.borderRadius = '0';
-  image.src = `${CORPORATION_LOGO_BASE_URL}/${encodeURIComponent(candidates[0] ?? '')}`;
+  image.src = getLogoUrl(candidates[0] ?? '');
 
   image.addEventListener('error', () => {
     candidateIndex += 1;
 
     if (candidateIndex < candidates.length) {
-      image.src = `${CORPORATION_LOGO_BASE_URL}/${encodeURIComponent(
-        candidates[candidateIndex] ?? '',
-      )}`;
+      image.src = getLogoUrl(candidates[candidateIndex] ?? '');
       return;
     }
 
