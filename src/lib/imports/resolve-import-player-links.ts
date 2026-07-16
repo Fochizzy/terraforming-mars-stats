@@ -1,6 +1,8 @@
 import { compactPlayerAlias, normalizePlayerAlias } from './normalize-player-alias';
 
 type ImportGroupPlayer = {
+  alternateIds?: string[];
+  canonicalKey?: string;
   displayName: string;
   gamesPlayed?: number;
   id: string;
@@ -33,14 +35,13 @@ export type ImportPlayerLinkCandidate = {
   matchScore: number;
 };
 
-export type ImportPlayerLinkMatch =
-  {
-    candidates: ImportPlayerLinkCandidate[];
-    importedName: string;
-    requiresConfirmation: boolean;
-    selectedPlayerId: string | null;
-    status: 'alias' | 'ambiguous' | 'exact' | 'suggested' | 'unmatched';
-  };
+export type ImportPlayerLinkMatch = {
+  candidates: ImportPlayerLinkCandidate[];
+  importedName: string;
+  requiresConfirmation: boolean;
+  selectedPlayerId: string | null;
+  status: 'alias' | 'ambiguous' | 'exact' | 'suggested' | 'unmatched';
+};
 
 type CandidateScore = Pick<
   ImportPlayerLinkCandidate,
@@ -74,7 +75,10 @@ function isTokenPrefixMatch(importedName: string, candidateName: string) {
   const importedTokens = tokenizeNormalizedName(importedName);
   const candidateTokens = tokenizeNormalizedName(candidateName);
 
-  if (importedTokens.length === 0 || importedTokens.length > candidateTokens.length) {
+  if (
+    importedTokens.length === 0 ||
+    importedTokens.length > candidateTokens.length
+  ) {
     return false;
   }
 
@@ -94,7 +98,78 @@ function compareCandidates(
   );
 }
 
-function buildFallbackCandidate(player: ImportGroupPlayer): ImportPlayerLinkCandidate {
+function comparePlayerRepresentatives(
+  left: ImportGroupPlayer,
+  right: ImportGroupPlayer,
+) {
+  return (
+    (right.gamesPlayed ?? 0) - (left.gamesPlayed ?? 0) ||
+    left.id.localeCompare(right.id)
+  );
+}
+
+function firstNonEmptyValue(
+  players: ImportGroupPlayer[],
+  getValue: (player: ImportGroupPlayer) => string | null | undefined,
+) {
+  return (
+    players
+      .map(getValue)
+      .find((value): value is string => Boolean(value?.trim())) ?? null
+  );
+}
+
+/**
+ * A registered person may have one players row in every group they belong to.
+ * Collapse those rows into one review option, but retain every concrete id so
+ * aliases tied to any group row still match. The confirmation route receives
+ * the uncollapsed pool and can therefore continue recognizing an older
+ * selected id even if a different row becomes the current representative.
+ */
+function collapsePlayersByCanonicalIdentity(players: ImportGroupPlayer[]) {
+  const groupedPlayers = new Map<string, ImportGroupPlayer[]>();
+
+  for (const player of players) {
+    const canonicalKey = player.canonicalKey?.trim() || `player:${player.id}`;
+    groupedPlayers.set(canonicalKey, [
+      ...(groupedPlayers.get(canonicalKey) ?? []),
+      player,
+    ]);
+  }
+
+  return [...groupedPlayers.values()].map((matchingPlayers) => {
+    const representative = [...matchingPlayers].sort(
+      comparePlayerRepresentatives,
+    )[0]!;
+    const alternateIds = [
+      ...new Set(
+        matchingPlayers.flatMap((player) => [
+          player.id,
+          ...(player.alternateIds ?? []),
+        ]),
+      ),
+    ];
+
+    return {
+      ...representative,
+      alternateIds,
+      gamesPlayed: matchingPlayers.reduce(
+        (total, player) => total + (player.gamesPlayed ?? 0),
+        0,
+      ),
+      linkedFullName:
+        representative.linkedFullName ??
+        firstNonEmptyValue(matchingPlayers, (player) => player.linkedFullName),
+      linkedUsername:
+        representative.linkedUsername ??
+        firstNonEmptyValue(matchingPlayers, (player) => player.linkedUsername),
+    } satisfies ImportGroupPlayer;
+  });
+}
+
+function buildFallbackCandidate(
+  player: ImportGroupPlayer,
+): ImportPlayerLinkCandidate {
   return {
     displayName: player.displayName,
     gamesPlayed: player.gamesPlayed ?? 0,
@@ -124,6 +199,10 @@ function buildPlayerCandidate(input: {
   const fullName = normalizePlayerAlias(input.player.linkedFullName ?? '');
   const username = normalizePlayerAlias(input.player.linkedUsername ?? '');
   const compactImportedName = compactPlayerAlias(input.importedName);
+  const playerIds = new Set([
+    input.player.id,
+    ...(input.player.alternateIds ?? []),
+  ]);
 
   // A name is an exact match when its space-preserving form is identical, or —
   // to bridge a spaced handle against the concatenated username it came from —
@@ -171,7 +250,7 @@ function buildPlayerCandidate(input: {
   if (
     input.aliases.some(
       (alias) =>
-        alias.playerId === input.player.id &&
+        playerIds.has(alias.playerId) &&
         alias.normalizedAlias === input.normalizedImportedName,
     )
   ) {
@@ -222,11 +301,13 @@ export function resolveImportPlayerLinks(
   players: ImportGroupPlayer[],
   aliases: ImportPlayerAlias[],
 ) {
+  const resolutionPlayers = collapsePlayersByCanonicalIdentity(players);
   const matches: ImportPlayerLinkMatch[] = importedNames.map((importedName) => {
     const normalizedImportedName = normalizePlayerAlias(importedName);
+
     if (!normalizedImportedName) {
       return {
-        candidates: players
+        candidates: resolutionPlayers
           .map((player) => buildFallbackCandidate(player))
           .sort(compareCandidates),
         importedName,
@@ -236,7 +317,7 @@ export function resolveImportPlayerLinks(
       };
     }
 
-    const candidates = players
+    const candidates = resolutionPlayers
       .map((player) =>
         buildPlayerCandidate({
           aliases,
@@ -304,6 +385,7 @@ export function resolveImportPlayerLinks(
 
   return {
     matches,
-    unresolvedCount: matches.filter((match) => match.requiresConfirmation).length,
+    unresolvedCount: matches.filter((match) => match.requiresConfirmation)
+      .length,
   };
 }
