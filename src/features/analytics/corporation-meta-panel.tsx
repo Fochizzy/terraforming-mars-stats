@@ -155,21 +155,9 @@ export function CorporationMetaPanel({
                 when a corporation has only been played a few times.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-xs text-stone-500">
-                Weighted VP · {weightedPointsPriorGames}-play baseline
-              </p>
-              {canExpand ? (
-                <button
-                  aria-expanded={showAll}
-                  className="rounded-xl border border-sky-300/20 bg-sky-300/[0.07] px-3 py-2 text-sm font-semibold text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-300/[0.11] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70"
-                  onClick={() => setShowAll((current) => !current)}
-                  type="button"
-                >
-                  {showAll ? 'Show fewer' : `See all ${rankedRows.length}`}
-                </button>
-              ) : null}
-            </div>
+            <p className="text-xs text-stone-500">
+              Weighted VP · {weightedPointsPriorGames}-play baseline
+            </p>
           </div>
 
           {visibleRows.length === 0 ? (
@@ -177,45 +165,60 @@ export function CorporationMetaPanel({
               No corporation summaries are available yet.
             </p>
           ) : (
-            <div className="mt-5 space-y-3">
-              {visibleRows.map((row) => (
-                <article
-                  className="rounded-xl border border-white/[0.06] bg-stone-950/45 p-3"
-                  data-testid="weighted-corporation-row"
-                  key={row.corporationId}
-                  title={`${row.name}: ${formatDecimal(row.weightedPoints)} weighted VP, ${formatDecimal(row.averagePoints)} average VP across ${row.gamesPlayed} plays`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h4 className="truncate font-semibold text-stone-100">
-                        {row.name}
-                      </h4>
-                      <p className="mt-1 text-xs text-stone-500">
-                        {formatDecimal(row.averagePoints)} avg VP · {row.gamesPlayed}{' '}
-                        {row.gamesPlayed === 1 ? 'play' : 'plays'}
-                      </p>
+            <>
+              <div className="mt-5 space-y-3">
+                {visibleRows.map((row) => (
+                  <article
+                    className="rounded-xl border border-white/[0.06] bg-stone-950/45 p-3"
+                    data-testid="weighted-corporation-row"
+                    key={row.corporationId}
+                    title={`${row.name}: ${formatDecimal(row.weightedPoints)} weighted VP, ${formatDecimal(row.averagePoints)} average VP across ${row.gamesPlayed} plays`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 className="truncate font-semibold text-stone-100">
+                          {row.name}
+                        </h4>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {formatDecimal(row.averagePoints)} avg VP · {row.gamesPlayed}{' '}
+                          {row.gamesPlayed === 1 ? 'play' : 'plays'}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-300/[0.08] px-2.5 py-1 text-sm font-semibold tabular-nums text-cyan-100">
+                        {formatDecimal(row.weightedPoints)} VP
+                      </span>
                     </div>
-                    <span className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-300/[0.08] px-2.5 py-1 text-sm font-semibold tabular-nums text-cyan-100">
-                      {formatDecimal(row.weightedPoints)} VP
-                    </span>
-                  </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-stone-800">
-                    <div
-                      aria-hidden="true"
-                      className="h-full rounded-full bg-gradient-to-r from-sky-700/80 to-cyan-300/85 transition-[width] duration-300"
-                      style={{
-                        width: `${Math.max(
-                          chartMaximum > 0
-                            ? (row.weightedPoints / chartMaximum) * 100
-                            : 0,
-                          row.weightedPoints > 0 ? 4 : 0,
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-stone-800">
+                      <div
+                        aria-hidden="true"
+                        className="h-full rounded-full bg-gradient-to-r from-sky-700/80 to-cyan-300/85 transition-[width] duration-300"
+                        style={{
+                          width: `${Math.max(
+                            chartMaximum > 0
+                              ? (row.weightedPoints / chartMaximum) * 100
+                              : 0,
+                            row.weightedPoints > 0 ? 4 : 0,
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {canExpand ? (
+                <div className="mt-5 flex justify-center border-t border-white/[0.08] pt-5">
+                  <button
+                    aria-expanded={showAll}
+                    className="rounded-xl border border-sky-300/20 bg-sky-300/[0.07] px-4 py-2.5 text-sm font-semibold text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-300/[0.11] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70"
+                    onClick={() => setShowAll((current) => !current)}
+                    type="button"
+                  >
+                    {showAll ? 'Show fewer' : `See all ${rankedRows.length}`}
+                  </button>
+                </div>
+              ) : null}
+            </>
           )}
         </section>
       </div>
