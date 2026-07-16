@@ -28,6 +28,7 @@ type RawUserProfileRow = {
 };
 
 export type ImportResolutionPlayer = {
+  canonicalKey?: string;
   displayName: string;
   gamesPlayed: number;
   id: string;
@@ -70,19 +71,21 @@ async function listLinkedUserProfiles(linkedUserIds: string[]) {
 
 export async function listImportResolutionPlayers(groupId: string) {
   const supabase = await createSupabaseServerClient();
-  const [{ data: players, error: playersError }, { data: leaderboardRows, error: leaderboardError }] =
-    await Promise.all([
-      supabase
-        .from('players')
-        .select('id, display_name, linked_user_id, username, full_name')
-        .eq('group_id', groupId)
-        .order('display_name'),
-      supabase
-        .schema('analytics')
-        .from('group_leaderboard')
-        .select('player_id, games_played')
-        .eq('group_id', groupId),
-    ]);
+  const [
+    { data: players, error: playersError },
+    { data: leaderboardRows, error: leaderboardError },
+  ] = await Promise.all([
+    supabase
+      .from('players')
+      .select('id, display_name, linked_user_id, username, full_name')
+      .eq('group_id', groupId)
+      .order('display_name'),
+    supabase
+      .schema('analytics')
+      .from('group_leaderboard')
+      .select('player_id, games_played')
+      .eq('group_id', groupId),
+  ]);
 
   if (playersError) {
     throw playersError;
@@ -133,8 +136,8 @@ export async function listImportResolutionPlayers(groupId: string) {
 
 /**
  * Two people are the same roster person when they share a linked account, or —
- * for unlinked players — when their display names normalize identically. This
- * lets the same person appearing in several groups collapse to one option.
+ * for unlinked players — when their usernames/display names normalize
+ * identically.
  */
 function dedupeKeyForPlayer(player: RawGroupPlayerRow) {
   return player.linked_user_id
@@ -149,7 +152,12 @@ function dedupeKeyForPlayer(player: RawGroupPlayerRow) {
  * signed-in user plays in rather than only the active group. A 4-player game
  * imported while a 3-player group is active must still be able to match — and
  * offer — the fourth person, as long as the user knows them from another group.
- * Each person collapses to a single option, with games summed across groups.
+ *
+ * Every concrete roster row is returned here. The resolver collapses rows with
+ * the same canonicalKey into one review option, while confirm-time validation
+ * can still recognize any previously selected player id. This prevents a
+ * confirmed selection from becoming unavailable when the representative row
+ * changes between Analyze and Confirm.
  */
 export async function listImportResolutionPlayersForCurrentUser(): Promise<
   ImportResolutionPlayer[]
@@ -205,44 +213,28 @@ export async function listImportResolutionPlayersForCurrentUser(): Promise<
     linkedProfiles.map((profile) => [profile.user_id, profile]),
   );
 
-  const dedupedByKey = new Map<string, ImportResolutionPlayer>();
+  return playerRows
+    .map((player) => {
+      const profile = player.linked_user_id
+        ? profileByUserId.get(player.linked_user_id) ?? null
+        : null;
 
-  for (const player of playerRows) {
-    const profile = player.linked_user_id
-      ? profileByUserId.get(player.linked_user_id) ?? null
-      : null;
-    const gamesPlayed = gamesPlayedByPlayerId.get(player.id) ?? 0;
-    const key = dedupeKeyForPlayer(player);
-    const existing = dedupedByKey.get(key);
-
-    if (!existing) {
-      dedupedByKey.set(key, {
+      return {
+        canonicalKey: dedupeKeyForPlayer(player),
         displayName: personLabel({
           username: profile?.username ?? player.username,
           displayName: player.display_name,
         }),
-        gamesPlayed,
+        gamesPlayed: gamesPlayedByPlayerId.get(player.id) ?? 0,
         id: player.id,
         linkedFullName: profile?.full_name ?? player.full_name ?? null,
         linkedUsername: profile?.username ?? player.username ?? null,
-      });
-      continue;
-    }
-
-    // Keep the representative id from the group where this person has played the
-    // most, and sum their games across groups (each group's games are disjoint).
-    dedupedByKey.set(key, {
-      displayName: existing.displayName,
-      gamesPlayed: existing.gamesPlayed + gamesPlayed,
-      id: gamesPlayed > existing.gamesPlayed ? player.id : existing.id,
-      linkedFullName:
-        existing.linkedFullName ?? profile?.full_name ?? player.full_name ?? null,
-      linkedUsername:
-        existing.linkedUsername ?? profile?.username ?? player.username ?? null,
-    });
-  }
-
-  return [...dedupedByKey.values()].sort((left, right) =>
-    left.displayName.localeCompare(right.displayName),
-  );
+      } satisfies ImportResolutionPlayer;
+    })
+    .sort(
+      (left, right) =>
+        left.displayName.localeCompare(right.displayName) ||
+        right.gamesPlayed - left.gamesPlayed ||
+        left.id.localeCompare(right.id),
+    );
 }
