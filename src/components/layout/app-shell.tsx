@@ -3,6 +3,7 @@ import Link from 'next/link';
 import bannerImage from '../../../assets/banner.png';
 import { BottomNav } from '@/components/navigation/bottom-nav';
 import { LogoutButton } from '@/components/navigation/logout-button';
+import { CorporationLogoDecorator } from './corporation-logo-decorator';
 import styles from './app-shell.module.css';
 
 type PrimaryNavigationItem = {
@@ -53,6 +54,7 @@ export function AppShell({
 }) {
   return (
     <main className="tm-app-shell">
+      <CorporationLogoDecorator />
       <div className="flex min-h-screen w-full flex-col">
         <div className={styles.bannerFrame}>
           <Image
