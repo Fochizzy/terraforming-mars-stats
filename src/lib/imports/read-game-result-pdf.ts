@@ -22,7 +22,7 @@ import type {
  *   page 1  score table       player name + 7 victory point columns
  *   page 2+ score details     four columns of "<points> <card>" entries
  *           global parameters player name + temperature, oxygen, oceans, total
- *   last    board + game log  the "GEN: 1 2 …" row gives the generation count
+ *   last    board + game log  the "GEN: 1 2 ..." row gives the generation count
  */
 
 type PdfToken = {
@@ -267,7 +267,7 @@ function readColumnAnchors(input: {
   bounds: Array<Omit<DetailColumn, 'badgeX' | 'textX'>>;
   rows: PdfRow[];
   startIndex: number;
-}): DetailColumn[] | null {
+}): { columns: DetailColumn[]; startIndex: number } | null {
   for (let index = input.startIndex; index < input.rows.length; index += 1) {
     const anchored = input.bounds.map((column) => {
       const tokens = input.rows[index].tokens.filter(
@@ -280,7 +280,10 @@ function readColumnAnchors(input: {
     });
 
     if (anchored.every((column): column is DetailColumn => column !== null)) {
-      return anchored;
+      return {
+        columns: anchored,
+        startIndex: index,
+      };
     }
   }
 
@@ -333,14 +336,18 @@ function isGlobalParameterRow(row: PdfRow, playerNames: string[]) {
  */
 function collectDetailBlockRows(input: {
   columns: DetailColumn[];
-  headerIndex: number;
   playerNames: string[];
   rows: PdfRow[];
+  startIndex: number;
 }) {
   const blockRows: PdfRow[] = [];
   let unalignedRun = 0;
 
-  for (let index = input.headerIndex + 1; index < input.rows.length; index += 1) {
+  /*
+   * Begin at the row where the score-detail column anchors were actually
+   * found. The player header may be on the preceding PDF page.
+   */
+  for (let index = input.startIndex; index < input.rows.length; index += 1) {
     const row = input.rows[index];
 
     if (isGlobalParameterRow(row, input.playerNames)) {
@@ -438,55 +445,69 @@ function readScoreDetailColumns(input: {
   pages: PdfTextPage[];
   playerNames: string[];
 }) {
-  const tokens = input.pages.flatMap((page) => buildTokens(page.items));
-  const rows = buildRows(
-    tokens.sort((left, right) => left.y - right.y || left.x - right.x),
-    ROW_TOLERANCE,
+  /*
+   * PDF y-coordinates restart on every page. Build rows one page at a time so
+   * similarly positioned text from separate pages cannot be merged together.
+   */
+  const rows = input.pages.flatMap((page) =>
+    buildRows(buildTokens(page.items), ROW_TOLERANCE),
   );
   const normalized = input.playerNames.map((name) => name.toLowerCase());
-  const headerIndex = rows.findIndex(
-    (row) =>
+  const headerIndexes = rows
+    .flatMap((row, index) =>
       row.tokens.filter((token) =>
         normalized.includes(token.text.toLowerCase()),
-      ).length >= 2,
-  );
+      ).length >= 2
+        ? [index]
+        : [],
+    )
+    .reverse();
 
-  if (headerIndex < 0) {
-    return [];
+  /*
+   * Earlier parts of the result can also contain both player names, such as a
+   * chart legend. Try candidates from the bottom upward and accept the first
+   * header that produces actual score-detail entries.
+   */
+  for (const headerIndex of headerIndexes) {
+    const bounds = findColumnBounds({
+      headerTokens: rows[headerIndex].tokens,
+      playerNames: input.playerNames,
+    });
+
+    if (!bounds) {
+      continue;
+    }
+
+    const anchorResult = readColumnAnchors({
+      bounds,
+      rows,
+      startIndex: headerIndex + 1,
+    });
+
+    if (!anchorResult) {
+      continue;
+    }
+
+    const { columns, startIndex } = anchorResult;
+    const blockRows = collectDetailBlockRows({
+      columns,
+      playerNames: input.playerNames,
+      rows,
+      startIndex,
+    });
+    const result = columns.map((column) => ({
+      textLines: [
+        column.playerName,
+        ...buildColumnTextLines({ blockRows, column }),
+      ],
+    }));
+
+    if (result.some((column) => column.textLines.length > 1)) {
+      return result;
+    }
   }
 
-  const bounds = findColumnBounds({
-    headerTokens: rows[headerIndex].tokens,
-    playerNames: input.playerNames,
-  });
-
-  if (!bounds) {
-    return [];
-  }
-
-  const columns = readColumnAnchors({
-    bounds,
-    rows,
-    startIndex: headerIndex + 1,
-  });
-
-  if (!columns) {
-    return [];
-  }
-
-  const blockRows = collectDetailBlockRows({
-    columns,
-    headerIndex,
-    playerNames: input.playerNames,
-    rows,
-  });
-
-  return columns.map((column) => ({
-    textLines: [
-      column.playerName,
-      ...buildColumnTextLines({ blockRows, column }),
-    ],
-  }));
+  return [];
 }
 
 const GLOBAL_PARAMETER_COLUMN_COUNT = 4;
@@ -564,7 +585,7 @@ export async function readGameResultPdf(
       playerNames,
     }),
     scoreDetailsColumns: readScoreDetailColumns({
-      pages: remainingPages,
+      pages,
       playerNames,
     }),
   };
