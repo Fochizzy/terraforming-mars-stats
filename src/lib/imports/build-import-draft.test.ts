@@ -826,4 +826,60 @@ describe('buildImportDraft', () => {
     expect(draft.playerScores['player-1']?.totalPoints).toBeUndefined();
     expect(draft.playerScores['player-1']?.trPoints).toBeUndefined();
   });
+  it('matches screenshot award winners by unique first name when roster names are full names', () => {
+    expect(
+      buildImportDraft({
+        awardOptions: [
+          {
+            awardId: 'award-1',
+            awardName: 'Benefactor',
+            mapId: 'tharsis',
+          },
+        ],
+        defaultExpansionCodes: ['base'],
+        defaultPromoSetSlugs: [],
+        groupId: '11111111-1111-4111-8111-111111111111',
+        importValues: {
+          endgameScreenshotName: 'game.pdf',
+          exportedGameLog: 'James funded Benefactor award',
+          generationCount: 10,
+          mapId: 'tharsis',
+          participantNames: ['Izzy Hodnett', 'James Cole'],
+          playedOn: '2026-07-15',
+          playerCount: 2,
+        },
+        playerSelections: [
+          {
+            importedName: 'Izzy Hodnett',
+            playerId: 'player-1',
+          },
+          {
+            importedName: 'James Cole',
+            playerId: 'player-2',
+          },
+        ],
+        screenshotScoreDetails: {
+          awardPlacements: [
+            {
+              awardName: 'Benefactor',
+              fundedByPlayerName: 'James',
+              matchedAwardId: 'award-1',
+              placement: 1,
+              playerName: 'Izzy',
+              points: 5,
+            },
+          ],
+          milestoneClaims: [],
+        },
+        selectedPlayerIds: ['player-1', 'player-2'],
+      }).awardClaims,
+    ).toEqual({
+      'award-1': {
+        firstPlaceWinnerPlayerIds: ['player-1'],
+        funded: true,
+        fundedByPlayerId: 'player-2',
+        secondPlaceWinnerPlayerIds: [],
+      },
+    });
+  });
 });

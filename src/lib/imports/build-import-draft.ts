@@ -14,6 +14,7 @@ import type {
   PreludeOption,
   StyleOption,
 } from '@/lib/db/reference-repo';
+import { buildPlayerNameMatchKeys } from './build-player-name-match-keys';
 import { normalizePlayerAlias } from './normalize-player-alias';
 import {
   extractStructuredLogScores,
@@ -121,21 +122,23 @@ export function buildImportDraft(input: {
   const selectedPlayerIds = playerSelections.length
     ? playerSelections.map((selection) => selection.playerId)
     : input.selectedPlayerIds;
-  const playerIdByImportedName = new Map([
-    ...input.importValues.participantNames.flatMap((participantName, index) => {
-      const playerId = input.selectedPlayerIds[index];
-      return playerId
-        ? [[normalizePlayerAlias(participantName), playerId] as const]
-        : [];
-    }),
-    ...playerSelections.map(
-      (selection) =>
-        [
-          normalizePlayerAlias(selection.importedName),
-          selection.playerId,
-        ] as const,
-    ),
-  ]);
+  const playerIdByImportedName = new Map<string, string>();
+  const playerMatchKeys = buildPlayerNameMatchKeys(
+    playerSelections.map((selection) => selection.importedName),
+  );
+
+  playerMatchKeys.forEach((match, index) => {
+    const playerId = playerSelections[index]?.playerId;
+
+    if (!playerId) {
+      return;
+    }
+
+    for (const key of match.keys) {
+      playerIdByImportedName.set(key, playerId);
+    }
+  });
+
   const importedNameByPlayerId = new Map(
     playerSelections.map((selection) => [
       selection.playerId,
