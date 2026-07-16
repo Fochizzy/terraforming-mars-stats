@@ -864,12 +864,9 @@ describe('InsightsDashboard', () => {
 
     const playerFocus = screen.getByLabelText(/player focus/i);
 
-    // Default: locked to signed-in player
-    expect(playerFocus).toBeDisabled();
+    // Dropdown is enabled and defaults to the signed-in player
+    expect(playerFocus).not.toBeDisabled();
     expect(playerFocus).toHaveValue('user:me');
-    expect(
-      screen.getByText(/always follows your signed-in player/i),
-    ).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { name: /Expanded Individual Metrics/i }),
@@ -893,22 +890,14 @@ describe('InsightsDashboard', () => {
     expect(screen.getAllByText('Tharsis Republic').length).toBeGreaterThan(0);
     expect(screen.getAllByText('greenery').length).toBeGreaterThan(0);
 
-    // Click "Switch player" to view from another player's perspective
-    await user.click(screen.getByRole('button', { name: /switch player/i }));
+    // Select another player and confirm with OK
+    await user.selectOptions(playerFocus, 'name:second seat');
+    expect(playerFocus).toHaveValue('name:second seat');
 
-    const viewAsSelect = screen.getByLabelText(/switch to player view/i);
-    expect(viewAsSelect).toBeInTheDocument();
-    expect(viewAsSelect).toHaveValue('name:second seat');
+    const okButton = screen.getByRole('button', { name: /^ok$/i });
+    await user.click(okButton);
+
     expect(screen.getByText(/Focused on Second Seat overall/i)).toBeInTheDocument();
-
-    // Switch to a different player via the View As dropdown
-    await user.selectOptions(viewAsSelect, 'name:second seat');
-    expect(viewAsSelect).toHaveValue('name:second seat');
-
-    // "Back to my view" returns to the locked signed-in player
-    await user.click(screen.getByRole('button', { name: /back to my view/i }));
-    expect(playerFocus).toBeDisabled();
-    expect(playerFocus).toHaveValue('user:me');
   });
 
   it('does not surface promo catalog or map expansion interactions as stats', () => {

@@ -1681,7 +1681,7 @@ export function InsightsDashboard({
   const [selectedPersonId, setSelectedPersonId] = useState<string>(
     initialSelectedPersonId,
   );
-  const [viewAsPersonId, setViewAsPersonId] = useState<string | null>(null);
+  const [draftPersonId, setDraftPersonId] = useState<string>(initialSelectedPersonId);
   const [comparePersonId, setComparePersonId] = useState<string>('none');
   const [draftCombinationPlayerIds, setDraftCombinationPlayerIds] = useState<
     string[]
@@ -1744,13 +1744,7 @@ export function InsightsDashboard({
     useState<FocusScope>('overall');
   const focusScope = fixedFocusScope ?? selectedFocusScope;
 
-  const lockFocusToCurrentUser =
-    scopeMode === 'individual' && Boolean(currentUserCanonicalId) && viewAsPersonId === null;
-  const effectiveSelectedPersonId = viewAsPersonId
-    ? viewAsPersonId
-    : lockFocusToCurrentUser
-      ? currentUserCanonicalId ?? 'all'
-      : selectedPersonId;
+  const effectiveSelectedPersonId = selectedPersonId;
   const selectedPerson =
     isPlayerCombinationMode || effectiveSelectedPersonId === 'all'
       ? null
@@ -2243,17 +2237,21 @@ export function InsightsDashboard({
                   <select
                     aria-label="Player focus"
                     className="tm-input mt-2 w-full appearance-none pr-9"
-                    disabled={lockFocusToCurrentUser}
                     id="player-focus-select"
                     onChange={(event) => {
-                      setSelectedPersonId(event.target.value);
-                      setComparePersonId('none');
+                      if (scopeMode === 'individual') {
+                        setDraftPersonId(event.target.value);
+                      } else {
+                        setSelectedPersonId(event.target.value);
+                        setDraftPersonId(event.target.value);
+                        setComparePersonId('none');
+                      }
                     }}
-                    value={effectiveSelectedPersonId}
+                    value={draftPersonId}
                   >
-                    {lockFocusToCurrentUser ? null : (
+                    {scopeMode !== 'individual' ? (
                       <option value="all">All players</option>
-                    )}
+                    ) : null}
                     {focusPeople.map((person) => (
                       <option key={person.canonicalId} value={person.canonicalId}>
                         {person.displayName}
@@ -2263,69 +2261,21 @@ export function InsightsDashboard({
                   <span className="mt-2 block">
                     <SelectChevron />
                   </span>
-                  {scopeMode === 'individual' && focusPeople.length > 1 ? (
-                    viewAsPersonId !== null ? (
-                      <button
-                        className="tm-button-secondary mt-2 px-3 py-1 text-xs"
-                        onClick={() => {
-                          setViewAsPersonId(null);
-                          setComparePersonId('none');
-                        }}
-                        type="button"
-                      >
-                        Back to my view
-                      </button>
-                    ) : (
-                      <p className="tm-muted-copy mt-2 text-xs">
-                        Individual Insights always follows your signed-in player.{' '}
-                        <button
-                          className="underline underline-offset-2 hover:text-stone-200"
-                          onClick={() => {
-                            const otherPerson = focusPeople.find(
-                              (p) => p.canonicalId !== currentUserCanonicalId,
-                            );
-                            if (otherPerson) {
-                              setViewAsPersonId(otherPerson.canonicalId);
-                              setComparePersonId('none');
-                            }
-                          }}
-                          type="button"
-                        >
-                          Switch player
-                        </button>
-                      </p>
-                    )
-                  ) : null}
-                </div>
-                {scopeMode === 'individual' && viewAsPersonId !== null && focusPeople.length > 1 ? (
-                  <div className="relative">
-                    <label className="tm-data-label" htmlFor="player-switch-select">
-                      View As
-                    </label>
-                    <select
-                      aria-label="Switch to player view"
-                      className="tm-input mt-2 w-full appearance-none pr-9"
-                      id="player-switch-select"
-                      onChange={(event) => {
-                        setViewAsPersonId(event.target.value);
+                  {scopeMode === 'individual' ? (
+                    <button
+                      className="tm-button-primary mt-2 px-4 py-1.5 text-xs"
+                      disabled={draftPersonId === selectedPersonId}
+                      onClick={() => {
+                        setSelectedPersonId(draftPersonId);
                         setComparePersonId('none');
                       }}
-                      value={viewAsPersonId}
+                      type="button"
                     >
-                      {focusPeople
-                        .filter((person) => person.canonicalId !== currentUserCanonicalId)
-                        .map((person) => (
-                          <option key={person.canonicalId} value={person.canonicalId}>
-                            {person.displayName}
-                          </option>
-                        ))}
-                    </select>
-                    <span className="mt-2 block">
-                      <SelectChevron />
-                    </span>
-                  </div>
-                ) : null}
-                {selectedPerson !== null && !lockFocusToCurrentUser && focusPeople.length > 1 ? (
+                      OK
+                    </button>
+                  ) : null}
+                </div>
+                {selectedPerson !== null && focusPeople.length > 1 ? (
                   <div className="relative">
                     <label className="tm-data-label" htmlFor="player-compare-select">
                       Compare With
