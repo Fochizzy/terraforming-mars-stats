@@ -18,7 +18,7 @@ export const defaultTopNavItems: TopNavItem[] = [
   { href: '/group', label: 'Global Data' },
   { href: '/insights?scope=individual', label: 'Individual Insights' },
   { href: '/insights?scope=group', label: 'Group Insights' },
-  { href: '/comparisons', label: 'Comparisons' },
+  { href: '/comparisons', label: 'Compare' },
   { href: '/leaderboard', label: 'Leaderboard', align: 'end' },
 ];
 
@@ -104,12 +104,16 @@ export function TopNav({
   return (
     <>
       <nav aria-label="Primary" className={`tm-top-nav ${styles.nav}`}>
-        <div className={styles.inner}>
-          <div className={`${styles.group} ${styles.primaryGroup}`}>
+        <div className={`${styles.inner} flex w-full items-center`}>
+          <div
+            className={`${styles.group} ${styles.primaryGroup} flex min-w-0 flex-1 items-center justify-start`}
+          >
             {primaryItems.map(renderItem)}
           </div>
           {utilityItems.length > 0 ? (
-            <div className={`${styles.group} ${styles.utilityGroup}`}>
+            <div
+              className={`${styles.group} ${styles.utilityGroup} ml-auto flex shrink-0 items-center justify-end`}
+            >
               {utilityItems.map(renderItem)}
             </div>
           ) : null}
