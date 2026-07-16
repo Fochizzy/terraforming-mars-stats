@@ -2,7 +2,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { CorporationPreludePairingsPanel } from '@/features/analytics/corporation-prelude-pairings-panel';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { GamePaceReplay } from '@/features/insights/game-pace-replay';
-import { InsightsDashboard } from '@/features/insights/insights-dashboard';
+import { InsightsDashboardWithScoreIcons } from '@/features/insights/insights-dashboard-with-score-icons';
 import { getGroupAnalytics } from '@/lib/db/analytics-repo';
 import { listGamePaceReplays } from '@/lib/db/game-pace-repo';
 import { listPlayers } from '@/lib/db/player-repo';
@@ -51,7 +51,7 @@ export default async function InsightsPage() {
           scoreAverages={analytics.scoreAverages}
         />
         <GamePaceReplay games={gamePaceReplays} />
-        <InsightsDashboard
+        <InsightsDashboardWithScoreIcons
           analytics={dashboardAnalytics}
           players={players.map((player) => ({
             id: player.id,
