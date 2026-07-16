@@ -7,6 +7,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -1908,6 +1909,37 @@ export function InsightsDashboard({
         : false,
     winRate: Math.round(row.winRate * 100),
   }));
+  const leaderboardLeader =
+    [...leaderboardChartData].sort(
+      (left, right) => right.weightedScore - left.weightedScore,
+    )[0] ?? null;
+  const leaderboardLowest =
+    [...leaderboardChartData].sort(
+      (left, right) => left.weightedScore - right.weightedScore,
+    )[0] ?? null;
+  const leaderboardAverage =
+    leaderboardChartData.length > 0
+      ? leaderboardChartData.reduce(
+          (sum, row) => sum + row.weightedScore,
+          0,
+        ) / leaderboardChartData.length
+      : 0;
+  const leaderboardSpread =
+    leaderboardLeader && leaderboardLowest
+      ? leaderboardLeader.weightedScore - leaderboardLowest.weightedScore
+      : 0;
+  const leaderboardYAxisMax = Math.max(
+    0.1,
+    Math.ceil(
+      (Math.max(...leaderboardChartData.map((row) => row.weightedScore), 0) +
+        0.05) *
+        10,
+    ) / 10,
+  );
+  const leaderboardChartMinWidth = Math.max(
+    640,
+    leaderboardChartData.length * 150,
+  );
   const scoreSourceData = selectedScoreProfile
     ? buildScoreSourceEntries(selectedScoreProfile).map((entry) => ({
         label: entry.label,
@@ -2463,35 +2495,136 @@ export function InsightsDashboard({
                   </GlossaryRichText>
                 </p>
               ) : (
-                <ResponsiveContainer height={260} width="100%">
-                  <BarChart
-                    data={leaderboardChartData}
-                    margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  >
-                    <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                    <XAxis
-                      angle={-20}
-                      dataKey="name"
-                      height={60}
-                      textAnchor="end"
-                      tick={chartAxisTick}
-                    />
-                    <YAxis tick={chartAxisTick} />
-                    <Tooltip contentStyle={chartTooltipStyle} />
-                    <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
-                      {leaderboardChartData.map((row) => (
-                        <Cell
-                          fill={
-                            row.isFocused
-                              ? chartSeriesColors.accent
-                              : chartSeriesColors.default
-                          }
-                          key={row.name}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="flex flex-col gap-4">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <article
+                      aria-label="Weighted leaderboard leader"
+                      className="tm-stat-card border-orange-400/25 bg-gradient-to-br from-orange-500/15 to-black/20"
+                    >
+                      <p className="tm-data-label text-orange-200">Current leader</p>
+                      <p className="mt-2 truncate text-lg font-semibold text-stone-50">
+                        {leaderboardLeader?.name ?? '—'}
+                      </p>
+                      <p className="tm-accent-copy mt-1 font-mono text-sm">
+                        {leaderboardLeader?.weightedScore.toFixed(3) ?? '—'} weighted
+                      </p>
+                    </article>
+                    <article
+                      aria-label="Group weighted score average"
+                      className="tm-stat-card"
+                    >
+                      <p className="tm-data-label">Group average</p>
+                      <p className="mt-2 font-mono text-2xl font-semibold text-stone-50">
+                        {leaderboardAverage.toFixed(3)}
+                      </p>
+                      <p className="tm-muted-copy mt-1 text-sm">
+                        Across {leaderboardChartData.length} ranked player
+                        {leaderboardChartData.length === 1 ? '' : 's'}
+                      </p>
+                    </article>
+                    <article
+                      aria-label="Weighted score spread"
+                      className="tm-stat-card border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 to-black/20"
+                    >
+                      <p className="tm-data-label text-cyan-200">Leaderboard spread</p>
+                      <p className="mt-2 font-mono text-2xl font-semibold text-stone-50">
+                        {leaderboardSpread.toFixed(3)}
+                      </p>
+                      <p className="tm-muted-copy mt-1 text-sm">Highest to lowest</p>
+                    </article>
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-black/15 p-3 sm:p-5">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-stone-100">Weighted score</p>
+                        <p className="tm-muted-copy text-sm">Higher is better</p>
+                      </div>
+                      <span className="tm-coverage-badge">
+                        {leaderboardChartData.some((row) => row.isFocused)
+                          ? 'Current focus highlighted'
+                          : 'Top finalized players'}
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto pb-2">
+                      <div
+                        className="h-[360px]"
+                        style={{ minWidth: String(leaderboardChartMinWidth) + 'px' }}
+                      >
+                        <ResponsiveContainer height="100%" width="100%">
+                          <BarChart
+                            data={leaderboardChartData}
+                            margin={{ bottom: 42, left: 18, right: 18, top: 34 }}
+                          >
+                            <CartesianGrid
+                              stroke={chartGridStroke}
+                              strokeDasharray="4 5"
+                              vertical={false}
+                            />
+                            <XAxis
+                              angle={-14}
+                              dataKey="name"
+                              height={72}
+                              interval={0}
+                              textAnchor="end"
+                              tick={chartAxisTick}
+                            />
+                            <YAxis
+                              domain={[0, leaderboardYAxisMax]}
+                              tick={chartAxisTick}
+                              tickFormatter={(value) => Number(value).toFixed(2)}
+                              width={64}
+                            />
+                            <Tooltip
+                              contentStyle={chartTooltipStyle}
+                              cursor={{ fill: 'var(--tm-accent)', fillOpacity: 0.06 }}
+                              formatter={(value) => [
+                                Number(value).toFixed(3),
+                                'Weighted score',
+                              ]}
+                            />
+                            <Bar
+                              animationDuration={700}
+                              dataKey="weightedScore"
+                              maxBarSize={112}
+                              radius={[14, 14, 3, 3]}
+                            >
+                              <LabelList
+                                dataKey="weightedScore"
+                                fill="var(--tm-text)"
+                                fontSize={13}
+                                fontWeight={700}
+                                formatter={(value) => Number(value).toFixed(3)}
+                                position="top"
+                              />
+                              {leaderboardChartData.map((row) => (
+                                <Cell
+                                  fill={
+                                    row.isFocused
+                                      ? chartSeriesColors.accent
+                                      : chartSeriesColors.default
+                                  }
+                                  key={row.name}
+                                  stroke={
+                                    row.isFocused
+                                      ? chartSeriesColors.accent
+                                      : chartSeriesColors.default
+                                  }
+                                  strokeOpacity={0.55}
+                                  strokeWidth={1}
+                                />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    <div className="tm-muted-copy mt-2 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/10 pt-3 text-xs">
+                      <span>Hover a bar for its exact weighted score.</span>
+                      <span className="sm:ml-auto">Labels remain visible on narrow screens.</span>
+                    </div>
+                  </div>
+                </div>
               )}
             </ChartFrame>
           ) : null}
