@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { AppShell } from '@/components/layout/app-shell';
-import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -18,12 +17,7 @@ export default async function SavedGamesPage() {
   }
 
   return (
-    <AppShell
-      headerActions={
-        <GroupSwitcher currentGroupId={context.groupId} returnPath="/saved-games" />
-      }
-      title="Saved Games"
-    >
+    <AppShell title="Saved Games">
       <section className="tm-panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
