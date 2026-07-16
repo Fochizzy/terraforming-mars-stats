@@ -1,0 +1,397 @@
+.panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--score-accent, #f97316) 12%, transparent), transparent 28rem),
+    linear-gradient(145deg, rgba(28, 25, 23, 0.96), rgba(12, 14, 19, 0.97));
+}
+
+.panel::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.025), transparent 34%);
+}
+
+.header,
+.metrics,
+.composition,
+.body {
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.eyebrow,
+.insightLabel {
+  margin: 0 0 0.35rem;
+  color: #fdba74;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+
+.description {
+  max-width: 48rem;
+  margin-top: 0.55rem;
+  color: #d6d3d1;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.identityBadge {
+  min-width: 10.5rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(251, 146, 60, 0.28);
+  border-radius: 0.9rem;
+  background: rgba(249, 115, 22, 0.08);
+  text-align: right;
+}
+
+.identityBadge span {
+  display: block;
+  color: #a8a29e;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.identityBadge strong {
+  color: #ffedd5;
+  font-size: 0.95rem;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.35rem;
+}
+
+.metrics article {
+  min-height: 6.6rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(120, 113, 108, 0.32);
+  border-radius: 0.9rem;
+  background: rgba(9, 9, 11, 0.45);
+}
+
+.metrics span,
+.metrics small {
+  display: block;
+  color: #a8a29e;
+  font-size: 0.72rem;
+}
+
+.metrics span {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metrics strong {
+  display: block;
+  margin: 0.35rem 0 0.2rem;
+  overflow: hidden;
+  color: #fafaf9;
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composition {
+  display: flex;
+  min-height: 4.3rem;
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(120, 113, 108, 0.38);
+  border-radius: 1rem;
+  background: #09090b;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.segment {
+  display: flex;
+  min-width: 0.42rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.3rem;
+  border-right: 1px solid rgba(9, 9, 11, 0.68);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--score-accent) 88%, white), var(--score-accent));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.22), inset 0 -10px 22px rgba(0, 0, 0, 0.2);
+}
+
+.segment:last-child {
+  border-right: 0;
+}
+
+.segment img {
+  width: 1.8rem;
+  height: 1.8rem;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.38));
+}
+
+.segment span {
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(15rem, 0.8fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 4.2rem minmax(0, 1fr);
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--score-accent) 28%, rgba(120, 113, 108, 0.3));
+  border-radius: 0.95rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--score-accent) 8%, rgba(24, 24, 27, 0.88)), rgba(9, 9, 11, 0.75));
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--score-accent) 62%, transparent);
+  transform: translateY(-1px);
+}
+
+.iconShell {
+  display: grid;
+  width: 4.2rem;
+  height: 4.2rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--score-accent) 32%, transparent);
+  border-radius: 0.85rem;
+  background: radial-gradient(circle, color-mix(in srgb, var(--score-accent) 16%, transparent), transparent 70%);
+}
+
+.iconShell img {
+  width: 3.55rem;
+  height: 3.55rem;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.38));
+}
+
+.cardCopy {
+  min-width: 0;
+}
+
+.cardHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.cardHeading h3 {
+  overflow: hidden;
+  color: #f5f5f4;
+  font-size: 0.85rem;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardHeading span {
+  flex: none;
+  color: var(--score-accent);
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.cardValue {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.cardValue strong {
+  color: white;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.cardValue span,
+.card p {
+  color: #a8a29e;
+  font-size: 0.68rem;
+}
+
+.shareTrack {
+  height: 0.25rem;
+  margin-top: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(120, 113, 108, 0.22);
+}
+
+.shareTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--score-accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--score-accent) 60%, transparent);
+}
+
+.card p {
+  margin-top: 0.32rem;
+}
+
+.insight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.15rem;
+  border: 1px solid color-mix(in srgb, var(--score-accent) 36%, rgba(120, 113, 108, 0.3));
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 50% 22%, color-mix(in srgb, var(--score-accent) 18%, transparent), transparent 42%),
+    rgba(9, 9, 11, 0.68);
+  text-align: center;
+}
+
+.heroIcon {
+  display: grid;
+  width: 8.2rem;
+  height: 8.2rem;
+  margin: 0.3rem 0 0.65rem;
+  place-items: center;
+}
+
+.heroIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 15px rgba(0, 0, 0, 0.42));
+}
+
+.insight h3 {
+  color: #fafaf9;
+  font-size: 1.4rem;
+  font-weight: 850;
+}
+
+.insight > p:not(.insightLabel) {
+  margin-top: 0.45rem;
+  color: #d6d3d1;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.insight dl {
+  width: 100%;
+  margin-top: 1rem;
+  border-top: 1px solid rgba(120, 113, 108, 0.3);
+}
+
+.insight dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.52rem 0;
+  border-bottom: 1px solid rgba(120, 113, 108, 0.22);
+  font-size: 0.72rem;
+}
+
+.insight dt {
+  color: #a8a29e;
+}
+
+.insight dd {
+  color: #fafaf9;
+  font-weight: 750;
+}
+
+.insight small {
+  margin-top: auto;
+  padding-top: 0.9rem;
+  color: #a8a29e;
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+
+  .insight {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 1rem;
+    text-align: left;
+  }
+
+  .insightLabel,
+  .insight h3,
+  .insight > p:not(.insightLabel),
+  .insight dl,
+  .insight small {
+    grid-column: 2;
+  }
+
+  .heroIcon {
+    grid-row: 1 / span 6;
+    width: 7rem;
+    height: 7rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .identityBadge {
+    width: 100%;
+    text-align: left;
+  }
+
+  .metrics,
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .composition {
+    min-height: 3.4rem;
+  }
+
+  .segment img {
+    display: none;
+  }
+
+  .insight {
+    display: flex;
+    text-align: center;
+  }
+
+  .heroIcon {
+    width: 7.5rem;
+    height: 7.5rem;
+  }
+}

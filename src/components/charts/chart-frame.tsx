@@ -19,13 +19,19 @@ export function ChartFrame({
       ? 'Award Funding ROI Global Award Meta'
       : undefined;
   const isBestStyleSnapshot = title === 'Best Style Snapshot';
+  const isLegacyScoreProfile =
+    title === 'Group Score Profile' || title.startsWith('Score Profile for ');
   const resolvedDescription = isBestStyleSnapshot
     ? 'Compare your strongest inferred play styles and the results behind each one.'
     : description;
 
   return (
     <section
-      className={['tm-panel', isBestStyleSnapshot ? styles.snapshot : '']
+      className={[
+        'tm-panel',
+        isBestStyleSnapshot ? styles.snapshot : '',
+        isLegacyScoreProfile ? 'sr-only' : '',
+      ]
         .filter(Boolean)
         .join(' ')}
     >
