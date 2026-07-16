@@ -1,6 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import { Info, Key } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ChartFrame } from "@/components/charts/chart-frame";
 import { TagLabel } from "@/components/ui/tag-icon";
 import { isRenderableCardImage } from "@/features/catalog/card-image";
@@ -19,20 +21,10 @@ const adjustmentFactors = [
   "Map",
 ];
 
-const impactGridClass =
-  "grid gap-4 lg:grid-cols-[minmax(18rem,1fr)_8rem_10rem] lg:items-start";
-
 const keyCardGridClass =
   "grid grid-cols-[3rem_minmax(0,1fr)] gap-x-3 gap-y-3 lg:grid-cols-[4.5rem_minmax(20rem,1fr)_9rem_8rem_6rem] lg:items-center lg:gap-4";
 
-function contextChips(contextLabel: string | undefined) {
-  return (
-    contextLabel
-      ?.split(/\s*·\s*/)
-      .map((part) => part.trim())
-      .filter(Boolean) ?? []
-  );
-}
+const profileImpactCardLimit = 5;
 
 function confidenceToneClass(
   confidence: ProfileCardStat["evidenceConfidence"],
@@ -121,59 +113,6 @@ function CardThumbnail({
   );
 }
 
-function CardCell({
-  card,
-  showConfidence,
-}: {
-  card: ProfileCardStat;
-  showConfidence: boolean;
-}) {
-  const chips = contextChips(card.contextLabel);
-
-  return (
-    <div className="min-w-0">
-      <CardStatsButton
-        card={{
-          cardName: card.cardName,
-          fullImageUrl: card.fullImageUrl,
-          id: card.cardId,
-          thumbnailUrl: card.thumbnailUrl,
-        }}
-        className="group flex min-w-0 items-start gap-3 text-left"
-      >
-        <CardThumbnail card={card} />
-        <span className="min-w-0 pt-1 break-words font-semibold text-stone-100 transition group-hover:text-white">
-          {card.cardName}
-        </span>
-      </CardStatsButton>
-      {chips.length > 0 || (showConfidence && card.evidenceConfidence) ? (
-        <div className="ml-16 mt-2 flex flex-wrap items-center gap-1.5">
-          {chips.map((chip, index) => (
-            <span
-              className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs font-normal text-stone-300"
-              key={`${chip}-${index}`}
-            >
-              {chip}
-            </span>
-          ))}
-          {showConfidence ? (
-            <ConfidenceBadge confidence={card.evidenceConfidence} />
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function formatImpactPoints(impact: number | undefined) {
-  if (impact === undefined) {
-    return "—";
-  }
-
-  const points = Math.round(impact * 100);
-  return `${points > 0 ? "+" : points < 0 ? "−" : ""}${Math.abs(points)} pp`;
-}
-
 function formatImpactScore(impact: number | undefined) {
   if (impact === undefined) {
     return "—";
@@ -196,22 +135,10 @@ function impactToneClass(impact: number | undefined) {
   return impact > 0 ? "text-emerald-400" : "text-rose-400";
 }
 
-function cardResultSummary(card: ProfileCardStat) {
-  const gameLabel = card.plays === 1 ? "game" : "games";
-  const winLabel = card.wins === 1 ? "win" : "wins";
-
-  if (card.victoryImpact === undefined) {
-    return `Why it ranked: ${card.wins} ${winLabel} in ${card.plays} comparable ${gameLabel}; estimate adjusted for your recorded game context.`;
-  }
-
-  const points = Math.abs(Math.round(card.victoryImpact * 100));
-  const pointLabel = points === 1 ? "percentage point" : "percentage points";
-  const direction = card.victoryImpact >= 0 ? "higher" : "lower";
-
-  return `Why it ranked: ${card.wins} ${winLabel} in ${card.plays} comparable ${gameLabel}; adjusted win rate was ${points} ${pointLabel} ${direction}.`;
-}
-
-function keyCardSummary(card: ProfileCardStat) {
+function impactCardSummary(
+  card: ProfileCardStat,
+  variant: "helpful" | "harmful",
+) {
   const gameLabel = card.plays === 1 ? "play" : "plays";
   const confidence = card.evidenceConfidence
     ? `${card.evidenceConfidence.toLowerCase()}-confidence evidence`
@@ -221,57 +148,9 @@ function keyCardSummary(card: ProfileCardStat) {
     return `${formatPercent(card.winRate)} win rate across ${card.plays} ${gameLabel}, using ${confidence}.`;
   }
 
-  return `${formatPercent(card.winRate)} win rate across ${card.plays} ${gameLabel}. Estimated lift is ${formatImpactScore(card.victoryImpact)} after context and play-count adjustment, using ${confidence}.`;
-}
+  const estimateLabel = variant === "helpful" ? "lift" : "impact";
 
-function MetricCell({
-  children,
-  className = "",
-  label,
-}: {
-  children: ReactNode;
-  className?: string;
-  label: string;
-}) {
-  return (
-    <div
-      className={`flex items-baseline justify-between gap-3 border-t border-white/10 pt-3 tabular-nums lg:block lg:border-0 lg:pt-0 lg:text-right ${className}`}
-    >
-      <span className="text-[0.65rem] uppercase tracking-[0.14em] text-stone-500 lg:hidden">
-        {label}
-      </span>
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function sampleCountLabel(countLabel: string, count: number) {
-  const singular = countLabel.endsWith("s")
-    ? countLabel.slice(0, -1)
-    : countLabel;
-  return `${count} ${(count === 1 ? singular : countLabel).toLowerCase()}`;
-}
-
-function SampleCell({
-  card,
-  countLabel,
-}: {
-  card: ProfileCardStat;
-  countLabel: string;
-}) {
-  const winLabel = card.wins === 1 ? "win" : "wins";
-
-  return (
-    <MetricCell label="Sample">
-      <span className="block font-semibold text-stone-100">
-        {card.wins} / {card.plays} {winLabel}
-      </span>
-      <span className="mt-0.5 block text-xs font-normal text-stone-500">
-        {formatPercent(card.winRate)} win rate ·{" "}
-        {sampleCountLabel(countLabel, card.plays)}
-      </span>
-    </MetricCell>
-  );
+  return `${formatPercent(card.winRate)} win rate across ${card.plays} ${gameLabel}. Estimated ${estimateLabel} is ${formatImpactScore(card.victoryImpact)} after context and play-count adjustment, using ${confidence}.`;
 }
 
 function KeyCardMetric({
@@ -305,18 +184,54 @@ function keyCardRankClass(index: number) {
   return "border-white/10 bg-white/[0.035] text-stone-400";
 }
 
-function KeyCardsPanel({
+function profileImpactCardCountLabel(
+  count: number,
+  variant: "helpful" | "harmful",
+) {
+  return `${count} ${variant} ${count === 1 ? "card" : "cards"}`;
+}
+
+function ImpactCardsPanel({
   cards,
   emptyCopy,
+  variant,
 }: {
   cards: ProfileCardStat[];
   emptyCopy: string;
+  variant: "helpful" | "harmful";
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const visibleCards = expanded
+    ? cards
+    : cards.slice(0, profileImpactCardLimit);
+  const remainingCount = Math.max(0, cards.length - profileImpactCardLimit);
+  const isHelpful = variant === "helpful";
+  const title = isHelpful ? "My Most Helpful Cards" : "My Most Harmful Cards";
+  const titleNote = isHelpful
+    ? "(Highest Victory Impact)"
+    : "(Lowest Victory Impact)";
+  const description = isHelpful
+    ? "Ranked by estimated win-rate lift after accounting for recorded game context and repeated evidence. Play-count confidence holds back one-off results; the top 5 are shown first."
+    : "Ranked by estimated win-rate drag after accounting for recorded game context and repeated evidence. Play-count confidence holds back one-off results; the top 5 are shown first.";
+  const borderClass = isHelpful ? "!border-sky-400/15" : "!border-rose-400/15";
+  const headerClass = isHelpful
+    ? "bg-[linear-gradient(135deg,rgba(14,38,62,0.78),rgba(6,16,29,0.72))]"
+    : "bg-[linear-gradient(135deg,rgba(56,19,32,0.68),rgba(6,16,29,0.72))]";
+  const iconClass = isHelpful
+    ? "border-amber-400/35 bg-amber-400/10 text-amber-300"
+    : "border-rose-300/35 bg-rose-400/10 text-rose-200";
+
   return (
-    <section className="tm-panel mx-auto w-full max-w-6xl overflow-hidden !border-sky-400/15 !p-0">
-      <header className="border-b border-sky-300/10 bg-[linear-gradient(135deg,rgba(14,38,62,0.78),rgba(6,16,29,0.72))] px-5 py-5 sm:px-6 sm:py-6">
+    <section
+      className={`tm-panel mx-auto w-full max-w-6xl overflow-hidden ${borderClass} !p-0`}
+    >
+      <header
+        className={`border-b border-sky-300/10 px-5 py-5 sm:px-6 sm:py-6 ${headerClass}`}
+      >
         <div className="flex items-start gap-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/10 text-amber-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <span
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${iconClass}`}
+          >
             <Key aria-hidden="true" className="h-6 w-6" strokeWidth={1.8} />
           </span>
           <div className="min-w-0">
@@ -324,13 +239,10 @@ function KeyCardsPanel({
               Card statistics
             </p>
             <h2 className="mt-1.5 text-xl font-semibold tracking-[0.03em] text-stone-50 sm:text-2xl">
-              My Most Helpful Cards{" "}
-              <span className="text-amber-300">(Highest Victory Impact)</span>
+              {title} <span className="text-amber-300">{titleNote}</span>
             </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-stone-300 sm:text-[0.95rem]">
-              Ranked by estimated win-rate lift after accounting for recorded
-              game context and repeated evidence. Play-count confidence holds
-              back one-off results; the top 10 are shown first.
+              {description}
             </p>
           </div>
         </div>
@@ -357,7 +269,7 @@ function KeyCardsPanel({
             className="divide-y divide-white/[0.065] bg-black/[0.1]"
             role="list"
           >
-            {cards.slice(0, 10).map((card, index) => (
+            {visibleCards.map((card, index) => (
               <li
                 className="transition-colors hover:bg-sky-300/[0.035]"
                 key={card.cardId}
@@ -388,7 +300,7 @@ function KeyCardsPanel({
                         <ConfidenceBadge confidence={card.evidenceConfidence} />
                       </span>
                       <span className="mt-1 block max-w-3xl text-xs leading-5 text-stone-400 sm:text-sm">
-                        {keyCardSummary(card)}
+                        {impactCardSummary(card, variant)}
                       </span>
                     </span>
                   </span>
@@ -416,19 +328,35 @@ function KeyCardsPanel({
             ))}
           </ol>
 
+          {cards.length > profileImpactCardLimit ? (
+            <button
+              aria-expanded={expanded}
+              className="tm-button-secondary mx-auto my-5 flex w-[calc(100%-2.5rem)] max-w-sm items-center justify-center px-5 py-2.5 text-xs sm:w-auto sm:min-w-72"
+              onClick={() => setExpanded((current) => !current)}
+              type="button"
+            >
+              {expanded
+                ? `Show top ${profileImpactCardLimit} up`
+                : `View all ${profileImpactCardCountLabel(
+                    remainingCount,
+                    variant,
+                  )} ->`}
+            </button>
+          ) : null}
+
           <details className="border-t border-white/[0.06] bg-black/15 px-5 py-3 text-xs sm:px-6">
             <summary className="cursor-pointer font-medium text-stone-300 transition hover:text-stone-100">
-              How the ranking works
+              {isHelpful
+                ? "How the ranking works"
+                : "How loss correlation is calculated"}
             </summary>
             <div className="mt-3">
               <AdjustmentFactors className="mb-3" />
               <p className="tm-muted-copy max-w-4xl leading-relaxed">
                 <GlossaryRichText>
-                  Key cards are not picked by hand. Context-adjusted impact
-                  compares each result with your normal performance in similar
-                  games, then blends in global card performance and play-count
-                  confidence so a single lucky result cannot dominate the
-                  ranking.
+                  {isHelpful
+                    ? "Key cards are not picked by hand. Context-adjusted impact compares each result with your normal performance in similar games, then blends in global card performance and play-count confidence so a single lucky result cannot dominate the ranking."
+                    : "Loss-correlated cards use the same context adjustment and play-count confidence, so one bad game or a naturally difficult corporation and style combination cannot condemn a card."}
                 </GlossaryRichText>
               </p>
             </div>
@@ -436,74 +364,6 @@ function KeyCardsPanel({
         </>
       )}
     </section>
-  );
-}
-
-function ProfileCardTable({
-  cards,
-  countLabel,
-  emptyCopy,
-}: {
-  cards: ProfileCardStat[];
-  countLabel: string;
-  emptyCopy: string;
-}) {
-  if (cards.length === 0) {
-    return <p className="tm-muted-copy text-sm">{emptyCopy}</p>;
-  }
-
-  return (
-    <div>
-      <AdjustmentFactors />
-      <div className="grid gap-3">
-        <div className={`${impactGridClass} tm-data-label hidden px-4 lg:grid`}>
-          <span>Card</span>
-          <span className="text-right">Adjusted impact</span>
-          <span className="text-right">Sample</span>
-        </div>
-        <div className="grid gap-3" role="list">
-          {cards.map((card) => (
-            <article
-              className={`${impactGridClass} rounded-xl border border-white/10 bg-black/20 px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:border-white/20 hover:bg-white/[0.035]`}
-              key={card.cardId}
-              role="listitem"
-            >
-              <CardCell card={card} showConfidence />
-              <MetricCell
-                className={`font-semibold ${impactToneClass(card.victoryImpact)}`}
-                label="Adjusted impact"
-              >
-                {formatImpactPoints(card.victoryImpact)}
-                <span className="mt-0.5 block text-xs font-normal text-stone-500">
-                  Expected win rate
-                </span>
-              </MetricCell>
-              <SampleCell card={card} countLabel={countLabel} />
-              <p className="tm-muted-copy border-t border-white/10 pt-3 text-xs leading-relaxed lg:col-span-3 lg:ml-16">
-                {cardResultSummary(card)}
-              </p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MethodologyDetails({
-  children,
-  title,
-}: {
-  children: ReactNode;
-  title: string;
-}) {
-  return (
-    <details className="mt-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-xs">
-      <summary className="cursor-pointer font-medium text-stone-300 transition hover:text-stone-100">
-        {title}
-      </summary>
-      <p className="tm-muted-copy mt-2 leading-relaxed">{children}</p>
-    </details>
   );
 }
 
@@ -524,39 +384,52 @@ function ProfileTagTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="tm-data-label">
-            <th className="py-1 pr-3">Tag</th>
-            <th className="py-1 pr-3">Tags</th>
-            <th className="py-1 pr-3">Games</th>
-            <th className="py-1 pr-3">Win rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tags.map((tag) => (
-            <tr className="border-t border-white/5" key={tag.tagCode}>
-              <td className="py-2 pr-3 font-semibold text-stone-100">
-                <TagLabel code={tag.tagCode} />
-              </td>
-              <td className="py-2 pr-3 align-middle">{tag.totalTags}</td>
-              <td className="py-2 pr-3 align-middle">
-                {tag.games}
-                <span className="tm-muted-copy ml-1 text-xs">
-                  ({tag.averageTagsPerGame}/game)
-                </span>
-              </td>
-              <td className="py-2 pr-3 align-middle">
+    <div className="grid gap-3 lg:grid-cols-2" role="list">
+      {tags.map((tag) => (
+        <article
+          className="flex min-w-0 flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.025] px-4 py-3 transition-colors hover:border-white/20 hover:bg-white/[0.045] sm:flex-row sm:items-center sm:justify-between"
+          key={tag.tagCode}
+          role="listitem"
+        >
+          <TagLabel
+            className="min-w-0 gap-2.5 text-[0.95rem] font-semibold leading-none text-stone-100"
+            code={tag.tagCode}
+            size={30}
+          />
+          <dl className="grid grid-cols-3 gap-3 text-right tabular-nums sm:min-w-[17rem]">
+            <div>
+              <dt className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                Tags
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-stone-100">
+                {tag.totalTags.toLocaleString("en-US")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                Games
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-stone-100">
+                {tag.games.toLocaleString("en-US")}
+              </dd>
+              <dd className="tm-muted-copy mt-0.5 whitespace-nowrap text-[0.7rem]">
+                {tag.averageTagsPerGame}/game
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                Win
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-stone-100">
                 {formatPercent(tag.winRate)}
-                <span className="tm-muted-copy ml-1 text-xs">
-                  ({tag.wins}/{tag.games})
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </dd>
+              <dd className="tm-muted-copy mt-0.5 whitespace-nowrap text-[0.7rem]">
+                {tag.wins}/{tag.games}
+              </dd>
+            </div>
+          </dl>
+        </article>
+      ))}
     </div>
   );
 }
@@ -576,29 +449,16 @@ export function ProfileCardPanels({
 }) {
   return (
     <>
-      <KeyCardsPanel
+      <ImpactCardsPanel
         cards={keyCards}
         emptyCopy={`No key cards yet for ${playerName}. Import a finalized game log so we can measure which cards lift your win rate the most.`}
+        variant="helpful"
       />
-      <ChartFrame
-        description="Cards associated with worse results after accounting for the context of each game."
-        title="My Most Harmful Cards"
-      >
-        <ProfileCardTable
-          cards={lossCards}
-          countLabel="Games"
-          emptyCopy={`No loss-correlated cards yet for ${playerName}. Import a finalized game log so we can measure which cards lower your adjusted win rate the most.`}
-        />
-        {lossCards.length > 0 ? (
-          <MethodologyDetails title="How loss correlation is calculated">
-            <GlossaryRichText>
-              Loss-correlated cards use the same context adjustment and
-              play-count confidence, so one bad game or a naturally difficult
-              corporation and style combination cannot condemn a card.
-            </GlossaryRichText>
-          </MethodologyDetails>
-        ) : null}
-      </ChartFrame>
+      <ImpactCardsPanel
+        cards={lossCards}
+        emptyCopy={`No loss-correlated cards yet for ${playerName}. Import a finalized game log so we can measure which cards lower your adjusted win rate the most.`}
+        variant="harmful"
+      />
       <MostPlayedCardsDashboard
         cards={cardOutcomes}
         emptyCopy={`No logged card plays for ${playerName} yet. Import a finalized game log to see your most-played cards.`}
