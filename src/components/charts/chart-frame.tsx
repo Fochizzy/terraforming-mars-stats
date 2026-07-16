@@ -27,11 +27,10 @@ export function ChartFrame({
 
   return (
     <section
-      aria-hidden={isLegacyScoreProfile || undefined}
       className={[
         'tm-panel',
         isBestStyleSnapshot ? styles.snapshot : '',
-        isLegacyScoreProfile ? 'hidden' : '',
+        isLegacyScoreProfile ? 'sr-only' : '',
       ]
         .filter(Boolean)
         .join(' ')}
