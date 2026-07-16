@@ -46,6 +46,13 @@ function createLogo(name: string) {
   image.className = 'tm-corporation-table-logo';
   image.loading = 'lazy';
   image.decoding = 'async';
+  image.style.width = '48px';
+  image.style.height = '48px';
+  image.style.flex = '0 0 48px';
+  image.style.objectFit = 'contain';
+  image.style.background = 'transparent';
+  image.style.border = '0';
+  image.style.borderRadius = '0';
   image.src = `${CORPORATION_LOGO_BASE_URL}/${encodeURIComponent(candidates[0] ?? '')}`;
 
   image.addEventListener('error', () => {
@@ -90,6 +97,10 @@ function decorateCorporationTable() {
 
       const content = document.createElement('div');
       content.className = 'tm-corporation-table-identity';
+      content.style.display = 'flex';
+      content.style.alignItems = 'center';
+      content.style.gap = '12px';
+      content.style.minWidth = '0';
       rowHeader.insertBefore(content, nameElement);
       content.append(createLogo(name), nameElement);
     }
@@ -109,6 +120,9 @@ function decorateCorporationTable() {
 
     const identity = document.createElement('div');
     identity.className = 'tm-corporation-card-identity';
+    identity.style.display = 'flex';
+    identity.style.alignItems = 'center';
+    identity.style.gap = '12px';
     nameElement.parentElement.insertBefore(identity, nameElement);
     identity.append(createLogo(name), nameElement);
   }
