@@ -89,13 +89,13 @@ export const DECLARED_ANALYTICS_CAPABILITIES: readonly AnalyticsCapabilityResult
     {
       key: 'canonical-win-point-differential',
       title: 'Canonical win point differential',
-      status: 'requires-query-work',
+      status: 'supported',
       reason: {
-        code: 'no-canonical-read-model',
+        code: 'approved-definition-missing',
         explanation:
-          'Final scores and winner flags are recorded and sufficient, but the two existing implementations disagree and no centralized tie-aware definition exists; the tied-first policy decision is still pending.',
+          'Sole-winner game results are supported. Tied-first games remain explicitly indeterminate because no numeric tie policy is approved.',
       },
-      scopes: { supported: [] },
+      scopes: { supported: ['game'] },
       requiredData: [
         {
           key: 'finalized-final-scores',
@@ -108,10 +108,11 @@ export const DECLARED_ANALYTICS_CAPABILITIES: readonly AnalyticsCapabilityResult
             'Winner flags and placements distinguishing tied first place.',
         },
       ],
-      remediation: {
-        kind: 'remediable',
-        historicalBackfillPossible: true,
-        note: 'Derivable for existing finalized games once the canonical definition and the tied-first policy are approved.',
+      calculationVersion: {
+        definitionId: 'metric:win-point-differential',
+        version: '1',
+        methodologyRef:
+          'docs/redesign/CANONICAL-ANALYTICS-DEFINITIONS.md',
       },
       evidence: {
         sources: [
@@ -122,23 +123,14 @@ export const DECLARED_ANALYTICS_CAPABILITIES: readonly AnalyticsCapabilityResult
             verification: { schemaVerified: true, populationVerified: false },
           },
           {
-            kind: 'analytics-view',
-            reference: 'analytics.player_game_results',
-            recordGrain: 'player-game',
+            kind: 'runtime-derivation',
+            reference: 'finalized-game-result.get',
+            recordGrain: 'game with player results',
             verification: {
               schemaVerified: true,
               populationVerified: false,
-              note: 'Compares the winner with the next placement only.',
-            },
-          },
-          {
-            kind: 'metric-snapshot',
-            reference: 'game_player_metric_snapshots',
-            recordGrain: 'player-game',
-            verification: {
-              schemaVerified: true,
-              populationVerified: false,
-              note: 'Compares the winner with every other player, including co-winners.',
+              note:
+                'The typed repository preserves missingness and feeds the versioned Step 2.4 utility; production-wide population coverage remains unaudited.',
             },
           },
         ],
@@ -182,6 +174,38 @@ export const DECLARED_ANALYTICS_CAPABILITIES: readonly AnalyticsCapabilityResult
         kind: 'remediable',
         historicalBackfillPossible: false,
         note: 'Future capture can record new games; historical games remain unavailable and must not be reconstructed from final totals.',
+      },
+      evidence: {
+        sources: [
+          {
+            kind: 'audit-document',
+            reference: 'docs/redesign/DATA-CAPABILITIES.md',
+            verification: { schemaVerified: true, populationVerified: false },
+          },
+        ],
+      },
+    },
+    {
+      key: 'corporation-prelude-pairing-dimensions',
+      title: 'Typed Corporation and Prelude pairing dimensions',
+      status: 'requires-query-work',
+      reason: {
+        code: 'no-canonical-read-model',
+        explanation:
+          'Corporation and Prelude identities are persisted, but the current interaction view emits a display label instead of typed dimension IDs.',
+      },
+      scopes: { supported: [] },
+      requiredData: [
+        {
+          key: 'typed-corporation-prelude-pairing',
+          description:
+            'A repository or view returning stable Corporation and Prelude IDs per player-game pairing.',
+        },
+      ],
+      remediation: {
+        kind: 'remediable',
+        historicalBackfillPossible: true,
+        note: 'Existing normalized game-player, Corporation, and Prelude relations can supply the typed pairing after approved query work.',
       },
       evidence: {
         sources: [

@@ -95,13 +95,18 @@ describe('declared analytics capabilities', () => {
     }
   });
 
-  it('records a remediable, backfillable posture for the win differential', () => {
+  it('supports the versioned sole-winner game differential while preserving the tie limitation', () => {
     const differential = getDeclaredAnalyticsCapability(
       'canonical-win-point-differential',
     );
     expect(differential).toMatchObject({
-      status: 'requires-query-work',
-      remediation: { kind: 'remediable', historicalBackfillPossible: true },
+      status: 'supported',
+      scopes: { supported: ['game'] },
+      calculationVersion: {
+        definitionId: 'metric:win-point-differential',
+        version: '1',
+      },
+      reason: { code: 'approved-definition-missing' },
     });
   });
 

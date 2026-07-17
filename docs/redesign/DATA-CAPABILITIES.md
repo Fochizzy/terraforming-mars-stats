@@ -479,8 +479,9 @@ observational or inferred, never causal.
   remain missing; it must not be moved to the final generation.
 - Corporation–Prelude analytics should return typed corporation and Prelude IDs,
   not force the UI to parse a display label.
-- Canonical win point differential should have one centralized definition and
-  tie-aware tests across all consumers.
+- Canonical sole-winner Win Point Differential now has a versioned Step 2.4
+  definition and a Step 2.5 finalized-game source adapter. Existing consumers
+  still need later parity migrations; tied-first remains indeterminate.
 - Score-source queries must preserve null optional fields instead of converting
   unrecorded values to zero.
 
@@ -704,6 +705,15 @@ does not make card-acquisition facts historically available: until an authorized
 repository can supply recorded source facts and their exact coverage, those
 rates remain capability-unavailable or non-exact. The tied-first numeric
 win-point-differential policy remains unresolved.
+
+Phase 2, Step 2.5 adds typed, authenticated repository operations for bounded
+group pages and single RLS-readable finalized games. They preserve stable IDs,
+winner/tie evidence, final scores, explicit zero, missing fields, returned-page
+coverage, and native/imported provenance, then feed the Step 2.4 differential
+through a pure adapter. This source slice does not make card acquisition,
+per-generation TR, replay generations, score-source coverage, or global
+analytics newly available. Production-wide source population remains
+unverified, and the legacy broad analytics consumers remain deferred.
 
 ## 10. Authorization and group-scoping risks
 

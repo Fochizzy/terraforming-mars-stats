@@ -120,6 +120,15 @@ median-per-player-game variants, and sole-winner Win Point Differential against
 the highest non-winner. It does not add capture coverage, queries, schema, or
 page integration; tied-first numeric differential remains unresolved.
 
+Phase 2, Step 2.5 implements only a normalized finalized-game result source
+slice: authenticated group pages and one RLS-readable game, with stable IDs,
+bounded ordering, final score/winner observations, missing-field coverage, and
+native/imported provenance. A pure adapter supplies the Step 2.4 Win Point
+Differential input without duplicating its formula. It does not create or infer
+any card-acquisition or generation-level observation, and it does not migrate a
+production analytics consumer. See
+`ANALYTICS-REPOSITORY-QUERY-CONTRACTS.md`.
+
 ### Cards Seen coverage dimensions
 
 Cards Seen coverage must distinguish which opportunity sources were recorded:

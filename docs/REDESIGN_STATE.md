@@ -6,21 +6,21 @@ Phase 2 — Analytics Foundation
 
 ## Current substep
 
-Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+Step 2.5 — Analytics Repository and Query Contracts
 
 ## Status
 
-Completed. Step 2.4 added a client-safe, versioned canonical definition registry
-and pure calculation modules under `src/lib/analytics/` for only the approved
-recorded card-acquisition facts; Purchase Conversion, Purchased Hand Share,
-Hand Utilization, and End-Hand Carryover; their distinct ratio-of-totals and
-median-per-player-game summaries; and sole-winner Win Point Differential against
-the highest non-winner. Calculation outputs carry existing `MetricValue`,
-eligibility, coverage, sample, and denominator contracts without coercing zero,
-missing, unavailable, or partial values. Tied-first Win Point Differential is
-indeterminate and emits no numeric result. Full validation passes at 98 test
-files / 510 tests, with typecheck clean, the same four baseline lint warnings,
-and 23/23 build pages. No repository, SQL, migration, schema, Supabase state,
+Completed. Step 2.5 added client-safe typed operation/result contracts,
+normalized finalized-game source records, and authenticated server readers for
+a bounded group page and one RLS-readable game. The operations reuse Step 2.2
+filters, keep selection out of the sample, report Step 2.3 coverage/evidence,
+preserve zero/missing/native/imported/tied-first facts, and feed the Step 2.4
+Win Point Differential utility without duplicating its formula. Inputs are
+validated before broad reads; ordering is stable; child rows are batched; raw
+errors are redacted; and empty, partial, unavailable, unauthorized, and failed
+results remain distinct. Full validation passes at 101 test files / 540 tests,
+with typecheck clean, the same four baseline lint warnings, and 23/23 build
+pages. No SQL, migration, view, RPC, schema, Supabase state, Storage,
 dependency, route, navigation, deployment, production page, or legacy consumer
 changed.
 
@@ -30,24 +30,24 @@ redesign/tm-stats-dashboard-rebuild
 
 ## Current owner
 
-Codex — canonical analytics definitions and calculation utilities
+Codex — analytics repository and query contracts
 
 ## Last completed commit
 
-Step 2.4 focused completion commit (hash recorded in the completion report)
+Step 2.5 focused completion commit (hash recorded in the completion report)
 
 ## Next action
 
-Begin Step 2.5 — Analytics Repository and Query Contracts only when explicitly
-assigned with a repository slice. Do not begin SQL, schema, production page
-integration, navigation, route migration, deployment, or Supabase mutation with
-that assignment unless separately authorized.
+Begin Step 2.6 — Analytics Foundation Integration Validation only when
+explicitly assigned. Do not begin SQL, schema, production page integration,
+navigation, route migration, deployment, or Supabase mutation with that
+assignment unless separately authorized.
 
 ## Active blockers
 
-No blocker prevents a separately assigned Step 2.5 repository-contract substep
-when its source and authorization requirements are explicit. Later Phase 2 work
-remains blocked, where applicable, by undecided tied-first numeric win-margin behavior;
+No blocker prevents a separately assigned Step 2.6 integration-validation
+substep. Later analytics and consumer work remains blocked, where applicable,
+by undecided tied-first numeric win-margin behavior;
 overall point-differential baseline; leaderboard and opponent-strength
 methodology; metric-specific sample, coverage, and range thresholds; approval
 of current weighting/efficiency/style/award/final-action formulas;
@@ -60,10 +60,11 @@ remain deferred migration work.
 
 ## Database migration status
 
-No Phase 2 migrations created. Step 2.4 changed client-safe TypeScript
-definitions, pure calculations, tests, and documentation only and did not query
-or change database or Storage state.
+No Phase 2 migrations created. Step 2.5 changed client-safe TypeScript
+contracts/records, an authenticated server read repository, tests, and
+documentation only. It did not query or change production database or Storage
+state.
 
 ## Latest handoff
 
-docs/agent-handoffs/PHASE-02-STEP-04-canonical-analytics-definitions-calculation-utilities.md
+docs/agent-handoffs/PHASE-02-STEP-05-analytics-repository-query-contracts.md

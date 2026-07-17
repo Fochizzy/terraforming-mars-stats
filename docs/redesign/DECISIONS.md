@@ -273,6 +273,41 @@ The complete contract and scope matrix are documented in
   highest non-winning score. Tied-first remains indeterminate with no numeric
   result until the unresolved policy receives separate approval.
 
+## Phase 2 repository and query policy
+
+- Step 2.5 establishes a client-safe repository contract separate from the
+  server Supabase implementation, raw persistence DTOs, normalized analytics
+  records, calculation utilities, and presentation.
+- Repository operations use stable operation IDs and explicitly declare scope,
+  supported filters, capabilities, authorization, pagination, and ordering.
+- Step 2.2 sample filters remain distinct from comparison, highlight, and focus
+  selection; selection context never silently changes a repository sample.
+- Repository results distinguish ready, successful empty, partial,
+  capability-unavailable, and error states. Raw persistence errors remain
+  server diagnostics and never enter public result contracts.
+- The first approved source slice is finalized game and player results for an
+  authenticated group member or an RLS-readable game. Global scope is not
+  implemented by this slice and therefore cannot bypass the existing global
+  analytics opt-in boundary.
+- Group lists use bounded offset pages ordered by played date, creation time,
+  and stable game ID. Player results and import provenance are loaded in
+  page-wide batches, never per game.
+- Normalized records preserve database identity, zero, null/missing fields,
+  native/imported provenance, finalized status, and tied-first winner flags.
+- Returned-page coverage is not a metric sample size. Consumers remain
+  responsible for Step 2.3 candidate, eligible, included, excluded,
+  denominator, and minimum-sample construction for the exact metric.
+- The version 1 sole-winner Win Point Differential is supported for game scope
+  through the normalized source adapter and Step 2.4 utility. Tied-first remains
+  indeterminate. Card-acquisition and per-generation facts remain unavailable
+  when their recorded sources do not exist.
+- Existing production analytics consumers and the broad legacy
+  `analytics-repo.ts` are deferred migrations; Step 2.5 does not silently
+  reinterpret or replace them.
+
+The full boundary is documented in
+`ANALYTICS-REPOSITORY-QUERY-CONTRACTS.md`.
+
 ## Phase 2 schema, page, and completion boundaries
 
 - No database schema, migration, view, RPC, backfill, Supabase data, or Storage

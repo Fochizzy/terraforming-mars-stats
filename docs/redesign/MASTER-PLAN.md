@@ -194,6 +194,7 @@ Completed:
 - Step 2.2 — Shared Filter and URL-State Contracts
 - Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
 - Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+- Step 2.5 — Analytics Repository and Query Contracts
 
 Phase 2 planning commit:
 
@@ -225,34 +226,36 @@ Commit:
 
 ### Most recently completed work
 
-#### Phase 2, Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+#### Phase 2, Step 2.5 — Analytics Repository and Query Contracts
 
 Durable outcome:
 
-- canonical, versioned definitions for five distinct recorded card-acquisition
-  facts and four approved card-acquisition rate relationships
-- separately labeled ratio-of-totals and median-per-player-game utilities that
-  preserve the same reconciled player-game sample, eligibility, and coverage
-- non-coercing raw `MetricValue` calculation outputs, including explicit zero,
-  missing, unavailable, and partial aggregate totals
-- a sole-winner Win Point Differential utility against the highest non-winner;
-  tied-first remains indeterminate with no numeric result
-- no universal sample threshold, database, schema, query, page, dependency, or
-  legacy-consumer migration
+- a reusable client-safe operation, input, normalized-data, evidence, warning,
+  and error contract separated from the server persistence implementation
+- authenticated, RLS-preserving finalized-game result operations for a bounded
+  group page and one readable game
+- explicit Step 2.2 filter compatibility and non-sample selection context,
+  bounded stable ordering, and page-wide player/import batching
+- null/zero, native/imported, complete/partial, empty/error, and capability
+  distinctions preserved through normalized source records
+- a pure source adapter into the version 1 Step 2.4 Win Point Differential;
+  tied-first remains indeterminate and unsupported facts remain unavailable
+- no database, schema, view, RPC, route, page, dependency, or legacy-consumer
+  migration
 
 Handoff:
 
 ```text
-docs/agent-handoffs/PHASE-02-STEP-04-canonical-analytics-definitions-calculation-utilities.md
+docs/agent-handoffs/PHASE-02-STEP-05-analytics-repository-query-contracts.md
 ```
 
 ### Next approved work
 
 Only after an explicit assignment:
 
-- Phase 2, Step 2.5 — Analytics Repository and Query Contracts
+- Phase 2, Step 2.6 — Analytics Foundation Integration Validation
 
-Step 2.4 completion does not authorize Step 2.5.
+Step 2.5 completion does not authorize Step 2.6.
 
 ---
 
@@ -384,7 +387,7 @@ Primary outcome:
 
 ### Step 2.5 — Analytics Repository and Query Contracts
 
-**Status:** Planned
+**Status:** Complete
 
 Primary outcome:
 
@@ -1004,13 +1007,13 @@ Do not fill these gaps by assumption.
 Completed:
 
 ```text
-Phase 2, Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+Phase 2, Step 2.5 — Analytics Repository and Query Contracts
 ```
 
 Next, only when explicitly assigned:
 
 ```text
-Phase 2, Step 2.5 — Analytics Repository and Query Contracts
+Phase 2, Step 2.6 — Analytics Foundation Integration Validation
 ```
 
 Do not push unless explicitly instructed.
@@ -1023,8 +1026,8 @@ Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-17
 - **Current phase:** Phase 2 — Analytics Foundation
-- **Current substep:** Step 2.4 — Canonical Analytics Definitions and Calculation Utilities (complete)
-- **Next gated substep:** Step 2.5 — Analytics Repository and Query Contracts
+- **Current substep:** Step 2.5 — Analytics Repository and Query Contracts (complete)
+- **Next gated substep:** Step 2.6 — Analytics Foundation Integration Validation
 - **Latest protected policy commit:** `9545f589961fce4a0854ed1c6bcff8ba6c7c87d0`
 - **Phase 1 completion commit:** `4283e826f881eb116befbe3285c3de426fb25c6c`
 - **Phase 2 planning commit:** `73184cbdb`

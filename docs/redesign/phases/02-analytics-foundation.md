@@ -92,7 +92,7 @@ provide an explicit adapter and tests; it must not silently reinterpret a Phase
 | 2.2 | Shared Filter and URL-State Contracts | Typed filters, normalization, canonical URL encoding, restoration, compatibility, and reset behavior | Completed |
 | 2.3 | Metric, Sample, Coverage, and Eligibility Contracts | Shared metric result, denominator, sample, coverage, eligibility, and exclusion contracts | Completed |
 | 2.4 | Canonical Analytics Definitions and Calculation Utilities | Centralized, versioned, tested utilities for approved formulas only | Completed |
-| 2.5 | Analytics Repository and Query Contracts | Typed query inputs, capability-aware outputs, batching, and error/partial behavior | Unstarted |
+| 2.5 | Analytics Repository and Query Contracts | Typed query inputs, capability-aware outputs, batching, and error/partial behavior | Completed |
 | 2.6 | Analytics Foundation Integration Validation | Cross-contract tests and proof that Phase 1 foundations consume Phase 2 results | Unstarted |
 
 Completing one row does not authorize the next row.
@@ -735,6 +735,15 @@ version identity, and parity with retained consumers.
 
 ### Step 2.5 — Analytics Repository and Query Contracts
 
+**Status:** Completed 2026-07-17. The focused implementation adds client-safe
+operation/result contracts and normalized finalized-game source records plus
+authenticated group-list and readable-game server operations. It reuses Step
+2.2 filters, Step 2.3 coverage/evidence, and the Step 2.4 Win Point Differential
+utility; applies bounded stable pagination; batches player/import reads; and
+keeps the legacy broad analytics repository and every production consumer
+unchanged. See `ANALYTICS-REPOSITORY-QUERY-CONTRACTS.md` and the Step 2.5
+handoff.
+
 **Purpose:** implement typed query inputs/outputs and focused repository adapters
 that preserve capability, eligibility, coverage, freshness, partial, and error
 semantics without N+1 access.
@@ -921,7 +930,7 @@ own handoffs and commits. Phase 2 completion does not itself authorize Phase 3.
 
 ## Approved next action
 
-Begin Step 2.5 — Analytics Repository and Query Contracts only when explicitly
-assigned with a repository slice. Do not begin
-repository changes, schema work, production page integration, navigation, route
-migration, deployment, or Supabase mutation as part of that assignment.
+Begin Step 2.6 — Analytics Foundation Integration Validation only when
+explicitly assigned. Do not begin production page integration, navigation,
+route migration, schema work, deployment, or Supabase mutation as part of that
+assignment.
