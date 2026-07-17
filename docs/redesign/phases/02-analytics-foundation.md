@@ -2,10 +2,10 @@
 
 ## Status
 
-Step 2.0 — Analytics Foundation Specification and Acceptance Criteria — and
-Step 2.1 — Analytics Scope and Capability Model — were completed on
-2026-07-17. Steps 2.2 through 2.6 are specified but unstarted and each
-requires a separate explicit assignment.
+Steps 2.0 — Analytics Foundation Specification and Acceptance Criteria, 2.1 —
+Analytics Scope and Capability Model, and 2.2 — Shared Filter and URL-State
+Contracts — were completed on 2026-07-17. Steps 2.3 through 2.6 are specified
+but unstarted and each requires a separate explicit assignment.
 
 Phase 2 is a contract and calculation-foundation phase. It does not migrate a
 production destination page, change navigation, introduce a production route,
@@ -87,7 +87,7 @@ provide an explicit adapter and tests; it must not silently reinterpret a Phase
 | --- | --- | --- | --- |
 | 2.0 | Analytics Foundation Specification and Acceptance Criteria | This authoritative plan, approved decisions, state update, and handoff | Completed |
 | 2.1 | Analytics Scope and Capability Model | Typed scope, subject, dataset, capability, evidence, and coverage contracts | Completed |
-| 2.2 | Shared Filter and URL-State Contracts | Typed filters, normalization, canonical URL encoding, restoration, compatibility, and reset behavior | Unstarted |
+| 2.2 | Shared Filter and URL-State Contracts | Typed filters, normalization, canonical URL encoding, restoration, compatibility, and reset behavior | Completed |
 | 2.3 | Metric, Sample, Coverage, and Eligibility Contracts | Shared metric result, denominator, sample, coverage, eligibility, and exclusion contracts | Unstarted |
 | 2.4 | Canonical Analytics Definitions and Calculation Utilities | Centralized, versioned, tested utilities for approved formulas only | Unstarted |
 | 2.5 | Analytics Repository and Query Contracts | Typed query inputs, capability-aware outputs, batching, and error/partial behavior | Unstarted |
@@ -906,7 +906,7 @@ own handoffs and commits. Phase 2 completion does not itself authorize Phase 3.
 
 ## Approved next action
 
-Begin Step 2.1 — Analytics Scope and Capability Model only when explicitly
-assigned. Do not begin Step 2.2, metric formulas, repository changes, schema
-work, production page integration, navigation, route migration, deployment, or
+Begin Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts only when
+explicitly assigned. Do not begin formulas, repository changes, schema work,
+production page integration, navigation, route migration, deployment, or
 Supabase mutation as part of that assignment.

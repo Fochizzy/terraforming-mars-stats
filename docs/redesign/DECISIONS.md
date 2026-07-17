@@ -191,6 +191,35 @@ query parameter. URL-provided identities never authorize access. Multi-value
 filters use deterministic repeated parameters, and serialization emits canonical
 names and ordering.
 
+Step 2.2 implements this policy with these durable decisions:
+
+- sample filters and durable comparison/highlight/focus selection are separate
+  state objects; route/navigation and hover/focus/open-menu state remain outside
+  URL-addressable analytics state;
+- canonical filter parameters are `player`, `group`, `from`, `to`, `map`,
+  `playerCount`, `generationCount`, `gameLength`, `expansion`, `corporation`,
+  `prelude`, `corporationPrelude`, `card`, `tag`, `scoreSource`, `style`,
+  `status`, and `minSample`; durable selection uses `entity`, `metric`, `point`,
+  `series`, and `detail`;
+- corporation/Prelude pairs use repeated `corporationPrelude` values encoded as
+  canonical corporation UUID plus canonical Prelude UUID; display names are
+  never identity;
+- game range and imported/data-source filters remain deferred with no canonical
+  parameter, while game-length remains typed but unavailable until its facts and
+  category definition are approved;
+- `finalized` is the omitted aggregate-status default, and `minSample=0` is an
+  explicit value that must survive canonicalization;
+- malformed, unknown, stale, authorization-rejected, unresolved, loading, and
+  query-error identity states remain typed; unresolved/loading/query-error
+  values may remain URL-restorable but are withheld from applicable query state;
+- aliases are route-provided compatibility declarations only, canonical input
+  wins an alias conflict, and serialization emits canonical names only; and
+- reset removes registered analytics fields while preserving unrelated route
+  state, and serialization strips authorization/token and internal error fields.
+
+The complete contract and scope matrix are documented in
+`SHARED-FILTER-URL-STATE-CONTRACTS.md`.
+
 ## Phase 2 sample, coverage, and formula policy
 
 - There is no universal low-sample threshold.

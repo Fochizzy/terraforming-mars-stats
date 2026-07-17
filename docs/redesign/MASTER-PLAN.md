@@ -190,12 +190,22 @@ Phase 1 delivered:
 Completed:
 
 - Step 2.0 — Analytics Foundation Specification and Acceptance Criteria
+- Step 2.1 — Analytics Scope and Capability Model
+- Step 2.2 — Shared Filter and URL-State Contracts
 
-Commit:
+Phase 2 planning commit:
 
 ```text
 73184cbdb
 ```
+
+Step 2.1 foundation commit:
+
+```text
+f3800146d
+```
+
+The Step 2.2 completion hash is recorded in its completion report and handoff.
 
 #### Corporation Logo Policy
 
@@ -210,30 +220,35 @@ Commit:
 9545f589961fce4a0854ed1c6bcff8ba6c7c87d0
 ```
 
-### Current work
+### Most recently completed work
 
-#### Phase 2, Step 2.1 — Analytics Scope and Capability Model
+#### Phase 2, Step 2.2 — Shared Filter and URL-State Contracts
 
-Status at the time this plan was generated:
+Durable outcome:
 
-- in progress
-- expected to commit on top of `9545f589961fce4a0854ed1c6bcff8ba6c7c87d0`
-- must not be restarted unless the existing work has been lost
-- must not reset, revert, amend, squash, or remove the corporation-logo policy commit
+- shared client-safe filter and URL-addressable selection contracts
+- typed compatibility for supported, unsupported, unavailable, deferred, and
+  not-applicable filter/scope combinations
+- stable-ID/code parsing, normalization, deterministic repeated-value
+  serialization, explicit aliases, canonicalization, and reset behavior
+- sample-filter state kept separate from comparison/highlight/focus state,
+  route navigation, and transient interaction
+- unresolved/loading/query-error identities restorable but withheld from active
+  query state; unknown/stale/authorization-rejected identities removed
 
-Expected handoff:
+Handoff:
 
 ```text
-docs/agent-handoffs/PHASE-02-STEP-01-analytics-scope-capability-model.md
+docs/agent-handoffs/PHASE-02-STEP-02-shared-filter-url-state-contracts.md
 ```
 
 ### Next approved work
 
-After Step 2.1 is complete and committed:
+Only after an explicit assignment:
 
-- Phase 2, Step 2.2 — Shared Filter and URL-State Contracts
+- Phase 2, Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
 
-Step 2.2 must not begin until all Step 2.1 completion gates pass.
+Step 2.2 completion does not authorize Step 2.3.
 
 ---
 
@@ -280,7 +295,7 @@ Primary outcome:
 
 ### Step 2.1 — Analytics Scope and Capability Model
 
-**Status:** Current work
+**Status:** Complete
 
 Primary outcome:
 
@@ -304,7 +319,7 @@ Do not add production page integration unless explicitly approved.
 
 ### Step 2.2 — Shared Filter and URL-State Contracts
 
-**Status:** Blocked by Step 2.1
+**Status:** Complete
 
 Primary outcome:
 
@@ -975,7 +990,6 @@ The following must be resolved only through approved assignments or higher-autho
 - dependency additions
 - unverified corporation asset mappings
 - metric-specific sample thresholds not already approved
-- exact behavior for stale entities where not defined in Step 2.2
 
 Do not fill these gaps by assumption.
 
@@ -983,16 +997,16 @@ Do not fill these gaps by assumption.
 
 ## 26. Current Action
 
-Finish:
-
-```text
-Phase 2, Step 2.1 — Analytics Scope and Capability Model
-```
-
-Then verify the Step 2.1 completion gate before beginning:
+Completed:
 
 ```text
 Phase 2, Step 2.2 — Shared Filter and URL-State Contracts
+```
+
+Next, only when explicitly assigned:
+
+```text
+Phase 2, Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
 ```
 
 Do not push unless explicitly instructed.
@@ -1005,9 +1019,8 @@ Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-17
 - **Current phase:** Phase 2 — Analytics Foundation
-- **Current substep:** Step 2.1 — Analytics Scope and Capability Model
-- **Next gated substep:** Step 2.2 — Shared Filter and URL-State Contracts
+- **Current substep:** Step 2.2 — Shared Filter and URL-State Contracts (complete)
+- **Next gated substep:** Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
 - **Latest protected policy commit:** `9545f589961fce4a0854ed1c6bcff8ba6c7c87d0`
 - **Phase 1 completion commit:** `4283e826f881eb116befbe3285c3de426fb25c6c`
 - **Phase 2 planning commit:** `73184cbdb`
-

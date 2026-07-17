@@ -6,23 +6,22 @@ Phase 2 — Analytics Foundation
 
 ## Current substep
 
-Step 2.1 — Analytics Scope and Capability Model
+Step 2.2 — Shared Filter and URL-State Contracts
 
 ## Status
 
-Completed. Step 2.1 added the client-safe typed analytics contracts under
-`src/lib/analytics/`: the six approved scopes with dataset/population context
-and structural validation; thirteen stable-identity subject kinds with display
-metadata kept separate from identity; the seven-status capability model with
-typed reason codes, data requirements, scope-support declarations, and
-remediation metadata; eight audit-traceable default capability declarations;
-the ready/capability-unavailable/load-error value-availability envelope over
-the Phase 1 `MetricValue`; the structural coverage ledger with
-source-dimensional coverage and zero-denominator safety; and evidence/
-provenance metadata with verification flags. 102 focused tests across seven
-files were added, and full tests, typecheck, lint, and build pass against the
-recorded baseline. No formulas, filters, URL state, repository queries,
-schema, Supabase state, dependencies, or production pages changed.
+Completed. Step 2.2 added the client-safe shared filter registry, typed
+filter/scope compatibility, sample-filter and durable-selection contracts,
+canonical parsing, deterministic normalization/serialization, explicit alias
+handling, identity-resolution states, canonicalization, reset/partial-reset,
+and Phase 1 selection reconciliation under `src/lib/analytics/`. Stable UUIDs,
+codes, score-source keys, and typed subject tokens remain separate from display
+metadata. Game range and imported/data-source semantics are deferred with no
+URL fields; game length is explicitly unavailable. 49 focused tests across
+three files were added. Full validation passes at 91 test files / 448 tests,
+with typecheck clean, the same four baseline lint warnings, and 23/23 build
+pages. No Step 2.3 result contracts, formulas, repositories, schema, Supabase
+state, dependencies, routes, or production pages changed.
 
 ## Branch
 
@@ -30,23 +29,23 @@ redesign/tm-stats-dashboard-rebuild
 
 ## Current owner
 
-Claude — analytics scope and capability model
+Codex — shared filter and URL-state contracts
 
 ## Last completed commit
 
-Step 2.1 commit
+Step 2.2 focused completion commit (hash recorded in the completion report)
 
 ## Next action
 
-Begin Step 2.2 — Shared Filter and URL-State Contracts only when explicitly
-assigned. Do not begin metric-result contracts, formulas, repository changes,
-schema work, production page integration, navigation, or route migration with
-that assignment.
+Begin Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts only when
+explicitly assigned. Do not begin formulas, repository changes, schema work,
+production page integration, navigation, or route migration with that
+assignment.
 
 ## Active blockers
 
-No blocker prevents Step 2.2's filter and URL-state contracts. Later Phase 2
-work remains blocked, where applicable, by undecided tied-first win-margin
+No blocker prevents a separately assigned Step 2.3 contract substep. Later
+Phase 2 work remains blocked, where applicable, by undecided tied-first win-margin
 behavior; overall point-differential baseline; leaderboard and
 opponent-strength methodology; metric-specific sample, coverage, and range
 rules; approval of current weighting/efficiency/style/award/final-action
@@ -54,15 +53,16 @@ formulas; final-action RPC source/security verification; card
 opportunity/acquisition identity and coverage; TR, duration,
 production/engine, and board capture contracts; role/global-opt-in semantics;
 generated database types; and acceptance of live-only schema, RPC, and
-Storage contracts. Step 2.1 resolved none of those decisions and encoded them
-as typed capability limitations instead.
+Storage contracts. Step 2.2 additionally leaves game-range, game-length, and
+imported/data-source semantics deferred or unavailable rather than inventing
+them.
 
 ## Database migration status
 
-No Phase 2 migrations created. Step 2.1 changed client-safe TypeScript
+No Phase 2 migrations created. Step 2.2 changed client-safe TypeScript
 contracts, tests, and documentation only and did not query or change database
 or Storage state.
 
 ## Latest handoff
 
-docs/agent-handoffs/PHASE-02-STEP-01-analytics-scope-capability-model.md
+docs/agent-handoffs/PHASE-02-STEP-02-shared-filter-url-state-contracts.md
