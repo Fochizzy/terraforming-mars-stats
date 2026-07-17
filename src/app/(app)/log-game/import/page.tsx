@@ -610,6 +610,13 @@ export default async function LogGameImportPage() {
         throw new Error('Sign in again before analyzing this import.');
       }
 
+      const [analyzeContext, analyzeMapOptions] = await Promise.all([
+        getCurrentGroupContext(),
+        listMaps(),
+      ]);
+      const analyzeGroupSettings = analyzeContext
+        ? await getGroupSettings(analyzeContext.groupId)
+        : null;
       const values = parseCreateImportDraftFormData(formData);
       const parsedGameLog = parseGameLog(values.exportedGameLog);
       const detectedParticipantNames =
@@ -618,8 +625,8 @@ export default async function LogGameImportPage() {
           : extractGameLogParticipantNames(parsedGameLog);
       const analyzeMapSelection = resolveImportMapSelection({
         evidenceSources: buildMapEvidenceSources(values),
-        fallbackMapId: groupSettings?.defaultMapId ?? null,
-        mapOptions,
+        fallbackMapId: analyzeGroupSettings?.defaultMapId ?? null,
+        mapOptions: analyzeMapOptions,
         submittedMapId: values.mapId,
       });
       const [
@@ -682,12 +689,11 @@ export default async function LogGameImportPage() {
         );
       }
 
-      const activeContext = await getCurrentGroupContext();
-      const playerLinks = activeContext
+      const playerLinks = analyzeContext
         ? resolveImportPlayerLinks(
             screenshotEvidence.importedNames,
             await listImportResolutionPlayersForCurrentUser(),
-            await listPlayerImportAliasesForGroup(activeContext.groupId),
+            await listPlayerImportAliasesForGroup(analyzeContext.groupId),
           )
         : { matches: [], unresolvedCount: 0 };
 

@@ -811,6 +811,48 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('reloads map settings when analysis runs instead of using page-render values', async () => {
+    mockState.listMaps
+      .mockResolvedValueOnce([
+        { code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' },
+      ])
+      .mockResolvedValueOnce([
+        { code: 'elysium', id: 'map-elysium', name: 'Elysium' },
+        { code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' },
+      ]);
+    mockState.getGroupSettings
+      .mockResolvedValueOnce({
+        defaultExpansionCodes: ['base'],
+        defaultMapId: 'map-tharsis',
+        defaultPromoSetSlugs: [],
+      })
+      .mockResolvedValueOnce({
+        defaultExpansionCodes: ['base'],
+        defaultMapId: 'map-elysium',
+        defaultPromoSetSlugs: [],
+      });
+
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: 'Friday Mars played Steel Works',
+      generationCount: 10,
+      participants: 'Friday Mars',
+      playedOn: '2026-07-07',
+      playerCount: 1,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message: expect.stringContaining('group default (Elysium)'),
+      status: 'success',
+    });
+    expect(mockState.listMaps).toHaveBeenCalledTimes(2);
+    expect(mockState.getGroupSettings).toHaveBeenCalledTimes(2);
+  });
+
   it('falls back to the group default map when the log has no map evidence', async () => {
     const shellProps = await renderPageAndCaptureShellProps();
     const analyzeFormData = buildCreateImportDraftFormData({
