@@ -1,0 +1,74 @@
+﻿# TM Stats Page Architecture
+
+## Primary navigation
+
+1. Log a Game
+2. My Profile
+3. Global Insights
+4. Individual Insights
+5. Group Insights
+6. Compare
+7. Improvement
+8. Leaderboard
+
+## Supporting destinations
+
+- Games Library
+- Game Detail
+- Game Replay
+- Cards
+- Corporations
+- Preludes
+- Players
+- Groups
+- Group Members
+- Group Settings
+
+## Target routes
+
+- `/log-game`
+- `/log-game/import`
+- `/games`
+- `/games/[gameId]`
+- `/games/[gameId]/replay`
+- `/profile`
+- `/insights/global`
+- `/insights/individual`
+- `/insights/group`
+- `/compare`
+- `/improvement`
+- `/leaderboard`
+
+## Page responsibilities
+
+### Log a Game
+
+Game entry, imports, drafts, validation, and finalization.
+
+### My Profile
+
+Identity, recent activity, groups, data status, and shortcuts.
+
+### Global Insights
+
+Global meta, conditions, cards, tags, corporations, objectives, and board trends.
+
+### Individual Insights
+
+One-player scoring, style, engine, cards, competition, board, tempo, and objectives.
+
+### Group Insights
+
+Group performance, members, chemistry, lineups, conditions, and games.
+
+### Compare
+
+Side-by-side comparison of compatible entities.
+
+### Improvement
+
+Recommendations, evidence, focus areas, action plans, and progress.
+
+### Leaderboard
+
+Formal rankings, placement analysis, and methodology.
