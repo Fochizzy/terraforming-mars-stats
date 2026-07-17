@@ -72,7 +72,7 @@ lookup.
 | --- | --- | --- | --- | --- |
 | Tag graphics | Available with incomplete coverage | approved tag-code map | 15 of 17 database tag values have exact filenames | Phase 13 |
 | Point-source graphics | Duplicated across sources | typed score-source key | 10 standard, 10 axis, 1 legacy object | Phase 1, consumed in Phase 3 |
-| Corporation logos | Available with incomplete coverage | `corporations.id` / `logo_path` | 115 of 116 database paths resolve | Phase 14 |
+| Corporation logos | Production-ready (replaced 2026-07-17) | `corporations.id` / `logo_path` | 116 of 116 resolve to uniform content-addressed tiles | Phase 14 |
 | Prelude graphics | Not currently available | future `preludes.id` asset metadata | 0 of 135 authoritative images | Phase 14 |
 | Card images | Available with incomplete coverage | `cards.source_card_id` and stored URLs | 1,082 of 1,083 rows resolve to each derivative bucket | Phase 13 |
 | Map graphics | Duplicated across sources | `maps.code` | 11 of 11 WebP names; one content conflict | Phase 8, expanded in Phase 17 |
@@ -297,7 +297,19 @@ contract.
 
 ## Corporation logos
 
-**Classification: Available with incomplete coverage**
+**Classification: Production-ready (replaced 2026-07-17)**
+
+> **Update — 2026-07-17 (separately authorized asset task).** The gaps below
+> (one missing object, incomplete coverage) are resolved. All 116 corporations
+> now map to uniform **800×800** content-addressed tiles
+> (`corporation-logo-<sha256>.png`) on white/black/orange (`#f06a32`) backgrounds;
+> 112 distinct objects (Athena/Eris/Kuiper/Tycho remain intentionally shared).
+> Prior objects were retained for rollback. Matching used verified `id`+`code`
+> identity only. See `docs/redesign/DECISIONS.md`
+> (“Corporation logo asset replacement and presentation”), the handoff
+> `CORPORATION-LOGO-ASSET-REPLACEMENT-AND-REMAPPING.md`, and the manifests/rollback
+> under `docs/redesign/assets/corporation-logos/`. The pre-task audit findings
+> below are preserved as the historical Step 0.4 snapshot.
 
 - Example entities: Athena, Eris, Kuiper Cooperative, Tycho Magnetics, and
   Marabout Shiritori.

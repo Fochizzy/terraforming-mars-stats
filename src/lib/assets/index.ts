@@ -38,3 +38,20 @@ export {
   resolveStaticSiteAsset,
   type StaticSiteAssetKey,
 } from './static-assets';
+export {
+  corporationLogoMappingClassifications,
+  createCorporationLogoRegistry,
+  findSharedCorporationLogoPaths,
+  resolveCorporationLogoRegistryEntry,
+  validateCorporationLogoRemaps,
+  type CorporationLogoLookupResult,
+  type CorporationLogoMappingClassification,
+  type CorporationLogoRegistry,
+  type CorporationLogoRegistryEntry,
+  type CorporationLogoRegistryIssue,
+  type CorporationLogoRemapIssue,
+  type CorporationLogoRemapProposal,
+  type CorporationLogoRemapValidation,
+  type CorporationLogoStableIdentity,
+  type SharedCorporationLogoPath,
+} from './corporation-logo-registry';

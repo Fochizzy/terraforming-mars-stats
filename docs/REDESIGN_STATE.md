@@ -24,6 +24,23 @@ pages. No SQL, migration, view, RPC, schema, Supabase state, Storage,
 dependency, route, navigation, deployment, production page, or legacy consumer
 changed.
 
+## Corporation logo asset replacement (separately authorized, post-2.5)
+
+Completed. A separately approved production task replaced every corporation logo
+and remapped `public.corporations.logo_path`. All 116 corporations now resolve to
+uniform 800×800 content-addressed tiles (`corporation-logo-<sha256>.png`) on
+white/black/orange (`#f06a32`) backgrounds; 112 distinct objects (4 shared
+cross-edition pairs). Matching used verified `id`+`code` identity (16 user-supplied
+replacements, 4 near-miss adjudications, 96 name matches; 0 unmatched/ambiguous).
+Production reconciliation: 116 resolvable, 0 broken, 228 objects (116 prior
+retained for rollback + 112 new), all referenced new objects `image/png`.
+Only `logo_path` and `tm-corporation-logos` objects changed — no corporation
+identity field, schema, RLS, bucket config, unrelated asset, or deployment.
+Repository validation at commit: asset suite 48/48, typecheck clean; full
+`vitest`/`lint`/`build` recorded in the commit. Rollback:
+`docs/redesign/assets/corporation-logos/ROLLBACK.md`. This task did **not** begin
+Step 2.6.
+
 ## Branch
 
 redesign/tm-stats-dashboard-rebuild
@@ -67,4 +84,14 @@ state.
 
 ## Latest handoff
 
-docs/agent-handoffs/PHASE-02-STEP-05-analytics-repository-query-contracts.md
+- docs/agent-handoffs/CORPORATION-LOGO-ASSET-REPLACEMENT-AND-REMAPPING.md
+  (separately authorized production asset task, post-2.5)
+- docs/agent-handoffs/PHASE-02-STEP-05-analytics-repository-query-contracts.md
+
+## Production Supabase mutation record
+
+The corporation-logo task applied production Storage uploads and
+`public.corporations.logo_path` updates under separate explicit authorization.
+These are not represented by Git; their verified results and rollback are in the
+handoff and `docs/redesign/assets/corporation-logos/`. No Phase 2 migration, view,
+RPC, schema, or other Supabase state was created or changed.

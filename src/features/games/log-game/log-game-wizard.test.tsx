@@ -91,8 +91,10 @@ describe('LogGameWizard', () => {
         ]}
         corporationOptions={[
           {
+            code: 'base:tharsis-republic',
             expansionCode: 'base',
             id: 'corp1',
+            logoPath: 'Tharsis_Republic.png',
             name: 'Tharsis Republic',
             promoSetSlug: null,
           },

@@ -1,0 +1,117 @@
+id,code,name,expansion_code,logo_path
+6c6e3e97-33c9-47e9-818b-3062abc4cd75,ares:athena,Athena,ares,Athena.png
+dfacfda4-6d7e-4f48-8b70-f54a3589be66,ares:eris,Eris,ares,Eris.png
+ef2f0a91-ae96-4f1e-870d-7dba8fe27e8e,base:beginner-corporation,Beginner Corporation,base,Beginner_Corporation.png
+c0b8869c-ccf8-41cd-b3f4-ebccb5cbcdfd,base:credicor,CrediCor,base,Creditcor.png
+893fcf4b-0334-4be7-8ed0-4c86053a7f3e,base:ecoline,Ecoline,base,Ecoline.png
+8e5a685b-e562-44de-9358-b900b542c425,base:helion,Helion,base,Helion.png
+34866c2b-e6c1-48d7-ba00-bbdca7d59000,base:interplanetary-cinematics,Interplanetary Cinematics,base,Interplanetary _Cinematics.png
+55112e40-779f-4909-ba7c-9e11528101fb,base:inventrix,Inventrix,base,Inventrix.png
+7acf32fe-3e05-455e-91ae-8dc07f976d8c,base:mining-guild,Mining Guild,base,Mining Guild.png
+2627198e-eab2-433f-975f-4e6ebc39d3ff,base:phobolog,PhoboLog,base,PhoboLog.png
+5259d983-660b-4f91-87f2-41fe0deebfed,base:tharsis-republic,Tharsis Republic,base,Tharsis_Republic.png
+12daa156-7509-4197-8899-93fcb072cb6e,base:thorgate,ThorGate,base,Thorgate.png
+d8ca3ed9-1d7e-473b-a8ba-5950193d8d14,base:united-nations-mars-initiative,United Nations Mars Initiative,base,United_Nations_Mars_Initiative.png
+3fc15746-09b1-4a97-b6db-05218a59d778,colonies:aridor,Aridor,colonies,Aridor.png
+3550d6a0-ae79-4215-908b-45cedd9f1783,colonies:arklight,Arklight,colonies,Arklight.png
+3e1d3f5d-242b-4dda-a3ff-a1c2f35ade6c,colonies:polyphemos,Polyphemos,colonies,Polyphemos.png
+56ab4c3f-3c42-4f39-9ce0-ccfda3123c60,colonies:poseidon,Poseidon,colonies,Poseidon.png
+fd3d9069-b257-4134-9c2e-d775354ac2a6,colonies:stormcraft-incorporated,Stormcraft Incorporated,colonies,Stormcraft_Incorporated.png
+b22a4a5a-6c0f-4220-9410-e4c8aa810971,community:aerotech,Aerotech,community,Aerotech.png
+4b668015-2d93-4e03-a207-32589c00362a,community:agricola-inc,Agricola Inc,community,Agricola_Inc.png
+e69e3d61-f8e4-4b8e-8191-e8c00bd36151,community:aristarchus,Aristarchus,community,Aristarchus.png
+9ed89703-a1f5-44d2-a632-366b60ac0573,community:athena,Athena,community,Athena.png
+f62d6b5a-e387-4f0b-ad36-0041d1decd99,community:bentenmaru,Bentenmaru,community,Bentenmaru.png
+6f84f429-737c-4f91-95c5-eea86e2b7a57,community:colonial-one,Colonial One,community,Colonial_One.png
+4f76f6fd-246c-41d0-a5b2-8cdd9484bcf0,community:curiosity-ii,Curiosity II,community,Curiosity_II.png
+bd22d5de-eba2-4193-a065-2e54ee441767,community:eris,Eris,community,Eris.png
+13fa0eca-ff83-40e3-8383-5d4bd2ac9e6e,community:faux-news,Faux News,community,Faux_News.png
+e4f0864a-431c-490b-89c2-6e67e81c8c96,community:hotsprings,Hotsprings,community,Hotsprings.png
+57330110-cbd5-4d6f-bd48-951584a7f83f,community:incite,Incite,community,Incite.png
+2b33f693-4def-4b10-b733-abb8f5063335,community:junk-ventures,Junk Ventures,community,Junk_Ventures.png
+a5f17b9e-cd17-42e6-860e-536fb73ec37d,community:labour-union,Labour Union,community,Labour_Union.png
+e4706c74-64b5-4266-987c-fe13981d6982,community:marabout-shiritori,Marabout Shiritori,community,Marabout_Shiritori.png
+092d41f6-a717-4a61-8a59-fde6fb8a3163,community:mars-coalition,Mars Coalition,community,Mars_Coalition.png
+a7b8ef46-5126-47c1-9141-306116783d6a,community:midas,Midas,community,Midas.png
+e95cf2ba-558a-4a72-9669-e3bec7d6a73c,community:playwrights,Playwrights,community,Playwrights.png
+33d192ae-f5bd-44ed-af0d-e5df1d5e2a5a,community:project-10,Project 10,community,Project_10.png
+a8c8b232-5eee-4b41-9d60-41e4313c5429,community:project-workshop,Project Workshop,community,Project_Workshop.png
+c85c69b8-0117-4fec-8266-23ee4bc4ebec,community:secret-santa-society,Secret Santa Society,community,Secret_Santa_Society.png
+8855cf66-5eef-4f7e-b668-5a260aea08aa,community:spaceways,Spaceways,community,Spaceways.png
+24295cfa-0f8b-4ff8-b253-97a8d7741cfc,community:tempest-inc,Tempest Inc,community,Tempest_Inc.png
+a70b296f-fd08-485b-8577-18313ebef42b,community:united-nations-mission-one,United Nations Mission One,community,United_Nations_Mission_One.png
+11c73ff5-b595-4803-8ada-33936a620ef7,corporate_era:saturn-systems,Saturn Systems,corporate_era,Saturn Systems.png
+fd8bd673-d6d8-4fd6-a670-9ab8b0ad1fd8,corporate_era:teractor,Teractor,corporate_era,Teractor.png
+85c55502-e774-4489-9211-1ca91453210e,moon:crescent-research-association,Crescent Research Association,moon,Crescent_Research_Association.png
+fad640b9-464a-4bdd-a3b0-cb78b791cea0,moon:intragen-sanctuary-headquarters,Intragen Sanctuary Headquarters,moon,Intragen_Sanctuary_Headquarters.png
+35220583-d13f-4b2e-878b-b3a88340cfaf,moon:luna-first-incorporated,Luna First Incorporated,moon,Luna_First_Incorporated.png
+c13cd55d-90d4-4b83-8f42-e296b6a142be,moon:luna-hyperloop-corporation,Luna Hyperloop Corporation,moon,Luna_Hyperloop_Corporation.png
+e5de9cb6-e0a1-4cc7-a993-602256f562d9,moon:luna-trade-federation,Luna Trade Federation,moon,Luna_Trade_Federation.png
+f7e4cb55-3971-48f9-b6a8-8f4b534e2ed0,moon:nanotech-industries,Nanotech Industries,moon,Nanotech_Industries.png
+29f542df-2ccd-4503-bc9f-f5fceb95fce1,moon:tempest-consultancy,Tempest Consultancy,moon,Tempest_Consultancy.png
+0190f351-b4fb-4393-ae74-0acb959837e7,moon:the-archaic-foundation-institute,The Archaic Foundation Institute,moon,The_Archaic_Foundation_Institute.png
+c2557f0e-dc4b-4d38-abf9-a919775cae8d,moon:the-darkside-of-the-moon-syndicate,The Darkside of The Moon Syndicate,moon,The_Darkside_Of_The_Moon_Syndicate.png
+b658e7b4-c53b-458a-9951-a8f4318e7975,moon:the-grand-luna-capital-group,The Grand Luna Capital Group,moon,The_Grand_Luna_Capital_Group.png
+988153ad-7fc1-4cf4-8460-a461e6259225,pathfinders:adhai-high-orbit-constructions,Adhai High Orbit Constructions,pathfinders,Adhai_High_Orbit_Constructions.png
+dd949def-0dda-47fe-a2c2-479a9970feb8,pathfinders:ambient,Ambient,pathfinders,Ambient_Terraforming_Solutions_For_a_Breathable_Future.png
+a9d8eb92-a6ab-4e15-a342-144b21ded687,pathfinders:aurorai,Aurorai,pathfinders,Auror_AI.png
+8bf32cba-b439-45a4-a078-fa0e0831c48c,pathfinders:bio-sol,Bio-Sol,pathfinders,Bio-Sol.png
+3b566cf2-7377-4d48-9dcd-a8c30a12776d,pathfinders:chimera,Chimera,pathfinders,Chimera.png
+b0bbff4e-3142-44e8-9a48-220e83823dbb,pathfinders:collegium-copernicus,Collegium Copernicus,pathfinders,Collegium_Copernicus.png
+506b1402-05ed-4579-99a0-7c796b22853d,pathfinders:gagarin-mobile-base,Gagarin Mobile Base,pathfinders,Gagarian_Mobile_Base.png
+7ff32a8b-0fe4-4f53-8e28-6ee7eea756e4,pathfinders:habitat-marte,Habitat Marte,pathfinders,Habitat_Marte.png
+80418b21-48c4-45e0-8587-fd88bbba986e,pathfinders:mars-direct,Mars Direct,pathfinders,Mars_Direct.png
+544e0f57-9ccc-4ffb-85af-1fab531fc0de,pathfinders:mars-maths,Mars Maths,pathfinders,Mars_Maths.png
+a4c475b4-2653-4d7b-8c88-23f2040441fe,pathfinders:martian-insurance-group,Martian Insurance Group,pathfinders,Martian_Insurance_Group.png
+86441854-cd83-455d-9ea1-ac8d2b2385d7,pathfinders:mind-set-mars,Mind Set Mars,pathfinders,Mind_Set_Mars.png
+1cc5cba0-dcf3-40ec-8583-8745b8097f40,pathfinders:odyssey,Odyssey,pathfinders,Odyssey.png
+aba37e17-2cd1-4efe-a94c-e2d46c0b73b6,pathfinders:polaris,Polaris,pathfinders,Polaris_Terraforming_Solutions_Guiding_Humanity's_Next_Frontier.png
+748beb9f-10ad-4bc4-8e0c-a0704c8ac3cb,pathfinders:ringcom,Ringcom,pathfinders,Ringcom_Terraforming_Solutions_Connecting_a_New_World.png
+5129cd40-5226-4656-ae1b-5c3377c3e651,pathfinders:robin-haulings,Robin Haulings,pathfinders,Robin_Hauling.png
+d3ff508f-6137-492b-978b-72b5b0de19fe,pathfinders:solbank,SolBank,pathfinders,SolBank.png
+bb19659d-9bad-4d7b-8422-5723299f4399,pathfinders:soylent-seedling-systems,Soylent Seedling Systems,pathfinders,Soylent_Seedling_Systems.png
+25a36d02-91ac-4f24-a2f0-ea37ad404429,pathfinders:steelaris,Steelaris,pathfinders,Steelaris_Forging_a_Future_in_Steel_Building_Tomorrow_On_Mars.png
+ab9fdd17-384e-4377-9c5f-425232f6358a,prelude_2:ecotec,EcoTec,prelude_2,EcoTec.png
+8d530ac0-f4dc-4408-af95-7a93435c7c41,prelude_2:kuiper-cooperative,Kuiper Cooperative,prelude_2,Kuiper Cooperative.png
+73a4406f-f1b6-4794-a370-c9f15d135e82,prelude_2:nirgal-enterprises,Nirgal Enterprises,prelude_2,Nirgal_Enterprises.png
+6c0c4481-89d7-4105-9495-a7d0ff060cb8,prelude_2:palladin-shipping,Palladin Shipping,prelude_2,Palladin_Shipping.png
+21add017-e4b2-4aa2-9acc-254ecd2d1249,prelude_2:sagitta-frontier-services,Sagitta Frontier Services,prelude_2,Sagitta_Frontier_Services.png
+65c3688c-1b01-4c17-a173-946e89d7469a,prelude_2:spire,Spire,prelude_2,Spire.png
+516cf109-58d9-443f-a5fb-cda4aa8048ca,prelude_2:tycho-magnetics,Tycho Magnetics,prelude_2,Tycho Magnetics.png
+256450fb-36d8-4145-81ed-9e48d857f005,prelude:cheung-shing-mars,Cheung Shing MARS,prelude,Cheung_Shing_Mars.png
+2c2bec53-7888-4fb2-9407-8e9f165e10dd,prelude:point-luna,Point Luna,prelude,Point Luna.png
+6fb68e2f-e36a-423e-8f05-33c499331b91,prelude:robinson-industries,Robinson Industries,prelude,Robinson_Industries.png
+9fc39439-149c-4b31-ab11-6347b4db02eb,prelude:valley-trust,Valley Trust,prelude,Valley_Trust.png
+b62cd891-a9b8-4cc7-a74c-11848cee27bc,prelude:vitor,Vitor,prelude,Vitor.png
+69b1f1f8-291b-4d6d-a837-153ac6638e85,promo:arcadian-communities,Arcadian Communities,promo,Arcadian Communities.png
+7e13fc83-1964-4ece-a192-43d53f324bb8,promo:astrodrill,AstroDrill,promo,Astrol Drill.png
+e38f1e48-4391-4bdd-a3ee-c5ad7c5e1232,promo:factorum,Factorum,promo,Factorum.png
+65a41527-15d4-4483-b0a8-cd21a74ce694,promo:kuiper-cooperative,Kuiper Cooperative,promo,Kuiper Cooperative.png
+5270b25a-0fa8-4b72-ad0d-7d5bd90fa08e,promo:mons-insurance,Mons Insurance,promo,Mons Insurance.png
+ec9f5c0b-a82f-4b6f-b442-5e2030b27a13,promo:pharmacy-union,Pharmacy Union,promo,Pharmacy Union.png
+b8496f72-b226-4327-ae8e-4cf07d36f9e5,promo:philares,Philares,promo,Philares.png
+5456e7c9-016a-48a5-b985-c016f1e41721,promo:poldertech-dutch,PolderTECH Dutch,promo,PolderTech.png
+4ac52903-ca28-4c00-8476-4c613326299d,promo:recyclon,Recyclon,promo,Recyclon.png
+cf21f203-9acb-45ee-a373-006f929007f4,promo:splice,Splice,promo,Splice.png
+468a69c8-a6cf-42cf-8d98-4b8bea1bd63b,promo:tycho-magnetics,Tycho Magnetics,promo,Tycho Magnetics.png
+bbd4289c-05a3-4b41-8c96-0cd630d380ec,turmoil:lakefront-resorts,Lakefront Resorts,turmoil,Lakefront_Resorts.png
+8a5475f9-6612-44b3-bfb0-454ff77c5bb7,turmoil:pristar,Pristar,turmoil,Pristar.png
+b8e72e1e-11c9-427f-a758-f4ac157f040a,turmoil:septem-tribus,Septem Tribus,turmoil,Septem Tribus.png
+9cd936ed-5788-4021-9152-af79508f1476,turmoil:terralabs-research,TerraLabs Research,turmoil,TerraLabs_Research.png
+380ccc27-3fcb-49fe-9486-a825dfadf463,turmoil:utopia-invest,Utopia Invest,turmoil,Utopia_Invevst.png
+b75b5a5d-7de3-4a27-b294-e38910d32a58,underworld:aeron-genomics,Aeron Genomics,underworld,Aeron_Genomics.png
+2097d899-8cf0-4ec5-9387-c085b836dc0b,underworld:anubis-securities,Anubis Securities,underworld,Anubis_securities.png
+842b957e-359b-45e1-ae84-bfb9766cbb7b,underworld:arborist-collective,Arborist Collective,underworld,Arborist_collective.png
+dfeb2bfb-ce11-4138-8374-06e4aec1ec5b,underworld:demetron-labs,Demetron Labs,underworld,Demetron_labs.png
+80404a9e-0889-4099-adb6-61855ca480f7,underworld:hadesphere,Hadesphere,underworld,Hadesphere.png
+cb1e8f06-9bfe-4963-8f48-628acdb9f152,underworld:hecate-speditions,Hecate Speditions,underworld,Hecate_speditions.png
+47567447-df14-48fa-884c-57c2675c8f24,underworld:henkei-genetics,Henkei Genetics,underworld,Henkei_genetics.png
+9698bf99-30e5-4c25-b07a-66d66a8870be,underworld:jenson-boyle-co,Jenson-Boyle & Co,underworld,Jenson_boyle_and_co.png
+0fd6945c-0e91-4767-9d08-498fa3c67cec,underworld:keplertec,Keplertec,underworld,Keplertec.png
+0c259c9e-923e-4ef7-b135-427fb52f5935,underworld:kingdom-of-tauraro,Kingdom of Tauraro,underworld,Kingdom_of_tauraro.png
+2cd07bac-b27c-4abb-bdf6-542c192c41c4,underworld:voltagon,Voltagon,underworld,Voltagon.png
+8c55dd2d-7ae6-4469-93ef-8a0caa4a9807,venus_next:aphrodite,Aphrodite,venus_next,Aphrodite.png
+30c5e7fb-a633-43ec-bdbe-0d39b6c97569,venus_next:celestic,Celestic,venus_next,Celestic.png
+724afd5e-0ddb-40b5-8852-0df197400187,venus_next:manutech,Manutech,venus_next,Manutech.png
+b05ced6b-5b62-4b7b-be01-db560a911aa2,venus_next:morning-star-inc,Morning Star Inc.,venus_next,Morning Star.png
+1441f81e-3b9c-49cd-ac54-bd4394cf2c42,venus_next:viron,Viron,venus_next,Viron.png

@@ -1,0 +1,122 @@
+corporation_id,corporation_code,display_name,expansion_code,logo_path_or_object,status,object_id,object_size_bytes,sharing
+6c6e3e97-33c9-47e9-818b-3062abc4cd75,ares:athena,Athena,ares,Athena.png,object-present,c20de6a0-1584-4a11-a1a6-6df982882e4f,1462228,shared:ares:athena|community:athena
+dfacfda4-6d7e-4f48-8b70-f54a3589be66,ares:eris,Eris,ares,Eris.png,object-present,cf46e388-30a1-4721-9d9b-f5c774e5e899,1541052,shared:ares:eris|community:eris
+ef2f0a91-ae96-4f1e-870d-7dba8fe27e8e,base:beginner-corporation,Beginner Corporation,base,Beginner_Corporation.png,object-present,332f477b-4ec0-4d22-9fe0-7593ec46a729,955695,exclusive
+c0b8869c-ccf8-41cd-b3f4-ebccb5cbcdfd,base:credicor,CrediCor,base,Creditcor.png,object-present,12df091c-b77b-4f72-ba48-d9d06c0834a5,1535508,exclusive
+893fcf4b-0334-4be7-8ed0-4c86053a7f3e,base:ecoline,Ecoline,base,Ecoline.png,object-present,0f1719a2-dae0-4f65-93ab-04c62ab73ad8,1687403,exclusive
+8e5a685b-e562-44de-9358-b900b542c425,base:helion,Helion,base,Helion.png,object-present,360b8bd2-20a6-4475-b0cf-a62663930cf1,1844524,exclusive
+34866c2b-e6c1-48d7-ba00-bbdca7d59000,base:interplanetary-cinematics,Interplanetary Cinematics,base,Interplanetary _Cinematics.png,object-present,d1d93617-5b36-4a34-9255-f0bd35208346,1765804,exclusive
+55112e40-779f-4909-ba7c-9e11528101fb,base:inventrix,Inventrix,base,Inventrix.png,object-present,bf8bbde2-3cea-460c-94ca-a69b7fbaacaf,1580657,exclusive
+7acf32fe-3e05-455e-91ae-8dc07f976d8c,base:mining-guild,Mining Guild,base,Mining Guild.png,object-present,ea02ab69-c2d1-4893-a4b2-1a967fbd181a,1776736,exclusive
+2627198e-eab2-433f-975f-4e6ebc39d3ff,base:phobolog,PhoboLog,base,PhoboLog.png,object-present,5d105993-40f9-44a0-bef6-55d5054a03c6,1759568,exclusive
+5259d983-660b-4f91-87f2-41fe0deebfed,base:tharsis-republic,Tharsis Republic,base,Tharsis_Republic.png,object-present,95aa6e9a-4c95-44f9-a70e-a7a2cf9f9541,1997702,exclusive
+12daa156-7509-4197-8899-93fcb072cb6e,base:thorgate,ThorGate,base,Thorgate.png,object-present,89ea1df9-79d4-4f8a-8ba9-d416000c4c3b,1730036,exclusive
+d8ca3ed9-1d7e-473b-a8ba-5950193d8d14,base:united-nations-mars-initiative,United Nations Mars Initiative,base,United_Nations_Mars_Initiative.png,object-present,eb0e9026-69da-4ac2-8cfc-c1eca5bd1c54,1769491,exclusive
+3fc15746-09b1-4a97-b6db-05218a59d778,colonies:aridor,Aridor,colonies,Aridor.png,object-present,7ee0ecb7-dca7-4c70-b15c-363163fb17c7,1813886,exclusive
+3550d6a0-ae79-4215-908b-45cedd9f1783,colonies:arklight,Arklight,colonies,Arklight.png,object-present,83a7463d-097e-46f4-a572-ec011d508318,1726291,exclusive
+3e1d3f5d-242b-4dda-a3ff-a1c2f35ade6c,colonies:polyphemos,Polyphemos,colonies,Polyphemos.png,object-present,8c970ccc-373a-465a-b8c0-9c36429bf997,906143,exclusive
+56ab4c3f-3c42-4f39-9ce0-ccfda3123c60,colonies:poseidon,Poseidon,colonies,Poseidon.png,object-present,33f2e3e3-4e10-4bbf-9c1c-f966b631e29c,1689386,exclusive
+fd3d9069-b257-4134-9c2e-d775354ac2a6,colonies:stormcraft-incorporated,Stormcraft Incorporated,colonies,Stormcraft_Incorporated.png,object-present,b627b095-8581-40c3-9eb4-96a1179e2ee9,1814398,exclusive
+b22a4a5a-6c0f-4220-9410-e4c8aa810971,community:aerotech,Aerotech,community,Aerotech.png,object-present,7cc0ca39-9147-48ce-850d-39a2e695a1ef,1140852,exclusive
+4b668015-2d93-4e03-a207-32589c00362a,community:agricola-inc,Agricola Inc,community,Agricola_Inc.png,object-present,85a50e79-712f-4e99-9247-81612aedf3f1,1562701,exclusive
+e69e3d61-f8e4-4b8e-8191-e8c00bd36151,community:aristarchus,Aristarchus,community,Aristarchus.png,object-present,b50ade6c-58f6-4f23-8c11-f45470b5f5c4,1044630,exclusive
+9ed89703-a1f5-44d2-a632-366b60ac0573,community:athena,Athena,community,Athena.png,object-present,c20de6a0-1584-4a11-a1a6-6df982882e4f,1462228,shared:ares:athena|community:athena
+f62d6b5a-e387-4f0b-ad36-0041d1decd99,community:bentenmaru,Bentenmaru,community,Bentenmaru.png,object-present,6fc0d025-e24c-480d-bfb4-30bf795c6afb,944592,exclusive
+6f84f429-737c-4f91-95c5-eea86e2b7a57,community:colonial-one,Colonial One,community,Colonial_One.png,object-present,73a36274-efe9-4076-84db-d34db2285349,948093,exclusive
+4f76f6fd-246c-41d0-a5b2-8cdd9484bcf0,community:curiosity-ii,Curiosity II,community,Curiosity_II.png,object-present,3ff0147d-7302-4061-b5d8-8397d91129e5,1588799,exclusive
+bd22d5de-eba2-4193-a065-2e54ee441767,community:eris,Eris,community,Eris.png,object-present,cf46e388-30a1-4721-9d9b-f5c774e5e899,1541052,shared:ares:eris|community:eris
+13fa0eca-ff83-40e3-8383-5d4bd2ac9e6e,community:faux-news,Faux News,community,Faux_News.png,object-present,aac57dd0-8b9b-4927-b607-12425b840d58,962482,exclusive
+e4f0864a-431c-490b-89c2-6e67e81c8c96,community:hotsprings,Hotsprings,community,Hotsprings.png,object-present,2c18d9fd-4594-49d7-a632-9ef24830bf9e,1008518,exclusive
+57330110-cbd5-4d6f-bd48-951584a7f83f,community:incite,Incite,community,Incite.png,object-present,c73393d0-df52-4a13-a6eb-4fe3316b5223,1431386,exclusive
+2b33f693-4def-4b10-b733-abb8f5063335,community:junk-ventures,Junk Ventures,community,Junk_Ventures.png,object-present,3cb45d78-13e2-4e2e-b65a-d1eb02d3a08b,1817232,exclusive
+a5f17b9e-cd17-42e6-860e-536fb73ec37d,community:labour-union,Labour Union,community,Labour_Union.png,object-present,a19a1750-646c-4829-88d8-05c0ecd18079,955780,exclusive
+e4706c74-64b5-4266-987c-fe13981d6982,community:marabout-shiritori,Marabout Shiritori,community,Marabout_Shiritori.png,object-missing,,,exclusive
+092d41f6-a717-4a61-8a59-fde6fb8a3163,community:mars-coalition,Mars Coalition,community,Mars_Coalition.png,object-present,f934f360-ad3a-4563-a8a6-17f1cae3a134,940585,exclusive
+a7b8ef46-5126-47c1-9141-306116783d6a,community:midas,Midas,community,Midas.png,object-present,047816c6-e88a-48d1-bb4e-d03bea6a0c8e,1626368,exclusive
+e95cf2ba-558a-4a72-9669-e3bec7d6a73c,community:playwrights,Playwrights,community,Playwrights.png,object-present,f19b54a7-56de-47b3-843c-1aaf86fe6081,1462872,exclusive
+33d192ae-f5bd-44ed-af0d-e5df1d5e2a5a,community:project-10,Project 10,community,Project_10.png,object-present,e9a3d812-27d9-4d3b-9259-1be64dc2e46c,904671,exclusive
+a8c8b232-5eee-4b41-9d60-41e4313c5429,community:project-workshop,Project Workshop,community,Project_Workshop.png,object-present,5a374fe1-8dd8-4524-b1d9-feb1eb1f7279,1610701,exclusive
+c85c69b8-0117-4fec-8266-23ee4bc4ebec,community:secret-santa-society,Secret Santa Society,community,Secret_Santa_Society.png,object-present,0cb6cb1d-acf9-483b-9fb7-53d814bff95f,940691,exclusive
+8855cf66-5eef-4f7e-b668-5a260aea08aa,community:spaceways,Spaceways,community,Spaceways.png,object-present,05d00ceb-65e3-4f09-8dc7-43185ba524c3,829372,exclusive
+24295cfa-0f8b-4ff8-b253-97a8d7741cfc,community:tempest-inc,Tempest Inc,community,Tempest_Inc.png,object-present,7784fa97-8fee-4e0e-9bee-7b7413ec0809,914245,exclusive
+a70b296f-fd08-485b-8577-18313ebef42b,community:united-nations-mission-one,United Nations Mission One,community,United_Nations_Mission_One.png,object-present,83c84f00-3115-48cb-a7a1-11aee4f344ce,1600634,exclusive
+11c73ff5-b595-4803-8ada-33936a620ef7,corporate_era:saturn-systems,Saturn Systems,corporate_era,Saturn Systems.png,object-present,6f8d39d5-0298-47ba-ab0e-f5e12b89578c,1412679,exclusive
+fd8bd673-d6d8-4fd6-a670-9ab8b0ad1fd8,corporate_era:teractor,Teractor,corporate_era,Teractor.png,object-present,7088f58f-0230-4f59-b89e-3c596abe4158,1182047,exclusive
+85c55502-e774-4489-9211-1ca91453210e,moon:crescent-research-association,Crescent Research Association,moon,Crescent_Research_Association.png,object-present,a8cdf42e-8f46-4df1-b876-066e9286fe91,1312402,exclusive
+fad640b9-464a-4bdd-a3b0-cb78b791cea0,moon:intragen-sanctuary-headquarters,Intragen Sanctuary Headquarters,moon,Intragen_Sanctuary_Headquarters.png,object-present,2ef459f5-683b-4117-bca2-9c341302440f,1280392,exclusive
+35220583-d13f-4b2e-878b-b3a88340cfaf,moon:luna-first-incorporated,Luna First Incorporated,moon,Luna_First_Incorporated.png,object-present,a1e7fe33-652c-4344-9d29-281be689320b,1447661,exclusive
+c13cd55d-90d4-4b83-8f42-e296b6a142be,moon:luna-hyperloop-corporation,Luna Hyperloop Corporation,moon,Luna_Hyperloop_Corporation.png,object-present,486e341f-679c-44f6-8db9-5e9d720d4b40,1410153,exclusive
+e5de9cb6-e0a1-4cc7-a993-602256f562d9,moon:luna-trade-federation,Luna Trade Federation,moon,Luna_Trade_Federation.png,object-present,a50d8119-d60c-4b4e-ab7c-2e85270751bc,1401228,exclusive
+f7e4cb55-3971-48f9-b6a8-8f4b534e2ed0,moon:nanotech-industries,Nanotech Industries,moon,Nanotech_Industries.png,object-present,6851a405-2398-491b-b63d-b1b947113a26,942307,exclusive
+29f542df-2ccd-4503-bc9f-f5fceb95fce1,moon:tempest-consultancy,Tempest Consultancy,moon,Tempest_Consultancy.png,object-present,508c0a34-cb66-4ae8-a993-c785bfa7b16d,1373176,exclusive
+0190f351-b4fb-4393-ae74-0acb959837e7,moon:the-archaic-foundation-institute,The Archaic Foundation Institute,moon,The_Archaic_Foundation_Institute.png,object-present,c164c9d5-5931-49ba-b505-67ed07bef8bd,1330963,exclusive
+c2557f0e-dc4b-4d38-abf9-a919775cae8d,moon:the-darkside-of-the-moon-syndicate,The Darkside of The Moon Syndicate,moon,The_Darkside_Of_The_Moon_Syndicate.png,object-present,c10c92f2-3b89-4462-9060-fda391a540f1,1331343,exclusive
+b658e7b4-c53b-458a-9951-a8f4318e7975,moon:the-grand-luna-capital-group,The Grand Luna Capital Group,moon,The_Grand_Luna_Capital_Group.png,object-present,a0d5414d-918a-4ad4-90d8-bad24a080c68,1389863,exclusive
+988153ad-7fc1-4cf4-8460-a461e6259225,pathfinders:adhai-high-orbit-constructions,Adhai High Orbit Constructions,pathfinders,Adhai_High_Orbit_Constructions.png,object-present,98803983-7105-44f8-b9a6-6a49a3b29c96,1392203,exclusive
+dd949def-0dda-47fe-a2c2-479a9970feb8,pathfinders:ambient,Ambient,pathfinders,Ambient_Terraforming_Solutions_For_a_Breathable_Future.png,object-present,cb093e5c-97aa-4cb8-8f81-14a5e2603a01,1281357,exclusive
+a9d8eb92-a6ab-4e15-a342-144b21ded687,pathfinders:aurorai,Aurorai,pathfinders,Auror_AI.png,object-present,1f5ca696-52eb-4232-bd7f-1f98323a8805,1297883,exclusive
+8bf32cba-b439-45a4-a078-fa0e0831c48c,pathfinders:bio-sol,Bio-Sol,pathfinders,Bio-Sol.png,object-present,ea9183a1-7cbf-4d3a-a6b7-2a1b718330b9,1464396,exclusive
+3b566cf2-7377-4d48-9dcd-a8c30a12776d,pathfinders:chimera,Chimera,pathfinders,Chimera.png,object-present,e31189ce-947e-4003-b27e-75b272d41a10,1443038,exclusive
+b0bbff4e-3142-44e8-9a48-220e83823dbb,pathfinders:collegium-copernicus,Collegium Copernicus,pathfinders,Collegium_Copernicus.png,object-present,f85604ca-4145-4931-a08d-754cf8e88a9a,1313597,exclusive
+506b1402-05ed-4579-99a0-7c796b22853d,pathfinders:gagarin-mobile-base,Gagarin Mobile Base,pathfinders,Gagarian_Mobile_Base.png,object-present,ecc1b50c-bc5c-49a6-8381-92c58c094aef,1568856,exclusive
+7ff32a8b-0fe4-4f53-8e28-6ee7eea756e4,pathfinders:habitat-marte,Habitat Marte,pathfinders,Habitat_Marte.png,object-present,8684d14c-4542-4ce7-988d-19286f14f4d6,1407644,exclusive
+80418b21-48c4-45e0-8587-fd88bbba986e,pathfinders:mars-direct,Mars Direct,pathfinders,Mars_Direct.png,object-present,e15ae481-8c8c-46c6-aa53-4d2fb401f008,1231719,exclusive
+544e0f57-9ccc-4ffb-85af-1fab531fc0de,pathfinders:mars-maths,Mars Maths,pathfinders,Mars_Maths.png,object-present,f065bc49-5bfe-45bb-be3e-24cf4bee114b,1325764,exclusive
+a4c475b4-2653-4d7b-8c88-23f2040441fe,pathfinders:martian-insurance-group,Martian Insurance Group,pathfinders,Martian_Insurance_Group.png,object-present,0bda7fd4-b764-4d1d-bc1d-1501e41a7b87,1412204,exclusive
+86441854-cd83-455d-9ea1-ac8d2b2385d7,pathfinders:mind-set-mars,Mind Set Mars,pathfinders,Mind_Set_Mars.png,object-present,f0636e6a-bb01-441f-b5a7-66f23a9372ab,1291891,exclusive
+1cc5cba0-dcf3-40ec-8583-8745b8097f40,pathfinders:odyssey,Odyssey,pathfinders,Odyssey.png,object-present,1375f8c7-b77c-402e-b4c5-09e354943d92,1310624,exclusive
+aba37e17-2cd1-4efe-a94c-e2d46c0b73b6,pathfinders:polaris,Polaris,pathfinders,Polaris_Terraforming_Solutions_Guiding_Humanity's_Next_Frontier.png,object-present,235e240b-67a2-4451-b369-81dc2c1ef172,1159751,exclusive
+748beb9f-10ad-4bc4-8e0c-a0704c8ac3cb,pathfinders:ringcom,Ringcom,pathfinders,Ringcom_Terraforming_Solutions_Connecting_a_New_World.png,object-present,46dabfcb-89ee-4554-8b11-34b2f735052b,1098288,exclusive
+5129cd40-5226-4656-ae1b-5c3377c3e651,pathfinders:robin-haulings,Robin Haulings,pathfinders,Robin_Hauling.png,object-present,e631434a-8cb1-4f52-90a1-d38501aa322d,1266444,exclusive
+d3ff508f-6137-492b-978b-72b5b0de19fe,pathfinders:solbank,SolBank,pathfinders,SolBank.png,object-present,8f9a10aa-4b85-449f-afad-f32a8f540368,1254905,exclusive
+bb19659d-9bad-4d7b-8422-5723299f4399,pathfinders:soylent-seedling-systems,Soylent Seedling Systems,pathfinders,Soylent_Seedling_Systems.png,object-present,5c3f0e78-b5d0-46fa-b3ae-8776f4abc3e1,1268831,exclusive
+25a36d02-91ac-4f24-a2f0-ea37ad404429,pathfinders:steelaris,Steelaris,pathfinders,Steelaris_Forging_a_Future_in_Steel_Building_Tomorrow_On_Mars.png,object-present,7f98b904-378d-42c7-9f0a-ce5c84bfa290,1269462,exclusive
+ab9fdd17-384e-4377-9c5f-425232f6358a,prelude_2:ecotec,EcoTec,prelude_2,EcoTec.png,object-present,66c6a320-0852-4c21-8855-b7381ab095b2,1019805,exclusive
+8d530ac0-f4dc-4408-af95-7a93435c7c41,prelude_2:kuiper-cooperative,Kuiper Cooperative,prelude_2,Kuiper Cooperative.png,object-present,92ff6077-9f7a-44d2-8626-c3419c5554fb,1284060,shared:prelude_2:kuiper-cooperative|promo:kuiper-cooperative
+73a4406f-f1b6-4794-a370-c9f15d135e82,prelude_2:nirgal-enterprises,Nirgal Enterprises,prelude_2,Nirgal_Enterprises.png,object-present,e8d9bc62-1b32-4f83-97ca-ea9369597b69,1446218,exclusive
+6c0c4481-89d7-4105-9495-a7d0ff060cb8,prelude_2:palladin-shipping,Palladin Shipping,prelude_2,Palladin_Shipping.png,object-present,0c309329-4a41-4194-8e7f-8fc282b6c5b4,1321949,exclusive
+21add017-e4b2-4aa2-9acc-254ecd2d1249,prelude_2:sagitta-frontier-services,Sagitta Frontier Services,prelude_2,Sagitta_Frontier_Services.png,object-present,66dd556b-ce45-4528-85ce-ce5f96bf12fd,1766499,exclusive
+65c3688c-1b01-4c17-a173-946e89d7469a,prelude_2:spire,Spire,prelude_2,Spire.png,object-present,75f5d5fe-281b-42d1-96da-08e952fcbe6e,970601,exclusive
+516cf109-58d9-443f-a5fb-cda4aa8048ca,prelude_2:tycho-magnetics,Tycho Magnetics,prelude_2,Tycho Magnetics.png,object-present,b7a9dde7-18df-4d25-a7e6-2947495a99f9,1792751,shared:prelude_2:tycho-magnetics|promo:tycho-magnetics
+256450fb-36d8-4145-81ed-9e48d857f005,prelude:cheung-shing-mars,Cheung Shing MARS,prelude,Cheung_Shing_Mars.png,object-present,8c3566e8-67f9-4b08-9eeb-dafaf46738fc,1796924,exclusive
+2c2bec53-7888-4fb2-9407-8e9f165e10dd,prelude:point-luna,Point Luna,prelude,Point Luna.png,object-present,f6eb3c88-ed2c-432f-952a-5989a6dcda35,1648793,exclusive
+6fb68e2f-e36a-423e-8f05-33c499331b91,prelude:robinson-industries,Robinson Industries,prelude,Robinson_Industries.png,object-present,84d063d1-0732-4564-870a-31ff91981890,891931,exclusive
+9fc39439-149c-4b31-ab11-6347b4db02eb,prelude:valley-trust,Valley Trust,prelude,Valley_Trust.png,object-present,414b3115-589c-41bf-8998-af9a57f62d6d,1069100,exclusive
+b62cd891-a9b8-4cc7-a74c-11848cee27bc,prelude:vitor,Vitor,prelude,Vitor.png,object-present,ad6b4625-273f-44e9-8f4a-124bb7c4cae9,1010443,exclusive
+69b1f1f8-291b-4d6d-a837-153ac6638e85,promo:arcadian-communities,Arcadian Communities,promo,Arcadian Communities.png,object-present,37ae196e-8e81-46dd-a576-7e5ded98ec70,1465532,exclusive
+7e13fc83-1964-4ece-a192-43d53f324bb8,promo:astrodrill,AstroDrill,promo,Astrol Drill.png,object-present,bcecdc16-60b1-44b7-b1d1-64c4d7cf1a18,1306315,exclusive
+e38f1e48-4391-4bdd-a3ee-c5ad7c5e1232,promo:factorum,Factorum,promo,Factorum.png,object-present,c04dcf99-1a65-40a1-8eae-8b861af97c48,1250052,exclusive
+65a41527-15d4-4483-b0a8-cd21a74ce694,promo:kuiper-cooperative,Kuiper Cooperative,promo,Kuiper Cooperative.png,object-present,92ff6077-9f7a-44d2-8626-c3419c5554fb,1284060,shared:prelude_2:kuiper-cooperative|promo:kuiper-cooperative
+5270b25a-0fa8-4b72-ad0d-7d5bd90fa08e,promo:mons-insurance,Mons Insurance,promo,Mons Insurance.png,object-present,28d6b447-5d5c-4a97-91e7-b18b80d37446,1238052,exclusive
+ec9f5c0b-a82f-4b6f-b442-5e2030b27a13,promo:pharmacy-union,Pharmacy Union,promo,Pharmacy Union.png,object-present,bb6b9aef-1f35-4107-af22-793bc8b0c6ea,1422948,exclusive
+b8496f72-b226-4327-ae8e-4cf07d36f9e5,promo:philares,Philares,promo,Philares.png,object-present,a1223bb8-cd90-4af4-ab9f-2179e190c8b7,1383569,exclusive
+5456e7c9-016a-48a5-b985-c016f1e41721,promo:poldertech-dutch,PolderTECH Dutch,promo,PolderTech.png,object-present,5781a19b-353f-44f9-af88-c19e6ca44245,1791641,exclusive
+4ac52903-ca28-4c00-8476-4c613326299d,promo:recyclon,Recyclon,promo,Recyclon.png,object-present,90468e1b-2c17-4742-bd6b-1bba20784a9c,1763045,exclusive
+cf21f203-9acb-45ee-a373-006f929007f4,promo:splice,Splice,promo,Splice.png,object-present,efa90e3d-4b0e-4911-a4be-3abec16082ae,1852380,exclusive
+468a69c8-a6cf-42cf-8d98-4b8bea1bd63b,promo:tycho-magnetics,Tycho Magnetics,promo,Tycho Magnetics.png,object-present,b7a9dde7-18df-4d25-a7e6-2947495a99f9,1792751,shared:prelude_2:tycho-magnetics|promo:tycho-magnetics
+bbd4289c-05a3-4b41-8c96-0cd630d380ec,turmoil:lakefront-resorts,Lakefront Resorts,turmoil,Lakefront_Resorts.png,object-present,c2385d64-4e10-4828-944c-54da2d53420f,1544296,exclusive
+8a5475f9-6612-44b3-bfb0-454ff77c5bb7,turmoil:pristar,Pristar,turmoil,Pristar.png,object-present,5bb54b80-5f09-407b-acb0-6dc49e96e3a5,1578487,exclusive
+b8e72e1e-11c9-427f-a758-f4ac157f040a,turmoil:septem-tribus,Septem Tribus,turmoil,Septem Tribus.png,object-present,007f29c6-3ba1-421e-9bbb-8ed0ab0771cb,1810746,exclusive
+9cd936ed-5788-4021-9152-af79508f1476,turmoil:terralabs-research,TerraLabs Research,turmoil,TerraLabs_Research.png,object-present,f832407b-9c8b-4a94-a36b-70358f955d92,1607999,exclusive
+380ccc27-3fcb-49fe-9486-a825dfadf463,turmoil:utopia-invest,Utopia Invest,turmoil,Utopia_Invevst.png,object-present,3b8a8f23-c9a7-42de-82dd-9ba274735392,1463980,exclusive
+b75b5a5d-7de3-4a27-b294-e38910d32a58,underworld:aeron-genomics,Aeron Genomics,underworld,Aeron_Genomics.png,object-present,eed3ce45-d715-493f-8f11-4a62cacf92b2,1281108,exclusive
+2097d899-8cf0-4ec5-9387-c085b836dc0b,underworld:anubis-securities,Anubis Securities,underworld,Anubis_securities.png,object-present,b43dc73e-f244-474a-a0f2-e17e297c0133,676668,exclusive
+842b957e-359b-45e1-ae84-bfb9766cbb7b,underworld:arborist-collective,Arborist Collective,underworld,Arborist_collective.png,object-present,9a16ff8b-55bb-4cdc-8782-0475cf456fba,922819,exclusive
+dfeb2bfb-ce11-4138-8374-06e4aec1ec5b,underworld:demetron-labs,Demetron Labs,underworld,Demetron_labs.png,object-present,9cdbff54-044b-423d-b1c2-efef3d521d90,562804,exclusive
+80404a9e-0889-4099-adb6-61855ca480f7,underworld:hadesphere,Hadesphere,underworld,Hadesphere.png,object-present,06e4fb61-9559-483c-92be-693cf01a5958,585866,exclusive
+cb1e8f06-9bfe-4963-8f48-628acdb9f152,underworld:hecate-speditions,Hecate Speditions,underworld,Hecate_speditions.png,object-present,ac474d21-34ed-4629-a67e-989af86d6692,550066,exclusive
+47567447-df14-48fa-884c-57c2675c8f24,underworld:henkei-genetics,Henkei Genetics,underworld,Henkei_genetics.png,object-present,9d6699ad-c287-455c-aa71-654694a733cf,505364,exclusive
+9698bf99-30e5-4c25-b07a-66d66a8870be,underworld:jenson-boyle-co,Jenson-Boyle & Co,underworld,Jenson_boyle_and_co.png,object-present,7c12c841-3249-4f5f-81c2-fc46f11d2182,373840,exclusive
+0fd6945c-0e91-4767-9d08-498fa3c67cec,underworld:keplertec,Keplertec,underworld,Keplertec.png,object-present,93e12ced-6c54-4d41-b741-f39290608c2b,591119,exclusive
+0c259c9e-923e-4ef7-b135-427fb52f5935,underworld:kingdom-of-tauraro,Kingdom of Tauraro,underworld,Kingdom_of_tauraro.png,object-present,d4deb6e1-7c2c-4357-90cb-172adc8ec2cd,543782,exclusive
+2cd07bac-b27c-4abb-bdf6-542c192c41c4,underworld:voltagon,Voltagon,underworld,Voltagon.png,object-present,c1f8cfd2-d915-4917-9ba1-490fa54232c5,455265,exclusive
+8c55dd2d-7ae6-4469-93ef-8a0caa4a9807,venus_next:aphrodite,Aphrodite,venus_next,Aphrodite.png,object-present,5012403e-2aec-4dc8-b0c5-29d83623ce15,1614513,exclusive
+30c5e7fb-a633-43ec-bdbe-0d39b6c97569,venus_next:celestic,Celestic,venus_next,Celestic.png,object-present,a472fb33-ebc4-4a18-92af-c0eca23bfa75,1679256,exclusive
+724afd5e-0ddb-40b5-8852-0df197400187,venus_next:manutech,Manutech,venus_next,Manutech.png,object-present,cb3242ec-a6b4-42cc-8011-5b682d493c31,1800475,exclusive
+b05ced6b-5b62-4b7b-be01-db560a911aa2,venus_next:morning-star-inc,Morning Star Inc.,venus_next,Morning Star.png,object-present,d3afde4c-883d-4718-b3a0-124485a165d5,1610995,exclusive
+1441f81e-3b9c-49cd-ac54-bd4394cf2c42,venus_next:viron,Viron,venus_next,Viron.png,object-present,90dd54a7-f5f8-4b03-b856-0f15c8210d1c,1847828,exclusive
+,,,,Corporate Era.png,object-unreferenced,86338966-77c1-40a0-acdd-58074008c47e,1474925,unreferenced
+,,,,Corporation Graph.png,object-unreferenced,3db51ac9-b10f-4f84-b65d-897944d88df7,483408,unreferenced
+,,,,Marabout.png,object-unreferenced,8f18cc02-3ac2-4a73-989b-2d0ff17a0d22,989671,unreferenced
+,,,,Nanotec_Industries.png,object-unreferenced,c13a3ebd-db7b-43ad-98e4-ebfe70c229b0,1259662,unreferenced
+,,,,Slice.png,object-unreferenced,3ba98d4e-58c6-4b8f-97e1-853e07c6024a,1852380,unreferenced

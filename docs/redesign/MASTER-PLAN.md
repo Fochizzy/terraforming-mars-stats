@@ -635,6 +635,23 @@ The asset inventory should map verified corporation identity to:
 
 Do not guess mapping values.
 
+### Production asset state (replaced 2026-07-17)
+
+A separately authorized task replaced every corporation logo. Durable outcomes:
+
+- All 116 corporations resolve through `corporations.logo_path` to uniform
+  **800×800** content-addressed tiles (`corporation-logo-<sha256>.png`) in
+  `tm-corporation-logos`; 112 distinct objects, with Athena/Eris/Kuiper
+  Cooperative/Tycho Magnetics intentionally shared across their two editions.
+- Each tile is flattened onto **white**, **black**, or **orange `#f06a32`**
+  (`--tm-tr`), chosen per logo for contrast against the app surface `#141a22`.
+- Content-addressed naming is the standing convention for refreshing this
+  long-cached public bucket without overwriting prior objects.
+- Prior objects are retained; a `logo_path` revert is the rollback path.
+
+See `DECISIONS.md` and
+`docs/agent-handoffs/CORPORATION-LOGO-ASSET-REPLACEMENT-AND-REMAPPING.md`.
+
 ---
 
 ## 13. Data Integrity and Missing-Data Policy

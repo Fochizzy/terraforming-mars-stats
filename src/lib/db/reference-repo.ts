@@ -22,8 +22,10 @@ export type PromoSetOption = {
 
 export type CorporationOption = {
   id: string;
+  code: string;
   name: string;
   expansionCode: string;
+  logoPath: string | null;
   promoSetSlug: string | null;
 };
 
@@ -128,7 +130,7 @@ export async function listCorporations(): Promise<CorporationOption[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('corporations')
-    .select('id, name, expansion_code')
+    .select('id, code, name, expansion_code, logo_path')
     .order('name');
 
   if (error) {
@@ -137,8 +139,10 @@ export async function listCorporations(): Promise<CorporationOption[]> {
 
   return data.map((corporation) => ({
     id: corporation.id,
+    code: corporation.code,
     name: corporation.name,
     expansionCode: corporation.expansion_code,
+    logoPath: corporation.logo_path,
     promoSetSlug: null,
   }));
 }

@@ -372,3 +372,31 @@ Requirements:
 - Do not repeat the corporation name visually when the approved logo already
   displays it clearly and legibly.
 
+## Corporation logo asset replacement and presentation
+
+Approved on 2026-07-17 as a separately authorized production task executed
+between Phase 2 Step 2.5 and Step 2.6 (it did not begin Step 2.6).
+
+- Corporation logos are stored as **uniform 800×800 tiles** on the
+  `tm-corporation-logos` bucket: content trimmed, scaled to fit with a
+  consistent margin, centered, and flattened onto a solid background.
+- Each logo is placed on **white `#ffffff`**, **black `#000000`**, or **orange
+  `#f06a32`** (the app `--tm-tr` accent), chosen per logo for readability against
+  the app surface `#141a22`. Backgrounds prevent dark-on-dark and light-on-light
+  wash-out; the orange is a real theme token, not an arbitrary color.
+- Objects are **content-addressed** (`corporation-logo-<sha256>.png`) so refreshed
+  art busts the bucket's one-year cache without overwriting prior objects.
+- Stable identity is `corporations.id` + `code`; a source filename, display name,
+  prior `logo_path`, object name, or URL never selects a corporation. Near-miss
+  and replacement art are matched to a corporation only by verified identity
+  (embedded wordmark review plus explicit user adjudication), never by filename.
+- The four cross-edition logos that share one object (Athena, Eris, Kuiper
+  Cooperative, Tycho Magnetics) **remain shared** — both corporation records in
+  each pair point to one tile.
+- Prior objects are retained (no deletion) so `logo_path` can be reverted to fully
+  roll back. `community:marabout-shiritori`'s previously-missing object is now
+  resolved.
+- This task replaced only `logo_path` and Storage objects in
+  `tm-corporation-logos`; no corporation identity field, schema, RLS policy,
+  bucket configuration, or unrelated asset changed, and nothing was deployed.
+

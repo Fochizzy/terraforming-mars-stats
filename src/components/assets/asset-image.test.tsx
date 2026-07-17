@@ -133,4 +133,27 @@ describe('AssetImage', () => {
     expect(fallback).not.toHaveAttribute('role');
     expect(wrapper).not.toHaveAttribute('tabindex');
   });
+
+  it('supports an accessible corporation logo-only control without relying on embedded image text', () => {
+    const asset = resolveCorporationLogoAsset(
+      {
+        corporationId: 'base:credicor',
+        decorative: true,
+        logoPath: 'Creditcor.png',
+        name: 'CrediCor',
+      },
+      { supabaseUrl },
+    );
+
+    render(
+      <button aria-label="Select CrediCor" type="button">
+        <AssetImage asset={asset} height={48} width={48} />
+      </button>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Select CrediCor' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
 });
