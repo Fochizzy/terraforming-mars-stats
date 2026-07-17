@@ -927,3 +927,36 @@ future asset implementation or cleanup decisions.
   hashes where available; not every remote object received visual inspection.
 - No baseline tests, lint, build, migration, bucket change, or application edit was
   performed. Baseline Validation Review remains Step 0.5.
+
+## Confirmed corporation logo mapping
+
+Approved corporation logos contain the corporation name within the artwork.
+A separate visible corporation-name label is not required when the logo is
+large enough for that embedded name to remain clearly legible.
+
+A visible text label is still required when:
+
+- the logo is rendered too small for its embedded name to be read reliably
+- the logo is missing or fails to load
+- the context requires a compact textual identity
+- accessibility or interaction requirements need additional visible context
+
+All logo-only interactive controls must retain an accessible name containing
+the corporation name.
+
+| Corporation ID | Canonical slug | Display name | Storage bucket | Asset path | Width | Height | Transparent | Name embedded | Minimum logo-only size | Mapping status |
+|---|---|---|---|---|---:|---:|---|---|---:|---|
+| _Add confirmed mapping_ |  |  |  |  |  |  |  | Yes |  | Pending |
+
+Mapping-status values:
+
+- Confirmed
+- Pending
+- Missing
+- Ambiguous
+- Replacement required
+
+Do not guess corporation IDs, slugs, bucket names, paths, dimensions, or
+minimum readable sizes. Add them only after verification.
+
+| corporation-id | canonical-slug | Corporation Name | bucket-name | corporations/file.png | 800 | 400 | Yes | Yes | 96px | Confirmed |

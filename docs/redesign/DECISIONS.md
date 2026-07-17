@@ -245,3 +245,31 @@ Step 2.0 does not decide:
 
 These questions are blockers for the specific later substeps that require them,
 not permission to resolve them by copying current UI or SQL behavior.
+
+## Corporation logo identification
+
+Approved corporation logos contain the corporation name as part of the
+artwork.
+
+When an approved corporation logo is rendered at a size where its embedded
+name remains clearly legible, the interface does not need to repeat the
+corporation name as adjacent visible text.
+
+Requirements:
+
+- Resolve corporation logos using the canonical corporation ID or canonical
+  slug.
+- An informative standalone logo must use the corporation name as its alt
+  text.
+- A logo displayed beside a visible corporation name is decorative and must
+  use empty alt text.
+- Interactive logo-only controls must have an accessible name containing the
+  corporation name.
+- Missing or failed logos must fall back to the corporation name or an
+  approved textual abbreviation.
+- Keep a visible text label in compact contexts where the name inside the logo
+  is too small to read reliably.
+- Do not rely on embedded image text for screen-reader accessibility.
+- Do not repeat the corporation name visually when the approved logo already
+  displays it clearly and legibly.
+
