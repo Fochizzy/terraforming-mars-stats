@@ -134,6 +134,19 @@ describe('validateAnalyticsMetricDefinition', () => {
     );
   });
 
+  it('allows a non-rate per-observation value without reclassifying it as a rate', () => {
+    expect(
+      validateAnalyticsMetricDefinition({
+        ...baseDefinition,
+        valueKind: 'count',
+        unit: { kind: 'count' },
+        aggregationKind: 'per-observation-value',
+      }),
+    ).not.toContainEqual(
+      expect.objectContaining({ code: 'rate-aggregation-on-non-rate-value' }),
+    );
+  });
+
   it('validates metric-specific minimum-sample policies', () => {
     expect(
       validateAnalyticsMetricDefinition({

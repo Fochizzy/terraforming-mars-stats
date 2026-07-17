@@ -4,9 +4,10 @@
 
 Steps 2.0 — Analytics Foundation Specification and Acceptance Criteria, 2.1 —
 Analytics Scope and Capability Model, 2.2 — Shared Filter and URL-State
-Contracts, and 2.3 — Metric, Sample, Coverage, and Eligibility Contracts —
-were completed on 2026-07-17. Steps 2.4 through 2.6 are specified but
-unstarted and each requires a separate explicit assignment.
+Contracts, 2.3 — Metric, Sample, Coverage, and Eligibility Contracts, and 2.4
+— Canonical Analytics Definitions and Calculation Utilities — were completed on
+2026-07-17. Steps 2.5 and 2.6 are specified but unstarted and each requires a
+separate explicit assignment.
 
 Phase 2 is a contract and calculation-foundation phase. It does not migrate a
 production destination page, change navigation, introduce a production route,
@@ -90,7 +91,7 @@ provide an explicit adapter and tests; it must not silently reinterpret a Phase
 | 2.1 | Analytics Scope and Capability Model | Typed scope, subject, dataset, capability, evidence, and coverage contracts | Completed |
 | 2.2 | Shared Filter and URL-State Contracts | Typed filters, normalization, canonical URL encoding, restoration, compatibility, and reset behavior | Completed |
 | 2.3 | Metric, Sample, Coverage, and Eligibility Contracts | Shared metric result, denominator, sample, coverage, eligibility, and exclusion contracts | Completed |
-| 2.4 | Canonical Analytics Definitions and Calculation Utilities | Centralized, versioned, tested utilities for approved formulas only | Unstarted |
+| 2.4 | Canonical Analytics Definitions and Calculation Utilities | Centralized, versioned, tested utilities for approved formulas only | Completed |
 | 2.5 | Analytics Repository and Query Contracts | Typed query inputs, capability-aware outputs, batching, and error/partial behavior | Unstarted |
 | 2.6 | Analytics Foundation Integration Validation | Cross-contract tests and proof that Phase 1 foundations consume Phase 2 results | Unstarted |
 
@@ -682,6 +683,13 @@ averages.
 **Purpose:** implement only approved definitions in centralized, versioned, pure
 calculation utilities and remove duplicated helpers only after consumer parity.
 
+**Completion:** the approved recorded card-acquisition fact definitions, four
+card-acquisition rate relationships with distinct ratio-of-totals and
+median-per-player-game summaries, and the sole-winner win-point-differential
+rule are implemented under `src/lib/analytics/`. Tied-first results remain
+indeterminate with no numeric result. No legacy formula consumer was migrated,
+and no repository, SQL, schema, page, dependency, or Supabase work occurred.
+
 **Prerequisites:** Steps 2.1–2.3 committed; explicit Step 2.4 formula list in the
 assignment; every listed formula approved in `DECISIONS.md`; unresolved formulas
 excluded.
@@ -913,7 +921,7 @@ own handoffs and commits. Phase 2 completion does not itself authorize Phase 3.
 
 ## Approved next action
 
-Begin Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
-only when explicitly assigned with an approved formula list. Do not begin
+Begin Step 2.5 — Analytics Repository and Query Contracts only when explicitly
+assigned with a repository slice. Do not begin
 repository changes, schema work, production page integration, navigation, route
 migration, deployment, or Supabase mutation as part of that assignment.

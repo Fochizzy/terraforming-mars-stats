@@ -260,6 +260,19 @@ The complete contract and scope matrix are documented in
 - Tie, missing operand, zero denominator, partial data, exclusions, and stable
   tie-breaking are explicit parts of every applicable formula contract.
 
+## Phase 2 canonical calculation versioning
+
+- Step 2.4 registers the approved calculation meanings at formula version `1`
+  with stable metric IDs and codes; display copy remains outside identity.
+- A semantic formula change requires a new version. It must not silently
+  reinterpret an existing metric ID/version pair.
+- The approved card-acquisition rate definitions use exact raw values and retain
+  sample, eligibility, coverage, and denominator context. Formatting and
+  rounding are presentation responsibilities, not calculation behavior.
+- The sole-winner Win Point Differential implementation is winner score minus
+  highest non-winning score. Tied-first remains indeterminate with no numeric
+  result until the unresolved policy receives separate approval.
+
 ## Phase 2 schema, page, and completion boundaries
 
 - No database schema, migration, view, RPC, backfill, Supabase data, or Storage

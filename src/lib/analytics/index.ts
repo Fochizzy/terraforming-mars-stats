@@ -342,3 +342,40 @@ export {
   type LoadingAnalyticsMetricResult,
   type ReadyAnalyticsMetricResult,
 } from './metric-result';
+
+export {
+  CANONICAL_ANALYTICS_DEFINITIONS,
+  CANONICAL_ANALYTICS_FORMULA_VERSION,
+  CANONICAL_RATE_AGGREGATION_CODES,
+  CARD_ACQUISITION_RATE_FORMULA_CODES,
+  canonicalAnalyticsCalculationVersion,
+  getCanonicalAnalyticsDefinition,
+  getCanonicalCardAcquisitionRateDefinition,
+  validateCanonicalAnalyticsDefinitions,
+  type CanonicalAnalyticsFormula,
+  type CanonicalAnalyticsMetricDefinition,
+  type CanonicalRateAggregationCode,
+  type CardAcquisitionRateFormulaCode,
+} from './canonical-definitions';
+
+export {
+  aggregateEndHandCarryover,
+  aggregateHandUtilization,
+  aggregatePurchaseConversion,
+  aggregatePurchasedHandShare,
+  calculateEndHandCarryover,
+  calculateHandUtilization,
+  calculatePurchaseConversion,
+  calculatePurchasedHandShare,
+  calculateWinPointDifferential,
+  type CardAcquisitionRateAggregate,
+  type CardAcquisitionRateAggregateInput,
+  type CardAcquisitionRateEvaluation,
+  type CardAcquisitionRateInput,
+  type EndHandCarryoverInput,
+  type HandUtilizationInput,
+  type PurchaseConversionInput,
+  type PurchasedHandShareInput,
+  type WinPointDifferentialEvaluation,
+  type WinPointDifferentialInput,
+} from './calculations';

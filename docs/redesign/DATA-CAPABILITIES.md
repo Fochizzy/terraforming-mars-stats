@@ -698,6 +698,13 @@ and minimum-sample state. The current repository and UI heuristics listed above
 remain deferred migration work; Step 2.3 did not refactor existing queries,
 schema, migrations, or production pages.
 
+Phase 2, Step 2.4 adds pure versioned definitions and calculation utilities for
+the approved card-acquisition rates and sole-winner win-point differential. It
+does not make card-acquisition facts historically available: until an authorized
+repository can supply recorded source facts and their exact coverage, those
+rates remain capability-unavailable or non-exact. The tied-first numeric
+win-point-differential policy remains unresolved.
+
 ## 10. Authorization and group-scoping risks
 
 - Core and analytics access is group-scoped through membership and shared

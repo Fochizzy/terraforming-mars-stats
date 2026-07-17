@@ -192,6 +192,8 @@ Completed:
 - Step 2.0 — Analytics Foundation Specification and Acceptance Criteria
 - Step 2.1 — Analytics Scope and Capability Model
 - Step 2.2 — Shared Filter and URL-State Contracts
+- Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
+- Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
 
 Phase 2 planning commit:
 
@@ -205,7 +207,8 @@ Step 2.1 foundation commit:
 f3800146d
 ```
 
-The Step 2.3 completion hash is recorded in its completion report and handoff.
+The Step 2.3 and Step 2.4 completion hashes are recorded in their completion
+reports and handoffs.
 
 #### Corporation Logo Policy
 
@@ -222,37 +225,34 @@ Commit:
 
 ### Most recently completed work
 
-#### Phase 2, Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
+#### Phase 2, Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
 
 Durable outcome:
 
-- stable metric identity and definition metadata separate from display copy
-- five metric result states: loading, load-error, capability-unavailable,
-  insufficient-evidence, and ready
-- ready results preserve observed zero, nonzero, missing, unavailable, and
-  partial Phase 1 metric values without coercion
-- sample ledgers distinguish candidate, eligible, included, and excluded
-  observations with structured exclusion reasons
-- denominator and minimum-sample contracts distinguish absent, met, not-met,
-  cannot-evaluate, and insufficient-evidence states
-- coverage evaluation distinguishes measured complete, partial, none,
-  no-eligible-records, invalid, unknown, and capability-unavailable states
-- eligibility contracts distinguish eligible, ineligible, indeterminate,
-  unavailable, and not-applicable states with typed reasons
+- canonical, versioned definitions for five distinct recorded card-acquisition
+  facts and four approved card-acquisition rate relationships
+- separately labeled ratio-of-totals and median-per-player-game utilities that
+  preserve the same reconciled player-game sample, eligibility, and coverage
+- non-coercing raw `MetricValue` calculation outputs, including explicit zero,
+  missing, unavailable, and partial aggregate totals
+- a sole-winner Win Point Differential utility against the highest non-winner;
+  tied-first remains indeterminate with no numeric result
+- no universal sample threshold, database, schema, query, page, dependency, or
+  legacy-consumer migration
 
 Handoff:
 
 ```text
-docs/agent-handoffs/PHASE-02-STEP-03-metric-sample-coverage-eligibility-contracts.md
+docs/agent-handoffs/PHASE-02-STEP-04-canonical-analytics-definitions-calculation-utilities.md
 ```
 
 ### Next approved work
 
 Only after an explicit assignment:
 
-- Phase 2, Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+- Phase 2, Step 2.5 — Analytics Repository and Query Contracts
 
-Step 2.3 completion does not authorize Step 2.4.
+Step 2.4 completion does not authorize Step 2.5.
 
 ---
 
@@ -372,7 +372,7 @@ Primary outcome:
 
 ### Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
 
-**Status:** Planned
+**Status:** Complete
 
 Primary outcome:
 
@@ -1004,13 +1004,13 @@ Do not fill these gaps by assumption.
 Completed:
 
 ```text
-Phase 2, Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
+Phase 2, Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
 ```
 
 Next, only when explicitly assigned:
 
 ```text
-Phase 2, Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+Phase 2, Step 2.5 — Analytics Repository and Query Contracts
 ```
 
 Do not push unless explicitly instructed.
@@ -1023,8 +1023,8 @@ Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-17
 - **Current phase:** Phase 2 — Analytics Foundation
-- **Current substep:** Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts (complete)
-- **Next gated substep:** Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+- **Current substep:** Step 2.4 — Canonical Analytics Definitions and Calculation Utilities (complete)
+- **Next gated substep:** Step 2.5 — Analytics Repository and Query Contracts
 - **Latest protected policy commit:** `9545f589961fce4a0854ed1c6bcff8ba6c7c87d0`
 - **Phase 1 completion commit:** `4283e826f881eb116befbe3285c3de426fb25c6c`
 - **Phase 2 planning commit:** `73184cbdb`

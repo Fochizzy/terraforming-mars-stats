@@ -140,7 +140,6 @@ const RATE_AGGREGATIONS: readonly AnalyticsAggregationKind[] = [
   'percentage',
   'ratio-of-totals',
   'median-per-observation-rate',
-  'per-observation-value',
 ];
 
 export function isRateLikeMetricValueKind(

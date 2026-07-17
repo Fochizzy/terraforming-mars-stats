@@ -113,6 +113,13 @@ values, unknown coverage, structured exclusions, and minimum-sample states.
 This inventory still does not approve formulas, thresholds, repository queries,
 schema changes, or production page integration.
 
+Phase 2, Step 2.4 implements only the already-approved pure definitions in
+`CANONICAL-ANALYTICS-DEFINITIONS.md`: distinct recorded card facts, four
+card-acquisition rates with separately labeled ratio-of-totals and
+median-per-player-game variants, and sole-winner Win Point Differential against
+the highest non-winner. It does not add capture coverage, queries, schema, or
+page integration; tied-first numeric differential remains unresolved.
+
 ### Cards Seen coverage dimensions
 
 Cards Seen coverage must distinguish which opportunity sources were recorded:
