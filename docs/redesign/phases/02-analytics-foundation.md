@@ -2,6 +2,18 @@
 
 ## Status
 
+Steps 2.0 through 2.6 are completed and committed as individual substeps.
+Step 2.6 completed the required integration validation on 2026-07-17, including
+a cross-contract test spanning URL state, repository results, canonical
+calculation, typed metric evidence, and a Phase 1 accessible evidence table.
+Phase 2 is not formally complete: Merger's always-available Prelude variant
+requires a separately assigned Phase 2 Validation Remediation and Closure task.
+The present contracts cannot represent the rule snapshot, historical always-on
+attribution, verified play/actor coverage, or availability-aware denominator,
+and the absence of a Merger event is not variant-off evidence.
+
+## Status before Step 2.6
+
 Steps 2.0 — Analytics Foundation Specification and Acceptance Criteria, 2.1 —
 Analytics Scope and Capability Model, 2.2 — Shared Filter and URL-State
 Contracts, 2.3 — Metric, Sample, Coverage, and Eligibility Contracts, and 2.4
@@ -93,7 +105,7 @@ provide an explicit adapter and tests; it must not silently reinterpret a Phase
 | 2.3 | Metric, Sample, Coverage, and Eligibility Contracts | Shared metric result, denominator, sample, coverage, eligibility, and exclusion contracts | Completed |
 | 2.4 | Canonical Analytics Definitions and Calculation Utilities | Centralized, versioned, tested utilities for approved formulas only | Completed |
 | 2.5 | Analytics Repository and Query Contracts | Typed query inputs, capability-aware outputs, batching, and error/partial behavior | Completed |
-| 2.6 | Analytics Foundation Integration Validation | Cross-contract tests and proof that Phase 1 foundations consume Phase 2 results | Unstarted |
+| 2.6 | Analytics Foundation Integration Validation | Cross-contract tests and proof that Phase 1 foundations consume Phase 2 results | Completed validation - Merger closure blocker recorded |
 
 Completing one row does not authorize the next row.
 
@@ -840,6 +852,24 @@ zero/missing/unavailable/partial; accessibility; and deterministic fixture data.
 - Phase 3 is only the documented next phase and is not begun without explicit
   approval.
 
+**Validation outcome (2026-07-17):** A focused integration test composes a
+normalized URL filter and non-sample selection, typed repository response,
+normalized finalized-game record, the versioned sole-winner differential,
+typed metric result, and the accessible Phase 1 evidence table. It proves
+explicit zero, query failure, missing score, partial records, and unavailable
+capability remain distinct. The full suite, typecheck, lint, and build pass;
+no in-scope contract defect required repair.
+
+**Closure blocker:** Merger is a user-confirmed always-available additional
+Prelude option; each player still selects only two Preludes. A selected Prelude
+row can represent selection but cannot establish availability. The current
+model has no group default, game rule snapshot, historical attribution,
+availability denominator, canonical Merger identity reconciliation, or verified
+event actor/coverage contract. `card_played` absence cannot establish that the
+variant was off. Raw Merger selections must not be ranked beside randomly
+offered Preludes. Resolution is outside Step 2.6 and may require an approved
+fact, schema/migration, historical policy, and reader.
+
 ## Phase-level validation requirements
 
 For implementation Steps 2.1–2.6, run focused tests first, then:
@@ -928,9 +958,15 @@ the blocker rather than choosing a policy from current UI behavior.
 Step 2.0 stops after its documentation commit. Steps 2.1–2.6 stop after their
 own handoffs and commits. Phase 2 completion does not itself authorize Phase 3.
 
-## Approved next action
+## Prior approved next action
 
 Begin Step 2.6 — Analytics Foundation Integration Validation only when
 explicitly assigned. Do not begin production page integration, navigation,
 route migration, schema work, deployment, or Supabase mutation as part of that
 assignment.
+
+## Approved next action
+
+Begin a separately assigned **Phase 2 Validation Remediation and Closure** task
+only. Do not begin production page integration, navigation, route migration,
+schema work, deployment, or Supabase mutation without explicit authorization.

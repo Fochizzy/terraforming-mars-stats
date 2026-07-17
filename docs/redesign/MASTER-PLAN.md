@@ -154,6 +154,32 @@ A substep is complete only when:
 
 ## 6. Project State
 
+### Step 2.6 validation outcome (2026-07-17)
+
+Phase 2, Step 2.6 completed with a focused integration test that composes
+normalized URL filters and non-sample selection, normalized repository data,
+the versioned sole-winner Win Point Differential, typed metric evidence, and a
+Phase 1 accessible evidence table. Full validation passes at 103 test files /
+556 tests, with typecheck clean, the four recorded lint warnings unchanged, and
+a 23/23-page production build. No production route, navigation, schema,
+migration, Supabase, Storage, dependency, or deployment change occurred.
+
+Phase 2 is not formally complete. The user-confirmed always-available Merger
+Prelude rule cannot be represented by the current game/group model or Phase 2
+contracts: there is no group default, game-level rule snapshot, historical
+always-on attribution, verified Merger event/actor coverage, canonical identity
+reconciliation, or availability-aware denominator. An absent event is not
+evidence that the variant was off, and raw Merger selections must not be ranked
+beside randomly offered Preludes.
+
+### Current next approved work
+
+Only after a separate explicit assignment: **Phase 2 Validation Remediation and
+Closure**. It must decide and model the Merger setting/snapshot, historical
+policy, card identity, evidence coverage, availability denominator, and any
+approved schema or backfill boundary. It must not be started by this validation
+task.
+
 ### Completed
 
 #### Phase 1 — Shared Foundations
@@ -985,6 +1011,8 @@ Rules:
 - close or supersede the item when it becomes approved work
 
 ---
+
+| DW-002 | Step 2.6 | Model historical always-available Merger Prelude availability and denominator | Requires a new approved game-rule and historical-evidence policy; no safe inference from selection or absent events | Phase 2 Validation Remediation and Closure | Open |
 
 ## 24. Risk Register
 

@@ -1,14 +1,47 @@
 # TM Stats Redesign State
 
+## Current substep
+
+Step 2.6 - Analytics Foundation Integration Validation
+
+## Current owner
+
+Codex - Phase 2 analytics foundation integration validation
+
+## Status
+
+Completed as a validation step. A focused integration test proves canonical URL
+filters and non-sample selection, normalized repository data, the canonical
+Win Point Differential utility, typed metric evidence, and an accessible Phase
+1 evidence table compose without coercing observed zero, missing, partial,
+unavailable, or query-error states. The full suite passes at 103 test files /
+556 tests; typecheck is clean; lint and build pass with the same four baseline
+lint warnings; and the build generates 23/23 pages. No SQL, migration, view,
+RPC, schema, Supabase state, Storage, dependency, route, navigation,
+deployment, production page, or legacy consumer changed.
+
+Phase 2 is not formally complete. Validation found a separately scoped Merger
+Prelude-availability blocker: the current group/game model and Phase 2
+contracts cannot represent guaranteed availability, a game-rule snapshot,
+historical always-on attribution, or an availability-aware denominator.
+`card_played` evidence is not a substitute because its writer, population, and
+actor coverage remain unverified, and no event cannot mean the variant was off.
+No workaround was added.
+
+## Last completed commit
+
+Step 2.6 focused completion commit (hash recorded in the Step 2.6 handoff and
+completion report).
+
 ## Current phase
 
 Phase 2 — Analytics Foundation
 
-## Current substep
+## Prior completed substep
 
 Step 2.5 — Analytics Repository and Query Contracts
 
-## Status
+## Prior Step 2.5 status
 
 Completed. Step 2.5 added client-safe typed operation/result contracts,
 normalized finalized-game source records, and authenticated server readers for
@@ -45,25 +78,45 @@ Step 2.6.
 
 redesign/tm-stats-dashboard-rebuild
 
-## Current owner
+## Prior owner
 
 Codex — analytics repository and query contracts
 
-## Last completed commit
+## Prior Step 2.5 completed commit
 
 Step 2.5 focused completion commit (hash recorded in the completion report)
 
-## Next action
+## Prior next action
 
 Begin Step 2.6 — Analytics Foundation Integration Validation only when
 explicitly assigned. Do not begin SQL, schema, production page integration,
 navigation, route migration, deployment, or Supabase mutation with that
 assignment unless separately authorized.
 
+## Next action
+
+Begin a separately assigned **Phase 2 Validation Remediation and Closure** task
+only. It must decide the Merger group default, game-rule snapshot, historical
+always-on attribution, canonical card identity, evidence/actor coverage, and
+availability-aware denominator before any implementation that ranks Merger
+against randomly offered Preludes. Do not begin SQL, schema, migration,
+production page work, deployment, or Supabase mutation without explicit
+authorization.
+
 ## Active blockers
 
-No blocker prevents a separately assigned Step 2.6 integration-validation
-substep. Later analytics and consumer work remains blocked, where applicable,
+The Merger always-available Prelude rule is a Phase 2 closure blocker. Raw
+Merger selections cannot be ranked beside randomly offered Preludes without an
+availability-aware denominator, and neither a selected Prelude row nor an
+absent event can establish availability. Resolution requires a separately
+assigned **Phase 2 Validation Remediation and Closure** task to decide and
+model the group default, game rule snapshot, historical attribution, stable
+catalog identity, coverage/actor evidence, denominator, and any approved
+schema/migration/backfill policy. Do not begin that work without explicit
+authorization.
+
+Apart from the Merger closure blocker above, later analytics and consumer work
+remains blocked, where applicable,
 by undecided tied-first numeric win-margin behavior;
 overall point-differential baseline; leaderboard and opponent-strength
 methodology; metric-specific sample, coverage, and range thresholds; approval
@@ -84,6 +137,7 @@ state.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-02-STEP-06-analytics-foundation-integration-validation.md
 - docs/agent-handoffs/CORPORATION-LOGO-ASSET-REPLACEMENT-AND-REMAPPING.md
   (separately authorized production asset task, post-2.5)
 - docs/agent-handoffs/PHASE-02-STEP-05-analytics-repository-query-contracts.md
