@@ -6,7 +6,7 @@ Phase 0 — Repository and Analytics Audit
 
 ## Current substep
 
-Step 0.3 — Data Capability Audit
+Step 0.4 — Asset Inventory
 
 ## Status
 
@@ -18,28 +18,28 @@ redesign/tm-stats-dashboard-rebuild
 
 ## Current owner
 
-Codex - data capability audit
+Codex - asset inventory
 
 ## Last completed commit
 
-Step 0.3 data capability audit (this commit)
+Step 0.4 asset inventory (this commit)
 
 ## Next action
 
-Begin Phase 0, Step 0.4: Asset Inventory only when explicitly assigned.
+Begin Phase 0, Step 0.5: Baseline Validation Review only when explicitly assigned.
 
 ## Active blockers
 
-None prevents completion of Step 0.3. Future data implementation remains blocked
-on the card event/aggregate model, source-coverage semantics, tied-first margin
-policy, overall point-differential definition, opponent-strength model, final-TR
-source, remote final-action RPC verification, and live historical-coverage
-verification. These are recorded in the audit and are not Step 0.4 blockers.
+None prevents completion of Step 0.4. Future asset implementation has unresolved
+source-of-truth, coverage, identity, licensing, cache, and migration-drift
+questions recorded in `docs/redesign/ASSET-INVENTORY.md`. These are not Step 0.5
+baseline-review blockers.
 
 ## Database migration status
 
-No redesign migrations created.
+No redesign migrations created. Step 0.4 used read-only production metadata and
+queries; it made no database or Storage changes.
 
 ## Latest handoff
 
-docs/agent-handoffs/PHASE-00-STEP-03-data-capability-audit.md
+docs/agent-handoffs/PHASE-00-STEP-04-asset-inventory.md
