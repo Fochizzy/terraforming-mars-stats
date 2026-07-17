@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Page Not Found · Terraforming Mars Stats',
+  description: 'This address does not match an available TM Stats destination.',
+};
 
 export default function NotFound() {
   return (

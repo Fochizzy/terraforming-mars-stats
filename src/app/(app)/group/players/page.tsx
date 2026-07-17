@@ -5,7 +5,10 @@ import { requireGroupContextOrRedirect } from '@/features/groups/require-group-c
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { createPlayerIfMissing, listPlayers } from '@/lib/db/player-repo';
 import { signupFullNameSchema } from '@/features/auth/username-auth';
+import { pageMetadata } from '@/lib/navigation/route-metadata';
 import { revalidatePath } from 'next/cache';
+
+export const metadata = pageMetadata('/group/players');
 
 export default async function PlayersPage() {
   const context = await requireGroupContextOrRedirect();

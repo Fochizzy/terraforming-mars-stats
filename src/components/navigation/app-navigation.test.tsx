@@ -36,28 +36,40 @@ beforeEach(() => {
 });
 
 describe('AppNavigation', () => {
-  it('uses one route source for desktop current-page state and mobile primary navigation', () => {
+  it('renders every primary destination in the one row used at every viewport width', () => {
     render(<AppNavigation hasActiveGroup />);
 
-    const desktop = screen.getByRole('navigation', { name: /primary navigation/i });
+    const primary = screen.getByRole('navigation', { name: /primary navigation/i });
     expect(
-      within(desktop).getByRole('link', { name: /individual insights/i }),
+      within(primary).getByRole('link', { name: /individual insights/i }),
     ).toHaveAttribute('aria-current', 'page');
-
-    const mobile = screen.getByRole('navigation', { name: /bottom navigation/i });
-    expect(within(mobile).getByRole('link', { name: /^insights$/i })).toBeInTheDocument();
-    expect(within(mobile).getByRole('link', { name: /^compare$/i })).toBeInTheDocument();
+    expect(within(primary).getByRole('link', { name: /^compare$/i })).toBeInTheDocument();
+    expect(within(primary).getByRole('link', { name: /log a game/i })).toHaveAttribute(
+      'data-highlighted',
+      'true',
+    );
   });
 
-  it('moves focus into More, closes on Escape, and restores focus to its trigger', async () => {
+  it('does not duplicate aria-current across two different destinations for one route', () => {
+    render(<AppNavigation hasActiveGroup />);
+
+    const currentLinks = screen
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('aria-current') === 'page');
+    expect(currentLinks).toHaveLength(1);
+    expect(currentLinks[0]).toHaveTextContent(/individual insights/i);
+  });
+
+  it('opens the Menu overflow, moves focus in, closes on Escape, and restores focus to its trigger', async () => {
     const user = userEvent.setup();
     render(<AppNavigation hasActiveGroup />);
 
-    const mobile = screen.getByRole('navigation', { name: /bottom navigation/i });
-    const trigger = within(mobile).getByRole('button', { name: /more/i });
+    const trigger = screen.getByRole('button', { name: /^menu$/i });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
 
-    const dialog = screen.getByRole('dialog', { name: /more navigation/i });
+    const dialog = screen.getByRole('dialog', { name: /^menu$/i });
     const close = within(dialog).getByRole('button', { name: /close menu/i });
     expect(dialog).toHaveAttribute('open');
     await waitFor(() => expect(close).toHaveFocus());
@@ -67,19 +79,32 @@ describe('AppNavigation', () => {
     expect(trigger).toHaveFocus();
   });
 
+  it('closes the Menu overflow on route selection', async () => {
+    const user = userEvent.setup();
+    render(<AppNavigation hasActiveGroup />);
+
+    const trigger = screen.getByRole('button', { name: /^menu$/i });
+    await user.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: /^menu$/i });
+    const glossaryLink = within(dialog).getByRole('link', { name: /glossary/i });
+
+    await user.click(glossaryLink);
+    expect(dialog).not.toHaveAttribute('open');
+  });
+
   it('does not expose group destinations when the server filtered them out', () => {
     render(<AppNavigation hasActiveGroup={false} />);
 
     expect(screen.queryByRole('navigation', { name: /primary navigation/i })).not.toHaveTextContent(
       /log a game/i,
     );
-    const more = document.querySelector('dialog');
-    expect(more).not.toBeNull();
+    const menu = document.querySelector('dialog');
+    expect(menu).not.toBeNull();
     expect(
-      within(more!).getByRole('link', { hidden: true, name: /glossary/i }),
+      within(menu!).getByRole('link', { hidden: true, name: /glossary/i }),
     ).toBeInTheDocument();
     expect(
-      within(more!).queryByRole('link', { hidden: true, name: /cards/i }),
+      within(menu!).queryByRole('link', { hidden: true, name: /cards/i }),
     ).not.toBeInTheDocument();
   });
 });

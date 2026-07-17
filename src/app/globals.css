@@ -305,29 +305,6 @@ a {
     outline-offset: 2px;
   }
 
-  .tm-bottom-nav {
-    @apply grid grid-cols-4 gap-2 border-t px-4 py-3;
-    background:
-      linear-gradient(180deg, rgba(18, 23, 31, 0.96), rgba(8, 11, 15, 0.98));
-    border-color: var(--tm-panel-border);
-    box-shadow: 0 -10px 24px rgba(3, 5, 8, 0.42);
-  }
-
-  .tm-bottom-nav__link {
-    @apply rounded-2xl border px-2 py-2 text-center text-xs;
-    background: rgba(28, 19, 17, 0.42);
-    border-color: transparent;
-    color: #deceb7;
-    font-family: var(--tm-font-display);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-
-  .tm-bottom-nav__link:hover {
-    background: rgba(66, 34, 24, 0.68);
-    border-color: rgba(213, 127, 68, 0.32);
-  }
-
   .tm-score-track {
     @apply h-2 rounded-full;
     background: rgba(12, 15, 20, 0.86);

@@ -8,6 +8,9 @@ import {
   getFinalTerraformingActionStats,
   type FinalTerraformingActionStat,
 } from '@/lib/db/final-terraforming-action-repo';
+import { pageMetadata } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/group');
 
 async function loadFinalTerraformingActionStats(
   groupId: string,

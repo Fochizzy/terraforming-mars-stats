@@ -1,11 +1,12 @@
 import { RouteSkeletonPage } from '@/features/navigation/route-skeleton-page';
+import { pageMetadata, routeMetadataFor } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/insights/global');
 
 export default function GlobalInsightsPage() {
+  const { title, description } = routeMetadataFor('/insights/global');
+
   return (
-    <RouteSkeletonPage
-      description="The global analytics destination has a stable route and navigation owner. Its real data panels remain with the existing Insights page until their dedicated implementation step."
-      returnPath="/insights/global"
-      title="Global Insights"
-    />
+    <RouteSkeletonPage description={description} returnPath="/insights/global" title={title} />
   );
 }

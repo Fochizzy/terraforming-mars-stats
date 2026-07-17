@@ -1,11 +1,16 @@
 import { RouteSkeletonPage } from '@/features/navigation/route-skeleton-page';
+import { pageMetadata, routeMetadataFor } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/insights/individual');
 
 export default function IndividualInsightsPage() {
+  const { title, description } = routeMetadataFor('/insights/individual');
+
   return (
     <RouteSkeletonPage
-      description="The individual analytics destination has a stable route and navigation owner. Player analysis remains on the existing routes until its dedicated implementation step."
+      description={description}
       returnPath="/insights/individual"
-      title="Individual Insights"
+      title={title}
     />
   );
 }

@@ -1,11 +1,10 @@
 import { RouteSkeletonPage } from '@/features/navigation/route-skeleton-page';
+import { pageMetadata, routeMetadataFor } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/improvement');
 
 export default function ImprovementPage() {
-  return (
-    <RouteSkeletonPage
-      description="The improvement destination has a stable route and navigation owner. Recommendations and supporting evidence are intentionally deferred until their approved implementation step."
-      returnPath="/improvement"
-      title="Improvement"
-    />
-  );
+  const { title, description } = routeMetadataFor('/improvement');
+
+  return <RouteSkeletonPage description={description} returnPath="/improvement" title={title} />;
 }

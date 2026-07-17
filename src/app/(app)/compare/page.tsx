@@ -1,11 +1,10 @@
 import { RouteSkeletonPage } from '@/features/navigation/route-skeleton-page';
+import { pageMetadata, routeMetadataFor } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/compare');
 
 export default function ComparePage() {
-  return (
-    <RouteSkeletonPage
-      description="The comparison destination has a stable route and navigation owner. Comparison controls and analytics are intentionally deferred until their approved implementation step."
-      returnPath="/compare"
-      title="Compare"
-    />
-  );
+  const { title, description } = routeMetadataFor('/compare');
+
+  return <RouteSkeletonPage description={description} returnPath="/compare" title={title} />;
 }

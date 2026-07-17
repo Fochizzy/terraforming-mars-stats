@@ -1,11 +1,10 @@
 import { RouteSkeletonPage } from '@/features/navigation/route-skeleton-page';
+import { pageMetadata, routeMetadataFor } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/leaderboard');
 
 export default function LeaderboardPage() {
-  return (
-    <RouteSkeletonPage
-      description="The leaderboard destination has a stable route and navigation owner. Ranking methodology and live rankings remain deferred until their approved implementation step."
-      returnPath="/leaderboard"
-      title="Leaderboard"
-    />
-  );
+  const { title, description } = routeMetadataFor('/leaderboard');
+
+  return <RouteSkeletonPage description={description} returnPath="/leaderboard" title={title} />;
 }

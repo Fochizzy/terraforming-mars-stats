@@ -198,11 +198,35 @@ compatibility treatment, and Cards, Glossary, authentication, imports, and legac
 dashboard routes remain intact. Phase 3 is active; Step 3.2 still requires an
 explicit assignment.
 
+### Phase 3, Step 3.2 responsive navigation outcome (2026-07-17)
+
+The explicit Phase 3, Step 3.2 assignment stated directly that TM Stats is a
+responsive website, not a native mobile application, and prohibited a mobile
+bottom-navigation bar, an app drawer, and a separate mobile information
+architecture. Step 3.1's already-committed navigation had built exactly that:
+a fixed `BottomNav` bar, a native-dialog "More" drawer, and a
+`mobile-primary`/`mobile-more` split whose narrow-width destination set was a
+genuinely reduced subset of the eight-item desktop set. This was surfaced to
+the user as a conflict before any edit; the user approved fixing it as
+in-scope Step 3.2 work. The durable shared-component direction is now: one
+navigation architecture at every viewport width. All eight primary
+destinations render identically from 390px through desktop widths in one
+row; only the four secondary utility destinations (Games, Cards, Glossary,
+Group Settings) plus Logout collapse into a single semantic "Menu" overflow
+below the desktop breakpoint, reusing the same native-dialog accessibility
+mechanics (background inertness, focus-in, Escape close, focus restoration,
+close-on-route-change) Step 3.1 had already built. No destination exists only
+at one viewport width. Step 3.2 also completed page titles and descriptions
+for every canonical destination via one centralized, validated route-metadata
+registry. Phase 3 is active; the next step still requires an explicit
+assignment.
+
 ### Current next approved work
 
-Await explicit assignment for Phase 3, Step 3.2. The un-applied Merger production
-migration/backfill package remains separately owner-gated and does not expand the
-scope of the navigation work.
+Await explicit assignment for the next Phase 3 step (or Phase 4). Steps 3.1
+and 3.2 are complete. The un-applied Merger production migration/backfill
+package remains separately owner-gated and does not expand the scope of the
+navigation work.
 
 ### Completed
 
@@ -1078,13 +1102,13 @@ Do not fill these gaps by assumption.
 Current completed substep:
 
 ```text
-Phase 3, Step 3.1 — Navigation and Route Skeletons
+Phase 3, Step 3.2 — Responsive Web Navigation and Route Context Validation
 ```
 
 Next, only when explicitly assigned:
 
 ```text
-Phase 3, Step 3.2 — title and scope to be supplied by that assignment
+Next Phase 3 step, or Phase 4 — title, number, and scope to be supplied by that assignment
 ```
 
 ### Historical Phase 2 record
@@ -1121,6 +1145,7 @@ Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-17
 - **Current phase:** Phase 3 — Navigation and Route Skeletons
-- **Current substep:** Step 3.1 — Navigation and Route Skeletons (complete in repository; focused commit pending)
-- **Next gated substep:** Await explicit assignment for Phase 3, Step 3.2
+- **Current substep:** Step 3.2 — Responsive Web Navigation and Route Context Validation (complete)
+- **Next gated substep:** Await explicit assignment for the next Phase 3 step (or Phase 4)
+- **Step 3.1 completion commit:** `dcf5cac1ca8476707e615d7480cfbfd7b8885b51`
 - **Latest completed commit before Step 3.1:** `c17e8b1ba8bd099fb3cdf21024fe0a28ab9daf76`

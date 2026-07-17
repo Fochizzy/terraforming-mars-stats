@@ -61,22 +61,38 @@ describe('Phase 3 navigation contract', () => {
 
   it('filters group-required destinations before client navigation is rendered', () => {
     expect(
-      navigationItemsFor('desktop-primary', {
+      navigationItemsFor('primary', {
         authenticated: false,
         hasActiveGroup: false,
       }),
     ).toEqual([]);
     expect(
-      navigationItemsFor('desktop-utility', {
+      navigationItemsFor('utility', {
         authenticated: true,
         hasActiveGroup: false,
       }).map((item) => item.id),
     ).toEqual(['glossary']);
     expect(
-      navigationItemsFor('desktop-primary', {
+      navigationItemsFor('primary', {
         authenticated: true,
         hasActiveGroup: true,
       }).map((item) => item.id),
     ).toHaveLength(8);
+  });
+
+  it('has only one primary destination set — no separate mobile surface exists to diverge from it', () => {
+    const context = { authenticated: true, hasActiveGroup: true };
+    expect(
+      navigationItemsFor('primary', context).map((item) => item.id),
+    ).toEqual([
+      'log-game',
+      'profile',
+      'global-insights',
+      'individual-insights',
+      'group-insights',
+      'compare',
+      'improvement',
+      'leaderboard',
+    ]);
   });
 });

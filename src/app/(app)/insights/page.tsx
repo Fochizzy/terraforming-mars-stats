@@ -14,6 +14,9 @@ import {
   getInsightsCompatibilityDestination,
   type InsightsSearchParams,
 } from '@/features/navigation/insights-compatibility';
+import { pageMetadata } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/insights');
 
 export default async function InsightsPage({
   searchParams,

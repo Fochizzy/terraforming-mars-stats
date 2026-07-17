@@ -2,24 +2,48 @@
 
 ## Current substep
 
-Phase 3, Step 3.1 — Navigation and Route Skeletons
+Phase 3, Step 3.2 — Responsive Web Navigation and Route Context Validation
+(complete)
 
 ## Current owner
 
-Codex - Phase 3 navigation and route skeletons
+Claude — Phase 3, Step 3.2, responsive web navigation and route context
+validation
 
 ## Status
 
-Step 3.1 establishes the Phase 3 route framework without moving analytics or
-workflow implementation. It adds one typed navigation contract for responsive
-desktop/mobile navigation, canonical paths, deterministic active matching,
-group-aware visibility, route shells, Insights compatibility handling, canonical
-`/games` ownership using the existing Saved Games implementation, and intentional
-loading/not-found/unavailable states. Existing `/insights`, `/group`,
-`/log-game`, imports, `/cards`, and `/glossary` remain functional.
+Phase 3 — Active. Step 3.1 (Navigation and Route Skeletons) and Step 3.2
+(Responsive Web Navigation and Route Context Validation) are both complete.
+
+Step 3.1 established the Phase 3 route framework without moving analytics or
+workflow implementation: one typed navigation contract, canonical paths,
+deterministic active matching, group-aware visibility, route shells, Insights
+compatibility handling, canonical `/games` ownership using the existing Saved
+Games implementation, and intentional loading/not-found/unavailable states.
+
+Step 3.2's preflight found that Step 3.1's committed navigation had built a
+fixed mobile `BottomNav` bar, a native-dialog "More" drawer, and a
+`mobile-primary`/`mobile-more` destination split showing a materially reduced
+destination set on narrow screens versus desktop — a direct conflict with
+this step's explicit direction that TM Stats is a responsive website, not a
+native mobile application, and its explicit prohibition on a mobile
+bottom-navigation bar, an app drawer, and a separate mobile information
+architecture. This conflict was surfaced to the user before any edit; the user
+approved resolving it as in-scope Step 3.2 work.
+
+Step 3.2 replaced that pattern with one responsive navigation architecture:
+the same eight primary destinations (Log a Game prominent) render identically
+at every viewport width in one row (scrolling horizontally at narrow widths,
+as it already did); only the four secondary utility destinations (Games,
+Cards, Glossary, Group Settings) plus Logout collapse into a single semantic
+"Menu" overflow panel below the desktop breakpoint, keeping Step 3.1's native
+dialog accessibility mechanics (background inertness, focus-in, Escape close,
+focus restoration, close-on-route-change). Step 3.2 also completed route-level
+page titles and descriptions for every canonical destination via one
+centralized, validated `src/lib/navigation/route-metadata.ts` registry.
 
 No production database, schema, migration, Storage, dependency, push, or
-deployment action is authorized or performed by Step 3.1.
+deployment action is authorized or was performed by Step 3.1 or Step 3.2.
 
 ### Prior preservation status
 
@@ -41,14 +65,46 @@ their reader/evidence contract is not approved.
 Phase 2 remains formally complete. This separately assigned preservation task is
 also complete in the repository; production execution remains separately gated.
 
+## Phase 3, Step 3.1 completion
+
+Completed at commit `dcf5cac1ca8476707e615d7480cfbfd7b8885b51`
+(`feat(navigation): define phase 3 route skeletons`). Full validation passed at
+120 test files / 599 tests, typecheck clean, lint with the same four baseline
+warnings, and build at 31/31 routes.
+
+## Phase 3, Step 3.2 completion
+
+Completed. See `docs/agent-handoffs/PHASE-03-STEP-02-responsive-web-navigation-and-route-context-validation.md`
+for the full record. Summary: Step 3.1's committed mobile navigation
+(fixed `BottomNav` bar, native-dialog "More" drawer, reduced `mobile-primary`/
+`mobile-more` destination set) directly conflicted with this step's explicit
+"responsive website, not an app" direction and was flagged to the user before
+editing; the user approved fixing it as in-scope Step 3.2 work. Replaced with
+one navigation architecture at every viewport width — all eight primary
+destinations always visible in one row, only the four secondary utility
+destinations plus Logout collapsing into a narrow-width "Menu" overflow that
+reuses Step 3.1's native-dialog accessibility mechanics. Added a centralized,
+validated route-metadata registry supplying page titles/descriptions for every
+canonical destination. Full validation passed at 121 test files / 606 tests,
+typecheck clean, lint with the same four baseline warnings, and build at 28
+generated routes (no route added or removed). No analytics, formula, schema,
+migration, Storage, dependency, production, push, or deployment action
+occurred. Live browser responsive verification at 1440/1024/768/390px was not
+performed — no authenticated test credentials exist and a local dev server
+could not safely be started (port 3000 already in use by another process) —
+so this step relied on automated jsdom tests plus manual CSS/media-query
+review instead; this is recorded as a known limitation in the handoff, not
+claimed as done.
+
 ## Last completed commit
 
-Glossary and Card Database Preservation and Cross-Linking focused completion
-commit: `c17e8b1ba8bd099fb3cdf21024fe0a28ab9daf76`.
+Phase 3, Step 3.2 focused completion commit (hash recorded by the post-commit
+verification immediately after this state file is committed).
 
 ## Current phase
 
-Phase 3 — Navigation and Route Skeletons
+Phase 3 — Navigation and Route Skeletons (Steps 3.1 and 3.2 complete; awaiting
+explicit assignment for the next step)
 
 ## Prior completed substep
 
@@ -107,9 +163,10 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Await explicit assignment for Phase 3, Step 3.2.** Do not move legacy analytics
-content, redesign a destination page, add analytics consumers, alter workflows,
-or begin any later Phase 3 work without that assignment.
+**Await explicit assignment for the next Phase 3 step (or Phase 4).** Step 3.2
+is complete. Do not move legacy analytics content, redesign a destination
+page, add analytics consumers, alter workflows, or begin any later Phase 3 or
+Phase 4 work without that assignment.
 
 ## Active blockers
 
@@ -140,6 +197,7 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-03-STEP-02-responsive-web-navigation-and-route-context-validation.md
 - docs/agent-handoffs/PHASE-03-STEP-01-navigation-and-route-skeletons.md
 - docs/agent-handoffs/GLOSSARY-CARD-DATABASE-PRESERVATION-AND-CROSS-LINKING.md
 - docs/agent-handoffs/PHASE-02-VALIDATION-REMEDIATION-AND-CLOSURE.md

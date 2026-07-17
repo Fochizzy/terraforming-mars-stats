@@ -1,15 +1,18 @@
 export type NavigationVisibility = 'public' | 'authenticated';
 export type NavigationMatch = 'exact' | 'prefix';
-export type NavigationSurface =
-  | 'desktop-primary'
-  | 'desktop-utility'
-  | 'mobile-primary'
-  | 'mobile-more';
+/**
+ * One website navigation architecture at every viewport width. `primary`
+ * destinations render in the same ordered list from 390px through desktop
+ * widths (the row scrolls horizontally at narrow widths). `utility`
+ * destinations render as a visible bar at desktop widths and collapse into a
+ * single semantic overflow menu at narrow widths. Neither surface is a
+ * separate mobile destination set.
+ */
+export type NavigationSurface = 'primary' | 'utility';
 
 export type NavigationItem = {
   id: string;
   label: string;
-  mobileLabel?: string;
   href: string;
   visibility: NavigationVisibility;
   requiresGroup?: boolean;
@@ -24,12 +27,7 @@ export type NavigationContext = {
   hasActiveGroup: boolean;
 };
 
-const navigationSurfaces: readonly NavigationSurface[] = [
-  'desktop-primary',
-  'desktop-utility',
-  'mobile-primary',
-  'mobile-more',
-];
+const navigationSurfaces: readonly NavigationSurface[] = ['primary', 'utility'];
 
 /**
  * The Phase 3 route contract. Entries without a feature implementation are
@@ -62,33 +60,30 @@ export const appNavigationItems: readonly NavigationItem[] = [
   {
     id: 'log-game',
     label: 'Log a Game',
-    mobileLabel: 'Log Game',
     href: '/log-game',
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-primary', 'mobile-primary'],
+    surfaces: ['primary'],
     prominent: true,
   },
   {
     id: 'profile',
     label: 'My Profile',
-    mobileLabel: 'Profile',
     href: '/profile',
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-primary', 'mobile-primary'],
+    surfaces: ['primary'],
   },
   {
     id: 'global-insights',
     label: 'Global Insights',
-    mobileLabel: 'Insights',
     href: '/insights/global',
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-primary', 'mobile-primary', 'mobile-more'],
+    surfaces: ['primary'],
     activePaths: ['/insights/global', '/insights'],
   },
   {
@@ -98,7 +93,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-primary', 'mobile-more'],
+    surfaces: ['primary'],
   },
   {
     id: 'group-insights',
@@ -107,7 +102,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-primary', 'mobile-more'],
+    surfaces: ['primary'],
     activePaths: ['/insights/group', '/group'],
   },
   {
@@ -117,7 +112,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-primary', 'mobile-primary'],
+    surfaces: ['primary'],
   },
   {
     id: 'improvement',
@@ -126,7 +121,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-primary', 'mobile-more'],
+    surfaces: ['primary'],
   },
   {
     id: 'leaderboard',
@@ -135,7 +130,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-primary', 'mobile-more'],
+    surfaces: ['primary'],
   },
   {
     id: 'games',
@@ -144,7 +139,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-utility', 'mobile-more'],
+    surfaces: ['utility'],
     activePaths: ['/games', '/saved-games'],
   },
   {
@@ -154,7 +149,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'prefix',
-    surfaces: ['desktop-utility', 'mobile-more'],
+    surfaces: ['utility'],
   },
   {
     id: 'glossary',
@@ -162,7 +157,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     href: '/glossary',
     visibility: 'authenticated',
     match: 'exact',
-    surfaces: ['desktop-utility', 'mobile-more'],
+    surfaces: ['utility'],
   },
   {
     id: 'group-settings',
@@ -171,7 +166,7 @@ export const appNavigationItems: readonly NavigationItem[] = [
     visibility: 'authenticated',
     requiresGroup: true,
     match: 'exact',
-    surfaces: ['desktop-utility', 'mobile-more'],
+    surfaces: ['utility'],
   },
 ] as const;
 

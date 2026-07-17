@@ -1,11 +1,12 @@
 import { RouteSkeletonPage } from '@/features/navigation/route-skeleton-page';
+import { pageMetadata, routeMetadataFor } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/insights/group');
 
 export default function GroupInsightsPage() {
+  const { title, description } = routeMetadataFor('/insights/group');
+
   return (
-    <RouteSkeletonPage
-      description="The group analytics destination has a stable route and navigation owner. The working legacy group dashboard remains available while its sections are moved in later steps."
-      returnPath="/insights/group"
-      title="Group Insights"
-    />
+    <RouteSkeletonPage description={description} returnPath="/insights/group" title={title} />
   );
 }

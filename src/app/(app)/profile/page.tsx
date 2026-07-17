@@ -4,6 +4,9 @@ import { StyleEffectivenessPanel } from '@/features/analytics/style-effectivenes
 import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { getGroupAnalytics, getProfileAnalytics } from '@/lib/db/analytics-repo';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
+import { pageMetadata } from '@/lib/navigation/route-metadata';
+
+export const metadata = pageMetadata('/profile');
 
 export default async function ProfilePage() {
   const context = await requireCurrentGroupContext();

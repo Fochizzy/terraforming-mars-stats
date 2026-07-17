@@ -11,7 +11,10 @@ import {
 } from '@/lib/imports/build-import-draft';
 import { listPlayers } from '@/lib/db/player-repo';
 import { listMaps } from '@/lib/db/reference-repo';
+import { pageMetadata } from '@/lib/navigation/route-metadata';
 import { revalidatePath } from 'next/cache';
+
+export const metadata = pageMetadata('/log-game/import');
 
 export default async function LogGameImportPage() {
   const context = await requireCurrentGroupContext();

@@ -31,7 +31,10 @@ import {
   logGameDraftSchema,
   type LogGameDraftInput,
 } from '@/lib/validation/log-game';
+import { pageMetadata } from '@/lib/navigation/route-metadata';
 import { revalidatePath } from 'next/cache';
+
+export const metadata = pageMetadata('/log-game');
 
 export default async function LogGamePage({
   searchParams,

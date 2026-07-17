@@ -1,8 +1,58 @@
 ﻿# TM Stats Redesign Decisions
 
+## Phase 3, Step 3.2 — responsive website navigation supersedes Step 3.1's mobile pattern
+
+Approved by the explicit Phase 3, Step 3.2 assignment on 2026-07-17. This entry
+supersedes the Step 3.1 "Mobile More" decision recorded immediately below it.
+
+- TM Stats is a responsive website, not a native mobile application. The
+  explicit Step 3.2 assignment stated this directly and takes precedence over
+  Step 3.1's already-committed `BottomNav` (a fixed `sticky bottom-0` bar) and
+  its "mobile-primary"/"mobile-more" destination split, which showed a
+  different, reduced destination set on narrow screens than on desktop.
+- There is now exactly one navigation architecture at every viewport width.
+  The primary destination row (all eight approved primary destinations,
+  including the prominent Log a Game pill) renders identically from 390px
+  through desktop widths; it scrolls horizontally at narrow widths using the
+  same `overflow-x: auto` behavior it already had. No destination is removed
+  from or added to this row based on viewport.
+- Only the secondary utility destinations (Games, Cards, Glossary, Group
+  Settings) and Logout collapse into a single semantic "Menu" overflow panel
+  below the desktop breakpoint. This is the one narrow-screen concession
+  explicitly permitted by the assignment ("a conventional responsive website
+  menu or overflow panel when required by the approved design"), used only
+  because twelve links plus Logout do not fit in a narrow header. It is not a
+  reduced destination set, a native drawer, or a second information
+  architecture: every utility destination is also present in the identical
+  desktop utility bar, just always visible there instead of behind a trigger.
+- The overflow panel keeps Step 3.1's native `<dialog>` modality (background
+  inertness, initial focus on Close, Escape-as-cancel, trigger focus
+  restoration, close-on-route-change) because that mechanism itself was sound;
+  only its content and framing changed from a mobile-only "More" subset to the
+  complete, always-available utility link set, and its trigger/label changed
+  from "More" to "Menu" to reflect that it is a website overflow menu, not an
+  app navigation drawer.
+- The `NavigationSurface` type is now `'primary' | 'utility'` (no
+  `'desktop-primary'`, `'desktop-utility'`, `'mobile-primary'`, or
+  `'mobile-more'`), and `NavigationItem.mobileLabel` was removed — every
+  destination has exactly one label used at every width.
+- The removed `BottomNav` component and its dead `tm-bottom-nav`/
+  `tm-bottom-nav__link` global CSS classes are deleted rather than retained
+  disabled, since no consumer of Step 3.1's mobile pattern remains.
+- Route-level page titles and descriptions are now sourced from one
+  centralized `src/lib/navigation/route-metadata.ts` registry (validated for
+  uniqueness) instead of being duplicated as inline JSX string literals per
+  shell page; existing implemented pages (Profile, Log a Game, Import, Games,
+  Cards, Glossary, Group, Players, Group Settings, legacy Insights) also gained
+  a document `<title>`/description from this registry without any change to
+  their rendered headings or content.
+
 ## Phase 3 navigation and route contract
 
-Approved by the explicit Phase 3, Step 3.1 assignment on 2026-07-17:
+Approved by the explicit Phase 3, Step 3.1 assignment on 2026-07-17. Its
+"mobile primary"/"mobile More" destination split and native dialog framing are
+superseded by the Step 3.2 entry above; the route contract, compatibility
+handling, and active-matching rules below remain in force unchanged:
 
 - Canonical primary routes are `/log-game`, `/profile`, `/insights/global`,
   `/insights/individual`, `/insights/group`, `/compare`, `/improvement`, and
@@ -15,10 +65,11 @@ Approved by the explicit Phase 3, Step 3.1 assignment on 2026-07-17:
   `scope=compare` are compatibility aliases only and redirect to their canonical
   routes while preserving other query values. `#global-statistics` is bridged in
   the browser because fragments do not reach the server.
-- A shared typed source is the sole navigation definition for desktop, utility,
-  mobile primary, and mobile More surfaces. Item identity, canonical href,
-  visibility, active matching, group requirement, ordering, and surface
-  placement are data, not duplicated markup.
+- A shared typed source is the sole navigation definition across primary and
+  utility surfaces at every viewport width (Step 3.2 removed the separate
+  desktop/mobile surface split described here at Step 3.1). Item identity,
+  canonical href, visibility, active matching, group requirement, ordering,
+  and surface placement are data, not duplicated markup.
 - Active matching is canonical path identity with exact or segment-aware prefix
   behavior. Query strings and fragments do not affect it; the most specific match
   wins. Display labels are never route identity.
@@ -26,8 +77,9 @@ Approved by the explicit Phase 3, Step 3.1 assignment on 2026-07-17:
   by the server-rendered active-group fact; client filtering is presentation only
   and cannot authorize a route. Glossary remains authenticated but does not
   require an active group.
-- Mobile More uses the native dialog modality for background inertness, intentional
-  initial focus, Escape close, trigger focus restoration, and route-change close.
+- The narrow-screen "Menu" overflow (Step 3.2 rename of "Mobile More") uses the
+  native dialog modality for background inertness, intentional initial focus,
+  Escape close, trigger focus restoration, and route-change close.
 - New destination shells are explicitly unavailable/deferred state, fetch no
   analytics data, and contain no fake controls or data. Existing working routes
   remain in place rather than receiving placeholder replacements.

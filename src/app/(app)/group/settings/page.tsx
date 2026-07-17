@@ -9,7 +9,10 @@ import {
   groupSettingsSchema,
   type GroupSettingsInput,
 } from '@/lib/validation/group-settings';
+import { pageMetadata } from '@/lib/navigation/route-metadata';
 import { revalidatePath } from 'next/cache';
+
+export const metadata = pageMetadata('/group/settings');
 
 export default async function GroupSettingsPage() {
   const context = await requireGroupContextOrRedirect();

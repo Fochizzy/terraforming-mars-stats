@@ -7,7 +7,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('AppShell', () => {
-  it('renders the banner and the centralized desktop and mobile navigation', () => {
+  it('renders the banner and the one centralized navigation source used at every viewport width', () => {
     const { container } = render(
       <AppShell hasActiveGroup title="My Profile">
         content
@@ -21,7 +21,7 @@ describe('AppShell', () => {
       'href',
       '/games',
     );
-    expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /log out/i }).length).toBeGreaterThan(0);
 
     const primaryNavigation = screen.getByRole('navigation', {
       name: /primary navigation/i,
@@ -44,18 +44,19 @@ describe('AppShell', () => {
     expect(
       within(primaryNavigation).getByRole('link', { name: /leaderboard/i }),
     ).toHaveAttribute('href', '/leaderboard');
-
-    const bottomNavigation = screen.getByRole('navigation', {
-      name: /bottom navigation/i,
-    });
     expect(
-      within(bottomNavigation).getByRole('link', { name: /profile/i }),
-    ).toHaveAttribute('aria-current', 'page');
+      within(primaryNavigation).getByRole('link', { name: /^compare$/i }),
+    ).toBeInTheDocument();
     expect(
-      within(bottomNavigation).getByRole('button', { name: /more/i }),
+      within(primaryNavigation).getByRole('link', { name: /improvement/i }),
     ).toBeInTheDocument();
 
+    const menuTrigger = screen.getByRole('button', { name: /^menu$/i });
+    expect(menuTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(menuTrigger).toHaveAttribute('aria-haspopup', 'dialog');
+
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');
+    expect(container.querySelector('.tm-bottom-nav')).toBeNull();
   });
 
   it('renders header controls when provided', () => {
