@@ -171,10 +171,23 @@ and availability-aware usage, availability, and conditional-selection
 definitions. Unknown and incomplete evidence remain distinct from Off or zero,
 and raw Merger selections are not ranked with randomly offered Preludes.
 
+### Glossary and Card Database preservation outcome (2026-07-17)
+
+The explicitly assigned preservation task restored the canonical authenticated
+`/glossary` and full `/cards` Card Database without expanding analytics or data
+authority. Historical commit `b13276d88` supplies Glossary identity and behavior
+only; current contracts control semantic wording and unsupported historical
+metrics remain visible as unavailable, provisional, or deferred. `/cards` now
+uses the full server-repository catalog, stable card IDs, metadata search and
+filters, image fallback, and a metadata detail dialog. Card outcome statistics
+remain unavailable because no approved reader exists. The specialized promo
+browser is not canonical. Controlled Glossary links operate only in trusted
+explanatory text and preserve interactive, existing-link, code, URL, and
+editable-content boundaries.
+
 ### Current next approved work
 
-**Glossary and Card Database Preservation and Glossary Cross-Linking** may begin
-only after its own explicit assignment. The un-applied Merger production
+Await a new explicit assignment. The un-applied Merger production
 migration/backfill package remains separately owner-gated; it is not authority
 to begin any other Phase 2 work.
 
@@ -1071,8 +1084,8 @@ Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-17
 - **Current phase:** Phase 2 — Analytics Foundation (repository complete)
-- **Current substep:** Phase 2 Validation Remediation and Closure (complete)
-- **Next gated substep:** Glossary and Card Database Preservation and Glossary Cross-Linking (explicit assignment required)
+- **Current substep:** Glossary and Card Database Preservation and Cross-Linking (complete)
+- **Next gated substep:** Await explicit assignment
 - **Latest protected policy commit:** `9545f589961fce4a0854ed1c6bcff8ba6c7c87d0`
 - **Phase 1 completion commit:** `4283e826f881eb116befbe3285c3de426fb25c6c`
 - **Phase 2 planning commit:** `73184cbdb`

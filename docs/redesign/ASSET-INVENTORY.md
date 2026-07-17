@@ -161,13 +161,15 @@ create that migration.
 
 ### Tracked production code
 
-- `src/lib/db/reference-repo.ts` is the only card resolver. For promo cards it
-  chooses `thumbnail_path ?? full_image_path ?? image_url` and
-  `full_image_path ?? image_url`.
-- `src/features/catalog/promo-set-browser.tsx` renders a fixed 72-by-96 card
-  thumbnail with `next/image`, `unoptimized`, informative alternative text, and
-  a labeled link to the full image. It has no runtime error fallback, placeholder,
-  skeleton, or responsive `sizes`.
+- `src/lib/db/reference-repo.ts` is the server-only card resolver. The canonical
+  Card Lookup uses real `cards` rows and chooses
+  `thumbnail_path ?? full_image_path ?? image_url` plus
+  `full_image_path ?? image_url`; promo-set slugs are resolved in one batch.
+- `src/features/catalog/card-lookup-browser.tsx` renders the responsive full
+  catalog with `next/image`, `unoptimized`, informative alternative text, and a
+  text fallback for missing, known-placeholder, or failed thumbnails. Its detail
+  dialog offers stored full art when available. `PromoSetBrowser` remains a
+  specialized browser and is not the canonical Card Database.
 - `src/features/insights/score-profile-panel.tsx` hardcodes the Supabase project
   URL, bucket, and filenames. Its `<img>` elements are decorative because labels
   are adjacent. They have no loading or error state.

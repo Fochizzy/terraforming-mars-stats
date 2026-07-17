@@ -17,6 +17,7 @@
 - Game Detail
 - Game Replay
 - Cards
+- Glossary
 - Corporations
 - Preludes
 - Players
@@ -38,6 +39,8 @@
 - `/compare`
 - `/improvement`
 - `/leaderboard`
+- `/cards`
+- `/glossary`
 
 ## Page responsibilities
 
@@ -72,3 +75,15 @@ Recommendations, evidence, focus areas, action plans, and progress.
 ### Leaderboard
 
 Formal rankings, placement analysis, and methodology.
+
+### Card Database
+
+Authenticated full reference browsing for the available catalog. It owns stable
+catalog identity, stored metadata, art fallback, search, and filters; it does
+not imply card-play or card-outcome analytics.
+
+### Glossary
+
+Authenticated, shareable definitions for current and historical product terms.
+It owns stable entry fragments and controlled explanatory-text links, while
+current analytics contracts remain the authority for semantic meaning.

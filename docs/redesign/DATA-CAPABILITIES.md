@@ -102,6 +102,12 @@ gameplay_tags, printed_victory_points, and victory_points_kind. Catalog card
 identity does not establish that a card was offered, acquired, or played in a
 particular game.
 
+The authenticated Card Database may read the complete current `cards` catalog
+through the server-only reference repository, including stable `cards.id`, card
+number/name/type/expansion, promo membership, required expansions, stored art
+paths, tags, and printed/dynamic VP metadata. This is reference data only: it
+does not establish card selection, availability, play, or outcome evidence.
+
 ### Import, event, OCR, and storage records
 
 The import schema is defined across

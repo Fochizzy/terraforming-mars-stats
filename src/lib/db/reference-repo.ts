@@ -1,3 +1,4 @@
+import type { CardLookupEntry } from '@/lib/catalog/card-lookup-types';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type ExpansionOption = {
@@ -61,6 +62,8 @@ export type CardOption = {
   promoSetSlug: string | null;
 };
 
+export type CardLookupRecord = CardLookupEntry;
+
 export type PromoCardOption = {
   id: string;
   promoSetId: string;
@@ -75,6 +78,46 @@ export type PromoCardOption = {
 type JoinedName = {
   name: string;
 };
+
+type PromoSetLookupRow = {
+  id: string;
+  slug: string;
+};
+
+function normalizeStringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+}
+
+function normalizeVictoryPointsKind(
+  value: unknown,
+): CardLookupRecord['victoryPointsKind'] {
+  return value === 'static' || value === 'dynamic' ? value : 'none';
+}
+
+async function resolvePromoSetSlugByIdMap(promoSetIds: string[]) {
+  if (promoSetIds.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('promo_sets')
+    .select('id, slug')
+    .in('id', [...new Set(promoSetIds)]);
+
+  if (error) {
+    throw error;
+  }
+
+  return new Map(
+    (data as PromoSetLookupRow[]).map((promoSet) => [
+      promoSet.id,
+      promoSet.slug,
+    ]),
+  );
+}
 
 export async function listExpansions(): Promise<ExpansionOption[]> {
   const supabase = await createSupabaseServerClient();
@@ -240,6 +283,72 @@ export async function listCards(): Promise<CardOption[]> {
     cardName: card.card_name,
     expansionCode: card.expansion_code,
     promoSetSlug: null,
+  }));
+}
+
+export async function listCardLookupRecords(): Promise<CardLookupRecord[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('cards')
+    .select(
+      [
+        'id',
+        'card_number',
+        'card_name',
+        'card_type',
+        'expansion_code',
+        'promo_set_id',
+        'required_expansion_codes',
+        'image_url',
+        'thumbnail_path',
+        'full_image_path',
+        'gameplay_tags',
+        'printed_victory_points',
+        'victory_points_kind',
+      ].join(', '),
+    )
+    .order('card_name');
+
+  if (error) {
+    throw error;
+  }
+
+  const cardRows = data as unknown as Array<{
+    id: string;
+    card_number: string;
+    card_name: string;
+    card_type: string;
+    expansion_code: string;
+    promo_set_id: string | null;
+    required_expansion_codes: unknown;
+    image_url: string | null;
+    thumbnail_path: string | null;
+    full_image_path: string | null;
+    gameplay_tags: unknown;
+    printed_victory_points: number | null;
+    victory_points_kind: unknown;
+  }>;
+  const promoSetSlugById = await resolvePromoSetSlugByIdMap(
+    cardRows
+      .map((card) => card.promo_set_id)
+      .filter((promoSetId): promoSetId is string => Boolean(promoSetId)),
+  );
+
+  return cardRows.map((card) => ({
+    id: card.id,
+    cardNumber: card.card_number,
+    cardName: card.card_name,
+    cardType: card.card_type,
+    expansionCode: card.expansion_code,
+    promoSetSlug: card.promo_set_id
+      ? promoSetSlugById.get(card.promo_set_id) ?? null
+      : null,
+    requiredExpansionCodes: normalizeStringList(card.required_expansion_codes),
+    thumbnailUrl: card.thumbnail_path ?? card.full_image_path ?? card.image_url,
+    fullImageUrl: card.full_image_path ?? card.image_url,
+    printedVictoryPoints: card.printed_victory_points,
+    sourceTags: normalizeStringList(card.gameplay_tags),
+    victoryPointsKind: normalizeVictoryPointsKind(card.victory_points_kind),
   }));
 }
 

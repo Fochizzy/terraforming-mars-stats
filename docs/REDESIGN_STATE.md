@@ -2,36 +2,36 @@
 
 ## Current substep
 
-Phase 2 Validation Remediation and Closure
+Glossary and Card Database Preservation and Cross-Linking
 
 ## Current owner
 
-Codex - Phase 2 Merger availability remediation and closure
+Codex - Glossary and Card Database preservation
 
 ## Status
 
-Completed in the repository. The remediation adds an owner-managed group default
-and nullable, provenance-bearing game snapshot; copies the default only when a
-new game is saved; provides an accessible editor override and saved-rule review;
-preserves unknown rather than Off; centralizes canonical Merger card aliases and
-reviewable actor matching; and implements availability-aware Merger rates and
-reconciliation categories. No selection is silently changed from imported
-evidence, and a missing event is not variant-off evidence.
+Completed in the repository. The assigned preservation task restored the
+authenticated `/glossary` route with 125 historical compatibility identities,
+current-contract wording, accessible fragments, and safe centralized
+cross-linking. It restored `/cards` as the full server-repository Card Database,
+with real catalog records, stable IDs, metadata search, composed filters,
+responsive browsing, real-art fallback, and a metadata detail dialog. Promo-only
+browsing is no longer the canonical Card Database.
 
-Full validation passes at 107 test files / 572 tests; `npx.cmd tsc --noEmit`
+Full validation passes at 117 test files / 590 tests; `npx.cmd tsc --noEmit`
 passes; lint and build pass with the same four baseline lint warnings; and the
-build generates 23/23 pages. A migration, schema verification query, scoped
-dry-run, idempotent historical-policy backfill, and rollback package are ready
-for review only. No linked or production database, schema, data, Storage,
-deployment, push, route, navigation, dependency, or legacy consumer changed.
+build generates 24/24 pages. No production database, schema, migration, Storage,
+deployment, push, dependency, or original-repository mutation occurred. Card
+outcome statistics and acquisition metrics remain explicitly unavailable where
+their reader/evidence contract is not approved.
 
-Phase 2 is formally complete in the repository. Production execution remains a
-separately owner-gated external action and is not represented as completed.
+Phase 2 remains formally complete. This separately assigned preservation task is
+also complete in the repository; production execution remains separately gated.
 
 ## Last completed commit
 
-Phase 2 Validation Remediation and Closure focused completion commit (hash
-recorded in its dedicated handoff and completion report).
+Glossary and Card Database Preservation and Cross-Linking focused completion
+commit (hash recorded in its dedicated handoff and completion report).
 
 ## Current phase
 
@@ -95,8 +95,9 @@ assignment unless separately authorized.
 
 ## Next action
 
-**Glossary and Card Database Preservation and Glossary Cross-Linking** may begin
-only when explicitly assigned. Do not begin it as part of Phase 2 closure.
+**Await a new explicit assignment.** Do not begin card-outcome statistics,
+card-acquisition capture, broader cross-linking, schema work, production work,
+or another redesign phase without that assignment.
 
 ## Active blockers
 
@@ -127,6 +128,7 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/GLOSSARY-CARD-DATABASE-PRESERVATION-AND-CROSS-LINKING.md
 - docs/agent-handoffs/PHASE-02-VALIDATION-REMEDIATION-AND-CLOSURE.md
 - docs/agent-handoffs/PHASE-02-STEP-06-analytics-foundation-integration-validation.md
 - docs/agent-handoffs/CORPORATION-LOGO-ASSET-REPLACEMENT-AND-REMAPPING.md

@@ -3,6 +3,8 @@ export const protectedPrefixes = [
   '/group',
   '/insights',
   '/log-game',
+  '/cards',
+  '/glossary',
 ] as const;
 
 export function isProtectedPath(pathname: string) {

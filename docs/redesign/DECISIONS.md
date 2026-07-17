@@ -41,6 +41,25 @@ treated as ordinary positive-margin wins.
 - State and handoff documentation required
 - Incoming agent verifies the previous commit before editing
 
+## Glossary and Card Database preservation
+
+Approved on 2026-07-17 by the explicitly assigned Glossary and Card Database
+Preservation and Cross-Linking task:
+
+- Historical commit `b13276d88` is the compatibility baseline for Glossary
+  identity and behavior: `/glossary`, category IDs, entry slugs, term names,
+  aliases, fragment destinations, controlled matching, and destination focus.
+- Current governing redesign contracts control all definitions, formulas,
+  eligibility, coverage, availability, and missing-data semantics. Historical
+  wording is not authority for an obsolete metric claim.
+- `/cards` is the canonical authenticated Card Database and must use the full
+  repository-backed Card Lookup, not a promo-only substitute.
+- Promo browsing remains a specialized reference view only; it does not define
+  the Card Database.
+- Historical implementation is adapted to current routing, server repository,
+  authentication, group context, and accessibility patterns rather than being
+  restored or cherry-picked wholesale.
+
 ## Card acquisition and conversion metrics
 
 ### Cards purchased

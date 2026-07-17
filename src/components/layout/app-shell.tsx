@@ -20,6 +20,8 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { href: '/group', label: 'Leaderboard', leaderboard: true },
   { href: '/insights#global-statistics', label: 'Global Statistics' },
   { href: '/insights?scope=compare', label: 'Compare' },
+  { href: '/cards', label: 'Cards' },
+  { href: '/glossary', label: 'Glossary' },
 ] as const;
 
 export function AppShell({

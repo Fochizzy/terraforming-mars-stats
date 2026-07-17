@@ -44,8 +44,11 @@ describe('AppShell', () => {
       within(primaryNavigation).getByRole('link', { name: /compare/i }),
     ).toBeInTheDocument();
     expect(
-      within(primaryNavigation).queryByRole('link', { name: /glossary/i }),
-    ).not.toBeInTheDocument();
+      within(primaryNavigation).getByRole('link', { name: /cards/i }),
+    ).toHaveAttribute('href', '/cards');
+    expect(
+      within(primaryNavigation).getByRole('link', { name: /glossary/i }),
+    ).toHaveAttribute('href', '/glossary');
 
     const bottomNavigation = screen.getByRole('navigation', {
       name: /bottom navigation/i,

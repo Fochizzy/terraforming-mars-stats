@@ -1,15 +1,12 @@
 import { AppShell } from '@/components/layout/app-shell';
-import { PromoSetBrowser } from '@/features/catalog/promo-set-browser';
+import { CardLookupBrowser } from '@/features/catalog/card-lookup-browser';
 import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
-import { listPromoCards, listPromoSets } from '@/lib/db/reference-repo';
+import { listCardLookupRecords } from '@/lib/db/reference-repo';
 
 export default async function CardsPage() {
   const context = await requireGroupContextOrRedirect();
-  const [promoSets, promoCards] = await Promise.all([
-    listPromoSets(),
-    listPromoCards(),
-  ]);
+  const cards = await listCardLookupRecords();
 
   return (
     <AppShell
@@ -21,7 +18,7 @@ export default async function CardsPage() {
       }
       title="Cards"
     >
-      <PromoSetBrowser cards={promoCards} promoSets={promoSets} />
+      <CardLookupBrowser cards={cards} />
     </AppShell>
   );
 }

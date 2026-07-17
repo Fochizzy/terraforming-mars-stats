@@ -6,6 +6,9 @@ describe('isProtectedPath', () => {
     expect(isProtectedPath('/profile')).toBe(true);
     expect(isProtectedPath('/group')).toBe(true);
     expect(isProtectedPath('/log-game')).toBe(true);
+    expect(isProtectedPath('/cards')).toBe(true);
+    expect(isProtectedPath('/cards/example-card')).toBe(true);
+    expect(isProtectedPath('/glossary')).toBe(true);
     expect(isProtectedPath('/login')).toBe(false);
     expect(isProtectedPath('/')).toBe(false);
   });
