@@ -692,6 +692,12 @@ that establishes whether zero was observed. Recommended pattern:
 - positive value + partial coverage = lower-bound/partial, clearly labeled
 - positive value + full coverage = eligible exact count
 
+Phase 2, Step 2.3 implements the shared TypeScript contracts for this pattern:
+metric results, samples, eligibility, coverage evaluation, denominator state,
+and minimum-sample state. The current repository and UI heuristics listed above
+remain deferred migration work; Step 2.3 did not refactor existing queries,
+schema, migrations, or production pages.
+
 ## 10. Authorization and group-scoping risks
 
 - Core and analytics access is group-scoped through membership and shared

@@ -3,9 +3,10 @@
 ## Status
 
 Steps 2.0 — Analytics Foundation Specification and Acceptance Criteria, 2.1 —
-Analytics Scope and Capability Model, and 2.2 — Shared Filter and URL-State
-Contracts — were completed on 2026-07-17. Steps 2.3 through 2.6 are specified
-but unstarted and each requires a separate explicit assignment.
+Analytics Scope and Capability Model, 2.2 — Shared Filter and URL-State
+Contracts, and 2.3 — Metric, Sample, Coverage, and Eligibility Contracts —
+were completed on 2026-07-17. Steps 2.4 through 2.6 are specified but
+unstarted and each requires a separate explicit assignment.
 
 Phase 2 is a contract and calculation-foundation phase. It does not migrate a
 production destination page, change navigation, introduce a production route,
@@ -88,7 +89,7 @@ provide an explicit adapter and tests; it must not silently reinterpret a Phase
 | 2.0 | Analytics Foundation Specification and Acceptance Criteria | This authoritative plan, approved decisions, state update, and handoff | Completed |
 | 2.1 | Analytics Scope and Capability Model | Typed scope, subject, dataset, capability, evidence, and coverage contracts | Completed |
 | 2.2 | Shared Filter and URL-State Contracts | Typed filters, normalization, canonical URL encoding, restoration, compatibility, and reset behavior | Completed |
-| 2.3 | Metric, Sample, Coverage, and Eligibility Contracts | Shared metric result, denominator, sample, coverage, eligibility, and exclusion contracts | Unstarted |
+| 2.3 | Metric, Sample, Coverage, and Eligibility Contracts | Shared metric result, denominator, sample, coverage, eligibility, and exclusion contracts | Completed |
 | 2.4 | Canonical Analytics Definitions and Calculation Utilities | Centralized, versioned, tested utilities for approved formulas only | Unstarted |
 | 2.5 | Analytics Repository and Query Contracts | Typed query inputs, capability-aware outputs, batching, and error/partial behavior | Unstarted |
 | 2.6 | Analytics Foundation Integration Validation | Cross-contract tests and proof that Phase 1 foundations consume Phase 2 results | Unstarted |
@@ -630,6 +631,8 @@ separation; URL round-trip/idempotence; and Phase 1 reconciliation.
 
 ### Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
 
+**Status:** Completed on 2026-07-17.
+
 **Purpose:** implement the shared metric-result, denominator, eligibility,
 exclusion, sample, coverage, methodology, and evidence contracts.
 
@@ -639,8 +642,9 @@ exclusion, sample, coverage, methodology, and evidence contracts.
 `KpiCard`, dashboard evidence/insight components, current analytics DTOs, and
 their tests.
 
-**Likely new files:** pure modules such as `src/lib/analytics/metric-result.ts`,
-`eligibility.ts`, `coverage.ts`, and tests.
+**Implemented files:** pure modules
+`src/lib/analytics/metric-contracts.ts`, `metric-result.ts`, `sample.ts`, and
+`eligibility.ts`, plus additive `coverage.ts` evaluation extensions and tests.
 
 **Likely modified files:** metric/analytics barrels and additive Phase 1 adapters
 or component tests only if the approved result cannot be consumed otherwise.
@@ -653,10 +657,13 @@ client-safe. No repository access.
 
 **Migration:** none.
 
-**Tests:** observed zero; missing; unavailable reason; partial/lower bound; error
-versus empty; numerator/denominator presence; zero denominator; eligibility and
-exclusion counts; no-threshold behavior; caller threshold; zero/partial/missing
-coverage; source coverage; methodology/version; and Phase 1 consumption.
+**Tests:** focused tests cover observed zero; nonzero; missing; unavailable
+reason; partial/lower bound; loading; query error; insufficient evidence;
+numerator/denominator presence; zero denominator; eligibility and exclusion
+counts; no-threshold behavior; caller and metric-specific thresholds;
+zero/partial/unknown/unavailable coverage; source coverage; methodology/version;
+invalid combinations; display-label type rejection; and silent percentage
+averages.
 
 **Acceptance criteria:**
 
@@ -906,7 +913,7 @@ own handoffs and commits. Phase 2 completion does not itself authorize Phase 3.
 
 ## Approved next action
 
-Begin Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts only when
-explicitly assigned. Do not begin formulas, repository changes, schema work,
-production page integration, navigation, route migration, deployment, or
-Supabase mutation as part of that assignment.
+Begin Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+only when explicitly assigned with an approved formula list. Do not begin
+repository changes, schema work, production page integration, navigation, route
+migration, deployment, or Supabase mutation as part of that assignment.

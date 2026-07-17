@@ -14,6 +14,10 @@
  */
 
 import type { CoverageObservation } from '@/lib/metrics/metric-value';
+import {
+  isAnalyticsCapabilityExecutable,
+  type NonExecutableAnalyticsCapability,
+} from './capabilities';
 
 /** A count of records attributed to one stable reason code. */
 export type AnalyticsCoverageBreakdownEntry = {
@@ -61,6 +65,13 @@ export type AnalyticsCoverage = {
   recordsMissingRequiredData?: number;
   /** Total records considered before eligibility, when known. */
   consideredRecords?: number;
+  /**
+   * Eligible records for which the underlying source/capability was available,
+   * when source availability was measured independently from recording.
+   */
+  availableRecords?: number;
+  /** Eligible records for which the source/capability was unavailable. */
+  unavailableRecords?: number;
   /** Records excluded before eligibility, by stable reason code. */
   exclusions?: readonly AnalyticsCoverageBreakdownEntry[];
   /** Missing-data reasons for eligible records without required data. */
@@ -149,6 +160,8 @@ export const ANALYTICS_COVERAGE_ISSUE_CODES = [
   'covered-exceeds-eligible',
   'missing-count-mismatch',
   'considered-below-eligible',
+  'availability-count-mismatch',
+  'covered-exceeds-available',
   'blank-breakdown-code',
   'duplicate-breakdown-code',
   'blank-source-key',
@@ -278,6 +291,43 @@ export function validateAnalyticsCoverage(
     }
   }
 
+  if (coverage.availableRecords !== undefined) {
+    issues.push(...countIssues(coverage.availableRecords, 'availableRecords'));
+  }
+  if (coverage.unavailableRecords !== undefined) {
+    issues.push(
+      ...countIssues(coverage.unavailableRecords, 'unavailableRecords'),
+    );
+  }
+  if (
+    coverage.availableRecords !== undefined &&
+    coverage.unavailableRecords !== undefined &&
+    isCount(coverage.availableRecords) &&
+    isCount(coverage.unavailableRecords) &&
+    isCount(coverage.eligibleRecords) &&
+    coverage.availableRecords + coverage.unavailableRecords !==
+      coverage.eligibleRecords
+  ) {
+    issues.push({
+      code: 'availability-count-mismatch',
+      message:
+        'availableRecords + unavailableRecords must equal eligibleRecords',
+      path: 'availableRecords',
+    });
+  }
+  if (
+    coverage.availableRecords !== undefined &&
+    isCount(coverage.availableRecords) &&
+    isCount(coverage.recordsWithRequiredData) &&
+    coverage.recordsWithRequiredData > coverage.availableRecords
+  ) {
+    issues.push({
+      code: 'covered-exceeds-available',
+      message: 'recordsWithRequiredData must not exceed availableRecords',
+      path: 'recordsWithRequiredData',
+    });
+  }
+
   if (coverage.exclusions !== undefined) {
     issues.push(...breakdownIssues(coverage.exclusions, 'exclusions'));
   }
@@ -385,4 +435,103 @@ export function normalizeAnalyticsCoverage(
         }),
   };
   return normalized;
+}
+
+export const ANALYTICS_COVERAGE_UNKNOWN_REASON_CODES = [
+  'coverage-not-measured',
+  'population-unverified',
+  'source-coverage-unverified',
+] as const;
+
+export type AnalyticsCoverageUnknownReasonCode =
+  (typeof ANALYTICS_COVERAGE_UNKNOWN_REASON_CODES)[number];
+
+export type AnalyticsCoverageUnknownReason = {
+  code: AnalyticsCoverageUnknownReasonCode;
+  explanation: string;
+};
+
+export const ANALYTICS_COVERAGE_EVALUATION_STATUSES = [
+  'complete',
+  'partial',
+  'none',
+  'no-eligible-records',
+  'unknown',
+  'capability-unavailable',
+  'invalid',
+] as const;
+
+export type MeasuredAnalyticsCoverageEvaluation = {
+  status: Exclude<
+    AnalyticsCoverageStatus,
+    'invalid'
+  >;
+  coverage: AnalyticsCoverage;
+  /** Numeric ratio for measured positive denominators; otherwise `null`. */
+  ratio: number | null;
+};
+
+export type AnalyticsCoverageEvaluation =
+  | MeasuredAnalyticsCoverageEvaluation
+  | {
+      status: 'unknown';
+      reason: AnalyticsCoverageUnknownReason;
+    }
+  | {
+      status: 'capability-unavailable';
+      capability: NonExecutableAnalyticsCapability;
+    }
+  | {
+      status: 'invalid';
+      coverage: AnalyticsCoverage;
+      issues: readonly AnalyticsCoverageIssue[];
+    };
+
+/**
+ * Converts a measured ledger into a state. Invalid count combinations remain
+ * explicitly invalid; they are never normalized into a plausible percentage.
+ */
+export function evaluateAnalyticsCoverage(
+  coverage: AnalyticsCoverage,
+): AnalyticsCoverageEvaluation {
+  const normalized = normalizeAnalyticsCoverage(coverage);
+  const issues = validateAnalyticsCoverage(normalized);
+  if (issues.length > 0) {
+    return { status: 'invalid', coverage: normalized, issues };
+  }
+  const status = analyticsCoverageStatus(normalized);
+  if (status === 'invalid') {
+    return {
+      status: 'invalid',
+      coverage: normalized,
+      issues: [
+        {
+          code: 'covered-exceeds-eligible',
+          message: 'Coverage counts are internally inconsistent',
+        },
+      ],
+    };
+  }
+  return {
+    status,
+    coverage: normalized,
+    ratio: analyticsCoverageRatio(normalized),
+  };
+}
+
+export function unknownAnalyticsCoverage(
+  reason: AnalyticsCoverageUnknownReason,
+): AnalyticsCoverageEvaluation {
+  return { status: 'unknown', reason };
+}
+
+export function capabilityUnavailableAnalyticsCoverage(
+  capability: NonExecutableAnalyticsCapability,
+): AnalyticsCoverageEvaluation {
+  if (isAnalyticsCapabilityExecutable(capability)) {
+    throw new Error(
+      'An executable capability cannot make coverage capability-unavailable',
+    );
+  }
+  return { status: 'capability-unavailable', capability };
 }

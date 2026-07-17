@@ -3,11 +3,15 @@ import { coverageFraction } from '@/lib/metrics/metric-value';
 import {
   analyticsCoverageRatio,
   analyticsCoverageStatus,
+  capabilityUnavailableAnalyticsCoverage,
+  evaluateAnalyticsCoverage,
   normalizeAnalyticsCoverage,
   toCoverageObservation,
+  unknownAnalyticsCoverage,
   validateAnalyticsCoverage,
   type AnalyticsCoverage,
 } from './coverage';
+import type { NonExecutableAnalyticsCapability } from './capabilities';
 
 describe('analyticsCoverageRatio', () => {
   it('reports complete, partial, and explicit zero coverage', () => {
@@ -170,6 +174,36 @@ describe('validateAnalyticsCoverage', () => {
     );
   });
 
+  it('reconciles available and unavailable source counts independently', () => {
+    expect(
+      validateAnalyticsCoverage({
+        eligibleRecords: 10,
+        recordsWithRequiredData: 6,
+        availableRecords: 7,
+        unavailableRecords: 3,
+      }),
+    ).toEqual([]);
+    expect(
+      validateAnalyticsCoverage({
+        eligibleRecords: 10,
+        recordsWithRequiredData: 6,
+        availableRecords: 6,
+        unavailableRecords: 5,
+      }),
+    ).toContainEqual(
+      expect.objectContaining({ code: 'availability-count-mismatch' }),
+    );
+    expect(
+      validateAnalyticsCoverage({
+        eligibleRecords: 10,
+        recordsWithRequiredData: 7,
+        availableRecords: 6,
+      }),
+    ).toContainEqual(
+      expect.objectContaining({ code: 'covered-exceeds-available' }),
+    );
+  });
+
   it('rejects blank and duplicate breakdown codes', () => {
     const issues = validateAnalyticsCoverage({
       eligibleRecords: 4,
@@ -228,6 +262,80 @@ describe('source-dimensional coverage', () => {
     expect(analyticsCoverageStatus(research)).toBe('complete');
     expect(analyticsCoverageStatus(drafts)).toBe('partial');
     expect(analyticsCoverageRatio(drafts)).toBeCloseTo(0.4);
+  });
+});
+
+describe('evaluateAnalyticsCoverage', () => {
+  const blockedCapability: NonExecutableAnalyticsCapability = {
+    key: 'cards-purchased-by-generation',
+    status: 'requires-new-fields',
+    reason: {
+      code: 'required-facts-not-persisted',
+      explanation: 'Card purchase facts are not persisted.',
+    },
+    scopes: { supported: [] },
+    missingData: [
+      { key: 'card-purchase-facts', description: 'Card purchase event facts.' },
+    ],
+  };
+
+  it('returns measured complete, partial, none, and no-eligible states', () => {
+    expect(
+      evaluateAnalyticsCoverage({
+        eligibleRecords: 3,
+        recordsWithRequiredData: 3,
+      }).status,
+    ).toBe('complete');
+    expect(
+      evaluateAnalyticsCoverage({
+        eligibleRecords: 3,
+        recordsWithRequiredData: 2,
+      }).status,
+    ).toBe('partial');
+    expect(
+      evaluateAnalyticsCoverage({
+        eligibleRecords: 3,
+        recordsWithRequiredData: 0,
+      }).status,
+    ).toBe('none');
+    expect(
+      evaluateAnalyticsCoverage({
+        eligibleRecords: 0,
+        recordsWithRequiredData: 0,
+      }).status,
+    ).toBe('no-eligible-records');
+  });
+
+  it('keeps unknown coverage and unavailable capability out of measured ratios', () => {
+    expect(
+      unknownAnalyticsCoverage({
+        code: 'coverage-not-measured',
+        explanation: 'Coverage has not been measured.',
+      }),
+    ).toEqual({
+      status: 'unknown',
+      reason: {
+        code: 'coverage-not-measured',
+        explanation: 'Coverage has not been measured.',
+      },
+    });
+    expect(
+      capabilityUnavailableAnalyticsCoverage(blockedCapability),
+    ).toMatchObject({
+      status: 'capability-unavailable',
+      capability: { key: 'cards-purchased-by-generation' },
+    });
+  });
+
+  it('returns invalid instead of normalizing impossible measured counts', () => {
+    const result = evaluateAnalyticsCoverage({
+      eligibleRecords: 2,
+      recordsWithRequiredData: 3,
+    });
+    expect(result.status).toBe('invalid');
+    expect(result).toMatchObject({
+      coverage: { eligibleRecords: 2, recordsWithRequiredData: 3 },
+    });
   });
 });
 

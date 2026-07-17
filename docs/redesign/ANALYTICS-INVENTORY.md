@@ -105,6 +105,14 @@ Support segmentation by:
 - Label low-coverage results.
 - Use observational language.
 
+Phase 2, Step 2.3 adds shared contracts for these requirements:
+`AnalyticsMetricResult`, `AnalyticsSample`, `AnalyticsCoverageEvaluation`, and
+`AnalyticsEligibilityResult` distinguish loading, query error, unavailable
+capability, insufficient evidence, observed zero, missing values, partial
+values, unknown coverage, structured exclusions, and minimum-sample states.
+This inventory still does not approve formulas, thresholds, repository queries,
+schema changes, or production page integration.
+
 ### Cards Seen coverage dimensions
 
 Cards Seen coverage must distinguish which opportunity sources were recorded:

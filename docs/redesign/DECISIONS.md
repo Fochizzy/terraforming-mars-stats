@@ -228,9 +228,31 @@ The complete contract and scope matrix are documented in
 - Low-sample categories remain visible unless an explicit filter excludes them.
 - Denominators, eligible observations, coverage, and exclusion reasons are
   visible when they affect interpretation.
+- Step 2.3 implements sample contracts as candidate, eligible, included, and
+  excluded counts, with structured exclusion reasons. Comparison/highlight/focus
+  selection is context only and does not narrow a sample unless represented as a
+  real Step 2.2 filter.
+- Step 2.3 implements minimum-sample states as no-threshold, met, not-met,
+  cannot-evaluate, and insufficient-evidence. A missing threshold is never
+  interpreted as a passed threshold.
+- Step 2.3 implements coverage states as measured complete, partial, none,
+  no-eligible-records, invalid, plus unknown and capability-unavailable
+  evaluated coverage. Available/unavailable source counts must reconcile when
+  provided.
+- Step 2.3 implements eligibility states as eligible, ineligible,
+  indeterminate, unavailable, and not-applicable, with structured reasons for
+  every non-eligible state.
+- Step 2.3 implements metric result states as loading, load-error,
+  capability-unavailable, insufficient-evidence, and ready. Ready results carry
+  the Phase 1 value states without coercing observed zero, missing,
+  unavailable, partial, or error states into each other.
+- Metric identity uses stable IDs/codes/versions. Display metadata is not
+  identity, and analytics interpretation remains observational.
 - Calculations are centralized, versioned, documented, and directly tested.
 - React presentation components do not define business formulas.
 - Step 2.0 approves no new metric formula.
+- Step 2.3 approves no new metric formula, repository query, schema, migration,
+  or production page integration.
 - Step 2.4 may implement only formulas already approved here or added by a
   separate explicit approval.
 - Ratio of totals and median per-game rate remain separate labeled results where
