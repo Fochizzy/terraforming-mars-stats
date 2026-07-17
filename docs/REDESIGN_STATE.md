@@ -2,15 +2,15 @@
 
 ## Current phase
 
-Phase 0 — Repository and Analytics Audit
+Phase 0 — Repository and Analytics Audit — Complete
 
 ## Current substep
 
-Step 0.5 — Baseline Validation Review
+Step 0.6 — Final Migration Matrix — Complete
 
 ## Status
 
-Completed
+Phase 0 completed
 
 ## Branch
 
@@ -18,29 +18,29 @@ redesign/tm-stats-dashboard-rebuild
 
 ## Current owner
 
-Codex - baseline validation review
+Codex - final migration matrix
 
 ## Last completed commit
 
-Step 0.5 baseline validation review (this commit)
+Step 0.6 final migration matrix (this documentation-only commit)
 
 ## Next action
 
-Begin Phase 0, Step 0.6 — Migration Matrix only when explicitly assigned.
+Phase 1, Step 1.1 — Shared Design Foundations.
 
 ## Active blockers
 
-None prevents Step 0.6. Step 0.5 reproduced the original healthy validation
-baseline with no new code warnings or failures. Existing lint/dependency warnings
-and sandbox-only cache write denials are documented in
-`docs/redesign/BASELINE-VALIDATION.md`; they do not block the documentation-only
-migration matrix.
+None prevents Phase 1, Step 1.1. Later product, route, schema, analytics, asset,
+authorization, sample-size, and production-parity decisions are assigned to the
+phases they gate in `docs/redesign/MIGRATION-MATRIX.md`; they must not be resolved
+by assumption. The healthy Step 0.5 validation baseline remains the comparison
+point for implementation.
 
 ## Database migration status
 
-No redesign migrations created. Step 0.5 made documentation changes only and did
-not query or change database or Storage state.
+No redesign migrations created. Phase 0 and Step 0.6 made documentation changes
+only and did not query or change database or Storage state.
 
 ## Latest handoff
 
-docs/agent-handoffs/PHASE-00-STEP-05-baseline-validation.md
+docs/agent-handoffs/PHASE-00-STEP-06-migration-matrix.md
