@@ -665,28 +665,29 @@ must distinguish at least:
 
 Purchased-card coverage is not Cards Seen coverage.
 
-### Merger always-available Prelude variant (Step 2.6 finding)
+### Merger always-available Prelude variant (Phase 2 remediation)
 
-All historical games used the user-confirmed house rule that Merger was always
-available as an additional Prelude option while each player still selected only
-two Preludes. The current core model has no group default or game-level rule
-snapshot for that fact. `game_player_preludes` can represent a selected Prelude
-after a typed reader is added, but it cannot represent guaranteed availability
-or prove that an unselected Merger was offered. `game_log_events.card_played`
-can potentially evidence a resolved Merger play and actor, but no current writer
-or production-coverage audit verifies it; no event is not evidence that the
-variant was off. The Phase 2 generic coverage contracts can label partial or
-unverified evidence, but there is no Merger-specific availability denominator,
-historical always-on attribution, or canonical Merger-card identity contract.
+The user-confirmed house rule gives every player Merger as an additional Prelude
+option while still limiting selections to two. The remediation introduces an
+owner-managed group default and a nullable, provenance-bearing game snapshot;
+the snapshot, not the current group setting, is authoritative for analytics.
+`true`, `false`, and unknown are separate states. Existing historical games
+remain unknown until the separately gated, group-scoped historical-policy
+backfill is approved and applied.
 
-Consequently, raw Merger selections must not be ranked directly against
-randomly offered Preludes. A separately authorized remediation must decide the
-group default copied to a game rule snapshot, historical attribution policy,
-stable Merger catalog identity (including duplicate/ambiguity reconciliation),
-selection and actor evidence, complete versus partial log coverage, and the
-availability-aware denominator. No current Phase 2 reader or calculation treats
-Merger as randomly offered, and no schema, migration, or backfill is authorized
-by this finding.
+`game_player_preludes` stores manual selection only. Imported evidence is
+reviewable: accepted stable source-card identities map to one canonical Merger
+Prelude, actor identity resolves by exact in-game name then confirmed alias, and
+ambiguous/unresolved actors remain unresolved. A missing event does not mean the
+variant was off, a player rejected Merger, or the log was complete.
+
+The typed calculation defines usage, availability, and selection-given-
+availability rates separately. Games with the saved guaranteed rule provide the
+Merger availability denominator; non-Merger random offers are never fabricated.
+The local migration, schema verification, dry-run counts, idempotent backfill,
+and rollback procedure are in
+`PHASE-02-MERGER-OFFER-PRODUCTION-PACKAGE.md`. No production audit, schema
+change, or backfill has been executed.
 
 ## 9. Null-versus-zero risks
 

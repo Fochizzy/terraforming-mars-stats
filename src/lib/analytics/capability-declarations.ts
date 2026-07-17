@@ -36,7 +36,7 @@ function deepFreeze<T>(value: T): T {
  * deterministic and never mistaken for a ranking.
  */
 export const DECLARED_ANALYTICS_CAPABILITIES: readonly AnalyticsCapabilityResult[] =
-  deepFreeze<readonly AnalyticsCapabilityResult[]>([
+  deepFreeze<readonly AnalyticsCapabilityResult[]>(([
     {
       key: 'board-control-analytics',
       title: 'Spatial board control',
@@ -132,6 +132,55 @@ export const DECLARED_ANALYTICS_CAPABILITIES: readonly AnalyticsCapabilityResult
               note:
                 'The typed repository preserves missingness and feeds the versioned Step 2.4 utility; production-wide population coverage remains unaudited.',
             },
+          },
+        ],
+      },
+    },
+    {
+      key: 'merger-guaranteed-availability',
+      title: 'Merger guaranteed Prelude availability',
+      status: 'requires-new-fields',
+      reason: {
+        code: 'required-facts-not-persisted',
+        explanation:
+          'The remediation migration defines a nullable saved game rule and canonical card-alias mapping, but it has not been applied to production. Until then, historical availability must remain unknown rather than inferred from selected Preludes or absent log events.',
+      },
+      scopes: { supported: [] },
+      requiredData: [
+        {
+          key: 'saved-merger-offer-rule',
+          description:
+            'A game-level nullable guaranteed-Merger snapshot copied from an owner-managed group default for new games.',
+        },
+        {
+          key: 'canonical-merger-card-aliases',
+          description:
+            'A reviewed mapping from accepted imported card identities to one canonical Prelude identity.',
+        },
+        {
+          key: 'applied-merger-offer-rule-migration',
+          description:
+            'An approved production application of the tracked migration before production records can be queried or backfilled.',
+        },
+      ],
+      missingData: [
+        {
+          key: 'applied-merger-offer-rule-migration',
+          description:
+            'The local migration and historical-policy package require separate production authorization before production records are queried or backfilled.',
+        },
+      ],
+      remediation: {
+        kind: 'remediable',
+        historicalBackfillPossible: true,
+        note: 'The approved historical policy is idempotent and group-scoped; it must not overwrite explicit conflicting snapshots.',
+      },
+      evidence: {
+        sources: [
+          {
+            kind: 'audit-document',
+            reference: 'docs/redesign/PHASE-02-MERGER-OFFER-PRODUCTION-PACKAGE.md',
+            verification: { schemaVerified: true, populationVerified: false },
           },
         ],
       },
@@ -417,7 +466,7 @@ export const DECLARED_ANALYTICS_CAPABILITIES: readonly AnalyticsCapabilityResult
         ],
       },
     },
-  ]);
+  ] as AnalyticsCapabilityResult[]).sort((left, right) => left.key.localeCompare(right.key)));
 
 /** Stable keys of the declared capabilities, in registry order. */
 export const DECLARED_ANALYTICS_CAPABILITY_KEYS: readonly string[] =

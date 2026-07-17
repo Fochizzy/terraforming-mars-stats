@@ -4,6 +4,7 @@ export type GroupSettingsSnapshot = {
   groupId: string;
   groupName: string;
   globalAnalyticsEnabled: boolean;
+  defaultGuaranteedMergerOffer: boolean;
   defaultMapId: string | null;
   defaultExpansionCodes: string[];
   defaultPromoSetSlugs: string[];
@@ -52,7 +53,7 @@ export async function getGroupSettings(groupId: string): Promise<GroupSettingsSn
       supabase.from('groups').select('name').eq('id', groupId).single(),
       supabase
         .from('group_settings')
-        .select('global_analytics_enabled, default_map_id')
+        .select('global_analytics_enabled, default_map_id, default_guaranteed_merger_offer')
         .eq('group_id', groupId)
         .maybeSingle(),
     ]);
@@ -112,6 +113,8 @@ export async function getGroupSettings(groupId: string): Promise<GroupSettingsSn
     groupId,
     groupName: group.name,
     globalAnalyticsEnabled: settings?.global_analytics_enabled ?? false,
+    defaultGuaranteedMergerOffer:
+      settings?.default_guaranteed_merger_offer ?? true,
     defaultMapId: settings?.default_map_id ?? null,
     defaultExpansionCodes: expansions.map((expansion) => expansion.code),
     defaultPromoSetSlugs: promoSets.map((promoSet) => promoSet.slug),
@@ -122,6 +125,7 @@ export async function saveGroupSettings(input: {
   group_id: string;
   group_name: string;
   global_analytics_enabled: boolean;
+  default_guaranteed_merger_offer: boolean;
   default_map_id?: string | null;
   default_expansion_codes: string[];
   default_promo_set_slugs: string[];
@@ -146,9 +150,10 @@ export async function saveGroupSettings(input: {
     .upsert({
       group_id: input.group_id,
       global_analytics_enabled: input.global_analytics_enabled,
+      default_guaranteed_merger_offer: input.default_guaranteed_merger_offer,
       default_map_id: input.default_map_id ?? null,
     })
-    .select('group_id, global_analytics_enabled, default_map_id')
+    .select('group_id, global_analytics_enabled, default_guaranteed_merger_offer, default_map_id')
     .single();
 
   if (error) {

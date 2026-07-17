@@ -27,6 +27,8 @@ describe('LogGameWizard', () => {
           playerScores: {},
           playerSelections: {},
           generationCount: 10,
+          guaranteedMergerOffer: true,
+          mergerOfferRuleSource: 'group_default',
           playerStyles: {},
           expansionCodes: ['base'],
           promoSetSlugs: [],
@@ -116,6 +118,8 @@ describe('LogGameWizard', () => {
           playerScores: {},
           playerSelections: {},
           generationCount: 10,
+          guaranteedMergerOffer: true,
+          mergerOfferRuleSource: 'group_default',
           playerStyles: {},
           expansionCodes: ['base', 'prelude'],
           promoSetSlugs: [],
@@ -218,6 +222,8 @@ describe('LogGameWizard', () => {
         notes: '',
         playerCount: 2,
         generationCount: 11,
+        guaranteedMergerOffer: true,
+        mergerOfferRuleSource: 'group_default',
         playerScores: {
           p1: {
             awardPoints: 5,

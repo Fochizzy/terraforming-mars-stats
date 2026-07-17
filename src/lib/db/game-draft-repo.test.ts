@@ -116,6 +116,12 @@ describe('finalizeGameLog', () => {
     });
     const gameInsertSelect = vi.fn(() => ({ single: gameInsertSingle }));
     const gameInsert = vi.fn(() => ({ select: gameInsertSelect }));
+    const groupSettingsMaybeSingle = vi.fn().mockResolvedValue({
+      data: { default_guaranteed_merger_offer: true },
+      error: null,
+    });
+    const groupSettingsEq = vi.fn(() => ({ maybeSingle: groupSettingsMaybeSingle }));
+    const groupSettingsSelect = vi.fn(() => ({ eq: groupSettingsEq }));
     const playerDeleteEq = vi.fn().mockResolvedValue({ error: null });
     const playerDelete = vi.fn(() => ({ eq: playerDeleteEq }));
     const playerInsertSelect = vi.fn().mockResolvedValue({
@@ -149,6 +155,10 @@ describe('finalizeGameLog', () => {
           return {
             insert: gameInsert,
           };
+        }
+
+        if (table === 'group_settings') {
+          return { select: groupSettingsSelect };
         }
 
         throw new Error(`Unexpected upsert table ${table}`);
@@ -189,8 +199,10 @@ describe('finalizeGameLog', () => {
           awardClaims: {},
           expansionCodes: [],
           generationCount: 10,
+          guaranteedMergerOffer: true,
           groupId: '11111111-1111-4111-8111-111111111111',
           mapId: 'tharsis',
+          mergerOfferRuleSource: 'group_default',
           milestoneClaims: {},
           notes: '',
           playedOn: '2026-07-08',
@@ -250,6 +262,12 @@ describe('finalizeGameLog', () => {
       }),
     ).resolves.toEqual({ gameId: 'game-final' });
 
+    expect(gameInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        guaranteed_merger_offer: true,
+        guaranteed_merger_offer_source: 'group_default',
+      }),
+    );
     expect(revisionInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         game_id: 'game-final',

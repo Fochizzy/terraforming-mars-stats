@@ -2,40 +2,40 @@
 
 ## Current substep
 
-Step 2.6 - Analytics Foundation Integration Validation
+Phase 2 Validation Remediation and Closure
 
 ## Current owner
 
-Codex - Phase 2 analytics foundation integration validation
+Codex - Phase 2 Merger availability remediation and closure
 
 ## Status
 
-Completed as a validation step. A focused integration test proves canonical URL
-filters and non-sample selection, normalized repository data, the canonical
-Win Point Differential utility, typed metric evidence, and an accessible Phase
-1 evidence table compose without coercing observed zero, missing, partial,
-unavailable, or query-error states. The full suite passes at 103 test files /
-556 tests; typecheck is clean; lint and build pass with the same four baseline
-lint warnings; and the build generates 23/23 pages. No SQL, migration, view,
-RPC, schema, Supabase state, Storage, dependency, route, navigation,
-deployment, production page, or legacy consumer changed.
+Completed in the repository. The remediation adds an owner-managed group default
+and nullable, provenance-bearing game snapshot; copies the default only when a
+new game is saved; provides an accessible editor override and saved-rule review;
+preserves unknown rather than Off; centralizes canonical Merger card aliases and
+reviewable actor matching; and implements availability-aware Merger rates and
+reconciliation categories. No selection is silently changed from imported
+evidence, and a missing event is not variant-off evidence.
 
-Phase 2 is not formally complete. Validation found a separately scoped Merger
-Prelude-availability blocker: the current group/game model and Phase 2
-contracts cannot represent guaranteed availability, a game-rule snapshot,
-historical always-on attribution, or an availability-aware denominator.
-`card_played` evidence is not a substitute because its writer, population, and
-actor coverage remain unverified, and no event cannot mean the variant was off.
-No workaround was added.
+Full validation passes at 107 test files / 572 tests; `npx.cmd tsc --noEmit`
+passes; lint and build pass with the same four baseline lint warnings; and the
+build generates 23/23 pages. A migration, schema verification query, scoped
+dry-run, idempotent historical-policy backfill, and rollback package are ready
+for review only. No linked or production database, schema, data, Storage,
+deployment, push, route, navigation, dependency, or legacy consumer changed.
+
+Phase 2 is formally complete in the repository. Production execution remains a
+separately owner-gated external action and is not represented as completed.
 
 ## Last completed commit
 
-Step 2.6 focused completion commit (hash recorded in the Step 2.6 handoff and
-completion report).
+Phase 2 Validation Remediation and Closure focused completion commit (hash
+recorded in its dedicated handoff and completion report).
 
 ## Current phase
 
-Phase 2 — Analytics Foundation
+Phase 2 — Analytics Foundation (repository complete)
 
 ## Prior completed substep
 
@@ -95,28 +95,17 @@ assignment unless separately authorized.
 
 ## Next action
 
-Begin a separately assigned **Phase 2 Validation Remediation and Closure** task
-only. It must decide the Merger group default, game-rule snapshot, historical
-always-on attribution, canonical card identity, evidence/actor coverage, and
-availability-aware denominator before any implementation that ranks Merger
-against randomly offered Preludes. Do not begin SQL, schema, migration,
-production page work, deployment, or Supabase mutation without explicit
-authorization.
+**Glossary and Card Database Preservation and Glossary Cross-Linking** may begin
+only when explicitly assigned. Do not begin it as part of Phase 2 closure.
 
 ## Active blockers
 
-The Merger always-available Prelude rule is a Phase 2 closure blocker. Raw
-Merger selections cannot be ranked beside randomly offered Preludes without an
-availability-aware denominator, and neither a selected Prelude row nor an
-absent event can establish availability. Resolution requires a separately
-assigned **Phase 2 Validation Remediation and Closure** task to decide and
-model the group default, game rule snapshot, historical attribution, stable
-catalog identity, coverage/actor evidence, denominator, and any approved
-schema/migration/backfill policy. Do not begin that work without explicit
-authorization.
+No repository blocker remains for Phase 2. The separately gated production
+package needs an owner-approved target group UUID, a read-only dry run with no
+catalog or conflicting-record stop condition, and explicit production execution
+authorization. It must not be applied by a future unrelated task.
 
-Apart from the Merger closure blocker above, later analytics and consumer work
-remains blocked, where applicable,
+Separately, later analytics and consumer work remains blocked, where applicable,
 by undecided tied-first numeric win-margin behavior;
 overall point-differential baseline; leaderboard and opponent-strength
 methodology; metric-specific sample, coverage, and range thresholds; approval
@@ -130,13 +119,15 @@ remain deferred migration work.
 
 ## Database migration status
 
-No Phase 2 migrations created. Step 2.5 changed client-safe TypeScript
-contracts/records, an authenticated server read repository, tests, and
-documentation only. It did not query or change production database or Storage
-state.
+One unapplied Phase 2 migration is prepared:
+`20260717190000_add_merger_offer_rule_snapshots.sql`. Its verification SQL,
+group-scoped dry run, idempotent historical policy backfill, and rollback are
+reviewable locally. No migration, schema query, or data backfill was applied to
+a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-02-VALIDATION-REMEDIATION-AND-CLOSURE.md
 - docs/agent-handoffs/PHASE-02-STEP-06-analytics-foundation-integration-validation.md
 - docs/agent-handoffs/CORPORATION-LOGO-ASSET-REPLACEMENT-AND-REMAPPING.md
   (separately authorized production asset task, post-2.5)
@@ -148,4 +139,4 @@ The corporation-logo task applied production Storage uploads and
 `public.corporations.logo_path` updates under separate explicit authorization.
 These are not represented by Git; their verified results and rollback are in the
 handoff and `docs/redesign/assets/corporation-logos/`. No Phase 2 migration, view,
-RPC, schema, or other Supabase state was created or changed.
+RPC, schema, Storage, or other Supabase state was applied or changed.

@@ -9,6 +9,7 @@ describe('groupSettingsSchema', () => {
     const parsed = groupSettingsSchema.parse({
       groupName: 'Friday Mars',
       globalAnalyticsEnabled: true,
+      defaultGuaranteedMergerOffer: true,
       defaultExpansionCodes: ['base', 'prelude', 'colonies'],
       defaultPromoSetSlugs: ['2021-promos'],
     });
@@ -36,6 +37,7 @@ describe('GroupSettingsForm', () => {
         initialValues={{
           groupName: 'Friday Mars',
           globalAnalyticsEnabled: false,
+          defaultGuaranteedMergerOffer: true,
           defaultExpansionCodes: ['base', 'prelude'],
           defaultPromoSetSlugs: [],
         }}
@@ -65,6 +67,7 @@ describe('GroupSettingsForm', () => {
       expect(onSave).toHaveBeenCalledWith({
         groupName: 'Friday Terraformers',
         globalAnalyticsEnabled: true,
+        defaultGuaranteedMergerOffer: true,
         defaultExpansionCodes: ['base', 'prelude', 'colonies'],
         defaultPromoSetSlugs: ['2021-promos'],
       }),

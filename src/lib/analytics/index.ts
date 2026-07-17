@@ -344,6 +344,18 @@ export {
 } from './metric-result';
 
 export {
+  MERGER_OFFER_SOURCES,
+  calculateMergerPreludeAvailability,
+  reconcileMergerSelection,
+  type MergerAvailabilityRate,
+  type MergerImportCoverage,
+  type MergerOfferSource,
+  type MergerPreludeAvailabilitySummary,
+  type MergerPreludePlayerGameObservation,
+  type MergerSelectionReconciliationCategory,
+} from './merger-prelude-analytics';
+
+export {
   CANONICAL_ANALYTICS_DEFINITIONS,
   CANONICAL_ANALYTICS_FORMULA_VERSION,
   CANONICAL_RATE_AGGREGATION_CODES,

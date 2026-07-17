@@ -26,8 +26,10 @@ describe('mergeDraftIntoInitialValues', () => {
         expansionCodes: ['base'],
         gameId: undefined,
         generationCount: 10,
+        guaranteedMergerOffer: true,
         groupId: '11111111-1111-4111-8111-111111111111',
         mapId: 'tharsis',
+        mergerOfferRuleSource: 'group_default',
         milestoneClaims: {},
         notes: '',
         playedOn: '2026-07-03',
@@ -58,5 +60,6 @@ describe('mergeDraftIntoInitialValues', () => {
     expect(merged.promoSetSlugs).toEqual(['2022-promos']);
     expect(merged.selectedPlayerIds).toEqual([]);
     expect(merged.playerScores).toEqual({});
+    expect(merged.guaranteedMergerOffer).toBe(true);
   });
 });

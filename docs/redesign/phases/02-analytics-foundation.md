@@ -3,14 +3,15 @@
 ## Status
 
 Steps 2.0 through 2.6 are completed and committed as individual substeps.
-Step 2.6 completed the required integration validation on 2026-07-17, including
-a cross-contract test spanning URL state, repository results, canonical
-calculation, typed metric evidence, and a Phase 1 accessible evidence table.
-Phase 2 is not formally complete: Merger's always-available Prelude variant
-requires a separately assigned Phase 2 Validation Remediation and Closure task.
-The present contracts cannot represent the rule snapshot, historical always-on
-attribution, verified play/actor coverage, or availability-aware denominator,
-and the absence of a Merger event is not variant-off evidence.
+The separately assigned Phase 2 Validation Remediation and Closure task resolved
+the Merger always-available Prelude blocker in the repository: group defaults,
+nullable game snapshots with provenance, canonical card aliases, reviewable
+actor evidence, availability-aware calculation contracts, migration verification,
+and a production-gated historical policy package are complete. The full suite,
+typecheck, lint, and 23-page build pass with only the four documented baseline
+lint warnings. Phase 2 is formally complete in the repository. No production
+schema/data/backfill/deployment was applied; that package remains separately
+owner-gated and does not block the next explicitly assigned task.
 
 ## Status before Step 2.6
 
@@ -105,7 +106,7 @@ provide an explicit adapter and tests; it must not silently reinterpret a Phase
 | 2.3 | Metric, Sample, Coverage, and Eligibility Contracts | Shared metric result, denominator, sample, coverage, eligibility, and exclusion contracts | Completed |
 | 2.4 | Canonical Analytics Definitions and Calculation Utilities | Centralized, versioned, tested utilities for approved formulas only | Completed |
 | 2.5 | Analytics Repository and Query Contracts | Typed query inputs, capability-aware outputs, batching, and error/partial behavior | Completed |
-| 2.6 | Analytics Foundation Integration Validation | Cross-contract tests and proof that Phase 1 foundations consume Phase 2 results | Completed validation - Merger closure blocker recorded |
+| 2.6 | Analytics Foundation Integration Validation | Cross-contract tests and proof that Phase 1 foundations consume Phase 2 results | Completed; separately assigned Merger remediation and closure completed locally |
 
 Completing one row does not authorize the next row.
 
@@ -860,15 +861,16 @@ explicit zero, query failure, missing score, partial records, and unavailable
 capability remain distinct. The full suite, typecheck, lint, and build pass;
 no in-scope contract defect required repair.
 
-**Closure blocker:** Merger is a user-confirmed always-available additional
-Prelude option; each player still selects only two Preludes. A selected Prelude
-row can represent selection but cannot establish availability. The current
-model has no group default, game rule snapshot, historical attribution,
-availability denominator, canonical Merger identity reconciliation, or verified
-event actor/coverage contract. `card_played` absence cannot establish that the
-variant was off. Raw Merger selections must not be ranked beside randomly
-offered Preludes. Resolution is outside Step 2.6 and may require an approved
-fact, schema/migration, historical policy, and reader.
+**Closure remediation (2026-07-17):** The separately assigned Phase 2 closure
+task resolved this repository blocker. Merger is modeled as a user-confirmed
+always-available additional Prelude option while each player still selects only
+two Preludes. The implementation adds an owner-managed future-game default, a
+nullable snapshot with provenance on each game, canonical source-ID aliases,
+reviewable actor evidence, and availability-aware calculations. `card_played`
+absence remains non-evidence rather than variant-off evidence; unknown is not
+coerced to false; and unknown-source selections are not reported as random
+offers. The migration and group-scoped historical-policy package are committed
+for review but remain unapplied and owner-gated in production.
 
 ## Phase-level validation requirements
 
@@ -928,7 +930,7 @@ Phase 2 is complete only when:
 - no production destination page, route ownership, or navigation was migrated;
 - no schema/migration/Supabase change occurred without a separately approved and
   fully tested assignment; and
-- final state/handoff names Phase 3 as awaiting explicit approval.
+- final state/handoff names the explicitly approved next task without beginning it.
 
 ## Phase-wide prohibited changes
 
@@ -967,6 +969,7 @@ assignment.
 
 ## Approved next action
 
-Begin a separately assigned **Phase 2 Validation Remediation and Closure** task
-only. Do not begin production page integration, navigation, route migration,
-schema work, deployment, or Supabase mutation without explicit authorization.
+**Glossary and Card Database Preservation and Glossary Cross-Linking** may begin
+only when explicitly assigned. Do not begin it as part of Phase 2 closure. The
+Merger production migration and historical-policy package remain separately
+owner-gated; do not apply them without explicit production authorization.

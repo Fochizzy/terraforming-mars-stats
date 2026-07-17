@@ -90,8 +90,16 @@ describe('declared analytics capabilities', () => {
       expect(capability.missingData.length).toBeGreaterThan(0);
       expect(capability.remediation).toMatchObject({
         kind: 'remediable',
-        historicalBackfillPossible: false,
       });
+      if (capability.key === 'merger-guaranteed-availability') {
+        expect(capability.remediation).toMatchObject({
+          historicalBackfillPossible: true,
+        });
+      } else {
+        expect(capability.remediation).toMatchObject({
+          historicalBackfillPossible: false,
+        });
+      }
     }
   });
 

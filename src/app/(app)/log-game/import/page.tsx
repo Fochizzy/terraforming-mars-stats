@@ -27,6 +27,8 @@ export default async function LogGameImportPage() {
     const activeContext = await requireCurrentGroupContext();
     const activeGroupSettings = await getGroupSettings(activeContext.groupId);
     const draftForm = buildImportDraft({
+      defaultGuaranteedMergerOffer:
+        activeGroupSettings.defaultGuaranteedMergerOffer,
       defaultExpansionCodes: activeGroupSettings.defaultExpansionCodes,
       defaultPromoSetSlugs: activeGroupSettings.defaultPromoSetSlugs,
       groupId: activeContext.groupId,

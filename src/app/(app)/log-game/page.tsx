@@ -76,6 +76,8 @@ export default async function LogGamePage({
     groupId: context.groupId,
     playedOn: new Date().toISOString().slice(0, 10),
     mapId: groupSettings.defaultMapId ?? mapOptions[0]?.id ?? '',
+    guaranteedMergerOffer: groupSettings.defaultGuaranteedMergerOffer,
+    mergerOfferRuleSource: 'group_default',
     milestoneClaims: {},
     notes: '',
     playerCount: Math.min(Math.max(playerOptions.length || 2, 1), 5),
@@ -143,6 +145,7 @@ export default async function LogGamePage({
         catalogSnapshotId: latestCatalogSnapshotId,
         expansionCodes: resolved.expansionCodes,
         gameId: resolved.gameId,
+        guaranteedMergerOffer: resolved.guaranteedMergerOffer,
         mapAwardIds: awardOptions
           .filter((award) => award.mapId === resolved.mapId)
           .map((award) => award.awardId),
@@ -150,6 +153,7 @@ export default async function LogGamePage({
           .filter((milestone) => milestone.mapId === resolved.mapId)
           .map((milestone) => milestone.milestoneId),
         milestoneClaims: resolved.milestoneClaims,
+        mergerOfferRuleSource: resolved.mergerOfferRuleSource,
         notes: resolved.notes,
         playerCount: resolved.playerCount,
         playerScores: resolved.playerScores,

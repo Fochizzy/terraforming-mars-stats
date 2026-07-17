@@ -1,6 +1,11 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { FinalizedGamePayload } from '@/features/games/finalize-game';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
+import {
+  resolveEditedMergerOfferRuleSnapshot,
+  resolveNewMergerOfferRuleSnapshot,
+  unknownMergerOfferRuleSnapshot,
+} from '@/lib/merger/merger-rule-snapshot';
 import { refreshGameMetricSnapshots } from './metric-refresh-repo';
 
 async function resolveExpansionIds(codes: string[]) {
@@ -108,7 +113,33 @@ async function upsertGameShell(payload: {
   const parsed = logGameDraftSchema.parse(payload.form);
   const supabase = await createSupabaseServerClient();
 
+  const requestedMergerRule = {
+    guaranteedMergerOffer: parsed.guaranteedMergerOffer,
+    source: parsed.mergerOfferRuleSource,
+  };
+
   if (parsed.gameId) {
+    const { data: existingGame, error: existingGameError } = await supabase
+      .from('games')
+      .select('guaranteed_merger_offer, guaranteed_merger_offer_source')
+      .eq('id', parsed.gameId)
+      .single();
+
+    if (existingGameError) {
+      throw existingGameError;
+    }
+
+    const mergerRule = resolveEditedMergerOfferRuleSnapshot({
+      existing:
+        existingGame.guaranteed_merger_offer_source === null
+          ? unknownMergerOfferRuleSnapshot()
+          : {
+              guaranteedMergerOffer: existingGame.guaranteed_merger_offer,
+              source: existingGame.guaranteed_merger_offer_source,
+            },
+      requested: requestedMergerRule,
+    });
+
     const { data, error } = await supabase
       .from('games')
       .update({
@@ -116,6 +147,8 @@ async function upsertGameShell(payload: {
         map_id: parsed.mapId,
         player_count: parsed.playerCount,
         generation_count: parsed.generationCount,
+        guaranteed_merger_offer: mergerRule.guaranteedMergerOffer,
+        guaranteed_merger_offer_source: mergerRule.source,
         notes: parsed.notes,
         status: payload.status,
         updated_by_user_id: payload.userId,
@@ -143,6 +176,22 @@ async function upsertGameShell(payload: {
     return data.id;
   }
 
+  const { data: groupSettings, error: groupSettingsError } = await supabase
+    .from('group_settings')
+    .select('default_guaranteed_merger_offer')
+    .eq('group_id', parsed.groupId)
+    .maybeSingle();
+
+  if (groupSettingsError) {
+    throw groupSettingsError;
+  }
+
+  const mergerRule = resolveNewMergerOfferRuleSnapshot({
+    groupDefaultGuaranteedMergerOffer:
+      groupSettings?.default_guaranteed_merger_offer ?? true,
+    requested: requestedMergerRule,
+  });
+
   const { data, error } = await supabase
     .from('games')
     .insert({
@@ -151,6 +200,8 @@ async function upsertGameShell(payload: {
       map_id: parsed.mapId,
       player_count: parsed.playerCount,
       generation_count: parsed.generationCount,
+      guaranteed_merger_offer: mergerRule.guaranteedMergerOffer,
+      guaranteed_merger_offer_source: mergerRule.source,
       notes: parsed.notes,
       created_by_user_id: payload.userId,
       updated_by_user_id: payload.userId,
@@ -234,7 +285,7 @@ export async function getDraftGameForm(payload: {
   const supabase = await createSupabaseServerClient();
   const { data: draftGame, error: draftGameError } = await supabase
     .from('games')
-    .select('id')
+    .select('id, guaranteed_merger_offer, guaranteed_merger_offer_source')
     .eq('id', payload.gameId)
     .eq('group_id', payload.groupId)
     .eq('status', 'draft')
@@ -264,7 +315,12 @@ export async function getDraftGameForm(payload: {
     return null;
   }
 
-  return logGameDraftSchema.parse(latestRevision.snapshot);
+  return logGameDraftSchema.parse({
+    ...(latestRevision.snapshot as Record<string, unknown>),
+    guaranteedMergerOffer: draftGame.guaranteed_merger_offer,
+    mergerOfferRuleSource:
+      draftGame.guaranteed_merger_offer_source ?? 'unknown',
+  });
 }
 
 export async function finalizeGameLog(payload: {

@@ -164,21 +164,19 @@ Phase 1 accessible evidence table. Full validation passes at 103 test files /
 a 23/23-page production build. No production route, navigation, schema,
 migration, Supabase, Storage, dependency, or deployment change occurred.
 
-Phase 2 is not formally complete. The user-confirmed always-available Merger
-Prelude rule cannot be represented by the current game/group model or Phase 2
-contracts: there is no group default, game-level rule snapshot, historical
-always-on attribution, verified Merger event/actor coverage, canonical identity
-reconciliation, or availability-aware denominator. An absent event is not
-evidence that the variant was off, and raw Merger selections must not be ranked
-beside randomly offered Preludes.
+Phase 2 is complete in the repository. The Merger remediation adds an
+owner-managed group default copied to a nullable, provenance-bearing game
+snapshot; stable catalog alias handling; reviewable actor/evidence resolution;
+and availability-aware usage, availability, and conditional-selection
+definitions. Unknown and incomplete evidence remain distinct from Off or zero,
+and raw Merger selections are not ranked with randomly offered Preludes.
 
 ### Current next approved work
 
-Only after a separate explicit assignment: **Phase 2 Validation Remediation and
-Closure**. It must decide and model the Merger setting/snapshot, historical
-policy, card identity, evidence coverage, availability denominator, and any
-approved schema or backfill boundary. It must not be started by this validation
-task.
+**Glossary and Card Database Preservation and Glossary Cross-Linking** may begin
+only after its own explicit assignment. The un-applied Merger production
+migration/backfill package remains separately owner-gated; it is not authority
+to begin any other Phase 2 work.
 
 ### Completed
 
@@ -309,7 +307,8 @@ Use the Phase 1 phase file and handoffs for exact historical scope.
 
 ## Phase 2 — Analytics Foundation
 
-**Status:** In progress
+**Status:** Complete in repository; production migration/backfill package is
+prepared but unapplied pending separate owner authorization.
 
 Purpose:
 
@@ -425,7 +424,8 @@ Primary outcome:
 
 ### Step 2.6 — Analytics Foundation Integration Validation
 
-**Status:** Planned
+**Status:** Completed. Its Merger closure blocker was resolved by the separately
+assigned Phase 2 Validation Remediation and Closure task.
 
 Primary outcome:
 
@@ -1012,7 +1012,7 @@ Rules:
 
 ---
 
-| DW-002 | Step 2.6 | Model historical always-available Merger Prelude availability and denominator | Requires a new approved game-rule and historical-evidence policy; no safe inference from selection or absent events | Phase 2 Validation Remediation and Closure | Open |
+| DW-002 | Step 2.6 | Model historical always-available Merger Prelude availability and denominator | Resolved in repository with nullable snapshots, provenance, alias mapping, availability-aware calculation, and a group-scoped dry-run/backfill package | Owner review and separate production execution only | Repository complete; production gated |
 
 ## 24. Risk Register
 
@@ -1070,9 +1070,9 @@ Do not push unless explicitly instructed.
 Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-17
-- **Current phase:** Phase 2 — Analytics Foundation
-- **Current substep:** Step 2.5 — Analytics Repository and Query Contracts (complete)
-- **Next gated substep:** Step 2.6 — Analytics Foundation Integration Validation
+- **Current phase:** Phase 2 — Analytics Foundation (repository complete)
+- **Current substep:** Phase 2 Validation Remediation and Closure (complete)
+- **Next gated substep:** Glossary and Card Database Preservation and Glossary Cross-Linking (explicit assignment required)
 - **Latest protected policy commit:** `9545f589961fce4a0854ed1c6bcff8ba6c7c87d0`
 - **Phase 1 completion commit:** `4283e826f881eb116befbe3285c3de426fb25c6c`
 - **Phase 2 planning commit:** `73184cbdb`

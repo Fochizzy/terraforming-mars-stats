@@ -151,3 +151,18 @@ Supported coverage labels include:
 - Purchased-card coverage only
 - Partial event coverage
 - No Cards Seen coverage
+
+## Merger Prelude availability
+
+- Usage rate: selected player-games divided by eligible player-games.
+- Availability rate: player-games known to have been offered Merger divided by
+  eligible player-games.
+- Selection rate given availability: selected player-games divided by
+  player-games known offered Merger.
+
+For a saved `guaranteed_merger_offer = true` snapshot, every eligible player in
+that game is a guaranteed-variant offer. Manual Prelude selections and resolved
+high-confidence imported evidence are separate sources that can corroborate
+selection. Unknown snapshots and incomplete imports remain visible as unknown
+coverage; they are never converted to random offers, false values, or zero
+opportunity. See `src/lib/analytics/merger-prelude-analytics.ts`.

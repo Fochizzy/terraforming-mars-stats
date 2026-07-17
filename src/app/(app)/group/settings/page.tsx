@@ -28,6 +28,7 @@ export default async function GroupSettingsPage() {
       group_id: activeContext.groupId,
       group_name: parsed.groupName,
       global_analytics_enabled: parsed.globalAnalyticsEnabled,
+      default_guaranteed_merger_offer: parsed.defaultGuaranteedMergerOffer,
       default_expansion_codes: parsed.defaultExpansionCodes,
       default_promo_set_slugs: parsed.defaultPromoSetSlugs,
     });
@@ -55,6 +56,7 @@ export default async function GroupSettingsPage() {
         initialValues={{
           groupName: settings.groupName,
           globalAnalyticsEnabled: settings.globalAnalyticsEnabled,
+          defaultGuaranteedMergerOffer: settings.defaultGuaranteedMergerOffer,
           defaultExpansionCodes: settings.defaultExpansionCodes,
           defaultPromoSetSlugs: settings.defaultPromoSetSlugs,
         }}

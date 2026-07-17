@@ -91,6 +91,14 @@ export function LogGameWizard({
     useWatch({ control: form.control, name: 'playerSelections' }) ?? {};
   const playerStyles =
     useWatch({ control: form.control, name: 'playerStyles' }) ?? {};
+  const guaranteedMergerOffer = useWatch({
+    control: form.control,
+    name: 'guaranteedMergerOffer',
+  });
+  const mergerOfferRuleSource = useWatch({
+    control: form.control,
+    name: 'mergerOfferRuleSource',
+  });
   const selectedPlayers = selectedPlayerIds
     .map(
       (playerId) =>
@@ -156,9 +164,12 @@ export function LogGameWizard({
     >
       <SetupStep
         expansionOptions={expansionOptions}
+        guaranteedMergerOffer={guaranteedMergerOffer}
         mapOptions={mapOptions}
+        mergerOfferRuleSource={mergerOfferRuleSource}
         promoSetOptions={promoSetOptions}
         register={form.register}
+        setValue={form.setValue}
       />
       <PlayersStep
         corporationOptions={corporationOptions}
@@ -185,6 +196,8 @@ export function LogGameWizard({
         styleOptions={styleOptions}
       />
       <ReviewStep
+        guaranteedMergerOffer={guaranteedMergerOffer}
+        mergerOfferRuleSource={mergerOfferRuleSource}
         playerScores={playerScores}
         register={form.register}
         review={review}

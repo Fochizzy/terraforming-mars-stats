@@ -64,6 +64,15 @@ export type CanonicalAnalyticsFormula =
       tiedFirst: 'unresolved-no-numeric-value';
       utilityRef: 'calculate-win-point-differential';
       version: typeof CANONICAL_ANALYTICS_FORMULA_VERSION;
+    }
+  | {
+      kind: 'merger-prelude-availability';
+      rate:
+        | 'usage-rate'
+        | 'availability-rate'
+        | 'selection-rate-given-availability';
+      utilityRef: 'calculate-merger-prelude-availability';
+      version: typeof CANONICAL_ANALYTICS_FORMULA_VERSION;
     };
 
 export type CanonicalAnalyticsMetricDefinition = AnalyticsMetricDefinition & {
@@ -180,6 +189,43 @@ function canonicalRateDefinition(input: {
   };
 }
 
+function mergerPreludeAvailabilityDefinition(input: {
+  id: string;
+  code: string;
+  rate: Extract<CanonicalAnalyticsFormula, { kind: 'merger-prelude-availability' }>['rate'];
+}): CanonicalAnalyticsMetricDefinition {
+  return {
+    identity: {
+      id: input.id,
+      code: input.code,
+      version: CANONICAL_ANALYTICS_FORMULA_VERSION,
+    },
+    valueKind: 'ratio',
+    aggregationKind: 'ratio-of-totals',
+    unit: { kind: 'ratio' },
+    denominatorKind: 'observation-count',
+    supportedScopes: ['group', 'individual', 'domain'],
+    supportedFilters: [],
+    minimumSamplePolicy: { kind: 'none' },
+    eligibilityPolicyRef: 'phase-2.merger-prelude.availability-eligibility',
+    capabilityRequirements: [
+      { capabilityKey: 'merger-guaranteed-availability', necessity: 'required' },
+    ],
+    explicitZeroValid: true,
+    partialCoverage: 'allowed',
+    insufficientEvidence: 'applies',
+    provenance: 'required',
+    requiresIncludedObservations: true,
+    interpretation: OBSERVATIONAL_INTERPRETATION,
+    formula: {
+      kind: 'merger-prelude-availability',
+      rate: input.rate,
+      utilityRef: 'calculate-merger-prelude-availability',
+      version: CANONICAL_ANALYTICS_FORMULA_VERSION,
+    },
+  };
+}
+
 export const CANONICAL_ANALYTICS_DEFINITIONS: readonly CanonicalAnalyticsMetricDefinition[] = [
   recordedCardAcquisitionDefinition({
     id: 'metric:cards-purchased',
@@ -258,6 +304,21 @@ export const CANONICAL_ANALYTICS_DEFINITIONS: readonly CanonicalAnalyticsMetricD
     code: 'end-hand-carryover-median-per-player-game',
     rate: 'end-hand-carryover',
     aggregation: 'median-per-observation-rate',
+  }),
+  mergerPreludeAvailabilityDefinition({
+    id: 'metric:merger-prelude-usage-rate',
+    code: 'merger-prelude-usage-rate',
+    rate: 'usage-rate',
+  }),
+  mergerPreludeAvailabilityDefinition({
+    id: 'metric:merger-prelude-availability-rate',
+    code: 'merger-prelude-availability-rate',
+    rate: 'availability-rate',
+  }),
+  mergerPreludeAvailabilityDefinition({
+    id: 'metric:merger-prelude-selection-rate-given-availability',
+    code: 'merger-prelude-selection-rate-given-availability',
+    rate: 'selection-rate-given-availability',
   }),
   {
     identity: {

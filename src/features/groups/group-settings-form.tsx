@@ -68,6 +68,20 @@ export function GroupSettingsForm({
         <input type="checkbox" {...form.register('globalAnalyticsEnabled')} />
         Contribute anonymous aggregate analytics
       </label>
+      <section
+        aria-describedby="merger-default-help"
+        className="rounded-2xl border border-orange-900/30 bg-stone-950/40 p-4"
+      >
+        <h2 className="font-serif text-lg font-semibold">Merger house rule</h2>
+        <label className="mt-3 flex items-center gap-3 text-sm">
+          <input type="checkbox" {...form.register('defaultGuaranteedMergerOffer')} />
+          Offer Merger as an additional guaranteed Prelude option
+        </label>
+        <p className="mt-2 text-sm text-stone-400" id="merger-default-help">
+          Players still choose only two Preludes. This default is copied into
+          new games only; changing it never changes a saved historical game.
+        </p>
+      </section>
       <section className="rounded-2xl border border-orange-900/30 bg-stone-950/40 p-4">
         <h2 className="font-serif text-lg font-semibold">Default Expansions</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">

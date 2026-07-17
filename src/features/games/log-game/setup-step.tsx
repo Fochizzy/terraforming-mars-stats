@@ -1,22 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import type { UseFormRegister } from 'react-hook-form';
+import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import type { ExpansionOption, MapOption, PromoSetOption } from '@/lib/db/reference-repo';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 
 type SetupStepProps = {
   expansionOptions: ExpansionOption[];
+  guaranteedMergerOffer: boolean | null;
   mapOptions: MapOption[];
+  mergerOfferRuleSource: LogGameDraftInput['mergerOfferRuleSource'];
   promoSetOptions: PromoSetOption[];
   register: UseFormRegister<LogGameDraftInput>;
+  setValue: UseFormSetValue<LogGameDraftInput>;
 };
 
 export function SetupStep({
   expansionOptions,
+  guaranteedMergerOffer,
   mapOptions,
+  mergerOfferRuleSource,
   promoSetOptions,
   register,
+  setValue,
 }: SetupStepProps) {
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-orange-900/30 bg-black/25 p-4">
@@ -127,6 +133,60 @@ export function SetupStep({
           </div>
         </div>
       </div>
+      <fieldset
+        aria-describedby="merger-offer-help"
+        className="rounded-2xl border border-orange-900/30 bg-stone-950/40 p-4"
+      >
+        <legend className="px-1 font-serif text-lg font-semibold">
+          Merger availability
+        </legend>
+        <p className="mt-2 text-sm text-stone-300" id="merger-offer-help">
+          This saved game rule controls analytics. Merger is an additional
+          guaranteed option when enabled, but each player still selects only two
+          Preludes. The group default is copied to a new game; later group
+          changes do not change this game.
+        </p>
+        <label className="mt-3 flex max-w-md flex-col gap-2 text-sm">
+          <span className="font-semibold text-stone-200">Saved Merger rule</span>
+          <select
+            aria-label="Saved Merger rule"
+            className="rounded-xl border border-stone-800 bg-stone-950/70 px-4 py-3"
+            onChange={(event) => {
+              const value = event.target.value;
+              setValue(
+                'guaranteedMergerOffer',
+                value === 'enabled' ? true : value === 'disabled' ? false : null,
+                { shouldDirty: true },
+              );
+              setValue('mergerOfferRuleSource', 'manual_override', {
+                shouldDirty: true,
+              });
+            }}
+            value={
+              guaranteedMergerOffer === true
+                ? 'enabled'
+                : guaranteedMergerOffer === false
+                  ? 'disabled'
+                  : 'unknown'
+            }
+          >
+            <option value="enabled">On — Merger was guaranteed</option>
+            <option value="disabled">Off — Merger was not guaranteed</option>
+            <option value="unknown">Unknown — do not infer Off</option>
+          </select>
+        </label>
+        <p className="mt-2 text-xs text-stone-400">
+          Source: {mergerOfferRuleSource === 'group_default'
+            ? 'group default copied into this game'
+            : mergerOfferRuleSource === 'historical_policy'
+              ? 'approved historical policy'
+              : mergerOfferRuleSource === 'import_metadata'
+                ? 'import metadata'
+                : mergerOfferRuleSource === 'manual_override'
+                  ? 'editor override'
+                  : 'not recorded'}
+        </p>
+      </fieldset>
     </section>
   );
 }

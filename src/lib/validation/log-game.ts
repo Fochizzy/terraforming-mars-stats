@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MERGER_OFFER_RULE_SOURCES } from '@/lib/merger/merger-rule-snapshot';
 
 function sanitizeString(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
@@ -138,6 +139,8 @@ export const logGameDraftSchema = z.object({
   mapId: z.string(),
   playerCount: z.number().min(1).max(5),
   generationCount: z.number().min(1),
+  guaranteedMergerOffer: z.boolean().nullable().default(null),
+  mergerOfferRuleSource: z.enum(MERGER_OFFER_RULE_SOURCES).default('unknown'),
   expansionCodes: z.array(z.string()).default([]),
   promoSetSlugs: z.array(z.string()).default([]),
   selectedPlayerIds: z.array(z.string()).default([]),

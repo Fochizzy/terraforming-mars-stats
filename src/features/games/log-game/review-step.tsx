@@ -5,6 +5,8 @@ import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister } from 'react-hook-form';
 
 type ReviewStepProps = {
+  guaranteedMergerOffer: boolean | null;
+  mergerOfferRuleSource: LogGameDraftInput['mergerOfferRuleSource'];
   playerScores: LogGameDraftInput['playerScores'];
   register: UseFormRegister<LogGameDraftInput>;
   review: GameReview;
@@ -15,6 +17,8 @@ type ReviewStepProps = {
 };
 
 export function ReviewStep({
+  guaranteedMergerOffer,
+  mergerOfferRuleSource,
   playerScores,
   register,
   review,
@@ -38,6 +42,19 @@ export function ReviewStep({
           {...register('notes')}
         />
       </label>
+      <div className="rounded-2xl border border-stone-800 bg-stone-950/60 p-4 text-sm">
+        <h3 className="font-semibold text-stone-100">Saved Merger rule</h3>
+        <p className="mt-2 text-stone-300">
+          {guaranteedMergerOffer === true
+            ? 'Merger was guaranteed as an additional Prelude option.'
+            : guaranteedMergerOffer === false
+              ? 'Merger was not guaranteed as an additional Prelude option.'
+              : 'Merger availability was not recorded; analytics will preserve this as unknown.'}
+        </p>
+        <p className="mt-1 text-xs text-stone-400">
+          Provenance: {mergerOfferRuleSource.replaceAll('_', ' ')}.
+        </p>
+      </div>
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="grid gap-3">
           <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-orange-300">

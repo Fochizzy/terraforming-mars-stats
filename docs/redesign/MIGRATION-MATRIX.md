@@ -261,6 +261,7 @@ labels, and tie treatment must be visible.
 | Final terraforming actions | Remote RPC only | verify definition, source, security, typed identities and errors | capture function migration if accepted | Unknown until linked verification | 2/18 | local schema does not define RPC |
 | Import evidence and metadata | Available now | repository-owned review/detail reads; signed URL batching | no public exposure; policy drift may need captured migration | Preserve immutable evidence/provenance | 4/5/20 | private Storage access and retention |
 | Imported structured events | Schema can hold, current writer absent | parser/review/finalization writer, stable event IDs, coverage | approved event contracts and uniqueness | Production population requires read-only verification | 4/5 | missing rows are not zero |
+| Merger guaranteed offer | Local Phase 2 migration package; not applied | owner group default copied to nullable game snapshot; availability-aware reader/calculation | `group_settings` default, `games` snapshot/provenance, canonical `prelude_card_aliases` | apply only with owner approval; run group-scoped dry run, idempotent historical policy, and post-checks | historical snapshots unknown until separately approved policy; import event writer/coverage remains reviewable | 2 complete in repository | High: never infer Off/random offer from no selection or no event |
 | Recommendation history | Runtime prose only | evidence DTO/repository and versioning | recommendation/evidence/lifecycle tables | No historic recommendation state | 12/19 | non-causal wording and ownership |
 | Improvement goals/progress | Not persisted | goal/progress repositories and longitudinal joins | goal/target/status/progress/evidence tables + RLS | No goal history backfill | 12/19 | ownership, visibility, metric version |
 | Generated Supabase types/schema parity | Absent | regenerate/use typed clients and repositories | capture accepted live-only columns/functions/buckets | Not applicable | 2/20 | silent local/live drift |
@@ -269,8 +270,10 @@ No schema work belongs to Phase 1. Phase 2 may design and approve schema/query
 contracts, but migrations are separate implementation work and must be explicitly
 assigned. Phase 4 is the earliest capture phase after those contracts are approved.
 
-Phase 2, Step 2.5 adds only the focused finalized-game result operations
-documented in `ANALYTICS-REPOSITORY-QUERY-CONTRACTS.md`. It does not change the
+Phase 2 closes with the separately assigned Merger remediation package in
+addition to the Step 2.5 finalized-game result operations documented in
+`ANALYTICS-REPOSITORY-QUERY-CONTRACTS.md`. The package is committed locally but
+unapplied; its production execution remains owner-gated. It does not change the
 route/component migration order, and the broad legacy repository remains in
 place until each destination phase proves parity.
 

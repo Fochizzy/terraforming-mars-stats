@@ -5,6 +5,7 @@ describe('buildImportDraft', () => {
   it('builds a cloud draft payload from import values and group defaults', () => {
     expect(
       buildImportDraft({
+        defaultGuaranteedMergerOffer: true,
         defaultExpansionCodes: ['base', 'prelude'],
         defaultPromoSetSlugs: ['2022-promos'],
         groupId: '11111111-1111-4111-8111-111111111111',
@@ -22,8 +23,10 @@ describe('buildImportDraft', () => {
       expansionCodes: ['base', 'prelude'],
       gameId: undefined,
       generationCount: 12,
+      guaranteedMergerOffer: true,
       groupId: '11111111-1111-4111-8111-111111111111',
       mapId: 'elysium',
+      mergerOfferRuleSource: 'group_default',
       milestoneClaims: {},
       notes: [
         'Imported evidence attached.',

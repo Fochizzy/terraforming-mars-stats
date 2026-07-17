@@ -345,6 +345,37 @@ Step 2.0 does not decide:
 These questions are blockers for the specific later substeps that require them,
 not permission to resolve them by copying current UI or SQL behavior.
 
+## Phase 2 Merger always-available Prelude remediation
+
+Approved by the explicit Phase 2 Validation Remediation and Closure assignment
+on 2026-07-17.
+
+- `group_settings.default_guaranteed_merger_offer` is the owner-managed default
+  for future games. It defaults to enabled for the established house rule, but
+  only a saved game snapshot is authoritative for analytics.
+- `games.guaranteed_merger_offer` is nullable. `true` and `false` are recorded
+  facts; null is unknown/unrecorded and must never display or aggregate as Off.
+  `games.guaranteed_merger_offer_source` records group default, editor override,
+  historical policy, import metadata, or unknown provenance.
+- New games copy the current group default once. Editors may override the saved
+  snapshot for an exceptional game. Changing a group default cannot reinterpret
+  a saved game.
+- The historical always-on policy is an explicit, group-scoped, idempotent
+  update of only null/null snapshots to `true` with `historical_policy`
+  provenance. It is prepared but not applied without a separate production
+  authorization and an owner-reviewed target group UUID.
+- `game_player_preludes` remains the manual-selection source. A resolved,
+  high-confidence imported `card_played` event may corroborate selection, but
+  no Merger event never establishes that the variant was off or that a player
+  rejected it.
+- Imported source-card aliases use stable catalog source identities and one
+  `prelude_card_aliases` relationship to canonical `preludes.code = merger`.
+  No display-name identity or automatic final-selection correction is allowed.
+- Merger reports distinguish usage rate, availability rate, and selection rate
+  given availability. Guaranteed-variant exposure is segmented from random and
+  unknown sources; non-Merger random offers remain unknown unless independently
+  captured.
+
 ## Corporation logo identification
 
 Approved corporation logos contain the corporation name as part of the
@@ -399,4 +430,3 @@ between Phase 2 Step 2.5 and Step 2.6 (it did not begin Step 2.6).
 - This task replaced only `logo_path` and Storage objects in
   `tm-corporation-logos`; no corporation identity field, schema, RLS policy,
   bucket configuration, or unrelated asset changed, and nothing was deployed.
-

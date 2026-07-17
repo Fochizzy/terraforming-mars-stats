@@ -69,6 +69,28 @@ emit the legacy zero. The metric is not applicable to non-winners. Overall
 point differential, ranking, placements, and tie ranking policy are separate
 unapproved work.
 
+## Merger Prelude availability
+
+The Merger always-available Prelude variant has three separately reported,
+versioned definitions. They are computed from each game's saved Merger-rule
+snapshot, canonical Merger identity, and reviewable player attribution; they do
+not infer an offer from a missing event or from player order, corporation,
+score, or partial logs.
+
+| Metric | Formula | Required interpretation |
+| --- | --- | --- |
+| Merger usage rate | `confirmed Merger selections / eligible player-game observations` | A confirmed manual selection or high-confidence resolved event is a selection observation. It does not, by itself, establish a guaranteed offer. |
+| Merger availability rate | `known Merger-offered observations / eligible player-game observations` | A saved `guaranteed_merger_offer = true` snapshot establishes the additional offer. `false` establishes no guaranteed offer. A null or `unknown` snapshot is never coerced to Off; unresolved unknown snapshots make the aggregate partial rather than 0%. |
+| Merger selection given availability | `confirmed Merger selections / observations with known Merger availability` | Guaranteed-variant selections are reported separately from unknown-source selections. The random-offer denominator remains unavailable when no independently captured random offer exists. |
+
+The game snapshot is the source of denominator policy: a `true` snapshot makes
+the additional Merger offer available to every eligible player-game observation,
+while a `false` snapshot does not. A selected Merger in an unknown snapshot is
+counted as a selection and records that availability is known, but its offer
+source remains unknown rather than being labeled guaranteed or random. Explicit
+zero, unknown, partial import coverage, unresolved actors, and conflicting
+evidence remain distinct reconciliation states.
+
 ## Eligibility, coverage, samples, and value states
 
 Utilities accept the Step 2.3 `AnalyticsEligibilityResult`,

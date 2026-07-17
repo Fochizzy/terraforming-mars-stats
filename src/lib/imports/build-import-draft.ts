@@ -17,6 +17,7 @@ export type CreateImportDraftInput = ImportDraftValues & {
 };
 
 export function buildImportDraft(input: {
+  defaultGuaranteedMergerOffer: boolean;
   defaultExpansionCodes: string[];
   defaultPromoSetSlugs: string[];
   groupId: string;
@@ -27,8 +28,10 @@ export function buildImportDraft(input: {
     expansionCodes: [...input.defaultExpansionCodes],
     gameId: undefined,
     generationCount: input.importValues.generationCount,
+    guaranteedMergerOffer: input.defaultGuaranteedMergerOffer,
     groupId: input.groupId,
     mapId: input.importValues.mapId,
+    mergerOfferRuleSource: 'group_default',
     milestoneClaims: {},
     notes: buildImportDraftNotes({
       endgameScreenshotName: input.importValues.endgameScreenshotName,
