@@ -342,3 +342,214 @@ a {
       inset 0 1px 0 rgba(255, 234, 208, 0.3);
   }
 }
+
+/*
+ * Shared design foundations (Phase 1, Step 1.1).
+ * These classes reuse the existing --tm-* theme tokens above and add no new
+ * theme values. Consumed by src/components/foundations/*.
+ */
+@layer components {
+  .tm-focus-ring:focus-visible {
+    outline: 2px solid var(--tm-copper-400);
+    outline-offset: 2px;
+  }
+
+  .tm-kpi-value {
+    color: var(--tm-text);
+    font-family: var(--tm-font-display);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    overflow-wrap: anywhere;
+  }
+
+  .tm-kpi-value[data-state='missing'],
+  .tm-kpi-value[data-state='unavailable'] {
+    color: var(--tm-muted);
+    font-family: var(--tm-font-body);
+    font-style: italic;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  .tm-kpi-unit {
+    color: var(--tm-muted);
+    font-family: var(--tm-font-body);
+    font-size: 0.7em;
+    letter-spacing: 0.06em;
+  }
+
+  .tm-toolbar {
+    @apply flex flex-wrap items-end gap-3 rounded-2xl border p-3;
+    background: rgba(13, 17, 23, 0.72);
+    border-color: rgba(192, 162, 127, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 229, 191, 0.05);
+  }
+
+  .tm-toolbar-field {
+    @apply flex min-w-0 flex-col gap-1;
+  }
+
+  .tm-table-container {
+    @apply w-full overflow-x-auto rounded-2xl border;
+    background: rgba(10, 13, 18, 0.6);
+    border-color: rgba(192, 162, 127, 0.24);
+  }
+
+  .tm-table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .tm-table caption {
+    @apply px-4 py-3 text-left text-sm;
+    color: var(--tm-muted);
+  }
+
+  .tm-table th {
+    @apply px-4 py-3 text-left align-bottom;
+    border-bottom: 1px solid rgba(192, 162, 127, 0.24);
+    color: var(--tm-copper-400);
+    font-family: var(--tm-font-display);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .tm-table td {
+    @apply px-4 py-3 align-top;
+    border-top: 1px solid rgba(192, 162, 127, 0.14);
+    color: var(--tm-text);
+  }
+
+  .tm-table tbody tr:hover {
+    background: rgba(66, 34, 24, 0.22);
+  }
+
+  .tm-table [data-align='numeric'] {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .tm-state {
+    @apply flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center text-sm;
+    background: rgba(10, 13, 18, 0.5);
+    border-color: rgba(192, 162, 127, 0.28);
+    color: var(--tm-muted);
+  }
+
+  .tm-state[data-state='error'] {
+    border-color: rgba(240, 106, 50, 0.45);
+  }
+
+  .tm-state-icon {
+    color: var(--tm-copper-400);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .tm-state[data-state='error'] .tm-state-icon {
+    color: var(--tm-tr);
+  }
+
+  .tm-state-title {
+    color: var(--tm-text);
+    font-family: var(--tm-font-display);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tm-spinner {
+    @apply inline-block h-5 w-5 rounded-full border-2;
+    animation: tm-spin 0.9s linear infinite;
+    border-color: rgba(221, 161, 93, 0.3);
+    border-top-color: var(--tm-copper-400);
+  }
+
+  .tm-notice {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs;
+    box-shadow: inset 0 1px 0 rgba(201, 236, 255, 0.06);
+  }
+
+  .tm-notice[data-tone='info'] {
+    background: rgba(57, 118, 153, 0.18);
+    border-color: rgba(99, 175, 214, 0.34);
+    color: #d8eef8;
+  }
+
+  .tm-notice[data-tone='warning'] {
+    background: rgba(221, 161, 93, 0.16);
+    border-color: rgba(221, 161, 93, 0.42);
+    color: #f3dbc0;
+  }
+
+  .tm-notice[data-tone='neutral'] {
+    background: rgba(20, 26, 34, 0.55);
+    border-color: rgba(192, 162, 127, 0.3);
+    color: var(--tm-muted);
+  }
+
+  .tm-missing-value {
+    color: var(--tm-muted);
+    font-style: italic;
+  }
+
+  .tm-tooltip-anchor {
+    @apply relative inline-flex max-w-full items-center;
+  }
+
+  .tm-tooltip {
+    @apply absolute z-40 rounded-xl border px-3 py-2 text-xs;
+    background: rgba(8, 11, 15, 0.96);
+    border-color: var(--tm-panel-border);
+    box-shadow: 0 12px 24px var(--tm-shadow);
+    color: var(--tm-text);
+    left: 50%;
+    max-width: 18rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 120ms ease;
+    visibility: hidden;
+    width: max-content;
+  }
+
+  .tm-tooltip[data-placement='top'] {
+    bottom: calc(100% + 0.5rem);
+  }
+
+  .tm-tooltip[data-placement='bottom'] {
+    top: calc(100% + 0.5rem);
+  }
+
+  .tm-tooltip-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .tm-info-tooltip-button {
+    @apply inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[0.65rem] font-bold;
+    background: rgba(20, 26, 34, 0.55);
+    border-color: rgba(157, 213, 240, 0.4);
+    color: #cdeeff;
+    cursor: help;
+    font-family: var(--tm-font-body);
+  }
+}
+
+@keyframes tm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .tm-spinner {
+    animation: none;
+  }
+}
