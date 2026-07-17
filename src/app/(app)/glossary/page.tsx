@@ -3,7 +3,7 @@ import { GlossaryContent } from '@/features/glossary/glossary-content';
 
 export default function GlossaryPage() {
   return (
-    <AppShell title="Glossary">
+    <AppShell hasActiveGroup={false} title="Glossary">
       <GlossaryContent />
     </AppShell>
   );

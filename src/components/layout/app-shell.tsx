@@ -1,37 +1,18 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import bannerImage from '../../../assets/banner.png';
-import { BottomNav } from '@/components/navigation/bottom-nav';
-import { LogoutButton } from '@/components/navigation/logout-button';
+import { AppNavigation } from '@/components/navigation/app-navigation';
 import styles from './app-shell.module.css';
-
-type PrimaryNavigationItem = {
-  href: string;
-  label: string;
-  highlighted?: boolean;
-  leaderboard?: boolean;
-};
-
-const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
-  { href: '/log-game', label: 'Log a Game', highlighted: true },
-  { href: '/profile', label: 'My Profile' },
-  { href: '/insights?scope=individual', label: 'Individual Insights' },
-  { href: '/group', label: 'Group Insights' },
-  { href: '/group', label: 'Leaderboard', leaderboard: true },
-  { href: '/insights#global-statistics', label: 'Global Statistics' },
-  { href: '/insights?scope=compare', label: 'Compare' },
-  { href: '/cards', label: 'Cards' },
-  { href: '/glossary', label: 'Glossary' },
-] as const;
 
 export function AppShell({
   title,
   children,
   headerActions,
+  hasActiveGroup = false,
 }: {
   title: string;
   children: React.ReactNode;
   headerActions?: React.ReactNode;
+  hasActiveGroup?: boolean;
 }) {
   return (
     <main className="tm-app-shell">
@@ -48,33 +29,7 @@ export function AppShell({
           />
         </div>
 
-        <nav
-          aria-label="Saved games and account"
-          className={styles.utilityBar}
-        >
-          <div className={styles.utilityActions}>
-            <Link className={styles.utilityLink} href="/saved-games">
-              Saved Games
-            </Link>
-            <LogoutButton className={styles.logoutButton} />
-          </div>
-        </nav>
-
-        <nav aria-label="Primary navigation" className={styles.primaryNavigation}>
-          {primaryNavigationItems.map((item) => (
-            <Link
-              className={`${styles.primaryNavigationLink} ${
-                item.highlighted ? styles.primaryNavigationLinkHighlighted : ''
-              } ${item.leaderboard ? styles.primaryNavigationLinkLeaderboard : ''}`}
-              data-highlighted={item.highlighted ? 'true' : undefined}
-              data-leaderboard-button={item.leaderboard ? 'true' : undefined}
-              href={item.href}
-              key={item.label}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <AppNavigation hasActiveGroup={hasActiveGroup} />
 
         <header className="tm-app-header">
           <div className="flex items-start justify-between gap-3">
@@ -90,7 +45,6 @@ export function AppShell({
         <section className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
           {children}
         </section>
-        <BottomNav />
       </div>
     </main>
   );

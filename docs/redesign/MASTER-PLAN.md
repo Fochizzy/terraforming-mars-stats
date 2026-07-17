@@ -185,11 +185,24 @@ browser is not canonical. Controlled Glossary links operate only in trusted
 explanatory text and preserve interactive, existing-link, code, URL, and
 editable-content boundaries.
 
+### Phase 3, Step 3.1 navigation outcome (2026-07-17)
+
+The explicit Phase 3, Step 3.1 assignment establishes the route and navigation
+framework without moving analytics or workflow content. A typed shared source now
+owns desktop, mobile, utility, visibility, active-path, and compatibility rules;
+the eight primary destinations have canonical paths. `/games` reuses the existing
+Saved Games implementation while `/saved-games` remains compatible. New Insights,
+Compare, Improvement, and Leaderboard paths are accessible route shells, not
+analytics implementations. Legacy Insights scope/fragment links are retained by
+compatibility treatment, and Cards, Glossary, authentication, imports, and legacy
+dashboard routes remain intact. Phase 3 is active; Step 3.2 still requires an
+explicit assignment.
+
 ### Current next approved work
 
-Await a new explicit assignment. The un-applied Merger production
-migration/backfill package remains separately owner-gated; it is not authority
-to begin any other Phase 2 work.
+Await explicit assignment for Phase 3, Step 3.2. The un-applied Merger production
+migration/backfill package remains separately owner-gated and does not expand the
+scope of the navigation work.
 
 ### Completed
 
@@ -261,7 +274,7 @@ Commit:
 9545f589961fce4a0854ed1c6bcff8ba6c7c87d0
 ```
 
-### Most recently completed work
+### Historical most recently completed Phase 2 work
 
 #### Phase 2, Step 2.5 — Analytics Repository and Query Contracts
 
@@ -286,7 +299,7 @@ Handoff:
 docs/agent-handoffs/PHASE-02-STEP-05-analytics-repository-query-contracts.md
 ```
 
-### Next approved work
+### Historical next approved work
 
 Only after an explicit assignment:
 
@@ -1062,6 +1075,20 @@ Do not fill these gaps by assumption.
 
 ## 26. Current Action
 
+Current completed substep:
+
+```text
+Phase 3, Step 3.1 — Navigation and Route Skeletons
+```
+
+Next, only when explicitly assigned:
+
+```text
+Phase 3, Step 3.2 — title and scope to be supplied by that assignment
+```
+
+### Historical Phase 2 record
+
 Completed:
 
 ```text
@@ -1078,7 +1105,7 @@ Do not push unless explicitly instructed.
 
 ---
 
-## 27. Maintenance Header
+## 27. Historical Maintenance Header
 
 Update these fields whenever this file changes materially:
 
@@ -1089,3 +1116,11 @@ Update these fields whenever this file changes materially:
 - **Latest protected policy commit:** `9545f589961fce4a0854ed1c6bcff8ba6c7c87d0`
 - **Phase 1 completion commit:** `4283e826f881eb116befbe3285c3de426fb25c6c`
 - **Phase 2 planning commit:** `73184cbdb`
+
+## 28. Current Maintenance Header
+
+- **Last updated:** 2026-07-17
+- **Current phase:** Phase 3 — Navigation and Route Skeletons
+- **Current substep:** Step 3.1 — Navigation and Route Skeletons (complete in repository; focused commit pending)
+- **Next gated substep:** Await explicit assignment for Phase 3, Step 3.2
+- **Latest completed commit before Step 3.1:** `c17e8b1ba8bd099fb3cdf21024fe0a28ab9daf76`

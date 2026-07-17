@@ -44,6 +44,7 @@ export default async function GroupSettingsPage() {
 
   return (
     <AppShell
+      hasActiveGroup
       headerActions={
         <GroupSwitcher
           currentGroupId={context.groupId}

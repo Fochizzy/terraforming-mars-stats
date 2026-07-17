@@ -579,3 +579,15 @@ be resolved through `DECISIONS.md` before implementation that depends on it.
     upload limits, archive provenance/retention and cleanup authority.
 
 These are documented blockers, not permission to resolve them in Step 0.6.
+
+## Phase 3, Step 3.1 route framework update
+
+The previously planned canonical route ownership is now established without
+retiring any legacy analytics consumer. `/games` uses the existing Saved Games
+implementation and `/saved-games` remains a compatibility alias. `/insights` and
+`/group` continue to own their working legacy content; new target paths are
+explicit authenticated/group-required shells only. The shared navigation source
+maps the eight primary destinations and supporting Games, Cards, Glossary, and
+Group Settings links to intentional routes, filters group-required entries before
+client rendering, and preserves legacy Insights scope/fragment links. Later
+phases retain responsibility for moving real page sections and retiring aliases.

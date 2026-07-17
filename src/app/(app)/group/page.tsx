@@ -35,6 +35,7 @@ export default async function GroupPage() {
 
   return (
     <AppShell
+      hasActiveGroup
       headerActions={
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/group" />
       }

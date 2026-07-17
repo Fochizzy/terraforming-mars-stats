@@ -20,6 +20,7 @@ export default async function ProfilePage() {
 
   return (
     <AppShell
+      hasActiveGroup
       headerActions={
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/profile" />
       }

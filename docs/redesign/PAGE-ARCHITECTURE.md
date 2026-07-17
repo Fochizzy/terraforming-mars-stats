@@ -42,6 +42,26 @@
 - `/cards`
 - `/glossary`
 
+## Phase 3 route ownership and compatibility
+
+Step 3.1 makes the target primary paths navigable without moving the existing
+analytics implementations. `/insights` and `/group` remain legacy route owners
+until their later destination steps prove parity. New `/insights/global`,
+`/insights/individual`, `/insights/group`, `/compare`, `/improvement`, and
+`/leaderboard` are truthful route shells only.
+
+`/games` is canonical for the existing Saved Games implementation; `/saved-games`
+remains a compatible alias. `/insights?scope=global|individual|group|compare`
+keeps non-scope query state while redirecting to the matching canonical route.
+The former `/insights#global-statistics` link is handled in the browser because
+fragments are unavailable to server routing.
+
+All `(app)` pages are authenticated. Every current route except `/glossary`
+requires active group context; group-required navigation is omitted when that
+server-side fact is absent. `/glossary` remains authenticated and is available
+without a group. The `AppShell` navigation model owns desktop, mobile, utility,
+and active-route behavior from one typed source.
+
 ## Page responsibilities
 
 ### Log a Game

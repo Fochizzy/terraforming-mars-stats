@@ -1,5 +1,37 @@
 ﻿# TM Stats Redesign Decisions
 
+## Phase 3 navigation and route contract
+
+Approved by the explicit Phase 3, Step 3.1 assignment on 2026-07-17:
+
+- Canonical primary routes are `/log-game`, `/profile`, `/insights/global`,
+  `/insights/individual`, `/insights/group`, `/compare`, `/improvement`, and
+  `/leaderboard`. Their shells do not authorize analytics implementation.
+- `/games` is canonical for the existing Saved Games implementation;
+  `/saved-games` remains a compatible alias until a later approved Games phase
+  can retire it safely.
+- `/insights` remains the working legacy analytics owner until later destination
+  work proves parity. `scope=global`, `scope=individual`, `scope=group`, and
+  `scope=compare` are compatibility aliases only and redirect to their canonical
+  routes while preserving other query values. `#global-statistics` is bridged in
+  the browser because fragments do not reach the server.
+- A shared typed source is the sole navigation definition for desktop, utility,
+  mobile primary, and mobile More surfaces. Item identity, canonical href,
+  visibility, active matching, group requirement, ordering, and surface
+  placement are data, not duplicated markup.
+- Active matching is canonical path identity with exact or segment-aware prefix
+  behavior. Query strings and fragments do not affect it; the most specific match
+  wins. Display labels are never route identity.
+- All `(app)` routes remain authenticated. Group-required navigation is filtered
+  by the server-rendered active-group fact; client filtering is presentation only
+  and cannot authorize a route. Glossary remains authenticated but does not
+  require an active group.
+- Mobile More uses the native dialog modality for background inertness, intentional
+  initial focus, Escape close, trigger focus restoration, and route-change close.
+- New destination shells are explicitly unavailable/deferred state, fetch no
+  analytics data, and contain no fake controls or data. Existing working routes
+  remain in place rather than receiving placeholder replacements.
+
 ## Approved product structure
 
 The application will have eight primary pages:

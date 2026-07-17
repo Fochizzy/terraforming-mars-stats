@@ -112,7 +112,7 @@ export default async function LogGameImportPage() {
   }
 
   return (
-    <AppShell title="Web Import">
+    <AppShell hasActiveGroup title="Web Import">
       <LogGameImportShell
         initialValues={{
           generationCount: 10,

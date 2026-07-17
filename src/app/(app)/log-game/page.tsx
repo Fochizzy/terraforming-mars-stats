@@ -192,6 +192,7 @@ export default async function LogGamePage({
 
   return (
     <AppShell
+      hasActiveGroup
       headerActions={
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/log-game" />
       }

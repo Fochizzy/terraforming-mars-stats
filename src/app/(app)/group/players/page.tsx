@@ -32,6 +32,7 @@ export default async function PlayersPage() {
 
   return (
     <AppShell
+      hasActiveGroup
       headerActions={
         <GroupSwitcher
           currentGroupId={context.groupId}

@@ -10,6 +10,7 @@ export default async function CardsPage() {
 
   return (
     <AppShell
+      hasActiveGroup
       headerActions={
         <GroupSwitcher
           currentGroupId={context.groupId}

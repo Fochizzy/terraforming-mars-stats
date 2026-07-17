@@ -8,8 +8,24 @@ import { ScoreProfilePanel } from '@/features/insights/score-profile-panel';
 import { getGroupAnalytics } from '@/lib/db/analytics-repo';
 import { listGamePaceReplays } from '@/lib/db/game-pace-repo';
 import { listPlayers } from '@/lib/db/player-repo';
+import { redirect } from 'next/navigation';
+import { LegacyInsightsHashRedirect } from '@/features/navigation/legacy-insights-hash-redirect';
+import {
+  getInsightsCompatibilityDestination,
+  type InsightsSearchParams,
+} from '@/features/navigation/insights-compatibility';
 
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<InsightsSearchParams>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const compatibilityTarget = getInsightsCompatibilityDestination(resolvedSearchParams);
+  if (compatibilityTarget) {
+    redirect(compatibilityTarget);
+  }
+
   const context = await requireGroupContextOrRedirect();
   const [analytics, players, gamePaceReplays] = await Promise.all([
     getGroupAnalytics(context.groupId),
@@ -56,6 +72,7 @@ export default async function InsightsPage() {
 
   return (
     <AppShell
+      hasActiveGroup
       headerActions={
         <GroupSwitcher
           currentGroupId={context.groupId}
@@ -64,6 +81,7 @@ export default async function InsightsPage() {
       }
       title="Insights"
     >
+      <LegacyInsightsHashRedirect />
       <div className="flex flex-col gap-4">
         <CorporationPreludePairingsPanel
           baselineWinRate={baselineWinRate}

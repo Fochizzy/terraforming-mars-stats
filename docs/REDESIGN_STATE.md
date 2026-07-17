@@ -2,13 +2,26 @@
 
 ## Current substep
 
-Glossary and Card Database Preservation and Cross-Linking
+Phase 3, Step 3.1 — Navigation and Route Skeletons
 
 ## Current owner
 
-Codex - Glossary and Card Database preservation
+Codex - Phase 3 navigation and route skeletons
 
 ## Status
+
+Step 3.1 establishes the Phase 3 route framework without moving analytics or
+workflow implementation. It adds one typed navigation contract for responsive
+desktop/mobile navigation, canonical paths, deterministic active matching,
+group-aware visibility, route shells, Insights compatibility handling, canonical
+`/games` ownership using the existing Saved Games implementation, and intentional
+loading/not-found/unavailable states. Existing `/insights`, `/group`,
+`/log-game`, imports, `/cards`, and `/glossary` remain functional.
+
+No production database, schema, migration, Storage, dependency, push, or
+deployment action is authorized or performed by Step 3.1.
+
+### Prior preservation status
 
 Completed in the repository. The assigned preservation task restored the
 authenticated `/glossary` route with 125 historical compatibility identities,
@@ -31,11 +44,11 @@ also complete in the repository; production execution remains separately gated.
 ## Last completed commit
 
 Glossary and Card Database Preservation and Cross-Linking focused completion
-commit (hash recorded in its dedicated handoff and completion report).
+commit: `c17e8b1ba8bd099fb3cdf21024fe0a28ab9daf76`.
 
 ## Current phase
 
-Phase 2 — Analytics Foundation (repository complete)
+Phase 3 — Navigation and Route Skeletons
 
 ## Prior completed substep
 
@@ -86,18 +99,17 @@ Codex — analytics repository and query contracts
 
 Step 2.5 focused completion commit (hash recorded in the completion report)
 
-## Prior next action
+## Historical Phase 2 next action
 
-Begin Step 2.6 — Analytics Foundation Integration Validation only when
-explicitly assigned. Do not begin SQL, schema, production page integration,
-navigation, route migration, deployment, or Supabase mutation with that
-assignment unless separately authorized.
+Completed: Step 2.6 and its separately assigned Merger closure are complete in
+the repository. The later Glossary/Card Lookup preservation task is also complete
+at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Await a new explicit assignment.** Do not begin card-outcome statistics,
-card-acquisition capture, broader cross-linking, schema work, production work,
-or another redesign phase without that assignment.
+**Await explicit assignment for Phase 3, Step 3.2.** Do not move legacy analytics
+content, redesign a destination page, add analytics consumers, alter workflows,
+or begin any later Phase 3 work without that assignment.
 
 ## Active blockers
 
@@ -128,6 +140,7 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-03-STEP-01-navigation-and-route-skeletons.md
 - docs/agent-handoffs/GLOSSARY-CARD-DATABASE-PRESERVATION-AND-CROSS-LINKING.md
 - docs/agent-handoffs/PHASE-02-VALIDATION-REMEDIATION-AND-CLOSURE.md
 - docs/agent-handoffs/PHASE-02-STEP-06-analytics-foundation-integration-validation.md

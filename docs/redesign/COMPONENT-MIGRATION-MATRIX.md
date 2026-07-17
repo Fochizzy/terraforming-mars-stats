@@ -228,4 +228,17 @@ Thirteen overlap clusters were found. “Merge” below means merge the responsi
 6. What is the approved leaderboard eligibility/ranking methodology, and which placement analyses belong beside it versus under Individual/Compare?
 7. Should the rich unused `LineupEffectsPanel` become the canonical lineup view, or should only its tested interaction patterns be retained in a replacement?
 8. How should repository/query failures be represented separately from valid zero-row states, especially for final-action and global summaries?
-9. Phase files 1-20 are currently empty; the recommended phases above follow their filenames and `PAGE-ARCHITECTURE.md`, but acceptance criteria still need to be written before implementation.
+9. At the Phase 0 audit, phase files 1-20 were empty. Phase 3 now has an explicit
+   Step 3.1 specification; later phase files still require their own acceptance
+   criteria and explicit assignment before implementation.
+
+## Phase 3, Step 3.1 component update
+
+`AppNavigation` and the adapted `BottomNav` now consume one typed navigation
+definition. `AppShell` remains the visual shell but no longer owns a competing
+static route list. The mobile More dialog is the shared accessible overflow
+surface; it deliberately contains no analytics controls. `RouteSkeletonPage`
+is a truthful, no-data route owner for the new destination shells. Existing
+InsightsDashboard, GroupDashboard, ProfileDashboard, Saved Games implementation,
+GlossaryContent, and CardLookupBrowser remain their current owners until their
+separately assigned destination phases.

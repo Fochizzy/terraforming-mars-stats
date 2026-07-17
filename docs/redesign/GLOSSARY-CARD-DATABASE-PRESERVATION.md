@@ -2,9 +2,10 @@
 
 ## Status
 
-Implementation is complete pending final full-suite validation and the focused
-completion commit. This document is the required current-state, reconciliation,
-and functional-parity inventory for the separately assigned post-Phase-2 task.
+Completed in the repository at `c17e8b1ba` on 2026-07-17. The focused full suite,
+typecheck, lint, and build validation passed before that commit. This document is
+the current-state, reconciliation, and functional-parity inventory for the
+separately assigned post-Phase-2 task.
 
 ## Authority
 

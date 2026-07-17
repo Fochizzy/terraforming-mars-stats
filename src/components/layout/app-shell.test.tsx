@@ -1,17 +1,25 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AppShell } from './app-shell';
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/profile',
+}));
+
 describe('AppShell', () => {
-  it('renders the banner, utility controls, and navigation', () => {
-    const { container } = render(<AppShell title="My Profile">content</AppShell>);
+  it('renders the banner and the centralized desktop and mobile navigation', () => {
+    const { container } = render(
+      <AppShell hasActiveGroup title="My Profile">
+        content
+      </AppShell>,
+    );
 
     expect(
       screen.getByRole('img', { name: /terraforming mars statistics/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /saved games/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^games$/i })).toHaveAttribute(
       'href',
-      '/saved-games',
+      '/games',
     );
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
 
@@ -23,46 +31,36 @@ describe('AppShell', () => {
     ).toHaveAttribute('data-highlighted', 'true');
     expect(
       within(primaryNavigation).getByRole('link', { name: /my profile/i }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute('aria-current', 'page');
     expect(
       within(primaryNavigation).getByRole('link', { name: /individual insights/i }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute('href', '/insights/individual');
     expect(
       within(primaryNavigation).getByRole('link', { name: /group insights/i }),
-    ).toBeInTheDocument();
-
-    const leaderboardLink = within(primaryNavigation).getByRole('link', {
-      name: /leaderboard/i,
-    });
-    expect(leaderboardLink).toHaveAttribute('href', '/group');
-    expect(leaderboardLink).toHaveAttribute('data-leaderboard-button', 'true');
-
+    ).toHaveAttribute('href', '/insights/group');
     expect(
-      within(primaryNavigation).getByRole('link', { name: /global statistics/i }),
-    ).toHaveAttribute('href', '/insights#global-statistics');
+      within(primaryNavigation).getByRole('link', { name: /global insights/i }),
+    ).toHaveAttribute('href', '/insights/global');
     expect(
-      within(primaryNavigation).getByRole('link', { name: /compare/i }),
-    ).toBeInTheDocument();
-    expect(
-      within(primaryNavigation).getByRole('link', { name: /cards/i }),
-    ).toHaveAttribute('href', '/cards');
-    expect(
-      within(primaryNavigation).getByRole('link', { name: /glossary/i }),
-    ).toHaveAttribute('href', '/glossary');
+      within(primaryNavigation).getByRole('link', { name: /leaderboard/i }),
+    ).toHaveAttribute('href', '/leaderboard');
 
     const bottomNavigation = screen.getByRole('navigation', {
       name: /bottom navigation/i,
     });
     expect(
-      within(bottomNavigation).getByRole('link', { name: /cards/i }),
-    ).toHaveAttribute('href', '/cards');
+      within(bottomNavigation).getByRole('link', { name: /profile/i }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(bottomNavigation).getByRole('button', { name: /more/i }),
+    ).toBeInTheDocument();
 
     expect(container.querySelector('main')).toHaveClass('tm-app-shell');
   });
 
   it('renders header controls when provided', () => {
     render(
-      <AppShell headerActions={<div>group switcher</div>} title="My Profile">
+      <AppShell hasActiveGroup headerActions={<div>group switcher</div>} title="My Profile">
         content
       </AppShell>,
     );

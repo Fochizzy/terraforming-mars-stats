@@ -3,6 +3,11 @@ export const protectedPrefixes = [
   '/group',
   '/insights',
   '/log-game',
+  '/games',
+  '/saved-games',
+  '/compare',
+  '/improvement',
+  '/leaderboard',
   '/cards',
   '/glossary',
 ] as const;

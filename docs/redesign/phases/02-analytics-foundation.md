@@ -960,16 +960,15 @@ the blocker rather than choosing a policy from current UI behavior.
 Step 2.0 stops after its documentation commit. Steps 2.1–2.6 stop after their
 own handoffs and commits. Phase 2 completion does not itself authorize Phase 3.
 
-## Prior approved next action
+## Historical next action before closure
 
-Begin Step 2.6 — Analytics Foundation Integration Validation only when
-explicitly assigned. Do not begin production page integration, navigation,
-route migration, schema work, deployment, or Supabase mutation as part of that
-assignment.
+Completed: Step 2.6 and its separately assigned Merger closure are complete in
+the repository. This historical statement is retained to preserve the original
+sequencing record.
 
-## Approved next action
+## Historical post-Phase-2 action
 
-**Glossary and Card Database Preservation and Glossary Cross-Linking** may begin
-only when explicitly assigned. Do not begin it as part of Phase 2 closure. The
-Merger production migration and historical-policy package remain separately
+**Glossary and Card Database Preservation and Glossary Cross-Linking** completed
+at `c17e8b1ba` before the explicit Phase 3, Step 3.1 assignment. The Merger
+production migration and historical-policy package remain separately
 owner-gated; do not apply them without explicit production authorization.
