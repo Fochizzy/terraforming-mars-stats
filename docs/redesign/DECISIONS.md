@@ -147,3 +147,101 @@ as one opportunity, not two.
 
 A card must not be counted again merely because it remains visible, remains
 in hand, or appears later in a game summary.
+
+## Phase 2 analytics foundation assignment
+
+Approved on 2026-07-17 by the explicit user assignment for Phase 2, Step 2.0.
+
+Phase 2 is titled **Analytics Foundation**. Its approved purpose is analytics
+scope, filters, capability modeling, and shared analytics state and data rules.
+It is divided into these separately assigned substeps:
+
+1. Step 2.0 — Analytics Foundation Specification and Acceptance Criteria
+2. Step 2.1 — Analytics Scope and Capability Model
+3. Step 2.2 — Shared Filter and URL-State Contracts
+4. Step 2.3 — Metric, Sample, Coverage, and Eligibility Contracts
+5. Step 2.4 — Canonical Analytics Definitions and Calculation Utilities
+6. Step 2.5 — Analytics Repository and Query Contracts
+7. Step 2.6 — Analytics Foundation Integration Validation
+
+Completing one substep does not authorize the next substep.
+
+## Phase 2 value and capability policy
+
+- Explicit zero is a real observed value.
+- Zero, missing, unavailable, and partial/lower-bound values remain distinct.
+- An unavailable metric includes a reason.
+- A display placeholder is never an underlying numeric value.
+- Query error, empty eligible data, unsupported capability, and incomplete
+  evidence remain distinct.
+- Phase 2 capability contracts must represent supported, partially supported,
+  unavailable, requires-query-work, requires-view, requires-new-fields, and
+  insufficient-evidence states, with typed reasons and source/coverage metadata.
+- A capability state and an evaluated metric-value state are separate contracts.
+
+## Phase 2 filter and URL-state policy
+
+Phase 2 must define typed shared filters, scope compatibility, normalization,
+defaults, canonical parameter names, deterministic serialization/restoration,
+invalid and stale value behavior, explicit compatibility aliases, reset
+behavior, and filter-versus-selection synchronization.
+
+The route owns the analytics scope; Phase 2 does not adopt a shared `scope`
+query parameter. URL-provided identities never authorize access. Multi-value
+filters use deterministic repeated parameters, and serialization emits canonical
+names and ordering.
+
+## Phase 2 sample, coverage, and formula policy
+
+- There is no universal low-sample threshold.
+- Thresholds are metric-specific and explicitly approved, or caller-provided.
+- Absence of a threshold does not mean a sample passed a threshold.
+- Low-sample categories remain visible unless an explicit filter excludes them.
+- Denominators, eligible observations, coverage, and exclusion reasons are
+  visible when they affect interpretation.
+- Calculations are centralized, versioned, documented, and directly tested.
+- React presentation components do not define business formulas.
+- Step 2.0 approves no new metric formula.
+- Step 2.4 may implement only formulas already approved here or added by a
+  separate explicit approval.
+- Ratio of totals and median per-game rate remain separate labeled results where
+  supported; percentages are not silently averaged.
+- Tie, missing operand, zero denominator, partial data, exclusions, and stable
+  tie-breaking are explicit parts of every applicable formula contract.
+
+## Phase 2 schema, page, and completion boundaries
+
+- No database schema, migration, view, RPC, backfill, Supabase data, or Storage
+  work is authorized without a separate explicit assignment and approval gate.
+- Phase 2 does not migrate production destination pages, route ownership,
+  navigation, middleware, authentication, or group switching.
+- Unsupported historical facts remain unavailable and are not fabricated from
+  final totals or incomplete event streams.
+- Phase 3 may begin only after Steps 2.0 through 2.6 meet the Phase 2 acceptance
+  criteria and Phase 3 receives explicit approval.
+
+## Phase 2 questions that remain undecided
+
+Step 2.0 does not decide:
+
+- the tied-first numeric or exclusion result for canonical win point
+  differential;
+- the baseline for overall point differential;
+- leaderboard ranking, eligibility, and minimum-history methodology;
+- opponent/player-strength model, population, time window, uncertainty, or
+  no-future-leakage rules;
+- metric-specific sample and coverage thresholds;
+- data-derived range construction and versioning;
+- whether current corporation weighting, expected-score, efficiency, style,
+  award-ROI, or final-action calculations become canonical;
+- the accepted source and security contract for final terraforming actions;
+- the event-versus-aggregate model, identity, reconciliation, provenance, and
+  exhaustive coverage needed for card acquisition and Cards Seen;
+- authoritative per-generation/final TR, duration, production/engine, and board
+  coordinate capture contracts;
+- which live-only database, RPC, or Storage objects become tracked production
+  contracts; or
+- a migration or backfill for any of the above.
+
+These questions are blockers for the specific later substeps that require them,
+not permission to resolve them by copying current UI or SQL behavior.
