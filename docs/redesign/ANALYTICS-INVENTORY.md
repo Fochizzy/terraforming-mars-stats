@@ -1,0 +1,129 @@
+﻿# TM Stats Analytics Inventory
+
+## Card Acquisition and Conversion
+
+### Core recorded values
+
+- Cards purchased per player per game
+- Cards purchased per player and generation
+- Cards seen per player per game
+- Cards seen per player and generation
+- Cards acquired into hand from all sources
+- Cards played
+- Cards remaining in hand at game end
+- Recorded generations
+
+### Derived metrics
+
+- Cards purchased per generation
+- Cards seen per generation
+- Purchase conversion
+- Purchased hand share
+- Hand utilization
+- End-hand carryover
+- Cards purchased relative to table average
+- Cards seen relative to table average
+
+### Outcome comparisons
+
+Compare each eligible metric with:
+
+- Win rate
+- Final score
+- Placement
+- Win-point differential
+- Overall point differential
+- Game length
+- Generation count
+
+### Segmentation
+
+Support segmentation by:
+
+- Player
+- Group
+- Corporation
+- Prelude
+- Corporation–Prelude pairing
+- Player count
+- Map
+- Expansion configuration
+- Drafting
+- Game-length band
+- Generation-count band
+
+### Required analytical views
+
+#### Global Insights
+
+- Cards purchased versus win rate
+- Cards seen versus win rate
+- Purchase conversion versus win rate
+- Distribution by game context
+- Corporation and Prelude differences
+
+#### Individual Insights
+
+- Personal purchase pace
+- Personal seen pace
+- Purchase conversion
+- Group and global baselines
+- Outcome ranges
+- Generation timeline
+
+#### Group Insights
+
+- Member comparisons
+- Group purchase distribution
+- Conversion versus outcome
+- Lineup and context differences
+
+#### Compare
+
+- Purchased cards per game
+- Cards seen per game
+- Purchase conversion
+- Purchased hand share
+- Hand utilization
+- End-hand carryover
+
+#### Improvement
+
+- Evidence-based purchase-volume ranges
+- Purchase-conversion trends
+- Excess end-hand carryover
+- Progress over time
+
+### Data-quality requirements
+
+- Distinguish missing from zero.
+- Do not infer Cards Seen from Cards Purchased.
+- Do not sum hand-size snapshots as total acquisitions.
+- Do not reconstruct generation data from final totals.
+- Show eligible games and coverage percentage.
+- Show minimum sample thresholds.
+- Label low-coverage results.
+- Use observational language.
+
+### Cards Seen coverage dimensions
+
+Cards Seen coverage must distinguish which opportunity sources were recorded:
+
+- Starting-card offers
+- Research-phase offers
+- Draft opportunities
+- Cards drawn through effects
+- Cards inspected through effects
+- Other cards received into hand
+
+Do not label a game as having full Cards Seen coverage when only one or some
+of these sources were recorded.
+
+Supported coverage labels include:
+
+- Full opportunity coverage
+- Research-only coverage
+- Draft-only coverage
+- Purchased-card coverage only
+- Partial event coverage
+- No Cards Seen coverage

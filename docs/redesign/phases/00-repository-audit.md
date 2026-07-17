@@ -144,3 +144,37 @@ At the end of each substep:
 2. Create a handoff file.
 3. Commit only the completed substep.
 4. Report findings, files, commands, and blockers.
+
+### Additional Step 0.3 requirement — Card acquisition data
+
+The Data Capability Audit must separately inspect support for:
+
+- Cards purchased per game
+- Cards purchased by generation
+- Cards seen per game
+- Cards seen by generation
+- Starting cards offered
+- Research cards offered
+- Draft cards received
+- Cards drawn through effects
+- Total cards entering hand
+- Cards played
+- Cards remaining at game end
+- Purchase conversion
+- Purchased hand share
+- Hand utilization
+- End-hand carryover
+- Purchase pace
+- Seen pace
+- Outcome comparisons for each metric
+
+For each item, document:
+
+- Whether it is persisted
+- Whether it is event-based, cumulative, or a snapshot
+- Historical coverage
+- Import coverage
+- Null-versus-zero behavior
+- Risk of duplicate counting
+- Exact schema and repository sources
+- Required future fields or tables
