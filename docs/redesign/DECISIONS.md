@@ -1,5 +1,39 @@
 ﻿# TM Stats Redesign Decisions
 
+## Phase 3, Step 3.3 — brand/decorative site assets stay repository-tracked, not Supabase Storage
+
+Approved by explicit user decision during the Phase 3, Step 3.3 assignment on
+2026-07-17, in response to the assignment's own stop condition ("if no
+suitable bucket exists, stop before creating one and report").
+
+- The Step 3.3 assignment's default plan was to publish the shared header
+  banner, the authentication Mars-landscape background, and the three
+  leaderboard laurels through a new Supabase Storage `design-assets` bucket.
+  Preflight found no such bucket exists, and none of the seven existing public
+  buckets (`tm-card-full`, `tm-card-thumbs`, `tm-tag-icons`, `tm-map-images`,
+  `tm-corporation-logos`, `tm-score-icons`, plus the private
+  `tm-import-evidence`) are a fit for generic site-brand/decorative imagery —
+  every one of them is scoped to a specific gameplay-data asset family.
+- More importantly, this asset category has an existing, working, different
+  precedent: the header banner and the placeholder auth background were
+  already integrated as repository-tracked files (a bundled Next.js static
+  import for the banner, `public/*` static paths for backgrounds and laurels),
+  never Supabase Storage. Moving the banner specifically to Storage would also
+  have been a regression — as a bundled import it already gets Next.js's
+  built-in image optimizer for free; as a Storage-hosted URL it would need
+  `unoptimized` rendering (no remote-image allowlist exists in
+  `next.config.ts`) for no offsetting benefit.
+- Given this, the user chose to keep the existing repository-file convention:
+  the reprocessed laurels and the auth-page background derivative are
+  committed `public/*` files, resolved through the existing typed
+  `resolveStaticSiteAsset` registry (`src/lib/assets/static-assets.ts`), with
+  no Supabase Storage bucket created and no Storage upload performed.
+- This decision is scoped to brand/decorative site chrome (banners,
+  page backgrounds, static rank emblems). It does not revisit or change the
+  Storage-backed convention already established for gameplay-data asset
+  families (corporation logos, card images, tag icons, map images, score
+  icons), which remain unaffected.
+
 ## Phase 3, Step 3.2 — responsive website navigation supersedes Step 3.1's mobile pattern
 
 Approved by the explicit Phase 3, Step 3.2 assignment on 2026-07-17. This entry

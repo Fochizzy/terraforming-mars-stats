@@ -1,6 +1,7 @@
-import Image from 'next/image';
 import { CoverageBadge } from '@/components/charts/coverage-badge';
 import { ChartFrame } from '@/components/charts/chart-frame';
+import { resolveStaticSiteAsset } from '@/lib/assets';
+import { LeaderboardRankBadge } from './leaderboard-rank-badge';
 import type {
   CoverageRow,
   GlobalAwardMetricRow,
@@ -80,14 +81,14 @@ function getPlayerName(playerId: string, leaderboardRows: LeaderboardRow[]) {
   );
 }
 
-function getLaurelImageForRank(rank: number): { path: string; alt: string } | null {
+function getLaurelAssetForRank(rank: number) {
   switch (rank) {
-    case 0:
-      return { path: '/laurel-gold.png', alt: '1st place' };
     case 1:
-      return { path: '/laurel-silver.png', alt: '2nd place' };
+      return resolveStaticSiteAsset('leaderboard-laurel-gold');
     case 2:
-      return { path: '/laurel-bronze.png', alt: '3rd place' };
+      return resolveStaticSiteAsset('leaderboard-laurel-silver');
+    case 3:
+      return resolveStaticSiteAsset('leaderboard-laurel-bronze');
     default:
       return null;
   }
@@ -151,7 +152,8 @@ export function GroupDashboard({
         ) : (
           <div className="grid gap-3">
             {leaderboardRows.slice(0, 6).map((row, index) => {
-              const laurel = getLaurelImageForRank(index);
+              const rank = index + 1;
+              const laurelAsset = getLaurelAssetForRank(rank);
               return (
                 <article
                   className="tm-stat-card"
@@ -159,19 +161,7 @@ export function GroupDashboard({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      {laurel ? (
-                        <div className="relative h-12 w-12 flex-shrink-0">
-                          <Image
-                            alt={laurel.alt}
-                            fill
-                            src={laurel.path}
-                            className="object-contain"
-                            unoptimized
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-12 w-12 flex-shrink-0" />
-                      )}
+                      <LeaderboardRankBadge laurelAsset={laurelAsset} rank={rank} />
                       <p className="font-semibold text-stone-100">{row.playerName}</p>
                     </div>
                     <p className="tm-accent-copy text-sm">

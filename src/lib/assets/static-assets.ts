@@ -1,15 +1,15 @@
 import bannerImage from '../../../assets/banner.png';
-import type {
-  AssetPresentationIntent,
-  AvailableAsset,
-  ResolvedAsset,
-} from './asset-types';
+import type { AssetPresentationIntent, AvailableAsset } from './asset-types';
 import { buildAssetFallback, normalizeAssetLookupKey } from './asset-resolver';
 
 export type StaticSiteAssetKey =
   | 'application-banner'
   | 'auth-mars-background'
-  | 'global-mars-background';
+  | 'auth-page-mars-landscape'
+  | 'global-mars-background'
+  | 'leaderboard-laurel-bronze'
+  | 'leaderboard-laurel-gold'
+  | 'leaderboard-laurel-silver';
 
 type StaticSiteAssetDefinition = {
   alt: string;
@@ -57,13 +57,53 @@ const staticSiteAssets = {
     sourceType: 'public-static',
     width: 975,
   },
+  'auth-page-mars-landscape': {
+    alt: '',
+    decorative: true,
+    family: 'background',
+    height: 941,
+    label: 'Authentication Mars landscape background',
+    path: '/auth-page-mars-landscape.webp',
+    sourceType: 'public-static',
+    width: 1672,
+  },
+  'leaderboard-laurel-gold': {
+    alt: '',
+    decorative: true,
+    family: 'brand',
+    height: 256,
+    label: 'First place laurel',
+    path: '/laurel-gold.png',
+    sourceType: 'public-static',
+    width: 256,
+  },
+  'leaderboard-laurel-silver': {
+    alt: '',
+    decorative: true,
+    family: 'brand',
+    height: 256,
+    label: 'Second place laurel',
+    path: '/laurel-silver.png',
+    sourceType: 'public-static',
+    width: 256,
+  },
+  'leaderboard-laurel-bronze': {
+    alt: '',
+    decorative: true,
+    family: 'brand',
+    height: 256,
+    label: 'Third place laurel',
+    path: '/laurel-bronze.png',
+    sourceType: 'public-static',
+    width: 256,
+  },
 } as const satisfies Record<StaticSiteAssetKey, StaticSiteAssetDefinition>;
 
-/** Tracked brand/background metadata only; this does not integrate any page. */
+/** Resolves tracked brand/background metadata for header, leaderboard, and auth-page consumers. */
 export function resolveStaticSiteAsset(
   key: StaticSiteAssetKey,
   intent: AssetPresentationIntent = {},
-): ResolvedAsset {
+): AvailableAsset & { height: number; width: number } {
   const definition = staticSiteAssets[key];
   const canonicalKey = normalizeAssetLookupKey(key) ?? key;
   const decorative = intent.decorative ?? definition.decorative;

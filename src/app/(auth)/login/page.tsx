@@ -1,5 +1,6 @@
 import { LoginForm } from '@/features/auth/login-form';
 import { normalizeNextPath } from '@/features/auth/build-auth-callback-url';
+import { resolveStaticSiteAsset } from '@/lib/assets';
 
 export default async function LoginPage({
   searchParams,
@@ -8,6 +9,7 @@ export default async function LoginPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const nextPath = normalizeNextPath(resolvedSearchParams?.next);
+  const background = resolveStaticSiteAsset('auth-page-mars-landscape');
 
   return (
     <main
@@ -15,7 +17,7 @@ export default async function LoginPage({
       style={{
         backgroundColor: '#080b10',
         backgroundImage:
-          "linear-gradient(90deg, rgba(5, 7, 10, 0.82) 0%, rgba(7, 9, 12, 0.65) 46%, rgba(7, 9, 12, 0.38) 100%), linear-gradient(180deg, rgba(5, 7, 10, 0.18) 0%, rgba(5, 7, 10, 0.72) 100%), url('/auth-mars-background.svg')",
+          `linear-gradient(90deg, rgba(5, 7, 10, 0.82) 0%, rgba(7, 9, 12, 0.65) 46%, rgba(7, 9, 12, 0.38) 100%), linear-gradient(180deg, rgba(5, 7, 10, 0.18) 0%, rgba(5, 7, 10, 0.72) 100%), url('${background.url}')`,
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover',

@@ -2,18 +2,19 @@
 
 ## Current substep
 
-Phase 3, Step 3.2 — Responsive Web Navigation and Route Context Validation
-(complete)
+Phase 3, Step 3.3 — Brand Asset Preservation and Responsive Website
+Integration (complete)
 
 ## Current owner
 
-Claude — Phase 3, Step 3.2, responsive web navigation and route context
-validation
+Claude — Phase 3, Step 3.3, brand asset preservation and responsive website
+integration
 
 ## Status
 
-Phase 3 — Active. Step 3.1 (Navigation and Route Skeletons) and Step 3.2
-(Responsive Web Navigation and Route Context Validation) are both complete.
+Phase 3 — Active. Step 3.1 (Navigation and Route Skeletons), Step 3.2
+(Responsive Web Navigation and Route Context Validation), and Step 3.3 (Brand
+Asset Preservation and Responsive Website Integration) are all complete.
 
 Step 3.1 established the Phase 3 route framework without moving analytics or
 workflow implementation: one typed navigation contract, canonical paths,
@@ -96,15 +97,60 @@ so this step relied on automated jsdom tests plus manual CSS/media-query
 review instead; this is recorded as a known limitation in the handoff, not
 claimed as done.
 
+## Phase 3, Step 3.3 completion
+
+Completed. See
+`docs/agent-handoffs/PHASE-03-STEP-03-brand-asset-preservation-and-responsive-website-integration.md`
+for the full record. Summary: Step 3.3 was authorized after Step 3.2 completed,
+specifically to integrate five approved brand assets (shared header banner,
+gold/silver/bronze leaderboard laurels, authentication Mars landscape
+background). Preflight found the banner was already the approved asset,
+checksum-identical and already integrated via `AppShell`'s bundled Next.js
+import; the laurels were already wired into the real leaderboard
+(`GroupDashboard` under `/group`) but with outdated artwork; the auth
+background was a placeholder SVG, not yet the approved PNG. Preflight also
+found no Supabase Storage bucket suitable for site-brand/decorative assets and
+no existing precedent for storing this asset category there (banner/background
+have always been bundled-static or public-static repository files); the user
+was asked and chose to keep that existing repository-file convention rather
+than create a new Storage bucket, so no Storage upload occurred.
+Delivered: laurels reprocessed from the newly approved source art (verified
+genuine alpha transparency, no baked checkerboard; no repositioning needed —
+content already filled ~92%+ of each canvas) into 256x256 optimized PNGs
+(~94% smaller than source); the auth background converted to a single
+optimized WebP at native 1672x941 resolution (~92% smaller than source, no
+upsampling). All five assets are now resolved through the existing
+`resolveStaticSiteAsset` typed registry (extended with 4 new keys) rather than
+hardcoded paths, including the banner for the first time. The leaderboard rows
+now render an always-visible "#N" rank text (independent of any image) via a
+new small client component, with the laurel treated as purely decorative
+(empty alt, `aria-hidden`) and dropped safely if the image fails to load,
+without hiding the row. The user separately asked for the new background on
+the reset-PIN pages too; both `(auth)/reset-pin` and the legacy `auth/reset-pin`
+route were updated alongside `/login`. `forgot-pin` has no background today and
+was left unchanged. Full validation passed at 124 test files / 614 tests
+(10 new/updated test files covering the registry, the rank badge, the
+leaderboard rank/laurel mapping, and the three auth-background pages),
+typecheck clean, lint with the same four baseline warnings, and build at
+31/31 pages. Live browser responsive review covered `/login` and `/reset-pin`
+at 390/768/1440px (a dev server could be started this time via a new
+`.claude/launch.json`); the leaderboard and authenticated header could not be
+checked live because no authenticated test credentials exist (the same
+limitation recorded in the Step 3.2 handoff), so that part relied on the
+sharp-rendered composite checks (light/dark/orange backgrounds) plus the
+automated test suite instead. No analytics, formula, schema, migration,
+Storage, production, dependency, push, or deployment action occurred; Step 3.4
+and Phase 4 were not started.
+
 ## Last completed commit
 
-Phase 3, Step 3.2 focused completion commit (hash recorded by the post-commit
+Phase 3, Step 3.3 focused completion commit (hash recorded by the post-commit
 verification immediately after this state file is committed).
 
 ## Current phase
 
-Phase 3 — Navigation and Route Skeletons (Steps 3.1 and 3.2 complete; awaiting
-explicit assignment for the next step)
+Phase 3 — Navigation and Route Skeletons (Steps 3.1, 3.2, and 3.3 complete;
+awaiting explicit assignment for the next step)
 
 ## Prior completed substep
 
@@ -163,10 +209,10 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Await explicit assignment for the next Phase 3 step (or Phase 4).** Step 3.2
-is complete. Do not move legacy analytics content, redesign a destination
-page, add analytics consumers, alter workflows, or begin any later Phase 3 or
-Phase 4 work without that assignment.
+**Await explicit assignment for Phase 3, Step 3.4 — Navigation and Route Phase
+Closure (or Phase 4).** Step 3.3 is complete. Do not move legacy analytics
+content, redesign a destination page, add analytics consumers, alter
+workflows, or begin any later Phase 3 or Phase 4 work without that assignment.
 
 ## Active blockers
 
@@ -197,6 +243,7 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-03-STEP-03-brand-asset-preservation-and-responsive-website-integration.md
 - docs/agent-handoffs/PHASE-03-STEP-02-responsive-web-navigation-and-route-context-validation.md
 - docs/agent-handoffs/PHASE-03-STEP-01-navigation-and-route-skeletons.md
 - docs/agent-handoffs/GLOSSARY-CARD-DATABASE-PRESERVATION-AND-CROSS-LINKING.md

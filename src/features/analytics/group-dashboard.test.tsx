@@ -280,4 +280,42 @@ describe('GroupDashboard', () => {
     expect(screen.getByRole('heading', { name: /Global Generation Baselines/i })).toBeInTheDocument();
     expect(screen.getByText(/10 generations/i)).toBeInTheDocument();
   });
+
+  it('assigns gold/silver/bronze laurels to the top three leaderboard rows only, with rank always shown as visible text', () => {
+    const leaderboardRows: ComponentProps<typeof GroupDashboard>['leaderboardRows'] = [
+      1, 2, 3, 4,
+    ].map((place) => ({
+      averageLossGap: 2.5,
+      averagePlacement: place,
+      averageScore: 90 - place,
+      averageWinMargin: 6.2,
+      differentialComponent: 0.067,
+      gamesPlayed: 4,
+      groupId: 'group-1',
+      placementComponent: 0.281,
+      playerId: `p${place}`,
+      playerName: `Player ${place}`,
+      weightedScore: 1 - place * 0.1,
+      winRate: 0.75,
+      winRateComponent: 0.375,
+      wins: 3,
+    }));
+
+    const { container } = render(<GroupDashboard leaderboardRows={leaderboardRows} />);
+
+    expect(screen.getByText('#1')).toBeInTheDocument();
+    expect(screen.getByText('#2')).toBeInTheDocument();
+    expect(screen.getByText('#3')).toBeInTheDocument();
+    expect(screen.getByText('#4')).toBeInTheDocument();
+
+    const images = container.querySelectorAll('img');
+    expect(images).toHaveLength(3);
+    expect(images[0]).toHaveAttribute('src', expect.stringContaining('laurel-gold'));
+    expect(images[1]).toHaveAttribute('src', expect.stringContaining('laurel-silver'));
+    expect(images[2]).toHaveAttribute('src', expect.stringContaining('laurel-bronze'));
+    images.forEach((image) => {
+      expect(image).toHaveAttribute('aria-hidden', 'true');
+      expect(image).toHaveAttribute('alt', '');
+    });
+  });
 });

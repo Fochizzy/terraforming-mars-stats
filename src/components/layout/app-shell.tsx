@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import bannerImage from '../../../assets/banner.png';
+import { resolveStaticSiteAsset } from '@/lib/assets';
 import { AppNavigation } from '@/components/navigation/app-navigation';
 import styles from './app-shell.module.css';
 
@@ -14,18 +14,20 @@ export function AppShell({
   headerActions?: React.ReactNode;
   hasActiveGroup?: boolean;
 }) {
+  const banner = resolveStaticSiteAsset('application-banner');
+
   return (
     <main className="tm-app-shell">
       <div className="flex min-h-screen w-full flex-col">
         <div className={styles.bannerFrame}>
           <Image
-            alt="Terraforming Mars Statistics"
+            alt={banner.alt}
             className={styles.bannerImage}
-            height={793}
+            height={banner.height}
             priority
             sizes="100vw"
-            src={bannerImage}
-            width={1983}
+            src={banner.url}
+            width={banner.width}
           />
         </div>
 

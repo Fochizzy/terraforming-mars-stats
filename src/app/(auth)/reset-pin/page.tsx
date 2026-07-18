@@ -1,13 +1,16 @@
 import { ResetPinForm } from '@/features/auth/reset-pin-form';
+import { resolveStaticSiteAsset } from '@/lib/assets';
 
 export default function ResetPinPage() {
+  const background = resolveStaticSiteAsset('auth-page-mars-landscape');
+
   return (
     <main
       className="tm-app-shell"
       style={{
         backgroundColor: '#080b10',
         backgroundImage:
-          "linear-gradient(90deg, rgba(5, 7, 10, 0.82) 0%, rgba(7, 9, 12, 0.65) 46%, rgba(7, 9, 12, 0.38) 100%), linear-gradient(180deg, rgba(5, 7, 10, 0.18) 0%, rgba(5, 7, 10, 0.72) 100%), url('/auth-mars-background.svg')",
+          `linear-gradient(90deg, rgba(5, 7, 10, 0.82) 0%, rgba(7, 9, 12, 0.65) 46%, rgba(7, 9, 12, 0.38) 100%), linear-gradient(180deg, rgba(5, 7, 10, 0.18) 0%, rgba(5, 7, 10, 0.72) 100%), url('${background.url}')`,
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover',

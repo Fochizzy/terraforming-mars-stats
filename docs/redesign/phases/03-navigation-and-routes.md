@@ -2,12 +2,66 @@
 
 ## Status
 
-Phase 3 is active. Step 3.1 and Step 3.2 have both passed full repository
-validation. Step 3.2 is complete; it validated route context and replaced Step
-3.1's mobile-specific navigation pattern with one responsive website
-architecture, per explicit direction that TM Stats is a responsive website,
-not a native mobile application. Phase 3 does not implement the later page
-redesigns; await explicit assignment for the next Phase 3 step.
+Phase 3 is active. Steps 3.1, 3.2, and 3.3 have all passed full repository
+validation. Step 3.2 validated route context and replaced Step 3.1's
+mobile-specific navigation pattern with one responsive website architecture,
+per explicit direction that TM Stats is a responsive website, not a native
+mobile application. Step 3.3, authorized afterward as a standalone assignment,
+integrated five approved brand assets (header banner, leaderboard laurels,
+authentication background) through the existing typed asset registry. Phase 3
+does not implement the later page redesigns; await explicit assignment for the
+next Phase 3 step.
+
+## Step 3.3 — Brand Asset Preservation and Responsive Website Integration
+
+Authorized after Step 3.2 completed, as a standalone asset-preservation and
+integration assignment — not a reopening of Step 3.2. Preflight found three of
+the five approved assets already had a foothold in the repository predating
+this step: the shared header banner was already the exact approved asset
+(checksum-identical) and already integrated via `AppShell`'s bundled Next.js
+static import; the leaderboard already rendered gold/silver/bronze laurels in
+`GroupDashboard` (the real leaderboard, at `/group`) but with outdated
+artwork; the authentication background was a placeholder SVG, not yet the
+approved Mars-landscape PNG.
+
+Preflight also found no Supabase Storage bucket suitable for site-brand or
+decorative assets, and no existing precedent for storing this asset category
+in Storage — the banner and background have always been bundled-static or
+public-static repository files. Per the assignment's own stop condition for
+exactly this case, the user was asked and chose to keep that existing
+repository-file convention rather than authorize a new Storage bucket; no
+Storage upload occurred for this step.
+
+Resolution:
+
+- The three laurels were reprocessed from newly approved source art with
+  `sharp`: confirmed genuine alpha transparency (no baked checkerboard) via
+  pixel-level alpha histograms, then resized to optimized 256x256 PNGs
+  (~94% smaller than source) with alpha preserved. No repositioning was
+  needed — each source laurel's visible content already filled roughly 92%+
+  of its canvas, and per-laurel bounding-box measurement confirmed the three
+  are already aligned within a few pixels of each other on a shared coordinate
+  system.
+- The authentication background was converted to a single optimized WebP at
+  its native 1672x941 resolution (no upsampling; ~92% smaller than source) and
+  applied to `/login` and, per explicit user direction given mid-task, both
+  reset-PIN routes (`(auth)/reset-pin` and the legacy `auth/reset-pin`).
+  `/forgot-pin` has no background today and was left unchanged (out of scope).
+- All five assets are now resolved through the existing `resolveStaticSiteAsset`
+  typed registry (`src/lib/assets/static-assets.ts`), extended with four new
+  keys (`auth-page-mars-landscape`, `leaderboard-laurel-gold/silver/bronze`),
+  rather than hardcoded literal paths — including the banner, which is now
+  routed through the registry for the first time while keeping its exact
+  prior rendering (same `next/image`, same optimized bundled-static source).
+- The leaderboard now renders an always-visible "#N" rank text via a new
+  `LeaderboardRankBadge` client component, independent of any image, so rank
+  is never conveyed by laurel color alone; the laurel itself is decorative
+  (empty alt, `aria-hidden`) and is dropped without hiding the row if its
+  image fails to load.
+- No analytics, formula, schema, migration, Storage, dependency, production,
+  push, or deployment action occurred. See
+  `docs/agent-handoffs/PHASE-03-STEP-03-brand-asset-preservation-and-responsive-website-integration.md`
+  for full validation results, file list, and asset processing detail.
 
 ## Step 3.2 — Responsive Web Navigation and Route Context Validation
 
@@ -180,6 +234,7 @@ no fabricated metrics or dead controls.
 
 ## Next-step gate
 
-Step 3.2 is complete. Await explicit assignment for the next Phase 3 step (or
-Phase 4). That assignment must name the next route or implementation scope;
-this route framework does not authorize moving legacy analytics content.
+Step 3.3 is complete. Await explicit assignment for Phase 3, Step 3.4 —
+Navigation and Route Phase Closure (or Phase 4). That assignment must name the
+next route or implementation scope; this route framework does not authorize
+moving legacy analytics content.

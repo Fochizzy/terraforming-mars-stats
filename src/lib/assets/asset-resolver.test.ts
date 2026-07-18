@@ -230,6 +230,53 @@ describe('family resolvers', () => {
     });
   });
 
+  it('resolves the Step 3.3 leaderboard laurels and auth-page background with stable public paths', () => {
+    expect(resolveStaticSiteAsset('leaderboard-laurel-gold')).toMatchObject({
+      alt: '',
+      decorative: true,
+      family: 'brand',
+      height: 256,
+      source: { access: 'public', type: 'public-static' },
+      url: '/laurel-gold.png',
+      width: 256,
+    });
+    expect(resolveStaticSiteAsset('leaderboard-laurel-silver')).toMatchObject({
+      alt: '',
+      decorative: true,
+      family: 'brand',
+      source: { access: 'public', type: 'public-static' },
+      url: '/laurel-silver.png',
+    });
+    expect(resolveStaticSiteAsset('leaderboard-laurel-bronze')).toMatchObject({
+      alt: '',
+      decorative: true,
+      family: 'brand',
+      source: { access: 'public', type: 'public-static' },
+      url: '/laurel-bronze.png',
+    });
+    expect(resolveStaticSiteAsset('auth-page-mars-landscape')).toMatchObject({
+      alt: '',
+      decorative: true,
+      family: 'background',
+      height: 941,
+      source: { access: 'public', type: 'public-static' },
+      url: '/auth-page-mars-landscape.webp',
+      width: 1672,
+    });
+    // No two static site assets share a resolved public path.
+    const keys = [
+      'application-banner',
+      'auth-mars-background',
+      'auth-page-mars-landscape',
+      'global-mars-background',
+      'leaderboard-laurel-gold',
+      'leaderboard-laurel-silver',
+      'leaderboard-laurel-bronze',
+    ] as const;
+    const urls = keys.map((key) => resolveStaticSiteAsset(key).url);
+    expect(new Set(urls).size).toBe(urls.length);
+  });
+
   it('keeps every declared family inside the resolver architecture', () => {
     expect(assetFamilies).toEqual([
       'corporation-logo',
