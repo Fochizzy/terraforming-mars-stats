@@ -1,0 +1,290 @@
+{
+  "alreadyPopulated": 0,
+  "backfillVersion": "phase-04-step-03b-owner-confirmed-absence-v1",
+  "conflictingEvidence": 0,
+  "cutoff": "2026-07-18T00:00:00.000Z",
+  "duplicateEvents": 0,
+  "eligibleGames": 42,
+  "exactUpdateConditions": [
+    "games.created_at < 2026-07-18T00:00:00.000Z",
+    "no existing public.game_expansion_facts row for the game",
+    "same production parser reports the expected owner-confirmed absence state",
+    "no unsupported, conflicting, incomplete, unexpected, duplicate, or unresolved parser result"
+  ],
+  "excludedGames": 0,
+  "gamesRequiringReview": [],
+  "gamesWithRetainedParseableLogs": 42,
+  "gamesWithoutRetainedLogs": 0,
+  "incompleteEvidence": 0,
+  "ownerConfirmedOnly": 0,
+  "parserConfirmedColoniesAbsence": 42,
+  "parserConfirmedVenusAbsence": 42,
+  "parserExceptions": 0,
+  "parserVerified": 42,
+  "plannedRows": [
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "b4f7a405-78ce-4670-834f-94f7f61526f3",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "7394717a-e878-4abe-9695-4e45b645cba3",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "0853851d-6393-42bb-ac1e-19cd316dc8c0",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "6f4dc362-016a-45a2-97af-55f73fe5b336",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "b840e565-c7d9-4af4-9c53-85f1d97f0efd",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "c1fd4945-cb8b-4d87-9484-7e168f64b233",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "e67847a6-314f-4555-a866-6a45f09775ef",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "f87ddcdc-1702-4a4c-bf38-99fdb0f97da8",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "ce62a909-49ac-490e-a703-c1d29ecc5290",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "c639b161-eecd-4cf7-8668-b7c171f43f84",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "74a2d1d4-f851-4e81-affb-442cf779ae24",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "2ab8dd2f-5514-4e01-83ea-1f0632492916",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "bb0d8cdc-8454-47b8-96ea-4704c35e17df",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "12580803-0209-423a-821e-0fe0fc1c4865",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "a6d4e828-1204-4603-a805-0c8f513e6c76",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "887e3e78-1614-4753-824a-404cffcc794c",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "8e628396-2373-40be-84dd-b4e8af1198f7",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "de12292b-64b8-47c2-8b1e-fc9bc3852a6d",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "d6fa146c-f05f-4a76-bd40-30cf88bef3a9",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "0c6a07bc-4b55-42af-8c72-2086acab31f4",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "374632b1-48e9-415a-9a5f-5a52921160fa",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "0ed25808-165d-4fd5-8fcb-7468918e5bca",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "c83b1a82-db10-49bf-9ae1-50311eadbd50",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "2bf82769-b2d8-4f12-b49e-cd1619057745",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "13a3f734-19e9-49ee-ac0a-e0867cc4c793",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "1f61e2d2-6b3c-4e21-ba45-2c112bc88187",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "941c1218-c23e-4a70-949a-187f7ce7e395",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "30750df1-38a1-4ae4-a10c-4571752c3315",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "784f9a7c-be97-43cb-bb1a-35332909e8b5",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "0fc8d579-ce96-42ef-bcab-95cd2c27bc54",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "5cde4480-577b-427b-b68b-48f35ab0a7dd",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "0a720759-e24b-4be1-a570-cfc3922872e4",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "d48bf810-d52b-42b0-9732-1df28ce8ca5a",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "795b8e28-211c-40ea-a29d-6c1ac465c3db",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "a43a1b4d-277f-4a82-baaf-0da4849d2446",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "80749097-8dbf-44db-88ac-e1486a08fb1b",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "2ee4d52b-fa06-41b4-8687-0822f18957a0",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "27f6179c-ceeb-4a15-a6c1-f82841be81d0",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "dbfd93e9-c29e-4f9c-9fd9-e9a8f82a293d",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "9a2108b5-7ec8-4070-abd2-c056504386db",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "d725016d-780b-4756-87c0-6095ab2b185d",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    },
+    {
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "gameId": "feaa89ab-16d5-4e25-8bc3-4411c04b1069",
+      "hasSourceLogAssociation": true,
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent"
+    }
+  ],
+  "plannedWriteCount": 42,
+  "productionWritePerformed": false,
+  "totalHistoricalGames": 42,
+  "unexpectedColoniesEvents": 0,
+  "unexpectedColoniesPresence": 0,
+  "unexpectedVenusEvents": 0,
+  "unexpectedVenusPresence": 0,
+  "unresolvedPlayerAssociations": 0,
+  "unsupportedPatterns": 0,
+  "generatedAt": "2026-07-18T19:26:33.894Z",
+  "schemaReady": false,
+  "writeVerification": null
+}
