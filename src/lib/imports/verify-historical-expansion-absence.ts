@@ -67,6 +67,31 @@ export type HistoricalExpansionVerificationReport = {
   conflictingEvidence: number;
 };
 
+export function verifyHistoricalExpansionBackfillWrite(input: {
+  existingBackfillRows: number;
+  persistedBackfillRows: number;
+  plannedWrites: number;
+  secondRunPlannedWrites: number;
+}) {
+  const expectedPersistedRows =
+    input.existingBackfillRows + input.plannedWrites;
+  if (
+    input.persistedBackfillRows !== expectedPersistedRows ||
+    input.secondRunPlannedWrites !== 0
+  ) {
+    throw new Error(
+      'Post-write count or idempotency verification failed.',
+    );
+  }
+  return {
+    actualPersistedRows: input.persistedBackfillRows,
+    existingBackfillRows: input.existingBackfillRows,
+    expectedPersistedRows,
+    newlyInsertedRows: input.plannedWrites,
+    secondRunPlannedWrites: input.secondRunPlannedWrites,
+  };
+}
+
 function ownerConfirmedOnlyFact(input: {
   backfilledAt: string;
   gameId: string;

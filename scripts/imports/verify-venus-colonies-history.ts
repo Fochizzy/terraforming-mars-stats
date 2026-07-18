@@ -2,7 +2,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import {
+  HISTORICAL_EXPANSION_BACKFILL_VERSION,
   HISTORICAL_EXPANSION_CUTOFF,
+  verifyHistoricalExpansionBackfillWrite,
   verifyHistoricalExpansionAbsence,
   type HistoricalExpansionGame,
 } from '../../src/lib/imports/verify-historical-expansion-absence';
@@ -194,11 +196,12 @@ async function main() {
   }
 
   const existingFactGameIds = new Set<string>();
+  const existingBackfillGameIds = new Set<string>();
   let schemaReady = true;
   if (gameIds.length > 0) {
     const { data, error } = await supabase
       .from('game_expansion_facts')
-      .select('game_id')
+      .select('game_id, backfill_version')
       .in('game_id', gameIds);
     if (error) {
       if (error.code === 'PGRST205' || /game_expansion_facts/i.test(error.message)) {
@@ -209,6 +212,9 @@ async function main() {
     } else {
       for (const row of data ?? []) {
         existingFactGameIds.add(row.game_id as string);
+        if (row.backfill_version === HISTORICAL_EXPANSION_BACKFILL_VERSION) {
+          existingBackfillGameIds.add(row.game_id as string);
+        }
       }
     }
   }
@@ -268,19 +274,17 @@ async function main() {
           game.hasExistingFacts || persistedIds.has(game.gameId),
       })),
     });
-    if (
-      persistedIds.size !== report.plannedWriteCount ||
-      secondRun.plannedWriteCount !== 0
-    ) {
-      throw new Error('Post-write count or idempotency verification failed.');
-    }
+    const verifiedWrite = verifyHistoricalExpansionBackfillWrite({
+      existingBackfillRows: existingBackfillGameIds.size,
+      persistedBackfillRows: persistedIds.size,
+      plannedWrites: report.plannedWriteCount,
+      secondRunPlannedWrites: secondRun.plannedWriteCount,
+    });
     writePerformed = true;
     writeVerification = {
-      actualPersistedRows: persistedIds.size,
-      expectedPersistedRows: report.plannedWriteCount,
+      ...verifiedWrite,
       historicalEventRowsCreated: 0,
       unrelatedTablesWritten: [],
-      secondRunPlannedWrites: secondRun.plannedWriteCount,
     };
   }
 

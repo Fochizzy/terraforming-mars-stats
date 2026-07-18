@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   HISTORICAL_EXPANSION_BACKFILL_VERSION,
+  verifyHistoricalExpansionBackfillWrite,
   verifyHistoricalExpansionAbsence,
   type HistoricalExpansionGame,
 } from './verify-historical-expansion-absence';
@@ -114,5 +115,24 @@ describe('verifyHistoricalExpansionAbsence', () => {
     expect(secondRun.alreadyPopulated).toBe(1);
     expect(secondRun.plannedWriteCount).toBe(0);
     expect(secondRun.plannedRows).toEqual([]);
+  });
+
+  it('accepts both a first write and a later zero-change rerun', () => {
+    expect(
+      verifyHistoricalExpansionBackfillWrite({
+        existingBackfillRows: 0,
+        persistedBackfillRows: 42,
+        plannedWrites: 42,
+        secondRunPlannedWrites: 0,
+      }),
+    ).toMatchObject({ newlyInsertedRows: 42 });
+    expect(
+      verifyHistoricalExpansionBackfillWrite({
+        existingBackfillRows: 42,
+        persistedBackfillRows: 42,
+        plannedWrites: 0,
+        secondRunPlannedWrites: 0,
+      }),
+    ).toMatchObject({ newlyInsertedRows: 0 });
   });
 });
