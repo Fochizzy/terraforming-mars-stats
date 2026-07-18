@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as repo from './game-draft-repo';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { refreshGameMechanicCaptureForFinalizedGame } from './game-mechanic-capture-repo';
 import { logGameDraftSchema } from '@/lib/validation/log-game';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
+}));
+
+vi.mock('./game-mechanic-capture-repo', () => ({
+  refreshGameMechanicCaptureForFinalizedGame: vi.fn(),
 }));
 
 vi.mock('@/lib/env', () => ({
@@ -482,6 +487,7 @@ describe('finalizeGameLog', () => {
       })),
     };
 
+
     vi.mocked(createSupabaseServerClient)
       .mockResolvedValueOnce(finalClient as never)
       .mockResolvedValueOnce(shellClient as never)
@@ -731,6 +737,7 @@ describe('finalizeGameLog', () => {
       }),
     ).resolves.toEqual({ gameId: 'game-1' });
 
+    expect(refreshGameMechanicCaptureForFinalizedGame).toHaveBeenCalledWith('game-1');
     expect(finalGamePlayersInsertQuery.insert).toHaveBeenCalledWith([
       expect.objectContaining({
         corporation_id: 'corp-1',

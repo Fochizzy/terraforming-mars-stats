@@ -4,6 +4,7 @@ import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log
 import { getServerEnv } from '@/lib/env';
 import { personLabel } from '@/lib/people/person-label';
 import { resolvePlayerLabelsInRows } from './player-label-resolution';
+import { refreshGameMechanicCaptureForFinalizedGame } from './game-mechanic-capture-repo';
 
 type SavedGameStatus = 'draft' | 'finalized';
 
@@ -779,6 +780,8 @@ export async function finalizeGameLog(payload: {
     { ...payload.finalizedPayload.revision.snapshot, ...parsed, gameId },
     payload.finalizedPayload.revision.note,
   );
+
+  await refreshGameMechanicCaptureForFinalizedGame(gameId);
 
   return { gameId };
 }

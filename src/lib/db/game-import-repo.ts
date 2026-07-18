@@ -7,6 +7,7 @@ import {
   type PlayerTagCode,
 } from '@/lib/imports/derive-player-tag-summaries';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { captureGameMechanicsFromRawLog } from './game-mechanic-capture-repo';
 
 const LEGACY_PLAYER_TAG_CODES = [
   'building',
@@ -552,6 +553,12 @@ export async function saveGameLogImport(input: {
               screenshotObjectPath: screenshot.screenshotObjectPath,
               supabase,
             });
+            await captureGameMechanicsFromRawLog({
+              gameId: input.gameId,
+              gameLogImportId: data.id,
+              rawLogText: normalizedRawLogText,
+              resolveParticipantIds: false,
+            });
             return {
               id: data.id,
               screenshotObjectPath: screenshot.screenshotObjectPath,
@@ -585,6 +592,13 @@ export async function saveGameLogImport(input: {
       }
     }
   }
+
+  await captureGameMechanicsFromRawLog({
+    gameId: input.gameId,
+    gameLogImportId: data.id,
+    rawLogText: normalizedRawLogText,
+    resolveParticipantIds: false,
+  });
 
   return {
     id: data.id,

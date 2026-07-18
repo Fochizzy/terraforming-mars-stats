@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { captureGameMechanicsFromRawLog } from './game-mechanic-capture-repo';
 import * as repo from './game-import-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
+}));
+
+vi.mock('./game-mechanic-capture-repo', () => ({
+  captureGameMechanicsFromRawLog: vi.fn(),
 }));
 
 describe('saveGameLogImport', () => {
@@ -79,6 +84,12 @@ describe('saveGameLogImport', () => {
       userId: 'user-1',
     });
 
+    expect(captureGameMechanicsFromRawLog).toHaveBeenCalledWith({
+      gameId: 'game-1',
+      gameLogImportId: 'import-1',
+      rawLogText: 'Friday Mars won\nSecond Seat lost',
+      resolveParticipantIds: false,
+    });
     expect(result.id).toBe('import-1');
     expect(result.screenshotObjectPath).toMatch(
       /^game-1\/[a-z0-9-]+-endgame-results-png$/,
