@@ -69,7 +69,6 @@ describe('LogGameWizard', () => {
             },
           },
           playerStyles: {},
-          expansionCodes: ['base'],
           promoSetSlugs: [],
           selectedPlayerIds: ['p1'],
         }}
@@ -139,7 +138,6 @@ describe('LogGameWizard', () => {
             },
           },
           playerStyles: {},
-          expansionCodes: ['base'],
           promoSetSlugs: [],
           selectedPlayerIds: ['p1'],
         }}
@@ -203,7 +201,6 @@ describe('LogGameWizard', () => {
             },
           },
           playerStyles: {},
-          expansionCodes: ['base'],
           promoSetSlugs: [],
           selectedPlayerIds: ['p1'],
         }}
@@ -257,7 +254,6 @@ describe('LogGameWizard', () => {
           playerSelections: {},
           generationCount: 10,
           playerStyles: {},
-          expansionCodes: ['base'],
           promoSetSlugs: [],
           selectedPlayerIds: [],
         }}
@@ -318,7 +314,6 @@ describe('LogGameWizard', () => {
           playerSelections: {},
           generationCount: 10,
           playerStyles: {},
-          expansionCodes: ['base'],
           promoSetSlugs: [],
           selectedPlayerIds: [],
         }}
@@ -390,7 +385,6 @@ describe('LogGameWizard', () => {
           playerSelections: {},
           generationCount: 10,
           playerStyles: {},
-          expansionCodes: ['base', 'prelude', 'colonies'],
           promoSetSlugs: ['2022-seasonal-promos'],
           selectedPlayerIds: ['p1', 'p2'],
         }}
@@ -510,7 +504,6 @@ describe('LogGameWizard', () => {
           },
         },
         playerStyles: {},
-        expansionCodes: ['base', 'prelude', 'colonies'],
         promoSetSlugs: ['2022-seasonal-promos'],
         selectedPlayerIds: ['p1', 'p2'],
       }),
@@ -559,7 +552,6 @@ describe('LogGameWizard', () => {
           playerSelections: {},
           generationCount: 10,
           playerStyles: {},
-          expansionCodes: ['base'],
           promoSetSlugs: [],
           selectedPlayerIds: ['p1'],
         }}
@@ -592,9 +584,8 @@ describe('LogGameWizard', () => {
     );
   });
 
-  it('offers every corporation and prelude regardless of the stored expansion and promo selections', () => {
+  it('offers every corporation and prelude regardless of catalog metadata and stored promo selections', () => {
     const renderWizardWithSelections = (selections: {
-      expansionCodes: string[];
       promoSetSlugs: string[];
     }) =>
       render(
@@ -636,7 +627,6 @@ describe('LogGameWizard', () => {
             playerSelections: {},
             generationCount: 10,
             playerStyles: {},
-            expansionCodes: selections.expansionCodes,
             promoSetSlugs: selections.promoSetSlugs,
             selectedPlayerIds: ['p1'],
           }}
@@ -673,7 +663,6 @@ describe('LogGameWizard', () => {
       );
 
     renderWizardWithSelections({
-      expansionCodes: ['base'],
       promoSetSlugs: [],
     });
 
@@ -719,7 +708,6 @@ describe('LogGameWizard', () => {
           playerSelections: {},
           generationCount: 10,
           playerStyles: {},
-          expansionCodes: ['base'],
           promoSetSlugs: [],
           selectedPlayerIds: ['p1'],
         }}
@@ -792,7 +780,6 @@ describe('LogGameWizard', () => {
           playerSelections: {},
           generationCount: 10,
           playerStyles: {},
-          expansionCodes: ['base'],
           promoSetSlugs: [],
           selectedPlayerIds: ['player-roster'],
         }}

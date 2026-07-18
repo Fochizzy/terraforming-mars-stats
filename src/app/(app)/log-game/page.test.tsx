@@ -25,7 +25,6 @@ const mockState = vi.hoisted(() => ({
   getUser: vi.fn(),
   listCards: vi.fn(),
   listCorporations: vi.fn(),
-  listExpansions: vi.fn(),
   listMapAwards: vi.fn(),
   listMapMilestones: vi.fn(),
   listMaps: vi.fn(),
@@ -115,7 +114,6 @@ vi.mock('@/lib/db/reference-repo', () => ({
   getLatestCatalogSnapshotId: mockState.getLatestCatalogSnapshotId,
   listCards: mockState.listCards,
   listCorporations: mockState.listCorporations,
-  listExpansions: mockState.listExpansions,
   listMapAwards: mockState.listMapAwards,
   listMapMilestones: mockState.listMapMilestones,
   listMaps: mockState.listMaps,
@@ -148,7 +146,6 @@ describe('LogGamePage', () => {
       userId: 'user-1',
     });
     mockState.getGroupSettings.mockResolvedValue({
-      defaultExpansionCodes: ['base'],
       defaultMapId: 'tharsis',
       defaultPromoSetSlugs: [],
     });
@@ -158,7 +155,6 @@ describe('LogGamePage', () => {
     mockState.listPlayers.mockResolvedValue([
       { display_name: 'Friday Mars', id: 'player-1' },
     ]);
-    mockState.listExpansions.mockResolvedValue([]);
     mockState.listPromoSets.mockResolvedValue([]);
     mockState.listCorporations.mockResolvedValue([]);
     mockState.listPreludes.mockResolvedValue([]);

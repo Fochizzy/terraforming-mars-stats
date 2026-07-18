@@ -6,7 +6,6 @@ describe('buildImportDraft', () => {
   it('builds a cloud draft payload from import values and group defaults', () => {
     expect(
       buildImportDraft({
-        defaultExpansionCodes: ['base', 'prelude'],
         defaultPromoSetSlugs: ['2022-seasonal-promos'],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -22,7 +21,6 @@ describe('buildImportDraft', () => {
       }),
     ).toEqual({
       awardClaims: {},
-      expansionCodes: ['base', 'prelude'],
       gameId: undefined,
       generationCount: 12,
       groupId: '11111111-1111-4111-8111-111111111111',
@@ -45,7 +43,6 @@ describe('buildImportDraft', () => {
   it('lets the log final-scores block beat conflicting screenshot OCR readings', () => {
     expect(
       buildImportDraft({
-        defaultExpansionCodes: ['base'],
         defaultPromoSetSlugs: [],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -98,7 +95,6 @@ describe('buildImportDraft', () => {
     expect(
       buildImportDraft({
         awardOptions: [{ awardId: 'award-1', awardName: 'Landlord', mapId: 'elysium' }],
-        defaultExpansionCodes: ['base'],
         defaultPromoSetSlugs: [],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -188,7 +184,6 @@ describe('buildImportDraft', () => {
   it('keeps milestone claims map-aware instead of hard-coding Tharsis names', () => {
     expect(
       buildImportDraft({
-        defaultExpansionCodes: ['base'],
         defaultPromoSetSlugs: [],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -236,7 +231,6 @@ describe('buildImportDraft', () => {
   it('maps confirmed player links and screenshot scores into the shared draft', () => {
     expect(
       buildImportDraft({
-        defaultExpansionCodes: ['base'],
         defaultPromoSetSlugs: [],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -289,7 +283,6 @@ describe('buildImportDraft', () => {
 
   it('drops negative screenshot score readings as OCR noise instead of failing draft validation', () => {
     const playerScores = buildImportDraft({
-      defaultExpansionCodes: ['base'],
       defaultPromoSetSlugs: [],
       groupId: '11111111-1111-4111-8111-111111111111',
       importValues: {
@@ -359,7 +352,6 @@ describe('buildImportDraft', () => {
             },
           },
         ],
-        defaultExpansionCodes: ['base'],
         defaultPromoSetSlugs: [],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -433,7 +425,6 @@ describe('buildImportDraft', () => {
             status: 'proved',
           },
         ],
-        defaultExpansionCodes: ['base'],
         defaultPromoSetSlugs: [],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -505,7 +496,6 @@ describe('buildImportDraft', () => {
           status: 'proved',
         },
       ],
-      defaultExpansionCodes: ['base'],
       defaultPromoSetSlugs: [],
       groupId: '11111111-1111-4111-8111-111111111111',
       importValues: {
@@ -565,7 +555,6 @@ describe('buildImportDraft', () => {
       buildImportDraft({
         awardOptions: [{ awardId: 'award-1', awardName: 'Cultivator', mapId: 'hellas' }],
         curatedBoardItems,
-        defaultExpansionCodes: ['base'],
         defaultPromoSetSlugs: [],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -643,7 +632,6 @@ describe('buildImportDraft', () => {
           requiredExpansionCodes: ['base'],
         },
       ],
-      defaultExpansionCodes: ['base', 'prelude'],
       defaultPromoSetSlugs: [],
       groupId: '11111111-1111-4111-8111-111111111111',
       importValues: {

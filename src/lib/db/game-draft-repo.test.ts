@@ -36,7 +36,6 @@ describe('getDraftGameForm', () => {
           {
             snapshot: {
               awardClaims: {},
-              expansionCodes: ['base'],
               gameId: 'game-1',
               generationCount: 11,
               groupId: '11111111-1111-4111-8111-111111111111',
@@ -110,7 +109,6 @@ describe('getSavedGameForm revision fallback', () => {
 
   const draftFormSnapshot = {
     awardClaims: {},
-    expansionCodes: ['base'],
     gameId: 'game-final',
     generationCount: 11,
     groupId: '11111111-1111-4111-8111-111111111111',
@@ -494,7 +492,6 @@ describe('finalizeGameLog', () => {
       repo.finalizeGameLog({
         form: {
           awardClaims: {},
-          expansionCodes: [],
           gameId: 'game-1',
           generationCount: 10,
           groupId: '11111111-1111-4111-8111-111111111111',
@@ -630,7 +627,7 @@ describe('finalizeGameLog', () => {
     };
     const setupClient = {
       from: vi.fn((table: string) => {
-        if (table === 'game_expansions' || table === 'game_promo_sets') {
+        if (table === 'game_promo_sets') {
           return setupDeleteQuery;
         }
 
@@ -658,7 +655,6 @@ describe('finalizeGameLog', () => {
       repo.finalizeGameLog({
         form: {
           awardClaims: {},
-          expansionCodes: [],
           gameId: 'game-1',
           generationCount: 10,
           groupId: '11111111-1111-4111-8111-111111111111',
@@ -791,7 +787,6 @@ describe('getSavedGameForm', () => {
           {
             snapshot: {
               awardClaims: {},
-              expansionCodes: ['base'],
               gameId: 'game-final',
               generationCount: 12,
               groupId: '11111111-1111-4111-8111-111111111111',

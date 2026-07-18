@@ -5,27 +5,8 @@ export type GroupSettingsSnapshot = {
   groupName: string;
   globalAnalyticsEnabled: boolean;
   defaultMapId: string | null;
-  defaultExpansionCodes: string[];
   defaultPromoSetSlugs: string[];
 };
-
-async function resolveExpansionIds(codes: string[]) {
-  if (codes.length === 0) {
-    return [];
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('expansions')
-    .select('id, code')
-    .in('code', codes);
-
-  if (error) {
-    throw error;
-  }
-
-  return data.map((expansion) => expansion.id);
-}
 
 async function resolvePromoSetIds(slugs: string[]) {
   if (slugs.length === 0) {
@@ -65,44 +46,20 @@ export async function getGroupSettings(groupId: string): Promise<GroupSettingsSn
     throw settingsError;
   }
 
-  const [
-    { data: defaultExpansionRows, error: expansionRowsError },
-    { data: defaultPromoSetRows, error: promoRowsError },
-  ] = await Promise.all([
-    supabase
-      .from('group_default_expansions')
-      .select('expansion_id')
-      .eq('group_id', groupId),
-    supabase
-      .from('group_default_promo_sets')
-      .select('promo_set_id')
-      .eq('group_id', groupId),
-  ]);
-
-  if (expansionRowsError) {
-    throw expansionRowsError;
-  }
+  const { data: defaultPromoSetRows, error: promoRowsError } = await supabase
+    .from('group_default_promo_sets')
+    .select('promo_set_id')
+    .eq('group_id', groupId);
 
   if (promoRowsError) {
     throw promoRowsError;
   }
 
-  const expansionIds = defaultExpansionRows.map((row) => row.expansion_id);
   const promoSetIds = defaultPromoSetRows.map((row) => row.promo_set_id);
 
-  const [{ data: expansions, error: expansionsError }, { data: promoSets, error: promoSetsError }] =
-    await Promise.all([
-      expansionIds.length
-        ? supabase.from('expansions').select('code').in('id', expansionIds)
-        : Promise.resolve({ data: [], error: null }),
-      promoSetIds.length
-        ? supabase.from('promo_sets').select('slug').in('id', promoSetIds)
-        : Promise.resolve({ data: [], error: null }),
-    ]);
-
-  if (expansionsError) {
-    throw expansionsError;
-  }
+  const { data: promoSets, error: promoSetsError } = promoSetIds.length
+    ? await supabase.from('promo_sets').select('slug').in('id', promoSetIds)
+    : { data: [], error: null };
 
   if (promoSetsError) {
     throw promoSetsError;
@@ -113,7 +70,6 @@ export async function getGroupSettings(groupId: string): Promise<GroupSettingsSn
     groupName: group.name,
     globalAnalyticsEnabled: settings?.global_analytics_enabled ?? false,
     defaultMapId: settings?.default_map_id ?? null,
-    defaultExpansionCodes: expansions.map((expansion) => expansion.code),
     defaultPromoSetSlugs: promoSets.map((promoSet) => promoSet.slug),
   };
 }
@@ -123,14 +79,10 @@ export async function saveGroupSettings(input: {
   group_name: string;
   global_analytics_enabled: boolean;
   default_map_id?: string | null;
-  default_expansion_codes: string[];
   default_promo_set_slugs: string[];
 }) {
   const supabase = await createSupabaseServerClient();
-  const [expansionIds, promoSetIds] = await Promise.all([
-    resolveExpansionIds(input.default_expansion_codes),
-    resolvePromoSetIds(input.default_promo_set_slugs),
-  ]);
+  const promoSetIds = await resolvePromoSetIds(input.default_promo_set_slugs);
 
   const { error: groupError } = await supabase
     .from('groups')
@@ -155,15 +107,6 @@ export async function saveGroupSettings(input: {
     throw error;
   }
 
-  const { error: deleteExpansionError } = await supabase
-    .from('group_default_expansions')
-    .delete()
-    .eq('group_id', input.group_id);
-
-  if (deleteExpansionError) {
-    throw deleteExpansionError;
-  }
-
   const { error: deletePromoError } = await supabase
     .from('group_default_promo_sets')
     .delete()
@@ -171,21 +114,6 @@ export async function saveGroupSettings(input: {
 
   if (deletePromoError) {
     throw deletePromoError;
-  }
-
-  if (expansionIds.length > 0) {
-    const { error: insertExpansionError } = await supabase
-      .from('group_default_expansions')
-      .insert(
-        expansionIds.map((expansionId) => ({
-          group_id: input.group_id,
-          expansion_id: expansionId,
-        })),
-      );
-
-    if (insertExpansionError) {
-      throw insertExpansionError;
-    }
   }
 
   if (promoSetIds.length > 0) {

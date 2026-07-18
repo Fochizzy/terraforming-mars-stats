@@ -89,7 +89,6 @@ export function buildImportDraft(input: {
   cardOptions?: CardOption[];
   corporationOptions?: CorporationOption[];
   curatedBoardItems?: CuratedBoardImportItem[];
-  defaultExpansionCodes: string[];
   defaultPromoSetSlugs: string[];
   groupId: string;
   importValues: ImportDraftValues;
@@ -611,7 +610,6 @@ export function buildImportDraft(input: {
 
   return {
     awardClaims,
-    expansionCodes: [...input.defaultExpansionCodes],
     gameId: undefined,
     generationCount: input.importValues.generationCount,
     groupId: input.groupId,

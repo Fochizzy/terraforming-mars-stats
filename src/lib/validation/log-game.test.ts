@@ -3,7 +3,6 @@ import { logGameDraftSchema } from './log-game';
 
 const baseDraft = {
   awardClaims: {},
-  expansionCodes: ['base'],
   gameId: undefined,
   generationCount: 10,
   groupId: '11111111-1111-4111-8111-111111111111',

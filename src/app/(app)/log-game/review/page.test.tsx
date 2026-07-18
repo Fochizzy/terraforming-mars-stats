@@ -12,7 +12,6 @@ const mockState = vi.hoisted(() => ({
   deleteSavedGame: vi.fn(),
   listCards: vi.fn(),
   listCorporations: vi.fn(),
-  listExpansions: vi.fn(),
   listCurrentUserGroups: vi.fn(),
   listImportResolutionPlayers: vi.fn(),
   listMapAwards: vi.fn(),
@@ -95,7 +94,6 @@ vi.mock('@/lib/db/reference-repo', () => ({
   getLatestCatalogSnapshotId: mockState.getLatestCatalogSnapshotId,
   listCards: mockState.listCards,
   listCorporations: mockState.listCorporations,
-  listExpansions: mockState.listExpansions,
   listMapAwards: mockState.listMapAwards,
   listMapMilestones: mockState.listMapMilestones,
   listMaps: mockState.listMaps,
@@ -128,14 +126,12 @@ describe('LogGameReviewPage', () => {
       },
     ]);
     mockState.getGroupSettings.mockResolvedValue({
-      defaultExpansionCodes: ['base'],
       defaultMapId: 'tharsis',
       defaultPromoSetSlugs: [],
     });
     mockState.listMaps.mockResolvedValue([
       { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
     ]);
-    mockState.listExpansions.mockResolvedValue([]);
     mockState.listPromoSets.mockResolvedValue([]);
     mockState.listImportResolutionPlayers.mockResolvedValue([
       {
@@ -221,7 +217,6 @@ describe('LogGameReviewPage', () => {
     mockState.getSavedGameForm.mockResolvedValue({
       form: {
         awardClaims: {},
-        expansionCodes: ['base'],
         gameId: 'game-final',
         generationCount: 11,
         groupId: 'group-2',
@@ -259,7 +254,6 @@ describe('LogGameReviewPage', () => {
     mockState.getSavedGameForm.mockResolvedValue({
       form: {
         awardClaims: {},
-        expansionCodes: ['base'],
         gameId: undefined,
         generationCount: 11,
         groupId: 'group-1',

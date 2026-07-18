@@ -910,7 +910,6 @@ export default async function LogGameImportPage() {
           mapId: resolvedMapSelection.draftMapId,
           participantNames: resolvedParticipantNames,
         }),
-        defaultExpansionCodes: activeGroupSettings.defaultExpansionCodes,
         defaultPromoSetSlugs: activeGroupSettings.defaultPromoSetSlugs,
         groupId: importGroup.groupId,
         importValues: {

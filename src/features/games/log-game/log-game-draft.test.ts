@@ -6,7 +6,6 @@ describe('cloneGameSetup', () => {
     const cloned = cloneGameSetup({
       mapId: 'elysium',
       playerCount: 4,
-      expansionCodes: ['base', 'prelude', 'colonies'],
       promoSetSlugs: ['2022-seasonal-promos'],
       selectedPlayerIds: ['a', 'b', 'c', 'd'],
       totalPoints: [85, 79, 76, 63],
@@ -23,7 +22,6 @@ describe('mergeDraftIntoInitialValues', () => {
     const merged = mergeDraftIntoInitialValues(
       {
         awardClaims: {},
-        expansionCodes: ['base'],
         gameId: undefined,
         generationCount: 10,
         groupId: '11111111-1111-4111-8111-111111111111',
@@ -39,7 +37,6 @@ describe('mergeDraftIntoInitialValues', () => {
         selectedPlayerIds: [],
       },
       {
-        expansionCodes: ['base', 'prelude'],
         gameId: 'game-1',
         generationCount: 12,
         mapId: 'elysium',
@@ -54,7 +51,6 @@ describe('mergeDraftIntoInitialValues', () => {
     expect(merged.mapId).toBe('elysium');
     expect(merged.playerCount).toBe(4);
     expect(merged.generationCount).toBe(12);
-    expect(merged.expansionCodes).toEqual(['base', 'prelude']);
     expect(merged.promoSetSlugs).toEqual(['2022-seasonal-promos']);
     expect(merged.selectedPlayerIds).toEqual([]);
     expect(merged.playerScores).toEqual({});

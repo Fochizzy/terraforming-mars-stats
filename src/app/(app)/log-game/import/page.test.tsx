@@ -230,7 +230,6 @@ describe('LogGameImportPage', () => {
       userId: 'user-1',
     });
     mockState.getGroupSettings.mockResolvedValue({
-      defaultExpansionCodes: ['base'],
       defaultMapId: 'tharsis',
       defaultPromoSetSlugs: [],
     });
@@ -634,7 +633,6 @@ describe('LogGameImportPage', () => {
 
   it('uses the selected map option id as a manual map fallback when OCR cannot infer the board map', async () => {
     mockState.getGroupSettings.mockResolvedValue({
-      defaultExpansionCodes: ['base'],
       defaultMapId: 'map-tharsis',
       defaultPromoSetSlugs: [],
     });
@@ -666,7 +664,6 @@ describe('LogGameImportPage', () => {
 
   it('infers the board map from milestone and award lines when no map is submitted', async () => {
     mockState.getGroupSettings.mockResolvedValue({
-      defaultExpansionCodes: ['base'],
       defaultMapId: 'map-tharsis',
       defaultPromoSetSlugs: [],
     });
@@ -822,12 +819,10 @@ describe('LogGameImportPage', () => {
       ]);
     mockState.getGroupSettings
       .mockResolvedValueOnce({
-        defaultExpansionCodes: ['base'],
         defaultMapId: 'map-tharsis',
         defaultPromoSetSlugs: [],
       })
       .mockResolvedValueOnce({
-        defaultExpansionCodes: ['base'],
         defaultMapId: 'map-elysium',
         defaultPromoSetSlugs: [],
       });
@@ -875,7 +870,6 @@ describe('LogGameImportPage', () => {
 
   it('saves the selected map option id in the draft even when board parsing uses the map code', async () => {
     mockState.getGroupSettings.mockResolvedValue({
-      defaultExpansionCodes: ['base'],
       defaultMapId: 'map-tharsis',
       defaultPromoSetSlugs: [],
     });

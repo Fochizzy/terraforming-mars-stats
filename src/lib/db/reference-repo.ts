@@ -1,11 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
-export type ExpansionOption = {
-  id: string;
-  code: string;
-  name: string;
-};
-
 export type MapOption = {
   id: string;
   code: string;
@@ -137,21 +131,6 @@ async function resolvePromoSetSlugByIdMap(promoSetIds: string[]) {
   return new Map(
     (data as PromoSetLookupRow[]).map((promoSet) => [promoSet.id, promoSet.slug]),
   );
-}
-
-export async function listExpansions(): Promise<ExpansionOption[]> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('expansions')
-    .select('id, code, name')
-    .neq('code', 'promo')
-    .order('name');
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
 }
 
 export async function listMaps(): Promise<MapOption[]> {

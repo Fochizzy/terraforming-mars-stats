@@ -5,7 +5,6 @@ import { resolveLogGamePlayerReferences } from './log-game-player-resolution';
 function buildDraft(overrides: Partial<LogGameDraftInput> = {}): LogGameDraftInput {
   return {
     awardClaims: {},
-    expansionCodes: ['base'],
     gameId: undefined,
     generationCount: 10,
     groupId: '11111111-1111-4111-8111-111111111111',

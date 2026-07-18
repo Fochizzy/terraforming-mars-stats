@@ -69,24 +69,6 @@ export type SavedGameListItem = {
   playerNames: string[];
 };
 
-async function resolveExpansionIds(codes: string[]) {
-  if (codes.length === 0) {
-    return [];
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('expansions')
-    .select('id')
-    .in('code', codes);
-
-  if (error) {
-    throw error;
-  }
-
-  return data.map((expansion) => expansion.id);
-}
-
 async function resolvePromoSetIds(slugs: string[]) {
   if (slugs.length === 0) {
     return [];
@@ -107,23 +89,10 @@ async function resolvePromoSetIds(slugs: string[]) {
 
 async function syncGameSetupRelations(
   gameId: string,
-  expansionCodes: string[],
   promoSetSlugs: string[],
 ) {
   const supabase = await createSupabaseServerClient();
-  const [expansionIds, promoSetIds] = await Promise.all([
-    resolveExpansionIds(expansionCodes),
-    resolvePromoSetIds(promoSetSlugs),
-  ]);
-
-  const { error: deleteExpansionError } = await supabase
-    .from('game_expansions')
-    .delete()
-    .eq('game_id', gameId);
-
-  if (deleteExpansionError) {
-    throw deleteExpansionError;
-  }
+  const promoSetIds = await resolvePromoSetIds(promoSetSlugs);
 
   const { error: deletePromoError } = await supabase
     .from('game_promo_sets')
@@ -132,21 +101,6 @@ async function syncGameSetupRelations(
 
   if (deletePromoError) {
     throw deletePromoError;
-  }
-
-  if (expansionIds.length > 0) {
-    const { error: insertExpansionError } = await supabase
-      .from('game_expansions')
-      .insert(
-        expansionIds.map((expansionId) => ({
-          game_id: gameId,
-          expansion_id: expansionId,
-        })),
-      );
-
-    if (insertExpansionError) {
-      throw insertExpansionError;
-    }
   }
 
   if (promoSetIds.length > 0) {
@@ -200,11 +154,7 @@ async function upsertGameShell(payload: {
       throw error;
     }
 
-    await syncGameSetupRelations(
-      data.id,
-      parsed.expansionCodes,
-      parsed.promoSetSlugs,
-    );
+    await syncGameSetupRelations(data.id, parsed.promoSetSlugs);
 
     return data.id;
   }
@@ -235,7 +185,7 @@ async function upsertGameShell(payload: {
     throw error;
   }
 
-  await syncGameSetupRelations(data.id, parsed.expansionCodes, parsed.promoSetSlugs);
+  await syncGameSetupRelations(data.id, parsed.promoSetSlugs);
 
   return data.id;
 }
