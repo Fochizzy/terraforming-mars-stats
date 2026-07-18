@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
+import { captureUnrelatedGameData } from './historical-backfill-snapshot';
 import {
   HISTORICAL_EXPANSION_BACKFILL_VERSION,
   HISTORICAL_EXPANSION_CUTOFF,
@@ -245,6 +246,8 @@ async function main() {
     if (reportHasBlockers(report)) {
       throw new Error('Historical verification has blockers; no rows were written.');
     }
+    const unrelatedBefore = await captureUnrelatedGameData(supabase, gameIds);
+
 
     if (report.plannedRows.length > 0) {
       const { error } = await supabase
@@ -280,11 +283,17 @@ async function main() {
       plannedWrites: report.plannedWriteCount,
       secondRunPlannedWrites: secondRun.plannedWriteCount,
     });
+    const unrelatedAfter = await captureUnrelatedGameData(supabase, gameIds);
+    if (JSON.stringify(unrelatedAfter) !== JSON.stringify(unrelatedBefore)) {
+      throw new Error('Unrelated historical game data changed during backfill.');
+    }
+
     writePerformed = true;
     writeVerification = {
       ...verifiedWrite,
       historicalEventRowsCreated: 0,
-      unrelatedTablesWritten: [],
+      unrelatedDataUnchanged: true,
+      verifiedUnrelatedTables: Object.keys(unrelatedBefore),
     };
   }
 
