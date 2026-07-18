@@ -45,7 +45,6 @@ metric must still declare that it supports a metric-specific filter.
 | Table size | repeated `playerCount` | integers 1 through 5 | all recorded table sizes | supported |
 | Generation count | repeated `generationCount` | positive integers | all recorded final generations | supported; not elapsed duration |
 | Game-length category | repeated `gameLength` | registered code | none | unavailable: no duration fact or approved category definition |
-| Expansion | repeated `expansion` | canonical code | all recorded configurations | supported |
 | Corporation | repeated `corporation` | corporation UUID | all recorded corporations | supported |
 | Prelude | repeated `prelude` | Prelude UUID | all recorded Preludes | supported; no-Prelude versus missing remains unresolved data work |
 | Corporation/Prelude pair | repeated `corporationPrelude` | `corporation-uuid~prelude-uuid` | all recorded pairs | supported |
@@ -70,7 +69,7 @@ registered parser, default, and canonical representation before use.
 ## Canonical identity
 
 - Database-backed entities use canonical UUIDs.
-- Expansion, tag, and style values use lower-case canonical codes.
+- Tag and style values use lower-case canonical codes.
 - Score sources use the registered score-source key union.
 - Corporation/Prelude pairings use the ordered pair of canonical UUIDs.
 - Durable selected entities use typed tokens such as `player:<uuid>`,
@@ -155,9 +154,13 @@ The canonical order is:
 
 ```text
 player, group, from, to, map, playerCount, generationCount, gameLength,
-expansion, corporation, prelude, corporationPrelude, card, tag, scoreSource,
+corporation, prelude, corporationPrelude, card, tag, scoreSource,
 style, status, minSample, entity, metric, point, series, detail
 ```
+
+The former repeated `expansion` parameter was retired in Phase 4, Step 4.2.
+Canonicalization removes stale occurrences instead of preserving them as
+unrelated route state.
 
 `canonicalizeAnalyticsUrlState` composes parse, normalize, and serialize at a
 route boundary. The utilities do not mutate a router, so they cannot create a

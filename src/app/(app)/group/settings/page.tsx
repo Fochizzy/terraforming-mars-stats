@@ -4,7 +4,7 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { getGroupSettings, saveGroupSettings } from '@/lib/db/group-settings-repo';
-import { listExpansions, listPromoSets } from '@/lib/db/reference-repo';
+import { listPromoSets } from '@/lib/db/reference-repo';
 import {
   groupSettingsSchema,
   type GroupSettingsInput,
@@ -16,9 +16,8 @@ export const metadata = pageMetadata('/group/settings');
 
 export default async function GroupSettingsPage() {
   const context = await requireGroupContextOrRedirect();
-  const [settings, expansionOptions, promoSetOptions] = await Promise.all([
+  const [settings, promoSetOptions] = await Promise.all([
     getGroupSettings(context.groupId),
-    listExpansions(),
     listPromoSets(),
   ]);
 
@@ -32,7 +31,6 @@ export default async function GroupSettingsPage() {
       group_name: parsed.groupName,
       global_analytics_enabled: parsed.globalAnalyticsEnabled,
       default_guaranteed_merger_offer: parsed.defaultGuaranteedMergerOffer,
-      default_expansion_codes: parsed.defaultExpansionCodes,
       default_promo_set_slugs: parsed.defaultPromoSetSlugs,
     });
     revalidatePath('/group');
@@ -61,10 +59,8 @@ export default async function GroupSettingsPage() {
           groupName: settings.groupName,
           globalAnalyticsEnabled: settings.globalAnalyticsEnabled,
           defaultGuaranteedMergerOffer: settings.defaultGuaranteedMergerOffer,
-          defaultExpansionCodes: settings.defaultExpansionCodes,
           defaultPromoSetSlugs: settings.defaultPromoSetSlugs,
         }}
-        expansionOptions={expansionOptions}
         onSave={handleSaveGroupSettings}
         promoSetOptions={promoSetOptions}
       />

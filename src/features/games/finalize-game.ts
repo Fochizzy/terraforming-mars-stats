@@ -6,7 +6,6 @@ type ReviewIssue = {
   code:
     | 'player_count_mismatch'
     | 'missing_corporation'
-    | 'missing_preludes'
     | 'missing_score_fields'
     | 'invalid_map_milestone'
     | 'missing_milestone_winner'
@@ -34,7 +33,6 @@ type ReviewGameInput = Partial<
   Pick<
     LogGameDraftInput,
     | 'awardClaims'
-    | 'expansionCodes'
     | 'gameId'
     | 'guaranteedMergerOffer'
     | 'milestoneClaims'
@@ -263,17 +261,6 @@ export function buildGameReview(input: ReviewGameInput): GameReview {
       issues.push({
         code: 'missing_corporation',
         message: `Choose a corporation for ${playerId}.`,
-        severity: 'error',
-      });
-    }
-
-    if (
-      (input.expansionCodes ?? []).includes('prelude') &&
-      selection.preludeIds.length === 0
-    ) {
-      issues.push({
-        code: 'missing_preludes',
-        message: `Choose at least one prelude for ${playerId}.`,
         severity: 'error',
       });
     }

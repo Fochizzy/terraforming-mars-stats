@@ -269,10 +269,28 @@ semantic discrepancy is documented for a later explicitly authorized step.
 Full details are in `docs/redesign/phases/04-log-a-game.md` and
 `docs/agent-handoffs/PHASE-04-STEP-01-log-a-game-workflow-preservation-and-unified-entry-foundation.md`.
 
+### Phase 4, Step 4.2 outcome
+
+Step 4.2 is complete. Manual Entry now has one typed six-step registry and a
+responsive, accessible wizard shell with explicit step status, focused headings,
+Back/Continue actions, Save Draft, and the existing finalization path. The shell
+adapts its labels and horizontal step navigation without creating a separate
+mobile workflow or persistence state machine.
+
+The user explicitly broadened this substep to remove gameplay expansion tracking
+product-wide. Expansion choices/defaults, draft fields, saved-game relations,
+analytics filters/URL state, eligibility, and interaction analytics are retired.
+Prelude identity remains optional evidence. Intrinsic catalog expansion metadata
+remains available for catalog identity and browsing. Migration
+`20260718041532_remove_game_expansion_tracking.sql` was applied to the linked
+production Supabase project and verified there; no application push or deploy
+was authorized. Full details are in `docs/redesign/phases/04-log-a-game.md` and
+`docs/agent-handoffs/PHASE-04-STEP-02-manual-entry-wizard-responsive-step-navigation-and-expansion-tracking-removal.md`.
+
 ### Current next approved work
 
-Await explicit assignment for Phase 4, Step 4.2. Phase 3 is complete and
-Phase 4, Step 4.1 is complete. The un-applied Merger production
+Await explicit assignment for Phase 4, Step 4.3. Phase 3 is complete and Phase
+4, Steps 4.1 and 4.2 are complete. The un-applied Merger production
 migration/backfill package remains separately owner-gated and does not expand
 the scope of any future work.
 
@@ -469,7 +487,6 @@ Expected filter domains may include:
 - table size
 - generation count
 - game-length category
-- expansions
 - corporation
 - Prelude
 - corporation–Prelude pairing
@@ -1150,13 +1167,13 @@ Do not fill these gaps by assumption.
 Current completed substep:
 
 ```text
-Phase 4, Step 4.1 — Log a Game Workflow Preservation and Unified Entry Foundation
+Phase 4, Step 4.2 — Manual Entry Wizard and Responsive Step Navigation
 ```
 
 Next, only when explicitly assigned:
 
 ```text
-Phase 4, Step 4.2 — title and exact scope to be supplied by that assignment
+Phase 4, Step 4.3 — title and exact scope to be supplied by that assignment
 ```
 
 ### Historical Phase 2 record
@@ -1191,10 +1208,12 @@ Update these fields whenever this file changes materially:
 
 ## 28. Current Maintenance Header
 
-- **Last updated:** 2026-07-17
+- **Last updated:** 2026-07-18
 - **Current phase:** Phase 4 — Log a Game (active)
-- **Current substep:** Step 4.1 — Log a Game Workflow Preservation and Unified Entry Foundation (complete)
-- **Next gated substep:** Await explicit assignment for Phase 4, Step 4.2
+- **Current substep:** Step 4.2 — Manual Entry Wizard and Responsive Step Navigation (complete)
+- **Next gated substep:** Await explicit assignment for Phase 4, Step 4.3
+- **Step 4.2 completion commit:** recorded by post-commit verification after
+  this document is committed
 - **Step 4.1 completion commit:** recorded by post-commit verification after
   this document is committed
 - **Step 3.1 completion commit:** `dcf5cac1ca8476707e615d7480cfbfd7b8885b51`

@@ -20,7 +20,6 @@ import {
   getLatestCatalogSnapshotId,
   listCards,
   listCorporations,
-  listExpansions,
   listMapAwards,
   listMapMilestones,
   listMaps,
@@ -57,7 +56,6 @@ export default async function LogGamePage({
   const [
     groupSettings,
     mapOptions,
-    expansionOptions,
     promoSetOptions,
     playerOptions,
     corporationOptions,
@@ -70,7 +68,6 @@ export default async function LogGamePage({
   ] = await Promise.all([
     getGroupSettings(context.groupId),
     listMaps(),
-    listExpansions(),
     listPromoSets(),
     listPlayers(context.groupId),
     listCorporations(),
@@ -98,7 +95,6 @@ export default async function LogGamePage({
     playerScores: {},
     playerSelections: {},
     playerStyles: {},
-    expansionCodes: groupSettings.defaultExpansionCodes,
     promoSetSlugs: groupSettings.defaultPromoSetSlugs,
     selectedPlayerIds: playerOptions.slice(0, 2).map((player) => player.id),
   };
@@ -161,7 +157,6 @@ export default async function LogGamePage({
       const finalizedPayload = buildFinalizedGamePayload({
         awardClaims: resolved.awardClaims,
         catalogSnapshotId: latestCatalogSnapshotId,
-        expansionCodes: resolved.expansionCodes,
         gameId: resolved.gameId,
         guaranteedMergerOffer: resolved.guaranteedMergerOffer,
         mapAwardIds: awardOptions
@@ -223,7 +218,6 @@ export default async function LogGamePage({
         awardOptions={awardOptions}
         cardOptions={cardOptions}
         corporationOptions={corporationOptions}
-        expansionOptions={expansionOptions}
         groupName={context.groupName}
         initialValues={initialValues}
         mapOptions={mapOptions}

@@ -5,17 +5,16 @@ import { GroupSettingsForm } from './group-settings-form';
 import { groupSettingsSchema } from '@/lib/validation/group-settings';
 
 describe('groupSettingsSchema', () => {
-  it('requires a group name and allows promo and expansion defaults', () => {
+  it('requires a group name and allows promo defaults', () => {
     const parsed = groupSettingsSchema.parse({
       groupName: 'Friday Mars',
       globalAnalyticsEnabled: true,
       defaultGuaranteedMergerOffer: true,
-      defaultExpansionCodes: ['base', 'prelude', 'colonies'],
       defaultPromoSetSlugs: ['2021-promos'],
     });
 
     expect(parsed.groupName).toBe('Friday Mars');
-    expect(parsed.defaultExpansionCodes).toHaveLength(3);
+    expect(parsed.defaultPromoSetSlugs).toEqual(['2021-promos']);
   });
 });
 
@@ -29,16 +28,10 @@ describe('GroupSettingsForm', () => {
 
     render(
       <GroupSettingsForm
-        expansionOptions={[
-          { id: 'e1', code: 'base', name: 'Base Game' },
-          { id: 'e2', code: 'prelude', name: 'Prelude' },
-          { id: 'e3', code: 'colonies', name: 'Colonies' },
-        ]}
         initialValues={{
           groupName: 'Friday Mars',
           globalAnalyticsEnabled: false,
           defaultGuaranteedMergerOffer: true,
-          defaultExpansionCodes: ['base', 'prelude'],
           defaultPromoSetSlugs: [],
         }}
         onSave={onSave}
@@ -57,7 +50,6 @@ describe('GroupSettingsForm', () => {
     await user.clear(screen.getByLabelText(/group name/i));
     await user.type(screen.getByLabelText(/group name/i), 'Friday Terraformers');
     await user.click(screen.getByLabelText(/contribute anonymous aggregate analytics/i));
-    await user.click(screen.getByLabelText(/colonies/i));
     await user.click(screen.getByLabelText(/2021 promo pack/i));
     await user.click(
       screen.getByRole('button', { name: /save group defaults/i }),
@@ -68,7 +60,6 @@ describe('GroupSettingsForm', () => {
         groupName: 'Friday Terraformers',
         globalAnalyticsEnabled: true,
         defaultGuaranteedMergerOffer: true,
-        defaultExpansionCodes: ['base', 'prelude', 'colonies'],
         defaultPromoSetSlugs: ['2021-promos'],
       }),
     );

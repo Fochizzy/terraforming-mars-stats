@@ -141,7 +141,6 @@ export const logGameDraftSchema = z.object({
   generationCount: z.number().min(1),
   guaranteedMergerOffer: z.boolean().nullable().default(null),
   mergerOfferRuleSource: z.enum(MERGER_OFFER_RULE_SOURCES).default('unknown'),
-  expansionCodes: z.array(z.string()).default([]),
   promoSetSlugs: z.array(z.string()).default([]),
   selectedPlayerIds: z.array(z.string()).default([]),
   notes: z.string().default(''),

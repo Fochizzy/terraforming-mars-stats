@@ -259,8 +259,8 @@ describe('InsightsDashboard', () => {
               averageScore: 89.4,
               gamesPlayed: 5,
               groupId: 'group-1',
-              interactionType: 'map_expansion_mix',
-              label: 'Hellas | Prelude',
+              interactionType: 'corporation_prelude_pair',
+              label: 'CrediCor | Allied Bank',
               winRate: 0.8,
             },
           ],
@@ -447,7 +447,9 @@ describe('InsightsDashboard', () => {
     expect(
       screen.getByRole('heading', { name: /Interaction Insights/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Hellas \| Prelude/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /CrediCor \| Allied Bank/i }),
+    ).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/player focus/i), 'p2');
 

@@ -249,7 +249,6 @@ scope and metric support them:
 | Table size | `playerCount` | repeated positive integers supported by recorded games |
 | Generation count | `generationCount` | repeated positive integers; not a proxy for elapsed duration |
 | Game-length category | `gameLength` | registered category ID only; unavailable until its definition is approved |
-| Expansions | `expansion` | repeated canonical expansion codes/IDs |
 | Corporation | `corporation` | repeated stable corporation IDs/codes |
 | Prelude | `prelude` | repeated stable Prelude IDs/codes; no-Prelude and missing remain distinct |
 | Card | `card` | repeated stable catalog IDs; catalog identity is not acquisition evidence |
@@ -272,7 +271,7 @@ unambiguous.
 | Player | No private player drilldown | Required subject or compatible selector | Optional member subset | Typed compatible subjects | Player within game | Only when domain metric supports player scope |
 | Group | Never arbitrary group exposure | Authorized baseline/context only | Active group identity | Authorized common context only | Derived from game | Authorized group-domain context only |
 | Date/game range | Yes | Yes | Yes | Shared range only | No | When source facts are temporal |
-| Map/table size/generations/expansions | Yes | Yes | Yes | Shared compatible context | Descriptive, not narrowing route identity | When declared by metric |
+| Map/table size/generations | Yes | Yes | Yes | Shared compatible context | Descriptive, not narrowing route identity | When declared by metric |
 | Corporation/Prelude/card/tag/score source/style | Metric-specific | Metric-specific | Metric-specific | Only if all subjects support it | Recorded game facts only | Canonical domain selectors |
 | Minimum sample | Explicit exclusion only | Explicit exclusion only | Explicit exclusion only | Explicit exclusion only | Not aggregate | Explicit exclusion only |
 | Status | Finalized | Finalized | Finalized | Finalized | Route game status | Metric-specific, finalized by default |

@@ -47,7 +47,6 @@ Support segmentation by:
 - Corporation–Prelude pairing
 - Player count
 - Map
-- Expansion configuration
 - Drafting
 - Game-length band
 - Generation-count band

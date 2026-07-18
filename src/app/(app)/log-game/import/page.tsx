@@ -60,7 +60,6 @@ export default async function LogGameImportPage() {
     const draftForm = buildImportDraft({
       defaultGuaranteedMergerOffer:
         activeGroupSettings.defaultGuaranteedMergerOffer,
-      defaultExpansionCodes: activeGroupSettings.defaultExpansionCodes,
       defaultPromoSetSlugs: activeGroupSettings.defaultPromoSetSlugs,
       groupId: activeContext.groupId,
       importValues: values,

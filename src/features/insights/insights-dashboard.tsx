@@ -134,16 +134,6 @@ function getMapLabel(row: { mapId: string; mapName?: string | null }) {
   return row.mapName ?? row.mapId;
 }
 
-function humanizeInteractionType(
-  interactionType: GroupInteractionRow['interactionType'],
-) {
-  if (interactionType === 'corporation_prelude_pair') {
-    return 'Corporation + Prelude';
-  }
-
-  return 'Map + Expansions';
-}
-
 function buildScoreSourceEntries(scoreAverages: ScoreSourceShape) {
   return [
     { label: 'Terraform Rating', value: scoreAverages.averageTrPoints },
@@ -901,7 +891,7 @@ export function InsightsDashboard({
             {selectedInteractionRows.length === 0 ? (
               <p className="text-sm text-stone-400">
                 Interaction comparisons will appear after enough finalized games
-                link maps, expansions, corporations, and preludes.
+                link corporations and Preludes.
               </p>
             ) : (
               <div className="grid gap-3">
@@ -917,7 +907,7 @@ export function InsightsDashboard({
                       </p>
                     </div>
                     <p className="mt-2 text-sm text-stone-300">
-                      {humanizeInteractionType(row.interactionType)} | {row.gamesPlayed}{' '}
+                      Corporation + Prelude | {row.gamesPlayed}{' '}
                       results | avg {formatAverage(row.averageScore)} points | avg place{' '}
                       {formatAverage(row.averagePlacement)}
                     </p>

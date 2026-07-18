@@ -34,16 +34,6 @@ const rows = [
     winRate: 1,
     wins: 3,
   },
-  {
-    averagePlacement: 1.5,
-    averageScore: 89,
-    gamesPlayed: 5,
-    groupId: 'group-1',
-    interactionType: 'map_expansion_mix' as const,
-    label: 'Hellas | Prelude',
-    winRate: 0.6,
-    wins: 3,
-  },
 ];
 
 const scoreAverages = {
@@ -105,7 +95,7 @@ describe('CorporationPreludePairingsPanel', () => {
     render(
       <CorporationPreludePairingsPanel
         baselineWinRate={null}
-        rows={rows.filter((row) => row.interactionType === 'map_expansion_mix')}
+        rows={[]}
         scoreAverages={null}
       />,
     );

@@ -6,7 +6,6 @@ describe('buildImportDraft', () => {
     expect(
       buildImportDraft({
         defaultGuaranteedMergerOffer: true,
-        defaultExpansionCodes: ['base', 'prelude'],
         defaultPromoSetSlugs: ['2022-promos'],
         groupId: '11111111-1111-4111-8111-111111111111',
         importValues: {
@@ -20,7 +19,6 @@ describe('buildImportDraft', () => {
       }),
     ).toEqual({
       awardClaims: {},
-      expansionCodes: ['base', 'prelude'],
       gameId: undefined,
       generationCount: 12,
       guaranteedMergerOffer: true,

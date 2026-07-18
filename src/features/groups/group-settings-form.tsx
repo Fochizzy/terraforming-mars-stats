@@ -7,7 +7,7 @@ import {
   groupSettingsSchema,
   type GroupSettingsInput,
 } from '@/lib/validation/group-settings';
-import type { ExpansionOption, PromoSetOption } from '@/lib/db/reference-repo';
+import type { PromoSetOption } from '@/lib/db/reference-repo';
 
 type SaveResult = {
   status: 'success' | 'error';
@@ -15,12 +15,10 @@ type SaveResult = {
 };
 
 export function GroupSettingsForm({
-  expansionOptions,
   initialValues,
   onSave,
   promoSetOptions,
 }: {
-  expansionOptions: ExpansionOption[];
   initialValues: GroupSettingsInput;
   onSave: (values: GroupSettingsInput) => Promise<SaveResult>;
   promoSetOptions: PromoSetOption[];
@@ -81,24 +79,6 @@ export function GroupSettingsForm({
           Players still choose only two Preludes. This default is copied into
           new games only; changing it never changes a saved historical game.
         </p>
-      </section>
-      <section className="rounded-2xl border border-orange-900/30 bg-stone-950/40 p-4">
-        <h2 className="font-serif text-lg font-semibold">Default Expansions</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {expansionOptions.map((expansion) => (
-            <label
-              className="flex items-center gap-3 rounded-xl border border-stone-800 bg-black/20 px-3 py-3 text-sm"
-              key={expansion.code}
-            >
-              <input
-                type="checkbox"
-                value={expansion.code}
-                {...form.register('defaultExpansionCodes')}
-              />
-              {expansion.name}
-            </label>
-          ))}
-        </div>
       </section>
       <section className="rounded-2xl border border-orange-900/30 bg-stone-950/40 p-4">
         <h2 className="font-serif text-lg font-semibold">Default Promo Sets</h2>

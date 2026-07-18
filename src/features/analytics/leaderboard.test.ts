@@ -183,26 +183,26 @@ describe('analytics sorting helpers', () => {
 
     const rows = repo.sortInteractionRows([
       {
-        label: 'Hellas | Prelude',
+        label: 'CrediCor | Allied Bank',
         gamesPlayed: 5,
         winRate: 0.6,
         averagePlacement: 1.8,
       },
       {
-        label: 'Base | Tharsis Republic',
+        label: 'Tharsis Republic | Donation',
         gamesPlayed: 5,
         winRate: 0.8,
         averagePlacement: 1.4,
       },
       {
-        label: 'Colonies | Elysium',
+        label: 'Ecoline | Ecology Experts',
         gamesPlayed: 7,
         winRate: 0.8,
         averagePlacement: 2,
       },
     ]);
 
-    expect(rows[0].label).toBe('Colonies | Elysium');
+    expect(rows[0].label).toBe('Ecoline | Ecology Experts');
   });
 
   it('builds score-source entries in the expected board-score order', () => {

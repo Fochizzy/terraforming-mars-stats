@@ -79,18 +79,19 @@ describe('getDraftGameForm', () => {
       return;
     }
 
-    await expect(
-      repoModule.getDraftGameForm({
+    const loaded = await repoModule.getDraftGameForm({
         gameId: 'game-1',
         groupId: '11111111-1111-4111-8111-111111111111',
-      }),
-    ).resolves.toMatchObject({
+      });
+
+    expect(loaded).toMatchObject({
       gameId: 'game-1',
       generationCount: 11,
       mapId: 'tharsis',
       playedOn: '2026-07-04',
       playerCount: 3,
     });
+    expect(loaded).not.toHaveProperty('expansionCodes');
 
     expect(gameQuery.eq).toHaveBeenCalledWith(
       'group_id',
@@ -166,7 +167,7 @@ describe('finalizeGameLog', () => {
     };
     const setupClient = {
       from: vi.fn((table: string) => {
-        if (table === 'game_expansions' || table === 'game_promo_sets') {
+        if (table === 'game_promo_sets') {
           return {
             delete: setupDelete,
           };
@@ -197,7 +198,6 @@ describe('finalizeGameLog', () => {
       repo.finalizeGameLog({
         form: {
           awardClaims: {},
-          expansionCodes: [],
           generationCount: 10,
           guaranteedMergerOffer: true,
           groupId: '11111111-1111-4111-8111-111111111111',

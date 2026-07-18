@@ -2,13 +2,39 @@
 
 ## Status
 
-Phase 4 is active. **Step 4.1 — Log a Game Workflow Preservation and Unified
-Entry Foundation is complete in the repository.** Later Phase 4 work remains
-gated by a separate explicit assignment.
+Phase 4 is active. **Step 4.2 — Manual Entry Wizard and Responsive Step
+Navigation is complete in the repository.** Later Phase 4 work remains gated
+by a separate explicit assignment.
 
 Step 4.1 establishes a shared product entry surface and records the existing
 workflow contract. It does not redesign the form, change validation or
 persistence semantics, add card-acquisition storage, or begin Step 4.2.
+
+## Step 4.2 scope and outcome
+
+The six manual-entry sections now render as one typed, responsive, accessible
+wizard. One registry owns step identity, labels, descriptions, field ownership,
+review-issue ownership, ordering, status, and heading focus. The shared shell
+shows draft context, save state, progress, active/completed/error text, Back,
+Continue, Save Draft, and the existing finalization action without creating a
+mobile-only workflow or a second persistence state machine.
+
+During Step 4.2 the user explicitly broadened the assignment to remove gameplay
+expansion tracking product-wide. Expansion choices and defaults are no longer
+part of group settings, Manual Entry, imported drafts, saved draft snapshots,
+game relations, analytics filters, URL state, or interaction analytics. Legacy
+draft snapshots parse safely with their former `expansionCodes` key discarded.
+Prelude selections remain directly recordable when known but are optional;
+absence is no longer interpreted through an expansion switch.
+
+Migration `20260718041532_remove_game_expansion_tracking.sql` removes
+`public.expansions`, `public.group_default_expansions`, and
+`public.game_expansions`. The interaction views retain only corporation–Prelude
+pairings and preserve the production multi-corporation read path. Intrinsic
+catalog metadata such as `cards.expansion_code`,
+`corporations.expansion_code`, `preludes.expansion_code`, and card-required
+expansion codes remains catalog identity and browsing metadata, not a recorded
+game configuration.
 
 ## Step 4.1 scope and outcome
 
@@ -92,9 +118,9 @@ vocabulary without changing its meaning.
 
 ### Setup
 
-The form records played date, map, player count, generation count, expansions,
-promo sets, and the saved Merger-offer rule plus its provenance. Defaults come
-from the active group's settings and reference repositories.
+The form records played date, map, player count, generation count, promo sets,
+and the saved Merger-offer rule plus its provenance. Defaults come from the
+active group's settings and reference repositories.
 
 ### Players & Corporations
 
@@ -124,7 +150,7 @@ not prove when or how a card entered a player's hand.
 ### Review
 
 The existing review calculation checks player-count consistency,
-corporations, required Prelude presence, required score fields, optional
+corporations, required score fields, optional
 card-point breakdown reconciliation, map-valid milestone/award rows, award
 winners and funders, milestone/award point reconciliation, and supported
 style counts. It also produces derived coverage summaries and ranking input.
@@ -139,8 +165,8 @@ Notes remain editable here.
   text `Draft autosave`, there is no timer-, blur-, or field-change autosave.
 - Save re-authenticates the user, replaces the submitted `groupId` with the
   current active group, validates with the existing Zod schema, resolves
-  player references, upserts the `games` draft shell and expansion/promo
-  associations, and appends a `game_revisions` snapshot.
+  player references, upserts the `games` draft shell and promo associations,
+  and appends a `game_revisions` snapshot.
 - A successful save returns the stable game UUID, resets React Hook Form's
   dirty baseline to the saved values, and keeps the resumable manual URL.
 - `/log-game?gameId=<uuid>` loads only a `draft` game in the current active
@@ -263,13 +289,12 @@ snapshot (`group_default`, `manual_override`, or the existing stored source),
 so later analytics can distinguish enabled, disabled, and unknown. Step 4.1
 does not change the protected production migration/backfill gate.
 
-The audit also found a pre-existing validation discrepancy: the current UI
-renders three Prelude selection slots and finalization requires at least one
-Prelude when the Prelude expansion is enabled. It does not enforce the
-separately described “exactly two, with Merger consuming one additional
-offer/slot” rule. Because Step 4.1 explicitly forbids changing validation or
-finalization semantics, the discrepancy is documented for a later explicitly
-authorized Phase 4 step and is not silently corrected here.
+The Step 4.1 audit found a pre-existing validation discrepancy: the UI renders
+three Prelude selection slots while separately documented language describes an
+exact-two/Merger-slot rule. After the user removed gameplay expansion tracking
+in Step 4.2, Prelude entry became optional because the product no longer records
+whether a game used Prelude. Recorded Prelude identities remain evidence;
+missing Prelude rows remain missing rather than being inferred as disabled.
 
 ## Step 4.1 preservation boundaries
 

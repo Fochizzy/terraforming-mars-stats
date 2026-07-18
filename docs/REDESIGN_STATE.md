@@ -2,54 +2,52 @@
 
 ## Current substep
 
-Phase 4, Step 4.1 — Log a Game Workflow Preservation and Unified Entry
-Foundation (**complete**)
+Phase 4, Step 4.2 — Manual Entry Wizard and Responsive Step Navigation
+(**complete**)
 
 ## Current owner
 
-Codex — Phase 4, Step 4.1, workflow preservation and unified entry foundation
+Codex — Phase 4, Step 4.2, responsive wizard and expansion-tracking removal
 
 ## Status
 
-**Phase 4 — Log a Game — Active. Step 4.1 is complete in the repository.**
-Manual Entry (`/log-game`) and Import Game (`/log-game/import`) remain
-separate, direct-linkable workflows under one shared Log a Game entry
-selector. The selector exposes active method, current group, workflow status,
-and Saved Games; preserves a resumed manual `gameId`; and protects dirty
-method/Saved Games exits plus hard unload. Canonical section labels and
-workflow vocabulary are centralized without adding a parallel state machine
-or changing the single-page form.
+**Phase 4 — Log a Game — Active. Step 4.2 is complete in the repository.**
+Manual Entry now uses one typed six-step registry and a responsive, accessible
+step-navigation shell. Step order, labels, descriptions, field ownership,
+review-issue ownership, status, and heading focus are centralized. The existing
+single draft form, explicit Save Draft action, resume URL, and finalization path
+remain authoritative; no parallel mobile workflow or persistence state machine
+was introduced.
 
-Invalid, missing, finalized, removed, cross-group, or RLS-hidden draft URLs
-now render one access-safe not-found state instead of silently opening a new
-blank form. The Import Game route renders a clear unavailable state when no
-active group exists; both server actions still re-authenticate and resolve the
-active group before writes.
+The user explicitly broadened Step 4.2 to remove gameplay expansion tracking
+product-wide. Group defaults, Manual Entry, imports, draft snapshots,
+saved-game relations, analytics filters/URL state, eligibility, and interaction
+analytics no longer track expansions. Legacy snapshots reopen safely with their
+former `expansionCodes` key discarded. Prelude selections remain optional,
+directly recordable evidence; missing Prelude rows remain missing. Intrinsic
+catalog expansion metadata remains available for cards, corporations, Preludes,
+card requirements, and catalog browsing.
 
-All existing persistence, validation, finalization, Merger, scoring, Prelude,
-milestone, award, style, key-card, import-evidence, and analytics-refresh
-semantics remain unchanged. No database, schema, migration, RPC, RLS, Storage,
-dependency, production, push, or deployment action occurred.
+Migration `20260718041532_remove_game_expansion_tracking.sql` was applied to
+the linked production Supabase project. It replaced the interaction views with
+corporation–Prelude-only definitions, preserved the production
+multi-corporation read path, and removed `public.game_expansions`,
+`public.group_default_expansions`, and `public.expansions`. Post-migration
+verification confirmed all three relations are absent, interaction output is
+corporation–Prelude only, and intrinsic catalog expansion metadata remains
+populated. No application push or deploy occurred.
 
-Validation: focused Step 4.1 suite 10 files / 23 tests passed; full suite 128
-files / 624 tests passed; `npx tsc --noEmit` clean; lint passed with the same
-four pre-existing warnings; build passed at 31/31 pages with `ƒ Middleware`;
-the committed unauthenticated Playwright regression passed 1/1 against an
-isolated local port. The default local E2E port was shared with a running
-read-only original-checkout server, so the isolated port avoided mutating or
-stopping that unrelated process.
+Validation: focused expansion/wizard coverage passed 16 files / 108 tests; full
+suite passed 131 files / 663 tests; `npx tsc --noEmit` is clean; lint passed
+with the same four pre-existing warnings; build passed at 31/31 pages with
+`ƒ Middleware`. Responsive harness checks passed at 1440, 1024, 768, and 390
+pixels with no page overflow, reachable horizontal step navigation at narrow
+widths, visible active steps, and stacked full-width mobile actions.
 
-Live authenticated visual review at 1440/1024/768/390 pixels remains a known
-limitation: the in-app browser blocked the localhost route under its URL
-security policy. Responsive source review, component/route tests, build
-output, and the isolated unauthenticated E2E test are recorded as evidence;
-the blocked visual review is not claimed complete.
-
-The current workflow still has no trustworthy card-acquisition count writer
-or coverage contract. A pre-existing Prelude/Merger validation discrepancy
-(three visible Prelude slots and an at-least-one check, rather than the
-separately described exact-two/Merger-slot rule) is documented and deferred
-because Step 4.1 explicitly prohibited semantic changes.
+Local migration reset remains unverified because Docker Desktop is not running;
+the migration has static tests and was verified directly after production
+application. The current workflow still has no trustworthy card-acquisition
+count writer or coverage contract. Step 4.3 has not begun.
 
 ### Prior Phase 3 closure status
 
@@ -246,12 +244,12 @@ and Phase 4 were not started.
 
 ## Last completed commit
 
-Phase 4, Step 4.1 focused completion commit (hash recorded by the post-commit
+Phase 4, Step 4.2 focused completion commit (hash recorded by the post-commit
 verification immediately after this state file is committed).
 
 ## Current phase
 
-Phase 4 — Log a Game (active; Step 4.1 complete; Step 4.2 not authorized)
+Phase 4 — Log a Game (active; Steps 4.1 and 4.2 complete; Step 4.3 not authorized)
 
 ## Prior completed substep
 
@@ -310,17 +308,18 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Await explicit assignment for Phase 4, Step 4.2.** Phase 3 and Phase 4,
-Step 4.1 are complete. Do not begin Step 4.2, move legacy analytics content,
-redesign the remaining form, add analytics consumers, or alter workflow
-semantics without that explicit assignment.
+**Await explicit assignment for Phase 4, Step 4.3.** Phase 3 and Phase 4,
+Steps 4.1 and 4.2 are complete. Do not begin Step 4.3, move legacy analytics
+content, add analytics consumers, or alter workflow semantics without that
+explicit assignment.
 
 ## Active blockers
 
-No repository blocker prevents Step 4.1 completion. Authenticated visual
-review at the four requested widths remains unverified because the in-app
-browser blocked localhost; broader dirty-navigation protection and the
-Prelude/Merger validation discrepancy require later explicit scope.
+No repository blocker prevents Step 4.2 completion. Docker Desktop was not
+running, so local `supabase db reset` verification was unavailable; static
+migration coverage and direct post-application production verification passed.
+The linked Supabase project has pre-existing security-advisor findings that are
+outside this substep and require separately authorized remediation.
 
 No Phase 3 blocker remains. The `middleware.ts` execution defect discovered
 during Step 3.4 (see above) is resolved at commit

@@ -26,7 +26,6 @@ export const ANALYTICS_FILTER_KEYS = [
   'player-count',
   'generation-count',
   'game-length',
-  'expansion',
   'corporation',
   'prelude',
   'corporation-prelude-pairing',
@@ -290,19 +289,6 @@ export const ANALYTICS_FILTER_REGISTRY: readonly AnalyticsFilterDefinition[] =
       }),
     },
     {
-      key: 'expansion',
-      queryParameters: ['expansion'],
-      cardinality: 'multi',
-      identity: 'canonical-code',
-      defaultDescription:
-        'Empty means all eligible recorded expansion configurations.',
-      requiresCapabilityDeclaration: true,
-      scopes: buildScopeCompatibility({
-        supported: METRIC_DIMENSION_SCOPES,
-        notApplicable: ['game'],
-      }),
-    },
-    {
       key: 'corporation',
       queryParameters: ['corporation'],
       cardinality: 'multi',
@@ -484,7 +470,6 @@ export type AnalyticsFilterState = {
   playerCounts: readonly number[];
   generationCounts: readonly number[];
   gameLengthCodes: readonly string[];
-  expansionCodes: readonly string[];
   corporationIds: readonly string[];
   preludeIds: readonly string[];
   corporationPreludePairs: readonly CorporationPreludeFilterValue[];
@@ -506,7 +491,6 @@ export function createDefaultAnalyticsFilterState(): AnalyticsFilterState {
     playerCounts: [],
     generationCounts: [],
     gameLengthCodes: [],
-    expansionCodes: [],
     corporationIds: [],
     preludeIds: [],
     corporationPreludePairs: [],
@@ -591,7 +575,6 @@ export type AnalyticsIdentityResolutionInput = {
   /** Entity kind or filter-specific stable identity family. */
   kind:
     | AnalyticsSubjectRef['kind']
-    | 'expansion'
     | 'game-length'
     | 'map'
     | 'player'
@@ -622,7 +605,6 @@ export const ANALYTICS_FILTER_QUERY_PARAMETER_ORDER = [
   'playerCount',
   'generationCount',
   'gameLength',
-  'expansion',
   'corporation',
   'prelude',
   'corporationPrelude',

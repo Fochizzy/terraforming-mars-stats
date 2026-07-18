@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { logGameDraftSchema } from '@/lib/validation/log-game';
 import { cloneGameSetup, mergeDraftIntoInitialValues } from './use-log-game-draft';
 
 describe('cloneGameSetup', () => {
@@ -6,7 +7,6 @@ describe('cloneGameSetup', () => {
     const cloned = cloneGameSetup({
       mapId: 'elysium',
       playerCount: 4,
-      expansionCodes: ['base', 'prelude', 'colonies'],
       promoSetSlugs: ['2022-promos'],
       selectedPlayerIds: ['a', 'b', 'c', 'd'],
       totalPoints: [85, 79, 76, 63],
@@ -23,7 +23,6 @@ describe('mergeDraftIntoInitialValues', () => {
     const merged = mergeDraftIntoInitialValues(
       {
         awardClaims: {},
-        expansionCodes: ['base'],
         gameId: undefined,
         generationCount: 10,
         guaranteedMergerOffer: true,
@@ -41,7 +40,6 @@ describe('mergeDraftIntoInitialValues', () => {
         selectedPlayerIds: [],
       },
       {
-        expansionCodes: ['base', 'prelude'],
         gameId: 'game-1',
         generationCount: 12,
         mapId: 'elysium',
@@ -56,10 +54,30 @@ describe('mergeDraftIntoInitialValues', () => {
     expect(merged.mapId).toBe('elysium');
     expect(merged.playerCount).toBe(4);
     expect(merged.generationCount).toBe(12);
-    expect(merged.expansionCodes).toEqual(['base', 'prelude']);
     expect(merged.promoSetSlugs).toEqual(['2022-promos']);
     expect(merged.selectedPlayerIds).toEqual([]);
     expect(merged.playerScores).toEqual({});
     expect(merged.guaranteedMergerOffer).toBe(true);
+  });
+
+  it('ignores legacy expansion selections when a saved snapshot is parsed', () => {
+    const parsed = logGameDraftSchema.parse({
+      awardClaims: {},
+      expansionCodes: ['base', 'prelude'],
+      generationCount: 10,
+      groupId: '11111111-1111-4111-8111-111111111111',
+      mapId: 'tharsis',
+      milestoneClaims: {},
+      notes: '',
+      playedOn: '2026-07-03',
+      playerCount: 2,
+      playerScores: {},
+      playerSelections: {},
+      playerStyles: {},
+      promoSetSlugs: [],
+      selectedPlayerIds: [],
+    });
+
+    expect(parsed).not.toHaveProperty('expansionCodes');
   });
 });

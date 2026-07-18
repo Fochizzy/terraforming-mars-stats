@@ -11,7 +11,6 @@ Support filtering by:
 - Generation count
 - Player count
 - Drafting
-- Expansion configuration
 - Corporation
 - Prelude
 

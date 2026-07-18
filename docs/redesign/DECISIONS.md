@@ -1,5 +1,29 @@
 ﻿# TM Stats Redesign Decisions
 
+## Phase 4, Step 4.2 — gameplay expansion tracking is removed; catalog metadata remains
+
+Approved explicitly by the user on 2026-07-18 during the Phase 4, Step 4.2
+assignment.
+
+- Gameplay expansion selection and storage are retired product-wide. Group
+  defaults, Manual Entry, imports, draft snapshots, finalized-game relations,
+  analytics filters, URL state, eligibility rules, and interaction analytics no
+  longer track which expansions a game used.
+- Legacy draft snapshots remain reopenable: schema parsing discards their former
+  `expansionCodes` key instead of treating it as current product state.
+- Prelude identities remain optional, directly recordable game evidence. A
+  missing Prelude row remains missing and is not interpreted as proof that the
+  Prelude expansion was disabled.
+- Intrinsic catalog metadata remains authoritative for catalog identity and
+  browsing. This includes expansion metadata on cards, corporations, and
+  Preludes, plus card-required expansion codes.
+- Migration `20260718041532_remove_game_expansion_tracking.sql` replaces the
+  interaction views with corporation–Prelude-only definitions, preserves the
+  production multi-corporation read path, and drops `public.game_expansions`,
+  `public.group_default_expansions`, and `public.expansions` without `CASCADE`.
+  It was applied successfully to the linked production project and verified
+  there. This database action does not authorize an application push or deploy.
+
 ## Phase 3, Step 3.4 — pre-existing middleware defect found, fixed via a separate task, and independently re-verified before closure
 
 Approved by explicit user decision during the Phase 3, Step 3.4 assignment on
@@ -353,7 +377,6 @@ Relevant context includes:
 - Number of generations
 - Player count
 - Drafting
-- Expansion configuration
 - Corporation
 - Prelude
 - Player strength
@@ -421,10 +444,13 @@ Step 2.2 implements this policy with these durable decisions:
   state objects; route/navigation and hover/focus/open-menu state remain outside
   URL-addressable analytics state;
 - canonical filter parameters are `player`, `group`, `from`, `to`, `map`,
-  `playerCount`, `generationCount`, `gameLength`, `expansion`, `corporation`,
+  `playerCount`, `generationCount`, `gameLength`, `corporation`,
   `prelude`, `corporationPrelude`, `card`, `tag`, `scoreSource`, `style`,
   `status`, and `minSample`; durable selection uses `entity`, `metric`, `point`,
   `series`, and `detail`;
+- the former `expansion` filter is retired; stale `expansion` query parameters
+  are removed during analytics URL canonicalization rather than preserved as
+  unrelated route state;
 - corporation/Prelude pairs use repeated `corporationPrelude` values encoded as
   canonical corporation UUID plus canonical Prelude UUID; display names are
   never identity;

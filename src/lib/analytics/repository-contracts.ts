@@ -226,7 +226,6 @@ export function getActiveAnalyticsFilterKeys(
   if (filters.playerCounts.length > 0) active.push('player-count');
   if (filters.generationCounts.length > 0) active.push('generation-count');
   if (filters.gameLengthCodes.length > 0) active.push('game-length');
-  if (filters.expansionCodes.length > 0) active.push('expansion');
   if (filters.corporationIds.length > 0) active.push('corporation');
   if (filters.preludeIds.length > 0) active.push('prelude');
   if (filters.corporationPreludePairs.length > 0) {

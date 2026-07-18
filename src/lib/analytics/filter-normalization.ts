@@ -270,7 +270,6 @@ function copyFilterState(state: AnalyticsFilterState): AnalyticsFilterState {
     playerCounts: [...state.playerCounts],
     generationCounts: [...state.generationCounts],
     gameLengthCodes: [...state.gameLengthCodes],
-    expansionCodes: [...state.expansionCodes],
     corporationIds: [...state.corporationIds],
     preludeIds: [...state.preludeIds],
     corporationPreludePairs: state.corporationPreludePairs.map((pair) => ({
@@ -305,8 +304,6 @@ function hasActiveFilterValue(
       return state.generationCounts.length > 0;
     case 'game-length':
       return state.gameLengthCodes.length > 0;
-    case 'expansion':
-      return state.expansionCodes.length > 0;
     case 'corporation':
       return state.corporationIds.length > 0;
     case 'prelude':
@@ -357,9 +354,6 @@ function clearFilterValue(
       break;
     case 'game-length':
       state.gameLengthCodes = [];
-      break;
-    case 'expansion':
-      state.expansionCodes = [];
       break;
     case 'corporation':
       state.corporationIds = [];
@@ -496,7 +490,6 @@ function resolveStringListIdentity(
   applicable: AnalyticsFilterState,
   field:
     | 'mapIds'
-    | 'expansionCodes'
     | 'corporationIds'
     | 'preludeIds'
     | 'cardIds'
@@ -599,15 +592,6 @@ export function normalizeAnalyticsFilterState(
       stringsAscending,
       issues,
       'Game-length identity must be a canonical registered code.',
-    ),
-    expansionCodes: normalizeList(
-      'expansion',
-      input.expansionCodes,
-      canonicalCode,
-      String,
-      stringsAscending,
-      issues,
-      'Expansion identity must be a canonical code.',
     ),
     corporationIds: normalizeList(
       'corporation',
@@ -713,7 +697,6 @@ export function normalizeAnalyticsFilterState(
     'player-count',
     'generation-count',
     'game-length',
-    'expansion',
     'corporation',
     'prelude',
     'corporation-prelude-pairing',
@@ -776,15 +759,6 @@ export function normalizeAnalyticsFilterState(
     applicableState,
     'mapIds',
     { owner: 'map', kind: 'map' },
-    options.resolveIdentity,
-    issues,
-    identityStates,
-  );
-  resolveStringListIdentity(
-    state,
-    applicableState,
-    'expansionCodes',
-    { owner: 'expansion', kind: 'expansion' },
     options.resolveIdentity,
     issues,
     identityStates,

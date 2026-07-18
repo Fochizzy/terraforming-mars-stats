@@ -98,7 +98,6 @@ describe('analytics URL-state contracts', () => {
         playerId: PLAYER_A,
         from: '2026-01-01',
         mapIds: [MAP_B, MAP_A],
-        expansionCodes: ['venus_next', 'base'],
         corporationPreludePairs: [
           { corporationId: CORPORATION_A, preludeId: PRELUDE_A },
         ],
@@ -125,7 +124,7 @@ describe('analytics URL-state contracts', () => {
     );
 
     expect(serialized.searchParams.toString()).toBe(
-      `tab=overview&player=${PLAYER_A}&from=2026-01-01&map=${MAP_A}&map=${MAP_B}&expansion=base&expansion=venus_next&corporationPrelude=${CORPORATION_A}%7E${PRELUDE_A}&minSample=0&entity=player%3A${PLAYER_B}&metric=win-rate&point=generation-8&series=player-series&detail=generation-8`,
+      `tab=overview&player=${PLAYER_A}&from=2026-01-01&map=${MAP_A}&map=${MAP_B}&corporationPrelude=${CORPORATION_A}%7E${PRELUDE_A}&minSample=0&entity=player%3A${PLAYER_B}&metric=win-rate&point=generation-8&series=player-series&detail=generation-8`,
     );
     expect(reparsed.state).toEqual(serialized.normalizedState);
     expect(serialized.searchParams.has('scope')).toBe(false);
@@ -148,6 +147,16 @@ describe('analytics URL-state contracts', () => {
     expect(serialized.searchParams.toString()).toBe(
       'tab=charts&panel=compact&minSample=0',
     );
+  });
+
+  it('removes retired expansion parameters instead of preserving them as unrelated state', () => {
+    const result = canonicalizeAnalyticsUrlState(
+      new URLSearchParams('tab=overview&expansion=prelude&expansion=colonies'),
+      { scope: groupScope },
+    );
+
+    expect(result.searchParams.toString()).toBe('tab=overview');
+    expect(result.normalizedState.filters).not.toHaveProperty('expansionCodes');
   });
 
   it('accepts explicit aliases only and canonicalizes them to one public name', () => {

@@ -159,7 +159,7 @@ Non-eligible states carry structured user-safe reasons. The reason vocabulary
 includes missing required observations, missing numerator/denominator, zero
 denominator, unsupported scope/source, unavailable capability, game not
 finalized, imported records missing required fields, absent or unresolved
-entities, incompatible expansion sets, invalid or stale filters, metric
+entities, invalid or stale filters, metric
 requirements not met, incomplete required coverage, insufficient evidence,
 authorization restriction, tie-policy exclusion, and unresolved tied-first
 policy.

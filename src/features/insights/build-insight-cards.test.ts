@@ -136,8 +136,8 @@ describe('buildInsightCards', () => {
           averageScore: 88.2,
           gamesPlayed: 4,
           groupId: 'group-1',
-          interactionType: 'map_expansion_mix',
-          label: 'Hellas | Prelude',
+          interactionType: 'corporation_prelude_pair',
+          label: 'CrediCor | Allied Bank',
           winRate: 0.75,
         },
       ],
@@ -224,7 +224,7 @@ describe('buildInsightCards', () => {
     expect(cards[0].body).toMatch(/75%/);
     expect(cards[1].body).toMatch(/Second Seat/);
     expect(cards[2].body).toMatch(/Second Seat, Third Seat/);
-    expect(cards[3].body).toMatch(/Hellas \| Prelude/);
+    expect(cards[3].body).toMatch(/CrediCor \| Allied Bank/);
     expect(cards[4].body).toMatch(/50%/);
     expect(cards[5].body).toMatch(/Jovian payoff/i);
     expect(cards[6].body).toMatch(/persisted efficiency/i);

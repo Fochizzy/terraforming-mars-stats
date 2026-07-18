@@ -276,8 +276,7 @@ and therefore receive the cookie-presence guard before page execution.
 ### `/group/settings`
 
 - **Source file:** `src/app/(app)/group/settings/page.tsx`
-- **Purpose:** Edit group name, analytics visibility, default expansions, and default
-  promo sets.
+- **Purpose:** Edit group name, analytics visibility, and default promo sets.
 - **Rendering model:** Async server page with `GroupSettingsForm` and an inline
   validated server action.
 - **Authentication and group requirements:** Auth cookie plus active-group
@@ -285,8 +284,8 @@ and therefore receive the cookie-presence guard before page execution.
   or editor role check is visible; authorization therefore depends on repository
   and RLS enforcement.
 - **Queries and repositories used:** `getGroupSettings()` and
-  `saveGroupSettings()` (`groups`, `group_settings`, group default join tables);
-  `listExpansions()`, `listPromoSets()`, group context, and group list for switching.
+  `saveGroupSettings()` (`groups`, `group_settings`, and the promo default join
+  table); `listPromoSets()`, group context, and group list for switching.
 - **Major components rendered:** `AppShell`, `GroupSwitcher`, `GroupSettingsForm`.
 - **Search parameters or hash state:** None.
 - **Known duplication or routing problems:** Supporting Group Settings is approved,
@@ -332,7 +331,7 @@ and therefore receive the cookie-presence guard before page execution.
 - **Authentication and group requirements:** Auth cookie plus active-group
   membership required. Both write actions re-resolve current user and group.
 - **Queries and repositories used:** `getGroupSettings()`; reference repositories
-  for maps, expansions, promo sets, corporations, preludes, map milestones, map
+  for maps, promo sets, corporations, preludes, map milestones, map
   awards, styles, cards, and catalog snapshot; `listPlayers()`;
   `getDraftGameForm()`; `getLatestGameLogImportSummary()`. Writes use
   `resolveLogGamePlayerReferences()`, `saveDraftGame()`, and `finalizeGameLog()`

@@ -27,7 +27,6 @@ export const ANALYTICS_ELIGIBILITY_REASON_CODES = [
   'import-missing-required-fields',
   'entity-not-present',
   'entity-identity-unresolved',
-  'incompatible-expansion-set',
   'invalid-or-stale-filter',
   'metric-requirement-not-met',
   'incomplete-required-coverage',

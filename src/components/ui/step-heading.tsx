@@ -1,4 +1,18 @@
-export function StepHeading({ step, title }: { step: string; title: string }) {
+export function StepHeading({
+  headingId,
+  size = 'sm',
+  step,
+  title,
+}: {
+  /**
+   * When set, the heading becomes a programmatic focus target so wizard
+   * navigation can move focus to the active step heading.
+   */
+  headingId?: string;
+  size?: 'sm' | 'lg';
+  step: string;
+  title: string;
+}) {
   return (
     <div className="flex items-center gap-3">
       <span
@@ -7,7 +21,17 @@ export function StepHeading({ step, title }: { step: string; title: string }) {
       >
         {step}
       </span>
-      <h2 className="tm-panel-title text-sm">{title}</h2>
+      <h2
+        className={
+          size === 'lg'
+            ? 'tm-focus-ring tm-panel-title text-lg'
+            : 'tm-focus-ring tm-panel-title text-sm'
+        }
+        id={headingId}
+        tabIndex={headingId ? -1 : undefined}
+      >
+        {title}
+      </h2>
       <span
         aria-hidden
         className="h-px flex-1"

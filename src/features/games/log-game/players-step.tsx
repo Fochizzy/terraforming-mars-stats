@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { SelectChevron } from '@/components/ui/select-chevron';
-import { StepHeading } from '@/components/ui/step-heading';
 import {
   signupFullNameSchema,
 } from '@/features/auth/username-auth';
@@ -13,7 +12,6 @@ import type {
 } from '@/lib/db/reference-repo';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
-import { LOG_GAME_WORKFLOW_STEP_LABELS } from './log-game-entry';
 
 type PlayersStepProps = {
   corporationOptions: CorporationOption[];
@@ -105,12 +103,7 @@ export function PlayersStep({
   }
 
   return (
-    <section className="tm-panel flex flex-col gap-4">
-      <StepHeading step="02" title={LOG_GAME_WORKFLOW_STEP_LABELS.players} />
-      <p className="tm-body-copy text-sm">
-        Pick saved players from the roster or type a full name to create that
-        player on save.
-      </p>
+    <div className="flex flex-col gap-4">
       <p className="tm-data-label">
         {selectedPlayers.length} of {playerCount} seats filled
       </p>
@@ -132,7 +125,7 @@ export function PlayersStep({
           </datalist>
         </label>
         <button
-          className="tm-button-secondary self-end px-4 py-3 disabled:cursor-not-allowed disabled:opacity-60"
+          className="tm-button-secondary tm-focus-ring min-h-11 self-end px-4 py-3 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={selectedPlayers.length >= playerCount || playerEntry.trim().length === 0}
           onClick={handleAddPlayer}
           type="button"
@@ -141,7 +134,9 @@ export function PlayersStep({
         </button>
       </div>
       {playerEntryError ? (
-        <p className="text-sm text-red-300">{playerEntryError}</p>
+        <p className="text-sm text-red-300" role="alert">
+          {playerEntryError}
+        </p>
       ) : null}
       <div className="grid gap-3">
         {selectedPlayers.map((player) => (
@@ -151,7 +146,8 @@ export function PlayersStep({
           >
             <span>{player.display_name}</span>
             <button
-              className="tm-button-secondary px-4 py-2 text-xs"
+              aria-label={`Remove ${player.display_name}`}
+              className="tm-button-secondary tm-focus-ring px-4 py-2 text-xs"
               onClick={() => handleRemovePlayer(player.id)}
               type="button"
             >
@@ -168,9 +164,9 @@ export function PlayersStep({
         <div className="grid gap-4">
           {selectedPlayers.map((player) => (
             <article className="tm-stat-card" key={player.id}>
-              <p className="font-semibold text-stone-100">
+              <h3 className="font-semibold text-stone-100">
                 {player.display_name}
-              </p>
+              </h3>
               <div className="mt-4 grid gap-4">
                 <label className="relative flex flex-col gap-2 text-sm">
                   <span className="tm-data-label">Corporation</span>
@@ -224,6 +220,6 @@ export function PlayersStep({
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }

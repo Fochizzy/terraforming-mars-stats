@@ -52,6 +52,9 @@ export const ANALYTICS_PROHIBITED_QUERY_PARAMETERS = [
   'queryError',
 ] as const;
 
+/** Parameters removed from the product contract and never preserved as view state. */
+export const ANALYTICS_RETIRED_QUERY_PARAMETERS = ['expansion'] as const;
+
 export type AnalyticsUrlAliasMap = Partial<
   Record<AnalyticsCanonicalQueryParameter, readonly string[]>
 >;
@@ -159,8 +162,6 @@ function ownerForParameter(
       return 'generation-count';
     case 'gameLength':
       return 'game-length';
-    case 'expansion':
-      return 'expansion';
     case 'corporation':
       return 'corporation';
     case 'prelude':
@@ -576,16 +577,6 @@ export function parseAnalyticsUrlState(
       inputStates,
       'gameLength values must be canonical registered codes.',
     ),
-    expansionCodes: parseMulti(
-      'expansion',
-      reads.expansion,
-      canonicalCode,
-      String,
-      stringsAscending,
-      issues,
-      inputStates,
-      'expansion values must be canonical codes.',
-    ),
     corporationIds: parseMulti(
       'corporation',
       reads.corporation,
@@ -786,6 +777,7 @@ function allKnownParameterNames(
     ...ANALYTICS_QUERY_PARAMETER_ORDER.flatMap(
       (parameter) => aliases?.[parameter] ?? [],
     ),
+    ...ANALYTICS_RETIRED_QUERY_PARAMETERS,
     ...ANALYTICS_PROHIBITED_QUERY_PARAMETERS,
   ];
 }
@@ -824,7 +816,6 @@ function writeNormalizedAnalyticsState(
   appendRepeated(next, 'playerCount', filters.playerCounts);
   appendRepeated(next, 'generationCount', filters.generationCounts);
   appendRepeated(next, 'gameLength', filters.gameLengthCodes);
-  appendRepeated(next, 'expansion', filters.expansionCodes);
   appendRepeated(next, 'corporation', filters.corporationIds);
   appendRepeated(next, 'prelude', filters.preludeIds);
   appendRepeated(
@@ -938,6 +929,9 @@ export function partiallyResetAnalyticsUrlState(
   }
   for (const prohibited of ANALYTICS_PROHIBITED_QUERY_PARAMETERS) {
     next.delete(prohibited);
+  }
+  for (const retired of ANALYTICS_RETIRED_QUERY_PARAMETERS) {
+    next.delete(retired);
   }
   return next;
 }

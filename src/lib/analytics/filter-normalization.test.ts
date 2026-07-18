@@ -29,7 +29,6 @@ describe('analytics filter normalization', () => {
         mapIds: [MAP_B.toUpperCase(), MAP_A, MAP_B],
         playerCounts: [5, 2, 2],
         generationCounts: [12, 8],
-        expansionCodes: ['VENUS_NEXT', 'base'],
         tagCodes: ['science', 'building'],
       },
       { scope: groupScope },
@@ -38,7 +37,6 @@ describe('analytics filter normalization', () => {
     expect(result.state.mapIds).toEqual([MAP_A, MAP_B]);
     expect(result.state.playerCounts).toEqual([2, 5]);
     expect(result.state.generationCounts).toEqual([8, 12]);
-    expect(result.state.expansionCodes).toEqual(['base', 'venus_next']);
     expect(result.state.tagCodes).toEqual(['building', 'science']);
     expect(result.issues.filter((issue) => issue.code === 'duplicate-value')).toHaveLength(2);
   });

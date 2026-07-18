@@ -103,14 +103,6 @@ function average(values: number[]) {
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
-function humanizeInteractionType(interactionType: GroupInteractionRow['interactionType']) {
-  if (interactionType === 'corporation_prelude_pair') {
-    return 'corporation and prelude pairing';
-  }
-
-  return 'map and expansion mix';
-}
-
 function getPlayerLabel(
   playerId: string,
   focusPlayerName: string | null,
@@ -276,7 +268,7 @@ export function buildInsightCards({
   )[0];
 
   if (interactionRow) {
-    const interactionLabel = humanizeInteractionType(interactionRow.interactionType);
+    const interactionLabel = 'corporation and Prelude pairing';
     cards.push({
       title: 'Interaction Edge',
       tone: 'interaction',

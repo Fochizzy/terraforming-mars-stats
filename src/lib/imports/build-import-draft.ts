@@ -18,14 +18,12 @@ export type CreateImportDraftInput = ImportDraftValues & {
 
 export function buildImportDraft(input: {
   defaultGuaranteedMergerOffer: boolean;
-  defaultExpansionCodes: string[];
   defaultPromoSetSlugs: string[];
   groupId: string;
   importValues: ImportDraftValues;
 }): LogGameDraftInput {
   return {
     awardClaims: {},
-    expansionCodes: [...input.defaultExpansionCodes],
     gameId: undefined,
     generationCount: input.importValues.generationCount,
     guaranteedMergerOffer: input.defaultGuaranteedMergerOffer,

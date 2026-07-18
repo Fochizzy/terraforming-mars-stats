@@ -57,7 +57,7 @@ export type GroupInteractionRow = {
   averageScore: number;
   gamesPlayed: number;
   groupId: string;
-  interactionType: 'corporation_prelude_pair' | 'map_expansion_mix';
+  interactionType: 'corporation_prelude_pair';
   label: string;
   winRate: number;
   wins: number;
@@ -402,7 +402,7 @@ type RawGroupInteractionRow = {
   average_score: number | string;
   games_played: number;
   group_id: string;
-  interaction_type: 'corporation_prelude_pair' | 'map_expansion_mix';
+  interaction_type: 'corporation_prelude_pair';
   label: string;
   win_rate: number | string;
   wins: number;
