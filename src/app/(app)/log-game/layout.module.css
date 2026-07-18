@@ -1,0 +1,29 @@
+.root {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  background: #050608;
+}
+
+.background {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background-color: #2a1209;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+@media (max-width: 640px) {
+  .background {
+    background-position: 18% bottom;
+  }
+}

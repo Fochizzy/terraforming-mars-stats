@@ -1,4 +1,8 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  getPublicPlayerNames,
+  PRIVACY_SAFE_PLAYER_FALLBACK,
+} from './public-player-name-repo';
 
 export type LeaderboardRow = {
   averageLossGap: number | null;
@@ -1160,7 +1164,7 @@ async function getLinkedPlayer(groupId: string, userId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('players')
-    .select('id, display_name')
+    .select('id')
     .eq('group_id', groupId)
     .eq('linked_user_id', userId)
     .order('created_at', { ascending: true })
@@ -1171,7 +1175,17 @@ async function getLinkedPlayer(groupId: string, userId: string) {
     throw error;
   }
 
-  return data;
+  if (!data) {
+    return null;
+  }
+
+  const [publicIdentity] = await getPublicPlayerNames([data.id]);
+
+  return {
+    id: data.id,
+    display_name:
+      publicIdentity?.publicName ?? PRIVACY_SAFE_PLAYER_FALLBACK,
+  };
 }
 
 function resolveProfileLabel(

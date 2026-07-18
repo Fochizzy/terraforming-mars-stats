@@ -7,6 +7,7 @@ import {
   normalizeStoredAssetPath,
   resolveCardImageAsset,
   resolveCorporationLogoAsset,
+  resolveLogGameBackgroundAsset,
   resolveMapGraphicAsset,
   resolveScoreSourceAsset,
   resolveSignedImportEvidenceAsset,
@@ -86,6 +87,26 @@ describe('public URL construction', () => {
 });
 
 describe('family resolvers', () => {
+  it('resolves the Log a Game background through the public asset contract', () => {
+    const background = resolveLogGameBackgroundAsset({ supabaseUrl });
+
+    expectAvailable(background);
+    expect(background).toMatchObject({
+      alt: '',
+      canonicalKey: 'log-game-mars-horizon-f78061b5',
+      decorative: true,
+      family: 'background',
+      height: 1024,
+      source: {
+        access: 'public',
+        bucket: 'tm-map-images',
+        path: 'backgrounds/log-game-mars-horizon-f78061b5.png',
+        type: 'public-storage',
+      },
+      width: 1536,
+    });
+  });
+
   it('resolves corporation logos only from canonical identity plus stored path', () => {
     const asset = resolveCorporationLogoAsset(
       {

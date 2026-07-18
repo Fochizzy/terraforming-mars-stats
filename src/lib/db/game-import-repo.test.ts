@@ -107,6 +107,75 @@ describe('saveGameLogImport', () => {
     );
   });
 
+  it('persists parser provenance and structured screenshot fields', async () => {
+    const upload = vi.fn().mockResolvedValue({ data: {}, error: null });
+    const importInsert = vi.fn().mockReturnThis();
+    const importSelect = vi.fn().mockReturnThis();
+    const importSingle = vi.fn().mockResolvedValue({
+      data: { id: 'import-structured' },
+      error: null,
+    });
+    const screenshotInsert = vi.fn().mockResolvedValue({ error: null });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            insert: importInsert,
+            select: importSelect,
+            single: importSingle,
+          };
+        }
+        if (table === 'game_result_screenshot_imports') {
+          return { insert: screenshotInsert };
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      storage: { from: vi.fn(() => ({ upload })) },
+    } as never);
+
+    const screenshotFile = new File(['image'], 'endgame.png', {
+      type: 'image/png',
+    });
+    await repo.saveGameLogImport({
+      gameId: 'game-structured',
+      parseMetadata: {
+        confidenceSummary: { player_count: 2 },
+        detectedSource: 'terraforming_mars_exported_log',
+        parseStatus: 'parsed_setup_fields',
+        parserVersion: 'terraforming-mars-exported-log-v1',
+        screenshot: {
+          confidenceSummary: { mean_confidence: 0.98 },
+          detectedLayout: 'terraforming_mars_base_endgame_score_table',
+          extractedFields: { score_rows: [{ total_points: 90 }] },
+          ocrEngineVersion: 'terraforming-mars-endgame-score-table-v1',
+          parseStatus: 'parsed_needs_verification',
+        },
+        validationErrors: [],
+      },
+      rawLogText: 'Generation 12',
+      screenshotFile,
+      userId: 'user-structured',
+    });
+
+    expect(importInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detected_source: 'terraforming_mars_exported_log',
+        parse_status: 'parsed_setup_fields',
+        parser_version: 'terraforming-mars-exported-log-v1',
+        validation_errors: [],
+      }),
+    );
+    expect(screenshotInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detected_layout: 'terraforming_mars_base_endgame_score_table',
+        extracted_fields: { score_rows: [{ total_points: 90 }] },
+        game_log_import_id: 'import-structured',
+        parse_status: 'parsed_needs_verification',
+      }),
+    );
+  });
+
   it('uses the configured import-evidence bucket override when present', async () => {
     process.env.SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE = 'custom-import-bucket';
 
@@ -153,6 +222,43 @@ describe('saveGameLogImport', () => {
     });
 
     expect(storageFrom).toHaveBeenCalledWith('custom-import-bucket');
+  });
+});
+
+describe('saveParsedGameLogEvents', () => {
+  it('replaces parsed events and runs the import integrity validator', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [], error: null });
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ rpc } as never);
+
+    await repo.saveParsedGameLogEvents({
+      events: [
+        {
+          card_id: 'card-1',
+          confidence_level: 'high',
+          event_order: 4,
+          event_type: 'card_played',
+          generation_number: 1,
+          line_classification: 'played_card',
+          payload: { actor: 'Private source name' },
+          raw_line: 'Private source name played a card',
+        },
+      ],
+      gameLogImportId: 'import-1',
+    });
+
+    expect(rpc).toHaveBeenNthCalledWith(1, 'replace_game_log_events', {
+      p_events: [
+        expect.objectContaining({
+          card_id: 'card-1',
+          event_order: 4,
+          event_type: 'card_played',
+        }),
+      ],
+      p_game_log_import_id: 'import-1',
+    });
+    expect(rpc).toHaveBeenNthCalledWith(2, 'validate_game_log_import', {
+      p_game_log_import_id: 'import-1',
+    });
   });
 });
 

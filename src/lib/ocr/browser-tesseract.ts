@@ -9,10 +9,27 @@ type TesseractRecognitionResult = {
   data: {
     confidence?: number;
     text?: string;
+    tsv?: string;
   };
 };
 
+type TesseractWorker = {
+  recognize: (
+    image: File | Blob | string,
+    options?: Record<string, unknown>,
+    output?: { text?: boolean; tsv?: boolean },
+  ) => Promise<TesseractRecognitionResult>;
+  terminate: () => Promise<void>;
+};
+
 type TesseractGlobal = {
+  createWorker: (
+    language: string,
+    oem?: number,
+    options?: {
+      logger?: (message: TesseractLoggerMessage) => void;
+    },
+  ) => Promise<TesseractWorker>;
   recognize: (
     image: File | Blob | string,
     language: string,
@@ -37,6 +54,17 @@ let runtimePromise: Promise<TesseractGlobal> | null = null;
 export type BrowserOcrResult = {
   confidence: number | null;
   text: string;
+  words: BrowserOcrWord[];
+};
+
+export type BrowserOcrWord = {
+  confidence: number | null;
+  height: number;
+  left: number;
+  lineKey: string;
+  text: string;
+  top: number;
+  width: number;
 };
 
 export async function recognizeScreenshotInBrowser(
@@ -44,7 +72,7 @@ export async function recognizeScreenshotInBrowser(
   onProgress?: (input: { progress: number; status: string }) => void,
 ): Promise<BrowserOcrResult> {
   const tesseract = await loadTesseractRuntime();
-  const result = await tesseract.recognize(file, 'eng', {
+  const worker = await tesseract.createWorker('eng', undefined, {
     logger(message) {
       onProgress?.({
         progress: clampProgress(message.progress),
@@ -52,6 +80,13 @@ export async function recognizeScreenshotInBrowser(
       });
     },
   });
+  let result: TesseractRecognitionResult;
+
+  try {
+    result = await worker.recognize(file, {}, { text: true, tsv: true });
+  } finally {
+    await worker.terminate();
+  }
 
   const text = result.data.text?.trim() ?? '';
   if (!text) {
@@ -61,7 +96,30 @@ export async function recognizeScreenshotInBrowser(
   return {
     confidence: normalizeConfidence(result.data.confidence),
     text,
+    words: parseTsvWords(result.data.tsv),
   };
+}
+
+function parseTsvWords(tsv: string | undefined): BrowserOcrWord[] {
+  if (!tsv?.trim()) {
+    return [];
+  }
+
+  return tsv
+    .split(/\r?\n/)
+    .slice(1)
+    .map((row) => row.split('\t'))
+    .filter((columns) => columns.length >= 12 && columns[0] === '5')
+    .map((columns) => ({
+      confidence: normalizeConfidence(Number(columns[10])),
+      height: Number(columns[9]) || 0,
+      left: Number(columns[6]) || 0,
+      lineKey: `${columns[1]}:${columns[2]}:${columns[3]}:${columns[4]}`,
+      text: columns.slice(11).join('\t').trim(),
+      top: Number(columns[7]) || 0,
+      width: Number(columns[8]) || 0,
+    }))
+    .filter((word) => word.text.length > 0);
 }
 
 function loadTesseractRuntime(): Promise<TesseractGlobal> {

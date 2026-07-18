@@ -13,6 +13,7 @@ function buildDraft(overrides: Partial<LogGameDraftInput> = {}): LogGameDraftInp
     mergerOfferRuleSource: 'group_default',
     milestoneClaims: {},
     notes: '',
+    objectiveConfiguration: 'board_defined',
     playedOn: '2026-07-04',
     playerCount: 2,
     playerScores: {},

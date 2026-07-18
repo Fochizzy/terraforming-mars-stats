@@ -1,5 +1,10 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import {
+  buildPublicPlayerNameMap,
+  getPublicPlayerNames,
+  PRIVACY_SAFE_PLAYER_FALLBACK,
+} from './public-player-name-repo';
 
 export type PlayerRow = {
   id: string;
@@ -11,15 +16,29 @@ export async function listPlayers(groupId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id')
+    .select('id, linked_user_id')
     .eq('group_id', groupId)
-    .order('display_name');
+    .order('created_at');
 
   if (error) {
     throw error;
   }
 
-  return data;
+  const publicNames = await getPublicPlayerNames(
+    data.map((player) => player.id),
+  );
+  const publicNameByPlayerId = buildPublicPlayerNameMap(publicNames);
+
+  return data
+    .map((player) => ({
+      id: player.id,
+      display_name:
+        publicNameByPlayerId.get(player.id) ?? PRIVACY_SAFE_PLAYER_FALLBACK,
+      linked_user_id: player.linked_user_id,
+    }))
+    .sort((left, right) =>
+      left.display_name.localeCompare(right.display_name),
+    );
 }
 
 export async function createPlayerIfMissing(input: {

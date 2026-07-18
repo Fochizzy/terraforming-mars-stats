@@ -2,14 +2,116 @@
 
 ## Current substep
 
-Phase 4, Step 4.2 — Manual Entry Wizard and Responsive Step Navigation
-(**complete**)
+Phase 4, Step 4.3 — Import, Validation, Evidence Review, and Claimable Guest
+Identity Creation (**active — blocked on authorized reference data**)
 
 ## Current owner
 
-Codex — Phase 4, Step 4.2, responsive wizard and expansion-tracking removal
+Codex — Phase 4, Step 4.3 import, evidence, claimable guest identity, and privacy
 
 ## Status
+
+**Phase 4 — Log a Game — Active. Step 4.3 is implemented and validated locally
+but is not complete.** The import workflow now accepts the complete game result
+PDF (or compatible end-game screenshot) plus the complete exported game log,
+derives player count, generation, date, scores, objective evidence, and map
+candidates, and presents detected values only for verification or correction.
+Direct PDF parsing was verified against two real result PDFs. Claimable guest
+username and private personal-name modes, existing guest reuse, explicit
+ambiguity resolution, preserved player IDs/evidence, and username-only claimed
+public naming are implemented behind the prepared Step 4.3 identity/privacy
+migration.
+
+A read-only production audit on 2026-07-18 found 11 maps. Ten fixed-objective
+maps each have exactly five milestones and five awards; no two fixed maps share
+an identical milestone, award, or combined objective set; all relationship
+foreign keys resolve. Hollandia alone has zero fixed relationships and is
+explicitly treated as randomized and incompatible with import. Production has
+zero milestone/award rows in `domain_text_aliases`, so approved printed aliases
+such as `Amazonis Engineer` → `A. Engineer`, `Amazonis Zoologist` →
+`A. Zoologist`, `Arabia Manufacturer` → `A. Manufacturer`, `Collector` →
+`T. Collector`, `Politician` → `T. Politician`, `Vastitas Electrician` →
+`V. Electrician`, and `Vastitas Spacefarer` → `V. Spacefarer` cannot yet be
+resolved from the authoritative catalog. The user requires separate explicit
+authorization for that reference-data migration.
+
+The live migration ledger also confirms
+`20260718050924_claimable_guest_identity_privacy.sql` is not applied:
+`player_private_identities`, `player_import_aliases.identity_mode`,
+`get_public_player_names`, and `resolve_import_guest_identity` are absent.
+The reauthorized migration is prepared and statically covered in this worktree,
+but no production schema, identity, alias, Storage, push, or deployment change
+was made while the reference-data gate remains open.
+
+Validation after the final ambiguity repair: 149 test files / 787 tests passed;
+`npx.cmd tsc --noEmit` passed; lint exited 0 with the same four pre-existing
+warnings; build completed 32/32 pages; Playwright passed 1/1. Responsive browser
+review of the real import component and instructions page passed at 1440, 1024,
+768, and 390 pixels with no page-level horizontal overflow, visible two-pixel
+focus, explicit linked/existing/ambiguous/unresolved states, separate username
+and first/last-name controls, map/evidence review, and no console errors.
+
+No Step 4.3 completion handoff or commit exists. Step 4.2 was not reopened.
+Step 4.4, Step 4.5, and Phase 5 were not started. No push or deployment occurred.
+
+### Step 4.3 continuation — upstream catalog, tiles, and map reconstruction (2026-07-18, Claude)
+
+Claude continued Step 4.3 after the upstream-catalog/map handoff. Completed and
+validated in the repository this session:
+
+- The authoritative **server import path**
+  (`src/app/(app)/log-game/import/page.tsx`) was converted off the old
+  objective-only detector. It now parses ordered tile actions, reconstructs the
+  board, calls `detectImportBoardMapIndependent` with the importer's objective
+  configuration, allows every map (including Hollandia), requires a confirmed
+  (non-`unknown`) objective setup, rejects only true detector conflicts or a
+  confident detected-map mismatch, validates objectives by configuration scope
+  (map relationships for board-defined, the global catalog for randomized),
+  passes tile actions to `buildTerraformingMarsLogEvents`, and persists the
+  objective configuration, ordered tile actions, reconstructed board, unknown
+  tile count, and conflicts in the import `confidenceSummary`.
+- `LogGameImportShell` now forwards `objectiveConfiguration` to the server action
+  (it was previously dropped); `web-import-page` gates the client submit on the
+  same map-conflict rule so the reason is surfaced before save.
+- `objectiveConfiguration` was threaded through all `LogGameDraftInput` call
+  sites: Manual Entry uses `board_defined`, imported drafts stay `unknown` until
+  reviewed, and it is owned by the Setup step in the manual-entry registry.
+- Reference-catalog fixtures gained `allAwards`/`allMilestones`; the Cards-page
+  `is_catalog_visible` filter is covered by a test.
+
+Validation this session: `npx.cmd tsc --noEmit` clean; `npx.cmd vitest run` 160
+files / 843 tests passed; `next lint` exit 0 with the same four pre-existing
+warnings; `next build` exit 0, 32/32 pages, `ƒ Middleware` present.
+
+Governance docs updated: `MASTER-RULES.md` (upstream source-authority,
+export-format governance, map/objective interpretation), `DECISIONS.md`,
+`DATA-CAPABILITIES.md` (Step 4.3 addendum with fixture/map/format/language
+matrices), this file, and `MASTER-PLAN.md`.
+
+Identity/privacy migration applied (user-confirmed this session): the
+`claimable_guest_identity_privacy` migration
+(`supabase/migrations/20260718050924_claimable_guest_identity_privacy.sql`) was
+applied to production after full read-only vetting. Live verification confirmed
+the `player_private_identities` table (RLS on, two member-scoped policies), the
+`private` schema and normalizers, `private.resolve_public_player_name`,
+`public.get_public_player_names`, `public.resolve_import_guest_identity`, the
+privacy-wrapped `analytics.player_game_results` view (113 rows, zero null
+names), and the redefined final-action/OCR RPCs. It performed **no identity
+backfill** (0 rows in `player_private_identities`; 0 players created this
+session; newest player row predates the session). Its final-action reader
+consumes the new `tile_placed` greenery/ocean events. Advisors re-run: no new
+security findings attributable to the migration; three INFO-level performance
+notes on the new (empty) identity table only.
+
+Still open before Step 4.3 can be marked complete:
+
+- committed privacy-sanitized real tile-export fixtures are not yet added
+  (parser is verified against real private PDFs and synthetic fixtures);
+- the objective-alias data-only migration remains separately gated.
+
+No push or deployment occurred.
+
+### Prior Step 4.2 status
 
 **Phase 4 — Log a Game — Active. Step 4.2 is complete in the repository.**
 Manual Entry now uses one typed six-step registry and a responsive, accessible
@@ -47,7 +149,8 @@ widths, visible active steps, and stacked full-width mobile actions.
 Local migration reset remains unverified because Docker Desktop is not running;
 the migration has static tests and was verified directly after production
 application. The current workflow still has no trustworthy card-acquisition
-count writer or coverage contract. Step 4.3 has not begun.
+count writer or coverage contract. At Step 4.2 completion, Step 4.3 had not
+begun.
 
 ### Prior Phase 3 closure status
 
@@ -249,7 +352,9 @@ verification immediately after this state file is committed).
 
 ## Current phase
 
-Phase 4 — Log a Game (active; Steps 4.1 and 4.2 complete; Step 4.3 not authorized)
+Phase 4 — Log a Game (active; Steps 4.1 and 4.2 complete; Step 4.3 active and
+blocked on unapplied identity/privacy schema plus separately authorized
+objective-alias reference data)
 
 ## Prior completed substep
 
@@ -349,12 +454,32 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Await explicit assignment for Phase 4, Step 4.3.** Phase 3 and Phase 4,
-Steps 4.1 and 4.2 are complete. Do not begin Step 4.3, move legacy analytics
-content, add analytics consumers, or alter workflow semantics without that
-explicit assignment.
+**The Step 4.3 code and governance docs are complete and validated in the
+repository (typecheck, 843 tests, lint, and build all pass), and the
+user-confirmed identity/privacy migration is applied and verified in
+production.** The remaining, optional items before a formal Step 4.3 closure
+handoff are:
+
+1. add committed privacy-sanitized real tile-export fixtures (the parser is
+   already verified against real private PDFs and synthetic fixtures); and
+2. proceed with the separately gated objective-alias data migration when
+   authorized.
+
+Do not begin Step 4.4/4.5/Phase 5, push, or deploy without explicit assignment.
 
 ## Active blockers
+
+**Step 4.3 blocker:** the current production identity schema cannot safely store
+separate optional guest username and structured private first/last name values
+or guarantee username-only public resolution after claim. The prepared,
+reauthorized `20260718050924_claimable_guest_identity_privacy.sql` supplies the
+private identity table, separate normalizers/indexes, mode-aware aliases,
+member-scoped RLS, guarded import resolution, and centralized public-name RPC,
+but remains unapplied. Separately, all ten fixed map relationship sets are
+complete and distinguishable, but the production milestone/award alias catalog
+is empty. A data-only migration must insert approved aliases against existing
+canonical objective IDs. No workaround may hard-code a second UI catalog or
+overload display names.
 
 No repository blocker prevents Step 4.2 completion. Docker Desktop was not
 running, so local `supabase db reset` verification was unavailable; static
@@ -384,6 +509,46 @@ and UI heuristics that coerce null to zero or hard-code confidence thresholds
 remain deferred migration work.
 
 ## Database migration status
+
+Two Phase 4, Step 4.3 catalog migrations were applied to the linked production
+project `tm-stats`/`qjtwgrjjwnqafbvkkfex` (verified in the live migration
+ledger):
+
+- `20260718154209 sync_upstream_cards_and_tile_catalog`
+  (`supabase/migrations/20260718114500_sync_upstream_cards_and_tile_catalog.sql`)
+  — creates `public.terraforming_mars_tile_types` (45 upstream `TileType`
+  values, authenticated read-only), adds `cards.last_synced_at`, and removes
+  unsafe default-zero behavior from deployed card global-effect columns.
+- `20260718154932 reconcile_upstream_card_identities`
+  (`supabase/migrations/20260718120000_reconcile_upstream_card_identities.sql`)
+  — adds `cards.is_catalog_visible` and `cards.superseded_by_card_id`, preserves
+  53 identity-mismatch rows as reversible audit rows, and hides only those from
+  catalog consumers. It deletes nothing; a direct deletion of the 53 rows was
+  rejected by the production safety reviewer and must not be retried.
+
+Verified live: snapshot `a63ac3f9-4725-49f5-a967-04899ad52c19`, 996 upstream
+cards and 45 tile types; 1,143 retained card rows (1,090 visible, 53 superseded);
+0 visible duplicate-name groups.
+
+A third Phase 4, Step 4.3 migration, `claimable_guest_identity_privacy`
+(`supabase/migrations/20260718050924_claimable_guest_identity_privacy.sql`), was
+applied to production this session with explicit user confirmation, after
+reading the full SQL, running its focused static tests (6/6), and verifying its
+interaction with the new tile events. It creates private claimable-guest
+identity storage and normalization, mode-aware alias indexes, member-scoped RLS,
+import-resolution/public-name RPCs, and privacy-preserving replacements for
+affected public readers (`analytics.player_game_results` and the final-action/OCR
+RPCs). It performed no production identity backfill. Live verification and the
+re-run security/performance advisors passed with no new security regressions.
+
+A second, minimal data-only migration is required but not authorized. It should
+insert only approved milestone/award aliases into the existing
+`domain_text_aliases` table using canonical entity IDs, separately normalized
+alias text, `source = 'catalog'`, and the existing unique
+`(entity_type, normalized_alias_text)` contract. It requires no new table,
+column, index, view, RPC, or RLS policy. Rollback must delete only those inserted
+catalog alias rows; canonical maps/objectives/relationships and historical game
+IDs remain unchanged.
 
 One unapplied Phase 2 migration is prepared:
 `20260717190000_add_merger_offer_rule_snapshots.sql`. Its verification SQL,

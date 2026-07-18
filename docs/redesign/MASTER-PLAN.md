@@ -287,6 +287,41 @@ production Supabase project and verified there; no application push or deploy
 was authorized. Full details are in `docs/redesign/phases/04-log-a-game.md` and
 `docs/agent-handoffs/PHASE-04-STEP-02-manual-entry-wizard-responsive-step-navigation-and-expansion-tracking-removal.md`.
 
+### Phase 4, Step 4.3 upstream catalog and map reconstruction outcome (2026-07-18)
+
+Step 4.3 is **active**. Its repository work — import, validation, evidence
+review, claimable guest identity creation, and the user-expanded upstream
+catalog, tile-reconstruction, and randomized-objective scope — is implemented and
+validated in the repository (typecheck clean; 160 files / 843 tests; lint at the
+four baseline warnings; 32/32-page build). The claimable guest identity/privacy
+migration was applied to production on 2026-07-18 with explicit user
+confirmation and verified live (no identity backfill, no new security advisor
+findings); see `docs/REDESIGN_STATE.md` and `DECISIONS.md`.
+
+Durable project-wide additions:
+
+- **Shared Supabase reference catalog.** Card and tile reference data live in
+  Supabase (`public.cards`, `public.terraforming_mars_tile_types`) and are
+  synchronized from the upstream open-source Terraforming Mars implementation and
+  the printed rulebooks by `scripts/catalog/` (daily automation plus manual
+  dispatch, server/automation-only service-role). The sync preserves each raw
+  manifest and curated metadata, never deletes rows absent upstream, never
+  coerces an absent effect to zero, and records identity-mismatch duplicates as
+  reversible audit rows. Every catalog consumer, including the existing Cards
+  page, reads only `is_catalog_visible = true`, so it reflects the synchronized
+  catalog automatically.
+- **Board-signal map interpretation.** Imported maps are reconstructed from the
+  ordered placed/removed tile evidence; placed oceans compared against each map's
+  reserved-ocean fingerprint are the authoritative map signal. Randomized
+  objectives are never used to infer a map and never inferred from one; the
+  objective configuration is an explicit importer input. Hollandia is supported
+  only with confirmed randomized objectives.
+
+The full contracts are in `MASTER-RULES.md` and `DECISIONS.md`; capability
+matrices are in `DATA-CAPABILITIES.md`; immediate status, the two applied catalog
+migrations, and the gated identity/privacy migration are in
+`docs/REDESIGN_STATE.md`. No push or deploy occurred.
+
 ### Production tag and score icon replacement outcome (2026-07-17)
 
 A separately authorized production task refreshed image content at the existing
@@ -313,10 +348,14 @@ follow-up is in
 
 ### Current next approved work
 
-Await explicit assignment for Phase 4, Step 4.3. Phase 3 is complete and Phase
-4, Steps 4.1 and 4.2 are complete. The un-applied Merger production
-migration/backfill package remains separately owner-gated and does not expand
-the scope of any future work.
+Phase 4, Step 4.3 is active. Its repository code and governance docs are complete
+and validated, and the user-confirmed claimable guest identity/privacy migration
+is applied and verified in production (see `docs/REDESIGN_STATE.md`). Remaining
+optional items before a formal closure handoff are committed sanitized
+tile-export fixtures and the separately gated objective-alias data migration.
+Phase 3 and Phase 4 Steps 4.1-4.2 are complete. Do not begin Step 4.4/4.5 or
+Phase 5. The un-applied Merger production migration/backfill package remains
+separately owner-gated.
 
 ### Completed
 
@@ -1234,8 +1273,11 @@ Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-18
 - **Current phase:** Phase 4 — Log a Game (active)
-- **Current substep:** Step 4.2 — Manual Entry Wizard and Responsive Step Navigation (complete)
-- **Next gated substep:** Await explicit assignment for Phase 4, Step 4.3
+- **Current substep:** Step 4.3 — Import, Validation, Evidence Review, and
+  Claimable Guest Identity Creation (active; repository code and docs complete
+  and validated, production identity/privacy migration gated)
+- **Next gated substep:** Resolve the Step 4.3 identity/privacy migration gate,
+  then await explicit assignment for Phase 4, Step 4.4
 - **Step 4.2 completion commit:** recorded by post-commit verification after
   this document is committed
 - **Step 4.1 completion commit:** recorded by post-commit verification after

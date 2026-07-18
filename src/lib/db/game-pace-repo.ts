@@ -1,4 +1,9 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  buildPublicPlayerNameMap,
+  getPublicPlayerNames,
+  PRIVACY_SAFE_PLAYER_FALLBACK,
+} from './public-player-name-repo';
 
 export type GamePacePoint = {
   cards: number;
@@ -40,6 +45,7 @@ type RawEventRow = {
   event_order: number;
   event_type: string;
   game_log_import_id: string;
+  game_player_id: string | null;
   generation_number: number | null;
   payload: unknown;
   tile_type: string | null;
@@ -83,17 +89,22 @@ function clampGeneration(generation: number | null, generationCount: number) {
 function buildReplay(
   game: RawGameRow,
   events: RawEventRow[],
+  publicNameByGamePlayerId: Map<string, string>,
 ): GamePaceReplay | null {
   const players = new Map<string, MutablePlayerPace>();
 
   events.forEach((event) => {
     const actor = getActor(event.payload);
 
-    if (!actor) {
+    if (!actor && !event.game_player_id) {
       return;
     }
 
-    const actorKey = getActorKey(actor);
+    const actorKey = event.game_player_id ?? getActorKey(actor ?? 'unresolved-player');
+    const publicName = event.game_player_id
+      ? publicNameByGamePlayerId.get(event.game_player_id) ??
+        PRIVACY_SAFE_PLAYER_FALLBACK
+      : PRIVACY_SAFE_PLAYER_FALLBACK;
     const player = players.get(actorKey) ?? {
       awards: 0,
       cards: 0,
@@ -102,7 +113,7 @@ function buildReplay(
       greeneries: 0,
       id: `player-${players.size + 1}`,
       milestones: 0,
-      name: actor,
+      name: publicName,
     };
 
     if (event.event_type === 'card_played') {
@@ -176,6 +187,7 @@ async function listRelevantEvents(importIds: string[]): Promise<RawEventRow[]> {
         [
           'event_order',
           'event_type',
+          'game_player_id',
           'game_log_import_id',
           'generation_number',
           'payload',
@@ -201,6 +213,41 @@ async function listRelevantEvents(importIds: string[]): Promise<RawEventRow[]> {
 
     offset += EVENT_PAGE_SIZE;
   }
+}
+
+async function getPublicNamesByGamePlayerId(events: RawEventRow[]) {
+  const gamePlayerIds = [
+    ...new Set(
+      events
+        .map((event) => event.game_player_id)
+        .filter((playerId): playerId is string => Boolean(playerId)),
+    ),
+  ];
+
+  if (gamePlayerIds.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('game_players')
+    .select('id, player_id')
+    .in('id', gamePlayerIds);
+
+  if (error) {
+    throw error;
+  }
+
+  const publicNameByPlayerId = buildPublicPlayerNameMap(
+    await getPublicPlayerNames(data.map((row) => row.player_id)),
+  );
+
+  return new Map(
+    data.map((row) => [
+      row.id,
+      publicNameByPlayerId.get(row.player_id) ?? PRIVACY_SAFE_PLAYER_FALLBACK,
+    ]),
+  );
 }
 
 export async function listGamePaceReplays(
@@ -241,6 +288,7 @@ export async function listGamePaceReplays(
 
   const imports = (importData ?? []) as RawImportRow[];
   const events = await listRelevantEvents(imports.map((entry) => entry.id));
+  const publicNameByGamePlayerId = await getPublicNamesByGamePlayerId(events);
   const eventsByImport = new Map<string, RawEventRow[]>();
 
   events.forEach((event) => {
@@ -263,7 +311,11 @@ export async function listGamePaceReplays(
     .map((game) => {
       const gameImport = importByGame.get(game.id);
       return gameImport
-        ? buildReplay(game, eventsByImport.get(gameImport.id) ?? [])
+        ? buildReplay(
+            game,
+            eventsByImport.get(gameImport.id) ?? [],
+            publicNameByGamePlayerId,
+          )
         : null;
     })
     .filter((replay): replay is GamePaceReplay => replay !== null)

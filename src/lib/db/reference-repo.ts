@@ -42,6 +42,39 @@ export type MapAwardOption = {
   awardName: string;
 };
 
+export type ObjectiveOption = {
+  id: string;
+  name: string;
+};
+
+export type ImportObjectiveAliasOption = {
+  aliasText: string;
+  entityId: string;
+  entityType: 'award' | 'milestone';
+};
+
+export type ImportMapReferenceCatalog = {
+  aliases: ImportObjectiveAliasOption[];
+  allAwards: ObjectiveOption[];
+  allMilestones: ObjectiveOption[];
+  awards: MapAwardOption[];
+  maps: MapOption[];
+  milestones: MapMilestoneOption[];
+};
+
+export type ImportLogEntityAliasOption = {
+  aliasText: string;
+  entityId: string;
+  entityType: 'card' | 'corporation';
+};
+
+export type ImportGameReferenceCatalog = ImportMapReferenceCatalog & {
+  cards: CardOption[];
+  corporations: CorporationOption[];
+  entityAliases: ImportLogEntityAliasOption[];
+  preludes: PreludeOption[];
+};
+
 export type StyleOption = {
   id: string;
   code: string;
@@ -54,6 +87,7 @@ export type CardOption = {
   cardName: string;
   expansionCode: string;
   promoSetSlug: string | null;
+  sourceTags?: string[];
 };
 
 export type CardLookupRecord = CardLookupEntry;
@@ -232,6 +266,34 @@ export async function listMapAwards(): Promise<MapAwardOption[]> {
   }));
 }
 
+export async function listMilestones(): Promise<ObjectiveOption[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('milestones')
+    .select('id, name')
+    .order('name');
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function listAwards(): Promise<ObjectiveOption[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('awards')
+    .select('id, name')
+    .order('name');
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function listStyles(): Promise<StyleOption[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -266,6 +328,83 @@ export async function listCards(): Promise<CardOption[]> {
   }));
 }
 
+export async function listImportMapReferenceCatalog(): Promise<ImportMapReferenceCatalog> {
+  const [maps, milestones, awards, allMilestones, allAwards] = await Promise.all([
+    listMaps(),
+    listMapMilestones(),
+    listMapAwards(),
+    listMilestones(),
+    listAwards(),
+  ]);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('domain_text_aliases')
+    .select('entity_type, entity_id, alias_text')
+    .in('entity_type', ['milestone', 'award']);
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    aliases: (data as Array<{
+      alias_text: string;
+      entity_id: string;
+      entity_type: 'award' | 'milestone';
+    }>).map((alias) => ({
+      aliasText: alias.alias_text,
+      entityId: alias.entity_id,
+      entityType: alias.entity_type,
+    })),
+    allAwards,
+    allMilestones,
+    awards,
+    maps,
+    milestones,
+  };
+}
+
+export async function listImportGameReferenceCatalog(): Promise<ImportGameReferenceCatalog> {
+  const [mapCatalog, cards, corporations, preludes] = await Promise.all([
+    listImportMapReferenceCatalog(),
+    listCardLookupRecords(),
+    listCorporations(),
+    listPreludes(),
+  ]);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('domain_text_aliases')
+    .select('entity_type, entity_id, alias_text')
+    .in('entity_type', ['card', 'corporation']);
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    ...mapCatalog,
+    cards: cards.map((card) => ({
+      cardName: card.cardName,
+      cardNumber: card.cardNumber,
+      expansionCode: card.expansionCode,
+      id: card.id,
+      promoSetSlug: card.promoSetSlug,
+      sourceTags: [...card.sourceTags],
+    })),
+    corporations,
+    entityAliases: (data as Array<{
+      alias_text: string;
+      entity_id: string;
+      entity_type: 'card' | 'corporation';
+    }>).map((alias) => ({
+      aliasText: alias.alias_text,
+      entityId: alias.entity_id,
+      entityType: alias.entity_type,
+    })),
+    preludes,
+  };
+}
+
 export async function listCardLookupRecords(): Promise<CardLookupRecord[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -287,6 +426,7 @@ export async function listCardLookupRecords(): Promise<CardLookupRecord[]> {
         'victory_points_kind',
       ].join(', '),
     )
+    .eq('is_catalog_visible', true)
     .order('card_name');
 
   if (error) {
@@ -340,6 +480,7 @@ export async function listPromoCards(): Promise<PromoCardOption[]> {
       'id, promo_set_id, card_number, card_name, card_type, expansion_code, image_url, thumbnail_path, full_image_path',
     )
     .not('promo_set_id', 'is', null)
+    .eq('is_catalog_visible', true)
     .order('card_number')
     .order('card_name');
 

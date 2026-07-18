@@ -86,6 +86,10 @@ export default async function LogGamePage({
     groupId: context.groupId,
     playedOn: new Date().toISOString().slice(0, 10),
     mapId: groupSettings.defaultMapId ?? mapOptions[0]?.id ?? '',
+    // Manual Entry records real fixed-map games, whose milestones and awards are
+    // the board's defined objectives. Randomized objectives are an import-only
+    // review concern (see docs/redesign/MASTER-RULES.md map/objective contract).
+    objectiveConfiguration: 'board_defined',
     guaranteedMergerOffer: groupSettings.defaultGuaranteedMergerOffer,
     mergerOfferRuleSource: 'group_default',
     milestoneClaims: {},
@@ -159,6 +163,7 @@ export default async function LogGamePage({
         catalogSnapshotId: latestCatalogSnapshotId,
         gameId: resolved.gameId,
         guaranteedMergerOffer: resolved.guaranteedMergerOffer,
+        importedPlayerResolutions: resolved.importedPlayerResolutions,
         mapAwardIds: awardOptions
           .filter((award) => award.mapId === resolved.mapId)
           .map((award) => award.awardId),
@@ -209,6 +214,7 @@ export default async function LogGamePage({
       headerActions={
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/log-game" />
       }
+      showBanner={false}
       title="Log a Game"
     >
       {importSummary ? (

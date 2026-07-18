@@ -35,6 +35,7 @@ type ReviewGameInput = Partial<
     | 'awardClaims'
     | 'gameId'
     | 'guaranteedMergerOffer'
+    | 'importedPlayerResolutions'
     | 'milestoneClaims'
     | 'mergerOfferRuleSource'
     | 'notes'
@@ -604,6 +605,7 @@ export function buildFinalizedGamePayload(
         catalogSnapshotId: input.catalogSnapshotId,
         guaranteedMergerOffer: input.guaranteedMergerOffer ?? null,
         gameId: input.gameId ?? null,
+        importedPlayerResolutions: input.importedPlayerResolutions ?? [],
         milestoneClaims: input.milestoneClaims,
         milestones,
         mergerOfferRuleSource: input.mergerOfferRuleSource ?? 'unknown',

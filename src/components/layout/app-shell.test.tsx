@@ -68,4 +68,19 @@ describe('AppShell', () => {
 
     expect(screen.getByText(/group switcher/i)).toBeInTheDocument();
   });
+
+  it('supports a compact page treatment without the global image banner', () => {
+    render(
+      <AppShell showBanner={false} title="Log a Game">
+        content
+      </AppShell>,
+    );
+
+    expect(
+      screen.queryByRole('img', { name: /terraforming mars statistics/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /log a game/i }),
+    ).toBeInTheDocument();
+  });
 });

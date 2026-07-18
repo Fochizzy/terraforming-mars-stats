@@ -2,7 +2,10 @@ import { AppShell } from '@/components/layout/app-shell';
 import { LogGameImportShell } from '@/features/imports/log-game-import-shell';
 import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { saveDraftGame } from '@/lib/db/game-draft-repo';
-import { saveGameLogImport } from '@/lib/db/game-import-repo';
+import {
+  saveGameLogImport,
+  saveParsedGameLogEvents,
+} from '@/lib/db/game-import-repo';
 import { correctAndSaveOcrText } from '@/lib/db/ocr-correction-repo';
 import {
   getCurrentGroupContext,
@@ -10,11 +13,34 @@ import {
 } from '@/lib/db/group-context-repo';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
 import {
+  listImportPlayerIdentityCandidates,
+  resolveImportPlayerIdentities,
+} from '@/lib/db/import-player-identity-repo';
+import {
   buildImportDraft,
   type CreateImportDraftInput,
 } from '@/lib/imports/build-import-draft';
-import { listPlayers } from '@/lib/db/player-repo';
-import { listMaps } from '@/lib/db/reference-repo';
+import { listImportGameReferenceCatalog } from '@/lib/db/reference-repo';
+import {
+  TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
+  TERRAFORMING_MARS_LOG_SOURCE_FORMAT,
+  applyImportObjectiveCorrections,
+  parseTerraformingMarsLog,
+} from '@/lib/imports/parse-terraforming-mars-log';
+import { detectImportBoardMapIndependent } from '@/lib/imports/detect-import-board-map-independent';
+import { parseTerraformingMarsTileActions } from '@/lib/imports/parse-terraforming-mars-tile-actions';
+import { buildImportedBoardState } from '@/lib/imports/build-imported-board-state';
+import { classifyImportObjectiveConfiguration } from '@/lib/imports/objective-configuration';
+import { TERRAFORMING_MARS_ENDGAME_OCR_PARSER_IDENTITY } from '@/lib/imports/parse-terraforming-mars-endgame-ocr';
+import {
+  isTerraformingMarsResultPdf,
+  parseTerraformingMarsResultPdf,
+} from '@/lib/imports/parse-terraforming-mars-result-pdf';
+import {
+  applyImportPlayedEntityCorrections,
+  parseTerraformingMarsPlayedEntities,
+} from '@/lib/imports/parse-terraforming-mars-played-entities';
+import { buildTerraformingMarsLogEvents } from '@/lib/imports/build-terraforming-mars-log-events';
 import { pageMetadata } from '@/lib/navigation/route-metadata';
 import { revalidatePath } from 'next/cache';
 
@@ -25,7 +51,7 @@ export default async function LogGameImportPage() {
 
   if (!context) {
     return (
-      <AppShell title="Log a Game">
+      <AppShell showBanner={false} title="Log a Game">
         <section
           aria-labelledby="group-required-heading"
           className="tm-panel max-w-2xl"
@@ -46,10 +72,9 @@ export default async function LogGameImportPage() {
     );
   }
 
-  const [groupSettings, mapOptions, playerOptions] = await Promise.all([
-    getGroupSettings(context.groupId),
-    listMaps(),
-    listPlayers(context.groupId),
+  const [referenceCatalog, playerCandidates] = await Promise.all([
+    listImportGameReferenceCatalog(),
+    listImportPlayerIdentityCandidates(context.groupId),
   ]);
 
   async function handleCreateImportDraft(values: CreateImportDraftInput) {
@@ -57,22 +82,324 @@ export default async function LogGameImportPage() {
 
     const activeContext = await requireCurrentGroupContext();
     const activeGroupSettings = await getGroupSettings(activeContext.groupId);
+    const authoritativeReferenceCatalog =
+      await listImportGameReferenceCatalog();
+    const resultIsPdf = Boolean(
+      values.endgameScreenshot &&
+        isTerraformingMarsResultPdf(values.endgameScreenshot),
+    );
+    const logParse = parseTerraformingMarsLog({
+      catalog: authoritativeReferenceCatalog,
+      exportedLogText: values.exportedGameLog,
+      screenshotOcrText: resultIsPdf ? null : values.rawOcrText,
+    });
+    const playedEntityParse = parseTerraformingMarsPlayedEntities({
+      catalog: authoritativeReferenceCatalog,
+      exportedLogText: values.exportedGameLog,
+    });
+    const reviewedPlayedEntityEvidence = applyImportPlayedEntityCorrections({
+      catalog: authoritativeReferenceCatalog,
+      corrections: values.playedEntityCorrections ?? [],
+      evidence: playedEntityParse.evidence,
+    });
+    const resultPdfParse =
+      values.endgameScreenshot && resultIsPdf
+        ? await parseTerraformingMarsResultPdf({
+            bytes: new Uint8Array(
+              await values.endgameScreenshot.arrayBuffer(),
+            ),
+            catalog: authoritativeReferenceCatalog,
+            playedEntityEvidence: reviewedPlayedEntityEvidence,
+            players: logParse.players,
+          })
+        : null;
+    const originalObjectiveEvidence = [
+      ...logParse.map.evidence,
+      ...(resultPdfParse?.objectiveEvidence ?? []),
+    ];
+    const reviewedObjectiveEvidence = applyImportObjectiveCorrections({
+      catalog: authoritativeReferenceCatalog,
+      corrections: values.objectiveCorrections ?? [],
+      evidence: originalObjectiveEvidence,
+    });
+    const objectiveConfiguration = values.objectiveConfiguration ?? 'unknown';
+    const objectiveConfigurationClass = classifyImportObjectiveConfiguration(
+      objectiveConfiguration,
+    );
+    // Board geometry — the ordered placed/removed tile evidence — is the map
+    // signal. Randomized objectives never infer a map, so the independent
+    // detector takes the importer's objective configuration as a separate input
+    // (see docs/redesign/MASTER-RULES.md map/objective interpretation contract).
+    const tileActionSet = parseTerraformingMarsTileActions(values.exportedGameLog);
+    const reconstructedBoard = buildImportedBoardState(tileActionSet.actions);
+    const mapReview = detectImportBoardMapIndependent({
+      catalog: authoritativeReferenceCatalog,
+      objectiveConfiguration,
+      objectiveEvidence: reviewedObjectiveEvidence,
+      oceanSpaceIds: tileActionSet.oceanSpaceIds,
+    });
+    const parsedPromoSetSlugs = [
+      ...new Set(
+        reviewedPlayedEntityEvidence.flatMap((evidence) =>
+          evidence.promoSetSlug ? [evidence.promoSetSlug] : [],
+        ),
+      ),
+    ].sort();
+    const parsedLogEvents = buildTerraformingMarsLogEvents({
+      exportedLogText: values.exportedGameLog,
+      objectiveEvidence: reviewedObjectiveEvidence,
+      playedEntityEvidence: reviewedPlayedEntityEvidence,
+      tileActions: tileActionSet.actions,
+    });
+    if (
+      playedEntityParse.errors.length > 0 ||
+      reviewedPlayedEntityEvidence.some(
+        (evidence) =>
+          evidence.resolution === 'ambiguous' ||
+          evidence.resolution === 'unknown',
+      ) ||
+      (values.playedEntityCorrections ?? []).some(
+        (correction) =>
+          !reviewedPlayedEntityEvidence.some(
+            (evidence) =>
+              evidence.lineNumber === correction.lineNumber &&
+              evidence.entityType === correction.entityType &&
+              evidence.canonicalId === correction.canonicalId &&
+              evidence.resolution === 'corrected',
+          ),
+      )
+    ) {
+      throw new Error(
+        'Every played corporation, Prelude, and card must be resolved before saving.',
+      );
+    }
+    const selectedMap = authoritativeReferenceCatalog.maps.find(
+      (map) => map.id === values.mapId,
+    );
+    // Every map is selectable, including Hollandia when objectives are
+    // randomized. The confirmed map is rejected only when the reference catalog
+    // is broken, the objective setup is still unconfirmed, board evidence
+    // conflicts with the objective configuration, or the detector is confident
+    // about a different map than the one chosen.
+    if (
+      !selectedMap ||
+      objectiveConfiguration === 'unknown' ||
+      logParse.referenceAudit.blockingIssues.length > 0 ||
+      mapReview.kind === 'conflicting' ||
+      (mapReview.kind === 'confident' &&
+        mapReview.detectedMapId !== null &&
+        mapReview.detectedMapId !== values.mapId)
+    ) {
+      throw new Error(
+        'Confirm the objective setup and a map consistent with the reconstructed board and objective evidence before saving.',
+      );
+    }
+    const selectedMilestoneIds = new Set(
+      objectiveConfigurationClass === 'randomized'
+        ? authoritativeReferenceCatalog.allMilestones.map(
+            (objective) => objective.id,
+          )
+        : authoritativeReferenceCatalog.milestones
+            .filter((relationship) => relationship.mapId === values.mapId)
+            .map((relationship) => relationship.milestoneId),
+    );
+    const selectedAwardIds = new Set(
+      objectiveConfigurationClass === 'randomized'
+        ? authoritativeReferenceCatalog.allAwards.map((objective) => objective.id)
+        : authoritativeReferenceCatalog.awards
+            .filter((relationship) => relationship.mapId === values.mapId)
+            .map((relationship) => relationship.awardId),
+    );
+    const invalidObjectiveEvidence = reviewedObjectiveEvidence.filter(
+      (evidence) =>
+        !evidence.canonicalId ||
+        !(evidence.type === 'milestone'
+          ? selectedMilestoneIds
+          : selectedAwardIds
+        ).has(evidence.canonicalId),
+    );
+    const invalidObjectiveCorrections = (values.objectiveCorrections ?? []).filter(
+      (correction) =>
+        !reviewedObjectiveEvidence.some(
+          (evidence) =>
+            evidence.lineNumber === correction.lineNumber &&
+            evidence.type === correction.type &&
+            (!correction.source || evidence.source === correction.source) &&
+            evidence.canonicalId === correction.canonicalId &&
+            evidence.resolution === 'corrected',
+        ),
+    );
+    if (
+      invalidObjectiveEvidence.length > 0 ||
+      invalidObjectiveCorrections.length > 0
+    ) {
+      throw new Error(
+        objectiveConfigurationClass === 'randomized'
+          ? 'Every imported milestone and award must resolve to a canonical objective before saving.'
+          : 'Every imported milestone and award must be resolved to the confirmed map before saving.',
+      );
+    }
+    const authoritativeGenerationCount =
+      resultPdfParse?.generationCount ?? logParse.generationCount;
+    const authoritativePlayerCount = logParse.playerCount;
+    const authoritativeScoreRows = resultPdfParse?.scoreRows ?? values.scoreRows ?? [];
+    if (!authoritativeGenerationCount || !authoritativePlayerCount) {
+      throw new Error(
+        'The game result evidence and log must identify the generation and every player seat.',
+      );
+    }
+    if (
+      resultPdfParse?.generationCount &&
+      logParse.generationCount &&
+      resultPdfParse.generationCount !== logParse.generationCount
+    ) {
+      throw new Error(
+        'The game result PDF and exported log disagree on the generation count.',
+      );
+    }
+    if (
+      authoritativeScoreRows.length !== authoritativePlayerCount ||
+      authoritativeScoreRows.some((row) =>
+        [
+          row.awardPoints,
+          row.cardPointsTotal,
+          row.citiesPoints,
+          row.finalMegacredits,
+          row.greeneryPoints,
+          row.milestonePoints,
+          row.totalPoints,
+          row.trPoints,
+        ].some((value) => value === null),
+      )
+    ) {
+      throw new Error(
+        'The uploaded result evidence must contain one complete score row for every player.',
+      );
+    }
+    if (values.playerIdentities.length !== authoritativePlayerCount) {
+      throw new Error('Resolve one identity for every imported player seat.');
+    }
+
+    const playerResolutions = await resolveImportPlayerIdentities({
+      groupId: activeContext.groupId,
+      identities: values.playerIdentities,
+      parserIdentity: TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
+      sourceFormat: TERRAFORMING_MARS_LOG_SOURCE_FORMAT,
+    });
     const draftForm = buildImportDraft({
       defaultGuaranteedMergerOffer:
         activeGroupSettings.defaultGuaranteedMergerOffer,
       defaultPromoSetSlugs: activeGroupSettings.defaultPromoSetSlugs,
       groupId: activeContext.groupId,
-      importValues: values,
+      importValues: {
+        ...values,
+        generationCount: authoritativeGenerationCount,
+        objectiveEvidence: reviewedObjectiveEvidence,
+        parsedPromoSetSlugs,
+        playedEntityEvidence: reviewedPlayedEntityEvidence,
+        playerCount: authoritativePlayerCount,
+        resultAwardPlacements: resultPdfParse?.awardPlacements ?? [],
+        resultMilestoneClaims: resultPdfParse?.milestoneClaims ?? [],
+        scoreRows: authoritativeScoreRows,
+      },
+      playerResolutions,
     });
+    if (
+      Object.keys(draftForm.playerScores).length !== authoritativePlayerCount
+    ) {
+      throw new Error(
+        'Every parsed score row must resolve to the preserved imported player ID.',
+      );
+    }
     const draft = await saveDraftGame({
       form: draftForm,
       userId: activeContext.userId,
     });
     const gameLogImport = await saveGameLogImport({
       gameId: draft.gameId,
+      parseMetadata: {
+        confidenceSummary: {
+          generation_count: authoritativeGenerationCount,
+          map: {
+            board_conflicts: reconstructedBoard.conflicts,
+            candidates: mapReview.candidates,
+            corrections: values.objectiveCorrections ?? [],
+            detected_map_id: mapReview.detectedMapId,
+            detected_state: mapReview.kind,
+            map_source: mapReview.mapSource,
+            objective_configuration: objectiveConfiguration,
+            ocean_space_ids: tileActionSet.oceanSpaceIds,
+            original_evidence: originalObjectiveEvidence,
+            reconstructed_board_space_count: reconstructedBoard.spaces.length,
+            reviewed_evidence: reviewedObjectiveEvidence,
+            selected_map_id: values.mapId,
+            tile_actions: tileActionSet.actions,
+            unknown_tile_type_count: tileActionSet.unknownTileTypeCount,
+          },
+          player_count: authoritativePlayerCount,
+          warnings: [...logParse.warnings, ...(resultPdfParse?.warnings ?? [])],
+          played_entities: {
+            corrections: values.playedEntityCorrections ?? [],
+            evidence: reviewedPlayedEntityEvidence,
+            original_evidence: playedEntityParse.evidence,
+            promo_set_slugs: parsedPromoSetSlugs,
+            warnings: playedEntityParse.warnings,
+          },
+        },
+        detectedSource: TERRAFORMING_MARS_LOG_SOURCE_FORMAT,
+        parseStatus:
+          logParse.errors.length > 0
+            ? 'parsed_with_errors'
+            : logParse.warnings.length > 0
+              ? 'parsed_needs_review'
+              : 'parsed_setup_fields',
+        parserVersion: TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
+        screenshot: values.endgameScreenshot
+          ? {
+              confidenceSummary: {
+                mean_confidence: values.ocrConfidence,
+                score_row_states: authoritativeScoreRows.map((row) => ({
+                  normalized_player_name: row.normalizedPlayerName,
+                  state: row.status,
+                  unsupported_component_count: row.unsupportedComponentCount,
+                })),
+              },
+              detectedLayout: resultPdfParse
+                ? 'terraforming_mars_result_pdf_text_layer'
+                : authoritativeScoreRows.every(
+                      (row) => row.status === 'exact_base_layout',
+                    )
+                  ? 'terraforming_mars_base_endgame_score_table'
+                  : 'terraforming_mars_endgame_score_table_needs_review',
+              extractedFields: {
+                award_placements: resultPdfParse?.awardPlacements ?? [],
+                generation_count: authoritativeGenerationCount,
+                global_parameters: resultPdfParse?.globalParameters ?? [],
+                milestone_claims: resultPdfParse?.milestoneClaims ?? [],
+                raw_result_text: resultPdfParse?.rawText ?? values.rawOcrText,
+                score_rows: authoritativeScoreRows,
+              },
+              ocrEngineVersion:
+                resultPdfParse?.parserIdentity ??
+                TERRAFORMING_MARS_ENDGAME_OCR_PARSER_IDENTITY,
+              parseStatus: authoritativeScoreRows.every(
+                (row) => row.status === 'exact_base_layout',
+              )
+                ? 'parsed_needs_verification'
+                : 'parsed_needs_correction',
+            }
+          : undefined,
+        validationErrors: logParse.errors,
+        unparsedLineCount: parsedLogEvents.unparsedLineCount,
+      },
+      playerResolutions,
       rawLogText: values.exportedGameLog,
       screenshotFile: values.endgameScreenshot,
       userId: activeContext.userId,
+    });
+    await saveParsedGameLogEvents({
+      events: parsedLogEvents.events,
+      gameLogImportId: gameLogImport.id,
     });
 
     let ocr:
@@ -85,7 +412,7 @@ export default async function LogGameImportPage() {
       | null = null;
     let ocrWarning: string | null = null;
 
-    if (values.rawOcrText?.trim()) {
+    if (!resultPdfParse && values.rawOcrText?.trim()) {
       try {
         const result = await correctAndSaveOcrText({
           engineName: 'tesseract.js',
@@ -121,7 +448,7 @@ export default async function LogGameImportPage() {
         ocrWarning =
           'The import was saved, but its recognized screenshot text could not be processed.';
       }
-    } else if (values.endgameScreenshot) {
+    } else if (values.endgameScreenshot && !resultIsPdf) {
       ocrWarning =
         'The import was saved, but no readable screenshot text was available.';
     }
@@ -150,18 +477,14 @@ export default async function LogGameImportPage() {
           returnPath="/log-game/import"
         />
       }
+      showBanner={false}
       title="Log a Game"
     >
       <LogGameImportShell
         groupName={context.groupName}
-        initialValues={{
-          generationCount: 10,
-          mapId: groupSettings.defaultMapId ?? mapOptions[0]?.id ?? '',
-          playedOn: new Date().toISOString().slice(0, 10),
-          playerCount: Math.min(Math.max(playerOptions.length || 2, 1), 5),
-        }}
-        mapOptions={mapOptions}
         onCreateImportDraft={handleCreateImportDraft}
+        playerCandidates={playerCandidates}
+        referenceCatalog={referenceCatalog}
       />
     </AppShell>
   );

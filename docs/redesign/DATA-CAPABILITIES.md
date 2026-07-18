@@ -845,3 +845,107 @@ not begin asset inventory. Local SQL tests are primarily schema/object
 verification and do not prove production row coverage or every formula result.
 Application tests were not rerun because the change is documentation-only and
 the recorded baseline is healthy.
+
+---
+
+# Phase 4, Step 4.3 addendum — import catalog, map, tile, and objective capability (2026-07-18)
+
+This addendum records the Step 4.3 import catalog, map-detection, tile, and
+objective capabilities. It follows the same evidence-based rule as the Phase 0
+audit: only formats, maps, tiles, and languages actually parsed and tested are
+claimed as supported. Nothing here is fabricated to match a product label.
+
+## Fixture matrix (real / sanitized / synthetic)
+
+| Fixture | Location | Kind | Status |
+| --- | --- | --- | --- |
+| Real result PDF text layer | Two real result PDFs in the operator's Downloads (recorded in the prior Step 4.3 handoff) | Real, private | Parser verified against them; **not committed** to the repository |
+| Result-PDF builder helper | `src/lib/imports/fixtures/build-test-pdf.ts` | Synthetic generator | Committed |
+| Current flat-ID tile logs (`at NN`, Moon `mNN`) | Inline in `parse-terraforming-mars-tile-actions.test.ts`, `build-imported-board-state.test.ts`, `build-terraforming-mars-log-events.test.ts` | Synthetic | Committed, passing |
+| Historical grid tile logs (`on row R position P`) | Inline in the tile-action and board-state tests | Synthetic | Committed, passing |
+| Ocean-fingerprint map cases (real placed-ocean sets) | `detect-import-board-map.test.ts`, `detect-import-board-map-independent.test.ts` | Ocean sets validated against real logs/fingerprints | Committed, passing |
+| Randomized-objective evidence | `detect-import-board-map*.test.ts` | Synthetic (labelled) | Committed, passing |
+
+Open gap: privacy-sanitized **committed** real-export fixtures for current
+flat-ID and historical grid coordinates are not yet added. The parser is
+evidence-verified against real private PDFs and against synthetic fixtures for
+both tile formats, but no sanitized real tile-export fixture is checked in. This
+remains deferred Step 4.3 work; see `REDESIGN_STATE.md`.
+
+## Map capability matrix
+
+Eleven maps exist in production. Ten have complete fixed objective sets (exactly
+five milestones and five awards each, all relationship foreign keys resolving);
+Hollandia has zero fixed relationships and is randomized-only. Every map has an
+ocean-reserved-space fingerprint (`map-ocean-fingerprints.ts`).
+
+| Map | Fixed objectives | Ocean fingerprint | Board-defined import | Randomized import | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Tharsis | Yes (5/5) | Yes | Supported | Supported | Never used as a silent default |
+| Hellas | Yes (5/5) | Yes | Supported | Supported | |
+| Elysium | Yes (5/5) | Yes | Supported | Supported | |
+| Amazonis Planitia | Yes (5/5) | Yes | Supported | Supported | Printed objective aliases pending (see gaps) |
+| Arabia Terra | Yes (5/5) | Yes | Supported | Supported | |
+| Terra Cimmeria | Yes (5/5) | Yes | Supported | Supported | Board identical to Terra Cimmeria Nova; objectives disambiguate |
+| Terra Cimmeria Nova | Yes (5/5) | Yes | Supported | Supported | Board identical to Terra Cimmeria; objectives disambiguate |
+| Vastitas Borealis | Yes (5/5) | Yes | Supported | Supported | |
+| Vastitas Borealis Nova | Yes (5/5) | Yes | Supported | Supported | |
+| Utopia Planitia | Yes (5/5) | Yes | Supported | Supported | |
+| Hollandia | No (0/0) | Yes (`randomizedUnsupported: true`) | Conflict — rejected | Supported | Supported only with confirmed randomized objectives |
+
+## Board-defined versus randomized objectives
+
+- `board_defined` — the game used its map's fixed milestone and award set.
+  Objectives are validated against the confirmed map's relationship set. Manual
+  Entry is always `board_defined`.
+- `randomized_limited` / `randomized_full` / `randomized_unspecified` — the game
+  used randomized objectives. Objectives are validated against the global
+  canonical objective catalog, never a single map's set, and are never used to
+  infer the map. Hollandia requires this mode.
+- `unknown` — the importer has not confirmed the setup. A draft may hold this
+  state during review, but a save is rejected until it is confirmed.
+
+The exported log does not state which setup was used, so it is an explicit
+importer input; it is never inferred from the detected map.
+
+## Format support (current / historical / partial / malformed)
+
+| Format | Support | Evidence |
+| --- | --- | --- |
+| Current flat space IDs (`... placed an ocean tile at 34`) | Supported | Tile-action parser + tests |
+| Moon spaces (`... at m05`) | Supported as a distinct Moon board layer | Tile-action parser + tests |
+| Historical grid coordinates (`... on row 5 position 3`) | Supported | Tile-action parser + tests |
+| Removals (`... removed a tile at NN`) | Supported, order-preserving | Board-state reconstruction + tests |
+| Unknown / future tile labels | Retained visible as `isKnownTileType: false` | Tile-type registry + tests |
+| Partial evidence (missing oceans or objectives) | Detector returns `ambiguous`/`missing`; importer confirms the map | Independent detector + tests |
+| Malformed / conflicting placements | Retained as reviewable board conflicts, not discarded | `build-imported-board-state.ts` conflicts + tests |
+
+## Language support
+
+Support is evidence-based and currently **English only**. The log and result
+parsers key on English tokens (`Good luck ...!`, `Generation N`, `... placed ...
+tile ...`, `... removed ...`, `... claimed ... milestone`, `... funded ...
+award`, `... played ...`). No other language is parsed or tested, so no other
+language is claimed as supported. Additional languages must be added with real
+evidence, never assumed.
+
+## Tile catalog
+
+The tile parser resolves 45 canonical tile labels from
+`terraforming-mars-tile-types.ts`, audited at upstream commit
+`7a6f98f09ac2a558969c092d317c313806af7b73`: three standard Mars tiles (greenery,
+ocean, city) plus 42 special tiles, seven of which are Moon-board tiles. The
+Supabase `public.terraforming_mars_tile_types` table stores the same 45 upstream
+`TileType` values (numeric IDs 0..44) with authenticated read-only access; the
+live catalog snapshot recorded 45 tile types. Unknown future labels are never
+collapsed into a known tile.
+
+## Explicit gaps
+
+- Seven upstream expansion milestones (Hoverlord, Networker, Purifier, One Giant
+  Step, Lunarchitect, Risktaker, Tunneler) are absent from the objective catalog.
+  A randomized game that used one cannot resolve it until a separately approved,
+  source-backed objective sync inserts it. No ID or alias is invented.
+- Committed privacy-sanitized real tile-export fixtures are not yet added (above).
+- Objective-alias reference data (printed short forms such as `Amazonis
+  Engineer` -> `A. Engineer`) remains a separately gated data-only migration.

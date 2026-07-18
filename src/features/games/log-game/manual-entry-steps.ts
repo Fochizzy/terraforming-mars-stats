@@ -43,6 +43,7 @@ export const MANUAL_ENTRY_STEPS: readonly ManualEntryStepDefinition[] = [
     formSections: [
       'playedOn',
       'mapId',
+      'objectiveConfiguration',
       'playerCount',
       'generationCount',
       'promoSetSlugs',

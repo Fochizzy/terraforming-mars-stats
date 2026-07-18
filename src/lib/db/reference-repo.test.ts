@@ -14,6 +14,7 @@ describe('listCardLookupRecords', () => {
   it('loads all catalog records with stable IDs and resolves promo metadata in one batch', async () => {
     const cardsQuery = {
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({
         data: [
           {
@@ -100,6 +101,9 @@ describe('listCardLookupRecords', () => {
     expect(cardsQuery.select).toHaveBeenCalledWith(
       expect.stringContaining('gameplay_tags'),
     );
+    // The Card Database reads only the visible catalog, so superseded upstream
+    // duplicate rows never surface (see the catalog reconciliation migration).
+    expect(cardsQuery.eq).toHaveBeenCalledWith('is_catalog_visible', true);
     expect(cardsQuery.order).toHaveBeenCalledWith('card_name');
     expect(promoSetsQuery.in).toHaveBeenCalledWith('id', ['promo-1']);
   });
@@ -107,6 +111,7 @@ describe('listCardLookupRecords', () => {
   it('does not request promo sets when there are no promo cards', async () => {
     const cardsQuery = {
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
     const client = { from: vi.fn(() => cardsQuery) };

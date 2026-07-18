@@ -38,6 +38,19 @@ describe('getDraftGameForm', () => {
             gameId: 'game-1',
             generationCount: 11,
             groupId: '11111111-1111-4111-8111-111111111111',
+            importedPlayerResolutions: [
+              {
+                decision: 'reused',
+                identityMode: 'personal_name',
+                normalizedImportedValue: 'known private name',
+                parserIdentity: 'manual-web-import-v1',
+                selectedPlayerId: '22222222-2222-4222-8222-222222222222',
+                sourceFormat: 'manual_web_import',
+                sourcePlayerText: 'Known Private Name',
+                state: 'existing_unlinked_guest',
+                valueSource: 'user_corrected',
+              },
+            ],
             mapId: 'tharsis',
             milestoneClaims: {},
             notes: 'Imported evidence',
@@ -47,7 +60,9 @@ describe('getDraftGameForm', () => {
             playerSelections: {},
             playerStyles: {},
             promoSetSlugs: [],
-            selectedPlayerIds: [],
+            selectedPlayerIds: [
+              '22222222-2222-4222-8222-222222222222',
+            ],
           },
         },
         error: null,
@@ -87,9 +102,17 @@ describe('getDraftGameForm', () => {
     expect(loaded).toMatchObject({
       gameId: 'game-1',
       generationCount: 11,
+      importedPlayerResolutions: [
+        {
+          selectedPlayerId: '22222222-2222-4222-8222-222222222222',
+          sourcePlayerText: 'Known Private Name',
+          state: 'existing_unlinked_guest',
+        },
+      ],
       mapId: 'tharsis',
       playedOn: '2026-07-04',
       playerCount: 3,
+      selectedPlayerIds: ['22222222-2222-4222-8222-222222222222'],
     });
     expect(loaded).not.toHaveProperty('expansionCodes');
 
@@ -202,6 +225,7 @@ describe('finalizeGameLog', () => {
           guaranteedMergerOffer: true,
           groupId: '11111111-1111-4111-8111-111111111111',
           mapId: 'tharsis',
+          objectiveConfiguration: 'board_defined',
           mergerOfferRuleSource: 'group_default',
           milestoneClaims: {},
           notes: '',

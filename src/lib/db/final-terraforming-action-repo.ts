@@ -1,4 +1,9 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import {
+  buildPublicPlayerNameMap,
+  getPublicPlayerNames,
+  PRIVACY_SAFE_PLAYER_FALLBACK,
+} from './public-player-name-repo';
 
 export type FinalTerraformingActionScope = 'global' | 'group' | 'personal';
 
@@ -34,5 +39,15 @@ export async function getFinalTerraformingActionStats(input: {
     throw error;
   }
 
-  return Array.isArray(data) ? (data as FinalTerraformingActionStat[]) : [];
+  const rows = Array.isArray(data) ? (data as FinalTerraformingActionStat[]) : [];
+  const publicNameByPlayerId = buildPublicPlayerNameMap(
+    await getPublicPlayerNames(rows.map((row) => row.player_id)),
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    player_name:
+      publicNameByPlayerId.get(row.player_id) ??
+      PRIVACY_SAFE_PLAYER_FALLBACK,
+  }));
 }

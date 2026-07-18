@@ -196,7 +196,11 @@ describe('manual entry step registry', () => {
 
   it('associates every persisted form field with exactly one step', () => {
     const schemaFields = Object.keys(logGameDraftSchema.shape);
-    const workflowIdentityFields = ['gameId', 'groupId'];
+    const workflowIdentityFields = [
+      'gameId',
+      'groupId',
+      'importedPlayerResolutions',
+    ];
 
     for (const field of schemaFields) {
       const stepId = resolveManualEntryStepForFieldPath(field);

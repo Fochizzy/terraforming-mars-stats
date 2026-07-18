@@ -1,109 +1,286 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { ImportGameReferenceCatalog } from '@/lib/db/reference-repo';
 import { WebImportPage } from './web-import-page';
 
-vi.mock('@/lib/ocr/browser-tesseract', () => ({
-  recognizeScreenshotInBrowser: vi.fn().mockResolvedValue({
-    confidence: 0.98,
-    text: 'Friday Mars won by 6 points.',
-  }),
-}));
+const playerCandidates = [
+  {
+    firstName: null,
+    guestUsername: null,
+    id: '11111111-1111-4111-8111-111111111111',
+    identityMode: null,
+    isAccessible: true,
+    isLinked: true,
+    lastName: null,
+    normalizedPersonalName: null,
+    normalizedUsername: 'fridaymars',
+    publicName: 'FridayMars',
+  },
+  {
+    firstName: null,
+    guestUsername: null,
+    id: '22222222-2222-4222-8222-222222222222',
+    identityMode: 'legacy' as const,
+    isAccessible: true,
+    isLinked: false,
+    lastName: null,
+    normalizedPersonalName: null,
+    normalizedUsername: null,
+    publicName: 'Second Seat',
+  },
+  {
+    firstName: null,
+    guestUsername: null,
+    id: '33333333-3333-4333-8333-333333333333',
+    identityMode: 'legacy' as const,
+    isAccessible: true,
+    isLinked: false,
+    lastName: null,
+    normalizedPersonalName: null,
+    normalizedUsername: null,
+    publicName: 'Third Seat',
+  },
+];
+
+const referenceCatalog: ImportGameReferenceCatalog = {
+  aliases: [],
+  allAwards: ['Landlord', 'Scientist', 'Banker', 'Thermalist', 'Miner'].map(
+    (name) => ({ id: `award-${name}`, name }),
+  ),
+  allMilestones: ['Terraformer', 'Mayor', 'Gardener', 'Builder', 'Planner'].map(
+    (name) => ({ id: `milestone-${name}`, name }),
+  ),
+  awards: ['Landlord', 'Scientist', 'Banker', 'Thermalist', 'Miner'].map(
+    (name) => ({
+      awardId: `award-${name}`,
+      awardName: name,
+      mapId: 'map-tharsis',
+    }),
+  ),
+  cards: [
+    {
+      cardName: 'Directed Impactors',
+      cardNumber: 'X42',
+      expansionCode: 'promo',
+      id: 'card-directed-impactors',
+      promoSetSlug: '2022-promos',
+    },
+  ],
+  corporations: [],
+  entityAliases: [],
+  maps: [{ code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' }],
+  milestones: ['Terraformer', 'Mayor', 'Gardener', 'Builder', 'Planner'].map(
+    (name) => ({
+      mapId: 'map-tharsis',
+      milestoneId: `milestone-${name}`,
+      milestoneName: name,
+    }),
+  ),
+  preludes: [],
+};
+
+const exportedLog = [
+  'Good luck FridayMars!',
+  'Good luck Second Seat!',
+  'Good luck Third Seat!',
+  'Generation 1',
+  'Generation 12',
+  'FridayMars claimed Mayor milestone',
+  'Second Seat funded Scientist award',
+].join('\n');
+
+vi.mock('@/lib/ocr/browser-tesseract', () => {
+  const rows = [
+    ['FridayMars', '40', '5', '5', '12', '8', '20', '90', '12'],
+    ['Second', 'Seat', '39', '5', '5', '10', '7', '19', '85', '10'],
+    ['Third', 'Seat', '38', '5', '5', '9', '6', '17', '80', '8'],
+  ];
+  return {
+    recognizeScreenshotInBrowser: vi.fn().mockResolvedValue({
+      confidence: 0.98,
+      text: 'Victory point breakdown after 12 generations',
+      words: rows.flatMap((row, rowIndex) =>
+        row.map((text, wordIndex) => ({
+          confidence: 0.98,
+          height: 20,
+          left: wordIndex * 100,
+          lineKey: String(rowIndex),
+          text,
+          top: rowIndex * 30,
+          width: 80,
+        })),
+      ),
+    }),
+  };
+});
+
+function renderPage(onStartImport = vi.fn()) {
+  return render(
+    <WebImportPage
+      groupName="Friday Group"
+      playerCandidates={playerCandidates}
+      referenceCatalog={referenceCatalog}
+      onStartImport={onStartImport}
+    />,
+  );
+}
 
 describe('WebImportPage', () => {
-  it('renders the protected import workflow fields', () => {
-    render(
-      <WebImportPage
-        groupName="Friday Group"
-        initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
-          playedOn: '2026-07-03',
-          playerCount: 4,
-        }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
-        onStartImport={vi.fn()}
-      />,
-    );
+  it('asks only for result evidence and the complete log before detection', () => {
+    renderPage();
+
+    expect(screen.getByLabelText(/end-game screenshot/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/complete exported game log/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^played on$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^map$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^player count$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^generation count$/i)).not.toBeInTheDocument();
+  });
+
+  it('links the game-log guide and explains that objective setup is independent of map detection', () => {
+    renderPage();
 
     expect(
-      screen.getByRole('heading', { name: /import game/i }),
-    ).toBeInTheDocument();
+      screen.getByRole('link', { name: /how to get your game log/i }),
+    ).toHaveAttribute('href', '/import-instructions');
     expect(
-      screen.getByLabelText(/exported game log/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(/endgame screenshot/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /save import draft/i }),
+      screen.getByText(
+        /randomized objectives remain independent from map detection/i,
+      ),
     ).toBeInTheDocument();
   });
 
-  it('submits the structured import draft payload', async () => {
+  it('derives setup and exact player matches, then submits verified evidence', async () => {
     const user = userEvent.setup();
     const onStartImport = vi.fn().mockResolvedValue({
       status: 'success' as const,
       message: 'Import draft saved.',
     });
-
-    render(
-      <WebImportPage
-        groupName="Friday Group"
-        initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
-          playedOn: '2026-07-03',
-          playerCount: 4,
-        }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
-        onStartImport={onStartImport}
-      />,
-    );
-
-    await user.clear(screen.getByLabelText(/played on/i));
-    await user.type(screen.getByLabelText(/played on/i), '2026-07-04');
-    await user.selectOptions(screen.getByLabelText(/map/i), 'elysium');
-    await user.selectOptions(screen.getByLabelText(/player count/i), '3');
-    await user.clear(screen.getByLabelText(/generation count/i));
-    await user.type(screen.getByLabelText(/generation count/i), '12');
-    await user.type(
-      screen.getByLabelText(/exported game log/i),
-      'Friday Mars won by 6 points.',
-    );
+    renderPage(onStartImport);
 
     const screenshot = new File(['evidence'], 'endgame.png', {
+      lastModified: new Date(2026, 6, 4).getTime(),
       type: 'image/png',
     });
 
-    await user.upload(screen.getByLabelText(/endgame screenshot/i), screenshot);
+    await user.upload(screen.getByLabelText(/end-game screenshot/i), screenshot);
+    fireEvent.change(screen.getByLabelText(/complete exported game log/i), {
+      target: { value: exportedLog },
+    });
+
+    // The importer confirms the objective setup; board-defined objectives then
+    // identify the map, so no ocean evidence is needed for this fixture.
+    await user.selectOptions(
+      await screen.findByLabelText(/objective setup/i),
+      'board_defined',
+    );
+
+    expect(
+      await screen.findByLabelText(/detected map — verify or correct/i),
+    ).toHaveValue('map-tharsis');
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(
+      screen.getByText(/linked registered player: FridayMars/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/existing unlinked guest confirmed: Second Seat/i),
+    ).toBeInTheDocument();
+
     await user.click(
-      await screen.findByRole('button', { name: /save import draft/i }),
+      screen.getByRole('button', { name: /save verified import draft/i }),
     );
 
     await waitFor(() =>
-      expect(onStartImport).toHaveBeenCalledWith({
+      expect(onStartImport).toHaveBeenCalledWith(expect.objectContaining({
         endgameScreenshot: screenshot,
-        exportedGameLog: 'Friday Mars won by 6 points.',
+        exportedGameLog: exportedLog,
         generationCount: 12,
-        mapId: 'elysium',
+        mapId: 'map-tharsis',
+        objectiveConfiguration: 'board_defined',
         ocrConfidence: 0.98,
         playedOn: '2026-07-04',
+        playerIdentities: playerCandidates.map((candidate) => ({
+          mode: 'existing_player',
+          selectedPlayerId: candidate.id,
+          sourcePlayerText: candidate.publicName,
+          valueSource: 'imported',
+        })),
         playerCount: 3,
-        rawOcrText: 'Friday Mars won by 6 points.',
-      }),
+        rawOcrText: 'Victory point breakdown after 12 generations',
+        scoreRows: expect.arrayContaining([
+          expect.objectContaining({
+            normalizedPlayerName: 'fridaymars',
+            totalPoints: 90,
+          }),
+        ]),
+      })),
     );
 
     expect(screen.getByText(/import draft saved/i)).toBeInTheDocument();
+  });
 
-    const beforeUnload = new Event('beforeunload', { cancelable: true });
-    window.dispatchEvent(beforeUnload);
-    expect(beforeUnload.defaultPrevented).toBe(false);
+  it('corrects unknown objectives and played cards from canonical review lists', async () => {
+    const user = userEvent.setup();
+    const onStartImport = vi.fn().mockResolvedValue({
+      status: 'success' as const,
+      message: 'Import draft saved.',
+    });
+    renderPage(onStartImport);
+
+    const screenshot = new File(['evidence'], 'corrected-endgame.png', {
+      lastModified: new Date(2026, 6, 5).getTime(),
+      type: 'image/png',
+    });
+    const logWithUnknownValues = [
+      'Good luck FridayMars!',
+      'Generation 12',
+      'FridayMars claimed Mayor milestone',
+      'FridayMars funded Imaginary Award award',
+      'FridayMars played Totally Unknown Card',
+    ].join('\n');
+
+    await user.upload(screen.getByLabelText(/end-game screenshot/i), screenshot);
+    fireEvent.change(screen.getByLabelText(/complete exported game log/i), {
+      target: { value: logWithUnknownValues },
+    });
+    await user.selectOptions(
+      await screen.findByLabelText(/objective setup/i),
+      'board_defined',
+    );
+    await user.selectOptions(
+      await screen.findByLabelText(/correct award imaginary award/i),
+      'award-Scientist',
+    );
+    await user.selectOptions(
+      screen.getByLabelText(/correct played value totally unknown card/i),
+      'card:card-directed-impactors',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /save verified import draft/i }),
+    );
+
+    await waitFor(() =>
+      expect(onStartImport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          objectiveCorrections: [
+            {
+              canonicalId: 'award-Scientist',
+              lineNumber: 4,
+              source: 'exported_log',
+              type: 'award',
+            },
+          ],
+          playedEntityCorrections: [
+            {
+              canonicalId: 'card-directed-impactors',
+              entityType: 'card',
+              lineNumber: 5,
+            },
+          ],
+        }),
+      ),
+    );
   });
 });

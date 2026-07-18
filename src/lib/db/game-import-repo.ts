@@ -2,6 +2,8 @@ import { getServerEnv } from '@/lib/env';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { buildImportEvidencePath } from '@/lib/imports/build-import-evidence-path';
 import { refreshGameMetricSnapshots } from './metric-refresh-repo';
+import type { ImportedPlayerResolution } from '@/lib/player-identity/guest-identity';
+import type { ParsedGameLogEvent } from '@/lib/imports/build-terraforming-mars-log-events';
 
 export type GameLogImportSummary = {
   createdAt: string;
@@ -23,6 +25,22 @@ export type SaveGameLogTagSummaryInput = {
   tagCount: number;
   totalTagCount: number;
   unresolvedCardCount: number;
+};
+
+export type SaveGameLogImportParseMetadata = {
+  confidenceSummary?: Record<string, unknown>;
+  detectedSource: string;
+  parseStatus: string;
+  parserVersion: string;
+  screenshot?: {
+    confidenceSummary: Record<string, unknown>;
+    detectedLayout: string | null;
+    extractedFields: Record<string, unknown>;
+    ocrEngineVersion: string;
+    parseStatus: string;
+  };
+  unparsedLineCount?: number;
+  validationErrors?: string[];
 };
 
 type RawGameLogImportSummaryRow = {
@@ -57,6 +75,8 @@ function countImportLines(rawLogText: string) {
 
 export async function saveGameLogImport(input: {
   gameId: string;
+  parseMetadata?: SaveGameLogImportParseMetadata;
+  playerResolutions?: ImportedPlayerResolution[];
   rawLogText: string;
   screenshotFile: File | null;
   userId: string;
@@ -88,25 +108,70 @@ export async function saveGameLogImport(input: {
   const { data, error } = await supabase
     .from('game_log_imports')
     .insert({
-      confidence_summary: {},
+      confidence_summary: {
+        ...(input.parseMetadata?.confidenceSummary ?? {}),
+        player_identity_resolutions: (input.playerResolutions ?? []).map(
+          (resolution) => ({
+            decision: resolution.decision,
+            identity_mode: resolution.identityMode,
+            normalized_imported_value:
+              resolution.normalizedImportedValue,
+            parser_identity: resolution.parserIdentity,
+            selected_player_id: resolution.selectedPlayerId,
+            source_format: resolution.sourceFormat,
+            source_player_text: resolution.sourcePlayerText,
+            state: resolution.state,
+            value_source: resolution.valueSource,
+          }),
+        ),
+      },
       created_by_user_id: input.userId,
-      detected_source: 'manual_web_import',
+      detected_source:
+        input.parseMetadata?.detectedSource ?? 'manual_web_import',
       game_id: input.gameId,
       line_count: lineCount,
-      parse_status: 'saved_as_draft',
-      parser_version: 'manual-web-import-v1',
+      parse_status: input.parseMetadata?.parseStatus ?? 'saved_as_draft',
+      parser_version:
+        input.parseMetadata?.parserVersion ?? 'manual-web-import-v1',
       raw_log_text: normalizedRawLogText,
       screenshot_mime_type: input.screenshotFile?.type || null,
       screenshot_object_path: screenshotObjectPath,
       screenshot_original_name: input.screenshotFile?.name || null,
       screenshot_size_bytes: input.screenshotFile?.size ?? null,
-      unparsed_line_count: lineCount,
+      unparsed_line_count:
+        input.parseMetadata?.unparsedLineCount ?? lineCount,
+      validation_errors: input.parseMetadata?.validationErrors ?? [],
     })
     .select('id')
     .single();
 
   if (error) {
     throw error;
+  }
+
+  if (screenshotObjectPath && input.parseMetadata?.screenshot) {
+    const screenshot = input.parseMetadata.screenshot;
+    const { error: screenshotError } = await supabase
+      .from('game_result_screenshot_imports')
+      .insert({
+        confidence_summary: screenshot.confidenceSummary,
+        created_by_user_id: input.userId,
+        detected_layout: screenshot.detectedLayout,
+        extracted_fields: screenshot.extractedFields,
+        game_id: input.gameId,
+        game_log_import_id: data.id,
+        mime_type: input.screenshotFile?.type || null,
+        ocr_engine_version: screenshot.ocrEngineVersion,
+        original_name: input.screenshotFile?.name || null,
+        parse_status: screenshot.parseStatus,
+        parsed_at: new Date().toISOString(),
+        storage_object_path: screenshotObjectPath,
+        file_size_bytes: input.screenshotFile?.size ?? null,
+      });
+
+    if (screenshotError) {
+      throw screenshotError;
+    }
   }
 
   return {
@@ -165,6 +230,24 @@ export async function validateGameLogImport(gameLogImportId: string) {
     throw error;
   }
 
+  return data;
+}
+
+export async function saveParsedGameLogEvents(input: {
+  events: ParsedGameLogEvent[];
+  gameLogImportId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('replace_game_log_events', {
+    p_events: input.events,
+    p_game_log_import_id: input.gameLogImportId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  await validateGameLogImport(input.gameLogImportId);
   return data;
 }
 

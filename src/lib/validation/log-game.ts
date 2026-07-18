@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { MERGER_OFFER_RULE_SOURCES } from '@/lib/merger/merger-rule-snapshot';
+import { importedPlayerResolutionSchema } from '@/lib/player-identity/guest-identity';
+import { IMPORT_OBJECTIVE_CONFIGURATIONS } from '@/lib/imports/objective-configuration';
 
 function sanitizeString(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
@@ -139,10 +141,16 @@ export const logGameDraftSchema = z.object({
   mapId: z.string(),
   playerCount: z.number().min(1).max(5),
   generationCount: z.number().min(1),
+  objectiveConfiguration: z
+    .enum(IMPORT_OBJECTIVE_CONFIGURATIONS)
+    .default('board_defined'),
   guaranteedMergerOffer: z.boolean().nullable().default(null),
   mergerOfferRuleSource: z.enum(MERGER_OFFER_RULE_SOURCES).default('unknown'),
   promoSetSlugs: z.array(z.string()).default([]),
   selectedPlayerIds: z.array(z.string()).default([]),
+  importedPlayerResolutions: z
+    .array(importedPlayerResolutionSchema)
+    .optional(),
   notes: z.string().default(''),
   playerSelections: z
     .record(z.string(), playerSelectionSchema)

@@ -1,33 +1,103 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ImportGameReferenceCatalog } from '@/lib/db/reference-repo';
 import { LogGameImportShell } from './log-game-import-shell';
 
-const navigationMocks = vi.hoisted(() => ({
-  push: vi.fn(),
-}));
+const playerCandidates = [
+  {
+    firstName: null,
+    guestUsername: null,
+    id: '11111111-1111-4111-8111-111111111111',
+    identityMode: null,
+    isAccessible: true,
+    isLinked: true,
+    lastName: null,
+    normalizedPersonalName: null,
+    normalizedUsername: 'fridaymars',
+    publicName: 'FridayMars',
+  },
+];
+
+const referenceCatalog: ImportGameReferenceCatalog = {
+  aliases: [],
+  allAwards: ['Landlord', 'Scientist', 'Banker', 'Thermalist', 'Miner'].map(
+    (name) => ({ id: `award-${name}`, name }),
+  ),
+  allMilestones: ['Terraformer', 'Mayor', 'Gardener', 'Builder', 'Planner'].map(
+    (name) => ({ id: `milestone-${name}`, name }),
+  ),
+  awards: ['Landlord', 'Scientist', 'Banker', 'Thermalist', 'Miner'].map(
+    (name) => ({ awardId: `award-${name}`, awardName: name, mapId: 'map-tharsis' }),
+  ),
+  cards: [],
+  corporations: [],
+  entityAliases: [],
+  maps: [{ code: 'tharsis', id: 'map-tharsis', name: 'Tharsis' }],
+  milestones: ['Terraformer', 'Mayor', 'Gardener', 'Builder', 'Planner'].map(
+    (name) => ({
+      mapId: 'map-tharsis',
+      milestoneId: `milestone-${name}`,
+      milestoneName: name,
+    }),
+  ),
+  preludes: [],
+};
+
+const exportedLog = [
+  'Good luck FridayMars!',
+  'Generation 1',
+  'Generation 12',
+  'FridayMars claimed Mayor milestone',
+  'FridayMars funded Scientist award',
+].join('\n');
+
+const navigationMocks = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: navigationMocks.push,
-  }),
+  useRouter: () => ({ push: navigationMocks.push }),
 }));
 
 vi.mock('@/lib/ocr/browser-tesseract', () => ({
   recognizeScreenshotInBrowser: vi.fn().mockResolvedValue({
     confidence: 0.98,
-    text: 'Friday Mars won by 6 points.',
+    text: 'Victory point breakdown after 12 generations',
+    words: ['FridayMars', '40', '5', '5', '12', '8', '20', '90', '12'].map(
+      (text, index) => ({
+        confidence: 0.98,
+        height: 20,
+        left: index * 100,
+        lineKey: '1',
+        text,
+        top: 30,
+        width: 80,
+      }),
+    ),
   }),
 }));
+
+function renderShell(
+  onCreateImportDraft: Parameters<typeof LogGameImportShell>[0]['onCreateImportDraft'],
+) {
+  return render(
+    <LogGameImportShell
+      groupName="Friday Group"
+      playerCandidates={playerCandidates}
+      referenceCatalog={referenceCatalog}
+      onCreateImportDraft={onCreateImportDraft}
+    />,
+  );
+}
 
 describe('LogGameImportShell', () => {
   beforeEach(() => {
     navigationMocks.push.mockReset();
   });
 
-  it('creates a draft and routes into the shared log-game flow', async () => {
+  it('creates a parsed draft and routes into the shared verification flow', async () => {
     const user = userEvent.setup();
     const screenshotFile = new File(['evidence'], 'endgame.png', {
+      lastModified: new Date(2026, 6, 4).getTime(),
       type: 'image/png',
     });
     const onCreateImportDraft = vi.fn().mockResolvedValue({
@@ -35,54 +105,44 @@ describe('LogGameImportShell', () => {
       gameId: 'game-1',
       message: 'Import draft saved.',
     });
+    renderShell(onCreateImportDraft);
 
-    render(
-      <LogGameImportShell
-        groupName="Friday Group"
-        initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
-          playedOn: '2026-07-03',
-          playerCount: 4,
-        }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
-        onCreateImportDraft={onCreateImportDraft}
-      />,
-    );
-
-    await user.clear(screen.getByLabelText(/played on/i));
-    await user.type(screen.getByLabelText(/played on/i), '2026-07-04');
-    await user.selectOptions(screen.getByLabelText(/map/i), 'elysium');
-    await user.selectOptions(screen.getByLabelText(/player count/i), '3');
-    await user.clear(screen.getByLabelText(/generation count/i));
-    await user.type(screen.getByLabelText(/generation count/i), '12');
-    await user.type(
-      screen.getByLabelText(/exported game log/i),
-      'Friday Mars won by 6 points.',
-    );
-    await user.upload(
-      screen.getByLabelText(/endgame screenshot/i),
-      screenshotFile,
+    await user.upload(screen.getByLabelText(/end-game screenshot/i), screenshotFile);
+    await user.type(screen.getByLabelText(/complete exported game log/i), exportedLog);
+    expect(
+      await screen.findByText(/linked registered player: FridayMars/i),
+    ).toBeInTheDocument();
+    await user.selectOptions(
+      await screen.findByLabelText(/objective setup/i),
+      'board_defined',
     );
     await user.click(
-      await screen.findByRole('button', { name: /save import draft/i }),
+      await screen.findByRole('button', { name: /save verified import draft/i }),
     );
 
     await waitFor(() =>
-      expect(onCreateImportDraft).toHaveBeenCalledWith({
+      expect(onCreateImportDraft).toHaveBeenCalledWith(expect.objectContaining({
         endgameScreenshot: screenshotFile,
         endgameScreenshotName: 'endgame.png',
-        exportedGameLog: 'Friday Mars won by 6 points.',
+        exportedGameLog: exportedLog,
         generationCount: 12,
-        mapId: 'elysium',
+        mapId: 'map-tharsis',
         ocrConfidence: 0.98,
         playedOn: '2026-07-04',
-        playerCount: 3,
-        rawOcrText: 'Friday Mars won by 6 points.',
-      }),
+        playerIdentities: [
+          {
+            mode: 'existing_player',
+            selectedPlayerId: playerCandidates[0].id,
+            sourcePlayerText: 'FridayMars',
+            valueSource: 'imported',
+          },
+        ],
+        playerCount: 1,
+        rawOcrText: 'Victory point breakdown after 12 generations',
+        scoreRows: expect.arrayContaining([
+          expect.objectContaining({ totalPoints: 90, trPoints: 40 }),
+        ]),
+      })),
     );
 
     await waitFor(() =>
@@ -90,35 +150,28 @@ describe('LogGameImportShell', () => {
     );
   });
 
-  it('shows an error message and does not route when import persistence fails', async () => {
+  it('shows persistence errors without routing', async () => {
     const user = userEvent.setup();
-    const onCreateImportDraft = vi
-      .fn()
-      .mockRejectedValue(new Error('Storage upload failed.'));
-
-    render(
-      <LogGameImportShell
-        groupName="Friday Group"
-        initialValues={{
-          generationCount: 10,
-          mapId: 'tharsis',
-          playedOn: '2026-07-03',
-          playerCount: 4,
-        }}
-        mapOptions={[
-          { code: 'tharsis', id: 'tharsis', name: 'Tharsis' },
-          { code: 'elysium', id: 'elysium', name: 'Elysium' },
-        ]}
-        onCreateImportDraft={onCreateImportDraft}
-      />,
+    const onCreateImportDraft = vi.fn().mockRejectedValue(
+      new Error('Storage upload failed.'),
     );
+    renderShell(onCreateImportDraft);
 
-    await user.type(
-      screen.getByLabelText(/exported game log/i),
-      'Friday Mars won by 6 points.',
+    const screenshotFile = new File(['evidence'], 'endgame.png', {
+      lastModified: new Date(2026, 6, 4).getTime(),
+      type: 'image/png',
+    });
+    await user.upload(screen.getByLabelText(/end-game screenshot/i), screenshotFile);
+    await user.type(screen.getByLabelText(/complete exported game log/i), exportedLog);
+    expect(
+      await screen.findByText(/linked registered player: FridayMars/i),
+    ).toBeInTheDocument();
+    await user.selectOptions(
+      await screen.findByLabelText(/objective setup/i),
+      'board_defined',
     );
     await user.click(
-      await screen.findByRole('button', { name: /save import draft/i }),
+      await screen.findByRole('button', { name: /save verified import draft/i }),
     );
 
     await waitFor(() =>

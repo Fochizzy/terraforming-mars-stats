@@ -1,0 +1,31 @@
+name: Sync Terraforming Mars catalog
+
+on:
+  schedule:
+    - cron: '23 7 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-terraforming-mars-catalog
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: npm
+          node-version: 20
+      - run: npm ci
+      - name: Validate parser against the live upstream catalog
+        run: npm run catalog:sync:upstream
+      - name: Publish cards and tile definitions to Supabase
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run catalog:sync:upstream -- --publish

@@ -1,5 +1,70 @@
 # TM Stats Redesign Decisions
 
+## Phase 4, Step 4.3 — upstream catalog authority, board-signal map detection, and shared Supabase catalog
+
+Approved by the explicit Phase 4, Step 4.3 assignment on 2026-07-18. The user
+expanded the step to cover automatic upstream catalog sync, imported-map
+reconstruction from ordered tile evidence, randomized-objective independence,
+and a shared Supabase catalog that keeps the existing Cards page current.
+
+- **Upstream exports and rulebooks are the authority.** The open-source
+  Terraforming Mars implementation's card and `TileType` definitions and the
+  printed rulebooks define card and tile identity. All card and tile reference
+  data is stored in Supabase (`public.cards`,
+  `public.terraforming_mars_tile_types`); the app reads reference data from
+  Supabase, never a hard-coded in-app catalog. The full contract is in
+  `MASTER-RULES.md` (Upstream source-authority, Export-format governance, Map and
+  objective interpretation).
+- **Map signal precedence.** Board geometry — placed oceans compared against each
+  map's reserved-ocean fingerprint, from the ordered tile evidence — identifies
+  the map. Confirmed board-defined objectives may only disambiguate identical or
+  sparse ocean evidence (e.g. Terra Cimmeria vs Terra Cimmeria Nova). No
+  unresolved evidence defaults to Tharsis.
+- **Randomized objectives never infer a map, and a map never infers randomized
+  objectives.** The objective configuration (`board_defined`, a `randomized_*`
+  mode, or `unknown`) is an explicit importer input. Hollandia is supported only
+  when randomized objectives are confirmed; Hollandia with board-defined
+  objectives is a conflict. The save gate rejects only a true detector conflict
+  or a confident detected-map mismatch and otherwise trusts the confirmed map.
+  Manual Entry always uses `board_defined`; imported drafts remain `unknown`
+  until the importer confirms the objective setup.
+- **Shared Supabase catalog and automatic Cards-page update.** The upstream sync
+  preserves each exact raw manifest, upserts normalized fields while keeping
+  curated metadata and effect evidence, never deletes rows absent upstream, and
+  never coerces an absent upstream effect to zero. Identity-mismatch duplicates
+  are preserved as reversible audit rows (`is_catalog_visible = false`,
+  `superseded_by_card_id`), never hard-deleted. Every catalog consumer, including
+  the Cards page, reads only `is_catalog_visible = true`, so the page reflects the
+  synchronized catalog automatically. Automation runs daily plus manual dispatch;
+  its Supabase service-role credential is server/automation-only and never
+  exposed to browser code.
+- **Verified live state (2026-07-18).** Migrations
+  `20260718154209 sync_upstream_cards_and_tile_catalog` and
+  `20260718154932 reconcile_upstream_card_identities` were applied to project
+  `tm-stats`/`qjtwgrjjwnqafbvkkfex`. Snapshot
+  `a63ac3f9-4725-49f5-a967-04899ad52c19` recorded 996 upstream cards and 45 tile
+  types (42 special + 7 Moon). Retained card rows total 1,143; 1,090 are visible
+  and 53 are superseded audit rows; there are 0 visible duplicate-name groups. A
+  direct deletion of the 53 duplicates was rejected by the production safety
+  reviewer; the reversible supersession model is the accepted safe state and
+  deletion must not be retried.
+- **Explicit catalog gaps.** Seven upstream expansion milestones (Hoverlord,
+  Networker, Purifier, One Giant Step, Lunarchitect, Risktaker, Tunneler) are not
+  in the local/live objective catalog and remain explicit gaps until a separately
+  approved, source-backed objective sync inserts them. Do not invent IDs or
+  aliases.
+- **Claimable guest identity/privacy migration applied.** With explicit user
+  confirmation on 2026-07-18, `claimable_guest_identity_privacy`
+  (`supabase/migrations/20260718050924_...sql`) was applied to production after
+  full read-only vetting. It adds the private `player_private_identities` store,
+  normalizers, member-scoped RLS, `resolve_public_player_name`,
+  `get_public_player_names`, `resolve_import_guest_identity`, and privacy-wrapped
+  redefinitions of `analytics.player_game_results` and the final-action/OCR RPCs,
+  with no identity backfill. This satisfies the separate-authorization
+  requirement in the guest-identity/privacy contract (below) for this schema
+  only; registration-time claiming and any production identity backfill remain
+  out of scope.
+
 ## Phase 4, Step 4.2 — gameplay expansion tracking is removed; catalog metadata remains
 
 Approved explicitly by the user on 2026-07-18 during the Phase 4, Step 4.2

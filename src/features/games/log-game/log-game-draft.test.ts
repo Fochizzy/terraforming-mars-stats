@@ -28,6 +28,7 @@ describe('mergeDraftIntoInitialValues', () => {
         guaranteedMergerOffer: true,
         groupId: '11111111-1111-4111-8111-111111111111',
         mapId: 'tharsis',
+        objectiveConfiguration: 'board_defined',
         mergerOfferRuleSource: 'group_default',
         milestoneClaims: {},
         notes: '',

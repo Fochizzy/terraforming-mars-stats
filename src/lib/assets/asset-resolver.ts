@@ -49,6 +49,9 @@ export type TagCode =
   | 'venus'
   | 'wild';
 
+export const LOG_GAME_BACKGROUND_STORAGE_PATH =
+  'backgrounds/log-game-mars-horizon-f78061b5.png';
+
 type CommonAssetInput = AssetPresentationIntent & {
   canonicalKey: string | null | undefined;
   family: AssetFamily;
@@ -380,6 +383,25 @@ export function resolveCorporationLogoAsset(
       family: 'corporation-logo',
       label,
       path: input.logoPath,
+    },
+    options,
+  );
+}
+
+export function resolveLogGameBackgroundAsset(
+  options?: AssetResolverOptions,
+): ResolvedAsset {
+  return resolvePublicStorageAsset(
+    {
+      aspectRatio: 1.5,
+      bucket: 'tm-map-images',
+      canonicalKey: 'log-game-mars-horizon-f78061b5',
+      decorative: true,
+      family: 'background',
+      height: 1024,
+      label: 'Log a Game Mars landscape',
+      path: LOG_GAME_BACKGROUND_STORAGE_PATH,
+      width: 1536,
     },
     options,
   );

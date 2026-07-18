@@ -20,10 +20,12 @@ export {
 export {
   buildAssetFallback,
   buildPublicStorageUrl,
+  LOG_GAME_BACKGROUND_STORAGE_PATH,
   normalizeAssetLookupKey,
   normalizeStoredAssetPath,
   resolveCardImageAsset,
   resolveCorporationLogoAsset,
+  resolveLogGameBackgroundAsset,
   resolveMapGraphicAsset,
   resolveScoreSourceAsset,
   resolveSignedImportEvidenceAsset,

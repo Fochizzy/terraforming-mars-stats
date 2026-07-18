@@ -17,6 +17,7 @@ function buildInitialValues(
     milestoneClaims: {},
     playedOn: '2026-07-03',
     mapId: 'tharsis',
+    objectiveConfiguration: 'board_defined',
     notes: '',
     playerCount: 2,
     playerScores: {},
@@ -293,6 +294,7 @@ describe('LogGameWizard', () => {
         groupId: GROUP_ID,
         playedOn: '2026-07-03',
         mapId: 'tharsis',
+        objectiveConfiguration: 'board_defined',
         milestoneClaims: {
           milestone1: {
             claimed: true,

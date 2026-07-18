@@ -104,6 +104,23 @@ function mockSupabase(rowsByTable: TableRows) {
 
   vi.mocked(createSupabaseServerClient).mockResolvedValue({
     from: vi.fn(getPublicQuery),
+    rpc: vi.fn((functionName: string, parameters: { p_player_ids: string[] }) => {
+      if (functionName !== 'get_public_player_names') {
+        throw new Error(`Unexpected RPC ${functionName}`);
+      }
+
+      const playerRows = normalizeTableEntry(rowsByTable.players).data ?? [];
+      return Promise.resolve({
+        data: (playerRows as Array<Record<string, unknown>>)
+          .filter((player) => parameters.p_player_ids.includes(String(player.id)))
+          .map((player) => ({
+            is_linked: true,
+            player_id: player.id,
+            public_name: player.display_name,
+          })),
+        error: null,
+      });
+    }),
     schema: vi.fn((schemaName: string) => {
       if (schemaName !== 'analytics') {
         throw new Error(`Unexpected schema ${schemaName}`);

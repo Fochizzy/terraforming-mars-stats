@@ -6,7 +6,7 @@ export const LOG_GAME_ENTRY_METHODS = [
     label: 'Manual Entry',
   },
   {
-    description: 'Start with an exported log or endgame screenshot, then review the draft.',
+    description: 'Upload the game result PDF or end-game screenshot plus the complete exported log, then verify the parsed draft.',
     href: '/log-game/import',
     id: 'import',
     label: 'Import Game',

@@ -8,28 +8,32 @@ export function AppShell({
   children,
   headerActions,
   hasActiveGroup = false,
+  showBanner = true,
 }: {
   title: string;
   children: React.ReactNode;
   headerActions?: React.ReactNode;
   hasActiveGroup?: boolean;
+  showBanner?: boolean;
 }) {
   const banner = resolveStaticSiteAsset('application-banner');
 
   return (
     <main className="tm-app-shell">
       <div className="flex min-h-screen w-full flex-col">
-        <div className={styles.bannerFrame}>
-          <Image
-            alt={banner.alt}
-            className={styles.bannerImage}
-            height={banner.height}
-            priority
-            sizes="100vw"
-            src={banner.url}
-            width={banner.width}
-          />
-        </div>
+        {showBanner ? (
+          <div className={styles.bannerFrame}>
+            <Image
+              alt={banner.alt}
+              className={styles.bannerImage}
+              height={banner.height}
+              priority
+              sizes="100vw"
+              src={banner.url}
+              width={banner.width}
+            />
+          </div>
+        ) : null}
 
         <AppNavigation hasActiveGroup={hasActiveGroup} />
 
