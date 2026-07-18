@@ -2,57 +2,40 @@
 
 ## Current substep
 
-Phase 4, Step 4.3 — Import, Validation, Evidence Review, and Claimable Guest
-Identity Creation (**active — blocked on authorized reference data**)
+Phase 4, Step 4.3B — Automatic Venus Next and Colonies Parsing, Persistence,
+Historical Parser Verification, and Backfill (**repository complete — production
+migration/backfill authorization required**)
 
 ## Current owner
 
-Codex — Phase 4, Step 4.3 import, evidence, claimable guest identity, and privacy
+Codex — Phase 4, Step 4.3B Venus Next and Colonies import facts
 
 ## Status
 
-**Phase 4 — Log a Game — Active. Step 4.3 is implemented and validated locally
-but is not complete.** The import workflow now accepts the complete game result
-PDF (or compatible end-game screenshot) plus the complete exported game log,
-derives player count, generation, date, scores, objective evidence, and map
-candidates, and presents detected values only for verification or correction.
-Direct PDF parsing was verified against two real result PDFs. Claimable guest
-username and private personal-name modes, existing guest reuse, explicit
-ambiguity resolution, preserved player IDs/evidence, and username-only claimed
-public naming are implemented behind the prepared Step 4.3 identity/privacy
-migration.
+**Phase 4 — Log a Game — Active. Step 4.3B is complete in the repository but
+Step 4.3 is not closed because production execution remains separately gated.**
 
-A read-only production audit on 2026-07-18 found 11 maps. Ten fixed-objective
-maps each have exactly five milestones and five awards; no two fixed maps share
-an identical milestone, award, or combined objective set; all relationship
-foreign keys resolve. Hollandia alone has zero fixed relationships and is
-explicitly treated as randomized and incompatible with import. Production has
-zero milestone/award rows in `domain_text_aliases`, so approved printed aliases
-such as `Amazonis Engineer` → `A. Engineer`, `Amazonis Zoologist` →
-`A. Zoologist`, `Arabia Manufacturer` → `A. Manufacturer`, `Collector` →
-`T. Collector`, `Politician` → `T. Politician`, `Vastitas Electrician` →
-`V. Electrician`, and `Vastitas Spacefarer` → `V. Spacefarer` cannot yet be
-resolved from the authoritative catalog. The user requires separate explicit
-authorization for that reference-data migration.
+Commits `aeebf8b7`, `cef2ff1d`, `41bc1221`, and `e88fc25f` implement the future-import
+parser/schema/persistence path, historical production-parser verifier, sanitized
+reports, and zero-change rerun verification. A complete exported log with no
+supported Venus/Colony events now records No (`confirmed_absent`) per the
+user's explicit clarification. Partial, unsupported, and conflicting evidence
+remain distinct; no manual expansion controls or generic `expansionCodes` were
+restored.
 
-The live migration ledger also confirms
-`20260718050924_claimable_guest_identity_privacy.sql` is not applied:
-`player_private_identities`, `player_import_aliases.identity_mode`,
-`get_public_player_names`, and `resolve_import_guest_identity` are absent.
-The reauthorized migration is prepared and statically covered in this worktree,
-but no production schema, identity, alias, Storage, push, or deployment change
-was made while the reference-data gate remains open.
+The read-only production run covered all 42 historical games: 42/42 retained
+complete logs, 42 Venus absences, 42 Colonies absences, and zero unexpected,
+incomplete, unsupported, conflicting, duplicate, exception, or unresolved
+results. It plans 42 insert-only rows. Production does not yet have
+`game_expansion_facts`; migration `20260718185155_add_venus_colonies_import_facts.sql`
+and the backfill were not applied.
 
-Validation after the final ambiguity repair: 149 test files / 787 tests passed;
-`npx.cmd tsc --noEmit` passed; lint exited 0 with the same four pre-existing
-warnings; build completed 32/32 pages; Playwright passed 1/1. Responsive browser
-review of the real import component and instructions page passed at 1440, 1024,
-768, and 390 pixels with no page-level horizontal overflow, visible two-pixel
-focus, explicit linked/existing/ambiguous/unresolved states, separate username
-and first/last-name controls, map/evidence review, and no console errors.
-
-No Step 4.3 completion handoff or commit exists. Step 4.2 was not reopened.
-Step 4.4, Step 4.5, and Phase 5 were not started. No push or deployment occurred.
+Final validation: 164 test files / 862 tests passed; `npx.cmd tsc --noEmit`
+passed; lint exited 0 with the four pre-existing warnings; build passed at 32/32
+pages with middleware present. Docker Desktop is not running, so local migration
+execution remains unverified; static migration coverage passes. No production
+schema/data change, push, or deploy occurred. Step 4.4, Step 4.5, and Phase 5
+were not started.
 
 ### Step 4.3 continuation — upstream catalog, tiles, and map reconstruction (2026-07-18, Claude)
 
@@ -105,8 +88,8 @@ notes on the new (empty) identity table only.
 
 Still open before Step 4.3 can be marked complete:
 
-- committed privacy-sanitized real tile-export fixtures are not yet added
-  (parser is verified against real private PDFs and synthetic fixtures);
+- separately authorize, apply, and verify the Venus/Colonies migration and
+  42-row historical absence backfill;
 - the objective-alias data-only migration remains separately gated.
 
 No push or deployment occurred.
@@ -347,14 +330,14 @@ and Phase 4 were not started.
 
 ## Last completed commit
 
-Phase 4, Step 4.2 focused completion commit (hash recorded by the post-commit
-verification immediately after this state file is committed).
+`e88fc25f` — `fix(imports): verify unrelated backfill data` (latest
+Step 4.3B implementation commit before governance closure).
 
 ## Current phase
 
-Phase 4 — Log a Game (active; Steps 4.1 and 4.2 complete; Step 4.3 active and
-blocked on unapplied identity/privacy schema plus separately authorized
-objective-alias reference data)
+Phase 4 — Log a Game (active; Steps 4.1 and 4.2 complete; Step 4.3B
+repository work complete; production migration and 42-row backfill awaiting
+separate explicit authorization)
 
 ## Prior completed substep
 
@@ -454,31 +437,36 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**The Step 4.3 code and governance docs are complete and validated in the
-repository (typecheck, 843 tests, lint, and build all pass), and the
-user-confirmed identity/privacy migration is applied and verified in
-production.** The remaining, optional items before a formal Step 4.3 closure
-handoff are:
+**Stop at the Step 4.3B production gate and request explicit authorization.**
+The reviewable migration is
+`supabase/migrations/20260718185155_add_venus_colonies_import_facts.sql`; the
+read-only reports are in `docs/redesign/reports/phase-04-step-03b/`.
 
-1. add committed privacy-sanitized real tile-export fixtures (the parser is
-   already verified against real private PDFs and synthetic fixtures); and
-2. proceed with the separately gated objective-alias data migration when
-   authorized.
+If and only if production execution is explicitly authorized:
 
-Do not begin Step 4.4/4.5/Phase 5, push, or deploy without explicit assignment.
+1. apply only `add_venus_colonies_import_facts` through the connected Supabase
+   migration tool (do not use a broad `db push`, because unrelated pending
+   migrations exist);
+2. rerun the default read-only command and require `schemaReady: true` with
+   every blocker counter still zero;
+3. run exactly:
+   `node --env-file=.env.local --import tsx scripts/imports/verify-venus-colonies-history.ts --write --confirm=APPLY_PHASE_04_STEP_03B_BACKFILL`;
+4. verify expected equals actual, no historical event rows were created, and a
+   second run plans zero changes; then update state and close Step 4.3.
+
+Until then, do not begin Step 4.4/4.5/Phase 5, push, or deploy.
 
 ## Active blockers
 
-**Step 4.3 blocker:** the current production identity schema cannot safely store
-separate optional guest username and structured private first/last name values
-or guarantee username-only public resolution after claim. The prepared,
-reauthorized `20260718050924_claimable_guest_identity_privacy.sql` supplies the
-private identity table, separate normalizers/indexes, mode-aware aliases,
-member-scoped RLS, guarded import resolution, and centralized public-name RPC,
-but remains unapplied. Separately, all ten fixed map relationship sets are
-complete and distinguishable, but the production milestone/award alias catalog
-is empty. A data-only migration must insert approved aliases against existing
-canonical objective IDs. No workaround may hard-code a second UI catalog or
+**Step 4.3B production gate:** production lacks the prepared
+`game_expansion_facts` schema and no historical absence rows have been written.
+The production-parser dry run itself has no review blocker: every one of 42
+eligible logs passed with all unexpected/error counters at zero. Separate
+explicit authorization is required before applying either the migration or the
+42-row insert-only backfill.
+
+The objective-alias data-only migration remains separately gated and is not
+authorized by Step 4.3B. No workaround may hard-code a second UI catalog or
 overload display names.
 
 No repository blocker prevents Step 4.2 completion. Docker Desktop was not
@@ -541,6 +529,12 @@ affected public readers (`analytics.player_game_results` and the final-action/OC
 RPCs). It performed no production identity backfill. Live verification and the
 re-run security/performance advisors passed with no new security regressions.
 
+A fourth Phase 4, Step 4.3 migration is prepared but not applied:
+`supabase/migrations/20260718185155_add_venus_colonies_import_facts.sql`. It
+creates RLS-protected `game_expansion_facts`, extends canonical
+`game_log_events`, and replaces the invoker-security event RPC. The read-only
+production audit found the schema absent and performed no write.
+
 A second, minimal data-only migration is required but not authorized. It should
 insert only approved milestone/award aliases into the existing
 `domain_text_aliases` table using canonical entity IDs, separately normalized
@@ -557,6 +551,9 @@ reviewable locally. No migration, schema query, or data backfill was applied to
 a linked or production database.
 
 ## Latest handoff
+
+- docs/agent-handoffs/PHASE-04-STEP-03B-VENUS-COLONIES-PRODUCTION-GATE-HANDOFF.md
+  (repository complete; production migration/backfill authorization required)
 
 - docs/agent-handoffs/PHASE-03-STEP-04-navigation-and-route-phase-closure.md
   (Phase 3 complete)

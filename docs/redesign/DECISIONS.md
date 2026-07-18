@@ -863,3 +863,48 @@ public/private data separation.
 No schema or migration work is authorized by this decision alone.
 
 <!-- END GUEST-IDENTITY-PRIVACY-DECISION -->
+
+## 2026-07-18 ? Automatic Venus Next and Colonies import facts
+
+### Decision
+
+Phase 4 Step 4.3B derives Venus Next and Colonies from the complete exported log
+and other trusted import evidence. No Venus/Colonies field is added to Manual
+Entry or Import Review, and the retired generic gameplay-expansion configuration
+workflow remains retired.
+
+Per the user's explicit clarification, a complete exported log with no supported
+Venus or Colony mechanic events records the corresponding expansion as
+`confirmed_absent` (No). A partial log still reports `incomplete_evidence`;
+unsupported and conflicting evidence never become absence. Presence requires an
+explicit option, trusted final Venus value, or an exact upstream-supported Venus
+or Colony mechanic message. Related card metadata alone is insufficient.
+
+### Canonical persistence
+
+- `public.game_expansion_facts` is the one-row-per-game state/provenance/coverage
+  record. It preserves null final Venus scale separately from explicit zero.
+- `public.game_log_events` remains the canonical event table and gains stable
+  player ID, canonical colony ID, deterministic event identity, parameter
+  movement, source entity, parser version, and provenance columns.
+- Parser identity is `terraforming-mars-venus-colonies-v1`.
+- World Government Venus movement is explicitly unattributed and has no TR
+  effect assigned to a player. Missing before/after/final tracker values remain
+  null.
+- RLS follows `can_read_game` / `can_edit_game`; the new exposed table grants no
+  anonymous access.
+
+### Historical policy and production gate
+
+The fixed historical cutoff is `2026-07-18T00:00:00.000Z`. The owner confirms
+that every earlier TM Stats game used neither expansion. Retained logs run through
+the same production parser and use
+`historical_parser_verified_owner_confirmed_absent`; a missing retained log uses
+`historical_owner_confirmed_absent`. The backfill inserts only games without an
+existing fact row and must plan zero changes on rerun.
+
+The read-only production dry run found 42/42 retained complete logs, 42 parser-
+confirmed absences for each expansion, and zero unexpected, incomplete,
+unsupported, conflicting, duplicate, exception, or unresolved results. The
+schema migration and 42-row backfill remain unapplied pending separate explicit
+production authorization.

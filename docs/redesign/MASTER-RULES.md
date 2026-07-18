@@ -181,4 +181,32 @@ explicitly configured input.
   global canonical objective catalog. Server revalidation uses the same scope as
   the review UI.
 
+
+## Venus Next and Colonies import evidence
+
+Venus Next and Colonies are parser-derived import facts, not a restored generic
+gameplay-expansion configuration workflow.
+
+- Do not add Venus/Colonies setup checkboxes, tracker fields, action inputs,
+  correction controls, `expansionCodes`, or another manual-entry requirement.
+- Presence comes only from explicit exported options, exact upstream-supported
+  Venus parameter movement, Colony setup/construction/trade/track messages, or
+  trusted final Venus evidence. Related card metadata alone is never presence.
+- Per the user's 2026-07-18 clarification, a complete exported log with no
+  supported Venus or Colony mechanic events records that expansion as
+  `confirmed_absent` (No). A log missing complete-game terminators remains
+  `incomplete_evidence`; unsupported and conflicting evidence remain distinct.
+- Preserve stable player IDs when attribution is explicit. World Government and
+  other unattributed movement must not be assigned to a nearby player.
+- Preserve event order, deterministic identity, generation when available,
+  canonical colony identity, supported payment/TR effects, raw evidence,
+  confidence, parser version, and provenance. Missing tracker values stay null;
+  never interpolate a start/final value or turn missing final Venus scale into
+  zero.
+- Historical owner-confirmed absence uses the same production parser and a
+  fixed cutoff. Missing logs use owner-confirmed-only provenance; retained logs
+  use parser-verified provenance. Backfills insert only missing fact rows and
+  must be zero-change on rerun.
+- Applying the schema migration or historical rows to production remains a
+  separately authorized operation.
 <!-- END UPSTREAM-CATALOG-MAP-RULES -->

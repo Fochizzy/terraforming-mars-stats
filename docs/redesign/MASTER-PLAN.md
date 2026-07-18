@@ -322,6 +322,34 @@ matrices are in `DATA-CAPABILITIES.md`; immediate status, the two applied catalo
 migrations, and the gated identity/privacy migration are in
 `docs/REDESIGN_STATE.md`. No push or deploy occurred.
 
+### Phase 4, Step 4.3B Venus Next and Colonies import outcome (2026-07-18)
+
+Step 4.3B repository work is complete; production execution is the active gate.
+The authoritative import path automatically derives Venus Next and Colonies from
+complete exported evidence using `terraforming-mars-venus-colonies-v1`, after
+stable player resolution. A complete zero-event log records No
+(`confirmed_absent`) per the user's explicit clarification; incomplete,
+unsupported, and conflicting evidence remain distinct. No manual Venus/Colonies
+fields or generic gameplay-expansion configuration were restored.
+
+Durable project-wide additions:
+
+- `game_expansion_facts` is the canonical one-row-per-game detection/provenance/
+  coverage contract; `game_log_events` remains the canonical individual-event
+  grain with deterministic identity, player/colony attribution, movement/payment
+  details, source evidence, confidence, parser version, and provenance.
+- Missing before/after/final Venus values remain null. World Government movement
+  remains unattributed and never grants a player TR by inference. Related card
+  metadata never establishes expansion presence.
+- Historical absence uses the same production parser, a fixed 2026-07-18 cutoff,
+  insert-only rows, and distinct parser-verified versus owner-confirmed-only
+  states. Reruns must plan zero changes and never overwrite future-style facts.
+
+The read-only production dry run covered all 42 historical games and retained
+logs with zero review blockers and planned 42 absence rows. Migration
+`20260718185155_add_venus_colonies_import_facts.sql` and the backfill remain
+unapplied pending separate explicit authorization. Step 4.4 was not started.
+
 ### Production tag and score icon replacement outcome (2026-07-17)
 
 A separately authorized production task refreshed image content at the existing
@@ -1273,10 +1301,10 @@ Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-18
 - **Current phase:** Phase 4 — Log a Game (active)
-- **Current substep:** Step 4.3 — Import, Validation, Evidence Review, and
-  Claimable Guest Identity Creation (active; repository code and docs complete
-  and validated, production identity/privacy migration gated)
-- **Next gated substep:** Resolve the Step 4.3 identity/privacy migration gate,
+- **Current substep:** Step 4.3B — Automatic Venus Next and Colonies import
+  facts (repository implementation and dry run complete; production migration
+  and backfill awaiting separate authorization)
+- **Next gated substep:** Resolve the Step 4.3B production gate, close Step 4.3,
   then await explicit assignment for Phase 4, Step 4.4
 - **Step 4.2 completion commit:** recorded by post-commit verification after
   this document is committed

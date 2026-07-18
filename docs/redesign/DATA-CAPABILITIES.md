@@ -862,15 +862,16 @@ claimed as supported. Nothing here is fabricated to match a product label.
 | Real result PDF text layer | Two real result PDFs in the operator's Downloads (recorded in the prior Step 4.3 handoff) | Real, private | Parser verified against them; **not committed** to the repository |
 | Result-PDF builder helper | `src/lib/imports/fixtures/build-test-pdf.ts` | Synthetic generator | Committed |
 | Current flat-ID tile logs (`at NN`, Moon `mNN`) | Inline in `parse-terraforming-mars-tile-actions.test.ts`, `build-imported-board-state.test.ts`, `build-terraforming-mars-log-events.test.ts` | Synthetic | Committed, passing |
+| Retained real current flat-ID export | `src/lib/imports/fixtures/retained-real-negative-game-2026-07-15.txt` | Real, privacy-sanitized | Committed; 704 lines and 43 flat-ID placement/removal lines |
 | Historical grid tile logs (`on row R position P`) | Inline in the tile-action and board-state tests | Synthetic | Committed, passing |
 | Ocean-fingerprint map cases (real placed-ocean sets) | `detect-import-board-map.test.ts`, `detect-import-board-map-independent.test.ts` | Ocean sets validated against real logs/fingerprints | Committed, passing |
 | Randomized-objective evidence | `detect-import-board-map*.test.ts` | Synthetic (labelled) | Committed, passing |
 
-Open gap: privacy-sanitized **committed** real-export fixtures for current
-flat-ID and historical grid coordinates are not yet added. The parser is
-evidence-verified against real private PDFs and against synthetic fixtures for
-both tile formats, but no sanitized real tile-export fixture is checked in. This
-remains deferred Step 4.3 work; see `REDESIGN_STATE.md`.
+The committed privacy-sanitized retained export closes the real-fixture gap for
+current flat-ID coordinates and also serves as the Venus/Colonies negative
+integration corpus. A privacy-sanitized retained historical-grid export is not
+available; historical-grid support remains backed by the evidence-verified
+private source and committed synthetic tests.
 
 ## Map capability matrix
 
@@ -946,6 +947,46 @@ collapsed into a known tile.
   Step, Lunarchitect, Risktaker, Tunneler) are absent from the objective catalog.
   A randomized game that used one cannot resolve it until a separately approved,
   source-backed objective sync inserts it. No ID or alias is invented.
-- Committed privacy-sanitized real tile-export fixtures are not yet added (above).
+- A committed privacy-sanitized retained historical-grid export is not available.
 - Objective-alias reference data (printed short forms such as `Amazonis
   Engineer` -> `A. Engineer`) remains a separately gated data-only migration.
+
+# Phase 4, Step 4.3B addendum ? Venus Next and Colonies import capability (2026-07-18)
+
+## Evidence and state matrix
+
+| Capability | Trusted evidence | Stored result | Current support |
+| --- | --- | --- | --- |
+| Venus Next presence | Explicit exported option, supported Venus movement, or trusted final Venus scale | Detection state plus canonical events/final scale when available | Repository implemented; production schema gated |
+| Colonies presence | Explicit exported option, Colony setup, construction, trade, or supported track movement | Detection state plus canonical Colony events | Repository implemented; production schema gated |
+| Complete log with no supported events | Both complete-game terminators and zero mechanic events | `confirmed_absent` (No), per user clarification | Implemented and tested |
+| Incomplete log | Missing one or both complete-game terminators | `incomplete_evidence` | Implemented and tested |
+| Unsupported/conflicting wording | Potential mechanic line without a supported pattern, or contradictory evidence | `unsupported_log_pattern` / `conflicting_evidence` | Implemented and tested; never coerced to absent |
+| Related expansion card only | Card play/name without a mechanic action | No presence evidence | Retained real negative fixture verifies this |
+| Historical retained log | Same parser plus owner-confirmed historical absence | `historical_parser_verified_owner_confirmed_absent` | Read-only production dry run: 42/42 |
+| Historical missing log | Owner confirmation without parser coverage | `historical_owner_confirmed_absent` | Implemented; production dry run found 0 such games |
+
+## Canonical grain and coverage
+
+`game_expansion_facts` is one row per game and preserves detection provenance,
+parser version, source coverage, source-log association, optional final Venus
+scale, and derived event counts. `game_log_events` is the individual-event grain
+and preserves stable player ID when attributed, generation, deterministic event
+identity, Venus steps, canonical colony ID, payment/source details, confidence,
+raw evidence, parser version, and provenance. Missing before/after/final Venus
+values remain null. This specific parser-derived evidence does not restore the
+retired generic gameplay-expansion configuration dimension.
+
+Migration `20260718185155_add_venus_colonies_import_facts.sql` and its RLS/static
+tests exist in the repository. Production currently lacks the table/columns;
+therefore current live consumers cannot query these facts until separately
+authorized migration application and backfill verification.
+
+## Historical production dry run
+
+The fixed cutoff is `2026-07-18T00:00:00.000Z`. The read-only run found 42 total
+historical games, 42 retained complete logs, 42 parser-confirmed Venus absences,
+42 parser-confirmed Colonies absences, zero events, and zero incomplete,
+unsupported, conflicting, exception, duplicate, or unresolved results. It plans
+42 insert-only rows and performed no production write. Machine/human reports are
+in `docs/redesign/reports/phase-04-step-03b/`.

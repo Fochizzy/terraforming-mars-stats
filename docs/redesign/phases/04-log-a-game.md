@@ -390,6 +390,44 @@ Private data must be omitted from public payloads.
 
 CSS hiding is not sufficient.
 
+
+## Step 4.3B ? Automatic Venus Next and Colonies import facts
+
+Repository implementation is complete at commits `aeebf8b7`, `cef2ff1d`,
+`41bc1221`, and `e88fc25f`; production execution remains gated.
+
+- The server import path runs `terraforming-mars-venus-colonies-v1` after stable
+  player resolution and persists canonical events plus one game-level fact row.
+- Exact upstream messages cover Venus increases/decreases, World Government,
+  Colony setup/construction/trade/track movement, payment/source details, and
+  generation context. Related cards alone do not activate Colonies.
+- A complete zero-event exported log records `confirmed_absent` (No), per the
+  user's 2026-07-18 clarification. Partial, unsupported, and conflicting logs
+  retain their distinct states.
+- No manual Venus/Colonies fields, expansion selector, generic `expansionCodes`,
+  or restored gameplay-expansion configuration were added.
+- Migration `20260718185155_add_venus_colonies_import_facts.sql` adds the RLS-
+  protected `game_expansion_facts` table and typed `game_log_events` columns. It
+  is prepared and statically tested but is not applied to production.
+- A privacy-sanitized 704-line retained real export is committed as the negative
+  integration fixture; the source-backed positive fragment is pinned to upstream
+  commit `7a6f98f09ac2a558969c092d317c313806af7b73`.
+- The read-only production historical run covered 42/42 games with retained
+  complete logs: 42 Venus absences, 42 Colonies absences, and zero unexpected,
+  incomplete, unsupported, conflicting, duplicate, exception, or unresolved
+  results. Reports are under `docs/redesign/reports/phase-04-step-03b/`.
+- The backfill is fixed-cutoff, insert-only, fail-closed, and tested so both the
+  initial write and a later rerun verify correctly. It plans 42 rows today.
+
+Validation: 164 test files / 862 tests pass; `npx tsc --noEmit` passes; lint exits
+0 with the four existing warnings; production build passes at 32/32 pages with
+middleware present. Docker Desktop is unavailable, so local migration execution
+is unverified; static migration tests pass. No production schema/data write,
+push, or deploy occurred.
+
+Do not mark Step 4.3 complete until the migration and backfill are separately
+authorized, applied, and verified, or the production gate is explicitly accepted
+as the stopping condition. Do not begin Step 4.4 automatically.
 ## Step 4.5 closure requirement
 
 Phase 4 closure must verify that:
