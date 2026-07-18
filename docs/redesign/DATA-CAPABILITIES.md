@@ -957,8 +957,8 @@ collapsed into a known tile.
 
 | Capability | Trusted evidence | Stored result | Current support |
 | --- | --- | --- | --- |
-| Venus Next presence | Explicit exported option, supported Venus movement, or trusted final Venus scale | Detection state plus canonical events/final scale when available | Repository implemented; production schema gated |
-| Colonies presence | Explicit exported option, Colony setup, construction, trade, or supported track movement | Detection state plus canonical Colony events | Repository implemented; production schema gated |
+| Venus Next presence | Explicit exported option, supported Venus movement, or trusted final Venus scale | Detection state plus canonical events/final scale when available | Production verified (42 historical facts) |
+| Colonies presence | Explicit exported option, Colony setup, construction, trade, or supported track movement | Detection state plus canonical Colony events | Production verified (42 historical facts) |
 | Complete log with no supported events | Both complete-game terminators and zero mechanic events | `confirmed_absent` (No), per user clarification | Implemented and tested |
 | Incomplete log | Missing one or both complete-game terminators | `incomplete_evidence` | Implemented and tested |
 | Unsupported/conflicting wording | Potential mechanic line without a supported pattern, or contradictory evidence | `unsupported_log_pattern` / `conflicting_evidence` | Implemented and tested; never coerced to absent |
@@ -977,16 +977,18 @@ raw evidence, parser version, and provenance. Missing before/after/final Venus
 values remain null. This specific parser-derived evidence does not restore the
 retired generic gameplay-expansion configuration dimension.
 
-Migration `20260718185155_add_venus_colonies_import_facts.sql` and its RLS/static
-tests exist in the repository. Production currently lacks the table/columns;
-therefore current live consumers cannot query these facts until separately
-authorized migration application and backfill verification.
+Migration `20260718200536_add_venus_colonies_import_facts.sql` is applied to the
+linked production project. `game_expansion_facts` has RLS and the two expected
+member/editor policies; all typed event columns are present. The verified
+historical backfill created 42 absence facts and no historical expansion events.
 
-## Historical production dry run
+## Historical production verification
 
-The fixed cutoff is `2026-07-18T00:00:00.000Z`. The read-only run found 42 total
+The fixed cutoff is `2026-07-18T00:00:00.000Z`. The preflight found 42 total
 historical games, 42 retained complete logs, 42 parser-confirmed Venus absences,
 42 parser-confirmed Colonies absences, zero events, and zero incomplete,
-unsupported, conflicting, exception, duplicate, or unresolved results. It plans
-42 insert-only rows and performed no production write. Machine/human reports are
-in `docs/redesign/reports/phase-04-step-03b/`.
+unsupported, conflicting, exception, duplicate, or unresolved results. The
+authorized insert-only write created all 42 fact rows. It verified matching
+unrelated-data fingerprints, zero historical event rows, and zero planned writes
+on its second pass. Machine/human reports are in
+`docs/redesign/reports/phase-04-step-03b/`.

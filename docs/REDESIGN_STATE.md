@@ -2,9 +2,9 @@
 
 ## Current substep
 
-Phase 4, Step 4.3B — Automatic Venus Next and Colonies Parsing, Persistence,
-Historical Parser Verification, and Backfill (**repository complete — production
-migration/backfill authorization required**)
+Phase 4, Step 4.3B - Automatic Venus Next and Colonies Parsing, Persistence,
+Historical Parser Verification, and Backfill (**production verified - Step 4.3
+closed; Step 4.4 awaits explicit assignment**)
 
 ## Current owner
 
@@ -12,8 +12,8 @@ Codex — Phase 4, Step 4.3B Venus Next and Colonies import facts
 
 ## Status
 
-**Phase 4 — Log a Game — Active. Step 4.3B is complete in the repository but
-Step 4.3 is not closed because production execution remains separately gated.**
+**Phase 4 - Log a Game - Active. Step 4.3B is production verified and Step 4.3
+is closed. Step 4.4 has not started and requires an explicit assignment.**
 
 Commits `aeebf8b7`, `cef2ff1d`, `41bc1221`, and `e88fc25f` implement the future-import
 parser/schema/persistence path, historical production-parser verifier, sanitized
@@ -23,19 +23,21 @@ user's explicit clarification. Partial, unsupported, and conflicting evidence
 remain distinct; no manual expansion controls or generic `expansionCodes` were
 restored.
 
-The read-only production run covered all 42 historical games: 42/42 retained
-complete logs, 42 Venus absences, 42 Colonies absences, and zero unexpected,
-incomplete, unsupported, conflicting, duplicate, exception, or unresolved
-results. It plans 42 insert-only rows. Production does not yet have
-`game_expansion_facts`; migration `20260718185155_add_venus_colonies_import_facts.sql`
-and the backfill were not applied.
+The production migration was applied through the connected Supabase tool as
+`20260718200536_add_venus_colonies_import_facts`. Its first attempt stopped before
+DDL because production already had the equivalent `(game_id, id)` constraint; the
+reviewed migration was amended to guard that existing constraint, then applied
+successfully. The post-migration preflight found 42 eligible complete logs and
+zero blockers. The authorized insert-only backfill created 42 facts, zero
+historical Venus/Colony event rows, preserved all fingerprinted unrelated data,
+and a second plan contained zero writes.
 
-Final validation: 164 test files / 862 tests passed; `npx.cmd tsc --noEmit`
-passed; lint exited 0 with the four pre-existing warnings; build passed at 32/32
-pages with middleware present. Docker Desktop is not running, so local migration
-execution remains unverified; static migration coverage passes. No production
-schema/data change, push, or deploy occurred. Step 4.4, Step 4.5, and Phase 5
-were not started.
+Final repository validation: 164 test files / 862 tests passed; `npx.cmd tsc
+--noEmit` passed; lint exited 0 with four pre-existing warnings; and build passed
+at 32/32 pages with middleware present. Docker Desktop is not running, so local
+migration execution remains unverified; static migration coverage passes. The
+production schema migration and 42-row fact backfill were independently verified.
+No push or deployment occurred. Step 4.4, Step 4.5, and Phase 5 were not started.
 
 ### Step 4.3 continuation — upstream catalog, tiles, and map reconstruction (2026-07-18, Claude)
 
@@ -437,33 +439,17 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Stop at the Step 4.3B production gate and request explicit authorization.**
-The reviewable migration is
-`supabase/migrations/20260718185155_add_venus_colonies_import_facts.sql`; the
-read-only reports are in `docs/redesign/reports/phase-04-step-03b/`.
-
-If and only if production execution is explicitly authorized:
-
-1. apply only `add_venus_colonies_import_facts` through the connected Supabase
-   migration tool (do not use a broad `db push`, because unrelated pending
-   migrations exist);
-2. rerun the default read-only command and require `schemaReady: true` with
-   every blocker counter still zero;
-3. run exactly:
-   `node --env-file=.env.local --import tsx scripts/imports/verify-venus-colonies-history.ts --write --confirm=APPLY_PHASE_04_STEP_03B_BACKFILL`;
-4. verify expected equals actual, no historical event rows were created, and a
-   second run plans zero changes; then update state and close Step 4.3.
-
-Until then, do not begin Step 4.4/4.5/Phase 5, push, or deploy.
+**The Step 4.3B production gate is resolved. Await explicit assignment for Phase
+4, Step 4.4.** The completed report set is in
+`docs/redesign/reports/phase-04-step-03b/`. Do not begin Step 4.4/4.5/Phase 5,
+push, or deploy without separate authorization.
 
 ## Active blockers
 
-**Step 4.3B production gate:** production lacks the prepared
-`game_expansion_facts` schema and no historical absence rows have been written.
-The production-parser dry run itself has no review blocker: every one of 42
-eligible logs passed with all unexpected/error counters at zero. Separate
-explicit authorization is required before applying either the migration or the
-42-row insert-only backfill.
+**No Step 4.3B production blocker remains.** The linked production project has
+`game_expansion_facts` under RLS, the expected typed event columns and policies,
+and 42 verified historical absence facts. The separately gated objective-alias
+migration remains out of scope.
 
 The objective-alias data-only migration remains separately gated and is not
 authorized by Step 4.3B. No workaround may hard-code a second UI catalog or
@@ -529,11 +515,14 @@ affected public readers (`analytics.player_game_results` and the final-action/OC
 RPCs). It performed no production identity backfill. Live verification and the
 re-run security/performance advisors passed with no new security regressions.
 
-A fourth Phase 4, Step 4.3 migration is prepared but not applied:
-`supabase/migrations/20260718185155_add_venus_colonies_import_facts.sql`. It
+A fourth Phase 4, Step 4.3 migration was applied to production through the
+connected Supabase tool and is recorded in the live ledger as
+`20260718200536 add_venus_colonies_import_facts`
+(`supabase/migrations/20260718200536_add_venus_colonies_import_facts.sql`). It
 creates RLS-protected `game_expansion_facts`, extends canonical
-`game_log_events`, and replaces the invoker-security event RPC. The read-only
-production audit found the schema absent and performed no write.
+`game_log_events`, and replaces the invoker-security event RPC. The verified
+backfill inserted 42 historical absence facts only; no historical expansion
+events or unrelated-data changes occurred.
 
 A second, minimal data-only migration is required but not authorized. It should
 insert only approved milestone/award aliases into the existing
@@ -552,8 +541,8 @@ a linked or production database.
 
 ## Latest handoff
 
-- docs/agent-handoffs/PHASE-04-STEP-03B-VENUS-COLONIES-PRODUCTION-GATE-HANDOFF.md
-  (repository complete; production migration/backfill authorization required)
+- docs/agent-handoffs/PHASE-04-STEP-03B-VENUS-COLONIES-PRODUCTION-COMPLETE-HANDOFF.md
+  (production migration and historical backfill verified)
 
 - docs/agent-handoffs/PHASE-03-STEP-04-navigation-and-route-phase-closure.md
   (Phase 3 complete)

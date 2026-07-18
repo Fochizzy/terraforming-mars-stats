@@ -324,7 +324,8 @@ migrations, and the gated identity/privacy migration are in
 
 ### Phase 4, Step 4.3B Venus Next and Colonies import outcome (2026-07-18)
 
-Step 4.3B repository work is complete; production execution is the active gate.
+Step 4.3B repository work and its separately authorized production execution are
+complete.
 The authoritative import path automatically derives Venus Next and Colonies from
 complete exported evidence using `terraforming-mars-venus-colonies-v1`, after
 stable player resolution. A complete zero-event log records No
@@ -345,10 +346,12 @@ Durable project-wide additions:
   insert-only rows, and distinct parser-verified versus owner-confirmed-only
   states. Reruns must plan zero changes and never overwrite future-style facts.
 
-The read-only production dry run covered all 42 historical games and retained
-logs with zero review blockers and planned 42 absence rows. Migration
-`20260718185155_add_venus_colonies_import_facts.sql` and the backfill remain
-unapplied pending separate explicit authorization. Step 4.4 was not started.
+The production preflight covered all 42 historical games and retained logs with
+zero review blockers. Migration `20260718200536_add_venus_colonies_import_facts`
+was applied through the connected Supabase tool, then the authorized backfill
+inserted 42 historical absence facts. Verification confirmed zero historical
+Venus/Colony event rows, unchanged fingerprinted unrelated data, and a zero-write
+second plan. Step 4.4 was not started.
 
 ### Production tag and score icon replacement outcome (2026-07-17)
 
@@ -1301,11 +1304,9 @@ Update these fields whenever this file changes materially:
 
 - **Last updated:** 2026-07-18
 - **Current phase:** Phase 4 — Log a Game (active)
-- **Current substep:** Step 4.3B — Automatic Venus Next and Colonies import
-  facts (repository implementation and dry run complete; production migration
-  and backfill awaiting separate authorization)
-- **Next gated substep:** Resolve the Step 4.3B production gate, close Step 4.3,
-  then await explicit assignment for Phase 4, Step 4.4
+- **Current substep:** Step 4.3B - Automatic Venus Next and Colonies import facts
+  (production migration and historical backfill verified; Step 4.3 closed)
+- **Next gated substep:** Await explicit assignment for Phase 4, Step 4.4
 - **Step 4.2 completion commit:** recorded by post-commit verification after
   this document is committed
 - **Step 4.1 completion commit:** recorded by post-commit verification after

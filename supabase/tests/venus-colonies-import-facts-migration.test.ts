@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    'supabase/migrations/20260718185155_add_venus_colonies_import_facts.sql',
+    'supabase/migrations/20260718200536_add_venus_colonies_import_facts.sql',
   ),
   'utf8',
 );

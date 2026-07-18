@@ -1,10 +1,10 @@
 # Phase 4 Step 4.3B Venus Next / Colonies historical verification
 
-- Generated at: 2026-07-18T19:39:18.704Z
+- Generated at: 2026-07-18T20:07:09.167Z
 - Historical cutoff: 2026-07-18T00:00:00.000Z
-- Mode: read-only production dry run
-- Production schema ready: no
-- Production write performed: no
+- Mode: authorized write and verification
+- Production schema ready: yes
+- Production write performed: yes
 
 ## Counts
 
@@ -40,4 +40,29 @@ the fixed cutoff that do not already have a game-expansion fact row.
 
 ## Write verification
 
-Not run.
+```json
+{
+  "actualPersistedRows": 42,
+  "existingBackfillRows": 0,
+  "expectedPersistedRows": 42,
+  "newlyInsertedRows": 42,
+  "secondRunPlannedWrites": 0,
+  "historicalEventRowsCreated": 0,
+  "unrelatedDataUnchanged": true,
+  "verifiedUnrelatedTables": [
+    "game_awards",
+    "game_log_events",
+    "game_log_imports",
+    "game_milestones",
+    "game_player_declared_styles",
+    "game_player_inferred_styles",
+    "game_player_key_cards",
+    "game_player_preludes",
+    "game_players",
+    "game_promo_sets",
+    "game_result_screenshot_imports",
+    "game_revisions",
+    "games"
+  ]
+}
+```

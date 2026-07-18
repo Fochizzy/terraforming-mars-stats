@@ -903,8 +903,10 @@ the same production parser and use
 `historical_owner_confirmed_absent`. The backfill inserts only games without an
 existing fact row and must plan zero changes on rerun.
 
-The read-only production dry run found 42/42 retained complete logs, 42 parser-
-confirmed absences for each expansion, and zero unexpected, incomplete,
-unsupported, conflicting, duplicate, exception, or unresolved results. The
-schema migration and 42-row backfill remain unapplied pending separate explicit
-production authorization.
+The production preflight found 42/42 retained complete logs, 42 parser-confirmed
+absences for each expansion, and zero unexpected, incomplete, unsupported,
+conflicting, duplicate, exception, or unresolved results. The separately
+authorized schema migration was applied under ledger entry
+`20260718200536_add_venus_colonies_import_facts`; its insert-only backfill created
+42 facts, no historical expansion events, no fingerprinted unrelated-data change,
+and planned zero writes on the second pass.

@@ -2,6 +2,8 @@
 
 Date: 2026-07-18
 Branch: `redesign/tm-stats-dashboard-rebuild`
+
+> Superseded on 2026-07-18 by `PHASE-04-STEP-03B-VENUS-COLONIES-PRODUCTION-COMPLETE-HANDOFF.md`: the production migration and historical backfill are verified.
 Starting checkpoint: `c9e92f6d2`
 
 ## Status
@@ -71,7 +73,7 @@ names alone never establish expansion presence.
 
 Prepared migration:
 
-`supabase/migrations/20260718185155_add_venus_colonies_import_facts.sql`
+`supabase/migrations/20260718200536_add_venus_colonies_import_facts.sql`
 
 It adds:
 

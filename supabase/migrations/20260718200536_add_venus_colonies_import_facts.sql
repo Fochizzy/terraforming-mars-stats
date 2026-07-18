@@ -50,8 +50,19 @@ create table public.game_expansion_facts (
   )
 );
 
-alter table public.game_log_imports
-add constraint game_log_imports_game_id_id_unique unique (game_id, id);
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'game_log_imports_game_id_id_unique'
+      and conrelid = 'public.game_log_imports'::regclass
+  ) then
+    alter table public.game_log_imports
+    add constraint game_log_imports_game_id_id_unique unique (game_id, id);
+  end if;
+end;
+$$;
 
 alter table public.game_expansion_facts
 add constraint game_expansion_facts_source_import_check
