@@ -1,11 +1,9 @@
 import Image from 'next/image';
-import { getPublicEnv } from '@/lib/env';
+import { getSupabaseGameAssetUrl } from '@/lib/assets/supabase-game-assets';
 
 // Tag icons are self-hosted in the public tm-tag-icons Supabase bucket, keyed by
 // tag code (see scripts/catalog/upload-game-asset-images.ts). Building the URL
 // from the code avoids a DB round-trip for what is a small, fixed vocabulary.
-const TAG_ICON_PREFIX = `${getPublicEnv().NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/tm-tag-icons/`;
-
 // The exact set uploaded to the bucket. A tag code with no icon (e.g. an
 // unexpected import value) renders as plain text instead of a broken image.
 const TAG_ICON_CODES: ReadonlySet<string> = new Set([
@@ -40,6 +38,13 @@ export function hasTagIcon(code: string): boolean {
   return TAG_ICON_CODES.has(normalizeTagIconCode(code));
 }
 
+export function getTagIconUrl(code: string): string | null {
+  const normalized = normalizeTagIconCode(code);
+  return TAG_ICON_CODES.has(normalized)
+    ? getSupabaseGameAssetUrl('tm-tag-icons', `${normalized}.webp`)
+    : null;
+}
+
 export function TagIcon({
   className,
   code,
@@ -50,9 +55,9 @@ export function TagIcon({
   /** Rendered width/height in px; icons are square. */
   size?: number;
 }) {
-  const normalized = normalizeTagIconCode(code);
+  const url = getTagIconUrl(code);
 
-  if (!TAG_ICON_CODES.has(normalized)) {
+  if (!url) {
     return null;
   }
 
@@ -61,7 +66,7 @@ export function TagIcon({
       alt={`${code} tag`}
       className={className}
       height={size}
-      src={`${TAG_ICON_PREFIX}${normalized}.webp`}
+      src={url}
       unoptimized
       width={size}
     />

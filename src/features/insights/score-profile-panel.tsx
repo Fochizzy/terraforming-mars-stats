@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { getSupabaseGameAssetUrl } from '@/lib/assets/supabase-game-assets';
 import type { ScoreSourceAverages } from '@/lib/db/analytics-repo';
 import styles from './score-profile-panel.module.css';
 
@@ -13,15 +14,16 @@ type ScoreProfilePanelProps = {
   averages: ScoreSourceAverages | null;
 };
 
-const STORAGE_BASE_URL =
-  'https://qjtwgrjjwnqafbvkkfex.supabase.co/storage/v1/object/public/tm-score-icons';
+function pointSourceAssetUrl(filename: string) {
+  return getSupabaseGameAssetUrl('tm-score-icons', filename);
+}
 
 const scoreSources: ScoreSourceDefinition[] = [
   { accent: '#4da8ff', filename: 'Terraform_Rating.png', key: 'averageTrPoints', label: 'Terraform Rating' },
   { accent: '#ff8b2c', filename: 'Card_Points.png', key: 'averageCardPoints', label: 'Card Points' },
   { accent: '#66a7ff', filename: 'Other_Card.png', key: 'averageOtherCardPoints', label: 'Other Card' },
   { accent: '#a7d928', filename: 'Greenery.png', key: 'averageGreeneryPoints', label: 'Greenery' },
-  { accent: '#8b5cf6', filename: 'a5bca072-12a2-4080-863c-1b75c8a20889.png', key: 'averageCitiesPoints', label: 'Cities' },
+  { accent: '#8b5cf6', filename: 'City.png', key: 'averageCitiesPoints', label: 'Cities' },
   { accent: '#ffc12e', filename: 'Milestones.png', key: 'averageMilestonePoints', label: 'Milestones' },
   { accent: '#9b6cff', filename: 'Awards.png', key: 'averageAwardPoints', label: 'Awards' },
   { accent: '#f28b24', filename: 'Jovian.png', key: 'averageJovianPoints', label: 'Jovian' },
@@ -107,7 +109,7 @@ export function ScoreProfilePanel({ averages }: ScoreProfilePanelProps) {
               style={{ '--score-accent': entry.accent, flexGrow: Math.max(entry.value, total * 0.018) } as CSSProperties}
               title={`${entry.label}: ${formatPoints(entry.value)} points (${Math.round(share)}%)`}
             >
-              {share >= 7 ? <><img alt="" src={`${STORAGE_BASE_URL}/${entry.filename}`} /><span>{Math.round(share)}%</span></> : null}
+              {share >= 7 ? <><img alt="" src={pointSourceAssetUrl(entry.filename)} /><span>{Math.round(share)}%</span></> : null}
             </div>
           );
         })}
@@ -119,7 +121,7 @@ export function ScoreProfilePanel({ averages }: ScoreProfilePanelProps) {
             const share = (entry.value / total) * 100;
             return (
               <article className={styles.card} key={entry.label} style={{ '--score-accent': entry.accent } as CSSProperties}>
-                <div className={styles.iconShell}><img alt="" src={`${STORAGE_BASE_URL}/${entry.filename}`} /></div>
+                <div className={styles.iconShell}><img alt="" src={pointSourceAssetUrl(entry.filename)} /></div>
                 <div className={styles.cardCopy}>
                   <div className={styles.cardHeading}><h3>{entry.label}</h3><span>#{index + 1}</span></div>
                   <div className={styles.cardValue}><strong>{formatPoints(entry.value)}</strong><span>avg points</span></div>
@@ -133,7 +135,7 @@ export function ScoreProfilePanel({ averages }: ScoreProfilePanelProps) {
 
         <aside className={styles.insight} style={{ '--score-accent': dominant.accent } as CSSProperties}>
           <p className={styles.insightLabel}>Profile readout</p>
-          <div className={styles.heroIcon}><img alt="" src={`${STORAGE_BASE_URL}/${dominant.filename}`} /></div>
+          <div className={styles.heroIcon}><img alt="" src={pointSourceAssetUrl(dominant.filename)} /></div>
           <h3>{identityLabel}</h3>
           <p>{identityDescription}</p>
           <dl>

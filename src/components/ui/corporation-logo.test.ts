@@ -14,17 +14,21 @@ describe('corporation logo helpers', () => {
 
   it('resolves a public bucket URL for known corporations', () => {
     expect(getCorporationLogoUrl('Spire')).toContain(
-      '/storage/v1/object/public/tm-corporation-logos/Spire.png',
+      '/storage/v1/object/public/tm-corporation-logos/corporation-logo-4e187f25db2d17a3c95964614d632cdd3964cd51c2b918f0487e190db66dda56.png',
     );
   });
 
-  it('URL-encodes filenames that contain spaces', () => {
-    expect(getCorporationLogoUrl('Point Luna')).toContain('Point%20Luna.png');
+  it('uses the verified content-hashed Point Luna asset', () => {
+    expect(getCorporationLogoUrl('Point Luna')).toContain(
+      'corporation-logo-c1ef8aab1384feb7643fca8b8055b3d175df1a5ae34347abdb0ac5700a640a23.png',
+    );
   });
 
-  it('matches display names to their catalog filename regardless of spelling drift', () => {
-    // logo_path is the misspelled "Creditcor.png" while the corp name is Credicor.
-    expect(getCorporationLogoUrl('Credicor')).toContain('Creditcor.png');
+  it('matches display names to the current production logo_path snapshot', () => {
+    expect(getCorporationLogoUrl('Credicor')).toContain(
+      'corporation-logo-fc76d416bb5db8594c6cbef2a7cf922f38d308fa24970f59ed62e7995595a26a.png',
+    );
+    expect(getCorporationLogoUrl('Credicor')).toContain('?cacheNonce=20260718-v2');
   });
 
   it('returns null / false for unknown corporations', () => {

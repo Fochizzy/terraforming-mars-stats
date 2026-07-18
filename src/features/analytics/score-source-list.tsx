@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { ScoreSourceAverages } from '@/lib/db/analytics-repo';
 import { GlossaryLink } from '@/features/glossary/glossary-link';
+import { getSupabaseGameAssetUrl } from '@/lib/assets/supabase-game-assets';
 
 // Pure helper — inlined here so this client component has no server-only imports.
 function buildScoreSourceEntries(row: ScoreSourceAverages) {
@@ -21,19 +22,23 @@ function buildScoreSourceEntries(row: ScoreSourceAverages) {
 }
 
 // ---------------------------------------------------------------------------
-// Icon map — served from /public/icons/
+// Compact axis variants keep the charts crisp without downloading the larger
+// point-source artwork used by the Scoring DNA panel.
 // ---------------------------------------------------------------------------
 const SCORE_SOURCE_ICONS: Record<string, string> = {
-  'Terraform Rating': '/icons/Terraforming Rating.png',
-  'Card Points': '/icons/Card_Points.png',
-  'Other Card': '/icons/Other_Card.png',
-  Greenery: '/icons/Greenery.png',
-  Cities: '/icons/Cities.png',
-  Milestones: '/icons/Milestones.png',
-  Awards: '/icons/Awards.png',
-  Jovian: '/icons/Jovian.png',
-  Microbe: '/icons/Microbe.png',
-  Animal: '/icons/Animal.png',
+  'Terraform Rating': getSupabaseGameAssetUrl(
+    'tm-score-icons',
+    'axis/Terraform_Rating.png',
+  ),
+  'Card Points': getSupabaseGameAssetUrl('tm-score-icons', 'axis/Card_Points.png'),
+  'Other Card': getSupabaseGameAssetUrl('tm-score-icons', 'axis/Other_Card.png'),
+  Greenery: getSupabaseGameAssetUrl('tm-score-icons', 'axis/Greenery.png'),
+  Cities: getSupabaseGameAssetUrl('tm-score-icons', 'axis/City.png'),
+  Milestones: getSupabaseGameAssetUrl('tm-score-icons', 'axis/Milestones.png'),
+  Awards: getSupabaseGameAssetUrl('tm-score-icons', 'axis/Awards.png'),
+  Jovian: getSupabaseGameAssetUrl('tm-score-icons', 'axis/Jovian.png'),
+  Microbe: getSupabaseGameAssetUrl('tm-score-icons', 'axis/Microbe.png'),
+  Animal: getSupabaseGameAssetUrl('tm-score-icons', 'axis/Animal.png'),
 };
 
 /** Maps each score-source row label to its glossary term anchor. */
