@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildTerraformingMarsLogEvents } from './build-terraforming-mars-log-events';
+import { parseTerraformingMarsExpansionMechanics } from './parse-terraforming-mars-expansion-mechanics';
 import { parseTerraformingMarsTileActions } from './parse-terraforming-mars-tile-actions';
 
 describe('buildTerraformingMarsLogEvents', () => {
@@ -130,5 +131,52 @@ describe('buildTerraformingMarsLogEvents', () => {
     });
     expect(result.events[3]).toMatchObject({ board_space: 'm03', tile_type: 'moon_mine' });
     expect(result.events[4]).toMatchObject({ confidence_level: 'reviewed' });
+  });
+
+  it('persists canonical Venus and Colony fields on typed log events', () => {
+    const exportedLogText = [
+      'Generation 4',
+      'Friday raised the Venus scale 2 steps',
+      'Friday spent 3 energy to trade with Luna',
+      'Final greenery placement',
+      'This game id was typed-expansion-events',
+    ].join('\n');
+    const expansion = parseTerraformingMarsExpansionMechanics({
+      exportedLogText,
+      playerResolutions: [
+        {
+          selectedPlayerId: 'player-friday',
+          sourcePlayerText: 'Friday',
+        },
+      ],
+    });
+
+    const result = buildTerraformingMarsLogEvents({
+      expansionMechanicEvents: expansion.events,
+      exportedLogText,
+      objectiveEvidence: [],
+      playedEntityEvidence: [],
+    });
+
+    expect(result.events.map((event) => event.event_type)).toEqual([
+      'generation_started',
+      'venus_scale_increased',
+      'colony_traded',
+    ]);
+    expect(result.events[1]).toMatchObject({
+      event_identity: '2:venus_scale_increased:none',
+      generation_number: 4,
+      parameter_steps: 2,
+      player_id: 'player-friday',
+      resource_amount: 2,
+      resource_type: 'terraform_rating',
+    });
+    expect(result.events[2]).toMatchObject({
+      colony_id: 'luna',
+      event_provenance: 'exported_log',
+      event_type: 'colony_traded',
+      resource_amount: 3,
+      resource_type: 'energy',
+    });
   });
 });

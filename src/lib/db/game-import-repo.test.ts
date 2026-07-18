@@ -262,6 +262,48 @@ describe('saveParsedGameLogEvents', () => {
   });
 });
 
+describe('saveGameExpansionFacts', () => {
+  it('upserts canonical parser state without collapsing missing Venus scale to zero', async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn((table: string) => {
+      if (table === 'game_expansion_facts') {
+        return { upsert };
+      }
+      throw new Error(`Unexpected table ${table}`);
+    });
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ from } as never);
+
+    await repo.saveGameExpansionFacts({
+      facts: {
+        coloniesState: 'confirmed_absent',
+        colonyBuiltCount: 0,
+        colonyTradeCount: 0,
+        detectionProvenance: { colonies_evidence: [] },
+        finalVenusScale: null,
+        parserVersion: 'terraforming-mars-venus-colonies-v1',
+        sourceCoverage: { complete: true },
+        venusEventCount: 0,
+        venusNextState: 'confirmed_absent',
+      },
+      gameId: 'game-1',
+      gameLogImportId: 'import-1',
+    });
+
+    expect(from).toHaveBeenCalledWith('game_expansion_facts');
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        colonies_state: 'confirmed_absent',
+        final_venus_scale: null,
+        game_id: 'game-1',
+        source_game_log_import_id: 'import-1',
+        venus_event_count: 0,
+        venus_next_state: 'confirmed_absent',
+      }),
+      { onConflict: 'game_id' },
+    );
+  });
+});
+
 describe('saveGameLogTagSummaries', () => {
   beforeEach(() => {
     vi.clearAllMocks();

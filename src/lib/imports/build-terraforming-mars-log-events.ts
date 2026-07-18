@@ -1,17 +1,29 @@
 import type { ImportObjectiveEvidence } from './parse-terraforming-mars-log';
+import type { ParsedExpansionMechanicEvent } from './parse-terraforming-mars-expansion-mechanics';
 import type { ImportPlayedEntityEvidence } from './parse-terraforming-mars-played-entities';
 import type { ImportTileAction } from './parse-terraforming-mars-tile-actions';
 
 export type ParsedGameLogEvent = {
   board_space?: string | null;
   card_id: string | null;
+  colony_id?: string | null;
   confidence_level: 'high' | 'reviewed';
+  event_identity?: string | null;
   event_order: number;
+  event_provenance?: string | null;
   event_type: string;
   generation_number: number | null;
   line_classification: string;
+  parameter_after?: number | null;
+  parameter_before?: number | null;
+  parameter_steps?: number | null;
+  parser_version?: string | null;
   payload: Record<string, unknown>;
+  player_id?: string | null;
   raw_line: string;
+  resource_amount?: number | null;
+  resource_type?: string | null;
+  source_entity?: string | null;
   tile_type?: string | null;
 };
 
@@ -27,6 +39,7 @@ function stripExporterPrefix(line: string) {
 }
 
 export function buildTerraformingMarsLogEvents(input: {
+  expansionMechanicEvents?: ParsedExpansionMechanicEvent[];
   exportedLogText: string;
   objectiveEvidence: ImportObjectiveEvidence[];
   playedEntityEvidence: ImportPlayedEntityEvidence[];
@@ -43,6 +56,9 @@ export function buildTerraformingMarsLogEvents(input: {
   );
   const tileActionByLine = new Map(
     (input.tileActions ?? []).map((action) => [action.lineNumber, action]),
+  );
+  const expansionMechanicByLine = new Map(
+    (input.expansionMechanicEvents ?? []).map((event) => [event.lineNumber, event]),
   );
   const events: ParsedGameLogEvent[] = [];
   let currentGeneration: number | null = null;
@@ -119,6 +135,44 @@ export function buildTerraformingMarsLogEvents(input: {
         },
         raw_line: rawLine,
         tile_type: tileAction.canonicalTileCode ?? tileAction.rawTileType,
+      });
+      return;
+    }
+
+    const expansionMechanic = expansionMechanicByLine.get(lineNumber);
+    if (expansionMechanic) {
+      const resourceAmount =
+        expansionMechanic.paymentAmount ?? expansionMechanic.trEffect;
+      const resourceType = expansionMechanic.paymentResource ??
+        (expansionMechanic.trEffect === null ? null : 'terraform_rating');
+      events.push({
+        card_id: null,
+        colony_id: expansionMechanic.colonyId,
+        confidence_level: expansionMechanic.confidenceLevel,
+        event_identity: expansionMechanic.eventIdentity,
+        event_order: lineNumber,
+        event_provenance: expansionMechanic.sourceProvenance,
+        event_type: expansionMechanic.eventType,
+        generation_number: expansionMechanic.generationNumber,
+        line_classification: 'expansion_mechanic',
+        parameter_after: expansionMechanic.parameterAfter,
+        parameter_before: expansionMechanic.parameterBefore,
+        parameter_steps: expansionMechanic.parameterSteps,
+        parser_version: 'terraforming-mars-venus-colonies-v1',
+        payload: {
+          actor: expansionMechanic.actor,
+          attribution: expansionMechanic.attribution,
+          canonical_colony_name: expansionMechanic.colonyName,
+          event_identity: expansionMechanic.eventIdentity,
+          payment_amount: expansionMechanic.paymentAmount,
+          payment_resource: expansionMechanic.paymentResource,
+          tr_effect: expansionMechanic.trEffect,
+        },
+        player_id: expansionMechanic.playerId,
+        raw_line: rawLine,
+        resource_amount: resourceAmount,
+        resource_type: resourceType,
+        source_entity: expansionMechanic.sourceEntity,
       });
       return;
     }

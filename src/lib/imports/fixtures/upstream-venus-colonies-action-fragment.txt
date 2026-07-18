@@ -1,0 +1,12 @@
+Generation 3
+Player A added a new Colony tile: Ceres
+Player A raised the Venus scale 2 step(s)
+Player B acted as World Government and increased Venus scale
+Player A built a colony on Luna
+Player B spent 3 energy to trade with Ganymede
+Player A increased Titan colony track 1 step(s)
+Generation 4
+Player A removed an asteroid resource to increase Venus scale 1 step
+Player B traded with Europa
+Final greenery placement
+This game id was upstream-source-action-fragment

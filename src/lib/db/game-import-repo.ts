@@ -4,6 +4,7 @@ import { buildImportEvidencePath } from '@/lib/imports/build-import-evidence-pat
 import { refreshGameMetricSnapshots } from './metric-refresh-repo';
 import type { ImportedPlayerResolution } from '@/lib/player-identity/guest-identity';
 import type { ParsedGameLogEvent } from '@/lib/imports/build-terraforming-mars-log-events';
+import type { ExpansionDetectionState } from '@/lib/imports/parse-terraforming-mars-expansion-mechanics';
 
 export type GameLogImportSummary = {
   createdAt: string;
@@ -41,6 +42,19 @@ export type SaveGameLogImportParseMetadata = {
   };
   unparsedLineCount?: number;
   validationErrors?: string[];
+};
+
+
+export type SaveGameExpansionFactsInput = {
+  coloniesState: ExpansionDetectionState;
+  colonyBuiltCount: number;
+  colonyTradeCount: number;
+  detectionProvenance: Record<string, unknown>;
+  finalVenusScale: number | null;
+  parserVersion: string;
+  sourceCoverage: Record<string, unknown>;
+  venusEventCount: number;
+  venusNextState: ExpansionDetectionState;
 };
 
 type RawGameLogImportSummaryRow = {
@@ -249,6 +263,37 @@ export async function saveParsedGameLogEvents(input: {
 
   await validateGameLogImport(input.gameLogImportId);
   return data;
+}
+
+export async function saveGameExpansionFacts(input: {
+  facts: SaveGameExpansionFactsInput;
+  gameId: string;
+  gameLogImportId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from('game_expansion_facts').upsert(
+    {
+      backfill_version: null,
+      backfilled_at: null,
+      colonies_state: input.facts.coloniesState,
+      colony_built_count: input.facts.colonyBuiltCount,
+      colony_trade_count: input.facts.colonyTradeCount,
+      detection_provenance: input.facts.detectionProvenance,
+      final_venus_scale: input.facts.finalVenusScale,
+      game_id: input.gameId,
+      parser_version: input.facts.parserVersion,
+      source_coverage: input.facts.sourceCoverage,
+      source_game_log_import_id: input.gameLogImportId,
+      updated_at: new Date().toISOString(),
+      venus_event_count: input.facts.venusEventCount,
+      venus_next_state: input.facts.venusNextState,
+    },
+    { onConflict: 'game_id' },
+  );
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function saveGameLogTagSummaries(input: {

@@ -3,6 +3,7 @@ import { LogGameImportShell } from '@/features/imports/log-game-import-shell';
 import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { saveDraftGame } from '@/lib/db/game-draft-repo';
 import {
+  saveGameExpansionFacts,
   saveGameLogImport,
   saveParsedGameLogEvents,
 } from '@/lib/db/game-import-repo';
@@ -27,6 +28,10 @@ import {
   applyImportObjectiveCorrections,
   parseTerraformingMarsLog,
 } from '@/lib/imports/parse-terraforming-mars-log';
+import {
+  buildGameExpansionFactInput,
+  parseTerraformingMarsExpansionMechanics,
+} from '@/lib/imports/parse-terraforming-mars-expansion-mechanics';
 import { detectImportBoardMapIndependent } from '@/lib/imports/detect-import-board-map-independent';
 import { parseTerraformingMarsTileActions } from '@/lib/imports/parse-terraforming-mars-tile-actions';
 import { buildImportedBoardState } from '@/lib/imports/build-imported-board-state';
@@ -145,12 +150,6 @@ export default async function LogGameImportPage() {
         ),
       ),
     ].sort();
-    const parsedLogEvents = buildTerraformingMarsLogEvents({
-      exportedLogText: values.exportedGameLog,
-      objectiveEvidence: reviewedObjectiveEvidence,
-      playedEntityEvidence: reviewedPlayedEntityEvidence,
-      tileActions: tileActionSet.actions,
-    });
     if (
       playedEntityParse.errors.length > 0 ||
       reviewedPlayedEntityEvidence.some(
@@ -286,6 +285,24 @@ export default async function LogGameImportPage() {
       parserIdentity: TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
       sourceFormat: TERRAFORMING_MARS_LOG_SOURCE_FORMAT,
     });
+    const expansionParse = parseTerraformingMarsExpansionMechanics({
+      exportedLogText: values.exportedGameLog,
+      playerResolutions: playerResolutions.map(
+        ({ selectedPlayerId, sourcePlayerText }) => ({
+          selectedPlayerId,
+          sourcePlayerText,
+        }),
+      ),
+    });
+    const expansionFacts = buildGameExpansionFactInput(expansionParse);
+    const parsedLogEvents = buildTerraformingMarsLogEvents({
+      expansionMechanicEvents: expansionParse.events,
+      exportedLogText: values.exportedGameLog,
+      objectiveEvidence: reviewedObjectiveEvidence,
+      playedEntityEvidence: reviewedPlayedEntityEvidence,
+      tileActions: tileActionSet.actions,
+    });
+
     const draftForm = buildImportDraft({
       defaultGuaranteedMergerOffer:
         activeGroupSettings.defaultGuaranteedMergerOffer,
@@ -319,6 +336,17 @@ export default async function LogGameImportPage() {
       gameId: draft.gameId,
       parseMetadata: {
         confidenceSummary: {
+          expansions: {
+            colonies_state: expansionFacts.coloniesState,
+            colony_built_count: expansionFacts.colonyBuiltCount,
+            colony_trade_count: expansionFacts.colonyTradeCount,
+            event_count: expansionParse.events.length,
+            final_venus_scale: expansionFacts.finalVenusScale,
+            parser_version: expansionFacts.parserVersion,
+            source_coverage: expansionFacts.sourceCoverage,
+            venus_event_count: expansionFacts.venusEventCount,
+            venus_next_state: expansionFacts.venusNextState,
+          },
           generation_count: authoritativeGenerationCount,
           map: {
             board_conflicts: reconstructedBoard.conflicts,
@@ -337,7 +365,11 @@ export default async function LogGameImportPage() {
             unknown_tile_type_count: tileActionSet.unknownTileTypeCount,
           },
           player_count: authoritativePlayerCount,
-          warnings: [...logParse.warnings, ...(resultPdfParse?.warnings ?? [])],
+          warnings: [
+            ...logParse.warnings,
+            ...(resultPdfParse?.warnings ?? []),
+            ...expansionParse.warnings,
+          ],
           played_entities: {
             corrections: values.playedEntityCorrections ?? [],
             evidence: reviewedPlayedEntityEvidence,
@@ -350,7 +382,8 @@ export default async function LogGameImportPage() {
         parseStatus:
           logParse.errors.length > 0
             ? 'parsed_with_errors'
-            : logParse.warnings.length > 0
+            : logParse.warnings.length > 0 ||
+                expansionParse.warnings.length > 0
               ? 'parsed_needs_review'
               : 'parsed_setup_fields',
         parserVersion: TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
@@ -399,6 +432,11 @@ export default async function LogGameImportPage() {
     });
     await saveParsedGameLogEvents({
       events: parsedLogEvents.events,
+      gameLogImportId: gameLogImport.id,
+    });
+    await saveGameExpansionFacts({
+      facts: expansionFacts,
+      gameId: draft.gameId,
       gameLogImportId: gameLogImport.id,
     });
 

@@ -1,0 +1,703 @@
+First player this generation is Player A
+Good luck Player A!
+Good luck Player B!
+Generation 1
+Player A played Splice
+Player A kept 4 project cards
+Player A gained 2 Mâ‚¬ because of Splice
+Player A gained 2 Mâ‚¬ because of Splice
+Player B played Utopia Invest
+Player B gained 1 steel production
+Player B gained 1 titanium production
+Player B kept 3 project cards
+Player A played Allied Bank
+Player A gained 4 Mâ‚¬ production
+Player A gained 3 Mâ‚¬
+Player A played Soil Bacteria
+Player A gained 3 plants
+Discarded 32 cards Cutting Edge Technology,Energy Market,Electro Catapult,Livestock,Birds,Robot Pollinators,AI Central,Outdoor Sports,Moss,Large Convoy,Caretaker Contract,Breathing Filters,Space Elevator,Dust Seals,Restricted Area,Mars Nomads,Zeppelins,New Holland,Deimos Down:promo,Carbon Nanosystems,Immigrant City,Quantum Extractor,Herbivores,Domed Crater,Mars University,Adaptation Technology,Commercial District,Cyberia Systems,Ice Asteroid,CEO's Favorite Project,Public Plans,Medical Lab
+Player A drew Symbiotic Fungus,Topsoil Contract
+Player A gained 1 plant
+Player A gained 2 Mâ‚¬ because of Splice
+Player A gained 2 Mâ‚¬ because of Splice
+Player B played Research Network
+Player B gained 1 Mâ‚¬ production
+Player B drew 3 card(s)
+You drew Astra Mechanica,Research,Law Suit
+Player B played Io Research Outpost
+Player B gained 1 titanium production
+Player B drew 1 card(s)
+You drew Biomass Combustors
+Player A took the first action of Splice corporation
+Discarded 3 cards Fueled Generators,Towing A Comet,Imported Nitrogen
+Player A drew Designed Microorganisms
+Player A played Topsoil Contract
+Player A gained 3 plants
+Player A gained 1 plant
+Player A gained 2 Mâ‚¬ because of Splice
+Player A gained 2 Mâ‚¬ because of Splice
+Player B played 16 Psyche
+Player B gained 2 titanium production
+Player B gained 3 titanium
+Player B passed
+Player A used Convert Plants standard action
+Player A placed greenery tile at 14
+Player A drew 1 card(s)
+You drew Bushes
+Player A played Geothermal Power
+Player A gained 2 energy production
+Player A played Designed Microorganisms
+Player A gained 2 plant production
+Player A gained 1 plant
+Player A gained 2 Mâ‚¬ because of Splice
+Player A gained 2 Mâ‚¬ because of Splice
+Player A passed
+Generation 2
+First player this generation is Player B
+Player A bought 2 card(s)
+You bought Nitrite Reducing Bacteria,Lichen
+Player B bought 1 card(s)
+You bought Lunar Beam
+Player B used Utopia Invest action
+Player B decreased titanium production 1 step to gain 4 titanium
+Player B played Io Mining Industries
+Player B gained 2 Mâ‚¬ production
+Player B gained 2 titanium production
+Player A played Nitrite Reducing Bacteria
+Player A added 3 Microbe(s) to Nitrite Reducing Bacteria
+Player A gained 3 Mâ‚¬
+Player A gained 1 plant
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player A gained 2 Mâ‚¬ because of Splice
+Player A used Nitrite Reducing Bacteria action
+Player A removed 3 resource(s) from Player A's Nitrite Reducing Bacteria
+Player B played Olympus Conference
+Player B added 1 Science to Olympus Conference
+Player B passed
+Player A passed
+Generation 3
+First player this generation is Player A
+Player A bought 2 card(s)
+You bought Protected Valley,Giant Space Mirror
+Player B bought 2 card(s)
+You bought Static Harvesting,Floyd Continuum
+Player A played Water Import From Europa
+Player A used Water Import From Europa action
+Player A placed ocean tile at 13
+Player A drew 2 card(s)
+You drew Immigration Shuttles,Asteroid Mining
+Player B played Lunar Beam
+Player B lost 2 Mâ‚¬ production
+Player B gained 2 energy production
+Player B gained 2 heat production
+Player B played Static Harvesting
+Player B gained 1 energy production
+Player B gained 3 Mâ‚¬
+Player A used Nitrite Reducing Bacteria action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player A passed
+Player B played Floyd Continuum
+Player B removed a resource from Olympus Conference to draw a card
+Player B drew 1 card(s)
+You drew Arctic Algae
+Player B passed
+Generation 4
+First player this generation is Player B
+Player A bought 2 card(s)
+You bought Phobos Space Haven,Mine
+Player B bought 2 card(s)
+You bought Advanced Alloys,Mining Expedition
+Player B played Arctic Algae
+Player B gained 1 plant
+Player B passed
+Player A used Convert Plants standard action
+Player A placed greenery tile at 21
+Player A gained 1 plant
+Player A gained 1 titanium
+Player A used Water Import From Europa action
+Player A placed ocean tile at 06
+Player A drew 1 card(s)
+You drew Aerobraked Ammonia Asteroid
+Player B gained 2 plants from Arctic Algae
+Player A used Nitrite Reducing Bacteria action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player A played Aerobraked Ammonia Asteroid
+Player A gained 1 plant production
+Player A gained 3 heat production
+Player A added 2 Microbe(s) to Nitrite Reducing Bacteria
+Player A gained 2 Mâ‚¬
+Player A passed
+Generation 5
+First player this generation is Player A
+Player A bought 2 card(s)
+You bought Artificial Photosynthesis,Cloud Seeding
+Player B bought 4 card(s)
+You bought Cartel,Plantation,Sterling Vents,Asteroid Hollowing
+Player A used Convert Heat standard action
+Player A used Nitrite Reducing Bacteria action
+Player A removed 3 resource(s) from Player A's Nitrite Reducing Bacteria
+Player B played Asteroid Hollowing
+Player B used Asteroid Hollowing action
+Player B gained 1 Mâ‚¬ production
+Player B added 1 Asteroid to Asteroid Hollowing
+Player A played Phobos Space Haven
+Player A gained 1 titanium production
+Player A passed
+Player B played Research
+Player B drew 2 card(s)
+You drew Imported Hydrogen,Space Hotels
+Player B added 1 Science to Olympus Conference
+Player B removed a resource from Olympus Conference to draw a card
+Player B drew 1 card(s)
+You drew Underground City
+Player B played Space Hotels
+Player B gained 4 Mâ‚¬ production
+Player B passed
+Generation 6
+First player this generation is Player B
+Player A bought 1 card(s)
+You bought Bactoviral Research
+Player B bought 3 card(s)
+You bought Hackers,Field-Capped City,Comet Aiming
+Player B used Asteroid Hollowing action
+Player B gained 1 Mâ‚¬ production
+Player B added 1 Asteroid to Asteroid Hollowing
+Player B played Advanced Alloys
+Player B added 1 Science to Olympus Conference
+Player A played Asteroid Mining Consortium
+Player A stole 1 titanium production from Player B
+Player A played Mine
+Player A gained 1 steel production
+Player B played Law Suit
+Player B stole 3 Mâ‚¬ from Player A
+Player B played Comet Aiming
+Player A used Water Import From Europa action
+Player A placed ocean tile at 32
+Player A gained 2 plants
+Player B gained 2 plants from Arctic Algae
+Player A used Convert Plants standard action
+Player A placed greenery tile at 29
+Player A gained 2 plants
+Player B used Comet Aiming action
+Player B added 1 Asteroid to Asteroid Hollowing
+Player B played Imported Hydrogen
+Player B gained 3 plants
+Player B placed ocean tile at 63
+Player B gained 2 titanium
+Player B gained 2 plants from Arctic Algae
+Player A used Nitrite Reducing Bacteria action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player A passed
+Player B used Convert Plants standard action
+Player B placed greenery tile at 55
+Player B drew 1 card(s)
+You drew Nitrogen-Rich Asteroid
+Player B played Hackers
+Player B gained 2 Mâ‚¬ production
+Player B lost 1 energy production
+Player B stole 2 Mâ‚¬ production from Player A
+Player B passed
+Generation 7
+First player this generation is Player A
+Player A bought 2 card(s)
+You bought Earth Catapult,Corporate Stronghold
+Player B bought 3 card(s)
+You bought Media Group,Comet,Rad-Chem Factory
+Player A claimed Gardener milestone
+Player A played Corporate Stronghold
+Player A gained 3 Mâ‚¬ production
+Player A lost 1 energy production
+Player A placed city tile at 30
+Player A gained 2 plants
+Player B used Convert Heat standard action
+Player B used Convert Heat standard action
+Player B gained 1 heat production
+Player A used Convert Plants standard action
+Player A placed greenery tile at 39
+Player A gained 2 plants
+Player A used Nitrite Reducing Bacteria action
+Player A removed 3 resource(s) from Player A's Nitrite Reducing Bacteria
+Player B used Comet Aiming action
+Player B added 1 Asteroid to Asteroid Hollowing
+Player B used Asteroid Hollowing action
+Player B gained 1 Mâ‚¬ production
+Player B added 1 Asteroid to Asteroid Hollowing
+Player A played Lichen
+Player A gained 1 plant production
+Player A gained 1 plant
+Player A used Convert Heat standard action
+Player B played Media Group
+Player B played Comet
+Player B gained 1 heat production
+Player B placed ocean tile at 33
+Player B gained 2 plants
+Player B gained 2 Mâ‚¬ from 1 ocean(s)
+Player A lost 3 plants because of Player B
+Player B gained 3 Mâ‚¬
+Player B gained 2 plants from Arctic Algae
+Player A passed
+Player B played Underground City
+Player B gained 2 steel production
+Player B lost 2 energy production
+Player B placed city tile at 56
+Player B drew 1 card(s)
+You drew ArchaeBacteria
+Player B played ArchaeBacteria
+Player B gained 1 plant production
+Player A gained 2 Mâ‚¬ because of Splice
+Player B gained 2 Mâ‚¬ because of Splice
+Player B played Cartel
+Player B gained 6 Mâ‚¬ production
+Player B passed
+Generation 8
+First player this generation is Player B
+Player A bought 3 card(s)
+You bought Worms,GHG Producing Bacteria,Bribed Committee
+Player B bought 3 card(s)
+You bought Industrial Center,Interstellar Colony Ship,Virus
+Player B played Industrial Center
+Player B placed Industrial Center tile at 22
+Player B gained 1 plant
+Player B used Convert Plants standard action
+Player B placed greenery tile at 62
+Player B gained 2 Mâ‚¬ from 1 ocean(s)
+Player A used Convert Heat standard action
+Player A played Earth Catapult
+Player B played Plantation
+Player B placed greenery tile at 57
+Player B gained 2 Mâ‚¬ from 1 ocean(s)
+Player B played Nitrogen-Rich Asteroid
+Player B gained 4 plant production
+Player B gained 3 Mâ‚¬
+Player A used Water Import From Europa action
+Player A placed ocean tile at 34
+Player A gained 2 plants
+Player A gained 2 Mâ‚¬ from 1 ocean(s)
+Player B gained 2 plants from Arctic Algae
+Player A used Nitrite Reducing Bacteria action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player B played Virus
+Player A lost 5 plants because of Player B
+Player B gained 3 Mâ‚¬
+Player A gained 2 Mâ‚¬ because of Splice
+Player B gained 2 Mâ‚¬ because of Splice
+Player B played Mining Expedition
+Player B gained 2 steel
+Player A lost 1 plant because of Player B
+Player B gained 3 Mâ‚¬
+Player A played GHG Producing Bacteria
+Player A gained 1 plant
+Player A added 1 Microbe to GHG Producing Bacteria
+Player A gained 1 Mâ‚¬
+Player A gained 2 Mâ‚¬ because of Splice
+Player A used GHG Producing Bacteria action
+Player A added 1 Microbe to GHG Producing Bacteria
+Player A gained 1 Mâ‚¬
+Player B played Astra Mechanica
+Player B removed a resource from Olympus Conference to draw a card
+Player B drew 1 card(s)
+You drew Business Contacts
+Player B returned Comet to their hand
+Player B returned Nitrogen-Rich Asteroid to their hand
+Player B used Utopia Invest action
+Player B decreased titanium production 1 step to gain 4 titanium
+Player A played Symbiotic Fungus
+Player A gained 1 plant
+Player A gained 2 Mâ‚¬ because of Splice
+Player A gained 2 Mâ‚¬ because of Splice
+Player A used Symbiotic Fungus action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player B used Comet Aiming action
+Player B added 1 Asteroid to Asteroid Hollowing
+Player B used Asteroid Hollowing action
+Player B gained 1 Mâ‚¬ production
+Player B added 1 Asteroid to Asteroid Hollowing
+Player A played Bribed Committee
+Player A claimed Terraformer milestone
+Player B played Biomass Combustors
+Player B gained 2 energy production
+Player A lost 1 plant production because of Player B
+Player B played Rad-Chem Factory
+Player B lost 1 energy production
+Player A passed
+Player B passed
+Generation 9
+First player this generation is Player A
+Player B bought 4 card(s)
+You bought Mass Converter,Space Station,Eos Chasma National Park,Meltworks
+Player A bought 3 card(s)
+You bought Kaguya Tech,Research Outpost,Farming
+Player A played Research Outpost
+Player A placed city tile at 27
+Player A gained 1 plant
+Player A claimed Mayor milestone
+Player B used Convert Heat standard action
+Player B funded Scientist award
+Player A used GHG Producing Bacteria action
+Player A removed 2 resource(s) from Player A's GHG Producing Bacteria
+Player A used Symbiotic Fungus action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player B played Space Station
+Player B played Mass Converter
+Player B gained 6 energy production
+Player B added 1 Science to Olympus Conference
+Player A used Nitrite Reducing Bacteria action
+Player A removed 3 resource(s) from Player A's Nitrite Reducing Bacteria
+Player A played Worms
+Player A gained 4 plant production
+Player A gained 1 plant
+Player A gained 2 Mâ‚¬ because of Splice
+Player A gained 2 Mâ‚¬ because of Splice
+Player B used Comet Aiming action
+Player B added 1 Asteroid to Asteroid Hollowing
+Player B used Asteroid Hollowing action
+Player B gained 1 Mâ‚¬ production
+Player B added 1 Asteroid to Asteroid Hollowing
+Player A played Cloud Seeding
+Player A lost 1 Mâ‚¬ production
+Player A gained 2 plant production
+Player B lost 1 heat production because of Player A
+Player A used Sell Patents standard project
+Player A sold 1 patents
+Player B used Utopia Invest action
+Player B decreased titanium production 1 step to gain 4 titanium
+Player B played Nitrogen-Rich Asteroid
+Player B gained 4 plant production
+Player B gained 3 Mâ‚¬
+Player A played Bushes
+Player A gained 2 plant production
+Player A gained 2 plants
+Player A gained 1 plant
+Player A used Convert Plants standard action
+Player A placed greenery tile at 35
+Player A gained 2 plants
+Player A gained 2 Mâ‚¬ from 1 ocean(s)
+Player B played Business Contacts
+Player B drew 2 card(s)
+You drew Terraforming Ganymede,Development Center
+Player B gained 3 Mâ‚¬
+Player B played Development Center
+Player B removed a resource from Olympus Conference to draw a card
+Player B drew 1 card(s)
+You drew Fuel Factory
+Player A passed
+Player B used Development Center action
+Player B drew 1 card(s)
+You drew Land Claim
+Player B played Fuel Factory
+Player B gained 1 Mâ‚¬ production
+Player B gained 1 titanium production
+Player B lost 1 energy production
+Player B played Land Claim
+Player B placed land claim at 36
+Player B gained 3 Mâ‚¬
+Player B passed
+Generation 10
+First player this generation is Player B
+Player B bought 3 card(s)
+You bought Advertising,Technology Demonstration,Tectonic Stress Power
+Player A bought 3 card(s)
+You bought Stanford Torus,Adapted Lichen,Shuttles
+Player B used Convert Plants standard action
+Player B placed greenery tile at 61
+Player B used Convert Plants standard action
+Player B placed greenery tile at 49
+Player A used Convert Plants standard action
+Player A placed greenery tile at 20
+Player A gained 1 steel
+Player A gained 2 Mâ‚¬ from 1 ocean(s)
+Player A used Convert Heat standard action
+Player B played Advertising
+Player B used Development Center action
+Player B drew 1 card(s)
+You drew SF Memorial
+Player A played Shuttles
+Player A gained 2 Mâ‚¬ production
+Player A lost 1 energy production
+Player A used Nitrite Reducing Bacteria action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player B used Comet Aiming action
+Player B added 1 Asteroid to Asteroid Hollowing
+Player B used Asteroid Hollowing action
+Player B gained 1 Mâ‚¬ production
+Player B added 1 Asteroid to Asteroid Hollowing
+Player A used Symbiotic Fungus action
+Player A added 1 Microbe to GHG Producing Bacteria
+Player A gained 1 Mâ‚¬
+Player A used GHG Producing Bacteria action
+Player A added 1 Microbe to GHG Producing Bacteria
+Player A gained 1 Mâ‚¬
+Player B used Utopia Invest action
+Player B decreased heat production 1 step to gain 4 heat
+Player B used Convert Heat standard action
+Player A played Asteroid Mining
+Player A gained 2 titanium production
+Player A played Protected Valley
+Player A gained 2 Mâ‚¬ production
+Player A placed greenery tile at 28
+Player A gained 2 plants
+Player A gained 1 plant
+Player B played Field-Capped City
+Player B gained 2 Mâ‚¬ production
+Player B gained 1 energy production
+Player B gained 3 plants
+Player B gained 1 Mâ‚¬ production
+Player B placed city tile at 60
+Player B gained 2 steel
+Player B played Technology Demonstration
+Player B drew 2 card(s)
+You drew Fish,Decomposers
+Player B added 1 Science to Olympus Conference
+Player B gained 3 Mâ‚¬
+Player A used Convert Plants standard action
+Player A placed greenery tile at 26
+Player A gained 1 plant
+Player A gained 2 Mâ‚¬ from 1 ocean(s)
+Player A played Adapted Lichen
+Player A gained 1 plant production
+Player A gained 1 plant
+Player B played Decomposers
+Player B added 1 Microbe to Decomposers
+Player B added 1 Microbe to Decomposers
+Player A gained 2 Mâ‚¬ because of Splice
+Player B played SF Memorial
+Player B drew 1 card(s)
+You drew House Printing
+Player A passed
+Player B played Comet
+Player B gained 1 Mâ‚¬ production
+Player B placed ocean tile at 43
+Player B gained 1 plant
+Player B gained 2 Mâ‚¬ from 1 ocean(s)
+Player A lost 3 plants because of Player B
+Player B gained 3 Mâ‚¬
+Player B gained 2 plants from Arctic Algae
+Player B used Asteroid:SP standard project
+Player B placed ocean tile at 44
+Player B gained 1 plant
+Player B gained 2 Mâ‚¬ from 1 ocean(s)
+Player B gained 2 plants from Arctic Algae
+Player B used Convert Plants standard action
+Player B placed greenery tile at 50
+Player B gained 2 Mâ‚¬ from 1 ocean(s)
+Player B played House Printing
+Player B gained 1 steel production
+Player B used Floyd Continuum action
+Player B gained 3 Mâ‚¬
+Player B passed
+Generation 11
+First player this generation is Player A
+Player B bought 3 card(s)
+You bought Asteroid Deflection System,Robotic Workforce,Teslaract
+Player A bought 3 card(s)
+You bought Convoy From Europa,Directed Heat Usage,Investment Loan
+Player A played Convoy From Europa
+Player A drew 1 card(s)
+You drew Ironworks
+Player A placed ocean tile at 45
+Player A gained 1 plant
+Player A gained 2 Mâ‚¬ from 1 ocean(s)
+Player B gained 2 plants from Arctic Algae
+Player A used Convert Plants standard action
+Player A placed greenery tile at 25
+Player A gained 2 plants
+Player A gained 4 Mâ‚¬ from 2 ocean(s)
+Player B used Convert Plants standard action
+Player B placed greenery tile at 59
+Player B gained 1 steel
+Player B used City standard project
+Player B placed city tile at 48
+Player A used Convert Plants standard action
+Player A placed greenery tile at 18
+Player A played Kaguya Tech
+Player A gained 2 Mâ‚¬ production
+Player A drew 1 card(s)
+You drew Imported Nutrients
+Player A placed city tile at 18
+Player A gained 1 plant
+Player B used Convert Heat standard action
+Player B used Development Center action
+Player B drew 1 card(s)
+You drew Mercurian Alloys
+Player A used GHG Producing Bacteria action
+Player A removed 2 resource(s) from Player A's GHG Producing Bacteria
+Player A played Directed Heat Usage
+Player B played Asteroid Deflection System
+Player B lost 1 energy production
+Player B used Asteroid Deflection System action
+Player B revealed and discarded Callisto Penal Mines
+Player B added 1 Asteroid to Asteroid Deflection System
+Player A played Investment Loan
+Player A lost 1 Mâ‚¬ production
+Player A gained 10 Mâ‚¬
+Player A played Imported Nutrients
+Player A gained 4 plants
+Player A added 4 Microbe(s) to GHG Producing Bacteria
+Player A gained 4 Mâ‚¬
+Player B funded Banker award
+Player B used Comet Aiming action
+Player B added 1 Asteroid to Asteroid Deflection System
+Player A used Directed Heat Usage action
+Player A gained 2 plants
+Player A played Immigration Shuttles
+Player A gained 5 Mâ‚¬ production
+Player B used Asteroid Hollowing action
+Player B gained 1 Mâ‚¬ production
+Player B added 1 Asteroid to Asteroid Hollowing
+Player B used Utopia Invest action
+Player B decreased titanium production 1 step to gain 4 titanium
+Player A used Symbiotic Fungus action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player A used Nitrite Reducing Bacteria action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player B played Mercurian Alloys
+Player B played Interstellar Colony Ship
+Player B gained 1 Mâ‚¬ production
+Player B gained 3 Mâ‚¬
+Player A played Saturn Surfing
+Player A added 5 Floater(s) to Saturn Surfing
+Player A played Farming
+Player A gained 2 Mâ‚¬ production
+Player A gained 2 plant production
+Player A gained 2 plants
+Player A gained 1 plant
+Player B played Fish
+Player B added 1 Microbe to Decomposers
+Player A lost 1 plant production because of Player B
+Player B used Fish action
+Player B added 1 Animal to Fish
+Player A used Convert Plants standard action
+Player A placed greenery tile at 19
+Player A gained 2 Mâ‚¬ from 1 ocean(s)
+Player A used Saturn Surfing action
+Player A gained 5 Mâ‚¬
+Player B played Eos Chasma National Park
+Player B gained 2 Mâ‚¬ production
+Player B gained 3 plants
+Player B added 1 Microbe to Decomposers
+Player B added 1 Animal to Fish
+Player B played Robotic Workforce
+Player B removed a resource from Olympus Conference to draw a card
+Player B drew 1 card(s)
+You drew Diversity Support
+Player B copied Fuel Factory production with Robotic Workforce
+Player B gained 1 Mâ‚¬ production
+Player B gained 1 titanium production
+Player B lost 1 energy production
+Player A played Bactoviral Research
+Player A drew 1 card(s)
+You drew Methane From Titan
+Player A gained 1 plant
+Player A added 4 Microbe(s) to Nitrite Reducing Bacteria
+Player A gained 4 Mâ‚¬
+Player A gained 2 Mâ‚¬ because of Splice
+Player A gained 2 Mâ‚¬ because of Splice
+Player A played Stanford Torus
+Player B passed
+Player A passed
+Generation 12
+First player this generation is Player B
+Player A bought 2 card(s)
+You bought Wave Power,Business Network
+Player B bought 3 card(s)
+You bought Rad-Suits,Media Archives,Import of Advanced GHG
+Player B used Convert Heat standard action
+Player B funded Miner award
+Player A used Convert Plants standard action
+Player A placed greenery tile at 12
+Player A gained 4 Mâ‚¬ from 2 ocean(s)
+Player A used Convert Plants standard action
+Player A placed greenery tile at 38
+Player A gained 1 plant
+Player B used Convert Plants standard action
+Player B placed greenery tile at 54
+Player B used City standard project
+Player B placed city tile at 53
+Player B gained 2 steel
+Player A used GHG Producing Bacteria action
+Player A removed 2 resource(s) from Player A's GHG Producing Bacteria
+Player A played Business Network
+Player A lost 1 Mâ‚¬ production
+Player B used Convert Plants standard action
+Player B placed greenery tile at 47
+Player B used Utopia Invest action
+Player B decreased titanium production 1 step to gain 4 titanium
+Player A used Business Network action
+Player A bought 1 card(s)
+You bought Dusk Laser Mining
+Player A played Artificial Photosynthesis
+Player A gained 2 energy production
+Player B used Development Center action
+Player B drew 1 card(s)
+You drew Great Dam:promo
+Player B used Asteroid Deflection System action
+Player B revealed and discarded Nuclear Power
+Player A used Directed Heat Usage action
+Player A gained 2 plants
+Player A used Nitrite Reducing Bacteria action
+Player A removed 3 resource(s) from Player A's Nitrite Reducing Bacteria
+Player B used Floyd Continuum action
+Player B gained 9 Mâ‚¬
+Player B used Comet Aiming action
+Player B added 1 Asteroid to Asteroid Deflection System
+Player A played Dusk Laser Mining
+Player A gained 1 titanium production
+Player A lost 1 energy production
+Player A gained 4 titanium
+Player A played Methane From Titan
+Player A gained 2 plant production
+Player A gained 2 heat production
+Player B used Asteroid Hollowing action
+Player B gained 1 Mâ‚¬ production
+Player B added 1 Asteroid to Asteroid Hollowing
+Player B used Fish action
+Player B added 1 Animal to Fish
+Player A used Saturn Surfing action
+Player A gained 4 Mâ‚¬
+Player A used Symbiotic Fungus action
+Player A added 1 Microbe to Nitrite Reducing Bacteria
+Player A gained 1 Mâ‚¬
+Player B played Sterling Vents
+Player B gained 2 energy production
+Player B lost 2 heat production
+Player B played Rad-Suits
+Player B gained 1 Mâ‚¬ production
+Player A used City standard project
+Player A placed city tile at 09
+Player A gained 1 steel
+Player A played Wave Power
+Player A gained 1 energy production
+Player B used Industrial Center action
+Player B gained 1 steel production
+Player B played Media Archives
+Player B gained 15 Mâ‚¬
+Player A used Sell Patents standard project
+Player A sold 1 patents
+Player A passed
+Player B used Sell Patents standard project
+Player B sold 5 patents
+Player B played Terraforming Ganymede
+Player B gained 4 TR
+Player B gained 1 Mâ‚¬ production
+Player B used Sell Patents standard project
+Player B sold 1 patents
+Player B passed
+Final greenery placement
+Player B placed greenery tile at 58
+Player B gained 1 titanium
+Player B gained 2 Mâ‚¬ from 1 ocean(s)
+Player A placed greenery tile at 03
+Player A gained 2 steel
+Player A placed greenery tile at 11
+Player A gained 2 Mâ‚¬ from 1 ocean(s)
+This game id was sanitized-retained-negative-game
