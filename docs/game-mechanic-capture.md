@@ -1,5 +1,14 @@
 # Venus Next and Colonies capture contract
 
+> **Superseded by [game-capture-contract-v2.md](./game-capture-contract-v2.md).**
+> The v2 data-capture-hardening release adds a byte-for-byte immutable source, a
+> versioned parser run, one canonical event envelope, canonical board
+> placements, map-detection evidence, and coverage telemetry. Venus/Colonies now
+> flow through the shared envelope; game-level state still lives in
+> `game_expansion_facts`. The v1 tables below (`game_venus_events`,
+> `game_colony_events`) remain in place but new imports are captured by v2. This
+> document is retained as history of the v1 marker (`venus-colonies-capture-v1`).
+
 This is a hidden, additive import-capture contract. It does not add a dashboard, scoring control, expansion selector, or manual correction field.
 
 ## Parser and source rules

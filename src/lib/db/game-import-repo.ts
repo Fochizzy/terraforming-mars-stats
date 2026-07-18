@@ -435,6 +435,25 @@ async function insertGameLogTagSummaryRows(input: {
   }));
 }
 
+// Capture v2 must never block a supported import. The immutable source record
+// receives the original, untrimmed bytes so the retained evidence is
+// byte-for-byte; a capture failure is logged and left for a forward re-run.
+async function captureGameMechanicsSafely(input: {
+  gameId: string;
+  gameLogImportId: string;
+  rawLogText: string;
+  resolveParticipantIds?: boolean;
+}) {
+  try {
+    await captureGameMechanicsFromRawLog(input);
+  } catch (error) {
+    console.warn(
+      'Game capture (v2) did not complete; import preserved and capture can be re-run.',
+      formatStructuredError(error),
+    );
+  }
+}
+
 export async function saveGameLogImport(input: {
   gameId: string;
   logParseSummary?: {
@@ -553,10 +572,10 @@ export async function saveGameLogImport(input: {
               screenshotObjectPath: screenshot.screenshotObjectPath,
               supabase,
             });
-            await captureGameMechanicsFromRawLog({
+            await captureGameMechanicsSafely({
               gameId: input.gameId,
               gameLogImportId: data.id,
-              rawLogText: normalizedRawLogText,
+              rawLogText: input.rawLogText,
               resolveParticipantIds: false,
             });
             return {
@@ -593,10 +612,10 @@ export async function saveGameLogImport(input: {
     }
   }
 
-  await captureGameMechanicsFromRawLog({
+  await captureGameMechanicsSafely({
     gameId: input.gameId,
     gameLogImportId: data.id,
-    rawLogText: normalizedRawLogText,
+    rawLogText: input.rawLogText,
     resolveParticipantIds: false,
   });
 

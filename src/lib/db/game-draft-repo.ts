@@ -781,7 +781,16 @@ export async function finalizeGameLog(payload: {
     payload.finalizedPayload.revision.note,
   );
 
-  await refreshGameMechanicCaptureForFinalizedGame(gameId);
+  // Capture is a hidden, additive fact store; a failure here must never block
+  // finalizing a game. It resolves stable participant ids and can be re-run.
+  try {
+    await refreshGameMechanicCaptureForFinalizedGame(gameId);
+  } catch (error) {
+    console.warn(
+      'Finalized game capture (v2) did not complete; capture can be re-run.',
+      error,
+    );
+  }
 
   return { gameId };
 }
