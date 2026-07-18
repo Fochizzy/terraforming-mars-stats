@@ -681,6 +681,37 @@ between Phase 2 Step 2.5 and Step 2.6 (it did not begin Step 2.6).
   `tm-corporation-logos`; no corporation identity field, schema, RLS policy,
   bucket configuration, or unrelated asset changed, and nothing was deployed.
 
+## Tag and standard score icon production replacement
+
+Approved on 2026-07-17 as a separately authorized production Storage task. It
+does not authorize Phase 4, Step 4.2 or any broader asset remapping.
+
+- Replace only the 19 supplied canonical root objects in `tm-tag-icons` and the
+  10 supplied standard root objects in `tm-score-icons`; do not modify
+  `earth.webp`, `science.webp`, any `axis/` object, or the legacy UUID score
+  icon.
+- Preserve established object paths so existing application URLs keep working.
+  The source file `galatic.png` maps deliberately to canonical
+  `galactic.webp`, and `terraforming_rating.png` maps to
+  `Terraform_Rating.png`.
+- Convert the supplied tag PNGs to **lossless WebP** without resizing, preserving
+  the bucket's WebP contract and one-hour cache behavior. Upload the supplied
+  standard score PNGs byte-for-byte and preserve their no-cache behavior.
+- Back up every current target before upsert, verify every replacement by
+  downloading it and matching SHA-256, and automatically restore already
+  changed objects if any upload or verification fails.
+- This approval changes image content only. It does not change stable tag or
+  score-source identity, resolver paths, database vocabulary, bucket settings,
+  RLS, schema, application code, or deployment state.
+- A same-day explicit follow-up replaced only the revised
+  `tm-score-icons/Other_Card.png`. The canonical path, PNG MIME type, no-cache
+  behavior, identity policy, and exclusion of axis/legacy variants remain
+  unchanged.
+- A second same-day explicit follow-up replaced only revised `jovian.webp`,
+  `microbe.webp`, `plant.webp`, and `space.webp` in `tm-tag-icons`. Their
+  canonical paths, lossless WebP/no-resize transformation, one-hour cache,
+  tag-code identity, and exclusion of every other tag object remain unchanged.
+
 ## Phase 4 Log a Game unified entry foundation
 
 Approved on 2026-07-17 by the explicit Phase 4, Step 4.1 assignment.

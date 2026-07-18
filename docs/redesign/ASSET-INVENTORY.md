@@ -98,8 +98,8 @@ lookup.
 | `tm-corporation-logos` | yes | 116 | 153,624,713 | PNG | all one year | no | none for authenticated users |
 | `tm-import-evidence` | no | 29 | 58,487,738 | screenshot evidence | private; retrieval path not implemented | yes | scoped insert/select/delete |
 | `tm-map-images` | yes | 21 | 2,689,434 | 10 PNG, 11 WebP | PNG one year; WebP one hour | no | none for authenticated users |
-| `tm-score-icons` | yes | 21 | 13,816,192 | PNG | standard no-cache; axis/legacy one hour | no | none for authenticated users |
-| `tm-tag-icons` | yes | 21 | 260,844 | WebP | all one hour | no | none for authenticated users |
+| `tm-score-icons` | yes | 21 | 12,842,804 | PNG | standard no-cache; axis/legacy one hour | no | none for authenticated users |
+| `tm-tag-icons` | yes | 21 | 14,910,938 | WebP | all one hour | no | none for authenticated users |
 
 The public buckets serve objects through deterministic Supabase public URLs.
 Public reads do not require an authenticated Storage policy. No public-asset
@@ -205,8 +205,21 @@ contract.
 
 **Classification: Available with incomplete coverage**
 
+> **Update — 2026-07-17 (separately authorized production asset task).** The 19
+> supplied tag concepts replaced their existing root objects in place. Supplied
+> PNGs were converted to lossless WebP at source dimensions; `galatic.png`
+> deliberately replaced canonical `galactic.webp`. `earth.webp` and
+> `science.webp` were not supplied and were not changed. Object identity,
+> coverage, MIME type, and the one-hour cache contract remain unchanged.
+>
+> **Follow-up — 2026-07-17.** Revised user-supplied Jovian, Microbe, Plant, and
+> Space PNGs replaced only `jovian.webp`, `microbe.webp`, `plant.webp`, and
+> `space.webp`. All four are lossless 1254-by-1254 WebP with alpha; their
+> post-upload SHA-256, `image/webp`, and `max-age=3600` metadata were verified.
+> No other tag object changed in this follow-up.
+
 - Example entities: Plant, Space, Wild, Clone, and Crime tags.
-- Source and location: public `tm-tag-icons`; 21 WebP objects, 260,844 bytes.
+- Source and location: public `tm-tag-icons`; 21 WebP objects, 14,910,938 bytes.
 - Local directory: none found on the required branch or in the inspected local
   asset folders.
 - Database reference: `cards.gameplay_tags`; no asset-path column.
@@ -226,9 +239,11 @@ contract.
 - Access and URL method: anonymous public URL; no authenticated mutation policy.
 - Current helper/display/consumer: none tracked. `/cards` exposes tag metadata and
   current analytics/Insights surfaces use tag text rather than tag images.
-- Format and dimensions: WebP; dimensions are not stored in database metadata and
-  were not assumed by this audit. Future containers should be square and supply
-  explicit dimensions or aspect ratio.
+- Format and dimensions: WebP. The replaced set contains eighteen 1254-by-1254
+  images and one 732-by-732 image (`venus.webp`); all are square. Dimensions for
+  the untouched `earth.webp` and `science.webp` remain unaudited. The follow-up
+  Jovian, Microbe, Plant, and Space objects preserve alpha. Future containers
+  should supply explicit dimensions or aspect ratio.
 - Dark theme: requires visual review against dark cards; no contrast contract.
 - Accessibility: decorative when next to the tag label (`alt=""`); informative
   only when the icon replaces visible text.
@@ -252,9 +267,21 @@ contract.
 
 **Classification: Duplicated across sources**
 
+> **Update — 2026-07-17 (separately authorized production asset task).** All ten
+> standard root PNGs were replaced byte-for-byte from the supplied `icons.zip`;
+> `terraforming_rating.png` deliberately maps to canonical
+> `Terraform_Rating.png`. The ten `axis/` variants and the UUID-named legacy
+> object were not changed. Identity, MIME type, and cache behavior remain
+> unchanged.
+>
+> **Follow-up — 2026-07-17.** A revised user-supplied `Other_Card.png` replaced
+> only that canonical standard object. Its size is now 1,595,283 bytes; SHA-256,
+> `image/png`, and `max-age=0, no-cache` were verified after upload. No axis,
+> legacy, tag, or other standard score object changed in this follow-up.
+
 - Example entities: Terraform Rating, Cities, Animals, Milestones, and Awards.
-- Source and location: public `tm-score-icons`; 21 PNG objects. Ten standard
-  filenames, ten `axis/` variants, and one UUID-named legacy object.
+- Source and location: public `tm-score-icons`; 21 PNG objects, 12,842,804 bytes.
+  Ten standard filenames, ten `axis/` variants, and one UUID-named legacy object.
 - Local directory: untracked `assets/transparent_icons`, plus
   `assets/transparent_icons.zip` and `assets/transparent_icons.7z`, in the original
   checkout only.
@@ -272,10 +299,11 @@ contract.
 - Current helper/display/consumer: `ScoreProfilePanel` on `/insights` owns the
   filename map and hardcoded URL. Its Cities segment points to legacy
   `a5bca072-12a2-4080-863c-1b75c8a20889.png` rather than `City.png`.
-- Format and dimensions: PNG. Current CSS renders decorative sources at about
-  1.8 rem, the center source at 3.55 rem, and the orbit at 8.2 rem; segment icons
-  disappear below 640 px. The untracked local source set contains seven
-  1254-by-1254 RGB images and three 1024-by-1024 ARGB images.
+- Format and dimensions: PNG. The replaced standard set is uniformly
+  1254-by-1254; `Card_Points.png` preserves transparency. Current CSS renders
+  decorative sources at about 1.8 rem, the center source at 3.55 rem, and the
+  orbit at 8.2 rem; segment icons disappear below 640 px. The untouched axis and
+  legacy variants retain their prior dimensions and bytes.
 - Dark theme: currently consumed on the dark Insights visualization; visual
   review remains necessary for all standard and axis variants.
 - Accessibility: current icons correctly use empty alt text and `aria-hidden`

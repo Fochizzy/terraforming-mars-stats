@@ -287,6 +287,30 @@ production Supabase project and verified there; no application push or deploy
 was authorized. Full details are in `docs/redesign/phases/04-log-a-game.md` and
 `docs/agent-handoffs/PHASE-04-STEP-02-manual-entry-wizard-responsive-step-navigation-and-expansion-tracking-removal.md`.
 
+### Production tag and score icon replacement outcome (2026-07-17)
+
+A separately authorized production task refreshed image content at the existing
+canonical paths: 19 root tag objects in `tm-tag-icons` and all 10 standard root
+objects in `tm-score-icons`. Tag sources were converted to lossless WebP without
+resizing; `galatic.png` maps to canonical `galactic.webp`. Score PNGs were
+uploaded byte-exact; `terraforming_rating.png` maps to
+`Terraform_Rating.png`. Existing MIME and cache contracts were preserved.
+A same-day explicitly authorized follow-up refreshed only the revised
+`Other_Card.png`, preserving its canonical path and no-cache contract.
+A second same-day explicitly authorized follow-up refreshed only revised
+Jovian, Microbe, Plant, and Space tag objects as lossless WebP with alpha,
+preserving their canonical paths and one-hour cache contract.
+
+This refresh did not change asset identity, resolver paths, database vocabulary,
+bucket configuration, schema, RLS, application code, or deployment state.
+`earth.webp`, `science.webp`, every `axis/` score variant, and the legacy UUID
+score icon remain unchanged. Full verification and rollback detail is in
+`docs/agent-handoffs/TAG-AND-SCORE-ICON-ASSET-REPLACEMENT.md`; the one-object
+follow-up is in
+`docs/agent-handoffs/OTHER-CARD-SCORE-ICON-REPLACEMENT.md`, and the four-tag
+follow-up is in
+`docs/agent-handoffs/JOVIAN-MICROBE-PLANT-SPACE-TAG-ICON-REPLACEMENT.md`.
+
 ### Current next approved work
 
 Await explicit assignment for Phase 4, Step 4.3. Phase 3 is complete and Phase

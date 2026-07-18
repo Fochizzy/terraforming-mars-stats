@@ -288,6 +288,47 @@ Repository validation at commit: asset suite 48/48, typecheck clean; full
 `docs/redesign/assets/corporation-logos/ROLLBACK.md`. This task did **not** begin
 Step 2.6.
 
+## Tag and standard score icon replacement (separately authorized, 2026-07-17)
+
+Completed. A separately approved production task replaced 19 canonical root
+objects in public `tm-tag-icons` and all 10 canonical standard root objects in
+public `tm-score-icons`. The user-supplied `Tags.zip` PNGs were converted to
+lossless WebP at their source dimensions so the established `.webp` paths and
+one-hour cache contract remain valid; `galatic.png` intentionally replaced the
+canonical `galactic.webp` object. The `icons.zip` PNGs were uploaded byte-exact,
+with `terraforming_rating.png` mapped to `Terraform_Rating.png` and the existing
+standard no-cache contract preserved.
+
+Post-change production reconciliation: 19/19 requested tag objects and 10/10
+requested score objects were downloaded after upload and matched the prepared
+SHA-256 values. Supabase metadata reports 21 objects / 14,921,436 bytes in
+`tm-tag-icons` and 21 objects / 12,583,743 bytes in `tm-score-icons`, with the
+expected WebP/PNG MIME types. `earth.webp`, `science.webp`, all ten `axis/`
+objects, and the legacy UUID score icon retained their prior timestamps and
+bytes. No database row, schema, migration, RLS policy, bucket configuration,
+application file, dependency, deployment, or unrelated Storage object changed.
+The pre-change objects and verification reports are retained locally under the
+ignored `.npm-cache/tm-asset-replacement-backup-20260717/` rollback scratchpad.
+This task did **not** begin Phase 4, Step 4.2.
+
+Same-day authorized follow-up: only `tm-score-icons/Other_Card.png` was replaced
+again from the revised user-supplied PNG. The prior 1,336,222-byte object
+(`df53e751…f0537a0a`) was backed up, the new 1,595,283-byte object
+(`25c0d8e9…f07a5208`) was downloaded after upload and matched SHA-256, and
+Supabase retained `image/png` plus `max-age=0, no-cache`. The bucket now contains
+21 objects / 12,842,804 bytes. No other object or project state changed; details
+are in `docs/agent-handoffs/OTHER-CARD-SCORE-ICON-REPLACEMENT.md`.
+
+Second same-day authorized follow-up: only `tm-tag-icons/jovian.webp`,
+`microbe.webp`, `plant.webp`, and `space.webp` were refreshed from the revised
+user-supplied PNGs. Each source was converted to lossless WebP without resizing;
+all four final objects are 1254×1254 with alpha. The current targets were backed
+up first, and all four post-upload downloads matched their prepared SHA-256
+values. Supabase retained `image/webp` and `max-age=3600`; the bucket now
+contains 21 objects / 14,910,938 bytes. No fifth object or other project state
+changed. Details are in
+`docs/agent-handoffs/JOVIAN-MICROBE-PLANT-SPACE-TAG-ICON-REPLACEMENT.md`.
+
 ## Branch
 
 redesign/tm-stats-dashboard-rebuild
