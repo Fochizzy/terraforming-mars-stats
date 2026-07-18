@@ -17,6 +17,11 @@ import type {
   StyleOption,
 } from '@/lib/db/reference-repo';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
+import { EntryMethodSelector } from './entry-method-selector';
+import {
+  manualEntryHref,
+  type LogGameWorkflowStateKind,
+} from './log-game-entry';
 import { MilestonesStep } from './milestones-step';
 import { PlayersStep } from './players-step';
 import { ReviewStep } from './review-step';
@@ -35,6 +40,7 @@ type LogGameWizardProps = {
   cardOptions: CardOption[];
   corporationOptions: CorporationOption[];
   expansionOptions: ExpansionOption[];
+  groupName: string;
   initialValues: LogGameDraftInput;
   mapOptions: MapOption[];
   milestoneOptions: MapMilestoneOption[];
@@ -54,6 +60,7 @@ export function LogGameWizard({
   cardOptions,
   corporationOptions,
   expansionOptions,
+  groupName,
   initialValues,
   mapOptions,
   milestoneOptions,
@@ -71,6 +78,7 @@ export function LogGameWizard({
   const [isPending, setIsPending] = useState(false);
   const [result, setResult] = useState<GameSubmitResult | null>(null);
   const [submitMode, setSubmitMode] = useState<'draft' | 'finalize'>('draft');
+  const currentGameId = useWatch({ control: form.control, name: 'gameId' });
   const selectedPlayerIds =
     useWatch({
       control: form.control,
@@ -128,9 +136,23 @@ export function LogGameWizard({
   const hasBlockingIssues = review.issues.some(
     (issue) => issue.severity === 'error',
   );
+  const isDirty = form.formState.isDirty;
+  let workflowState: LogGameWorkflowStateKind = currentGameId
+    ? 'editing_manual_draft'
+    : 'creating_manual_draft';
+
+  if (isPending) {
+    workflowState = submitMode === 'finalize' ? 'finalizing' : 'saving';
+  } else if (!isDirty && result?.status === 'success') {
+    workflowState = submitMode === 'finalize' ? 'finalized' : 'saved';
+  } else if (result?.status === 'error') {
+    workflowState =
+      submitMode === 'finalize' ? 'finalization_failed' : 'save_failed';
+  }
 
   return (
     <form
+      aria-busy={isPending}
       className="flex flex-col gap-8"
       onSubmit={form.handleSubmit((values) => {
         setIsPending(true);
@@ -141,7 +163,12 @@ export function LogGameWizard({
               submitMode === 'finalize' ? onFinalizeGame : onSaveDraft;
             const nextResult = await action(values);
 
-            if (nextResult.gameId) {
+            if (nextResult.status === 'success') {
+              form.reset({
+                ...values,
+                gameId: nextResult.gameId ?? values.gameId,
+              });
+            } else if (nextResult.gameId) {
               form.setValue('gameId', nextResult.gameId);
             }
 
@@ -162,6 +189,13 @@ export function LogGameWizard({
         });
       })}
     >
+      <EntryMethodSelector
+        currentMethod="manual"
+        groupName={groupName}
+        hasUnsavedChanges={isDirty}
+        manualHref={manualEntryHref(currentGameId)}
+        workflowState={workflowState}
+      />
       <SetupStep
         expansionOptions={expansionOptions}
         guaranteedMergerOffer={guaranteedMergerOffer}
@@ -205,11 +239,13 @@ export function LogGameWizard({
       />
       {result ? (
         <p
+          aria-live={result.status === 'success' ? 'polite' : 'assertive'}
           className={
             result.status === 'success'
               ? 'text-sm text-emerald-300'
               : 'text-sm text-rose-300'
           }
+          role={result.status === 'success' ? 'status' : 'alert'}
         >
           {result.message}
         </p>

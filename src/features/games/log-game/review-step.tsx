@@ -3,6 +3,7 @@
 import type { GameReview } from '@/features/games/finalize-game';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister } from 'react-hook-form';
+import { LOG_GAME_WORKFLOW_STEP_LABELS } from './log-game-entry';
 
 type ReviewStepProps = {
   guaranteedMergerOffer: boolean | null;
@@ -29,7 +30,9 @@ export function ReviewStep({
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-orange-900/30 bg-black/25 p-4">
-      <h2 className="font-serif text-xl font-semibold">Review and Finalize</h2>
+      <h2 className="font-serif text-xl font-semibold">
+        {LOG_GAME_WORKFLOW_STEP_LABELS.review}
+      </h2>
       <p className="text-sm text-stone-300">
         Show validation warnings, optional-data coverage, and finalize or save
         the draft.

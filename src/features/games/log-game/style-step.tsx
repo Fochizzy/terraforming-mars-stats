@@ -3,6 +3,7 @@
 import type { CardOption, StyleOption } from '@/lib/db/reference-repo';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister } from 'react-hook-form';
+import { LOG_GAME_WORKFLOW_STEP_LABELS } from './log-game-entry';
 
 type StyleStepProps = {
   cardOptions: CardOption[];
@@ -23,7 +24,7 @@ export function StyleStep({
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-orange-900/30 bg-black/25 p-4">
       <h2 className="font-serif text-xl font-semibold">
-        Styles and Key Cards
+        {LOG_GAME_WORKFLOW_STEP_LABELS.details}
       </h2>
       <p className="text-sm text-stone-300">
         Optionally record declared style, style modifiers, and key cards from

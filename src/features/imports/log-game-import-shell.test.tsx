@@ -38,6 +38,7 @@ describe('LogGameImportShell', () => {
 
     render(
       <LogGameImportShell
+        groupName="Friday Group"
         initialValues={{
           generationCount: 10,
           mapId: 'tharsis',
@@ -97,6 +98,7 @@ describe('LogGameImportShell', () => {
 
     render(
       <LogGameImportShell
+        groupName="Friday Group"
         initialValues={{
           generationCount: 10,
           mapId: 'tharsis',

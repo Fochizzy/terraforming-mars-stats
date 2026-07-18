@@ -42,6 +42,14 @@ describe('route metadata', () => {
     expect(profile.description).not.toBe(compare.description);
   });
 
+  it('keeps the direct import route inside the Log a Game page identity', () => {
+    const manual = routeMetadataFor('/log-game');
+    const imported = routeMetadataFor('/log-game/import');
+
+    expect(imported.title).toBe(manual.title);
+    expect(imported.description).toMatch(/Import Game/i);
+  });
+
   it('throws for an unregistered pathname instead of silently falling back', () => {
     expect(() => routeMetadataFor('/not-a-real-route')).toThrow(/No route metadata/);
   });

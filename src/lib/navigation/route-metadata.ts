@@ -29,9 +29,9 @@ export const routeMetadataEntries: readonly RouteMetadataEntry[] = [
   },
   {
     pathname: '/log-game/import',
-    title: 'Web Import',
+    title: 'Log a Game',
     description:
-      'Import a finished game from an exported log and end-game screenshot.',
+      'Use Import Game to create a reviewable draft from an exported log and end-game screenshot.',
   },
   {
     pathname: '/games',

@@ -2,31 +2,61 @@
 
 ## Current substep
 
-Phase 3, Step 3.4 — Navigation and Route Phase Closure (**complete**)
+Phase 4, Step 4.1 — Log a Game Workflow Preservation and Unified Entry
+Foundation (**complete**)
 
 ## Current owner
 
-Claude — Phase 3, Step 3.4, navigation and route phase closure
+Codex — Phase 4, Step 4.1, workflow preservation and unified entry foundation
 
 ## Status
 
-**Phase 3 — Navigation and Routes — Complete.** Step 3.1 (Navigation and
-Route Skeletons), Step 3.2 (Responsive Web Navigation and Route Context
-Validation), Step 3.3 (Brand Asset Preservation and Responsive Website
-Integration), and Step 3.4 (Navigation and Route Phase Closure) are all
-complete.
+**Phase 4 — Log a Game — Active. Step 4.1 is complete in the repository.**
+Manual Entry (`/log-game`) and Import Game (`/log-game/import`) remain
+separate, direct-linkable workflows under one shared Log a Game entry
+selector. The selector exposes active method, current group, workflow status,
+and Saved Games; preserves a resumed manual `gameId`; and protects dirty
+method/Saved Games exits plus hard unload. Canonical section labels and
+workflow vocabulary are centralized without adding a parallel state machine
+or changing the single-page form.
 
-Step 3.4's audit re-verified Steps 3.1-3.3 fully intact, ran the full
-validation suite and live-browser verification, and found every Phase 3
-closure criterion passing except one on first pass: authentication
-return-path preservation (closure criterion 18), which failed due to a
-newly-discovered, pre-existing defect unrelated to Phase 3's own code (see
-below). Per explicit user decision, this was spawned as a separate background
-task rather than fixed inline; that task (`task_82ee1fc7`) completed and
-landed at commit `e4a444f2d5ef8a6904966c8667ef59acdc346c50`
-(`fix(auth): relocate middleware.ts to src/ so Next.js executes it`) while
-Step 3.4 was paused pending it. Step 3.4 then independently re-verified the
-fix and re-ran full validation before closing Phase 3.
+Invalid, missing, finalized, removed, cross-group, or RLS-hidden draft URLs
+now render one access-safe not-found state instead of silently opening a new
+blank form. The Import Game route renders a clear unavailable state when no
+active group exists; both server actions still re-authenticate and resolve the
+active group before writes.
+
+All existing persistence, validation, finalization, Merger, scoring, Prelude,
+milestone, award, style, key-card, import-evidence, and analytics-refresh
+semantics remain unchanged. No database, schema, migration, RPC, RLS, Storage,
+dependency, production, push, or deployment action occurred.
+
+Validation: focused Step 4.1 suite 10 files / 23 tests passed; full suite 128
+files / 624 tests passed; `npx tsc --noEmit` clean; lint passed with the same
+four pre-existing warnings; build passed at 31/31 pages with `ƒ Middleware`;
+the committed unauthenticated Playwright regression passed 1/1 against an
+isolated local port. The default local E2E port was shared with a running
+read-only original-checkout server, so the isolated port avoided mutating or
+stopping that unrelated process.
+
+Live authenticated visual review at 1440/1024/768/390 pixels remains a known
+limitation: the in-app browser blocked the localhost route under its URL
+security policy. Responsive source review, component/route tests, build
+output, and the isolated unauthenticated E2E test are recorded as evidence;
+the blocked visual review is not claimed complete.
+
+The current workflow still has no trustworthy card-acquisition count writer
+or coverage contract. A pre-existing Prelude/Merger validation discrepancy
+(three visible Prelude slots and an at-least-one check, rather than the
+separately described exact-two/Merger-slot rule) is documented and deferred
+because Step 4.1 explicitly prohibited semantic changes.
+
+### Prior Phase 3 closure status
+
+**Phase 3 — Navigation and Routes — Complete.** Steps 3.1 through 3.4 are
+complete. Step 3.4 independently re-verified the separately landed middleware
+execution fix at `e4a444f2d5ef8a6904966c8667ef59acdc346c50` before closing
+the phase.
 
 ### Step 3.4 finding and resolution: `middleware.ts` never executed
 
@@ -216,13 +246,12 @@ and Phase 4 were not started.
 
 ## Last completed commit
 
-Phase 3, Step 3.3 focused completion commit (hash recorded by the post-commit
+Phase 4, Step 4.1 focused completion commit (hash recorded by the post-commit
 verification immediately after this state file is committed).
 
 ## Current phase
 
-Phase 3 — Navigation and Route Skeletons (Steps 3.1, 3.2, and 3.3 complete;
-awaiting explicit assignment for the next step)
+Phase 4 — Log a Game (active; Step 4.1 complete; Step 4.2 not authorized)
 
 ## Prior completed substep
 
@@ -281,12 +310,17 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Await explicit assignment for Phase 4, Step 4.1.** Phase 3 (Steps 3.1
-through 3.4) is complete. Do not begin Phase 4, move legacy analytics
-content, redesign a destination page, add analytics consumers, or alter
-workflows without that explicit assignment.
+**Await explicit assignment for Phase 4, Step 4.2.** Phase 3 and Phase 4,
+Step 4.1 are complete. Do not begin Step 4.2, move legacy analytics content,
+redesign the remaining form, add analytics consumers, or alter workflow
+semantics without that explicit assignment.
 
 ## Active blockers
+
+No repository blocker prevents Step 4.1 completion. Authenticated visual
+review at the four requested widths remains unverified because the in-app
+browser blocked localhost; broader dirty-navigation protection and the
+Prelude/Merger validation discrepancy require later explicit scope.
 
 No Phase 3 blocker remains. The `middleware.ts` execution defect discovered
 during Step 3.4 (see above) is resolved at commit

@@ -1,9 +1,13 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { LogGameImportShell } from '@/features/imports/log-game-import-shell';
+import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { saveDraftGame } from '@/lib/db/game-draft-repo';
 import { saveGameLogImport } from '@/lib/db/game-import-repo';
 import { correctAndSaveOcrText } from '@/lib/db/ocr-correction-repo';
-import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
+import {
+  getCurrentGroupContext,
+  requireCurrentGroupContext,
+} from '@/lib/db/group-context-repo';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
 import {
   buildImportDraft,
@@ -17,7 +21,31 @@ import { revalidatePath } from 'next/cache';
 export const metadata = pageMetadata('/log-game/import');
 
 export default async function LogGameImportPage() {
-  const context = await requireCurrentGroupContext();
+  const context = await getCurrentGroupContext();
+
+  if (!context) {
+    return (
+      <AppShell title="Log a Game">
+        <section
+          aria-labelledby="group-required-heading"
+          className="tm-panel max-w-2xl"
+        >
+          <p className="tm-display-eyebrow text-[11px]">Unavailable</p>
+          <h2
+            className="tm-panel-title mt-2 text-xl"
+            id="group-required-heading"
+          >
+            A group is required to log a game
+          </h2>
+          <p className="tm-muted-copy mt-3 text-sm">
+            Manual Entry and Import Game both save to an active group. Your
+            account needs a group membership before either method is available.
+          </p>
+        </section>
+      </AppShell>
+    );
+  }
+
   const [groupSettings, mapOptions, playerOptions] = await Promise.all([
     getGroupSettings(context.groupId),
     listMaps(),
@@ -115,8 +143,18 @@ export default async function LogGameImportPage() {
   }
 
   return (
-    <AppShell hasActiveGroup title="Web Import">
+    <AppShell
+      hasActiveGroup
+      headerActions={
+        <GroupSwitcher
+          currentGroupId={context.groupId}
+          returnPath="/log-game/import"
+        />
+      }
+      title="Log a Game"
+    >
       <LogGameImportShell
+        groupName={context.groupName}
         initialValues={{
           generationCount: 10,
           mapId: groupSettings.defaultMapId ?? mapOptions[0]?.id ?? '',

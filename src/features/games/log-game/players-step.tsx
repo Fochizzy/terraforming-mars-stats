@@ -13,6 +13,7 @@ import type {
 } from '@/lib/db/reference-repo';
 import type { LogGameDraftInput } from '@/lib/validation/log-game';
 import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
+import { LOG_GAME_WORKFLOW_STEP_LABELS } from './log-game-entry';
 
 type PlayersStepProps = {
   corporationOptions: CorporationOption[];
@@ -105,7 +106,7 @@ export function PlayersStep({
 
   return (
     <section className="tm-panel flex flex-col gap-4">
-      <StepHeading step="02" title="Players" />
+      <StepHeading step="02" title={LOG_GAME_WORKFLOW_STEP_LABELS.players} />
       <p className="tm-body-copy text-sm">
         Pick saved players from the roster or type a full name to create that
         player on save.

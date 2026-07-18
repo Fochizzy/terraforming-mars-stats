@@ -654,3 +654,43 @@ between Phase 2 Step 2.5 and Step 2.6 (it did not begin Step 2.6).
 - This task replaced only `logo_path` and Storage objects in
   `tm-corporation-logos`; no corporation identity field, schema, RLS policy,
   bucket configuration, or unrelated asset changed, and nothing was deployed.
+
+## Phase 4 Log a Game unified entry foundation
+
+Approved on 2026-07-17 by the explicit Phase 4, Step 4.1 assignment.
+
+- **Log a Game** is one product area with two retained, direct-linkable entry
+  methods: **Manual Entry** at `/log-game` and **Import Game** at
+  `/log-game/import`. Step 4.1 does not merge their forms, add a parallel
+  route, or move Saved Games ownership away from `/games`.
+- Both entry methods use one shared selector that exposes current group,
+  workflow status, active method in text and `aria-current`, and the existing
+  Saved Games exit. A resumed manual draft keeps its `gameId` URL.
+- Dirty method changes and the selector's Saved Games exit require explicit
+  confirmation; hard unload receives `beforeunload` protection. Global app
+  navigation and the server-rendered group switcher remain outside this
+  Step 4.1 guard and are explicitly deferred.
+- The canonical manual section labels are **Setup**, **Players &
+  Corporations**, **Milestones & Awards**, **Final Scores**, **Styles, Cards &
+  Details**, and **Review**. Centralizing these labels does not convert the
+  single-page form into a routed wizard.
+- A malformed, missing, finalized, removed, cross-group, or RLS-hidden
+  `gameId` resolves to one access-safe not-found response rather than silently
+  opening a new blank game. The response deliberately does not disclose which
+  underlying condition occurred.
+- Existing explicit-save behavior is authoritative. The historical revision
+  note `Draft autosave` does not mean the UI autosaves, and Step 4.1 does not
+  add timer-, blur-, or field-change persistence.
+- Step 4.1 preserves all draft, import, finalization, Merger, score, Prelude,
+  milestone, award, style, and key-card semantics. It approves no schema,
+  migration, Storage-policy, RLS, formula, dependency, production, or
+  deployment change.
+- Card-acquisition counts remain unsupported by the current workflow.
+  Key-card selections, card-point scoring, and incomplete import events must
+  not be substituted for purchased, seen, drawn, acquired, played, or
+  remaining-card coverage.
+- The pre-existing Prelude/Merger discrepancy is documented rather than
+  changed: the UI exposes three Prelude slots and finalization requires at
+  least one when Prelude is enabled; it does not enforce a separately stated
+  exact-two/Merger-slot rule. Any semantic correction requires a later
+  explicit Phase 4 assignment.

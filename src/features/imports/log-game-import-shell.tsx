@@ -6,6 +6,7 @@ import type { CreateImportDraftInput } from '@/lib/imports/build-import-draft';
 import { WebImportPage, type WebImportActionResult } from './web-import-page';
 
 type LogGameImportShellProps = {
+  groupName: string;
   initialValues: {
     generationCount: number;
     mapId: string;
@@ -19,6 +20,7 @@ type LogGameImportShellProps = {
 };
 
 export function LogGameImportShell({
+  groupName,
   initialValues,
   mapOptions,
   onCreateImportDraft,
@@ -69,6 +71,7 @@ export function LogGameImportShell({
 
   return (
     <WebImportPage
+      groupName={groupName}
       initialValues={initialValues}
       mapOptions={mapOptions}
       onStartImport={handleStartImport}

@@ -5,6 +5,7 @@ import { GroupSwitcher } from '@/features/groups/group-switcher';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { ImportEvidenceSummary } from '@/features/imports/import-evidence-summary';
 import { mergeDraftIntoInitialValues } from '@/features/games/log-game/use-log-game-draft';
+import { resolveLogGameDraftRouteState } from '@/features/games/log-game/log-game-entry';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import {
   finalizeGameLog,
@@ -33,6 +34,7 @@ import {
 } from '@/lib/validation/log-game';
 import { pageMetadata } from '@/lib/navigation/route-metadata';
 import { revalidatePath } from 'next/cache';
+import { notFound } from 'next/navigation';
 
 export const metadata = pageMetadata('/log-game');
 
@@ -42,7 +44,16 @@ export default async function LogGamePage({
   searchParams?: Promise<{ gameId?: string | string[] | undefined }>;
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const draftRouteState = resolveLogGameDraftRouteState(
+    resolvedSearchParams.gameId,
+  );
+
   const context = await requireGroupContextOrRedirect();
+
+  if (draftRouteState.kind === 'invalid') {
+    notFound();
+  }
+
   const [
     groupSettings,
     mapOptions,
@@ -70,9 +81,8 @@ export default async function LogGamePage({
     listCards(),
     getLatestCatalogSnapshotId(),
   ]);
-  const draftGameId = Array.isArray(resolvedSearchParams.gameId)
-    ? resolvedSearchParams.gameId[0]
-    : resolvedSearchParams.gameId;
+  const draftGameId =
+    draftRouteState.kind === 'resume' ? draftRouteState.gameId : undefined;
   const defaultInitialValues: LogGameDraftInput = {
     awardClaims: {},
     gameId: undefined,
@@ -98,6 +108,11 @@ export default async function LogGamePage({
         groupId: context.groupId,
       })
     : null;
+
+  if (draftRouteState.kind === 'resume' && !savedDraft) {
+    notFound();
+  }
+
   const importSummary =
     savedDraft && draftGameId
       ? await getLatestGameLogImportSummary({
@@ -199,7 +214,7 @@ export default async function LogGamePage({
       headerActions={
         <GroupSwitcher currentGroupId={context.groupId} returnPath="/log-game" />
       }
-      title="Log Game"
+      title="Log a Game"
     >
       {importSummary ? (
         <ImportEvidenceSummary importSummary={importSummary} />
@@ -209,6 +224,7 @@ export default async function LogGamePage({
         cardOptions={cardOptions}
         corporationOptions={corporationOptions}
         expansionOptions={expansionOptions}
+        groupName={context.groupName}
         initialValues={initialValues}
         mapOptions={mapOptions}
         milestoneOptions={milestoneOptions}

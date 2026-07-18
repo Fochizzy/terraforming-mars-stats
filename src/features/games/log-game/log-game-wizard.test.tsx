@@ -15,6 +15,7 @@ describe('LogGameWizard', () => {
         expansionOptions={[
           { id: 'e1', code: 'base', name: 'Base Game' },
         ]}
+        groupName="Friday Group"
         initialValues={{
           awardClaims: {},
           gameId: undefined,
@@ -106,6 +107,7 @@ describe('LogGameWizard', () => {
           { id: 'e2', code: 'prelude', name: 'Prelude' },
           { id: 'e3', code: 'colonies', name: 'Colonies' },
         ]}
+        groupName="Friday Group"
         initialValues={{
           awardClaims: {},
           gameId: undefined,
@@ -163,8 +165,11 @@ describe('LogGameWizard', () => {
     );
 
     expect(
-      screen.getByRole('link', { name: /open web import/i }),
+      screen.getByRole('link', { name: /import game/i }),
     ).toHaveAttribute('href', '/log-game/import');
+    expect(
+      screen.getByRole('link', { name: /manual entry/i }),
+    ).toHaveAttribute('aria-current', 'page');
 
     await user.selectOptions(screen.getByLabelText(/friday mars corporation/i), 'corp1');
     await user.selectOptions(screen.getByLabelText(/friday mars prelude 1/i), 'prelude1');

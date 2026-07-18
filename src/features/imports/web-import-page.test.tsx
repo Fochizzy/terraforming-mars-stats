@@ -14,6 +14,7 @@ describe('WebImportPage', () => {
   it('renders the protected import workflow fields', () => {
     render(
       <WebImportPage
+        groupName="Friday Group"
         initialValues={{
           generationCount: 10,
           mapId: 'tharsis',
@@ -29,7 +30,7 @@ describe('WebImportPage', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: /web import/i }),
+      screen.getByRole('heading', { name: /import game/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByLabelText(/exported game log/i),
@@ -51,6 +52,7 @@ describe('WebImportPage', () => {
 
     render(
       <WebImportPage
+        groupName="Friday Group"
         initialValues={{
           generationCount: 10,
           mapId: 'tharsis',
@@ -99,5 +101,9 @@ describe('WebImportPage', () => {
     );
 
     expect(screen.getByText(/import draft saved/i)).toBeInTheDocument();
+
+    const beforeUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(false);
   });
 });

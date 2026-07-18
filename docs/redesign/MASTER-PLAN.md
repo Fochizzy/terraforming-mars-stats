@@ -247,12 +247,34 @@ at 124 files/614 tests) before closing Phase 3. Full detail is in
 `docs/redesign/DECISIONS.md` and
 `docs/agent-handoffs/PHASE-03-STEP-04-navigation-and-route-phase-closure.md`.
 
+### Phase 4, Step 4.1 unified Log a Game entry outcome (2026-07-17)
+
+The explicit Phase 4, Step 4.1 assignment preserves the existing Manual
+Entry (`/log-game`) and Import Game (`/log-game/import`) workflows as separate,
+direct-linkable methods inside one visible Log a Game product area. One shared
+selector now owns method identity, active state, group context, workflow
+status, Saved Games access, and scoped dirty-exit protection. The manual
+section labels and existing lifecycle vocabulary are centralized; malformed or
+unavailable draft URLs use an access-safe not-found state rather than silently
+creating a new draft.
+
+The durable direction is preservation-first: direct URLs, explicit draft
+save, reviewable import evidence, active-group/RLS boundaries, existing
+finalization, Merger provenance, and missing-versus-zero semantics remain
+authoritative. Step 4.1 adds no card-acquisition persistence, parser claim,
+schema, migration, formula, dependency, production mutation, or deployment.
+The current form's three Prelude slots/at-least-one validation do not enforce
+the separately described exact-two/Merger-slot rule; that pre-existing
+semantic discrepancy is documented for a later explicitly authorized step.
+Full details are in `docs/redesign/phases/04-log-a-game.md` and
+`docs/agent-handoffs/PHASE-04-STEP-01-log-a-game-workflow-preservation-and-unified-entry-foundation.md`.
+
 ### Current next approved work
 
-Await explicit assignment for Phase 4, Step 4.1. Phase 3 (Steps 3.1 through
-3.4) is complete. The un-applied Merger production migration/backfill package
-remains separately owner-gated and does not expand the scope of any future
-work.
+Await explicit assignment for Phase 4, Step 4.2. Phase 3 is complete and
+Phase 4, Step 4.1 is complete. The un-applied Merger production
+migration/backfill package remains separately owner-gated and does not expand
+the scope of any future work.
 
 ### Completed
 
@@ -1128,13 +1150,13 @@ Do not fill these gaps by assumption.
 Current completed substep:
 
 ```text
-Phase 3, Step 3.4 — Navigation and Route Phase Closure (Phase 3 complete)
+Phase 4, Step 4.1 — Log a Game Workflow Preservation and Unified Entry Foundation
 ```
 
 Next, only when explicitly assigned:
 
 ```text
-Phase 4 — title, number, and scope to be supplied by that assignment
+Phase 4, Step 4.2 — title and exact scope to be supplied by that assignment
 ```
 
 ### Historical Phase 2 record
@@ -1170,9 +1192,11 @@ Update these fields whenever this file changes materially:
 ## 28. Current Maintenance Header
 
 - **Last updated:** 2026-07-17
-- **Current phase:** Phase 3 — Navigation and Route Skeletons (complete)
-- **Current substep:** Step 3.4 — Navigation and Route Phase Closure (complete)
-- **Next gated substep:** Await explicit assignment for Phase 4, Step 4.1
+- **Current phase:** Phase 4 — Log a Game (active)
+- **Current substep:** Step 4.1 — Log a Game Workflow Preservation and Unified Entry Foundation (complete)
+- **Next gated substep:** Await explicit assignment for Phase 4, Step 4.2
+- **Step 4.1 completion commit:** recorded by post-commit verification after
+  this document is committed
 - **Step 3.1 completion commit:** `dcf5cac1ca8476707e615d7480cfbfd7b8885b51`
 - **Step 3.2 completion commit:** `2231351f172d966ded75ad33e04f04f373cb5ba7`
 - **Step 3.3 completion commit:** `d64b7ae31343bce003ba7157e379bd7444a50d91`
