@@ -2,19 +2,91 @@
 
 ## Current substep
 
-Phase 3, Step 3.3 — Brand Asset Preservation and Responsive Website
-Integration (complete)
+Phase 3, Step 3.4 — Navigation and Route Phase Closure (**complete**)
 
 ## Current owner
 
-Claude — Phase 3, Step 3.3, brand asset preservation and responsive website
-integration
+Claude — Phase 3, Step 3.4, navigation and route phase closure
 
 ## Status
 
-Phase 3 — Active. Step 3.1 (Navigation and Route Skeletons), Step 3.2
-(Responsive Web Navigation and Route Context Validation), and Step 3.3 (Brand
-Asset Preservation and Responsive Website Integration) are all complete.
+**Phase 3 — Navigation and Routes — Complete.** Step 3.1 (Navigation and
+Route Skeletons), Step 3.2 (Responsive Web Navigation and Route Context
+Validation), Step 3.3 (Brand Asset Preservation and Responsive Website
+Integration), and Step 3.4 (Navigation and Route Phase Closure) are all
+complete.
+
+Step 3.4's audit re-verified Steps 3.1-3.3 fully intact, ran the full
+validation suite and live-browser verification, and found every Phase 3
+closure criterion passing except one on first pass: authentication
+return-path preservation (closure criterion 18), which failed due to a
+newly-discovered, pre-existing defect unrelated to Phase 3's own code (see
+below). Per explicit user decision, this was spawned as a separate background
+task rather than fixed inline; that task (`task_82ee1fc7`) completed and
+landed at commit `e4a444f2d5ef8a6904966c8667ef59acdc346c50`
+(`fix(auth): relocate middleware.ts to src/ so Next.js executes it`) while
+Step 3.4 was paused pending it. Step 3.4 then independently re-verified the
+fix and re-ran full validation before closing Phase 3.
+
+### Step 3.4 finding and resolution: `middleware.ts` never executed
+
+Live verification (unconditional-redirect probe placed as the first line of
+the `middleware` function; `.next/server/middleware-manifest.json` inspected
+after a fully clean `.next` in both `next dev` and `next build`; production
+build's route table, which normally prints a `ƒ Middleware` line) confirmed
+`middleware.ts`, at the repository root, was not being discovered or
+compiled by Next.js 15.5.20 in this repository, in either mode. Stale mixed
+dev/build `.next` state, Turbopack, `next.config.ts` exclusions, file
+encoding, and Next's sibling-lockfile workspace-root misdetection were each
+ruled out before escalating.
+
+This was **pre-existing and not a Phase 3 regression**: `middleware.ts`'s
+structure and `src/lib/supabase/middleware.ts` both predate Step 3.1 (git
+blame traces to `0d1176484`, "feat: add Supabase auth shell and protected
+routing"), and the failure reproduced identically on routes Phase 3 never
+touched (`/profile`, `/group`) as well as ones it did (`/cards`, `/games`,
+`/compare`). None of Steps 3.1-3.3 could have caught it: all three explicitly
+recorded "no live authenticated browser verification" as a known limitation,
+relying on jsdom/Vitest, which never exercises Next's middleware pipeline.
+
+**Root cause and fix** (diagnosed and applied by the spawned task, verified
+independently here): Next.js only scans for `middleware.ts` in the directory
+that is the immediate parent of the App Router (`src/app` → `src/`) once a
+`src/` layout is in use — never the repository root. A pure file
+relocation, `middleware.ts` → `src/middleware.ts`, with no logic change
+(imports already resolved via the `@/*` alias), fixed it. Verified
+independently after the fix landed:
+
+- `.next/server/middleware-manifest.json` populated with a real `"/"` entry
+  in both `next dev` and a clean `next build`.
+- Production build's route table now prints `ƒ Middleware   106 kB`.
+- `next dev`'s log shows `○ Compiling /middleware ...` / `✓ Compiled
+  /middleware`.
+- Live, unauthenticated `curl` requests: `GET /cards` → `307` to
+  `/login?next=%2Fcards`; `GET /profile` → `307` to `/login?next=%2Fprofile`;
+  `GET /games?foo=bar` → `307` to `/login?foo=bar&next=%2Fgames%3Ffoo%3Dbar`
+  (the `next` value itself, `/games?foo=bar`, is fully and correctly
+  preserved and is the only param the login page reads via
+  `normalizeNextPath(resolvedSearchParams?.next)`; the harmless top-level
+  `foo=bar` duplicate is inert and pre-existing in the query-cloning logic
+  Step 3.1 wrote — noted but not fixed, since it doesn't fail the closure
+  criterion and touching redirect-URL construction further would broaden
+  scope beyond the actual blocker).
+- No more uncaught `AuthSessionMissingError` server logs for these requests
+  — middleware now intercepts cleanly before the protected page's Server
+  Component body ever executes.
+- Full suite re-run after the fix: 124 test files / 614 tests passed; `npx
+  tsc --noEmit` clean; lint at the same 4 pre-existing baseline warnings;
+  build 31/31 pages with the `ƒ Middleware` line present.
+
+**Concurrent-session note:** the spawned task ran in the same working
+directory as this Step 3.4 session (not an isolated worktree), which briefly
+surfaced as an unexplained `middleware.ts` → `src/middleware.ts` move mid-task
+before its commit landed. Confirmed via `git status`/`git log` that no history
+was lost or overwritten; Step 3.4 paused all repository edits until the user
+confirmed the concurrent session and its commit had completed, then resumed
+and re-verified from the committed state rather than trusting the interim
+working-tree change.
 
 Step 3.1 established the Phase 3 route framework without moving analytics or
 workflow implementation: one typed navigation contract, canonical paths,
@@ -209,12 +281,16 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Await explicit assignment for Phase 3, Step 3.4 — Navigation and Route Phase
-Closure (or Phase 4).** Step 3.3 is complete. Do not move legacy analytics
-content, redesign a destination page, add analytics consumers, alter
-workflows, or begin any later Phase 3 or Phase 4 work without that assignment.
+**Await explicit assignment for Phase 4, Step 4.1.** Phase 3 (Steps 3.1
+through 3.4) is complete. Do not begin Phase 4, move legacy analytics
+content, redesign a destination page, add analytics consumers, or alter
+workflows without that explicit assignment.
 
 ## Active blockers
+
+No Phase 3 blocker remains. The `middleware.ts` execution defect discovered
+during Step 3.4 (see above) is resolved at commit
+`e4a444f2d5ef8a6904966c8667ef59acdc346c50`, independently re-verified.
 
 No repository blocker remains for Phase 2. The separately gated production
 package needs an owner-approved target group UUID, a read-only dry run with no
@@ -243,6 +319,8 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-03-STEP-04-navigation-and-route-phase-closure.md
+  (Phase 3 complete)
 - docs/agent-handoffs/PHASE-03-STEP-03-brand-asset-preservation-and-responsive-website-integration.md
 - docs/agent-handoffs/PHASE-03-STEP-02-responsive-web-navigation-and-route-context-validation.md
 - docs/agent-handoffs/PHASE-03-STEP-01-navigation-and-route-skeletons.md

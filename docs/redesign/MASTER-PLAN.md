@@ -221,12 +221,38 @@ for every canonical destination via one centralized, validated route-metadata
 registry. Phase 3 is active; the next step still requires an explicit
 assignment.
 
+### Phase 3, Step 3.4 closure — Phase 3 complete (2026-07-17)
+
+The explicit Phase 3, Step 3.4 assignment audited Steps 3.1-3.3 (all
+confirmed intact and unregressed: full suite 124 files/614 tests, clean
+typecheck, lint at the same 4 baseline warnings, 31/31 build pages) and ran
+required live-browser verification of the authentication boundary. That
+verification surfaced a pre-existing, repository-wide defect unrelated to
+Phase 3's own code: `middleware.ts` did not execute at all, in either `next
+dev` or `next build` (confirmed via an unconditional-redirect probe and an
+empty `.next/server/middleware-manifest.json` in both modes). This predated
+Phase 3 (traces to commit `0d1176484`) and affected pre-Phase-3 routes
+(`/profile`, `/group`) identically to Phase-3-added ones — a durable,
+cross-page authentication-infrastructure risk, not a navigation/route defect,
+so it was spawned as a separate background task (`task_82ee1fc7`) rather than
+fixed within Step 3.4's own scope. Per explicit user decision, Phase 3
+remained active until that task landed. It resolved the defect at commit
+`e4a444f2d5ef8a6904966c8667ef59acdc346c50`: Next.js only scans for
+`middleware.ts` inside `src/` once a `src/` App Router layout is in use,
+never the repository root — a pure file relocation, no logic change. Step
+3.4 independently re-verified the fix (populated middleware manifest in both
+modes, `ƒ Middleware` in the build route table, live unauthenticated
+requests correctly redirecting with `next=` preserved, full suite unchanged
+at 124 files/614 tests) before closing Phase 3. Full detail is in
+`docs/redesign/DECISIONS.md` and
+`docs/agent-handoffs/PHASE-03-STEP-04-navigation-and-route-phase-closure.md`.
+
 ### Current next approved work
 
-Await explicit assignment for the next Phase 3 step (or Phase 4). Steps 3.1
-and 3.2 are complete. The un-applied Merger production migration/backfill
-package remains separately owner-gated and does not expand the scope of the
-navigation work.
+Await explicit assignment for Phase 4, Step 4.1. Phase 3 (Steps 3.1 through
+3.4) is complete. The un-applied Merger production migration/backfill package
+remains separately owner-gated and does not expand the scope of any future
+work.
 
 ### Completed
 
@@ -1102,13 +1128,13 @@ Do not fill these gaps by assumption.
 Current completed substep:
 
 ```text
-Phase 3, Step 3.2 — Responsive Web Navigation and Route Context Validation
+Phase 3, Step 3.4 — Navigation and Route Phase Closure (Phase 3 complete)
 ```
 
 Next, only when explicitly assigned:
 
 ```text
-Next Phase 3 step, or Phase 4 — title, number, and scope to be supplied by that assignment
+Phase 4 — title, number, and scope to be supplied by that assignment
 ```
 
 ### Historical Phase 2 record
@@ -1144,8 +1170,12 @@ Update these fields whenever this file changes materially:
 ## 28. Current Maintenance Header
 
 - **Last updated:** 2026-07-17
-- **Current phase:** Phase 3 — Navigation and Route Skeletons
-- **Current substep:** Step 3.2 — Responsive Web Navigation and Route Context Validation (complete)
-- **Next gated substep:** Await explicit assignment for the next Phase 3 step (or Phase 4)
+- **Current phase:** Phase 3 — Navigation and Route Skeletons (complete)
+- **Current substep:** Step 3.4 — Navigation and Route Phase Closure (complete)
+- **Next gated substep:** Await explicit assignment for Phase 4, Step 4.1
 - **Step 3.1 completion commit:** `dcf5cac1ca8476707e615d7480cfbfd7b8885b51`
+- **Step 3.2 completion commit:** `2231351f172d966ded75ad33e04f04f373cb5ba7`
+- **Step 3.3 completion commit:** `d64b7ae31343bce003ba7157e379bd7444a50d91`
+- **Middleware execution fix (found during Step 3.4, landed separately):**
+  `e4a444f2d5ef8a6904966c8667ef59acdc346c50`
 - **Latest completed commit before Step 3.1:** `c17e8b1ba8bd099fb3cdf21024fe0a28ab9daf76`

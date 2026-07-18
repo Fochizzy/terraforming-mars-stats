@@ -1,5 +1,92 @@
 ﻿# TM Stats Redesign Decisions
 
+## Phase 3, Step 3.4 — pre-existing middleware defect found, fixed via a separate task, and independently re-verified before closure
+
+Approved by explicit user decision during the Phase 3, Step 3.4 assignment on
+2026-07-17, after the assignment's own stop condition fired ("if correcting
+the defect would require authentication architecture changes... stop before
+performing that action and report"). Phase 3 is now complete; this entry
+records the finding, the fix, and the process, since it materially affects
+what future work can assume about the authentication middleware.
+
+- Step 3.4's live-browser verification of authentication-required route
+  states found that `middleware.ts` never executes in this repository, in
+  either `next dev` or `next build`, confirmed three independent ways: an
+  unconditional `NextResponse.redirect(...)` placed as the literal first line
+  of the exported `middleware` function never fires on any request; a fully
+  clean `.next/server/middleware-manifest.json` is `{"middleware": {},
+  "sortedMiddleware": []}` in both dev and production build; and the
+  production build's printed route table has no `ƒ Middleware` line. Stale
+  build-directory mixing, Turbopack, `next.config.ts` exclusions, file
+  encoding, and Next's sibling-lockfile workspace-root misdetection were each
+  checked and ruled out.
+- This is pre-existing, not a Phase 3 regression: `middleware.ts` and
+  `src/lib/supabase/middleware.ts` both predate Step 3.1 (traces to commit
+  `0d1176484`, "feat: add Supabase auth shell and protected routing"), and
+  the failure reproduces identically on routes Phase 3 never touched
+  (`/profile`, `/group`) as well as ones it added (`/cards`, `/games`,
+  `/compare`). No prior Phase 3 step could have caught it — Steps 3.1-3.3
+  each explicitly recorded "no live authenticated browser verification" as a
+  known limitation, relying on jsdom/Vitest, which never runs Next's
+  middleware pipeline.
+- Practical effect: the `next=` return-path preservation Step 3.1 added to
+  the middleware login redirect never executes. The only thing actually
+  blocking unauthenticated access to protected `(app)` routes is a separate,
+  duplicate, pre-existing cookie-presence check in `src/app/(app)/layout.tsx`
+  — it does block access (no data exposure occurs), but its redirect carries
+  no return-path query string, and the protected page's own Server Component
+  body observably begins executing (throwing an uncaught
+  `AuthSessionMissingError`) before that redirect fully takes effect.
+- The user was asked whether to (a) document this as a known limitation and
+  close Phase 3 now, (b) leave Phase 3 active until a fix lands, or (c)
+  investigate further before deciding. The user chose further investigation
+  first (performed and recorded above), then, once asked "if this isn't fixed
+  now when will it be?", the defect was immediately spawned as its own
+  trackable background task (`task_82ee1fc7`, "Diagnose why middleware.ts
+  never executes") with the full diagnostic trail, and the user explicitly
+  chose to **leave Phase 3 active** until it landed rather than close it with
+  this criterion unmet.
+- The user started that task in the same working directory as this Step 3.4
+  session (not an isolated worktree). This briefly surfaced as an unexplained
+  `middleware.ts` → `src/middleware.ts` file move mid-session before the
+  task's commit landed. Per this repository's established concurrent-agent
+  guidance, Step 3.4 paused all further repository edits, confirmed via `git
+  status`/`git log` that no history was lost, and waited for explicit user
+  confirmation that the concurrent session had finished before resuming.
+- The spawned task diagnosed and fixed the root cause at commit
+  `e4a444f2d5ef8a6904966c8667ef59acdc346c50` (`fix(auth): relocate
+  middleware.ts to src/ so Next.js executes it`): Next.js only scans for
+  `middleware.ts` in the immediate parent of the App Router directory
+  (`src/app` → `src/`) once a `src/` layout is in use, never the repository
+  root — a pure file relocation with no logic change. Step 3.4 independently
+  re-verified this rather than trusting the task's own report: a fresh
+  `.next/server/middleware-manifest.json` is populated in both `next dev` and
+  `next build`; the production build's route table now prints `ƒ Middleware
+  106 kB`; `next dev` logs show `Compiling /middleware` /
+  `Compiled /middleware`; and live unauthenticated `curl` requests to
+  `/cards`, `/profile`, and `/games?foo=bar` all now redirect to `/login`
+  with the visited path correctly present in `next=` (URL-encoded), with no
+  more uncaught `AuthSessionMissingError` server logs. The full suite was
+  re-run after the fix: 124 test files / 614 tests passed, clean typecheck,
+  lint at the same 4 pre-existing baseline warnings, 31/31 build pages.
+- One harmless, pre-existing, unrelated imprecision was also observed during
+  this re-verification: `GET /games?foo=bar` redirects to
+  `/login?foo=bar&next=%2Fgames%3Ffoo%3Dbar` — the original page's query
+  string is cloned onto the `/login` URL itself as well as being correctly
+  embedded in `next=`, because `middleware.ts`'s `loginUrl =
+  request.nextUrl.clone()` keeps the source URL's search params before
+  `next` is added on top. The `next` value itself is fully correct and is
+  the only param `/login`'s page reads (`normalizeNextPath`), so this does
+  not fail the authentication-return-path closure criterion — it is a
+  cosmetic duplicate query param, not a functional regression. Not fixed,
+  per the assignment's "do not fix unrelated defects" / "do not broaden the
+  task" instructions; left for a future pass if ever revisited.
+- This decision does not reopen or regress Steps 3.1-3.3: their own
+  navigation, route, and asset work was re-audited during Step 3.4 (both
+  before and after the middleware fix) and remains fully intact and tested.
+  Phase 3 (Steps 3.1 through 3.4) is now complete.
+- Phase 4 remains not started; it requires a separate explicit assignment.
+
 ## Phase 3, Step 3.3 — brand/decorative site assets stay repository-tracked, not Supabase Storage
 
 Approved by explicit user decision during the Phase 3, Step 3.3 assignment on

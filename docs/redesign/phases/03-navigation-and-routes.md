@@ -2,15 +2,67 @@
 
 ## Status
 
-Phase 3 is active. Steps 3.1, 3.2, and 3.3 have all passed full repository
-validation. Step 3.2 validated route context and replaced Step 3.1's
-mobile-specific navigation pattern with one responsive website architecture,
-per explicit direction that TM Stats is a responsive website, not a native
-mobile application. Step 3.3, authorized afterward as a standalone assignment,
-integrated five approved brand assets (header banner, leaderboard laurels,
-authentication background) through the existing typed asset registry. Phase 3
-does not implement the later page redesigns; await explicit assignment for the
-next Phase 3 step.
+**Phase 3 — Navigation and Routes — Complete.** Steps 3.1, 3.2, 3.3, and 3.4
+have all passed full repository validation. Step 3.2 validated route context
+and replaced Step 3.1's mobile-specific navigation pattern with one
+responsive website architecture, per explicit direction that TM Stats is a
+responsive website, not a native mobile application. Step 3.3, authorized
+afterward as a standalone assignment, integrated five approved brand assets
+(header banner, leaderboard laurels, authentication background) through the
+existing typed asset registry. Step 3.4, the closure step, re-audited all of
+the above (confirmed intact and unregressed), found and resolved one
+pre-existing defect unrelated to Phase 3's own code (see below), and
+confirmed every closure criterion passes. Phase 3 does not implement the
+later page redesigns; await explicit assignment for Phase 4, Step 4.1.
+
+## Step 3.4 — Navigation and Route Phase Closure
+
+Ran the full required preflight, canonical-route/navigation/asset audit,
+responsive/accessibility live-browser review (where authentication allowed),
+and full validation suite (124 test files / 614 tests, clean typecheck, lint
+at the same 4 pre-existing baseline warnings, 31/31 build pages) — confirming
+Steps 3.1-3.3 remain intact. Live-verified `/login` and `/reset-pin` at
+1440/1024/768/390px (background resolves through the typed asset registry,
+no horizontal overflow, no console errors); leaderboard laurels and the
+authenticated header could not be live-verified for the same reason recorded
+in Steps 3.2/3.3 (no authenticated test credentials), relying on the
+existing automated test coverage instead.
+
+Discovered, during live verification of authentication-required states, that
+`middleware.ts` — confirmed via an unconditional-redirect probe and an empty
+`.next/server/middleware-manifest.json` in both `next dev` and `next
+build` — never executed in this repository. This predated Phase 3 (traces to
+commit `0d1176484`) and reproduced identically on pre-Phase-3 routes
+(`/profile`, `/group`) as well as Phase-3-added ones (`/cards`, `/games`), so
+it was not a Phase 3 regression, but it did mean the `next=` return-path
+preservation Step 3.1 added to the middleware redirect never actually
+executed; a separate, duplicate, non-preserving guard in
+`src/app/(app)/layout.tsx` was what actually blocked unauthenticated access
+instead. Diagnosing the root cause was out of Step 3.4's authorized scope
+(Next.js/build-tooling file discovery, not a minimal Phase 3-scoped defect,
+and adjacent to authentication architecture Step 3.4 may not change), so it
+was spawned as its own background task (`task_82ee1fc7`) with the full
+diagnostic trail rather than patched inline; Phase 3 was left active pending
+its outcome, per explicit user decision.
+
+That task diagnosed and fixed the root cause at commit
+`e4a444f2d5ef8a6904966c8667ef59acdc346c50`: Next.js only scans for
+`middleware.ts` inside `src/` (the immediate parent of `src/app`) once a
+`src/` layout is in use, never the repository root — a pure file relocation
+to `src/middleware.ts`, no logic change. Step 3.4 independently re-verified
+this fix (populated middleware manifest in both dev and build, `ƒ Middleware`
+now printed in the build route table, live unauthenticated `curl` requests to
+`/cards`/`/profile`/`/games?foo=bar` all correctly redirecting to `/login`
+with the visited path preserved in `next=`, no more uncaught
+`AuthSessionMissingError` logs) and re-ran the full validation suite
+(unchanged: 124 files / 614 tests, clean typecheck, same 4 baseline lint
+warnings, 31/31 build pages) before closing Phase 3. See
+`docs/redesign/DECISIONS.md` and
+`docs/agent-handoffs/PHASE-03-STEP-04-navigation-and-route-phase-closure.md`
+for the full finding, including one harmless, pre-existing, unrelated
+imprecision noted but not fixed (a duplicate top-level query param on the
+`/login` redirect when the original path already had its own query string —
+inert, since the login page only reads `next`).
 
 ## Step 3.3 — Brand Asset Preservation and Responsive Website Integration
 
@@ -234,7 +286,7 @@ no fabricated metrics or dead controls.
 
 ## Next-step gate
 
-Step 3.3 is complete. Await explicit assignment for Phase 3, Step 3.4 —
-Navigation and Route Phase Closure (or Phase 4). That assignment must name the
-next route or implementation scope; this route framework does not authorize
-moving legacy analytics content.
+Phase 3 (Steps 3.1 through 3.4) is complete. Await explicit assignment for
+Phase 4, Step 4.1. That assignment must name the next route or implementation
+scope; this route framework does not authorize moving legacy analytics
+content.
