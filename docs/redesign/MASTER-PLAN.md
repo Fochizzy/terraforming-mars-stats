@@ -1246,3 +1246,49 @@ Update these fields whenever this file changes materially:
 - **Middleware execution fix (found during Step 3.4, landed separately):**
   `e4a444f2d5ef8a6904966c8667ef59acdc346c50`
 - **Latest completed commit before Step 3.1:** `c17e8b1ba8bd099fb3cdf21024fe0a28ab9daf76`
+
+<!-- BEGIN GUEST-IDENTITY-PRIVACY-PLAN -->
+
+## Cross-phase guest identity and registration claim work
+
+Phase 4 owns the creation and reuse of claimable unlinked guest identities.
+
+Phase 4 Step 4.3 is:
+
+**Import, Validation, Evidence Review, and Claimable Guest Identity Creation**
+
+It must support unmatched imported players identified by either:
+
+- username, or
+- first name and last name
+
+It must preserve:
+
+- the selected or newly created player ID
+- original import evidence
+- imported provenance
+- future registration claimability
+- the separation between private match data and public display data
+
+A separately authorized registration and onboarding task owns:
+
+- candidate matching by registered username
+- candidate matching by registered first and last name
+- explicit claim confirmation
+- account-to-player linking
+- conflict handling
+- group membership
+- active-group behavior
+- post-registration continuation
+- public display switching to registered username
+
+Before final redesign closure, end-to-end validation must prove that:
+
+- an imported guest can later be claimed
+- the existing player ID is preserved
+- historical games and statistics remain attached
+- the claimed player appears publicly only by registered username
+- the claimed player's private personal name is absent from public pages,
+  payloads, metadata, exports, hydration data, logs, and analytics events
+
+<!-- END GUEST-IDENTITY-PRIVACY-PLAN -->

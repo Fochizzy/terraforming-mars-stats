@@ -1,4 +1,4 @@
-﻿# TM Stats Redesign Decisions
+# TM Stats Redesign Decisions
 
 ## Phase 4, Step 4.2 — gameplay expansion tracking is removed; catalog metadata remains
 
@@ -751,3 +751,50 @@ Approved on 2026-07-17 by the explicit Phase 4, Step 4.1 assignment.
   least one when Prelude is enabled; it does not enforce a separately stated
   exact-two/Merger-slot rule. Any semantic correction requires a later
   explicit Phase 4 assignment.
+
+<!-- BEGIN GUEST-IDENTITY-PRIVACY-DECISION -->
+
+## 2026-07-17 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Guest identity, account claim, and public-name privacy
+
+### Decision
+
+Unmatched players may be stored as unlinked guest player identities using
+either:
+
+- username, or
+- first name and last name
+
+A later account claim links the existing player identity rather than creating a
+replacement player and moving history.
+
+### Public identity
+
+After claim, the registered username is the player's public identity.
+
+First name, last name, full name, normalized personal-name values, and private
+personal-name aliases are private.
+
+They must not appear on public pages or in public/client payloads.
+
+A missing username uses a neutral privacy-safe fallback and must never fall back
+to a private personal name.
+
+### Ownership
+
+Phase 4 owns guest creation, guest reuse, imported evidence, and future
+claimability.
+
+Registration and onboarding own candidate lookup, explicit confirmation,
+account linking, group membership effects, active-group behavior, and
+post-registration continuation.
+
+### Data model
+
+Username matching and personal-name matching remain separate.
+
+A schema change may be required to preserve structured claim information and
+public/private data separation.
+
+No schema or migration work is authorized by this decision alone.
+
+<!-- END GUEST-IDENTITY-PRIVACY-DECISION -->

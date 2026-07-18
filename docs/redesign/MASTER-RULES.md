@@ -1,4 +1,4 @@
-﻿# TM Stats Redesign Master Rules
+# TM Stats Redesign Master Rules
 
 ## Architecture
 
@@ -69,3 +69,33 @@ These must remain distinct from:
 - Do not remove legacy components before replacements work.
 - Run tests before handoff.
 - Commit before switching agents.
+
+<!-- BEGIN GUEST-IDENTITY-PRIVACY-RULES -->
+
+## Guest player identity and claimed-name privacy
+
+The authoritative cross-phase contract is:
+
+`docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`
+
+Non-negotiable rules:
+
+- unmatched players may exist as unlinked guests before account registration
+- a guest may be identified using either username or first and last name
+- username and personal-name matching are separate
+- registration must explicitly confirm a claim
+- a successful claim preserves the existing player ID
+- historical games and statistics remain attached to that player ID
+- after claim, the registered username is the public identity
+- first name, last name, full name, normalized personal names, and private
+  personal-name aliases must not appear publicly
+- private names must be excluded from public and client payloads, not merely
+  hidden visually
+- missing username must never fall back to a private personal name
+- schema or migration changes require separate explicit authorization
+- production identities must not be mutated during redesign validation
+
+Every phase that reads, creates, resolves, claims, serializes, exports, or
+displays player identities must comply with the authoritative contract.
+
+<!-- END GUEST-IDENTITY-PRIVACY-RULES -->

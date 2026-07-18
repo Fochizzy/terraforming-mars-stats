@@ -310,3 +310,95 @@ Step 4.1 makes no change to:
 
 No push or deployment is part of this step. Step 4.2 and every later Phase 4
 substep require a new explicit assignment.
+
+<!-- BEGIN PHASE-4-GUEST-IDENTITY-PRIVACY -->
+
+## Updated Phase 4 sequence
+
+Phase 4 uses the following working sequence:
+
+1. Step 4.1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Workflow Preservation and Unified Entry Foundation
+2. Step 4.2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Manual Entry Wizard and Responsive Step Navigation
+3. Step 4.3 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Import, Validation, Evidence Review, and Claimable Guest Identity
+   Creation
+4. Step 4.4 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Final Review, Finalization, and Draft Safety
+5. Step 4.5 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Phase 4 Integration Validation and Closure
+
+Step 4.2 predates the claimable guest identity clarification.
+
+Do not reopen or recommit Step 4.2 solely to add this later clarification.
+
+## Step 4.3 guest identity scope
+
+When an imported game contains an unmatched player, Step 4.3 must allow the
+importer to:
+
+- select an existing linked player
+- select an existing unlinked guest
+- create a new unlinked guest using username
+- create a new unlinked guest using first name and last name
+- leave the player unresolved when information is insufficient
+- resolve an ambiguous match explicitly
+
+Step 4.3 must:
+
+- preserve the selected player ID
+- avoid duplicate guest creation
+- preserve original import evidence
+- preserve imported provenance
+- preserve future registration claimability
+- keep username and personal-name matching separate
+- keep private claim information separate from public display data
+- audit whether the current schema supports the required separation
+- stop and request migration authorization when it does not
+
+Step 4.3 must not:
+
+- implement registration-time claiming
+- link the guest to the importer
+- create an authentication account
+- automatically claim a textual match
+- overload one field with incompatible username and personal-name semantics
+- expose private personal-name claim data publicly
+- create or apply a migration without explicit authorization
+
+## Claimed-player privacy requirement
+
+A future successful claim must preserve the same player ID while causing public
+presentation to resolve to the registered username.
+
+The claimed player's first name, last name, full name, normalized personal name,
+and private name aliases must not appear on:
+
+- leaderboards
+- public profiles
+- game history
+- game detail
+- public statistics
+- insights
+- comparisons
+- search
+- metadata
+- public APIs
+- public RPC responses
+- exports
+- browser hydration data
+- analytics events
+- user-visible logs or errors
+
+Private data must be omitted from public payloads.
+
+CSS hiding is not sufficient.
+
+## Step 4.5 closure requirement
+
+Phase 4 closure must verify that:
+
+- imported guests preserve claimable identity data
+- player IDs remain stable
+- private personal-name values are not placed into public-facing contracts
+- public identity can switch to registered username without rewriting historical
+  game references
+- no unauthorized migration occurred
+
+<!-- END PHASE-4-GUEST-IDENTITY-PRIVACY -->

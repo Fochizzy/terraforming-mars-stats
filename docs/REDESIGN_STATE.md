@@ -412,3 +412,30 @@ The corporation-logo task applied production Storage uploads and
 These are not represented by Git; their verified results and rollback are in the
 handoff and `docs/redesign/assets/corporation-logos/`. No Phase 2 migration, view,
 RPC, schema, Storage, or other Supabase state was applied or changed.
+
+<!-- BEGIN POST-STEP-4-2-IDENTITY-CLARIFICATION -->
+
+## Post-Step 4.2 scope clarification
+
+Step 4.2 remains complete and must not be reopened solely for this clarification.
+
+The next authorized Phase 4 assignment is:
+
+**Phase 4, Step 4.3 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Import, Validation, Evidence Review, and Claimable Guest
+Identity Creation**
+
+Step 4.3 must comply with:
+
+`docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`
+
+This clarification does not authorize:
+
+- registration-time claiming
+- database schema changes
+- migrations
+- production identity mutation
+- Step 4.4
+- Step 4.5
+- Phase 5
+
+<!-- END POST-STEP-4-2-IDENTITY-CLARIFICATION -->
