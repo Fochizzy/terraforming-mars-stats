@@ -37,6 +37,10 @@ with `auth.uid()`, a minimal `storage` schema, `pgcrypto`), then:
      accepted.
    - an ordinary `authenticated` member cannot directly read
      `private.player_private_identities` or `public.player_import_aliases`.
+   - `replace_game_log_events` rejects a non-member caller (42501) before any
+     write; for an authorized editor it rejects duplicate event identities,
+     an unrelated player UUID, and the overloaded confidence `reviewed`, and
+     persists the split `confidence_level`/`review_state` values end to end.
 3. **Idempotency** — re-applying the alias migration leaves exactly 7 aliases.
 4. **Rollback** — deleting the seven deterministic alias ids removes only them
    and leaves unrelated aliases untouched.

@@ -149,4 +149,67 @@ do $$ begin
   reset role;
 end $$;
 
+-- I) replace_game_log_events authorization: an authenticated caller who is
+-- not a member of the game's group is rejected before any write (F-07 / WS8).
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '99999999-9999-4999-8999-999999999999', true);
+  set local role authenticated;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 1, "event_type": "generation_started", "raw_line": "Generation 1", "confidence_level": "high", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL: non-member executed replace_game_log_events';
+  exception when insufficient_privilege then null; end;
+  reset role;
+end $$;
+
+-- J) replace_game_log_events persistence contract for an authorized editor:
+-- duplicate event identities are rejected, an unrelated player UUID is
+-- rejected, and a valid payload persists the split confidence/review values.
+do $$
+declare v_conf text; v_state text;
+begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 2001, "event_type": "milestone_claimed", "raw_line": "x", "confidence_level": "high", "event_identity": "dup:identity", "payload": {}},
+        {"event_order": 2002, "event_type": "milestone_claimed", "raw_line": "y", "confidence_level": "high", "event_identity": "dup:identity", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL: duplicate event identities accepted by the RPC';
+  exception when unique_violation then null; end;
+
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 2003, "event_type": "milestone_claimed", "raw_line": "x", "confidence_level": "high", "player_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL: unrelated player UUID accepted by the RPC';
+  exception when foreign_key_violation then null; end;
+
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 2004, "event_type": "milestone_claimed", "raw_line": "x", "confidence_level": "reviewed", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL: overloaded confidence accepted by the RPC';
+  exception when invalid_parameter_value then null; end;
+
+  perform public.replace_game_log_events(
+    '44444444-4444-4444-8444-444444444444',
+    '[{"event_order": 2005, "event_type": "milestone_claimed", "raw_line": "X claimed Mayor milestone", "confidence_level": "high", "review_state": "reviewed", "payload": {"resolution": "corrected"}}]'::jsonb
+  );
+  reset role;
+
+  select confidence_level, review_state into v_conf, v_state
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444' and event_order = 2005;
+  if v_conf <> 'high' or v_state <> 'reviewed' then
+    raise exception 'ASSERT FAIL: RPC persisted %/%, expected high/reviewed', v_conf, v_state;
+  end if;
+end $$;
+
 select 'ALL_ASSERTIONS_PASSED' as result;

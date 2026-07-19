@@ -1,9 +1,20 @@
 -- Minimal prerequisites for the executable constraint + alias tests.
 insert into auth.users (id, email)
-values ('11111111-1111-4111-8111-111111111111', 't@example.com');
+values
+  ('11111111-1111-4111-8111-111111111111', 't@example.com'),
+  ('99999999-9999-4999-8999-999999999999', 'outsider@example.com');
 
 insert into public.groups (id, name)
 values ('22222222-2222-4222-8222-222222222222', 'Test Group');
+
+-- The first user is a group member (an editor for can_edit_game); the second
+-- deliberately is not, to exercise the negative authorization paths.
+insert into public.group_members (group_id, user_id, role)
+values (
+  '22222222-2222-4222-8222-222222222222',
+  '11111111-1111-4111-8111-111111111111',
+  'editor'
+);
 
 insert into public.games (
   id, group_id, played_on, player_count, generation_count,
