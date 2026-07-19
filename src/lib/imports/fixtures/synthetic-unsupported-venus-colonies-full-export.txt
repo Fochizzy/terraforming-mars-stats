@@ -1,0 +1,12 @@
+First player this generation is Player A
+Good luck Player A!
+Good luck Player B!
+Generation 1
+Player A nudged the Venus scale upward
+Player B built an outpost near the colony hub
+Player A placed Ocean tile at 07
+Generation 2
+Player B placed City tile at 20
+Final greenery placement
+Player A placed greenery tile at 22
+This game id was synthetic-unsupported-venus-colonies-full-export

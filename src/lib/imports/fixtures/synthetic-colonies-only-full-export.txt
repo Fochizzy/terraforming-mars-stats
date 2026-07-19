@@ -1,0 +1,19 @@
+First player this generation is Player A
+Good luck Player A!
+Good luck Player B!
+Generation 1
+Player A added a new Colony tile: Ceres
+Player A played Mining Colony
+Player A built a colony on Luna
+Player B spent 3 energy to trade with Ganymede
+Player B placed Ocean tile at 13
+Generation 2
+Player A increased Titan colony track 1 step(s)
+Player B decreased Titan colony track 1 step(s)
+Player B traded with Europa
+Player A placed City tile at 20
+Generation 3
+Player A used Trade Envoys action to trade with Callisto
+Final greenery placement
+Player B placed greenery tile at 22
+This game id was synthetic-colonies-only-full-export

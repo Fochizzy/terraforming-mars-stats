@@ -1,0 +1,14 @@
+First player this generation is Player A
+Good luck Player A!
+Good luck Player B!
+Generation 1
+Player A placed Ocean tile at 07
+Player B placed City tile at 20
+Generation 2
+Player A claimed Collector milestone
+Player B claimed Vastitas Spacefarer milestone
+Player B funded Politician award
+Player A funded Completely Unknown Objective award
+Final greenery placement
+Player B placed greenery tile at 22
+This game id was synthetic-printed-alias-objectives-full-export

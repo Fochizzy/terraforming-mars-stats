@@ -1,0 +1,21 @@
+First player this generation is Player A
+Good luck Player A!
+Good luck Player B!
+Generation 1
+Player A played Sponsors
+Player A kept 4 project cards
+Player A placed Ocean tile at 07
+Player B raised the Venus scale 1 step
+Player B gained 1 heat
+Generation 2
+Player B acted as World Government and increased Venus scale
+Player A raised the Venus scale 2 steps
+Player A decreased Venus scale level 1 step
+Player B removed an asteroid resource to increase Venus scale 1 step
+Player A placed City tile at 20
+Generation 3
+Player A claimed Mayor milestone
+Player B funded Banker award
+Final greenery placement
+Player A placed greenery tile at 22
+This game id was synthetic-venus-only-full-export
