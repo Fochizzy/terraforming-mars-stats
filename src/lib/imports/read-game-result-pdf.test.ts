@@ -93,25 +93,30 @@ function dimmedRow(input: {
 // The total column lands within a couple of points of the second detail
 // column's text x (400), so its numbers can be mistaken for a wrapped line.
 const GLOBAL_PARAMETER_X = [181, 249, 322, 402];
+// The Venus Next layout inserts a Venus contribution column before the total.
+const GLOBAL_PARAMETER_VENUS_X = [181, 249, 322, 362, 404];
 
 function globalParameterRow(input: {
   name: string;
   values: number[];
+  xs?: number[];
   y: number;
 }): TestPdfTextRun[] {
+  const xs = input.xs ?? GLOBAL_PARAMETER_X;
+  const totalIndex = input.values.length - 1;
   return [
     { text: input.name, x: 76, y: input.y },
     ...input.values.map((value, index) => ({
       text: String(value),
-      x: GLOBAL_PARAMETER_X[index],
-      // The total is drawn a few points lower than the three components.
-      y: index === 3 ? input.y + 3 : input.y,
+      x: xs[index],
+      // The total is drawn a few points lower than the components.
+      y: index === totalIndex ? input.y + 3 : input.y,
     })),
   ];
 }
 
 function buildGameResultPdf(
-  options: { withDimmedColumns?: boolean } = {},
+  options: { withDimmedColumns?: boolean; withVenusColumn?: boolean } = {},
 ): Uint8Array {
   const scoreTablePage: TestPdfPage = {
     formRuns: options.withDimmedColumns
@@ -204,10 +209,19 @@ function buildGameResultPdf(
       // The global parameter table sits far below the detail block, headed by
       // icons plus a single "Total" text column, and is ordered by turn order.
       { text: 'Total', x: 404, y: 2726 },
-      ...globalParameterRow({ name: 'James', values: [6, 1, 6, 13], y: 2791 }),
-      ...globalParameterRow({ name: 'Colette', values: [7, 2, 3, 12], y: 2841 }),
-      ...globalParameterRow({ name: 'Izzy', values: [1, 5, 0, 6], y: 2891 }),
-      ...globalParameterRow({ name: 'Corey', values: [5, 6, 0, 11], y: 2941 }),
+      ...(options.withVenusColumn
+        ? [
+            ...globalParameterRow({ name: 'James', values: [6, 1, 6, 2, 15], xs: GLOBAL_PARAMETER_VENUS_X, y: 2791 }),
+            ...globalParameterRow({ name: 'Colette', values: [7, 2, 3, 4, 16], xs: GLOBAL_PARAMETER_VENUS_X, y: 2841 }),
+            ...globalParameterRow({ name: 'Izzy', values: [1, 5, 0, 6, 12], xs: GLOBAL_PARAMETER_VENUS_X, y: 2891 }),
+            ...globalParameterRow({ name: 'Corey', values: [5, 6, 0, 8, 19], xs: GLOBAL_PARAMETER_VENUS_X, y: 2941 }),
+          ]
+        : [
+            ...globalParameterRow({ name: 'James', values: [6, 1, 6, 13], y: 2791 }),
+            ...globalParameterRow({ name: 'Colette', values: [7, 2, 3, 12], y: 2841 }),
+            ...globalParameterRow({ name: 'Izzy', values: [1, 5, 0, 6], y: 2891 }),
+            ...globalParameterRow({ name: 'Corey', values: [5, 6, 0, 11], y: 2941 }),
+          ]),
     ],
   };
 
@@ -439,6 +453,21 @@ describe('readGameResultPdf', () => {
       { oceans: 3, oxygen: 2, playerName: 'Colette', temperature: 7, total: 12 },
       { oceans: 0, oxygen: 5, playerName: 'Izzy', temperature: 1, total: 6 },
       { oceans: 0, oxygen: 6, playerName: 'Corey', temperature: 5, total: 11 },
+    ]);
+  });
+
+  it('reads the Venus contribution column when the Venus Next layout is present', async () => {
+    const read = await readGameResultPdf(
+      buildGameResultPdf({ withVenusColumn: true }),
+    );
+
+    // The Venus layout adds a fourth component; all four must still sum to the
+    // printed total, and the Venus value is retained as trusted option evidence.
+    expect(read.globalParameters).toEqual([
+      { oceans: 6, oxygen: 1, playerName: 'James', temperature: 6, total: 15, venus: 2 },
+      { oceans: 3, oxygen: 2, playerName: 'Colette', temperature: 7, total: 16, venus: 4 },
+      { oceans: 0, oxygen: 5, playerName: 'Izzy', temperature: 1, total: 12, venus: 6 },
+      { oceans: 0, oxygen: 6, playerName: 'Corey', temperature: 5, total: 19, venus: 8 },
     ]);
   });
 

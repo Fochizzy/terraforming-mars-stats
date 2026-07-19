@@ -221,6 +221,35 @@ describe('parseTerraformingMarsExpansionMechanics', () => {
     });
   });
 
+  it('accepts a result-PDF Venus contribution column as trusted Venus option evidence without inferring Colonies', () => {
+    const base = [
+      'Generation 1',
+      'Final greenery placement',
+      'This game id was pdf-venus-option',
+    ].join('\n');
+    const result = parseTerraformingMarsExpansionMechanics({
+      exportedLogText: base,
+      optionEvidence: {
+        colonies: null,
+        originalEvidence:
+          'The result PDF global-parameter table includes a Venus contribution column.',
+        source: 'result_pdf_global_parameters',
+        venusNext: true,
+      },
+    });
+
+    // Presence of the Venus column confirms Venus Next is enabled.
+    expect(result.venusNext.state).toBe('confirmed_present');
+    expect(result.venusNext.evidence).toContain(
+      'The result PDF global-parameter table includes a Venus contribution column.',
+    );
+    // The PDF carries no Colonies option evidence, so a complete zero-event log
+    // still resolves Colonies from log evidence alone rather than inferring it.
+    expect(result.colonies.state).toBe('confirmed_absent');
+    // The PDF does not print the final Venus scale, so it remains missing.
+    expect(result.finalVenusScale).toBeNull();
+  });
+
   it('parses multiple players, payment variants, and unresolved colony/player evidence without guessing', () => {
     const result = parseTerraformingMarsExpansionMechanics({
       exportedLogText: [

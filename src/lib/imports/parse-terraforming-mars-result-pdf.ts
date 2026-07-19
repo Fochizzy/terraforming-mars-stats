@@ -307,7 +307,9 @@ export function buildTerraformingMarsResultPdfParse(input: {
     ...detailLines,
     ...(input.evidence.globalParameters ?? []).map(
       (row) =>
-        `${row.playerName} temperature ${row.temperature} oxygen ${row.oxygen} oceans ${row.oceans} total ${row.total}`,
+        `${row.playerName} temperature ${row.temperature} oxygen ${row.oxygen} oceans ${row.oceans}${
+          row.venus != null ? ` venus ${row.venus}` : ''
+        } total ${row.total}`,
     ),
   ].join('\n');
   const warnings: string[] = [];

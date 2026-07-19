@@ -30,7 +30,11 @@ export type ExpansionMechanicEventType =
 export type TrustedExpansionOptionEvidence = {
   colonies: boolean | null;
   originalEvidence: string;
-  source: 'exported_game_options';
+  // Explicit exported options are the primary source. A result-PDF global
+  // parameter table that renders a Venus contribution column is trusted Venus
+  // option evidence; the PDF never carries Colonies option evidence, so
+  // colonies stays null in that case.
+  source: 'exported_game_options' | 'result_pdf_global_parameters';
   venusNext: boolean | null;
 };
 

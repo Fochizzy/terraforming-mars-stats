@@ -534,19 +534,42 @@ function readGlobalParameters(input: {
     );
     const numbers = row.tokens.filter(isNumberToken);
 
-    if (names.length !== 1 || numbers.length !== GLOBAL_PARAMETER_COLUMN_COUNT) {
+    if (names.length !== 1) {
       return [];
     }
 
-    const [temperature, oxygen, oceans, total] = numbers.map((token) =>
-      Number(token.text),
-    );
+    // Base layout: temperature, oxygen, oceans, total.
+    if (numbers.length === GLOBAL_PARAMETER_COLUMN_COUNT) {
+      const [temperature, oxygen, oceans, total] = numbers.map((token) =>
+        Number(token.text),
+      );
 
-    if (temperature + oxygen + oceans !== total) {
-      return [];
+      if (temperature + oxygen + oceans !== total) {
+        return [];
+      }
+
+      return [{ oceans, oxygen, playerName: names[0].text, temperature, total }];
     }
 
-    return [{ oceans, oxygen, playerName: names[0].text, temperature, total }];
+    // Venus layout: temperature, oxygen, oceans, venus, total. The Venus
+    // contribution column only appears when Venus Next is enabled, so requiring
+    // all four components to sum to the printed total both validates the row and
+    // records trusted Venus option evidence.
+    if (numbers.length === GLOBAL_PARAMETER_COLUMN_COUNT + 1) {
+      const [temperature, oxygen, oceans, venus, total] = numbers.map((token) =>
+        Number(token.text),
+      );
+
+      if (temperature + oxygen + oceans + venus !== total) {
+        return [];
+      }
+
+      return [
+        { oceans, oxygen, playerName: names[0].text, temperature, total, venus },
+      ];
+    }
+
+    return [];
   });
 }
 

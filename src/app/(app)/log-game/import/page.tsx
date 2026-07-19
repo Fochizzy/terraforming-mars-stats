@@ -31,6 +31,7 @@ import {
 import {
   buildGameExpansionFactInput,
   parseTerraformingMarsExpansionMechanics,
+  type TrustedExpansionOptionEvidence,
 } from '@/lib/imports/parse-terraforming-mars-expansion-mechanics';
 import { detectImportBoardMapIndependent } from '@/lib/imports/detect-import-board-map-independent';
 import { parseTerraformingMarsTileActions } from '@/lib/imports/parse-terraforming-mars-tile-actions';
@@ -285,8 +286,26 @@ export default async function LogGameImportPage() {
       parserIdentity: TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
       sourceFormat: TERRAFORMING_MARS_LOG_SOURCE_FORMAT,
     });
+    // A result-PDF global-parameter table that renders a Venus contribution
+    // column is trusted Venus option evidence. The PDF never carries Colonies
+    // option evidence, so colonies stays null; and it does not print the final
+    // Venus scale, which therefore remains missing rather than being inferred.
+    const venusContributionColumnSeen = (
+      resultPdfParse?.globalParameters ?? []
+    ).some((row) => row.venus != null);
+    const expansionOptionEvidence: TrustedExpansionOptionEvidence | null =
+      venusContributionColumnSeen
+        ? {
+            colonies: null,
+            originalEvidence:
+              'The result PDF global-parameter table includes a Venus contribution column.',
+            source: 'result_pdf_global_parameters',
+            venusNext: true,
+          }
+        : null;
     const expansionParse = parseTerraformingMarsExpansionMechanics({
       exportedLogText: values.exportedGameLog,
+      optionEvidence: expansionOptionEvidence,
       playerResolutions: playerResolutions.map(
         ({ selectedPlayerId, sourcePlayerText }) => ({
           selectedPlayerId,
