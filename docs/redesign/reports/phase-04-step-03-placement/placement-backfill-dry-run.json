@@ -1,0 +1,46 @@
+{
+  "report": "phase-04-step-03-canonical-placement-backfill-dry-run",
+  "mode": "read_only_dry_run",
+  "generatedAt": "2026-07-19T00:00:00.000Z",
+  "productionProject": "qjtwgrjjwnqafbvkkfex",
+  "writesPerformed": 0,
+  "requiresBeforeBackfill": {
+    "migration": "20260718212340_harden_game_log_event_contract",
+    "reason": "the typed placement columns and colony catalogue must exist before any placement can be backfilled"
+  },
+  "counts": {
+    "totalGames": 42,
+    "gamesWithRetainedParseableLogs": 42,
+    "gamesWithoutRetainedLogs": 0,
+    "totalPlacements": 1500,
+    "flatFormatPlacements": 1400,
+    "gridFormatPlacements": 100,
+    "parserFailures": 0,
+    "unsupportedPatterns": 0,
+    "venusStateConfirmedAbsent": 42,
+    "coloniesStateConfirmedAbsent": 42,
+    "plannedTypedPlacementRows": 1500,
+    "expectedStablePlayerAttributions": 1467,
+    "unresolvedPlacementAttributions": 33,
+    "writesPerformed": 0
+  },
+  "mapDistribution": [
+    { "mapName": "Elysium", "mapCode": "elysium", "games": 19, "placements": 698 },
+    { "mapName": "Hellas", "mapCode": "hellas", "games": 13, "placements": 437 },
+    { "mapName": "Tharsis", "mapCode": "tharsis", "games": 10, "placements": 365 }
+  ],
+  "ambiguousMaps": 0,
+  "unsupportedMaps": 0,
+  "unknownMaps": 0,
+  "attribution": {
+    "method": "normalized actor (lower, non-alphanumeric to space, trimmed) matched to a unique in-game player via player_import_aliases.normalized_alias or players.display_name within the game group",
+    "attributed": 1467,
+    "unresolved": 33,
+    "unresolvedHandling": "owner_player_id, owner_game_player_id, and player_id remain null; ownership_state remains 'unknown'; attribution is never fabricated"
+  },
+  "notes": [
+    "Attribution resolution reads player_import_aliases first so it stays valid after the privacy migration neutralizes unlinked players.display_name; the display-name path is a fallback only.",
+    "The 100 grid-format placements recover their original row/position from the stored raw_line; the 1,400 flat-format placements retain their upstream numeric space id.",
+    "This dry run performed zero writes. The production backfill and its report are a separate, separately authorized artifact."
+  ]
+}

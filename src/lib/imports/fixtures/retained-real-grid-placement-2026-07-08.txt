@@ -1,0 +1,646 @@
+(You drew Spire, Teractor and Palladin Shipping)
+(Good luck Player A!)
+Generation 1
+(You kept Spire)
+(You kept Suitable Infrastructure and Supplier)
+(You bought SF Memorial, Development Center, Weather Balloons, Optimal Aerobraking and Magnetic Field Generators)
+Player B played Splice
+Player B kept 6 project cards
+Player A added 1 science(s) to Spire
+Player A played Spire
+Player A kept 5 project cards
+(You discarded Teractor and Palladin Shipping)
+(You discarded Great Aquifer and Orbital Construction Yard)
+(You discarded CEO's Favorite Project, Worms, Herbivores, Rad-Suits and Capital)
+Player B played Early Settlement
+Player B placed city tile on row 3 position 7
+Player B drew 3 card(s)
+Player B played Double Down
+Player B copied Early Settlement effect
+Player B placed city tile on row 3 position 3
+Player B drew 1 card(s)
+Player A played Suitable Infrastructure
+Player A played Supplier
+3 card(s) were discarded
+Player B drew Regolith Eaters
+Player B played Regolith Eaters
+Player B's megacredits amount increased by 2
+Player B added 1 microbe(s) to Regolith Eaters
+Player A drew 4 card(s)
+(You drew Toll Station, Bio Printing Facility, Ice Cap Melting and Open City)
+(You discarded Ice Cap Melting, Bio Printing Facility and Toll Station)
+Player A played Development Center
+Player A added 1 science(s) to Spire
+Player B used Regolith Eaters action
+Player B added 1 microbe(s) to Regolith Eaters
+Player B played Import of Advanced GHG
+Player A played SF Memorial
+Player A drew 1 card(s)
+(You drew Land Claim)
+Player A played Optimal Aerobraking
+Player B played Imported GHG
+Player B passed
+Player A played Weather Balloons
+Player A drew 1 card(s)
+(You drew Extreme-Cold Fungus)
+Player A used Weather Balloons action
+Player A added 1 floater(s) to Weather Balloons
+Player A played Extreme-Cold Fungus
+Player B's megacredits amount increased by 2
+Player A's megacredits amount increased by 2
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A played Land Claim
+Player A placed land claim on row 5 position 6
+Player A passed
+Generation 2
+(You drafted Deimos Down, passing House Printing, Aquifer Pumping and Greenhouses to Player B)
+(You drafted Pets, passing Food Factory and Small Animals to Player B)
+(You drafted House Printing, passing Aquifer Pumping to Player B)
+(You drafted Food Factory)
+Player A bought 2 card(s)
+(You bought Deimos Down and House Printing)
+Player B bought 1 card(s)
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Space Station)
+Player A used Weather Balloons action
+Player A's megacredits amount increased by 2
+Player B used Regolith Eaters action
+Player B removed 2 microbe(s) from Regolith Eaters to raise oxygen 1 step
+Player B played Solar Logistics
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A played Space Station
+Player B passed
+Player A played House Printing
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A passed
+Generation 3
+(You drafted Kaguya Tech, passing Soil Factory, Algae and Urbanized Area to Player B)
+(You drafted Advertising, passing Tundra Farming and Floyd Continuum to Player B)
+(You drafted Soil Factory, passing Urbanized Area to Player B)
+(You drafted Floyd Continuum)
+Player B bought 3 card(s)
+Player A bought 3 card(s)
+(You bought Advertising, Kaguya Tech and Soil Factory)
+Player B used Convert Heat standard action
+Player B played Viral Enhancers
+Player B's plants amount increased by 1
+Player B's megacredits amount increased by 2
+Player B's megacredits amount increased by 2
+Player A used Weather Balloons action
+Player A added 1 floater(s) to Weather Balloons
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Rad-Chem Factory)
+Player B used Regolith Eaters action
+Player B added 1 microbe(s) to Regolith Eaters
+Player B passed
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A played Advertising
+Player A passed
+Generation 4
+(You drafted Symbiotic Fungus, passing Hackers, Small Asteroid and Windmills to Player B)
+(You drafted Fuel Factory, passing Soletta and Callisto Penal Mines to Player B)
+(You drafted Small Asteroid, passing Windmills to Player B)
+(You drafted Callisto Penal Mines)
+Player A bought 2 card(s)
+(You bought Fuel Factory and Callisto Penal Mines)
+Player B bought 0 card(s)
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Hermetic Order of Mars)
+Player A played Fuel Factory
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player B used Regolith Eaters action
+Player B added 1 microbe(s) to Regolith Eaters
+Player B played Convoy From Europa
+Player B drew 1 card(s)
+Player B drew 1 card(s)
+Player B placed ocean tile on row 1 position 3
+Player B drew 1 card(s)
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A used Weather Balloons action
+Player A's megacredits amount increased by 2
+Player B played Asteroid Rights
+Player B used Asteroid Rights action
+Player B removed 1 asteroid(s) from Asteroid Rights to increase M€ production 1 step
+Player A passed
+Player B played Business Network
+Player B used Business Network action
+Player B bought 1 card(s)
+Player B played Colonizer Training Camp
+Player B passed
+Generation 5
+(You drafted 16 Psyche, passing Virus, Subterranean Reservoir and Technology Demonstration to Player B)
+(You drafted Mercurian Alloys, passing Protected Growth and Steelworks to Player B)
+(You drafted Subterranean Reservoir, passing Virus to Player B)
+(You drafted Steelworks)
+Player A bought 2 card(s)
+(You bought 16 Psyche and Mercurian Alloys)
+Player B bought 2 card(s)
+Player B used Convert Plants standard action
+Player B placed greenery tile on row 2 position 6
+Player B's steel amount increased by 2
+Player B used Regolith Eaters action
+Player B removed 2 microbe(s) from Regolith Eaters to raise oxygen 1 step
+Player A played Mercurian Alloys
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Solar Power)
+Player B used Business Network action
+Player B bought 0 card(s)
+Player B used Asteroid Rights action
+Player B removed 1 asteroid(s) from Asteroid Rights to increase M€ production 1 step
+Player A used Weather Balloons action
+Player A added 1 floater(s) to Weather Balloons
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player B played Research
+Player B drew 2 card(s)
+Player B played Titanium Mine
+Player A played 16 Psyche
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A's megacredits production increased by 1
+Player A played Solar Power
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A added 1 science(s) to Spire
+Player B passed
+Player A played Soil Factory
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A passed
+Generation 6
+(You drafted Interplanetary Trade, passing Towing A Comet, Acquired Company and Protected Valley to Player B)
+(You drafted Rego Plastics, passing New Holland and Public Baths to Player B)
+(You drafted Protected Valley, passing Towing A Comet to Player B)
+(You drafted New Holland)
+Player A bought 3 card(s)
+(You bought Protected Valley, Rego Plastics and Interplanetary Trade)
+Player B bought 3 card(s)
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Advanced Alloys)
+Player A used Weather Balloons action
+Player A's megacredits amount increased by 2
+Player B used Convert Heat standard action
+Player B played Technology Demonstration
+Player B drew 2 card(s)
+Player B drew 1 card(s)
+Player A played Advanced Alloys
+Player A played Deimos Down
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A's heat production increased by 1
+Player A's heat production increased by 1
+Player A added 1 science(s) to Spire
+Player A's megacredits amount increased by 3
+Player A's heat amount increased by 3
+Player A's megacredits production increased by 1
+Player B drew 1 card(s)
+Player A placed Deimos Down tile on row 1 position 5
+Player A drew 1 card(s)
+(You drew ArchaeBacteria)
+Player B's plants amount decreased by 3 by Player A
+Player B used Business Network action
+Player B bought 1 card(s)
+Player B used Asteroid Rights action
+Player B added 1 asteroid(s) to Asteroid Rights
+Player A claimed Generalist milestone
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player B used Regolith Eaters action
+Player B added 1 microbe(s) to Regolith Eaters
+Player B played Acquired Company
+Player A passed
+Player B passed
+Generation 7
+(You drafted Casinos, passing Rover Construction, Mangrove and Lightning Harvest to Player B)
+(You drafted Plantation, passing Power Plant and Eos Chasma National Park to Player B)
+(You drafted Mangrove, passing Rover Construction to Player B)
+(You drafted Power Plant)
+Player A bought 3 card(s)
+(You bought Casinos, Plantation and Power Plant)
+Player B bought 3 card(s)
+Player B played Ice Asteroid
+Player B drew 1 card(s)
+Player B placed ocean tile on row 4 position 4
+Player B's plants amount increased by 2
+Player B placed ocean tile on row 5 position 4
+Player B's plants amount increased by 2
+Player B claimed Legend milestone
+Player A used Convert Plants standard action
+Player A placed greenery tile on row 4 position 5
+Player A's plants amount increased by 1
+Player A played ArchaeBacteria
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player B's megacredits amount increased by 2
+Player A's megacredits amount increased by 2
+Player B used Business Network action
+Player B bought 0 card(s)
+Player B used Asteroid Rights action
+Player B removed 1 asteroid(s) from Asteroid Rights to increase M€ production 1 step
+Player A claimed Tycoon milestone
+Player A used Convert Heat standard action
+Player B used Regolith Eaters action
+Player B added 1 microbe(s) to Regolith Eaters
+Player B played Search For Life
+Player A played Hermetic Order of Mars
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Biomass Combustors)
+Player B used Search For Life action
+Player B revealed and discarded Decomposers
+Player B found life!
+Player B passed
+Player A used Weather Balloons action
+Player A added 1 floater(s) to Weather Balloons
+Player A played Rego Plastics
+Player A played Protected Valley
+Player A added 1 science(s) to Spire
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A's megacredits production increased by 1
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A placed greenery tile on row 3 position 5
+Player A's plants amount increased by 1
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A played Callisto Penal Mines
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A added 1 science(s) to Spire
+Player A's megacredits production increased by 1
+Player A played Power Plant
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A added 1 science(s) to Spire
+Player A passed
+Generation 8
+(You drafted Trans-Neptune Probe, passing Carbon Nanosystems, Earth Office and Great Escarpment Consortium to Player B)
+(You drafted Tectonic Stress Power, passing Lava Tube Settlement and Artificial Lake to Player B)
+(You drafted Great Escarpment Consortium, passing Earth Office to Player B)
+(You drafted Artificial Lake)
+Player A bought 2 card(s)
+(You bought Trans-Neptune Probe and Tectonic Stress Power)
+Player B bought 2 card(s)
+Player A played Plantation
+Player A placed greenery tile on row 3 position 4
+Player A played Kaguya Tech
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A drew 1 card(s)
+(You drew Immigration Shuttles)
+Player A added 1 science(s) to Spire
+Player A removed greenery tile on row 3 position 4
+Player A placed city tile on row 3 position 4
+Player B used Convert Plants standard action
+Player B placed greenery tile on row 4 position 8
+Player B's plants amount increased by 1
+Player B's steel amount increased by 1
+Player B used Regolith Eaters action
+Player B removed 2 microbe(s) from Regolith Eaters to raise oxygen 1 step
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Insects)
+Player A played Casinos
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player B used Convert Heat standard action
+Player B used Business Network action
+Player B bought 1 card(s)
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A played Immigration Shuttles
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A added 1 science(s) to Spire
+Player A's megacredits production increased by 1
+Player B used Asteroid Rights action
+Player B added 1 asteroid(s) to Asteroid Rights
+Player B funded Benefactor award
+Player A used Weather Balloons action
+Player A's megacredits amount increased by 3
+Player A played Trans-Neptune Probe
+Player A added 1 science(s) to Spire
+Player B played Nitrophilic Moss
+Player B's plants amount increased by 1
+Player B passed
+Player A passed
+Generation 9
+(You drafted Anti-Gravity Technology, passing Asteroid, Industrial Microbes and Corporate Stronghold to Player B)
+(You drafted Inventors Guild, passing Comet Aiming and Icy Impactors to Player B)
+(You drafted Industrial Microbes, passing Corporate Stronghold to Player B)
+(You drafted Icy Impactors)
+Player B bought 2 card(s)
+Player A bought 3 card(s)
+(You bought Anti-Gravity Technology, Inventors Guild and Industrial Microbes)
+Player B used Business Network action
+Player B bought 0 card(s)
+Player B used Asteroid Rights action
+Player B removed 1 asteroid(s) from Asteroid Rights to gain 2 titanium
+Player A used Convert Plants standard action
+Player A placed greenery tile on row 5 position 5
+Player A's plants amount increased by 2
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Outdoor Sports)
+Player B played Livestock
+Player B added 1 animal(s) to Livestock
+Player B used Livestock action
+Player B added 1 animal(s) to Livestock
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A used Weather Balloons action
+Player A added 1 floater(s) to Weather Balloons
+Player B played Imported Nitrogen
+Player B drew 1 card(s)
+Player B added 3 microbe(s) to Regolith Eaters
+Player B added 2 animal(s) to Livestock
+Player B used Convert Plants standard action
+Player B placed greenery tile on row 4 position 3
+Player B's plants amount increased by 1
+Player A played Inventors Guild
+Player A used Inventors Guild action
+Player A bought 0 card(s)
+Player B used Regolith Eaters action
+Player B removed 2 microbe(s) from Regolith Eaters to raise oxygen 1 step
+Player B played Advanced Ecosystems
+Player B's plants amount increased by 3
+Player B's megacredits amount increased by 2
+Player B's megacredits amount increased by 2
+Player A played Industrial Microbes
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A added 1 science(s) to Spire
+Player B's megacredits amount increased by 2
+Player A's megacredits amount increased by 2
+Player A played Tectonic Stress Power
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A added 1 science(s) to Spire
+Player B played Imported Hydrogen
+Player B drew 1 card(s)
+Player B added 2 animal(s) to Livestock
+Player B placed ocean tile on row 1 position 2
+Player B's titanium amount increased by 1
+Player B passed
+Player A played Outdoor Sports
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A played Interplanetary Trade
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A's megacredits production increased by 9
+Player A's megacredits production increased by 1
+Player A passed
+Generation 10
+(You drafted Mining Rights, passing Special Design, Equatorial Magnetizer and Geothermal Power to Player B)
+(You drafted Solar Wind Power, passing Vesta Shipyard and Commercial District to Player B)
+(You drafted Geothermal Power, passing Equatorial Magnetizer to Player B)
+(You drafted Vesta Shipyard)
+Player A bought 4 card(s)
+(You bought Mining Rights, Solar Wind Power, Geothermal Power and Vesta Shipyard)
+Player B bought 1 card(s)
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Breathing Filters)
+Player A used Inventors Guild action
+Player A bought 1 card(s)
+(You bought Robot Pollinators)
+Player B used Business Network action
+Player B bought 1 card(s)
+Player B used Asteroid Rights action
+Player B added 1 asteroid(s) to Asteroid Rights
+Player A played Robot Pollinators
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A used Convert Plants standard action
+Player A placed greenery tile on row 6 position 4
+Player A's plants amount increased by 1
+Player B used Livestock action
+Player B added 1 animal(s) to Livestock
+Player B used Regolith Eaters action
+Player B added 1 microbe(s) to Regolith Eaters
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A used Weather Balloons action
+Player A's megacredits amount increased by 3
+Player B played Nuclear Zone
+Player B placed Nuclear Zone tile on row 6 position 3
+Player B's plants amount increased by 1
+Player B used Convert Plants standard action
+Player B placed greenery tile on row 2 position 2
+Player A played Open City
+Player A added 1 science(s) to Spire
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A's megacredits production increased by 1
+Player A placed city tile on row 5 position 6
+Player A's plants amount increased by 3
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A played Breathing Filters
+Player B played Birds
+Player B added 1 animal(s) to Birds
+Player A's plants production decreased by 2 by Player B
+Player B used Birds action
+Player B added 1 animal(s) to Birds
+Player A played Solar Wind Power
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A added 1 science(s) to Spire
+Player A played Anti-Gravity Technology
+Player B played Towing A Comet
+Player B drew 1 card(s)
+Player B placed ocean tile on row 4 position 7
+Player B's plants amount increased by 1
+Player B played Martian Lumber Corp
+Player B's plants amount increased by 1
+Player A played Mining Rights
+Player A placed Mining Rights tile on row 2 position 1
+Player A's titanium amount increased by 1
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A's titanium production increased by 1
+Player A played Vesta Shipyard
+Player A added 1 science(s) to Spire
+Player B played Carbon Nanosystems
+Player B added 1 graphene(s) to Carbon Nanosystems
+Player B passed
+Player A used Greenery standard project
+Player A placed greenery tile on row 5 position 7
+Player A's plants amount increased by 2
+Player A used Convert Plants standard action
+Player A placed greenery tile on row 2 position 3
+Player A funded Estate Dealer award
+Player A played Biomass Combustors
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A added 1 science(s) to Spire
+Player B's plants production decreased by 1 by Player A
+Player A passed
+Generation 11
+(You drafted Aerobraked Ammonia Asteroid, passing Lichen, Adapted Lichen and Cupola City to Player B)
+(You drafted Industrial Center, passing Ore Processor and Tropical Resort to Player B)
+(You drafted Adapted Lichen, passing Cupola City to Player B)
+(You drafted Ore Processor)
+Player A bought 2 card(s)
+(You bought Aerobraked Ammonia Asteroid and Adapted Lichen)
+Player B bought 0 card(s)
+Player B used Convert Heat standard action
+Player B used Business Network action
+Player B bought 0 card(s)
+Player A used Convert Heat standard action
+Player A funded Celebrity award
+Player B used Asteroid Rights action
+Player B removed 1 asteroid(s) from Asteroid Rights to gain 2 titanium
+Player B used Birds action
+Player B added 1 animal(s) to Birds
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Strip Mine)
+Player A used Inventors Guild action
+Player A bought 0 card(s)
+Player B used Livestock action
+Player B added 1 animal(s) to Livestock
+Player B used Regolith Eaters action
+Player B added 1 microbe(s) to Regolith Eaters
+Player A used Weather Balloons action
+Player A added 1 floater(s) to Weather Balloons
+Player A played Adapted Lichen
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player B played Mohole Lake
+Player B placed ocean tile on row 3 position 6
+Player B used Mohole Lake action
+Player B added 1 animal(s) to Birds
+Player A played Insects
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A's plants production increased by 4
+Player B's megacredits amount increased by 2
+Player A's megacredits amount increased by 2
+Player A used Aquifer standard project
+Player A placed ocean tile on row 4 position 6
+Player A's plants amount increased by 1
+Player B played Asteroid
+Player B drew 1 card(s)
+Player A's plants amount decreased by 3 by Player B
+Player B used Sell Patents standard project
+Player B sold 3 patents
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A played Aerobraked Ammonia Asteroid
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player B drew 1 card(s)
+Player A added 1 science(s) to Spire
+Player A's megacredits amount increased by 3
+Player A's heat amount increased by 3
+Player A's megacredits production increased by 1
+Player B played Nitrogen-Rich Asteroid
+Player B's plants production increased by 4
+Player B drew 1 card(s)
+Player B placed ocean tile on row 1 position 1
+Player B played Eos Chasma National Park
+Player B's plants amount increased by 1
+Player B added 1 animal(s) to Birds
+Player A used Convert Heat standard action
+Player A played Magnetic Field Generators
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A's megacredits production increased by 1
+Player A placed Magnetic Field Generators tile on row 5 position 8
+Player A's plants amount increased by 2
+Player B passed
+Player A used Aquifer standard project
+Player A placed ocean tile on row 2 position 4
+Player A played Rad-Chem Factory
+Player A passed
+Generation 12
+(You drafted Release of Inert Gases, passing St. Joseph of Cupertino Mission, Tardigrades and Psychrophiles to Player B)
+(You drafted Invention Contest, passing Hi-Tech Lab and Snow Algae to Player B)
+(You drafted Psychrophiles, passing Tardigrades to Player B)
+(You drafted Snow Algae)
+Player A bought 3 card(s)
+(You bought Release of Inert Gases, Invention Contest and Snow Algae)
+Player B bought 0 card(s)
+Player A used Convert Heat standard action
+Player A used Convert Plants standard action
+Player A placed greenery tile on row 6 position 6
+Player A's plants amount increased by 1
+Player B used Convert Plants standard action
+Player B placed greenery tile on row 3 position 2
+Player B played Fish
+Player B added 1 animal(s) to Fish
+Player A's plants production decreased by 1 by Player B
+Player A used Development Center action
+Player A drew 1 card(s)
+(You drew Orbital Cleanup)
+Player A used Inventors Guild action
+Player A bought 1 card(s)
+(You bought Lake Marineris)
+Player B used Business Network action
+Player B bought 1 card(s)
+Player B used Asteroid Rights action
+Player B added 1 asteroid(s) to Asteroid Rights
+Player A used Extreme-Cold Fungus action
+Player A's plants amount increased by 1
+Player A played Invention Contest
+Player A added 1 science(s) to Spire
+Player A drew 1 card(s)
+(You drew Immigrant City)
+Player B used Fish action
+Player B added 1 animal(s) to Fish
+Player B used Birds action
+Player B added 1 animal(s) to Birds
+Player A played Immigrant City
+Player A added 1 science(s) to Spire
+Player A placed city tile on row 5 position 3
+Player A's plants amount increased by 2
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A used Convert Plants standard action
+Player A placed greenery tile on row 5 position 2
+Player A's plants amount increased by 2
+Player B used Livestock action
+Player B added 1 animal(s) to Livestock
+Player B used Mohole Lake action
+Player B added 1 animal(s) to Birds
+Player A played Release of Inert Gases
+Player A played Orbital Cleanup
+Player A added 1 science(s) to Spire
+Player B played Earth Catapult
+Player B played Penguins
+Player B added 1 animal(s) to Penguins
+Player A played Lake Marineris
+Player A played Snow Algae
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player B used Penguins action
+Player B added 1 animal(s) to Penguins
+Player B played Tundra Farming
+Player B's plants amount increased by 1
+Player A used City standard project
+Player A gained 2 megacredits from Suitable Infrastructure effect
+Player A placed city tile on row 3 position 1
+Player A's titanium amount increased by 2
+Player A used Weather Balloons action
+Player A's megacredits amount increased by 6
+Player B used Sell Patents standard project
+Player B sold 3 patents
+Player B played Stanford Torus
+Player A used Asteroid standard project
+Player A used Asteroid standard project
+Player B used Sell Patents standard project
+Player B sold 4 patents
+Player B played Project Inspection
+Player B used Penguins action with Project Inspection
+Player B added 1 animal(s) to Penguins
+Player A used Orbital Cleanup action
+Player A's megacredits amount increased by 8
+Player A used Sell Patents standard project
+Player A sold 2 patents
+(You sold Geothermal Power and Strip Mine)
+Player B used Sell Patents standard project
+Player B sold 3 patents
+Player B played Lagrange Observatory
+Player B drew 1 card(s)
+Player B added 1 graphene(s) to Carbon Nanosystems
+Player A passed
+Player B used Sell Patents standard project
+Player B sold 1 patents
+Player B used Regolith Eaters action
+Player B added 1 microbe(s) to Regolith Eaters
+Player B passed
+Final greenery placement
+Player A placed greenery tile on row 4 position 2
+Player A's plants amount increased by 1
+Player B placed greenery tile on row 5 position 9
+Player B's plants amount increased by 1
+Player B's titanium amount increased by 1
+This game id was sanitized-grid-fixture
+Final scores:
+Player: Player A, Total: 110, TR: 43, Milestones: 10, Awards: 10, Greenery: 9, City: 12, VP: 26, M€: 104, Time: 16.11 mins, Actions: 125
+Player: Player B, Total: 109, TR: 49, Milestones: 5, Awards: 5, Greenery: 6, City: 6, VP: 38, M€: 63, Time: 20.24 mins, Actions: 107
