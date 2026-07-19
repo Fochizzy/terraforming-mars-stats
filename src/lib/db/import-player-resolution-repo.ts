@@ -1,30 +1,30 @@
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
-import { personLabel } from '@/lib/people/person-label';
-import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { listCurrentUserGroups } from './group-context-repo';
 
-type RawPlayerRow = {
-  display_name: string;
-  full_name: string | null;
-  id: string;
-  linked_user_id: string | null;
-  username: string | null;
+type RpcCapableClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: unknown }>;
 };
 
-type RawGroupPlayerRow = RawPlayerRow & {
-  group_id: string;
+/**
+ * A row from `list_import_player_identity_candidates`, the security-definer RPC
+ * that is now the only import-facing read path for roster identity. It resolves
+ * a linked account to its username and an unlinked guest to a neutral,
+ * non-identifying label, so `players.full_name` / `players.username` are never
+ * read through the Data API.
+ */
+type RawIdentityCandidateRow = {
+  is_linked: boolean;
+  player_id: string;
+  public_name: string;
 };
 
 type RawLeaderboardRow = {
   games_played: number;
   player_id: string;
-};
-
-type RawUserProfileRow = {
-  full_name: string;
-  user_id: string;
-  username: string;
 };
 
 export type ImportResolutionPlayer = {
@@ -36,115 +36,79 @@ export type ImportResolutionPlayer = {
   linkedUsername: string | null;
 };
 
-function isMissingServiceRoleKey(error: unknown) {
-  return (
-    error instanceof Error &&
-    error.message.includes('SUPABASE_SERVICE_ROLE_KEY')
+async function listIdentityCandidates(
+  supabase: RpcCapableClient,
+  groupId: string,
+) {
+  const { data, error } = await supabase.rpc(
+    'list_import_player_identity_candidates',
+    { p_group_id: groupId },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as RawIdentityCandidateRow[];
+}
+
+function buildGamesPlayedMap(rows: RawLeaderboardRow[] | null | undefined) {
+  return new Map(
+    (rows ?? []).map((row) => [row.player_id, row.games_played] as const),
   );
 }
 
-async function listLinkedUserProfiles(linkedUserIds: string[]) {
-  if (linkedUserIds.length === 0) {
-    return [] as RawUserProfileRow[];
-  }
+function toResolutionPlayer(
+  row: RawIdentityCandidateRow,
+  gamesPlayed: number,
+): ImportResolutionPlayer {
+  return {
+    displayName: row.public_name,
+    gamesPlayed,
+    id: row.player_id,
+    // A person's full name is no longer reachable from the Data API, and the
+    // candidate RPC deliberately exposes a linked account's username only.
+    linkedFullName: null,
+    linkedUsername: row.is_linked ? row.public_name : null,
+  };
+}
 
-  try {
-    const admin = createSupabaseAdminClient();
-    const { data, error } = await admin
-      .from('user_profiles')
-      .select('user_id, full_name, username')
-      .in('user_id', linkedUserIds);
-
-    if (error) {
-      throw error;
-    }
-
-    return (data ?? []) as RawUserProfileRow[];
-  } catch (error) {
-    if (isMissingServiceRoleKey(error)) {
-      return [];
-    }
-
-    throw error;
-  }
+/**
+ * Two rows are the same roster person when they resolve to the same linked
+ * account. Unlinked guests carry a neutral per-player label, so they stay
+ * distinct rather than collapsing together on an unresolvable name.
+ */
+function canonicalKeyForCandidate(row: RawIdentityCandidateRow) {
+  return row.is_linked
+    ? `username:${normalizePlayerAlias(row.public_name)}`
+    : `player:${row.player_id}`;
 }
 
 export async function listImportResolutionPlayers(groupId: string) {
   const supabase = await createSupabaseServerClient();
-  const [
-    { data: players, error: playersError },
-    { data: leaderboardRows, error: leaderboardError },
-  ] = await Promise.all([
-    supabase
-      .from('players')
-      .select('id, display_name, linked_user_id, username, full_name')
-      .eq('group_id', groupId)
-      .order('display_name'),
-    supabase
-      .schema('analytics')
-      .from('group_leaderboard')
-      .select('player_id, games_played')
-      .eq('group_id', groupId),
-  ]);
-
-  if (playersError) {
-    throw playersError;
-  }
+  const [candidates, { data: leaderboardRows, error: leaderboardError }] =
+    await Promise.all([
+      listIdentityCandidates(supabase, groupId),
+      supabase
+        .schema('analytics')
+        .from('group_leaderboard')
+        .select('player_id, games_played')
+        .eq('group_id', groupId),
+    ]);
 
   if (leaderboardError) {
     throw leaderboardError;
   }
 
-  const playerRows = (players ?? []) as RawPlayerRow[];
-  const gamesPlayedByPlayerId = new Map(
-    ((leaderboardRows ?? []) as RawLeaderboardRow[]).map((row) => [
-      row.player_id,
-      row.games_played,
-    ]),
-  );
-  const linkedUserIds = [
-    ...new Set(
-      playerRows
-        .map((player) => player.linked_user_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ];
-  const linkedProfiles = await listLinkedUserProfiles(linkedUserIds);
-  const profileByUserId = new Map(
-    linkedProfiles.map((profile) => [profile.user_id, profile]),
+  const gamesPlayedByPlayerId = buildGamesPlayedMap(
+    leaderboardRows as RawLeaderboardRow[] | null,
   );
 
-  return playerRows.map((player) => {
-    const profile = player.linked_user_id
-      ? profileByUserId.get(player.linked_user_id) ?? null
-      : null;
-
-    return {
-      displayName: personLabel({
-        username: profile?.username ?? player.username,
-        displayName: player.display_name,
-      }),
-      gamesPlayed: gamesPlayedByPlayerId.get(player.id) ?? 0,
-      id: player.id,
-      // A linked account's own profile is canonical; unlinked roster players
-      // carry their username/full name on the player row itself.
-      linkedFullName: profile?.full_name ?? player.full_name ?? null,
-      linkedUsername: profile?.username ?? player.username ?? null,
-    } satisfies ImportResolutionPlayer;
-  });
-}
-
-/**
- * Two people are the same roster person when they share a linked account, or —
- * for unlinked players — when their usernames/display names normalize
- * identically.
- */
-function dedupeKeyForPlayer(player: RawGroupPlayerRow) {
-  return player.linked_user_id
-    ? `user:${player.linked_user_id}`
-    : player.username?.trim()
-      ? `username:${normalizePlayerAlias(player.username)}`
-      : `name:${normalizePlayerAlias(player.display_name)}`;
+  return candidates
+    .map((row) =>
+      toResolutionPlayer(row, gamesPlayedByPlayerId.get(row.player_id) ?? 0),
+    )
+    .sort((left, right) => left.displayName.localeCompare(right.displayName));
 }
 
 /**
@@ -170,67 +134,32 @@ export async function listImportResolutionPlayersForCurrentUser(): Promise<
   }
 
   const supabase = await createSupabaseServerClient();
-  const [
-    { data: players, error: playersError },
-    { data: leaderboardRows, error: leaderboardError },
-  ] = await Promise.all([
-    supabase
-      .from('players')
-      .select('id, display_name, linked_user_id, group_id, username, full_name')
-      .in('group_id', groupIds)
-      .order('display_name'),
-    supabase
-      .schema('analytics')
-      .from('group_leaderboard')
-      .select('player_id, games_played')
-      .in('group_id', groupIds),
-  ]);
-
-  if (playersError) {
-    throw playersError;
-  }
+  const [candidateGroups, { data: leaderboardRows, error: leaderboardError }] =
+    await Promise.all([
+      Promise.all(
+        groupIds.map((groupId) => listIdentityCandidates(supabase, groupId)),
+      ),
+      supabase
+        .schema('analytics')
+        .from('group_leaderboard')
+        .select('player_id, games_played')
+        .in('group_id', groupIds),
+    ]);
 
   if (leaderboardError) {
     throw leaderboardError;
   }
 
-  const playerRows = (players ?? []) as RawGroupPlayerRow[];
-  const gamesPlayedByPlayerId = new Map(
-    ((leaderboardRows ?? []) as RawLeaderboardRow[]).map((row) => [
-      row.player_id,
-      row.games_played,
-    ]),
-  );
-  const linkedUserIds = [
-    ...new Set(
-      playerRows
-        .map((player) => player.linked_user_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  ];
-  const linkedProfiles = await listLinkedUserProfiles(linkedUserIds);
-  const profileByUserId = new Map(
-    linkedProfiles.map((profile) => [profile.user_id, profile]),
+  const gamesPlayedByPlayerId = buildGamesPlayedMap(
+    leaderboardRows as RawLeaderboardRow[] | null,
   );
 
-  return playerRows
-    .map((player) => {
-      const profile = player.linked_user_id
-        ? profileByUserId.get(player.linked_user_id) ?? null
-        : null;
-
-      return {
-        canonicalKey: dedupeKeyForPlayer(player),
-        displayName: personLabel({
-          username: profile?.username ?? player.username,
-          displayName: player.display_name,
-        }),
-        gamesPlayed: gamesPlayedByPlayerId.get(player.id) ?? 0,
-        id: player.id,
-        linkedFullName: profile?.full_name ?? player.full_name ?? null,
-        linkedUsername: profile?.username ?? player.username ?? null,
-      } satisfies ImportResolutionPlayer;
-    })
+  return candidateGroups
+    .flat()
+    .map((row) => ({
+      ...toResolutionPlayer(row, gamesPlayedByPlayerId.get(row.player_id) ?? 0),
+      canonicalKey: canonicalKeyForCandidate(row),
+    }))
     .sort(
       (left, right) =>
         left.displayName.localeCompare(right.displayName) ||

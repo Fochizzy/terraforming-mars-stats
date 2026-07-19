@@ -1131,9 +1131,11 @@ export default async function LogGameImportPage() {
         message: 'Player added to the shared roster.',
         createdPlayer: {
           displayName: createdPlayer.display_name,
-          fullName: createdPlayer.full_name ?? resolvedFullName,
+          // The roster row no longer reads these columns back, so the values
+          // just submitted for this player are what review carries forward.
+          fullName: resolvedFullName,
           id: createdPlayer.id,
-          username: createdPlayer.username ?? resolvedUsername,
+          username: resolvedUsername,
         },
       };
     } catch (error) {

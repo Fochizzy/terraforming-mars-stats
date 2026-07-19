@@ -21,7 +21,7 @@ export async function listPlayers(groupId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id, username')
+    .select('id, display_name, linked_user_id')
     .eq('group_id', groupId)
     .order('display_name');
 
@@ -40,7 +40,7 @@ export async function listPlayers(groupId: string) {
     // Retained only for server-side claim matching; never render this value.
     claim_name: player.display_name,
     display_name: personLabel({
-      username: usernameByPlayerId.get(player.id) ?? player.username,
+      username: usernameByPlayerId.get(player.id),
       displayName: player.display_name,
     }),
   }));
@@ -57,7 +57,7 @@ export async function createPlayerIfMissing(input: {
   const normalizedDisplayName = normalizePlayerAlias(input.displayName);
   const { data: existingPlayer, error: existingPlayerError } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id, username, full_name')
+    .select('id, display_name, linked_user_id')
     .eq('group_id', input.groupId)
     .eq('normalized_display_name', normalizedDisplayName)
     .maybeSingle();
@@ -79,7 +79,7 @@ export async function createPlayerIfMissing(input: {
       linked_user_id: input.linkedUserId ?? null,
       username: normalizeOptionalText(input.username),
     })
-    .select('id, display_name, linked_user_id, username, full_name')
+    .select('id, display_name, linked_user_id')
     .single();
 
   if (!error) {
@@ -88,7 +88,7 @@ export async function createPlayerIfMissing(input: {
 
   const { data: retryPlayer, error: retryPlayerError } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id, username, full_name')
+    .select('id, display_name, linked_user_id')
     .eq('group_id', input.groupId)
     .eq('normalized_display_name', normalizedDisplayName)
     .maybeSingle();

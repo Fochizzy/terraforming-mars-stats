@@ -1,114 +1,123 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { listImportResolutionPlayers } from './import-player-resolution-repo';
+import { listCurrentUserGroups } from './group-context-repo';
+import {
+  listImportResolutionPlayers,
+  listImportResolutionPlayersForCurrentUser,
+} from './import-player-resolution-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
 }));
 
-vi.mock('@/lib/supabase/admin', () => ({
-  createSupabaseAdminClient: vi.fn(),
+vi.mock('./group-context-repo', () => ({
+  listCurrentUserGroups: vi.fn(),
 }));
+
+/**
+ * `public.players.full_name` / `username` are not readable through the Data API
+ * (they resolve to `permission denied for table players`). Import candidates
+ * come from the `list_import_player_identity_candidates` security-definer RPC
+ * instead, so these mocks fail loudly if the roster table is ever read again.
+ */
+function mockSupabase(input: {
+  candidatesByGroupId: Record<
+    string,
+    Array<{ is_linked: boolean; player_id: string; public_name: string }>
+  >;
+  leaderboardRows?: Array<{ games_played: number; player_id: string }>;
+}) {
+  const rpc = vi.fn(async (fn: string, args: Record<string, unknown>) => {
+    if (fn !== 'list_import_player_identity_candidates') {
+      throw new Error(`Unexpected rpc ${fn}`);
+    }
+
+    const groupId = args.p_group_id as string;
+
+    return {
+      data: input.candidatesByGroupId[groupId] ?? [],
+      error: null,
+    };
+  });
+
+  const leaderboardResult = {
+    data: input.leaderboardRows ?? [],
+    error: null,
+  };
+  const leaderboardFilter = vi.fn().mockResolvedValue(leaderboardResult);
+  const leaderboardSelect = vi.fn().mockReturnValue({
+    eq: leaderboardFilter,
+    in: leaderboardFilter,
+  });
+
+  vi.mocked(createSupabaseServerClient).mockResolvedValue({
+    from: vi.fn((table: string) => {
+      throw new Error(`The Data API must not read ${table} for import review`);
+    }),
+    rpc,
+    schema: vi.fn((schemaName: string) => {
+      if (schemaName !== 'analytics') {
+        throw new Error(`Unexpected schema ${schemaName}`);
+      }
+
+      return {
+        from: vi.fn((table: string) => {
+          if (table === 'group_leaderboard') {
+            return { select: leaderboardSelect };
+          }
+
+          throw new Error(`Unexpected analytics table ${table}`);
+        }),
+      };
+    }),
+  } as never);
+
+  return { rpc };
+}
 
 describe('listImportResolutionPlayers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('shows usernames while retaining private claim fields and games played', async () => {
-    const playerOrder = vi.fn().mockResolvedValue({
-      data: [
-        {
-          display_name: 'Friday Mars',
-          id: 'player-1',
-          linked_user_id: 'user-1',
-        },
-        {
-          display_name: 'Second Seat',
-          id: 'player-2',
-          linked_user_id: null,
-        },
-      ],
-      error: null,
+  it('identifies a linked account by its username and joins games played', async () => {
+    mockSupabase({
+      candidatesByGroupId: {
+        'group-1': [
+          { is_linked: true, player_id: 'player-1', public_name: 'friday-mars' },
+        ],
+      },
+      leaderboardRows: [{ games_played: 11, player_id: 'player-1' }],
     });
-    const playerEq = vi.fn().mockReturnValue({ order: playerOrder });
-    const playerSelect = vi.fn().mockReturnValue({ eq: playerEq });
-    const leaderboardEq = vi.fn().mockResolvedValue({
-      data: [
-        { games_played: 11, player_id: 'player-1' },
-        { games_played: 4, player_id: 'player-2' },
-      ],
-      error: null,
-    });
-    const leaderboardSelect = vi.fn().mockReturnValue({ eq: leaderboardEq });
-
-    vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      from: vi.fn((table: string) => {
-        if (table === 'players') {
-          return {
-            select: playerSelect,
-          };
-        }
-
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      schema: vi.fn((schemaName: string) => {
-        if (schemaName !== 'analytics') {
-          throw new Error(`Unexpected schema ${schemaName}`);
-        }
-
-        return {
-          from: vi.fn((table: string) => {
-            if (table === 'group_leaderboard') {
-              return {
-                eq: leaderboardEq,
-                select: leaderboardSelect,
-              };
-            }
-
-            throw new Error(`Unexpected analytics table ${table}`);
-          }),
-        };
-      }),
-    } as never);
-
-    const profileIn = vi.fn().mockResolvedValue({
-      data: [
-        {
-          full_name: 'Friday Mars',
-          user_id: 'user-1',
-          username: 'friday-mars',
-        },
-      ],
-      error: null,
-    });
-    const profileSelect = vi.fn().mockReturnValue({ in: profileIn });
-
-    vi.mocked(createSupabaseAdminClient).mockReturnValue({
-      from: vi.fn((table: string) => {
-        if (table === 'user_profiles') {
-          return {
-            in: profileIn,
-            select: profileSelect,
-          };
-        }
-
-        throw new Error(`Unexpected admin table ${table}`);
-      }),
-    } as never);
 
     await expect(listImportResolutionPlayers('group-1')).resolves.toEqual([
       {
         displayName: 'friday-mars',
         gamesPlayed: 11,
         id: 'player-1',
-        linkedFullName: 'Friday Mars',
+        linkedFullName: null,
         linkedUsername: 'friday-mars',
       },
+    ]);
+  });
+
+  it('renders an unlinked guest by its neutral label and carries no personal name', async () => {
+    mockSupabase({
+      candidatesByGroupId: {
+        'group-1': [
+          {
+            is_linked: false,
+            player_id: 'player-2',
+            public_name: 'Guest 5F2A1B3C',
+          },
+        ],
+      },
+    });
+
+    await expect(listImportResolutionPlayers('group-1')).resolves.toEqual([
       {
-        displayName: 'Second',
-        gamesPlayed: 4,
+        displayName: 'Guest 5F2A1B3C',
+        gamesPlayed: 0,
         id: 'player-2',
         linkedFullName: null,
         linkedUsername: null,
@@ -116,102 +125,66 @@ describe('listImportResolutionPlayers', () => {
     ]);
   });
 
-  it('shows a non-account player’s username and retains private claim data', async () => {
-    const playerOrder = vi.fn().mockResolvedValue({
-      data: [
-        {
-          display_name: 'Corey',
-          full_name: 'Corey Carter',
-          id: 'player-3',
-          linked_user_id: null,
-          username: 'coreyc',
-        },
-      ],
-      error: null,
+  it('requests candidates for the given group only', async () => {
+    const { rpc } = mockSupabase({ candidatesByGroupId: { 'group-1': [] } });
+
+    await listImportResolutionPlayers('group-1');
+
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('list_import_player_identity_candidates', {
+      p_group_id: 'group-1',
     });
-    const playerEq = vi.fn().mockReturnValue({ order: playerOrder });
-    const playerSelect = vi.fn().mockReturnValue({ eq: playerEq });
-    const leaderboardEq = vi.fn().mockResolvedValue({ data: [], error: null });
-    const leaderboardSelect = vi.fn().mockReturnValue({ eq: leaderboardEq });
+  });
+});
 
-    vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      from: vi.fn((table: string) => {
-        if (table === 'players') {
-          return { select: playerSelect };
-        }
-
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      schema: vi.fn(() => ({
-        from: vi.fn(() => ({ eq: leaderboardEq, select: leaderboardSelect })),
-      })),
-    } as never);
-
-    // No linked accounts, so the admin client is never consulted.
-    vi.mocked(createSupabaseAdminClient).mockImplementation(() => {
-      throw new Error('admin client should not be called for unlinked players');
-    });
-
-    await expect(listImportResolutionPlayers('group-1')).resolves.toEqual([
-      {
-        displayName: 'coreyc',
-        gamesPlayed: 0,
-        id: 'player-3',
-        linkedFullName: 'Corey Carter',
-        linkedUsername: 'coreyc',
-      },
-    ]);
+describe('listImportResolutionPlayersForCurrentUser', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('falls back to roster names and play counts when the admin client is unavailable', async () => {
-    const playerOrder = vi.fn().mockResolvedValue({
-      data: [
-        {
-          display_name: 'Friday Mars',
-          id: 'player-1',
-          linked_user_id: 'user-1',
-        },
-      ],
-      error: null,
-    });
-    const playerEq = vi.fn().mockReturnValue({ order: playerOrder });
-    const playerSelect = vi.fn().mockReturnValue({ eq: playerEq });
-    const leaderboardEq = vi.fn().mockResolvedValue({
-      data: [{ games_played: 11, player_id: 'player-1' }],
-      error: null,
-    });
-    const leaderboardSelect = vi.fn().mockReturnValue({ eq: leaderboardEq });
-
-    vi.mocked(createSupabaseServerClient).mockResolvedValue({
-      from: vi.fn((table: string) => {
-        if (table === 'players') {
-          return {
-            select: playerSelect,
-          };
-        }
-
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      schema: vi.fn(() => ({
-        from: vi.fn(() => ({
-          eq: leaderboardEq,
-          select: leaderboardSelect,
-        })),
-      })),
-    } as never);
-
-    vi.mocked(createSupabaseAdminClient).mockImplementation(() => {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for web import group matching.');
+  it('pools candidates across every group the user plays in', async () => {
+    vi.mocked(listCurrentUserGroups).mockResolvedValue([
+      { groupId: 'group-1' },
+      { groupId: 'group-2' },
+    ] as never);
+    const { rpc } = mockSupabase({
+      candidatesByGroupId: {
+        'group-1': [
+          { is_linked: true, player_id: 'player-1', public_name: 'ada' },
+        ],
+        'group-2': [
+          { is_linked: false, player_id: 'player-2', public_name: 'Guest 99AA' },
+        ],
+      },
+      leaderboardRows: [{ games_played: 3, player_id: 'player-1' }],
     });
 
-    await expect(listImportResolutionPlayers('group-1')).resolves.toEqual([
+    await expect(listImportResolutionPlayersForCurrentUser()).resolves.toEqual([
       {
-        displayName: 'Friday',
-        gamesPlayed: 11,
+        canonicalKey: 'username:ada',
+        displayName: 'ada',
+        gamesPlayed: 3,
         id: 'player-1',
+        linkedFullName: null,
+        linkedUsername: 'ada',
+      },
+      {
+        canonicalKey: 'player:player-2',
+        displayName: 'Guest 99AA',
+        gamesPlayed: 0,
+        id: 'player-2',
         linkedFullName: null,
         linkedUsername: null,
       },
     ]);
+    expect(rpc).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns nothing when the user belongs to no group', async () => {
+    vi.mocked(listCurrentUserGroups).mockResolvedValue([] as never);
+
+    await expect(listImportResolutionPlayersForCurrentUser()).resolves.toEqual(
+      [],
+    );
   });
 });
