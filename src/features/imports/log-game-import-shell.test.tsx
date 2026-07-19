@@ -108,7 +108,10 @@ describe('LogGameImportShell', () => {
     renderShell(onCreateImportDraft);
 
     await user.upload(screen.getByLabelText(/end-game screenshot/i), screenshotFile);
-    await user.type(screen.getByLabelText(/complete exported game log/i), exportedLog);
+    // Paste rather than type: typing re-parses the log on every keystroke, which
+    // made the following findByText time out under parallel test load.
+    await user.click(screen.getByLabelText(/complete exported game log/i));
+    await user.paste(exportedLog);
     expect(
       await screen.findByText(/linked registered player: FridayMars/i),
     ).toBeInTheDocument();
@@ -162,7 +165,10 @@ describe('LogGameImportShell', () => {
       type: 'image/png',
     });
     await user.upload(screen.getByLabelText(/end-game screenshot/i), screenshotFile);
-    await user.type(screen.getByLabelText(/complete exported game log/i), exportedLog);
+    // Paste rather than type: typing re-parses the log on every keystroke, which
+    // made the following findByText time out under parallel test load.
+    await user.click(screen.getByLabelText(/complete exported game log/i));
+    await user.paste(exportedLog);
     expect(
       await screen.findByText(/linked registered player: FridayMars/i),
     ).toBeInTheDocument();
