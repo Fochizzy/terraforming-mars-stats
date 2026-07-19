@@ -5,16 +5,11 @@ import {
   type ImportPlayerIdentityCandidate,
   type ImportPlayerIdentityDraftInput,
 } from '@/lib/player-identity/guest-identity';
-import { listPlayers } from './player-repo';
 
-type RawPrivateIdentityRow = {
-  guest_first_name: string | null;
-  guest_last_name: string | null;
-  guest_username: string | null;
-  identity_mode: 'personal_name' | 'username';
-  normalized_guest_username: string | null;
-  normalized_personal_name: string | null;
+type RawIdentityCandidateRow = {
+  is_linked: boolean;
   player_id: string;
+  public_name: string;
 };
 
 type RawResolvedGuestRow = {
@@ -30,54 +25,22 @@ export async function listImportPlayerIdentityCandidates(
   groupId: string,
 ): Promise<ImportPlayerIdentityCandidate[]> {
   const supabase = await createSupabaseServerClient();
-  const [players, privateIdentityResult] = await Promise.all([
-    listPlayers(groupId),
-    supabase
-      .from('player_private_identities')
-      .select(
-        [
-          'guest_first_name',
-          'guest_last_name',
-          'guest_username',
-          'identity_mode',
-          'normalized_guest_username',
-          'normalized_personal_name',
-          'player_id',
-        ].join(', '),
-      )
-      .eq('group_id', groupId),
-  ]);
 
-  if (privateIdentityResult.error) {
-    throw privateIdentityResult.error;
-  }
-
-  const identityByPlayerId = new Map(
-    ((privateIdentityResult.data ?? []) as unknown as RawPrivateIdentityRow[]).map(
-      (identity) => [identity.player_id, identity],
-    ),
+  const { data, error } = await supabase.rpc(
+    'list_import_player_identity_candidates',
+    { p_group_id: groupId },
   );
 
-  return players.map((player) => {
-    const identity = player.linked_user_id
-      ? undefined
-      : identityByPlayerId.get(player.id);
+  if (error) {
+    throw error;
+  }
 
-    return {
-      firstName: identity?.guest_first_name ?? null,
-      guestUsername: identity?.guest_username ?? null,
-      id: player.id,
-      identityMode:
-        identity?.identity_mode ??
-        (player.linked_user_id ? null : 'legacy'),
+  return ((data ?? []) as RawIdentityCandidateRow[]).map((player) => ({
+      id: player.player_id,
       isAccessible: true,
-      isLinked: Boolean(player.linked_user_id),
-      lastName: identity?.guest_last_name ?? null,
-      normalizedPersonalName: identity?.normalized_personal_name ?? null,
-      normalizedUsername: identity?.normalized_guest_username ?? null,
-      publicName: player.display_name,
-    };
-  });
+      isLinked: player.is_linked,
+      publicName: player.public_name,
+    }));
 }
 
 export async function resolveImportPlayerIdentities(input: {

@@ -4,41 +4,26 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ImportGameReferenceCatalog } from '@/lib/db/reference-repo';
 import { WebImportPage } from './web-import-page';
 
+// Candidates carry only public fields (F-01). Unlinked guests are surfaced by a
+// neutral public label; the private personal name never reaches the browser, so
+// only linked players can be auto-matched from the log by public username.
 const playerCandidates = [
   {
-    firstName: null,
-    guestUsername: null,
     id: '11111111-1111-4111-8111-111111111111',
-    identityMode: null,
     isAccessible: true,
     isLinked: true,
-    lastName: null,
-    normalizedPersonalName: null,
-    normalizedUsername: 'fridaymars',
     publicName: 'FridayMars',
   },
   {
-    firstName: null,
-    guestUsername: null,
     id: '22222222-2222-4222-8222-222222222222',
-    identityMode: 'legacy' as const,
     isAccessible: true,
     isLinked: false,
-    lastName: null,
-    normalizedPersonalName: null,
-    normalizedUsername: null,
     publicName: 'Second Seat',
   },
   {
-    firstName: null,
-    guestUsername: null,
     id: '33333333-3333-4333-8333-333333333333',
-    identityMode: 'legacy' as const,
     isAccessible: true,
     isLinked: false,
-    lastName: null,
-    normalizedPersonalName: null,
-    normalizedUsername: null,
     publicName: 'Third Seat',
   },
 ];
@@ -151,7 +136,7 @@ describe('WebImportPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('derives setup and exact player matches, then submits verified evidence', async () => {
+  it('auto-matches only the linked player and requires explicit guest resolution', async () => {
     const user = userEvent.setup();
     const onStartImport = vi.fn().mockResolvedValue({
       status: 'success' as const,
@@ -181,11 +166,27 @@ describe('WebImportPage', () => {
     ).toHaveValue('map-tharsis');
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
+
+    // Only the linked player is auto-matched by public username. Unlinked guests
+    // are never matched from private data in the browser, so each must be
+    // resolved explicitly by the importer.
     expect(
       screen.getByText(/linked registered player: FridayMars/i),
     ).toBeInTheDocument();
+    await user.selectOptions(
+      screen.getByLabelText(/imported player 2 existing player/i),
+      '22222222-2222-4222-8222-222222222222',
+    );
+    await user.selectOptions(
+      screen.getByLabelText(/imported player 3 existing player/i),
+      '33333333-3333-4333-8333-333333333333',
+    );
+
     expect(
       screen.getByText(/existing unlinked guest confirmed: Second Seat/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/existing unlinked guest confirmed: Third Seat/i),
     ).toBeInTheDocument();
 
     await user.click(
@@ -201,12 +202,26 @@ describe('WebImportPage', () => {
         objectiveConfiguration: 'board_defined',
         ocrConfidence: 0.98,
         playedOn: '2026-07-04',
-        playerIdentities: playerCandidates.map((candidate) => ({
-          mode: 'existing_player',
-          selectedPlayerId: candidate.id,
-          sourcePlayerText: candidate.publicName,
-          valueSource: 'imported',
-        })),
+        playerIdentities: [
+          {
+            mode: 'existing_player',
+            selectedPlayerId: '11111111-1111-4111-8111-111111111111',
+            sourcePlayerText: 'FridayMars',
+            valueSource: 'imported',
+          },
+          {
+            mode: 'existing_player',
+            selectedPlayerId: '22222222-2222-4222-8222-222222222222',
+            sourcePlayerText: 'Second Seat',
+            valueSource: 'user_corrected',
+          },
+          {
+            mode: 'existing_player',
+            selectedPlayerId: '33333333-3333-4333-8333-333333333333',
+            sourcePlayerText: 'Third Seat',
+            valueSource: 'user_corrected',
+          },
+        ],
         playerCount: 3,
         rawOcrText: 'Victory point breakdown after 12 generations',
         scoreRows: expect.arrayContaining([

@@ -28,16 +28,14 @@ function StatefulUsernameReview() {
   );
 }
 
-const personalCandidate: ImportPlayerIdentityCandidate = {
-  firstName: 'Known',
-  guestUsername: null,
+// F-01 privacy boundary: candidates only ever carry public fields. Local
+// auto-matching is limited to linked players' public usernames; existing-guest
+// reuse and ambiguity are resolved server-side, so the browser never receives a
+// private personal name to match against.
+const linkedKnown: ImportPlayerIdentityCandidate = {
   id: '11111111-1111-4111-8111-111111111111',
-  identityMode: 'personal_name',
   isAccessible: true,
-  isLinked: false,
-  lastName: 'Guest',
-  normalizedPersonalName: 'known guest',
-  normalizedUsername: null,
+  isLinked: true,
   publicName: 'Known Guest',
 };
 
@@ -80,53 +78,21 @@ describe('ImportPlayerIdentityReview', () => {
     expect(screen.queryByLabelText(/first name/i)).not.toBeInTheDocument();
   });
 
-  it('shows an exact personal-name guest and requires explicit reuse', async () => {
+  it('never auto-suggests an unlinked guest for a personal-name entry and offers explicit creation', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
     render(
       <ImportPlayerIdentityReview
-        candidates={[personalCandidate]}
-        onChange={onChange}
-        values={[
-          {
-            createNew: false,
-            firstName: 'KNOWN',
-            lastName: 'GUEST',
-            mode: 'personal_name',
-            selectedPlayerId: null,
-            sourcePlayerText: 'Known Guest',
-          },
-        ]}
-      />,
-    );
-
-    expect(screen.getByText(/exact guest candidate/i)).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: /use existing guest known guest/i }),
-    );
-
-    expect(onChange).toHaveBeenCalledWith([
-      expect.objectContaining({
-        createNew: false,
-        mode: 'personal_name',
-        selectedPlayerId: personalCandidate.id,
-      }),
-    ]);
-    expect(screen.queryByLabelText(/guest username/i)).not.toBeInTheDocument();
-  });
-
-  it('shows ambiguous candidates separately instead of silently selecting one', () => {
-    render(
-      <ImportPlayerIdentityReview
         candidates={[
-          personalCandidate,
           {
-            ...personalCandidate,
-            id: '22222222-2222-4222-8222-222222222222',
+            id: '99999999-9999-4999-8999-999999999999',
+            isAccessible: true,
+            isLinked: false,
+            publicName: 'Guest 12AB34CD',
           },
         ]}
-        onChange={vi.fn()}
+        onChange={onChange}
         values={[
           {
             createNew: false,
@@ -140,23 +106,38 @@ describe('ImportPlayerIdentityReview', () => {
       />,
     );
 
-    expect(screen.getByText(/multiple matching guests found/i)).toBeInTheDocument();
+    // No local personal-name match is offered, so the private name never
+    // participates in browser-side matching.
     expect(
-      screen.getAllByRole('button', { name: /use existing guest known guest/i }),
-    ).toHaveLength(2);
+      screen.queryByRole('button', { name: /use existing guest/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /create new unlinked guest/i }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: /create new unlinked guest/i }),
+    );
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({
+        createNew: true,
+        mode: 'personal_name',
+        selectedPlayerId: null,
+      }),
+    ]);
   });
 
-  it('surfaces ambiguous automatic source matches and requires explicit selection', async () => {
+  it('surfaces ambiguous linked public-username matches and requires explicit selection', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    const secondCandidate = {
-      ...personalCandidate,
+    const secondLinked: ImportPlayerIdentityCandidate = {
+      ...linkedKnown,
       id: '22222222-2222-4222-8222-222222222222',
     };
 
     render(
       <ImportPlayerIdentityReview
-        candidates={[personalCandidate, secondCandidate]}
+        candidates={[linkedKnown, secondLinked]}
         onChange={onChange}
         values={[
           {
@@ -179,7 +160,7 @@ describe('ImportPlayerIdentityReview', () => {
     expect(onChange).toHaveBeenCalledWith([
       expect.objectContaining({
         mode: 'existing_player',
-        selectedPlayerId: secondCandidate.id,
+        selectedPlayerId: secondLinked.id,
         valueSource: 'user_corrected',
       }),
     ]);

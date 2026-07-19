@@ -99,15 +99,9 @@ export type ImportedPlayerResolution = z.output<
 >;
 
 export type ImportPlayerIdentityCandidate = {
-  firstName: string | null;
-  guestUsername: string | null;
   id: string;
-  identityMode: GuestIdentityMode | 'legacy' | null;
   isAccessible: boolean;
   isLinked: boolean;
-  lastName: string | null;
-  normalizedPersonalName: string | null;
-  normalizedUsername: string | null;
   publicName: string;
 };
 
@@ -160,51 +154,13 @@ export function findExactImportedSourceCandidates(input: {
   candidates: ImportPlayerIdentityCandidate[];
   sourcePlayerText: string;
 }) {
-  const normalizedPersonalName = normalizePrivatePersonalName(
-    input.sourcePlayerText,
-    '',
-  );
   const normalizedUsername = normalizeGuestUsername(input.sourcePlayerText);
 
-  return input.candidates.filter((candidate) => {
-    const candidateUsername =
-      candidate.normalizedUsername ??
-      (candidate.guestUsername
-        ? normalizeGuestUsername(candidate.guestUsername)
-        : null);
-    const candidatePersonalName =
-      candidate.normalizedPersonalName ??
-      (candidate.firstName && candidate.lastName
-        ? normalizePrivatePersonalName(candidate.firstName, candidate.lastName)
-        : null);
-
-    if (candidate.isLinked || candidate.identityMode === 'username') {
-      return (
-        candidateUsername === normalizedUsername ||
-        (!candidateUsername &&
-          normalizeGuestUsername(candidate.publicName) === normalizedUsername)
-      );
-    }
-
-    if (candidate.identityMode === 'personal_name') {
-      return candidatePersonalName === normalizedPersonalName;
-    }
-
-    if (candidate.identityMode === 'legacy') {
-      return (
-        candidateUsername === normalizedUsername ||
-        candidatePersonalName === normalizedPersonalName ||
-        normalizeGuestUsername(candidate.publicName) === normalizedUsername ||
-        normalizePrivatePersonalName(candidate.publicName, '') ===
-          normalizedPersonalName
-      );
-    }
-
-    return (
-      candidateUsername === normalizedUsername ||
-      candidatePersonalName === normalizedPersonalName
-    );
-  });
+  return input.candidates.filter(
+    (candidate) =>
+      candidate.isLinked &&
+      normalizeGuestUsername(candidate.publicName) === normalizedUsername,
+  );
 }
 
 function selectedCandidateState(
@@ -251,50 +207,11 @@ export function evaluateImportPlayerIdentity(input: {
     );
   }
 
-  const normalizedValue =
-    parsed.data.mode === 'username'
-      ? normalizeGuestUsername(parsed.data.username)
-      : normalizePrivatePersonalName(
-          parsed.data.firstName,
-          parsed.data.lastName,
-        );
-  const exactCandidates = input.candidates.filter((candidate) => {
-    if (candidate.isLinked) {
-      return false;
-    }
-
-    if (parsed.data.mode === 'username') {
-      return (
-        candidate.normalizedUsername === normalizedValue ||
-        (candidate.identityMode === 'legacy' &&
-          normalizeGuestUsername(candidate.publicName) === normalizedValue)
-      );
-    }
-
-    return (
-      candidate.normalizedPersonalName === normalizedValue ||
-      (candidate.identityMode === 'legacy' &&
-        normalizePrivatePersonalName(candidate.publicName, '') ===
-          normalizedValue)
-    );
-  });
-
   if (parsed.data.selectedPlayerId) {
-    const selected = exactCandidates.find(
+    const selected = input.candidates.find(
       (candidate) => candidate.id === parsed.data.selectedPlayerId,
     );
     return selectedCandidateState(selected);
-  }
-
-  if (exactCandidates.length > 1) {
-    return { kind: 'ambiguous_match', candidates: exactCandidates };
-  }
-
-  if (exactCandidates[0]) {
-    return {
-      kind: 'duplicate_guest_candidate',
-      candidate: exactCandidates[0],
-    };
   }
 
   if (!parsed.data.createNew) {
@@ -306,9 +223,6 @@ export function evaluateImportPlayerIdentity(input: {
 
   return {
     kind: 'newly_created_unlinked_guest',
-    publicName:
-      parsed.data.mode === 'username'
-        ? parsed.data.username
-        : `${parsed.data.firstName} ${parsed.data.lastName}`,
+    publicName: 'New unlinked guest',
   };
 }

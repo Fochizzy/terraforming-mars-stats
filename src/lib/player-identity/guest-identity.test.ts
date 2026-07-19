@@ -7,70 +7,52 @@ import {
   type ImportPlayerIdentityCandidate,
 } from './guest-identity';
 
-const candidates: ImportPlayerIdentityCandidate[] = [
-  {
-    firstName: null,
-    guestUsername: null,
-    id: '11111111-1111-4111-8111-111111111111',
-    identityMode: null,
-    isAccessible: true,
-    isLinked: true,
-    lastName: null,
-    normalizedPersonalName: null,
-    normalizedUsername: null,
-    publicName: 'registered-user',
-  },
-  {
-    firstName: null,
-    guestUsername: 'Mars.Rover',
-    id: '22222222-2222-4222-8222-222222222222',
-    identityMode: 'username',
-    isAccessible: true,
-    isLinked: false,
-    lastName: null,
-    normalizedPersonalName: null,
-    normalizedUsername: 'mars-rover',
-    publicName: 'Mars.Rover',
-  },
-  {
-    firstName: 'Private',
-    guestUsername: null,
-    id: '33333333-3333-4333-8333-333333333333',
-    identityMode: 'personal_name',
-    isAccessible: true,
-    isLinked: false,
-    lastName: 'Example',
-    normalizedPersonalName: 'private example',
-    normalizedUsername: null,
-    publicName: 'Private Example',
-  },
-];
+// F-01 privacy boundary: only PUBLIC identity fields ever reach the browser.
+// Private first/last names, normalized personal names, and private matching
+// keys are never serialized into candidates, so browser-side matching is
+// limited to linked players' public usernames. Existing-guest reuse, ambiguity,
+// and duplicate detection now happen server-side in resolve_import_guest_identity.
+const linkedPlayer: ImportPlayerIdentityCandidate = {
+  id: '11111111-1111-4111-8111-111111111111',
+  isAccessible: true,
+  isLinked: true,
+  publicName: 'Mars.Rover',
+};
+
+const unlinkedGuest: ImportPlayerIdentityCandidate = {
+  // Unlinked guests are only ever labelled with a neutral public label.
+  id: '33333333-3333-4333-8333-333333333333',
+  isAccessible: true,
+  isLinked: false,
+  publicName: 'Guest 3A2B7C1D',
+};
+
+const candidates = [linkedPlayer, unlinkedGuest];
 
 describe('guest identity normalization', () => {
   it('keeps username and personal-name semantics separate', () => {
     expect(normalizeGuestUsername(' Mars.Rover ')).toBe('mars-rover');
-    expect(normalizePrivatePersonalName(' Mars ', ' Rover ')).toBe(
-      'mars rover',
-    );
+    expect(normalizePrivatePersonalName(' Mars ', ' Rover ')).toBe('mars rover');
   });
+});
 
-  it('matches imported text through each identity mode without fuzzy matching', () => {
+describe('findExactImportedSourceCandidates', () => {
+  it('auto-matches a linked player by public username only', () => {
     expect(
       findExactImportedSourceCandidates({
         candidates,
         sourcePlayerText: 'MARS...ROVER',
       }).map((candidate) => candidate.id),
-    ).toEqual(['22222222-2222-4222-8222-222222222222']);
+    ).toEqual([linkedPlayer.id]);
+  });
+
+  it('never auto-matches an unlinked guest, even when the public label collides', () => {
+    // The browser holds no private matching keys, so an unlinked guest must be
+    // resolved server-side rather than silently auto-selected here.
     expect(
       findExactImportedSourceCandidates({
-        candidates,
-        sourcePlayerText: 'PRIVATE, EXAMPLE',
-      }).map((candidate) => candidate.id),
-    ).toEqual(['33333333-3333-4333-8333-333333333333']);
-    expect(
-      findExactImportedSourceCandidates({
-        candidates,
-        sourcePlayerText: 'Private Example Extra',
+        candidates: [{ ...unlinkedGuest, publicName: 'Mars.Rover' }],
+        sourcePlayerText: 'Mars.Rover',
       }),
     ).toEqual([]);
   });
@@ -83,54 +65,30 @@ describe('evaluateImportPlayerIdentity', () => {
         candidates,
         value: {
           mode: 'existing_player',
-          selectedPlayerId: '11111111-1111-4111-8111-111111111111',
+          selectedPlayerId: linkedPlayer.id,
           sourcePlayerText: 'Original linked player text',
         },
       }),
     ).toMatchObject({ kind: 'linked_registered_player' });
   });
 
-  it('requires confirmation before reusing an exact username guest', () => {
+  it('reuses an explicitly selected existing unlinked guest', () => {
     expect(
       evaluateImportPlayerIdentity({
         candidates,
         value: {
-          createNew: true,
-          mode: 'username',
-          selectedPlayerId: null,
-          sourcePlayerText: 'MARS ROVER',
-          username: '  MARS...ROVER ',
-        },
-      }),
-    ).toMatchObject({ kind: 'duplicate_guest_candidate' });
-  });
-
-  it('reuses the explicitly confirmed personal-name guest', () => {
-    expect(
-      evaluateImportPlayerIdentity({
-        candidates,
-        value: {
-          createNew: false,
-          firstName: 'PRIVATE',
-          lastName: 'EXAMPLE',
-          mode: 'personal_name',
-          selectedPlayerId: '33333333-3333-4333-8333-333333333333',
-          sourcePlayerText: 'Private Example',
+          mode: 'existing_player',
+          selectedPlayerId: unlinkedGuest.id,
+          sourcePlayerText: 'Original imported guest text',
         },
       }),
     ).toMatchObject({ kind: 'existing_unlinked_guest' });
   });
 
-  it('distinguishes ambiguous personal-name candidates', () => {
+  it('leaves a new personal-name guest unresolved until creation is confirmed', () => {
     expect(
       evaluateImportPlayerIdentity({
-        candidates: [
-          ...candidates,
-          {
-            ...candidates[2],
-            id: '44444444-4444-4444-8444-444444444444',
-          },
-        ],
+        candidates,
         value: {
           createNew: false,
           firstName: 'Private',
@@ -140,54 +98,32 @@ describe('evaluateImportPlayerIdentity', () => {
           sourcePlayerText: 'Private Example',
         },
       }),
-    ).toMatchObject({ kind: 'ambiguous_match' });
+    ).toMatchObject({ kind: 'unresolved_player' });
   });
 
-  it('allows explicit creation only when no exact guest exists', () => {
-    expect(
-      evaluateImportPlayerIdentity({
-        candidates,
-        value: {
-          createNew: true,
-          mode: 'username',
-          selectedPlayerId: null,
-          sourcePlayerText: 'New Guest',
-          username: 'New Guest',
-        },
-      }),
-    ).toEqual({
-      kind: 'newly_created_unlinked_guest',
-      publicName: 'New Guest',
+  it('creates a new guest with a neutral label and never echoes the private name', () => {
+    const state = evaluateImportPlayerIdentity({
+      candidates,
+      value: {
+        createNew: true,
+        firstName: 'Private',
+        lastName: 'Example',
+        mode: 'personal_name',
+        selectedPlayerId: null,
+        sourcePlayerText: 'Private Example',
+      },
     });
-  });
 
-  it('requires confirmation before a legacy display-label match can be reused', () => {
-    const legacyCandidate: ImportPlayerIdentityCandidate = {
-      firstName: null,
-      guestUsername: null,
-      id: '55555555-5555-4555-8555-555555555555',
-      identityMode: 'legacy',
-      isAccessible: true,
-      isLinked: false,
-      lastName: null,
-      normalizedPersonalName: null,
-      normalizedUsername: null,
-      publicName: 'Legacy Guest',
-    };
+    expect(state).toEqual({
+      kind: 'newly_created_unlinked_guest',
+      publicName: 'New unlinked guest',
+    });
 
-    expect(
-      evaluateImportPlayerIdentity({
-        candidates: [legacyCandidate],
-        value: {
-          createNew: true,
-          firstName: 'Legacy',
-          lastName: 'Guest',
-          mode: 'personal_name',
-          selectedPlayerId: null,
-          sourcePlayerText: 'Legacy Guest',
-        },
-      }),
-    ).toMatchObject({ kind: 'duplicate_guest_candidate' });
+    // The entered personal name must never become the public label.
+    if (state.kind === 'newly_created_unlinked_guest') {
+      expect(state.publicName.toLowerCase()).not.toContain('private');
+      expect(state.publicName.toLowerCase()).not.toContain('example');
+    }
   });
 
   it('keeps invalid, inaccessible, and unavailable states distinct', () => {
@@ -196,21 +132,21 @@ describe('evaluateImportPlayerIdentity', () => {
         candidates,
         value: {
           createNew: false,
+          firstName: 'Only',
+          lastName: '',
           mode: 'personal_name',
           selectedPlayerId: null,
           sourcePlayerText: 'Missing last name',
-          firstName: 'Only',
-          lastName: '',
         },
       }),
     ).toMatchObject({ kind: 'invalid_identity_input' });
 
     expect(
       evaluateImportPlayerIdentity({
-        candidates: [{ ...candidates[0], isAccessible: false }],
+        candidates: [{ ...linkedPlayer, isAccessible: false }],
         value: {
           mode: 'existing_player',
-          selectedPlayerId: '11111111-1111-4111-8111-111111111111',
+          selectedPlayerId: linkedPlayer.id,
           sourcePlayerText: 'Inaccessible player',
         },
       }),
@@ -221,7 +157,7 @@ describe('evaluateImportPlayerIdentity', () => {
         candidates: [],
         value: {
           mode: 'existing_player',
-          selectedPlayerId: '11111111-1111-4111-8111-111111111111',
+          selectedPlayerId: linkedPlayer.id,
           sourcePlayerText: 'Unavailable player',
         },
       }),
