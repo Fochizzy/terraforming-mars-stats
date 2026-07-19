@@ -34,6 +34,7 @@ import {
   type TrustedExpansionOptionEvidence,
 } from '@/lib/imports/parse-terraforming-mars-expansion-mechanics';
 import { detectImportBoardMapIndependent } from '@/lib/imports/detect-import-board-map-independent';
+import { resolveOffReserveOceanEvidence } from '@/lib/imports/resolve-off-reserve-ocean-evidence';
 import { parseTerraformingMarsTileActions } from '@/lib/imports/parse-terraforming-mars-tile-actions';
 import { buildImportedBoardState } from '@/lib/imports/build-imported-board-state';
 import { classifyImportObjectiveConfiguration } from '@/lib/imports/objective-configuration';
@@ -138,11 +139,20 @@ export default async function LogGameImportPage() {
     // (see docs/redesign/MASTER-RULES.md map/objective interpretation contract).
     const tileActionSet = parseTerraformingMarsTileActions(values.exportedGameLog);
     const reconstructedBoard = buildImportedBoardState(tileActionSet.actions);
+    // Verified off-reserve ocean placements (each linked to a source-backed
+    // exception card play) explain oceans that fall outside a map's
+    // reserved-ocean fingerprint, instead of a guessed constant allowance.
+    const offReserveOceanEvidence = resolveOffReserveOceanEvidence({
+      cards: authoritativeReferenceCatalog.cards,
+      playedEntityEvidence: reviewedPlayedEntityEvidence,
+      tileActions: tileActionSet.actions,
+    });
     const mapReview = detectImportBoardMapIndependent({
       catalog: authoritativeReferenceCatalog,
       objectiveConfiguration,
       objectiveEvidence: reviewedObjectiveEvidence,
       oceanSpaceIds: tileActionSet.oceanSpaceIds,
+      offReserveOceanExceptionSpaceIds: offReserveOceanEvidence.exceptionSpaceIds,
     });
     const parsedPromoSetSlugs = [
       ...new Set(
@@ -383,6 +393,7 @@ export default async function LogGameImportPage() {
             map_source: mapReview.mapSource,
             objective_configuration: objectiveConfiguration,
             ocean_space_ids: tileActionSet.oceanSpaceIds,
+            off_reserve_ocean_exceptions: offReserveOceanEvidence.exceptions,
             original_evidence: originalObjectiveEvidence,
             reconstructed_board_space_count: reconstructedBoard.spaces.length,
             reviewed_evidence: reviewedObjectiveEvidence,

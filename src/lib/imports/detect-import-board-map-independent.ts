@@ -86,6 +86,7 @@ export function detectImportBoardMapIndependent(input: {
   objectiveEvidence: ImportObjectiveEvidence[];
   oceanSpaceIds: string[];
   offReserveOceanAllowance?: number;
+  offReserveOceanExceptionSpaceIds?: string[];
 }): IndependentMapDetection {
   const models = buildModels(input.catalog);
   const oceans = [...new Set(input.oceanSpaceIds)];
@@ -98,6 +99,14 @@ export function detectImportBoardMapIndependent(input: {
   );
   const mayUseObjectives = objectiveClass === 'standard';
   const allowance = Math.max(0, input.offReserveOceanAllowance ?? 0);
+  const exceptionSpaces = new Set(input.offReserveOceanExceptionSpaceIds ?? []);
+  // A verified off-reserve ocean — one linked to a source-backed exception card
+  // play — that lands on a non-reserved hex is explained evidence, so it is not
+  // counted against the map's reserved-ocean fingerprint.
+  const oceanMissedFor = (model: (typeof models)[number]) =>
+    oceans.filter(
+      (space) => !model.oceanEligible.has(space) && !exceptionSpaces.has(space),
+    ).length;
   const candidates = models
     .map((model) => {
       const oceanMatched = oceans.filter((space) => model.oceanEligible.has(space)).length;
@@ -109,7 +118,7 @@ export function detectImportBoardMapIndependent(input: {
         id: model.option.id,
         name: model.option.name,
         oceanMatched,
-        oceanMissed: oceans.length - oceanMatched,
+        oceanMissed: oceanMissedFor(model),
         objectivesInDefaultSet,
         objectivesOffDefaultSet: objectives.length - objectivesInDefaultSet,
         requiresRandomizedObjectives: model.requiresRandomizedObjectives,
@@ -175,9 +184,7 @@ export function detectImportBoardMapIndependent(input: {
   }
 
   const bestModels = models.filter(
-    (model) =>
-      oceans.length - oceans.filter((space) => model.oceanEligible.has(space)).length ===
-      minMissed,
+    (model) => oceanMissedFor(model) === minMissed,
   );
   if (bestModels.length === 1) {
     const model = bestModels[0];

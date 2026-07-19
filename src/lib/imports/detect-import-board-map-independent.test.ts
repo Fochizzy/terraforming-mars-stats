@@ -56,6 +56,38 @@ describe('independent map detection', () => {
     });
   });
 
+  it('excludes a verified off-reserve ocean exception from the reserved-ocean fingerprint', () => {
+    const hellasOceans = ['03', '08', '14', '21', '26', '27', '34', '35', '46'];
+    // '99' is not an ocean hex on any map, so it breaks every fingerprint.
+    const withOffReserveOcean = [...hellasOceans, '99'];
+
+    // Without the exception, the stray ocean prevents a confident Hellas match.
+    expect(
+      detectImportBoardMapIndependent({
+        catalog,
+        objectiveConfiguration: 'randomized_full',
+        objectiveEvidence: [],
+        oceanSpaceIds: withOffReserveOcean,
+      }),
+    ).not.toMatchObject({ detectedMapCode: 'hellas', kind: 'confident' });
+
+    // With the stray ocean verified as a source-backed off-reserve exception,
+    // Hellas matches again — but only that specific space is excused.
+    expect(
+      detectImportBoardMapIndependent({
+        catalog,
+        objectiveConfiguration: 'randomized_full',
+        objectiveEvidence: [],
+        oceanSpaceIds: withOffReserveOcean,
+        offReserveOceanExceptionSpaceIds: ['99'],
+      }),
+    ).toMatchObject({
+      detectedMapCode: 'hellas',
+      kind: 'confident',
+      mapSource: 'oceans',
+    });
+  });
+
   it('does not infer a map from randomized objectives when oceans are absent', () => {
     expect(
       detectImportBoardMapIndependent({
