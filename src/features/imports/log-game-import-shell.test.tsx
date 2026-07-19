@@ -4,17 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ImportGameReferenceCatalog } from '@/lib/db/reference-repo';
 import { LogGameImportShell } from './log-game-import-shell';
 
+// Exactly the public candidate contract the browser receives — no name,
+// username, or normalized matching fields beyond the approved public label.
 const playerCandidates = [
   {
-    firstName: null,
-    guestUsername: null,
     id: '11111111-1111-4111-8111-111111111111',
-    identityMode: null,
     isAccessible: true,
     isLinked: true,
-    lastName: null,
-    normalizedPersonalName: null,
-    normalizedUsername: 'fridaymars',
     publicName: 'FridayMars',
   },
 ];
