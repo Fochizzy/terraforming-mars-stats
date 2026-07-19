@@ -11,6 +11,8 @@ export type ImportTileAction = {
   action: ImportTileActionKind;
   actor: string;
   board: ImportTileBoard;
+  boardPosition: number | null;
+  boardRow: number | null;
   canonicalTileCode: string | null;
   canonicalTileName: string | null;
   format: ImportTileActionFormat;
@@ -58,13 +60,21 @@ function resolveSpace(match: RegExpExecArray) {
     const digits = rawSpace.replace(/^m/i, '');
     return {
       board,
+      boardPosition: null,
+      boardRow: null,
       format: 'flat-id' as const,
       spaceId: board === 'moon' ? `m${digits.padStart(2, '0')}` : digits.padStart(2, '0'),
     };
   }
   const spaceId = rowPositionToSpaceId(Number(match[4]), Number(match[5]));
   return spaceId
-    ? { board: 'mars' as const, format: 'grid' as const, spaceId }
+    ? {
+        board: 'mars' as const,
+        boardPosition: Number(match[5]),
+        boardRow: Number(match[4]),
+        format: 'grid' as const,
+        spaceId,
+      }
     : null;
 }
 
@@ -81,6 +91,8 @@ function toAction(input: {
     action: input.action,
     actor: input.match[1].trim(),
     board: space.board,
+    boardPosition: space.boardPosition,
+    boardRow: space.boardRow,
     canonicalTileCode: definition?.canonicalCode ?? null,
     canonicalTileName: definition?.canonicalName ?? null,
     format: space.format,

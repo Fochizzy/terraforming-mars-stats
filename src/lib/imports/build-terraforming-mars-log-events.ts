@@ -1,28 +1,42 @@
 import type { ImportObjectiveEvidence } from './parse-terraforming-mars-log';
+import type { GameLogEventConfidenceLevel } from './game-log-event-contract';
+import { normalizePlayerAlias } from './normalize-player-alias';
 import type { ParsedExpansionMechanicEvent } from './parse-terraforming-mars-expansion-mechanics';
 import type { ImportPlayedEntityEvidence } from './parse-terraforming-mars-played-entities';
 import type { ImportTileAction } from './parse-terraforming-mars-tile-actions';
 
 export type ParsedGameLogEvent = {
+  board_position?: number | null;
+  board_row?: number | null;
   board_space?: string | null;
   card_id: string | null;
   colony_id?: string | null;
-  confidence_level: 'high' | 'reviewed';
+  confidence_level: GameLogEventConfidenceLevel;
   event_identity?: string | null;
   event_order: number;
   event_provenance?: string | null;
   event_type: string;
+  game_player_id?: string | null;
   generation_number: number | null;
   line_classification: string;
+  map_id?: string | null;
+  owner_game_player_id?: string | null;
+  owner_player_id?: string | null;
+  ownership_state?: 'explicit_owner' | 'unknown' | 'not_applicable' | null;
   parameter_after?: number | null;
   parameter_before?: number | null;
   parameter_steps?: number | null;
+  placement_action?: 'placed' | 'removed' | null;
+  placement_board?: 'mars' | 'moon' | null;
+  placement_format?: 'flat-id' | 'grid' | null;
   parser_version?: string | null;
   payload: Record<string, unknown>;
   player_id?: string | null;
   raw_line: string;
   resource_amount?: number | null;
   resource_type?: string | null;
+  source_line_number?: number | null;
+  source_space_id?: string | null;
   source_entity?: string | null;
   tile_type?: string | null;
 };
@@ -38,10 +52,42 @@ function stripExporterPrefix(line: string) {
   return line.replace(/^\s*\[\d+\/\d+\]:\s*/, '').trim();
 }
 
+function buildPlayerResolutionIndex(
+  resolutions: Array<{ selectedPlayerId: string; sourcePlayerText: string }>,
+) {
+  return new Map(
+    resolutions.map((resolution) => [
+      normalizePlayerAlias(resolution.sourcePlayerText),
+      resolution.selectedPlayerId,
+    ]),
+  );
+}
+
+function placementEventIdentity(action: ImportTileAction) {
+  const tileIdentity = (action.canonicalTileCode ?? action.rawTileType)
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return [
+    'tile',
+    action.lineNumber,
+    action.action,
+    action.board,
+    action.spaceId.toLowerCase(),
+    tileIdentity || 'unknown',
+  ].join(':');
+}
+
 export function buildTerraformingMarsLogEvents(input: {
   expansionMechanicEvents?: ParsedExpansionMechanicEvent[];
   exportedLogText: string;
+  mapId: string;
   objectiveEvidence: ImportObjectiveEvidence[];
+  playerResolutions?: Array<{
+    selectedPlayerId: string;
+    sourcePlayerText: string;
+  }>;
   playedEntityEvidence: ImportPlayedEntityEvidence[];
   tileActions?: ImportTileAction[];
 }): ParsedGameLogEventSet {
@@ -61,6 +107,9 @@ export function buildTerraformingMarsLogEvents(input: {
     (input.expansionMechanicEvents ?? []).map((event) => [event.lineNumber, event]),
   );
   const events: ParsedGameLogEvent[] = [];
+  const playerResolutionIndex = buildPlayerResolutionIndex(
+    input.playerResolutions ?? [],
+  );
   let currentGeneration: number | null = null;
 
   lines.forEach((rawLine, index) => {
@@ -116,15 +165,29 @@ export function buildTerraformingMarsLogEvents(input: {
 
     const tileAction = tileActionByLine.get(lineNumber);
     if (tileAction) {
+      const playerId =
+        playerResolutionIndex.get(normalizePlayerAlias(tileAction.actor)) ?? null;
       events.push({
+        board_position: tileAction.boardPosition,
+        board_row: tileAction.boardRow,
         board_space: tileAction.spaceId,
         card_id: null,
         confidence_level: tileAction.isKnownTileType ? 'high' : 'reviewed',
+        event_identity: placementEventIdentity(tileAction),
         event_order: lineNumber,
+        event_provenance: 'exported_log',
         event_type:
           tileAction.action === 'placed' ? 'tile_placed' : 'tile_removed',
         generation_number: currentGeneration,
         line_classification: `tile_${tileAction.action}`,
+        map_id: input.mapId,
+        owner_game_player_id: null,
+        owner_player_id: null,
+        ownership_state: 'unknown',
+        parser_version: 'terraforming-mars-tile-actions-v2',
+        placement_action: tileAction.action,
+        placement_board: tileAction.board,
+        placement_format: tileAction.format,
         payload: {
           actor: tileAction.actor,
           board: tileAction.board,
@@ -133,7 +196,13 @@ export function buildTerraformingMarsLogEvents(input: {
           is_known_tile_type: tileAction.isKnownTileType,
           raw_tile_type: tileAction.rawTileType,
         },
+        player_id: playerId,
         raw_line: rawLine,
+        source_line_number: tileAction.lineNumber,
+        source_space_id:
+          tileAction.format === 'grid'
+            ? `${tileAction.boardRow}:${tileAction.boardPosition}`
+            : tileAction.spaceId,
         tile_type: tileAction.canonicalTileCode ?? tileAction.rawTileType,
       });
       return;
@@ -184,6 +253,7 @@ export function buildTerraformingMarsLogEvents(input: {
         confidence_level:
           objective.resolution === 'exact' ? 'high' : 'reviewed',
         event_order: lineNumber,
+        event_provenance: 'exported_log',
         event_type:
           objective.type === 'milestone'
             ? 'milestone_claimed'

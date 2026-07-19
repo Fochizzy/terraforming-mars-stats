@@ -1,4 +1,5 @@
 import { normalizeDomainText } from '@/lib/ocr/domain-matcher';
+import type { GameLogEventConfidenceLevel } from './game-log-event-contract';
 import { normalizePlayerAlias } from './normalize-player-alias';
 
 export const TERRAFORMING_MARS_VENUS_COLONIES_PARSER_VERSION =
@@ -50,7 +51,7 @@ export type ParsedExpansionMechanicEvent = {
   attribution: 'player' | 'unattributed' | 'world_government';
   colonyId: string | null;
   colonyName: string | null;
-  confidenceLevel: 'high' | 'reviewed';
+  confidenceLevel: GameLogEventConfidenceLevel;
   eventIdentity: string;
   eventType: ExpansionMechanicEventType;
   generationNumber: number | null;

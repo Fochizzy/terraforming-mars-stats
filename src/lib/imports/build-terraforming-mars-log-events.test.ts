@@ -3,6 +3,8 @@ import { buildTerraformingMarsLogEvents } from './build-terraforming-mars-log-ev
 import { parseTerraformingMarsExpansionMechanics } from './parse-terraforming-mars-expansion-mechanics';
 import { parseTerraformingMarsTileActions } from './parse-terraforming-mars-tile-actions';
 
+const MAP_ID = '00000000-0000-4000-8000-000000000001';
+
 describe('buildTerraformingMarsLogEvents', () => {
   it('preserves line order, generation context, canonical IDs, and raw evidence', () => {
     const exportedLogText = [
@@ -17,6 +19,7 @@ describe('buildTerraformingMarsLogEvents', () => {
     ].join('\n');
     const result = buildTerraformingMarsLogEvents({
       exportedLogText,
+      mapId: MAP_ID,
       objectiveEvidence: [
         {
           candidateEntityIds: ['milestone-mayor'],
@@ -112,6 +115,7 @@ describe('buildTerraformingMarsLogEvents', () => {
     const tileActions = parseTerraformingMarsTileActions(exportedLogText).actions;
     const result = buildTerraformingMarsLogEvents({
       exportedLogText,
+      mapId: MAP_ID,
       objectiveEvidence: [],
       playedEntityEvidence: [],
       tileActions,
@@ -154,6 +158,7 @@ describe('buildTerraformingMarsLogEvents', () => {
     const result = buildTerraformingMarsLogEvents({
       expansionMechanicEvents: expansion.events,
       exportedLogText,
+      mapId: MAP_ID,
       objectiveEvidence: [],
       playedEntityEvidence: [],
     });
@@ -178,5 +183,80 @@ describe('buildTerraformingMarsLogEvents', () => {
       resource_amount: 3,
       resource_type: 'energy',
     });
+  });
+
+  it('preserves typed placement identity, coordinates, ownership, and stable attribution', () => {
+    const exportedLogText = [
+      'Generation 2',
+      'Alice placed greenery tile on row 4 position 2',
+      'Bob placed ocean tile at 07',
+      'Ghost placed city tile at 09',
+    ].join('\n');
+    const tileActions = parseTerraformingMarsTileActions(exportedLogText).actions;
+    const result = buildTerraformingMarsLogEvents({
+      exportedLogText,
+      mapId: MAP_ID,
+      objectiveEvidence: [],
+      playedEntityEvidence: [],
+      playerResolutions: [
+        { selectedPlayerId: 'player-alice', sourcePlayerText: 'Alice' },
+        { selectedPlayerId: 'player-bob', sourcePlayerText: 'Bob' },
+      ],
+      tileActions,
+    });
+
+    const [, grid, flat, unresolved] = result.events;
+
+    // Grid coordinates survive exactly and are retained next to the flat space
+    // id rather than being discarded after producing a flat id (F-02).
+    expect(grid).toMatchObject({
+      board_position: 2,
+      board_row: 4,
+      map_id: MAP_ID,
+      owner_game_player_id: null,
+      owner_player_id: null,
+      ownership_state: 'unknown',
+      placement_format: 'grid',
+      player_id: 'player-alice',
+      source_space_id: '4:2',
+    });
+
+    // A flat placement keeps its numeric space id as the original source id.
+    expect(flat).toMatchObject({
+      board_space: '07',
+      owner_player_id: null,
+      ownership_state: 'unknown',
+      placement_format: 'flat-id',
+      player_id: 'player-bob',
+      source_space_id: '07',
+    });
+
+    // The actor is never treated as ownership, and an unresolved actor stays
+    // null instead of being coerced or guessed from nearby log text (F-02).
+    expect(unresolved.player_id).toBeNull();
+    expect(unresolved.owner_player_id).toBeNull();
+    expect(unresolved.ownership_state).toBe('unknown');
+  });
+
+  it('produces deterministic, idempotent placement identities', () => {
+    const exportedLogText = [
+      'Generation 1',
+      'Alice placed ocean tile on row 4 position 2',
+    ].join('\n');
+    const build = () =>
+      buildTerraformingMarsLogEvents({
+        exportedLogText,
+        mapId: MAP_ID,
+        objectiveEvidence: [],
+        playedEntityEvidence: [],
+        tileActions: parseTerraformingMarsTileActions(exportedLogText).actions,
+      });
+
+    const first = build().events.find((event) => event.event_type === 'tile_placed');
+    const second = build().events.find((event) => event.event_type === 'tile_placed');
+
+    expect(first?.event_identity).toBeTruthy();
+    expect(first?.event_identity).toBe(second?.event_identity);
+    expect(first?.event_identity).toMatch(/^tile:/);
   });
 });

@@ -298,7 +298,14 @@ export default async function LogGameImportPage() {
     const parsedLogEvents = buildTerraformingMarsLogEvents({
       expansionMechanicEvents: expansionParse.events,
       exportedLogText: values.exportedGameLog,
+      mapId: values.mapId,
       objectiveEvidence: reviewedObjectiveEvidence,
+      playerResolutions: playerResolutions.map(
+        ({ selectedPlayerId, sourcePlayerText }) => ({
+          selectedPlayerId,
+          sourcePlayerText,
+        }),
+      ),
       playedEntityEvidence: reviewedPlayedEntityEvidence,
       tileActions: tileActionSet.actions,
     });
