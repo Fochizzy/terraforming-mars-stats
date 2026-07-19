@@ -61,6 +61,19 @@ built, executable-tested and **rejected** — it split the leaderboard 4→6 and
 double counted two real people while the fallback only ever surfaced a registered
 *public* username. Full rationale in the authoritative handoff.
 
+**Import integrity audit view RLS bypass fixed (2026-07-19).** The advisor ERROR
+`security_definer_view public.game_log_import_integrity_audit` had been recorded
+as "pre-existing and unrelated" — true of its origin, but it understated a live
+cross-tenant exposure. The view has no tenant filter and was created without
+`security_invoker`, so it ran as `postgres` and bypassed the caller's RLS: a
+signed-out `anon` caller saw all 42 rows (RLS permits 0) and an ordinary member
+saw 42 (RLS permits 39), disclosing game ids, parse status, parser version,
+sha256 values and validation errors for every import in the system. Closed by
+ledger migration `20260719230000`
+(`security_invoker_on_import_integrity_audit`); `anon` now returns 0, the member
+returns exactly 39, `service_role` still returns 42, and **security advisors
+report 0 ERROR**. No application code reads the view.
+
 **Step 4.3 must not be marked complete until a fresh independent read-only audit
 passes. Step 4.4 has not started.**
 

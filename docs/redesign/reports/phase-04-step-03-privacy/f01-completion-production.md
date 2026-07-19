@@ -134,14 +134,51 @@ was re-verified at exactly its 4 baseline entries after the migration.
   double application (idempotency: 6 rows, not 12), postcondition assertions and
   functional RPC behaviour were all exercised before any commit, and residue
   checks confirmed the pre-mutation state was restored each time.
-- Security advisors: 96 lints, **1 ERROR** — `security_definer_view
-  public.game_log_import_integrity_audit` — pre-existing and unrelated. No new
-  finding is attributable to this remediation.
+- Security advisors: **0 ERROR** after the follow-up fix below (96 lints: 26 INFO,
+  70 WARN). The single remaining new INFO is `rls_enabled_no_policy` on
+  `private.player_legacy_identities` — the intended deny-all state, matching its
+  sibling `private.player_private_identities`.
 
-## Note on suite flakiness
+## Follow-up: RLS bypass on the import integrity audit view
 
-Running `npm test` (plain `vitest run`, file-parallel) intermittently fails 2
-tests in `src/features/imports/log-game-import-shell.test.tsx` with a
-`findByText` timeout under load. The same file passes 2/2 in isolation, and the
-full suite passes 166/166 with `--no-file-parallelism`, which is the documented
-validation command. This is execution-environment flakiness, not a regression.
+The advisor ERROR `security_definer_view
+public.game_log_import_integrity_audit` was initially recorded as "pre-existing
+and unrelated". That was accurate as to origin but **understated the impact**, so
+it was investigated and fixed rather than carried forward.
+
+The view selects from `game_log_imports`, `game_log_events` and
+`game_log_tag_summaries` with no tenant filter, and was created without
+`security_invoker`, so it executed as its owner (`postgres`) and bypassed the
+caller's RLS. Both `anon` and `authenticated` hold SELECT on it.
+
+Measured against production before the change:
+
+| Caller | View rows | Rows their RLS permits |
+| --- | ---: | ---: |
+| signed-out `anon` | 42 | 0 |
+| ordinary member | 42 | 39 |
+
+So import integrity metadata — game ids, parse status, parser version,
+input/output sha256 and validation errors — was readable for **every import in
+the system** by an unauthenticated caller holding only the public anon key.
+
+Fixed by ledger migration `20260719230000`
+(`security_invoker_on_import_integrity_audit`). Verified after: `anon` returns
+**0** rows, the member returns exactly **39** (equal to their base-table
+permission), `service_role` still returns 42, and the advisor ERROR count is
+**0**. No application code reads this view; its only other reference is the
+migration that created it.
+
+## Note on suite flakiness (resolved)
+
+`npm test` (plain `vitest run`, file-parallel) intermittently failed 2 tests in
+`src/features/imports/log-game-import-shell.test.tsx` with a `findByText`
+timeout, while the same file passed in isolation and the suite passed
+166/166 serialized.
+
+Cause: the test drove a full exported game log through `user.type`, which enters
+text one character at a time and re-parses the log on every keystroke; under
+parallel load the subsequent `findByText` exceeded its timeout. Replaced with
+`user.click` + `user.paste`, which produces a single change event and also
+matches how a user actually supplies an exported log. The full suite now passes
+166 files / 874 tests in default parallel mode, and faster (15.9s vs 21.7s).

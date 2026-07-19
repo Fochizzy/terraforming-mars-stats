@@ -121,6 +121,31 @@ private personal name, so no privacy gain justified that regression. These
 functions are SECURITY DEFINER and are unaffected by the column privilege change;
 the leaderboard was re-verified at exactly its 4 baseline entries afterwards.
 
+### Import integrity audit view (RLS bypass)
+
+`public.game_log_import_integrity_audit` selects from `game_log_imports`,
+`game_log_events` and `game_log_tag_summaries` with no tenant filter and was
+created without `security_invoker`, so it executed as its owner (`postgres`) and
+bypassed the caller's RLS. Both `anon` and `authenticated` hold SELECT.
+
+Measured against production before the change:
+
+| Caller | View rows | Rows their RLS permits |
+| --- | ---: | ---: |
+| signed-out `anon` | 42 | 0 |
+| ordinary member | 42 | 39 |
+
+Import integrity metadata — game ids, parse status, parser version, input/output
+sha256, validation errors — was therefore readable for every import in the system
+by an unauthenticated caller holding only the public anon key.
+
+Fixed by ledger migration `20260719230000`
+(`security_invoker_on_import_integrity_audit`). After: `anon` returns 0, the
+member returns exactly 39 (their base-table permission), `service_role` still
+returns 42, and the advisor ERROR count is 0. No application code reads the view;
+its only other reference is the migration that created it
+(`20260715032000_prevent_future_game_log_backfills`).
+
 ## Canonical placement and identifier integrity (F-02 / F-03 / F-07)
 
 - `game_log_events` gains typed placement columns (`map_id`,
@@ -222,9 +247,11 @@ the 11 typed columns with `reviewed` confidence and validated placement/colony
 constraints. Placement backfill: 1500 tile events fully typed, 1467 player + 1467
 game-player attributions, 33 unresolved (null), 100 grid / 1400 flat, 0 owner
 fields, non-tile events untouched, 42 games unchanged, idempotency re-run zero
-diffs. Security advisors show no new regression attributable to the remediation
-(the one ERROR, `security_definer_view public.game_log_import_integrity_audit`,
-is pre-existing and unrelated). No application push or deployment occurred.
+diffs. Security advisors now report **0 ERROR**. The `security_definer_view`
+ERROR on `public.game_log_import_integrity_audit` was originally logged as
+"pre-existing and unrelated"; that was true of its origin but understated its
+impact, so it was investigated and fixed — see "Import integrity audit view"
+below. No application push or deployment occurred.
 Reports: `docs/redesign/reports/phase-04-step-03-placement/` (separate dry-run
 and production artifacts).
 
