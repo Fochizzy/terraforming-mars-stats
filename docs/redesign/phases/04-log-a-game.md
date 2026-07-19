@@ -426,8 +426,14 @@ with middleware present. Docker Desktop is unavailable, so local migration
 execution is unverified; static migration tests pass. The production migration
 and 42-row backfill are independently verified. No push or deployment occurred.
 
-Step 4.3 is complete. Do not begin Step 4.4 automatically; it requires an
-explicit assignment.
+Step 4.3B (the Venus/Colonies import facts above) is production-verified, but
+**Step 4.3 as a whole is ACTIVE, not complete.** The independent closure audit
+reopened Step 4.3 for the bounded F-01–F-10 remediation, which is
+repository-complete at commits `cfafd823`..`6e6e1859` with its production
+migrations and placement backfill prepared but gated (see
+`docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`).
+Step 4.3 is closed only after a fresh independent read-only audit passes. Do not
+begin Step 4.4; it requires an explicit assignment.
 ## Step 4.5 closure requirement
 
 Phase 4 closure must verify that:

@@ -864,14 +864,24 @@ claimed as supported. Nothing here is fabricated to match a product label.
 | Current flat-ID tile logs (`at NN`, Moon `mNN`) | Inline in `parse-terraforming-mars-tile-actions.test.ts`, `build-imported-board-state.test.ts`, `build-terraforming-mars-log-events.test.ts` | Synthetic | Committed, passing |
 | Retained real current flat-ID export | `src/lib/imports/fixtures/retained-real-negative-game-2026-07-15.txt` | Real, privacy-sanitized | Committed; 704 lines and 43 flat-ID placement/removal lines |
 | Historical grid tile logs (`on row R position P`) | Inline in the tile-action and board-state tests | Synthetic | Committed, passing |
+| Retained real grid-format export | `src/lib/imports/fixtures/retained-real-grid-placement-2026-07-08.txt` | Real, privacy-sanitized | Committed; 646 lines, 100 grid placements, names neutralized (see `FIXTURES.md`) |
 | Ocean-fingerprint map cases (real placed-ocean sets) | `detect-import-board-map.test.ts`, `detect-import-board-map-independent.test.ts` | Ocean sets validated against real logs/fingerprints | Committed, passing |
 | Randomized-objective evidence | `detect-import-board-map*.test.ts` | Synthetic (labelled) | Committed, passing |
 
-The committed privacy-sanitized retained export closes the real-fixture gap for
-current flat-ID coordinates and also serves as the Venus/Colonies negative
-integration corpus. A privacy-sanitized retained historical-grid export is not
-available; historical-grid support remains backed by the evidence-verified
-private source and committed synthetic tests.
+The committed privacy-sanitized retained exports close the real-fixture gap for
+both current flat-ID coordinates (`retained-real-negative-game-2026-07-15.txt`,
+also the Venus/Colonies negative corpus) and historical grid coordinates
+(`retained-real-grid-placement-2026-07-08.txt`, added in the F-01–F-10
+remediation). The fixture manifest is `src/lib/imports/fixtures/FIXTURES.md`.
+
+No real Venus/Colonies-**positive** export exists in the operator's local
+artifacts (zero Venus tokens; every `colony` mention is a card name), so none is
+fabricated; the pinned upstream Venus/Colonies action fragment remains the
+authoritative positive corpus. Result-PDF parsing now also recognizes the Venus
+contribution column (trusted Venus option evidence) alongside the base
+global-parameter layout, and the remediation migrations are covered by an
+executable native-PostgreSQL harness (`supabase/tests/executable/`) rather than
+migration-text assertions.
 
 ## Map capability matrix
 

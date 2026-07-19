@@ -2,9 +2,12 @@
 
 ## Current substep
 
-Phase 4, Step 4.3B - Automatic Venus Next and Colonies Parsing, Persistence,
-Historical Parser Verification, and Backfill (**production verified - Step 4.3
-closed; Step 4.4 awaits explicit assignment**)
+Phase 4, Step 4.3 — Import Validation, Evidence Review, and Claimable Guest
+Identity (**ACTIVE — the bounded F-01–F-10 closure-audit remediation is
+repository-complete; the three remediation migrations and the 1,500-row
+placement backfill are prepared, executable-tested, and dry-run analyzed, but
+are NOT yet applied to production and remain gated. Awaiting a fresh independent
+read-only closure audit. Step 4.3 is NOT closed.**)
 
 ## Current owner
 
@@ -12,8 +15,29 @@ Codex — Phase 4, Step 4.3B Venus Next and Colonies import facts
 
 ## Status
 
-**Phase 4 - Log a Game - Active. Step 4.3B is production verified and Step 4.3
-is closed. Step 4.4 has not started and requires an explicit assignment.**
+**Phase 4 - Log a Game - Active. Step 4.3 is ACTIVE (not closed).** The bounded
+remediation of the independent closure audit (findings F-01–F-10) is
+repository-complete at commits `cfafd823`..`6e6e1859`. Validation is green: 166
+test files / 874 tests (`--no-file-parallelism`), `tsc --noEmit` clean, lint
+exit 0 with the four baseline warnings, build 32/32 pages with middleware, and
+the executable migration tests pass. The three remediation migrations
+(`20260718212339` privacy, `20260718212340` event contract, `20260718212342`
+objective aliases) and the 1,500-row canonical placement backfill are prepared,
+executable-tested on a disposable PostgreSQL 18 cluster, and dry-run analyzed
+read-only — but **none is applied to production**; all four mutation groups
+remain gated on explicit per-mutation authorization. Step 4.3 must not be marked
+complete until a fresh independent read-only audit passes. Step 4.4 has not
+started.
+
+Authoritative handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
+
+### Prior Step 4.3B status (Venus/Colonies import facts)
+
+The earlier Step 4.3B Venus/Colonies parser, schema, and 42-row historical
+absence backfill remain applied and production-verified. That earlier note
+described Step 4.3 as "closed"; the independent closure audit reopened Step 4.3
+for the F-01–F-10 remediation above, which supersedes any "closed" claim.
 
 Commits `aeebf8b7`, `cef2ff1d`, `41bc1221`, and `e88fc25f` implement the future-import
 parser/schema/persistence path, historical production-parser verifier, sanitized
@@ -439,10 +463,19 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**The Step 4.3B production gate is resolved. Await explicit assignment for Phase
-4, Step 4.4.** The completed report set is in
-`docs/redesign/reports/phase-04-step-03b/`. Do not begin Step 4.4/4.5/Phase 5,
-push, or deploy without separate authorization.
+**Step 4.3 remains active.** The next action is to apply the four gated
+production mutation groups — each with the required protocol (exact SQL,
+affected tables, expected rows, rollback, re-run read-only preflight, stop
+conditions): (1) privacy migration `20260718212339`; (2) event-contract
+migration `20260718212340`; (3) objective-alias migration `20260718212342`;
+(4) the 1,500-row placement backfill after `212340`, producing its own separate
+immutable production report. After the mutations, run the postconditions and
+idempotency re-check, reconcile this file and the handoff, then **request a
+fresh independent read-only Step 4.3 closure audit.** Do not self-approve Step
+4.3, and do not begin Step 4.4/4.5/Phase 5, push, or deploy without separate
+authorization. The read-only placement dry-run report set is in
+`docs/redesign/reports/phase-04-step-03-placement/`; the Step 4.3B report set
+remains in `docs/redesign/reports/phase-04-step-03b/`.
 
 ## Active blockers
 

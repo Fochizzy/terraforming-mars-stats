@@ -910,3 +910,62 @@ authorized schema migration was applied under ledger entry
 `20260718200536_add_venus_colonies_import_facts`; its insert-only backfill created
 42 facts, no historical expansion events, no fingerprinted unrelated-data change,
 and planned zero writes on the second pass.
+
+## Phase 4, Step 4.3 — closure-audit remediation (F-01–F-10), 2026-07-19
+
+Approved as a bounded remediation of the independent Step 4.3 closure audit.
+Repository-complete at commits `cfafd823`..`6e6e1859`; the production migrations
+and placement backfill are prepared and gated.
+
+- **Guest-identity privacy is a server boundary, not a display concern (F-01).**
+  Private identity material lives in the `private` schema with no
+  anon/authenticated access; matching happens only inside guarded SECURITY
+  DEFINER functions. The browser receives public-only candidate fields. Every
+  unlinked player — including username guests — resolves to a neutral public
+  label; personal names are never a public fallback. This is a deliberate
+  privacy trade-off (the roster dropdown cannot distinguish guests by name;
+  guests are resolved by entering a username/personal name for server-side
+  matching). Original import evidence is retained only behind
+  `can_read_game`/`can_edit_game`.
+- **One confidence contract (F-03).** `high/medium/low/reviewed` is defined once
+  (`game-log-event-contract.ts`) and enforced by a single database constraint;
+  `reviewed` is a first-class value, not collapsed to `low`.
+- **Placements are durable, typed, and player-attributed (F-02).** Board
+  placements persist canonical map, action, board, format, original grid
+  row/position, upstream space id, source line, deterministic identity,
+  provenance, and `ownership_state`. The acting player is recorded as
+  `player_id` when resolvable and is never treated as tile ownership; unresolved
+  actors and owners stay null.
+- **Canonical event identifiers are constrained; the replacement RPC is
+  authorized (F-07).** `replace_game_log_events` is SECURITY DEFINER with
+  `can_edit_game` and validates player/game-player/owner/colony/map/event-type/
+  event-identity. `player_import_aliases` is not directly readable by
+  authenticated clients.
+- **Venus option evidence is trusted from the result PDF; final Venus scale is
+  never interpolated (F-04).** A Venus contribution column in the PDF global
+  parameters is trusted Venus option evidence wired into the production action.
+  Colonies presence is never inferred from missing PDF data, and the final Venus
+  scale stays null unless a trusted value exists.
+- **Off-reserve oceans are evidence-based, never a guessed allowance (F-05).**
+  Only the four source-backed exception cards (Artificial Lake 116, Small Comet
+  Pf37, Central Reservoir UP09, Subterranean Sea U015) qualify; each is linked to
+  the first subsequent same-actor ocean, and only those verified spaces are
+  excused from the reserved-ocean fingerprint. Ambiguous evidence stays
+  ambiguous.
+- **Objective aliases are exact, verified, and reversible (F-06).** Seven
+  catalog aliases with deterministic row ids, canonical-name preconditions, a
+  collision guard, and a seven-row postcondition. No fuzzy matching; rollback
+  deletes only those seven rows.
+- **Migrations are executable-tested without Docker (F-08/F-09 support).** A
+  disposable native PostgreSQL 18 cluster replays the full history and asserts
+  constraint, privacy, seed, idempotency, and rollback behavior
+  (`supabase/tests/executable/`). Migration-text assertions are not a substitute.
+- **Real fixtures are sanitized; missing evidence is not fabricated (F-09).**
+  Real flat and grid exports are committed with player names neutralized. No
+  real Venus/Colonies-positive export exists locally, so none is invented; the
+  pinned upstream fragment is the authoritative positive corpus.
+- **Production mutation stays gated (F-08/F-10).** The privacy, event-contract,
+  and alias migrations and the 1,500-row placement backfill are applied only
+  under the per-mutation protocol (exact SQL, tables, expected rows, rollback,
+  re-run preflight, stop conditions). Step 4.3 is closed only after a fresh
+  independent read-only audit passes.
