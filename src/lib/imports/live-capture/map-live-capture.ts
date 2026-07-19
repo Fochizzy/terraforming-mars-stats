@@ -143,6 +143,8 @@ export function mapLiveCaptureSource(
     gameLogImportId: row.game_log_import_id,
     hashScope: 'original_source_bytes',
     importedAt: row.imported_at,
+    originalSourceByteLength: row.source_byte_length,
+    originalSourceSha256: row.source_sha256,
     sha256: row.source_sha256,
     sourceFormat: row.source_format,
     sourceRoute: row.source_route,
@@ -644,15 +646,32 @@ export function mapLegacyParserRun(
   };
 }
 
+type LegacySourceBlock = {
+  original_byte_length?: number;
+  original_sha256?: string;
+};
+
 export function mapLegacySource(
   row: LegacyGameLogImportRow,
 ): CanonicalCaptureSource {
+  const block = row.confidence_summary?.['source'] as
+    | LegacySourceBlock
+    | undefined;
   return {
     byteLength: null,
     exportGeneratedAt: null,
     gameLogImportId: row.id,
     hashScope: 'stored_trimmed_log_text',
     importedAt: row.created_at,
+    originalSourceByteLength:
+      typeof block?.original_byte_length === 'number'
+        ? block.original_byte_length
+        : null,
+    originalSourceSha256:
+      typeof block?.original_sha256 === 'string' &&
+      /^[0-9a-f]{64}$/.test(block.original_sha256)
+        ? block.original_sha256
+        : null,
     sha256: row.input_sha256,
     sourceFormat: row.detected_source,
     sourceRoute: null,

@@ -186,6 +186,14 @@ export type CanonicalCaptureSource = {
   sha256: string | null;
   hashScope: 'original_source_bytes' | 'stored_trimmed_log_text';
   byteLength: number | null;
+  /**
+   * Hash of the ORIGINAL submitted bytes regardless of origin: identical to
+   * `sha256` for v2 sources; for legacy imports it comes from the action's
+   * persisted source-evidence block when recorded, and stays null for
+   * historical imports that predate it. Never inferred.
+   */
+  originalSourceSha256: string | null;
+  originalSourceByteLength: number | null;
   exportGeneratedAt: string | null;
   gameLogImportId: string | null;
   importedAt: string | null;

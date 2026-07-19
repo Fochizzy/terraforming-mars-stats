@@ -5,6 +5,7 @@ import {
   mapLegacyEvents,
   mapLegacyMapDetection,
   mapLegacyPlacements,
+  mapLegacySource,
   mapLiveCaptureEvents,
   mapLiveCapturePlacements,
   mapLiveCaptureUnsupportedEvidence,
@@ -320,6 +321,43 @@ describe('legacy import mapping', () => {
       placementAction: 'remove',
       upstreamNumericSpaceId: null,
     });
+  });
+
+  it('surfaces the persisted original-source identity and never invents one for older imports', () => {
+    const base = {
+      confidence_summary: null,
+      created_at: '2026-07-19T00:00:00Z',
+      detected_source: 'manual_web_import',
+      id: 'import-1',
+      input_sha256: 'a'.repeat(64),
+      line_count: 10,
+      parse_status: 'parsed_setup_fields',
+      parser_version: 'terraforming-mars-log-v1',
+      unparsed_line_count: 0,
+    };
+    const withBlock = mapLegacySource({
+      ...base,
+      confidence_summary: {
+        source: {
+          hash_scope: 'original_source_bytes',
+          original_byte_length: 2048,
+          original_sha256: 'b'.repeat(64),
+          parser_run_identity: `${'b'.repeat(64)}:terraforming-mars-log-v1`,
+          parser_version: 'terraforming-mars-log-v1',
+          stored_text_trimmed: true,
+        },
+      },
+    });
+    expect(withBlock).toMatchObject({
+      hashScope: 'stored_trimmed_log_text',
+      originalSourceByteLength: 2048,
+      originalSourceSha256: 'b'.repeat(64),
+      sha256: 'a'.repeat(64),
+    });
+
+    const historical = mapLegacySource(base);
+    expect(historical.originalSourceSha256).toBeNull();
+    expect(historical.originalSourceByteLength).toBeNull();
   });
 
   it('maps the persisted confidence-summary map block without inventing detection facts', () => {

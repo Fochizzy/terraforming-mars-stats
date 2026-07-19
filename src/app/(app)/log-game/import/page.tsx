@@ -21,6 +21,7 @@ import {
   buildImportDraft,
   type CreateImportDraftInput,
 } from '@/lib/imports/build-import-draft';
+import { buildImportSourceEvidence } from '@/lib/imports/build-import-source-evidence';
 import { listImportGameReferenceCatalog } from '@/lib/db/reference-repo';
 import {
   TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
@@ -368,10 +369,27 @@ export default async function LogGameImportPage() {
       form: draftForm,
       userId: activeContext.userId,
     });
+    // Deterministic source identity: the hash of the original submitted text
+    // (before the persistence layer's trim) plus a parser-run identity that
+    // mirrors the live-site v2 rule of one run per (source hash, parser
+    // version). The server-derived input_sha256 over the stored trimmed text
+    // is preserved separately by the database trigger.
+    const sourceEvidence = await buildImportSourceEvidence({
+      exportedLogText: values.exportedGameLog,
+      parserVersion: TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
+    });
     const gameLogImport = await saveGameLogImport({
       gameId: draft.gameId,
       parseMetadata: {
         confidenceSummary: {
+          source: {
+            hash_scope: 'original_source_bytes',
+            original_byte_length: sourceEvidence.originalByteLength,
+            original_sha256: sourceEvidence.originalSha256,
+            parser_run_identity: sourceEvidence.parserRunIdentity,
+            parser_version: sourceEvidence.parserVersion,
+            stored_text_trimmed: sourceEvidence.storedTextTrimmed,
+          },
           expansions: {
             colonies_state: expansionFacts.coloniesState,
             colony_built_count: expansionFacts.colonyBuiltCount,
