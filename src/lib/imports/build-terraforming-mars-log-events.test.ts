@@ -131,10 +131,16 @@ describe('buildTerraformingMarsLogEvents', () => {
     expect(result.events[1]).toMatchObject({
       board_space: '20',
       generation_number: 3,
+      review_state: 'not_required',
       tile_type: 'mining_rights',
     });
     expect(result.events[3]).toMatchObject({ board_space: 'm03', tile_type: 'moon_mine' });
-    expect(result.events[4]).toMatchObject({ confidence_level: 'reviewed' });
+    // An unknown tile label is low-confidence evidence that needs review; the
+    // review status is never overloaded into the confidence value.
+    expect(result.events[4]).toMatchObject({
+      confidence_level: 'low',
+      review_state: 'needs_review',
+    });
   });
 
   it('persists canonical Venus and Colony fields on typed log events', () => {

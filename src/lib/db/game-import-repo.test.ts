@@ -241,6 +241,7 @@ describe('saveParsedGameLogEvents', () => {
           line_classification: 'played_card',
           payload: { actor: 'Private source name' },
           raw_line: 'Private source name played a card',
+          review_state: 'not_required',
         },
       ],
       gameLogImportId: 'import-1',

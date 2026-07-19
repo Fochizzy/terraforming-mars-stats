@@ -279,8 +279,9 @@ describe('parseTerraformingMarsExpansionMechanics', () => {
     expect(result.events[2]).toMatchObject({
       colonyId: null,
       colonyName: 'Unknown Colony',
-      confidenceLevel: 'reviewed',
+      confidenceLevel: 'low',
       playerId: null,
+      reviewState: 'needs_review',
     });
     expect(result.colonies.state).toBe('unsupported_log_pattern');
     expect(result.unresolvedPlayerAssociations).toEqual([

@@ -1,5 +1,10 @@
 import type { ImportObjectiveEvidence } from './parse-terraforming-mars-log';
-import type { GameLogEventConfidenceLevel } from './game-log-event-contract';
+import {
+  reviewContractForCanonicalResolution,
+  reviewContractForResolution,
+  type GameLogEventConfidenceLevel,
+  type GameLogEventReviewState,
+} from './game-log-event-contract';
 import { normalizePlayerAlias } from './normalize-player-alias';
 import type { ParsedExpansionMechanicEvent } from './parse-terraforming-mars-expansion-mechanics';
 import type { ImportPlayedEntityEvidence } from './parse-terraforming-mars-played-entities';
@@ -35,6 +40,7 @@ export type ParsedGameLogEvent = {
   raw_line: string;
   resource_amount?: number | null;
   resource_type?: string | null;
+  review_state: GameLogEventReviewState;
   source_line_number?: number | null;
   source_space_id?: string | null;
   source_entity?: string | null;
@@ -127,6 +133,7 @@ export function buildTerraformingMarsLogEvents(input: {
         line_classification: 'generation_marker',
         payload: { generation: currentGeneration },
         raw_line: rawLine,
+        review_state: 'not_required',
       });
       return;
     }
@@ -142,6 +149,7 @@ export function buildTerraformingMarsLogEvents(input: {
         line_classification: 'player_identity',
         payload: { actor: playerMatch[1].trim() },
         raw_line: rawLine,
+        review_state: 'not_required',
       });
       return;
     }
@@ -159,6 +167,7 @@ export function buildTerraformingMarsLogEvents(input: {
         line_classification: 'first_player',
         payload: { actor: firstPlayerMatch[1].trim() },
         raw_line: rawLine,
+        review_state: 'not_required',
       });
       return;
     }
@@ -167,12 +176,18 @@ export function buildTerraformingMarsLogEvents(input: {
     if (tileAction) {
       const playerId =
         playerResolutionIndex.get(normalizePlayerAlias(tileAction.actor)) ?? null;
+      // An unknown or future tile label stays visible and reviewable rather
+      // than being dropped: low-confidence evidence that needs review, never a
+      // review status smuggled into the confidence value.
+      const tileReview = reviewContractForCanonicalResolution(
+        tileAction.isKnownTileType,
+      );
       events.push({
         board_position: tileAction.boardPosition,
         board_row: tileAction.boardRow,
         board_space: tileAction.spaceId,
         card_id: null,
-        confidence_level: tileAction.isKnownTileType ? 'high' : 'reviewed',
+        confidence_level: tileReview.confidenceLevel,
         event_identity: placementEventIdentity(tileAction),
         event_order: lineNumber,
         event_provenance: 'exported_log',
@@ -198,6 +213,7 @@ export function buildTerraformingMarsLogEvents(input: {
         },
         player_id: playerId,
         raw_line: rawLine,
+        review_state: tileReview.reviewState,
         source_line_number: tileAction.lineNumber,
         source_space_id:
           tileAction.format === 'grid'
@@ -241,6 +257,7 @@ export function buildTerraformingMarsLogEvents(input: {
         raw_line: rawLine,
         resource_amount: resourceAmount,
         resource_type: resourceType,
+        review_state: expansionMechanic.reviewState,
         source_entity: expansionMechanic.sourceEntity,
       });
       return;
@@ -248,10 +265,10 @@ export function buildTerraformingMarsLogEvents(input: {
 
     const objective = objectiveByLine.get(lineNumber);
     if (objective?.canonicalId) {
+      const objectiveReview = reviewContractForResolution(objective.resolution);
       events.push({
         card_id: null,
-        confidence_level:
-          objective.resolution === 'exact' ? 'high' : 'reviewed',
+        confidence_level: objectiveReview.confidenceLevel,
         event_order: lineNumber,
         event_provenance: 'exported_log',
         event_type:
@@ -269,19 +286,22 @@ export function buildTerraformingMarsLogEvents(input: {
           resolution: objective.resolution,
         },
         raw_line: rawLine,
+        review_state: objectiveReview.reviewState,
       });
       return;
     }
 
     const playedEntity = playedEntityByLine.get(lineNumber);
     if (playedEntity?.canonicalId && playedEntity.entityType) {
+      const playedEntityReview = reviewContractForResolution(
+        playedEntity.resolution,
+      );
       events.push({
         card_id:
           playedEntity.entityType === 'card'
             ? playedEntity.canonicalId
             : null,
-        confidence_level:
-          playedEntity.resolution === 'exact' ? 'high' : 'reviewed',
+        confidence_level: playedEntityReview.confidenceLevel,
         event_order: lineNumber,
         event_type:
           playedEntity.entityType === 'card'
@@ -300,6 +320,7 @@ export function buildTerraformingMarsLogEvents(input: {
           resolution: playedEntity.resolution,
         },
         raw_line: rawLine,
+        review_state: playedEntityReview.reviewState,
       });
     }
   });

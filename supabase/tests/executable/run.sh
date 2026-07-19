@@ -24,6 +24,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
 MIGRATIONS="$REPO/supabase/migrations"
 ALIAS_MIGRATION="$MIGRATIONS/20260718212342_add_objective_catalog_aliases.sql"
+SPLIT_MIGRATION="$MIGRATIONS/20260719234500_separate_event_confidence_from_review_state.sql"
 
 cleanup() { "$PGBIN/pg_ctl" -D "$PGDATA" stop -m immediate >/dev/null 2>&1 || true; rm -rf "$PGDATA"; }
 trap cleanup EXIT
@@ -41,9 +42,10 @@ PSQL() { "$PGBIN/psql" -h 127.0.0.1 -p "$PORT" -U postgres -v ON_ERROR_STOP=1 -d
 echo "== bootstrap Supabase-compatible roles/auth/storage =="
 PSQL -q -f "$HERE/bootstrap.sql"
 
-echo "== replay migration history (alias migration deferred until catalogue is seeded) =="
+echo "== replay migration history (alias + confidence/review-state split deferred) =="
 for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$ALIAS_MIGRATION" ] && continue
+  [ "$f" = "$SPLIT_MIGRATION" ] && continue
   PSQL -q -f "$f"
 done
 echo "   history applied"
@@ -53,6 +55,14 @@ PSQL -q -f "$HERE/seed.sql"
 
 echo "== apply objective alias migration =="
 PSQL -q -f "$ALIAS_MIGRATION"
+
+echo "== seed legacy overloaded 'reviewed' confidence rows (pre-split contract) =="
+PSQL -q -c "insert into public.game_log_events (game_log_import_id, event_order, event_type, raw_line, confidence_level, event_identity, payload) values
+  ('44444444-4444-4444-8444-444444444444', 900, 'milestone_claimed', 'X claimed Terraformer', 'reviewed', null, '{\"resolution\":\"corrected\"}'::jsonb),
+  ('44444444-4444-4444-8444-444444444444', 901, 'colony_traded', 'X traded with Atlantis', 'reviewed', '901:colony_traded:none', '{\"canonical_colony_name\":\"Atlantis\"}'::jsonb);"
+
+echo "== apply confidence/review-state split migration =="
+PSQL -q -f "$SPLIT_MIGRATION"
 
 echo "== behavioural assertions =="
 PSQL -q -f "$HERE/assertions.sql"

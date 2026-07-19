@@ -14,13 +14,22 @@ with `auth.uid()`, a minimal `storage` schema, `pgcrypto`), then:
 
 1. **Full history replay** — every migration in `supabase/migrations/` applies
    cleanly, including `20260718212339` (privacy), `20260718212340` (event
-   contract), and `20260718212342` (objective aliases). The alias migration is
-   deferred until the objective catalogue is seeded, because its precondition
-   correctly refuses to run against a catalogue that does not match the approved
-   mapping (the catalogue is seed data, not a migration).
+   contract), `20260718212342` (objective aliases), and `20260719234500`
+   (confidence/review-state split). The alias migration is deferred until the
+   objective catalogue is seeded, because its precondition correctly refuses to
+   run against a catalogue that does not match the approved mapping (the
+   catalogue is seed data, not a migration). The split migration is deferred
+   until two legacy overloaded `confidence_level = 'reviewed'` rows are seeded,
+   so its deterministic data mapping is exercised against real rows.
 2. **Behavioural assertions** (`assertions.sql`):
    - 23 canonical colonies and 7 catalog aliases are present.
-   - confidence `reviewed` persists; an unsupported confidence is rejected.
+   - the overloaded confidence `reviewed` is **rejected** after the split; an
+     unsupported confidence is rejected; every canonical `review_state`
+     persists and an unsupported one is rejected; a missing `review_state`
+     defaults to `not_required`.
+   - the seeded legacy rows were split deterministically: the
+     importer-corrected row became `high`/`reviewed`, the unresolved-colony row
+     became `low`/`needs_review`, and no `reviewed` confidence survives.
    - the `event_type` allowlist rejects unknown types.
    - a tile event missing typed placement identity/provenance is rejected.
    - a malformed deterministic `event_identity` is rejected.

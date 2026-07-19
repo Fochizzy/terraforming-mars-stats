@@ -1,5 +1,9 @@
 import { normalizeDomainText } from '@/lib/ocr/domain-matcher';
-import type { GameLogEventConfidenceLevel } from './game-log-event-contract';
+import {
+  reviewContractForCanonicalResolution,
+  type GameLogEventConfidenceLevel,
+  type GameLogEventReviewState,
+} from './game-log-event-contract';
 import { normalizePlayerAlias } from './normalize-player-alias';
 
 export const TERRAFORMING_MARS_VENUS_COLONIES_PARSER_VERSION =
@@ -56,6 +60,7 @@ export type ParsedExpansionMechanicEvent = {
   colonyId: string | null;
   colonyName: string | null;
   confidenceLevel: GameLogEventConfidenceLevel;
+  reviewState: GameLogEventReviewState;
   eventIdentity: string;
   eventType: ExpansionMechanicEventType;
   generationNumber: number | null;
@@ -264,6 +269,7 @@ function parseVenusEvent(input: {
       colonyId: null,
       colonyName: null,
       confidenceLevel: 'high',
+      reviewState: 'not_required',
       eventType: 'venus_scale_increased',
       generationNumber: input.currentGeneration,
       lineNumber: input.lineNumber,
@@ -291,6 +297,7 @@ function parseVenusEvent(input: {
       colonyId: null,
       colonyName: null,
       confidenceLevel: 'high',
+      reviewState: 'not_required',
       eventType: 'venus_scale_decreased',
       generationNumber: input.currentGeneration,
       lineNumber: input.lineNumber,
@@ -319,6 +326,7 @@ function parseVenusEvent(input: {
       colonyId: null,
       colonyName: null,
       confidenceLevel: 'high',
+      reviewState: 'not_required',
       eventType: 'venus_scale_increased',
       generationNumber: input.currentGeneration,
       lineNumber: input.lineNumber,
@@ -347,6 +355,7 @@ function parseVenusEvent(input: {
       colonyId: null,
       colonyName: null,
       confidenceLevel: 'high',
+      reviewState: 'not_required',
       eventType: 'venus_scale_increased',
       generationNumber: input.currentGeneration,
       lineNumber: input.lineNumber,
@@ -467,12 +476,16 @@ function colonyEvent(
   },
 ) {
   const colony = resolveColony(event.colonyText);
+  // An unknown colony name is preserved as low-confidence evidence that needs
+  // review; the canonical id stays null rather than being guessed.
+  const colonyReview = reviewContractForCanonicalResolution(colony !== null);
   return mechanicEvent({
     actor: event.actor,
     attribution: 'player',
     colonyId: colony?.id ?? null,
     colonyName: colony?.name ?? event.colonyText,
-    confidenceLevel: colony ? 'high' : 'reviewed',
+    confidenceLevel: colonyReview.confidenceLevel,
+    reviewState: colonyReview.reviewState,
     eventType: event.eventType,
     generationNumber: input.currentGeneration,
     lineNumber: input.lineNumber,
