@@ -1,0 +1,63 @@
+{
+  "report": "live-capture-v2-compatibility-reconciliation",
+  "generatedAt": "2026-07-19T22:45:00Z",
+  "productionProject": "qjtwgrjjwnqafbvkkfex",
+  "mode": "read-only",
+  "writesPerformed": 0,
+  "queries": "supabase/verification/live-capture-v2-reconciliation.sql",
+  "liveCaptureDeployment": {
+    "ledgerVersion": "20260719132042",
+    "migrationName": "data_capture_hardening_v2",
+    "cutoffAt": "2026-07-19T13:20:42.476Z",
+    "parserDeployedAt": "2026-07-19T13:24:14.726Z",
+    "parserVersion": "tm-data-capture-v2"
+  },
+  "counts": {
+    "totalGames": 42,
+    "gamesWithLegacyImportData": 42,
+    "gamesLegacyOnly": 42,
+    "gamesWithV2Sources": 0,
+    "gamesWithV2ParserRuns": 0,
+    "gamesWithV2CanonicalEvents": 0,
+    "gamesWithV2CanonicalPlacements": 0,
+    "gamesWithExpansionState": 42,
+    "gamesMissingExpansionState": 0,
+    "v2RunsMissingSource": 0,
+    "legacyImportsMissingInputHash": 0,
+    "duplicateV2SourceHashes": 0,
+    "duplicateV2EventIdentities": 0,
+    "duplicateV2PlacementIdentities": 0,
+    "duplicateLegacyEventIdentities": 0,
+    "unsupportedV2ContractVersions": 0
+  },
+  "parserVersionsObserved": {
+    "v2CaptureRuns": [],
+    "legacyImports": ["manual-web-import-v2"]
+  },
+  "expansionStateDistribution": [
+    {
+      "venusNextState": "historical_parser_verified_owner_confirmed_absent",
+      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
+      "games": 42,
+      "nonNullFinalVenus": 0,
+      "backfilled": 42
+    }
+  ],
+  "adapter": {
+    "module": "src/lib/db/game-capture-compat-repo.ts",
+    "supportedParserVersions": ["tm-data-capture-v2"],
+    "adapterFailuresObserved": 0,
+    "notes": "Adapter behavior for missing schema, missing runs, rerun selection, unsupported contract versions, duplicate identities, and pre-split review_state absence is executable-tested in game-capture-compat-repo.test.ts and map-live-capture.test.ts; no production adapter execution occurred for this report."
+  },
+  "missingSourceCases": {
+    "v2RunsWithoutSourceRow": 0,
+    "gamesWithoutAnyImportEvidence": 0
+  },
+  "interpretation": [
+    "Every one of the 42 historical games is legacy-only: imported before the v2 cutoff by the live site's manual-web-import-v2 parser, with server-derived input hashes present on all 42 imports.",
+    "The v2 capture stores are deployed and empty: no real post-cutoff import has occurred yet (the deployment's throwaway verification game was removed).",
+    "All 42 games carry historical_parser_verified_owner_confirmed_absent for both mechanics with null final Venus (never zero) from the authorized 42-row backfill.",
+    "No duplicate source hashes, event identities, or placement identities exist in either system.",
+    "No unsupported v2 contract versions were observed."
+  ]
+}

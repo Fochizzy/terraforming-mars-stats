@@ -301,3 +301,79 @@ describe('finalizeGameLog', () => {
     expect(refreshGameMetricSnapshots).toHaveBeenCalledWith('game-final');
   });
 });
+
+describe('saveDraftGame canonical-evidence isolation (Workstream 11)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('resume-then-save touches only the draft tables, never the import evidence stores', async () => {
+    const touchedTables: string[] = [];
+    const results: Record<string, Array<{ data?: unknown; error?: null }>> = {
+      game_promo_sets: [{ data: null, error: null }],
+      game_revisions: [{ data: null, error: null }],
+      games: [
+        {
+          data: {
+            guaranteed_merger_offer: true,
+            guaranteed_merger_offer_source: 'group_default',
+          },
+          error: null,
+        },
+        { data: { id: 'game-1' }, error: null },
+      ],
+    };
+    const from = vi.fn((table: string) => {
+      touchedTables.push(table);
+      const next = results[table]?.shift() ?? { data: null, error: null };
+      const builder: Record<string, unknown> = {};
+      const chain = () => builder;
+      builder.select = vi.fn(chain);
+      builder.insert = vi.fn(chain);
+      builder.update = vi.fn(chain);
+      builder.delete = vi.fn(chain);
+      builder.eq = vi.fn(chain);
+      builder.in = vi.fn(chain);
+      builder.maybeSingle = vi.fn(async () => next);
+      builder.single = vi.fn(async () => next);
+      builder.then = (
+        resolve: (value: unknown) => unknown,
+        reject: (reason: unknown) => unknown,
+      ) => Promise.resolve(next).then(resolve, reject);
+      return builder;
+    });
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({ from } as never);
+
+    await repo.saveDraftGame({
+      form: {
+        gameId: 'game-1',
+        generationCount: 10,
+        groupId: '22222222-2222-4222-8222-222222222222',
+        mapId: 'map-tharsis',
+        notes: '',
+        playedOn: '2026-07-19',
+        playerCount: 2,
+        promoSetSlugs: [],
+      } as never,
+      userId: 'user-1',
+    });
+
+    expect(new Set(touchedTables)).toEqual(
+      new Set(['games', 'game_promo_sets', 'game_revisions']),
+    );
+    // Saving or resuming a draft must never rewrite the immutable import
+    // evidence: no parser rerun, no duplicated events or placements, no
+    // rewritten original source, no expansion-state mutation.
+    for (const evidenceTable of [
+      'game_log_imports',
+      'game_log_events',
+      'game_expansion_facts',
+      'game_capture_import_sources',
+      'game_capture_parser_runs',
+      'game_capture_events',
+      'game_capture_board_placements',
+    ]) {
+      expect(touchedTables).not.toContain(evidenceTable);
+    }
+  });
+});
