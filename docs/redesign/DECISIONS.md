@@ -969,3 +969,56 @@ and placement backfill are prepared and gated.
   under the per-mutation protocol (exact SQL, tables, expected rows, rollback,
   re-run preflight, stop conditions). Step 4.3 is closed only after a fresh
   independent read-only audit passes.
+
+## Phase 4, Step 4.3 — live-site v2 compatibility and the confidence/review-state split, 2026-07-19
+
+Approved as the bounded continuation of the Step 4.3 remediation, integrating
+the prepared live-site data-capture contract.
+
+- **The live-site v2 deployment is a verified production fact, not an
+  assumption.** Production carries ledger migration `20260719132042
+  data_capture_hardening_v2`, the `data-capture-hardening-v2` marker (cutoff
+  2026-07-19 13:20:42Z, parser `tm-data-capture-v2` deployed 13:24:14Z), and
+  all eight capture objects with seeded catalogs and, at verification time,
+  zero capture rows. Documentation alone is never treated as proof of a
+  production change.
+- **The redesign consumes live-capture v2 through a versioned read adapter at
+  the repository boundary.** Of direct reads, compatibility views, data
+  migration, and a versioned adapter, the adapter is the smallest safe
+  approach: no data duplication, no new production objects, and one unit that
+  knows the contract version. `readCanonicalGameCapture` presents one canonical
+  model from v2 rows when a supported parser run exists and from the legacy
+  import shape otherwise; a missing v2 run is never parser failure and never
+  confirmed absence; unknown parser versions are reported as
+  `unsupported_contract_version` and left untouched. The redesign does not
+  write `game_capture_*` rows — a second producer with a different event
+  vocabulary would recreate the two-incompatible-event-systems problem. The
+  authoritative mapping is
+  `docs/redesign/reference/LIVE-SITE-DATA-CAPTURE-V2-COMPATIBILITY.md`.
+- **Confidence and review state are separate contracts (supersedes the F-03
+  four-value confidence).** `confidence_level` is strictly
+  `high`/`medium`/`low` evidence strength; the review lifecycle lives in
+  `review_state` (`not_required`/`needs_review`/`reviewed`/`rejected`).
+  Importer-corrected values are high-confidence reviewed; unknown tile labels
+  and unknown colony names are low-confidence needs-review; verified catalog
+  aliases are high-confidence not-required. Any legacy overloaded row is split
+  by the payload-deterministic rule exercised in the executable harness. The
+  gated migration `20260719234500` is prepared and executable-tested, not
+  applied; production holds zero overloaded rows (verified read-only), and the
+  emitted RPC payloads remain valid against both the pre- and post-migration
+  function.
+- **One executable semantic matrix.** `canonical-data-semantics.ts` defines
+  zero versus missing versus not-applicable, mechanic-state invariants
+  (absence states: null final value, zero counts, no child rows; unsupported
+  and conflicting states: no activity claim), and parser- versus
+  owner-confirmed verification. The adapter evaluates it and surfaces
+  violations as issues instead of coercing values.
+- **Synthetic fixtures are explicitly labelled, never passed off as real.**
+  The six `synthetic-but-format-faithful` full exports carry provenance,
+  expected canonical results, and limitations in `FIXTURES.md`; retained real
+  exports remain the preferred corpus when they exist.
+- **Deterministic import source identity.** The import action records the
+  original-submission SHA-256, byte length, trim flag, and a parser-run
+  identity of `(source hash, parser version)` mirroring the v2 rerun rule; the
+  server-derived stored-text hash is preserved separately and the two digests
+  are never conflated.

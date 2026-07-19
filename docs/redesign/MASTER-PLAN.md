@@ -377,24 +377,56 @@ follow-up is in
 follow-up is in
 `docs/agent-handoffs/JOVIAN-MICROBE-PLANT-SPACE-TAG-ICON-REPLACEMENT.md`.
 
+### Phase 4, Step 4.3 live-site data-capture v2 integration outcome (2026-07-19)
+
+The live site's `data-capture-hardening-v2` release is **deployed to
+production** (verified read-only: ledger `20260719132042`, cutoff marker
+2026-07-19 13:20:42Z, parser `tm-data-capture-v2`, eight capture objects with
+seeded catalogs, zero capture rows at verification). This creates a durable
+cross-repository contract the redesign now implements:
+
+- **One canonical game-data model, two persistence origins.** The redesign
+  consumes live-capture v2 rows and its own legacy import shape through one
+  versioned read adapter at the repository boundary
+  (`readCanonicalGameCapture`), chosen over direct reads, compatibility views,
+  or data migration as the smallest safe approach (no duplication, no new
+  production objects, one version-aware unit). A game without v2 rows is never
+  parser failure or confirmed absence; unknown parser versions are reported and
+  left untouched. The redesign never writes `game_capture_*` rows. Authoritative
+  specification:
+  `docs/redesign/reference/LIVE-SITE-DATA-CAPTURE-V2-COMPATIBILITY.md`.
+- **Split confidence/review contract.** Confidence is strictly
+  high/medium/low; the review lifecycle
+  (not_required/needs_review/reviewed/rejected) is a separate constrained
+  column and TypeScript contract shared by parsers, the event RPC, and the
+  adapter. The gated migration `20260719234500` is prepared and
+  executable-tested, not applied.
+- **One executable semantic matrix**
+  (`src/lib/imports/canonical-data-semantics.ts`) governs zero versus missing
+  versus not-applicable, mechanic-state invariants, and parser- versus
+  owner-confirmed verification across origins.
+- **Step 4.4 dependency.** Final Review consumes the canonical capture model
+  through the adapter rather than reparsing raw logs.
+
 ### Current next approved work
 
-Phase 4, Step 4.3 is active. An independent closure audit reopened it for a
-bounded F-01–F-10 remediation, which is **repository-complete** at commits
-`cfafd823`..`6e6e1859` (privacy boundary, durable typed placement + identifier
-contract, trusted Venus option evidence, evidence-based off-reserve oceans,
-verified objective aliases, executable native-PostgreSQL migration tests, real
-grid/flat fixtures, and a read-only placement dry-run report). Validation is
-green (166 files / 874 tests, tsc/lint/build clean, executable tests passed).
-The earlier `20260718050924` claimable guest-identity migration remains applied
-in production; the three **new** remediation migrations (`20260718212339`
-privacy hardening, `20260718212340` event contract, `20260718212342` objective
-aliases) and the 1,500-row placement backfill are prepared and executable-tested
-but **not yet applied** — all four mutation groups are gated on the per-mutation
-protocol. Step 4.3 is closed only after a fresh independent read-only audit
-passes. Phase 3 and Phase 4 Steps 4.1-4.2 are complete. Do not begin Step
-4.4/4.5 or Phase 5. The un-applied Merger production migration/backfill package
-remains separately owner-gated. Authoritative handoff:
+Phase 4, Step 4.3 is active. The bounded F-01–F-10 remediation is
+repository-complete at commits `cfafd823`..`6e6e1859`, and its four gated
+production mutation groups (privacy hardening `20260719191911`, event contract
+`20260719192054`, objective aliases `20260719192148`, and the 1,500-row
+placement backfill) are **applied and verified** (2026-07-19, user-approved),
+followed by the F-01 completion and audit-view invoker fixes
+(`20260719203944`/`20260719204250`/`20260719205420`). The 2026-07-19
+continuation session added the live-site v2 compatibility layer, the
+confidence/review-state split (gated migration `20260719234500`, prepared, not
+applied), deterministic import source identity, the semantic matrix, labelled
+synthetic fixtures, executable negative authorization tests, and the third
+immutable reconciliation artifact
+(`docs/redesign/reports/phase-04-step-03-compat/`). Step 4.3 is closed only
+after a fresh independent read-only audit passes. Phase 3 and Phase 4 Steps
+4.1-4.2 are complete. Do not begin Step 4.4/4.5 or Phase 5. The un-applied
+Merger production migration/backfill package remains separately owner-gated.
+Authoritative handoff:
 `docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
 
 ### Completed

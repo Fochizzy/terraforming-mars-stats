@@ -428,12 +428,22 @@ and 42-row backfill are independently verified. No push or deployment occurred.
 
 Step 4.3B (the Venus/Colonies import facts above) is production-verified, but
 **Step 4.3 as a whole is ACTIVE, not complete.** The independent closure audit
-reopened Step 4.3 for the bounded F-01–F-10 remediation, which is
-repository-complete at commits `cfafd823`..`6e6e1859` with its production
-migrations and placement backfill prepared but gated (see
-`docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`).
+reopened Step 4.3 for the bounded F-01–F-10 remediation
+(repository-complete at commits `cfafd823`..`6e6e1859`, production mutations
+applied and verified 2026-07-19). The 2026-07-19 continuation session then
+integrated the deployed live-site data-capture v2 contract through a versioned
+read adapter (`docs/redesign/reference/LIVE-SITE-DATA-CAPTURE-V2-COMPATIBILITY.md`),
+split event confidence from review state (gated migration `20260719234500`,
+prepared and executable-tested, not applied), wired deterministic source
+identity into the import action, added the executable semantic matrix,
+labelled synthetic full-export fixtures, negative RPC authorization tests, and
+the third immutable reconciliation artifact
+(`docs/redesign/reports/phase-04-step-03-compat/`). See
+`docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
 Step 4.3 is closed only after a fresh independent read-only audit passes. Do not
-begin Step 4.4; it requires an explicit assignment.
+begin Step 4.4; it requires an explicit assignment. Step 4.4 consumes the
+canonical capture model through `readCanonicalGameCapture` rather than
+reparsing raw logs.
 ## Step 4.5 closure requirement
 
 Phase 4 closure must verify that:

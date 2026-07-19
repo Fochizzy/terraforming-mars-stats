@@ -3,24 +3,88 @@
 ## Current substep
 
 Phase 4, Step 4.3 — Import Validation, Evidence Review, and Claimable Guest
-Identity (**ACTIVE — the bounded F-01–F-10 closure-audit remediation is
-repository-complete; the three remediation migrations and the 1,500-row
-placement backfill are prepared, executable-tested, and dry-run analyzed, but
-are NOT yet applied to production and remain gated. Awaiting a fresh independent
-read-only closure audit. Step 4.3 is NOT closed.**)
+Identity (**ACTIVE — the F-01–F-10 remediation and its production mutations are
+complete and verified, and the 2026-07-19 continuation session has integrated
+the deployed live-site data-capture v2 contract, split event confidence from
+review state, wired deterministic source identity into the import action, and
+produced the third immutable reconciliation artifact. One new migration
+(`20260719234500_separate_event_confidence_from_review_state.sql`) is prepared
+and executable-tested but NOT applied to production. Awaiting a fresh
+independent read-only closure audit. Step 4.3 is NOT closed.**)
 
 ## Current owner
 
-Codex — Phase 4, Step 4.3B Venus Next and Colonies import facts
+Claude Fable 5 — Phase 4, Step 4.3 remediation continuation and live-site v2
+compatibility integration
 
 ## Status
 
 **Phase 4 - Log a Game - Active. Step 4.3 is ACTIVE (not closed).** The bounded
 remediation of the independent closure audit (findings F-01–F-10) is
-repository-complete at commits `cfafd823`..`4e20aeb8`. Validation is green: 166
-test files / 874 tests (`--no-file-parallelism`), `tsc --noEmit` clean, lint
-exit 0 with the four baseline warnings, build 32/32 pages with middleware, and
-the executable migration tests pass.
+repository-complete at commits `cfafd823`..`4e20aeb8`, its four production
+mutation groups are applied and verified, and the continuation session
+`435077bf`..(see handoff for the final commit) integrates the live-site v2
+contract. Validation for the continuation is green: 171 test files / 910 tests
+(`--no-file-parallelism`), `tsc --noEmit` clean, lint exit 0 with the four
+baseline warnings, build 32/32 pages with middleware, `git diff --check` clean,
+and the executable migration harness passes end to end.
+
+### Live-site data-capture v2 relationship (verified 2026-07-19)
+
+The live site's `data-capture-hardening-v2` release **is deployed to
+production** — verified read-only against `qjtwgrjjwnqafbvkkfex`, not taken
+from documentation: ledger migration `20260719132042 data_capture_hardening_v2`;
+marker `data-capture-hardening-v2` with cutoff 2026-07-19 13:20:42Z and
+`parser_deployed_at` 13:24:14Z (`tm-data-capture-v2`); all eight capture
+objects present with seeded catalogs (13 colonies, 23 event-type pairs); all
+capture data tables empty (no real post-cutoff import yet). The redesign
+consumes that contract through a versioned read adapter at the repository
+boundary (`src/lib/db/game-capture-compat-repo.ts` +
+`src/lib/imports/live-capture/`), specified table-by-table in
+`docs/redesign/reference/LIVE-SITE-DATA-CAPTURE-V2-COMPATIBILITY.md`, with the
+read-only reconciliation artifact in
+`docs/redesign/reports/phase-04-step-03-compat/` (42/42 games legacy-only, 0 v2
+rows, 0 duplicate identities, 0 unsupported contract versions). The redesign
+does not write `game_capture_*` rows and never duplicates them.
+
+### Continuation session outcomes (2026-07-19, commits `435077bf`..)
+
+- **Confidence/review-state split.** `confidence_level` is strictly
+  high/medium/low and a new constrained `review_state`
+  (not_required/needs_review/reviewed/rejected) carries the review lifecycle;
+  the shared TS contract, both parsers, the event builder, and
+  `replace_game_log_events` were split accordingly. Gated migration
+  `20260719234500` (NOT applied to production; production has zero
+  `confidence_level='reviewed'` rows, verified read-only) maps any legacy
+  overloaded rows payload-deterministically and is exercised in the executable
+  harness against seeded legacy rows.
+- **Clean-baseline repair.** The F-01 completion migration depended on
+  `players.full_name`/`username`, which exist in production only via
+  remote-only ledger migration `20260712114538`; a faithful schema-only
+  reconstruction file under that same version restores the full-history
+  replay. Production skips it by version.
+- **Source identity wiring.** The import action persists the SHA-256 and byte
+  length of the original submitted text, a deterministic parser-run identity
+  (source hash + parser version), and whether the stored text was trimmed;
+  the server-derived `input_sha256` is unchanged and never conflated with it.
+- **Semantic matrix.** `src/lib/imports/canonical-data-semantics.ts` is the one
+  executable matrix distinguishing zero/missing/unknown/incomplete/unsupported/
+  conflicting/confirmed/not-applicable/unattributed and parser- versus
+  owner-verified states; the adapter surfaces violations as issues.
+- **Fixtures.** Six explicitly labelled `synthetic-but-format-faithful` full
+  exports (Venus-only, Colonies-only, both, off-reserve ocean, unsupported
+  wording, printed objective aliases) with provenance in `FIXTURES.md`; none is
+  described as a retained real export.
+- **Executable negative tests.** The harness now proves the event RPC rejects a
+  non-member caller, duplicate identities, unrelated player UUIDs, and the
+  retired overloaded confidence, and persists the split contract end to end.
+- **End-to-end action test.** The real server action is driven from a submitted
+  log through the real parsers to the exact persistence payloads, including the
+  incomplete-evidence (never confirmed-absent) state for a log without
+  complete-game terminators and null (never zero) final Venus.
+- **Draft-evidence isolation.** A behavioral test pins that draft save/resume
+  touches only games/game_promo_sets/game_revisions and can never rewrite
+  import evidence, duplicate a parser run, or mutate expansion state.
 
 **Production mutations applied and verified (2026-07-19, user approved "apply all
 four").** The three remediation migrations are in the live ledger as
@@ -511,16 +575,23 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Step 4.3 remains active.** The four gated production mutation groups are now
-applied and verified (privacy, event contract, and objective-alias migrations,
-plus the 1,500-row placement backfill; see the Status section and the reports in
-`docs/redesign/reports/phase-04-step-03-placement/`). The **next action is a
+**Step 4.3 remains active.** The four gated production mutation groups from the
+F-01–F-10 pass are applied and verified, and the 2026-07-19 continuation
+session's work (live-site v2 compatibility adapter and specification,
+confidence/review-state split, source-identity wiring, semantic matrix,
+fixtures, reconciliation artifact, executable negative tests) is
+repository-complete. One migration remains prepared and gated:
+`supabase/migrations/20260719234500_separate_event_confidence_from_review_state.sql`
+is executable-tested but **NOT applied to production** (no production row uses
+the retired value, verified read-only; the redesign code emits payloads
+compatible with both the pre- and post-migration RPC). The **next action is a
 fresh independent read-only Step 4.3 closure audit.** Do not self-approve Step
 4.3, and do not begin Step 4.4/4.5/Phase 5, push, or deploy without separate
-authorization. The Step 4.3B report set remains in
-`docs/redesign/reports/phase-04-step-03b/`. No application push or deployment
-occurred; only the authorized database migrations and the placement backfill
-were applied to production.
+authorization. Reports: `docs/redesign/reports/phase-04-step-03-placement/`,
+`docs/redesign/reports/phase-04-step-03b/`, and
+`docs/redesign/reports/phase-04-step-03-compat/`. No application push or
+deployment occurred in this session, and no production row, grant, policy, or
+schema object was changed by it.
 
 ## Active blockers
 

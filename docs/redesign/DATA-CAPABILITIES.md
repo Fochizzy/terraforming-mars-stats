@@ -1002,3 +1002,51 @@ authorized insert-only write created all 42 fact rows. It verified matching
 unrelated-data fingerprints, zero historical event rows, and zero planned writes
 on its second pass. Machine/human reports are in
 `docs/redesign/reports/phase-04-step-03b/`.
+
+# Phase 4, Step 4.3 addendum — live-capture v2 consumption and the split review contract (2026-07-19)
+
+## Canonical capture availability per game
+
+| Availability | Meaning | Current production population |
+| --- | --- | --- |
+| `live_capture_v2` | A supported live-site v2 parser run backs the canonical model (`game_capture_*`, parser `tm-data-capture-v2`) | 0 games (deployed 2026-07-19 13:20Z; no post-cutoff import yet) |
+| `legacy_import` | The redesign legacy shape backs it (`game_log_imports` + `game_log_events` + `game_expansion_facts`) | 42 games (parser `manual-web-import-v2`, all with server-derived input hashes) |
+| `none` | No import evidence; game-level expansion facts may still exist (historical owner-confirmed absence) | 0 games |
+
+A missing v2 parser run is never parser failure and never confirmed absence.
+Unknown v2 parser versions are reported (`unsupported_contract_version`) and
+left untouched. The adapter (`readCanonicalGameCapture`) probes capability at
+query time, so the same code is correct against databases with and without the
+v2 schema and with and without the gated `review_state` column.
+
+## Confidence and review state
+
+`confidence_level` (`high`/`medium`/`low`) is evidence strength only;
+`review_state` (`not_required`/`needs_review`/`reviewed`/`rejected`) is the
+review lifecycle. Unknown tile labels and unknown colony names persist as
+low-confidence needs-review evidence; importer corrections persist as
+high-confidence reviewed; verified catalog aliases are high-confidence
+not-required. Live-capture v2 rows carry no review lifecycle, so the adapter
+derives needs-review deterministically from their own facts (documented in the
+compatibility specification) and never fabricates `reviewed`/`rejected`. The
+database constraint split ships as gated migration `20260719234500` (prepared
+and executable-tested; not applied to production, which holds zero overloaded
+rows).
+
+## Source identity
+
+Every new redesign import records the original-submission SHA-256 and byte
+length, a deterministic parser-run identity `(source hash, parser version)`,
+and whether the stored text was trimmed. The server-derived `input_sha256`
+digests the stored trimmed text; live-capture v2's `source_sha256` digests the
+original bytes. The digests are distinct facts, joined by
+`game_log_import_id`, and are never compared to one another.
+
+## Fixture matrix update
+
+Six `synthetic-but-format-faithful` full exports (Venus-only, Colonies-only,
+both, off-reserve ocean via Artificial Lake 116, unsupported wording, printed
+objective aliases) are committed with provenance, expected canonical results,
+and limitations in `src/lib/imports/fixtures/FIXTURES.md`. They are
+constructed test corpora and are never described as retained real exports;
+retained real exports remain the preferred corpus when available.
