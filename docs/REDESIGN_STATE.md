@@ -17,17 +17,52 @@ Codex — Phase 4, Step 4.3B Venus Next and Colonies import facts
 
 **Phase 4 - Log a Game - Active. Step 4.3 is ACTIVE (not closed).** The bounded
 remediation of the independent closure audit (findings F-01–F-10) is
-repository-complete at commits `cfafd823`..`6e6e1859`. Validation is green: 166
+repository-complete at commits `cfafd823`..`4e20aeb8`. Validation is green: 166
 test files / 874 tests (`--no-file-parallelism`), `tsc --noEmit` clean, lint
 exit 0 with the four baseline warnings, build 32/32 pages with middleware, and
-the executable migration tests pass. The three remediation migrations
-(`20260718212339` privacy, `20260718212340` event contract, `20260718212342`
-objective aliases) and the 1,500-row canonical placement backfill are prepared,
-executable-tested on a disposable PostgreSQL 18 cluster, and dry-run analyzed
-read-only — but **none is applied to production**; all four mutation groups
-remain gated on explicit per-mutation authorization. Step 4.3 must not be marked
-complete until a fresh independent read-only audit passes. Step 4.4 has not
-started.
+the executable migration tests pass.
+
+**Production mutations applied and verified (2026-07-19, user approved "apply all
+four").** The three remediation migrations are in the live ledger as
+`20260719191911` (privacy), `20260719192054` (event contract), and
+`20260719192148` (objective aliases); their SQL is byte-identical to the
+committed repo files (ledger versions differ from filenames — expected drift).
+The 1,500-row canonical placement backfill was executed and verified: 1500 tile
+events fully typed, 1467 player + 1467 game-player attributions, 33 unresolved
+(null), 100 grid / 1400 flat, 0 owner fields set, 3 constraints validated,
+non-tile events untouched, 42 games unchanged, idempotency re-run zero diffs.
+`player_private_identities` is in the `private` schema (authenticated cannot
+read it or `player_import_aliases`); 6 unlinked labels neutralized; 23 colonies
+and 7 objective aliases present. Security advisors show no new regression
+attributable to the remediation. Reports:
+`docs/redesign/reports/phase-04-step-03-placement/`.
+
+**F-01 was materially incomplete and has been completed (2026-07-19).**
+Independent re-verification against production found that the first pass moved
+`player_private_identities` — which holds **0 rows** — into `private` and
+neutralized `players.display_name`, while the actual personal-name data in
+`public.players.full_name` stayed readable by every group member. Impersonating a
+real authenticated member returned all 6 unlinked players' `full_name` and
+`username`; for the 22 linked players those values are an exact denormalized copy
+of the otherwise self-only `public.user_profiles`, exposing all 4 distinct real
+people. Closed by ledger migrations `20260719223000`
+(`isolate_player_personal_names_from_data_api`) and `20260719223500`
+(`enable_rls_on_player_legacy_identities`): the 6 unlinked rows' values are
+preserved in `private.player_legacy_identities` (private schema, client grants
+revoked, RLS deny-all) rather than destroyed, and table-level SELECT on
+`public.players` is revoked from `anon`/`authenticated` then re-granted per
+column excluding `full_name`/`username`. Verified after: the original attack
+returns `permission denied`, the copy-then-read path
+(`set display_name = full_name`) is blocked, legitimate reads still return 23
+rows, all 28 player rows retain their data, and the ELO leaderboard is unchanged
+at its 4 baseline entries. The neutral-label rewrite of
+`get_elo_leaderboard`/`get_player_usernames`/`list_claimable_player_profiles` was
+built, executable-tested and **rejected** — it split the leaderboard 4→6 and
+double counted two real people while the fallback only ever surfaced a registered
+*public* username. Full rationale in the authoritative handoff.
+
+**Step 4.3 must not be marked complete until a fresh independent read-only audit
+passes. Step 4.4 has not started.**
 
 Authoritative handoff:
 `docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
@@ -463,19 +498,16 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Step 4.3 remains active.** The next action is to apply the four gated
-production mutation groups — each with the required protocol (exact SQL,
-affected tables, expected rows, rollback, re-run read-only preflight, stop
-conditions): (1) privacy migration `20260718212339`; (2) event-contract
-migration `20260718212340`; (3) objective-alias migration `20260718212342`;
-(4) the 1,500-row placement backfill after `212340`, producing its own separate
-immutable production report. After the mutations, run the postconditions and
-idempotency re-check, reconcile this file and the handoff, then **request a
+**Step 4.3 remains active.** The four gated production mutation groups are now
+applied and verified (privacy, event contract, and objective-alias migrations,
+plus the 1,500-row placement backfill; see the Status section and the reports in
+`docs/redesign/reports/phase-04-step-03-placement/`). The **next action is a
 fresh independent read-only Step 4.3 closure audit.** Do not self-approve Step
 4.3, and do not begin Step 4.4/4.5/Phase 5, push, or deploy without separate
-authorization. The read-only placement dry-run report set is in
-`docs/redesign/reports/phase-04-step-03-placement/`; the Step 4.3B report set
-remains in `docs/redesign/reports/phase-04-step-03b/`.
+authorization. The Step 4.3B report set remains in
+`docs/redesign/reports/phase-04-step-03b/`. No application push or deployment
+occurred; only the authorized database migrations and the placement backfill
+were applied to production.
 
 ## Active blockers
 
