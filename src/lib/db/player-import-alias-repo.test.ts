@@ -97,4 +97,47 @@ describe('listPlayerImportAliasesForGroup', () => {
       },
     ]);
   });
+
+  /**
+   * `player_import_aliases` is granted to service_role only, so the signed-in
+   * reader gets 42501. Alias hints are a matching aid, not a requirement, and
+   * losing them must not fail the import the way it did on the live site.
+   */
+  it('returns no aliases when the current role may not read them', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const eq = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        code: '42501',
+        hint: 'Grant the required privileges to the current role with: GRANT SELECT ON public.player_import_aliases TO authenticated;',
+        message: 'permission denied for table player_import_aliases',
+      },
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn(() => ({ eq, select: vi.fn().mockReturnThis() })),
+    } as never);
+
+    await expect(
+      repo.listPlayerImportAliasesForGroup('group-1'),
+    ).resolves.toEqual([]);
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    warn.mockRestore();
+  });
+
+  it('still throws when the read fails for any other reason', async () => {
+    const eq = vi.fn().mockResolvedValue({
+      data: null,
+      error: { code: 'PGRST205', message: 'relation does not exist' },
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn(() => ({ eq, select: vi.fn().mockReturnThis() })),
+    } as never);
+
+    await expect(
+      repo.listPlayerImportAliasesForGroup('group-1'),
+    ).rejects.toMatchObject({ code: 'PGRST205' });
+  });
 });

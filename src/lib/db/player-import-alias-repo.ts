@@ -40,7 +40,19 @@ export async function savePlayerImportAlias(input: {
   }
 }
 
-export async function listPlayerImportAliasesForGroup(groupId: string) {
+/** Postgres/PostgREST insufficient_privilege. */
+function isInsufficientPrivilegeError(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === '42501'
+  );
+}
+
+export async function listPlayerImportAliasesForGroup(
+  groupId: string,
+): Promise<PlayerImportAlias[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('player_import_aliases')
@@ -48,6 +60,17 @@ export async function listPlayerImportAliasesForGroup(groupId: string) {
     .eq('group_id', groupId);
 
   if (error) {
+    // Saved aliases are readable by service_role only, so the signed-in reader
+    // gets no alias hints. Auto-matching degrades to the imported names and the
+    // public candidate list; reviewers pick anything left over by hand. Failing
+    // the whole import over a matching aid would be worse than matching less.
+    if (isInsufficientPrivilegeError(error)) {
+      console.warn(
+        'Alias-assisted import auto-matching unavailable: reading player_import_aliases is not permitted for the current role.',
+      );
+      return [];
+    }
+
     throw error;
   }
 
