@@ -1,0 +1,61 @@
+{
+  "report": "phase-04-step-03-canonical-placement-backfill-production",
+  "mode": "authorized_production_execution",
+  "executedAt": "2026-07-19T19:22:00.000Z",
+  "productionProject": "qjtwgrjjwnqafbvkkfex",
+  "authorization": "User approved 'apply all four' after the gated per-mutation plan was presented; production mutation is authorized within the Step 4.3 F-01–F-10 remediation.",
+  "appliedMigrations": [
+    { "ledgerVersion": "20260719191911", "name": "remediate_guest_identity_privacy_boundary", "repoFile": "20260718212339_remediate_guest_identity_privacy_boundary.sql" },
+    { "ledgerVersion": "20260719192054", "name": "harden_game_log_event_contract", "repoFile": "20260718212340_harden_game_log_event_contract.sql" },
+    { "ledgerVersion": "20260719192148", "name": "add_objective_catalog_aliases", "repoFile": "20260718212342_add_objective_catalog_aliases.sql" }
+  ],
+  "ledgerVersionNote": "apply_migration assigned current-timestamp ledger versions; the SQL is byte-identical to the committed repo files (filename timestamps differ). This is expected repo/ledger drift.",
+  "predicate": "public.game_log_events where event_type in ('tile_placed','tile_removed')",
+  "backfill": {
+    "method": "single self-verifying atomic UPDATE deriving typed placement fields from existing columns (event_order, event_type, board_space, tile_type, raw_line) and the game map; player/game-player resolved by alias-only unique match (privacy-robust after display-name neutralization)",
+    "expectedRows": 1500,
+    "actualRowsUpdated": 1500,
+    "excludedRows": 0,
+    "eventRowsCreated": 0,
+    "flatPlacements": 1400,
+    "gridPlacements": 100,
+    "playerAttributions": 1467,
+    "gamePlayerAttributions": 1467,
+    "unresolvedAttributions": 33,
+    "ownerFieldsSet": 0,
+    "ownershipState": "unknown for all placements (actor is never treated as ownership)"
+  },
+  "constraintsValidated": [
+    "game_log_events_typed_placement_required",
+    "game_log_events_expansion_identity_required",
+    "game_log_events_colony_id_fk"
+  ],
+  "postconditions": {
+    "tileEventsFullyTyped": 1500,
+    "attributed": 1467,
+    "unresolved": 33,
+    "ownerFieldsSet": 0,
+    "validatedConstraints": 3,
+    "nonTileEventsUntouched": true,
+    "gamesUnchanged": 42,
+    "idempotencyRerunDiffs": 0
+  },
+  "unrelatedTableVerification": {
+    "gamesRowCount": 42,
+    "nonTileEventTypedColumns": "null (untouched)",
+    "note": "Only the 1500 tile-placement rows were updated; no new event rows were created and non-tile events were not given placement fields."
+  },
+  "privacyAndGrantVerification": {
+    "privateIdentityTableSchema": "private",
+    "authenticatedCanSelectPrivateTable": false,
+    "authenticatedCanSelectImportAliases": false,
+    "unlinkedDisplayNamesNeutralized": 6,
+    "unlinkedNormalizedNamesNeutralized": 6
+  },
+  "securityAdvisors": {
+    "newRegressionsFromRemediation": 0,
+    "note": "player_private_identities now reports rls_enabled_no_policy (INFO) — the intended deny-all direct-access state; the three guarded SECURITY DEFINER functions report authenticated_security_definer_function_executable (WARN, by design) and are not anon-executable. The one ERROR (security_definer_view public.game_log_import_integrity_audit) is pre-existing and unrelated to this remediation."
+  },
+  "colonyCatalogue": 23,
+  "objectiveAliases": 7
+}
