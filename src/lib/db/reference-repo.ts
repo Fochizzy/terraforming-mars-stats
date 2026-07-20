@@ -366,6 +366,21 @@ export async function listStyles(): Promise<StyleOption[]> {
   return data;
 }
 
+/**
+ * The project deck, as the catalog types it today.
+ *
+ * The upstream card sync replaced a single generic `Project` card_type with the
+ * real Terraforming Mars types, leaving `Project` on a handful of legacy rows.
+ * Filtering on `Project` alone therefore drops Automated, Active and Event —
+ * the bulk of the deck — so both vocabularies are accepted. `Standard Project`
+ * and `Standard Action` stay out: they are board actions, not cards held in
+ * hand, and the log records them as their own event type.
+ */
+const PROJECT_CARD_TYPES = ['Automated', 'Active', 'Event', 'Project'];
+
+/** Everything a player can play from hand, for matching names in a game log. */
+const PLAYABLE_CARD_TYPES = [...PROJECT_CARD_TYPES, 'Corporation', 'Prelude'];
+
 export async function listCards(): Promise<CardOption[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -373,7 +388,7 @@ export async function listCards(): Promise<CardOption[]> {
     .select(
       'id, card_number, card_name, expansion_code, promo_set_id, required_expansion_codes',
     )
-    .eq('card_type', 'Project')
+    .in('card_type', PROJECT_CARD_TYPES)
     .order('card_name');
 
   if (error) {
@@ -469,7 +484,7 @@ export async function listCardScoringReferences(): Promise<CardScoringReference[
         'gameplay_tags',
       ].join(', '),
     )
-    .eq('card_type', 'Project')
+    .in('card_type', PROJECT_CARD_TYPES)
     .order('card_name');
 
   if (error) {
@@ -609,7 +624,7 @@ export async function listCardTagReferences(): Promise<CardTagReference[]> {
   const { data, error } = await supabase
     .from('cards')
     .select('id, card_name, card_type, gameplay_tags, image_url, full_image_path')
-    .in('card_type', ['Project', 'Corporation', 'Prelude'])
+    .in('card_type', PLAYABLE_CARD_TYPES)
     .order('card_name');
 
   if (error) {
