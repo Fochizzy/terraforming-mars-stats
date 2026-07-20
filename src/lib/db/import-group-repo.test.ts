@@ -17,6 +17,73 @@ vi.mock('@/lib/supabase/admin', () => ({
 }));
 
 describe('resolveImportParticipantIdentities', () => {
+  /**
+   * Review shows a public label, never the roster name, so the label matches no
+   * player row. Routing on it alone spun up duplicate guests instead of reusing
+   * the person the reviewer picked; the confirmed id has to win.
+   */
+  it('resolves a confirmed selection from its player row, not the shown label', () => {
+    const playerRows = [
+      {
+        display_name: 'Corey Jansen',
+        group_id: 'group-1',
+        id: 'player-corey',
+        linked_user_id: 'user-corey',
+      },
+      {
+        display_name: 'Jenna Kass',
+        group_id: 'group-1',
+        id: 'player-jenna',
+        linked_user_id: null,
+      },
+    ];
+
+    expect(
+      resolveImportParticipantIdentities(
+        ['lurker', 'Guest 461D9612'],
+        playerRows,
+        ['player-corey', 'player-jenna'],
+      ),
+    ).toEqual([
+      {
+        displayName: 'Corey Jansen',
+        linkedUserId: 'user-corey',
+        normalizedName: 'corey jansen',
+        token: 'user:user-corey',
+      },
+      {
+        displayName: 'Jenna Kass',
+        linkedUserId: null,
+        normalizedName: 'jenna kass',
+        token: 'name:jenna kass',
+      },
+    ]);
+  });
+
+  it('falls back to the name when no selection was confirmed', () => {
+    expect(
+      resolveImportParticipantIdentities(
+        ['Corey Jansen'],
+        [
+          {
+            display_name: 'Corey Jansen',
+            group_id: 'group-1',
+            id: 'player-corey',
+            linked_user_id: 'user-corey',
+          },
+        ],
+        [null],
+      ),
+    ).toEqual([
+      {
+        displayName: 'Corey Jansen',
+        linkedUserId: 'user-corey',
+        normalizedName: 'corey jansen',
+        token: 'user:user-corey',
+      },
+    ]);
+  });
+
   it('reuses a linked user identity for an exact normalized name match', () => {
     const resolved = resolveImportParticipantIdentities(
       ['Friday Mars', 'New Challenger'],

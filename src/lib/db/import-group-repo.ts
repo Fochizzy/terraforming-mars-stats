@@ -34,8 +34,32 @@ export function buildGroupRosterSignature(tokens: string[]) {
 export function resolveImportParticipantIdentities(
   participantNames: string[],
   playerRows: Array<Pick<GlobalPlayerRow, 'display_name' | 'group_id' | 'id' | 'linked_user_id'>>,
+  selectedPlayerIds: Array<string | null> = [],
 ): ImportParticipantIdentity[] {
-  const identities = participantNames.map((displayName) => {
+  const identities = participantNames.map((displayName, index) => {
+    // A reviewer-confirmed selection names the person exactly; the label shown
+    // in review no longer can. Identity is private now, so review displays a
+    // public label ("lurker", "Guest 8F2A1B3C") that matches no roster row —
+    // resolving by name would miss the chosen player and create a duplicate.
+    const selectedRow = selectedPlayerIds[index]
+      ? playerRows.find((row) => row.id === selectedPlayerIds[index]) ?? null
+      : null;
+
+    if (selectedRow) {
+      const selectedNormalizedName = normalizePlayerAlias(
+        selectedRow.display_name,
+      );
+
+      return {
+        displayName: selectedRow.display_name,
+        linkedUserId: selectedRow.linked_user_id ?? null,
+        normalizedName: selectedNormalizedName,
+        token: selectedRow.linked_user_id
+          ? `user:${selectedRow.linked_user_id}`
+          : `name:${selectedNormalizedName}`,
+      };
+    }
+
     const normalizedName = normalizePlayerAlias(displayName);
     const matchingRows = playerRows.filter(
       (row) => normalizePlayerAlias(row.display_name) === normalizedName,
@@ -419,6 +443,8 @@ async function addImportingUserAsEditor(
 export async function resolveOrCreateImportGroup(input: {
   importingUserId: string;
   participantNames: string[];
+  /** Reviewer-confirmed player id per participant, positionally aligned. */
+  participantPlayerIds?: Array<string | null>;
 }) {
   const admin = createSupabaseAdminClient();
   const { data: playerRows, error: playerRowsError } = await admin
@@ -434,6 +460,7 @@ export async function resolveOrCreateImportGroup(input: {
   const participantIdentities = resolveImportParticipantIdentities(
     input.participantNames,
     globalPlayers,
+    input.participantPlayerIds ?? [],
   );
   const matchingGroupId = findExactGroupRosterMatch(
     participantIdentities,

@@ -904,9 +904,20 @@ export default async function LogGameImportPage() {
       const rosterNames = resolvedParticipantNames.map(
         (name) => canonicalNameByImported.get(name) ?? name,
       );
+      // Route on the confirmed player ids, not these labels. Since identity
+      // went private the label is a public stand-in ("lurker", "Guest 8F2A…")
+      // that matches no roster row, so name-only routing would create a
+      // duplicate roster rather than reuse the person the reviewer picked.
+      const playerIdByImportedName = new Map(
+        confirmedPlayerLinks.map((link) => [link.importedName, link.playerId]),
+      );
+      const rosterPlayerIds = resolvedParticipantNames.map(
+        (name) => playerIdByImportedName.get(name) ?? null,
+      );
       const importGroup = await resolveOrCreateImportGroup({
         importingUserId: activeUser.id,
         participantNames: rosterNames,
+        participantPlayerIds: rosterPlayerIds,
       });
       // Re-point the confirmed links onto the routed group's roster players so
       // the draft and any saved aliases reference the right group.
