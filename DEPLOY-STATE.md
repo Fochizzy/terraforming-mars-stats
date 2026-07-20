@@ -9,8 +9,8 @@ what.
 
 | | |
 |---|---|
-| Worker version | `39820427-0210-441e-9179-46fae2c94e84` |
-| Source commit | `c9eb1924a` |
+| Worker version | `c23bfbd7-9729-4981-9f45-aee05c242d31` |
+| Source commit | `59dda6c0f` |
 | Source branch | `fix/live-42501-on-capture-v2` (off `data-capture-hardening-v2` @ `64918663a`) |
 | Built | 2026-07-20 01:47 UTC |
 | Deploy lock | Izzy |
@@ -55,7 +55,17 @@ build. Fill the commit in above on every deploy so nobody repeats that.
 | 07-20 02:2x | `ffd765de` | `7972608f8` | Server-side import name matching. |
 | 07-20 02:5x | `5d290811` | `48ebf13e6` | Card-type filter fix (project deck). |
 | 07-20 03:1x | `501d18ef` | `3a8664e7b` | Page card reads past the 1000-row cap. |
-| 07-20 09:5x | `39820427` | `c9eb1924a` | Typed placement contract for tile events. **Current.** |
+| 07-20 09:5x | `39820427` | `c9eb1924a` | Typed placement contract for tile events. |
+| 07-20 10:0x | `1b3dbac3` | `980165021` | Slug tile names into the event identity format. |
+| 07-20 10:3x | `21e3047e` | `20921cf46` | Route the import roster by confirmed player id. |
+| 07-20 11:0x | `c23bfbd7` | `59dda6c0f` | Name new groups from the roster, not review labels. **Current.** |
+
+> **This branch is not on any remote.** `fix/live-42501-on-capture-v2` is 15+
+> commits ahead of `data-capture-hardening-v2`, and neither branch has been
+> pushed. Production runs code that exists only on one machine, and deploying
+> `data-capture-hardening-v2` would revert every fix below at once. Push before
+> anything else:
+> `git push -u origin fix/live-42501-on-capture-v2`
 
 **Do not re-add the `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` Worker secret from
 PowerShell.** Setting it on 07-20 stored a value that is not valid base64;
@@ -75,7 +85,19 @@ class of drift before it reaches production.
 
 ## Open follow-ups
 
-- **Duplicate-group consolidation — pending the Step 4.3 audit.** Six unlinked
+- ~~**Duplicate-group consolidation**~~ — done 2026-07-20. Both duplicate-roster
+  pairs merged (`987ce716`→`19426f66`, `fd69bce9`→`817f330c`), the empty group
+  removed, all group names realigned to their rosters, and Jenna Kass's
+  identity repaired. Final: 10 groups, 27 players, 1 unlinked, 44 games, 121
+  game_players, zero duplicate names, zero name/roster mismatches. Backups:
+  `private.mig_backup_group_merge_20260720`,
+  `private.mig_backup_group_merge2_20260720`,
+  `private.mig_backup_group_names_20260720`,
+  `private.mig_backup_jenna_fix_20260720`.
+  Note for anyone doing similar surgery: `game_log_events.player_id` and
+  `owner_player_id` are `ON DELETE SET NULL`, not cascade — re-point events
+  *before* deleting a player or attribution nulls silently.
+- ~~**Previous consolidation note**~~ superseded by the entry above. Six unlinked
   rows are the entire membership of two duplicate groups: `869467ec` duplicates
   `0bed9a67` (4 phantoms, 0 games, plus a broken empty draft `feaa89ab`), and
   `987ce716` duplicates `19426f66` (2 rows holding 2 games and 83 log events).
