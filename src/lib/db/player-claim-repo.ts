@@ -75,6 +75,47 @@ export async function listClaimablePlayerProfiles(): Promise<
   }));
 }
 
+export type ClaimCandidatesResult =
+  | { candidates: ClaimablePlayerProfile[]; status: 'available' }
+  | { status: 'empty' }
+  | { status: 'unauthorized' }
+  | { status: 'unavailable' };
+
+/**
+ * Loads claim candidates for a page render, distinguishing a genuine empty
+ * result from a session problem or a claim-service failure (e.g. the RPC
+ * itself being unreachable) instead of letting either crash the page or
+ * silently collapsing them into the same "no candidates" copy.
+ */
+export async function loadClaimCandidates(): Promise<ClaimCandidatesResult> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { status: 'unauthorized' };
+  }
+
+  let candidates: ClaimablePlayerProfile[];
+
+  try {
+    candidates = await listClaimablePlayerProfiles();
+  } catch (error) {
+    console.error(
+      'listClaimablePlayerProfiles failed while loading claim candidates for the claim page.',
+      error,
+    );
+
+    return { status: 'unavailable' };
+  }
+
+  return candidates.length === 0
+    ? { status: 'empty' }
+    : { candidates, status: 'available' };
+}
+
 export async function claimSavedPlayerProfile(
   playerId: string,
 ): Promise<SavedPlayerClaimResult> {

@@ -4,6 +4,7 @@ import {
   claimAllExactPlayerProfiles,
   claimSavedPlayerProfile,
   listClaimablePlayerProfiles,
+  loadClaimCandidates,
   resolveSavedPlayerAutoClaim,
 } from './player-claim-repo';
 
@@ -18,10 +19,13 @@ const SENTINEL_RAW_GROUP_NAME = 'Xyzzy-Private-Fullname-One / Xyzzy-Private-Full
 describe('player claim repo', () => {
   const rpc = vi.fn();
   const from = vi.fn();
+  const getUser = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      auth: { getUser },
       from,
       rpc,
     } as never);
@@ -269,5 +273,103 @@ describe('player claim repo', () => {
       status: 'claimed-and-joined',
     });
     expect(JSON.stringify(result)).not.toContain('Xyzzy-Private-Fullname');
+  });
+});
+
+describe('loadClaimCandidates', () => {
+  const rpc = vi.fn();
+  const getUser = vi.fn();
+  const consoleErrorSpy = vi.spyOn(console, 'error');
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    consoleErrorSpy.mockImplementation(() => {});
+    getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      auth: { getUser },
+      rpc,
+    } as never);
+  });
+
+  it('returns status "available" with mapped candidates when the RPC succeeds with rows', async () => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          exact_match: true,
+          group_id: 'group-1',
+          match_reason: 'exact',
+          player_id: 'player-1',
+          player_name: 'Friday Mars',
+        },
+      ],
+      error: null,
+    });
+
+    await expect(loadClaimCandidates()).resolves.toEqual({
+      candidates: [
+        {
+          exactMatch: true,
+          groupId: 'group-1',
+          matchReason: 'exact',
+          playerId: 'player-1',
+          playerName: 'Friday Mars',
+        },
+      ],
+      status: 'available',
+    });
+  });
+
+  it('returns status "empty" (not "unavailable") for a genuine zero-row result', async () => {
+    rpc.mockResolvedValue({ data: [], error: null });
+
+    await expect(loadClaimCandidates()).resolves.toEqual({ status: 'empty' });
+  });
+
+  it('returns status "unavailable" instead of throwing when the RPC errors (e.g. a missing grant)', async () => {
+    rpc.mockRejectedValue(
+      new Error('permission denied for function list_claimable_player_profiles'),
+    );
+
+    await expect(loadClaimCandidates()).resolves.toEqual({ status: 'unavailable' });
+  });
+
+  it('logs the real cause server-side for an unavailable result without throwing it to the caller', async () => {
+    const realError = new Error(
+      'permission denied for function list_claimable_player_profiles',
+    );
+    rpc.mockRejectedValue(realError);
+
+    await loadClaimCandidates();
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.any(String), realError);
+  });
+
+  it('returns status "unauthorized" without calling the RPC when there is no valid session', async () => {
+    getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    await expect(loadClaimCandidates()).resolves.toEqual({ status: 'unauthorized' });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('returns status "unauthorized" when the session lookup itself errors', async () => {
+    getUser.mockResolvedValue({
+      data: { user: null },
+      error: new Error('invalid JWT'),
+    });
+
+    await expect(loadClaimCandidates()).resolves.toEqual({ status: 'unauthorized' });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('never lets a raw error object escape into the resolved result (unavailable stays a plain status)', async () => {
+    rpc.mockRejectedValue(
+      Object.assign(new Error('permission denied'), { code: '42501' }),
+    );
+
+    const result = await loadClaimCandidates();
+
+    expect(JSON.stringify(result)).not.toContain('42501');
+    expect(JSON.stringify(result)).not.toContain('permission denied');
+    expect(result).toEqual({ status: 'unavailable' });
   });
 });

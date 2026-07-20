@@ -4,7 +4,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import {
   claimAllExactPlayerProfiles,
   claimSavedPlayerProfile,
-  listClaimablePlayerProfiles,
+  loadClaimCandidates,
 } from '@/lib/db/player-claim-repo';
 import { normalizeNextPath } from '@/features/auth/build-auth-callback-url';
 
@@ -17,7 +17,17 @@ export default async function ClaimPlayerPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const nextPath = normalizeNextPath(resolvedSearchParams?.next);
-  const candidates = await listClaimablePlayerProfiles();
+  const claimCandidatesResult = await loadClaimCandidates();
+
+  if (claimCandidatesResult.status === 'unauthorized') {
+    redirect(`/login?next=${encodeURIComponent('/claim-player')}`);
+    return null;
+  }
+
+  const candidates =
+    claimCandidatesResult.status === 'available'
+      ? claimCandidatesResult.candidates
+      : [];
   const exactMatches = candidates.filter((candidate) => candidate.exactMatch);
   const partialMatches = candidates.filter((candidate) => !candidate.exactMatch);
   const exactPlayerName = exactMatches[0]?.playerName;
@@ -50,8 +60,14 @@ export default async function ClaimPlayerPage({
           We found saved player profiles that may already contain your
           Terraforming Mars history.
         </p>
-        {candidates.length === 0 ? (
-          <p className="tm-muted-copy text-sm">
+        {claimCandidatesResult.status === 'unavailable' ? (
+          <p className="tm-muted-copy text-sm" data-testid="claim-unavailable">
+            We couldn&apos;t check for saved player profiles right now. You can
+            keep this account and try again later, or claim a saved roster
+            entry from your profile once it&apos;s available.
+          </p>
+        ) : claimCandidatesResult.status === 'empty' ? (
+          <p className="tm-muted-copy text-sm" data-testid="claim-empty">
             No matching saved player profiles were found yet. You can keep this
             account and claim a saved roster entry later.
           </p>
