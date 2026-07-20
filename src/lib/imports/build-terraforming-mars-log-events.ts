@@ -9,6 +9,40 @@ import { normalizePlayerAlias } from './normalize-player-alias';
 import type { ParsedExpansionMechanicEvent } from './parse-terraforming-mars-expansion-mechanics';
 import type { ImportPlayedEntityEvidence } from './parse-terraforming-mars-played-entities';
 import type { ImportTileAction } from './parse-terraforming-mars-tile-actions';
+import type { OffReserveOceanEvidence } from './resolve-off-reserve-ocean-evidence';
+
+/**
+ * Repository placement-action vocabulary (past-tense naming). The adapter
+ * maps these onto the shared canonical vocabulary as pure renames
+ * (placed→place, removed→remove, replaced→replace, converted→convert,
+ * ownership_changed→ownership_change, unresolved→unresolved). The exported-log
+ * parser currently produces evidence only for 'placed' and 'removed'; the
+ * remaining values are persistable so evidence-bearing sources never have to
+ * force their meaning into the wrong action.
+ */
+export type GameLogPlacementAction =
+  | 'placed'
+  | 'removed'
+  | 'replaced'
+  | 'converted'
+  | 'ownership_changed'
+  | 'unresolved';
+
+export type GameLogOwnershipState =
+  | 'explicit_owner'
+  | 'neutral'
+  | 'unowned'
+  | 'unknown'
+  | 'not_applicable'
+  | 'unresolved';
+
+export type GameLogTileTypeClass =
+  | 'ocean'
+  | 'city'
+  | 'greenery'
+  | 'special'
+  | 'neutral'
+  | 'unresolved';
 
 export type ParsedGameLogEvent = {
   board_position?: number | null;
@@ -27,16 +61,17 @@ export type ParsedGameLogEvent = {
   map_id?: string | null;
   owner_game_player_id?: string | null;
   owner_player_id?: string | null;
-  ownership_state?: 'explicit_owner' | 'unknown' | 'not_applicable' | null;
+  ownership_state?: GameLogOwnershipState | null;
   parameter_after?: number | null;
   parameter_before?: number | null;
   parameter_steps?: number | null;
-  placement_action?: 'placed' | 'removed' | null;
+  placement_action?: GameLogPlacementAction | null;
   placement_board?: 'mars' | 'moon' | null;
   placement_format?: 'flat-id' | 'grid' | null;
   parser_version?: string | null;
   payload: Record<string, unknown>;
   player_id?: string | null;
+  raw_actor_text?: string | null;
   raw_line: string;
   resource_amount?: number | null;
   resource_type?: string | null;
@@ -45,7 +80,41 @@ export type ParsedGameLogEvent = {
   source_space_id?: string | null;
   source_entity?: string | null;
   tile_type?: string | null;
+  tile_type_class?: GameLogTileTypeClass | null;
 };
+
+/**
+ * Coarse canonical tile class for a parsed tile action. A resolved catalog
+ * tile maps to its rulebook class; an unknown or future label is explicitly
+ * 'unresolved' rather than guessed. 'neutral' is reserved for sources that
+ * actually state neutrality — the exported log never does, so this function
+ * never emits it.
+ */
+export function derivePlacementTileClass(
+  tileAction: Pick<ImportTileAction, 'isKnownTileType' | 'tileKind'>,
+): GameLogTileTypeClass {
+  return tileAction.isKnownTileType ? tileAction.tileKind : 'unresolved';
+}
+
+/**
+ * Evidence-based placement ownership. The exported game log records who
+ * ACTED (the actor text, resolved separately to player_id) but never states
+ * tile ownership, so ownership is 'unknown' with no owner identifiers — the
+ * actor is never converted into an owner, and unknown is never upgraded.
+ * Sources that carry explicit ownership evidence must supply it through this
+ * seam instead of editing call sites.
+ */
+export function derivePlacementOwnership(_tileAction: ImportTileAction): {
+  ownerGamePlayerId: string | null;
+  ownerPlayerId: string | null;
+  ownershipState: GameLogOwnershipState;
+} {
+  return {
+    ownerGamePlayerId: null,
+    ownerPlayerId: null,
+    ownershipState: 'unknown',
+  };
+}
 
 export type ParsedGameLogEventSet = {
   events: ParsedGameLogEvent[];
@@ -88,8 +157,21 @@ function placementEventIdentity(action: ImportTileAction) {
 export function buildTerraformingMarsLogEvents(input: {
   expansionMechanicEvents?: ParsedExpansionMechanicEvent[];
   exportedLogText: string;
+  /**
+   * Exact game-participant evidence: resolved stable player id → the game's
+   * game_players row id. Supplied only when the caller actually has the
+   * participant rows (drafts usually do not yet); absence never fabricates
+   * an attribution.
+   */
+  gamePlayerIdByPlayerId?: ReadonlyMap<string, string>;
   mapId: string;
   objectiveEvidence: ImportObjectiveEvidence[];
+  /**
+   * Verified off-reserve-ocean exception evidence: links each qualifying
+   * exception-card play to its ocean placement line so the placement records
+   * its explicit source card.
+   */
+  offReserveOceanEvidence?: OffReserveOceanEvidence;
   playerResolutions?: Array<{
     selectedPlayerId: string;
     sourcePlayerText: string;
@@ -111,6 +193,12 @@ export function buildTerraformingMarsLogEvents(input: {
   );
   const expansionMechanicByLine = new Map(
     (input.expansionMechanicEvents ?? []).map((event) => [event.lineNumber, event]),
+  );
+  const exceptionSourceCardByOceanLine = new Map(
+    (input.offReserveOceanEvidence?.exceptions ?? []).map((exception) => [
+      exception.oceanLineNumber,
+      exception.cardId,
+    ]),
   );
   const events: ParsedGameLogEvent[] = [];
   const playerResolutionIndex = buildPlayerResolutionIndex(
@@ -176,12 +264,17 @@ export function buildTerraformingMarsLogEvents(input: {
     if (tileAction) {
       const playerId =
         playerResolutionIndex.get(normalizePlayerAlias(tileAction.actor)) ?? null;
+      const gamePlayerId =
+        playerId === null
+          ? null
+          : input.gamePlayerIdByPlayerId?.get(playerId) ?? null;
       // An unknown or future tile label stays visible and reviewable rather
       // than being dropped: low-confidence evidence that needs review, never a
       // review status smuggled into the confidence value.
       const tileReview = reviewContractForCanonicalResolution(
         tileAction.isKnownTileType,
       );
+      const ownership = derivePlacementOwnership(tileAction);
       events.push({
         board_position: tileAction.boardPosition,
         board_row: tileAction.boardRow,
@@ -193,12 +286,13 @@ export function buildTerraformingMarsLogEvents(input: {
         event_provenance: 'exported_log',
         event_type:
           tileAction.action === 'placed' ? 'tile_placed' : 'tile_removed',
+        game_player_id: gamePlayerId,
         generation_number: currentGeneration,
         line_classification: `tile_${tileAction.action}`,
         map_id: input.mapId,
-        owner_game_player_id: null,
-        owner_player_id: null,
-        ownership_state: 'unknown',
+        owner_game_player_id: ownership.ownerGamePlayerId,
+        owner_player_id: ownership.ownerPlayerId,
+        ownership_state: ownership.ownershipState,
         parser_version: 'terraforming-mars-tile-actions-v2',
         placement_action: tileAction.action,
         placement_board: tileAction.board,
@@ -212,14 +306,21 @@ export function buildTerraformingMarsLogEvents(input: {
           raw_tile_type: tileAction.rawTileType,
         },
         player_id: playerId,
+        raw_actor_text: tileAction.actor,
         raw_line: rawLine,
         review_state: tileReview.reviewState,
         source_line_number: tileAction.lineNumber,
+        // The explicit source card is recorded only from verified exception
+        // evidence (an upstream-supported card allowing an off-reserve
+        // ocean); ordinary placements carry no source-entity claim.
+        source_entity:
+          exceptionSourceCardByOceanLine.get(lineNumber) ?? null,
         source_space_id:
           tileAction.format === 'grid'
             ? `${tileAction.boardRow}:${tileAction.boardPosition}`
             : tileAction.spaceId,
         tile_type: tileAction.canonicalTileCode ?? tileAction.rawTileType,
+        tile_type_class: derivePlacementTileClass(tileAction),
       });
       return;
     }

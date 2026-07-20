@@ -271,6 +271,7 @@ export function mapLiveCapturePlacements(rows: LiveCapturePlacementRow[]): {
       }),
       sourceCardOrAction: row.source_card_or_action,
       tileType: row.tile_type,
+      tileTypeClass: normalizeTileTypeClass(row.tile_type),
       tileTypeVocabulary: 'capture_coarse_class',
       upstreamNumericSpaceId: row.upstream_numeric_space_id,
     };
@@ -359,6 +360,8 @@ export type LegacyGameLogEventRow = {
   placement_board: string | null;
   placement_format: string | null;
   player_id: string | null;
+  /** Absent until migration 20260720110000 is applied to the environment. */
+  raw_actor_text?: string | null;
   raw_line: string;
   resource_amount: number | null;
   resource_type: string | null;
@@ -368,6 +371,42 @@ export type LegacyGameLogEventRow = {
   source_line_number: number | null;
   source_space_id: string | null;
   tile_type: string | null;
+  /** Absent until migration 20260720110000 is applied to the environment. */
+  tile_type_class?: string | null;
+};
+
+const CANONICAL_TILE_TYPE_CLASSES = new Set([
+  'ocean',
+  'city',
+  'greenery',
+  'special',
+  'neutral',
+  'unresolved',
+]);
+
+function normalizeTileTypeClass(
+  value: string | null | undefined,
+): CanonicalCapturePlacement['tileTypeClass'] {
+  return value != null && CANONICAL_TILE_TYPE_CLASSES.has(value)
+    ? (value as CanonicalCapturePlacement['tileTypeClass'])
+    : null;
+}
+
+/**
+ * Repository (past-tense) placement actions → the shared canonical
+ * vocabulary. Pure renames; an out-of-contract stored value maps to
+ * 'unresolved' so it stays visible rather than crashing the read.
+ */
+const LEGACY_PLACEMENT_ACTION: Record<
+  string,
+  CanonicalCapturePlacement['placementAction']
+> = {
+  converted: 'convert',
+  ownership_changed: 'ownership_change',
+  placed: 'place',
+  removed: 'remove',
+  replaced: 'replace',
+  unresolved: 'unresolved',
 };
 
 /**
@@ -558,15 +597,26 @@ export function mapLegacyPlacements(rows: LegacyGameLogEventRow[]): {
           ? 'owned'
           : ((row.ownership_state as CanonicalCapturePlacement['ownershipState']) ??
             null),
-      placementAction: row.event_type === 'tile_placed' ? 'place' : 'remove',
+      // The stored placement_action is authoritative when present (the full
+      // repository vocabulary); rows predating the typed columns fall back
+      // to the event type's place/remove meaning.
+      placementAction:
+        (row.placement_action != null
+          ? LEGACY_PLACEMENT_ACTION[row.placement_action]
+          : undefined) ??
+        (row.event_type === 'tile_placed' ? 'place' : 'remove'),
       placementUid: legacyEventUid(row),
       playerId: row.player_id,
       provenance: row.event_provenance,
-      rawActorText: typeof actor === 'string' ? actor : null,
+      // First-class actor column when the environment has it; the JSON
+      // payload copy remains the fallback for rows that predate it.
+      rawActorText:
+        row.raw_actor_text ?? (typeof actor === 'string' ? actor : null),
       rawEvidence: row.raw_line,
       reviewState: contract.reviewState,
       sourceCardOrAction: row.source_entity,
       tileType: row.tile_type,
+      tileTypeClass: normalizeTileTypeClass(row.tile_type_class),
       tileTypeVocabulary: 'upstream_tile_code',
       upstreamNumericSpaceId:
         row.board_space && /^\d+$/.test(row.board_space)

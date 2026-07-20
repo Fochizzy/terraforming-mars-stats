@@ -27,6 +27,12 @@ insert into public.games (
   '11111111-1111-4111-8111-111111111111'
 );
 
+-- The canonical placement contract requires tile events to carry the game
+-- map, so the seeded game is a Tharsis game.
+update public.games
+set map_id = (select id from public.maps where code = 'tharsis')
+where id = '33333333-3333-4333-8333-333333333333';
+
 insert into public.game_log_imports (id, game_id, created_by_user_id, raw_log_text)
 values (
   '44444444-4444-4444-8444-444444444444',
@@ -40,6 +46,37 @@ values (
   '55555555-5555-4555-8555-555555555555',
   '22222222-2222-4222-8222-222222222222',
   'Guest 55555555'
+);
+
+-- Exact game-participant evidence for placement attribution tests, plus a
+-- second game whose participant row must be rejected by the first game's
+-- import (cross-game game-player rejection).
+insert into public.game_players (id, game_id, player_id, placement, total_points)
+values (
+  '77777777-7777-4777-8777-777777777777',
+  '33333333-3333-4333-8333-333333333333',
+  '55555555-5555-4555-8555-555555555555',
+  1, 50
+);
+
+insert into public.games (
+  id, group_id, played_on, player_count, generation_count,
+  map_id, created_by_user_id, updated_by_user_id
+) values (
+  '88888888-8888-4888-8888-888888888888',
+  '22222222-2222-4222-8222-222222222222',
+  current_date, 2, 9,
+  (select id from public.maps where code = 'tharsis'),
+  '11111111-1111-4111-8111-111111111111',
+  '11111111-1111-4111-8111-111111111111'
+);
+
+insert into public.game_players (id, game_id, player_id, placement, total_points)
+values (
+  '99999999-8888-4888-8888-999999999999',
+  '88888888-8888-4888-8888-888888888888',
+  '55555555-5555-4555-8555-555555555555',
+  1, 40
 );
 
 -- The exact canonical objective rows the alias migration guards on.

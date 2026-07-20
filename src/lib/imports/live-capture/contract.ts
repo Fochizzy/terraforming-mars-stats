@@ -287,6 +287,20 @@ export type CanonicalCapturePlacement = {
    * them, because inventing a classification is not its job.
    */
   tileType: string | null;
+  /**
+   * Coarse canonical tile class when the origin actually recorded one: a v2
+   * row's `tile_type` already is this class; a legacy row carries it in the
+   * gated `tile_type_class` column (null on rows predating it). Never derived
+   * by the adapter from the fine upstream code.
+   */
+  tileTypeClass:
+    | 'ocean'
+    | 'city'
+    | 'greenery'
+    | 'special'
+    | 'neutral'
+    | 'unresolved'
+    | null;
   tileTypeVocabulary: 'upstream_tile_code' | 'capture_coarse_class';
   upstreamNumericSpaceId: number | null;
 };

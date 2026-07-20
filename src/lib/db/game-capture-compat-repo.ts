@@ -283,32 +283,33 @@ export async function readCanonicalGameCapture(input: {
     };
   }
 
-  // review_state exists only after gated migration 20260719234500; select it
-  // when available and fall back to the pre-split column list otherwise.
+  // Gated legacy columns arrive with separate migrations: review_state with
+  // 20260719234500, raw_actor_text/tile_type_class with 20260720110000. An
+  // environment can hold any prefix of that sequence, so the read degrades
+  // one gated set at a time — never dropping review_state just because the
+  // placement columns are missing.
   let legacyEventRows: LegacyGameLogEventRow[] = [];
   {
-    const withReviewState = await supabase
-      .from('game_log_events')
-      .select(`${LEGACY_EVENT_COLUMNS}, review_state`)
-      .eq('game_log_import_id', importRow.id)
-      .order('event_order', { ascending: true });
-    if (withReviewState.error) {
-      if (!isMissingColumnError(withReviewState.error)) {
-        throw withReviewState.error;
-      }
-      const withoutReviewState = await supabase
+    const gatedSelects = [
+      `${LEGACY_EVENT_COLUMNS}, review_state, raw_actor_text, tile_type_class`,
+      `${LEGACY_EVENT_COLUMNS}, review_state`,
+      LEGACY_EVENT_COLUMNS,
+    ];
+    for (const [index, columns] of gatedSelects.entries()) {
+      const attempt = await supabase
         .from('game_log_events')
-        .select(LEGACY_EVENT_COLUMNS)
+        .select(columns)
         .eq('game_log_import_id', importRow.id)
         .order('event_order', { ascending: true });
-      if (withoutReviewState.error) {
-        throw withoutReviewState.error;
+      if (!attempt.error) {
+        legacyEventRows = (attempt.data ??
+          []) as unknown as LegacyGameLogEventRow[];
+        break;
       }
-      legacyEventRows = (withoutReviewState.data ??
-        []) as unknown as LegacyGameLogEventRow[];
-    } else {
-      legacyEventRows = (withReviewState.data ??
-        []) as unknown as LegacyGameLogEventRow[];
+      const isLastAttempt = index === gatedSelects.length - 1;
+      if (isLastAttempt || !isMissingColumnError(attempt.error)) {
+        throw attempt.error;
+      }
     }
   }
 

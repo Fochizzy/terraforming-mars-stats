@@ -330,6 +330,9 @@ export default async function LogGameImportPage() {
       exportedLogText: values.exportedGameLog,
       mapId: values.mapId,
       objectiveEvidence: reviewedObjectiveEvidence,
+      // Verified exception-card linkage: the ocean placement a source-backed
+      // card allowed off-reserve records that card as its explicit source.
+      offReserveOceanEvidence,
       playerResolutions: playerResolutions.map(
         ({ selectedPlayerId, sourcePlayerText }) => ({
           selectedPlayerId,
@@ -380,6 +383,11 @@ export default async function LogGameImportPage() {
     });
     const gameLogImport = await saveGameLogImport({
       gameId: draft.gameId,
+      sourceEvidence: {
+        originalByteLength: sourceEvidence.originalByteLength,
+        originalSha256: sourceEvidence.originalSha256,
+        parserRunIdentity: sourceEvidence.parserRunIdentity,
+      },
       parseMetadata: {
         confidenceSummary: {
           source: {

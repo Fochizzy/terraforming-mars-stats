@@ -87,12 +87,30 @@ function countImportLines(rawLogText: string) {
   return normalized.split(/\r?\n/).length;
 }
 
+export type SaveGameLogImportSourceEvidence = {
+  originalByteLength: number;
+  originalSha256: string;
+  parserRunIdentity: string;
+};
+
+function isMissingColumnError(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  return code === '42703' || code === 'PGRST204';
+}
+
 export async function saveGameLogImport(input: {
   gameId: string;
   parseMetadata?: SaveGameLogImportParseMetadata;
   playerResolutions?: ImportedPlayerResolution[];
   rawLogText: string;
   screenshotFile: File | null;
+  /**
+   * First-class original-source identity (exact submitted bytes). Persisted
+   * into the gated original_source_* columns when they exist; environments
+   * that predate migration 20260720110000 keep the same values inside
+   * confidence_summary.source only.
+   */
+  sourceEvidence?: SaveGameLogImportSourceEvidence;
   userId: string;
 }) {
   const { SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE } = getServerEnv();
@@ -119,9 +137,7 @@ export async function saveGameLogImport(input: {
 
   const normalizedRawLogText = input.rawLogText.trim();
   const lineCount = countImportLines(normalizedRawLogText);
-  const { data, error } = await supabase
-    .from('game_log_imports')
-    .insert({
+  const baseInsertRow = {
       confidence_summary: {
         ...(input.parseMetadata?.confidenceSummary ?? {}),
         player_identity_resolutions: (input.playerResolutions ?? []).map(
@@ -155,9 +171,43 @@ export async function saveGameLogImport(input: {
       unparsed_line_count:
         input.parseMetadata?.unparsedLineCount ?? lineCount,
       validation_errors: input.parseMetadata?.validationErrors ?? [],
-    })
-    .select('id')
-    .single();
+  };
+
+  // The first-class original-source columns are gated on migration
+  // 20260720110000. Insert optimistically with them; on a missing-column
+  // answer retry without them — the identical values remain available in
+  // confidence_summary.source, so no environment loses the evidence.
+  let insertResult =
+    input.sourceEvidence === undefined
+      ? await supabase
+          .from('game_log_imports')
+          .insert(baseInsertRow)
+          .select('id')
+          .single()
+      : await supabase
+          .from('game_log_imports')
+          .insert({
+            ...baseInsertRow,
+            original_source_byte_length: input.sourceEvidence.originalByteLength,
+            original_source_sha256: input.sourceEvidence.originalSha256,
+            parser_run_identity: input.sourceEvidence.parserRunIdentity,
+          })
+          .select('id')
+          .single();
+
+  if (
+    insertResult.error &&
+    input.sourceEvidence !== undefined &&
+    isMissingColumnError(insertResult.error)
+  ) {
+    insertResult = await supabase
+      .from('game_log_imports')
+      .insert(baseInsertRow)
+      .select('id')
+      .single();
+  }
+
+  const { data, error } = insertResult;
 
   if (error) {
     throw error;

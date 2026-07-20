@@ -400,4 +400,299 @@ begin
   end if;
 end $$;
 
+-- L) Canonical board-placement contract (F-02, WS2). One authorized editor
+-- payload exercises the full first-class placement model end to end through
+-- replace_game_log_events; the failure paths prove the widened vocabulary is
+-- constrained, ownership is never fabricated, cross-game attribution is
+-- rejected, and the board-layout format is enforced.
+
+-- L1: comprehensive success payload — every extended action value, grid
+-- row/position, upstream flat id, attributed and unattributed actors,
+-- explicit-owner evidence, neutral/unowned/unresolved ownership, tile
+-- classes, and a legitimate repeated placement with distinct identities.
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  perform public.replace_game_log_events(
+    '44444444-4444-4444-8444-444444444444',
+    '[
+      {"event_order": 3001, "event_type": "tile_placed", "raw_line": "Guest placed City on row 5 position 3", "confidence_level": "high", "review_state": "not_required",
+       "event_identity": "tile:3001:placed:mars:25:city", "source_line_number": 3001, "source_space_id": "5:3",
+       "placement_action": "placed", "placement_board": "mars", "placement_format": "grid", "ownership_state": "unknown",
+       "board_space": "25", "board_row": 5, "board_position": 3, "tile_type": "city", "tile_type_class": "city",
+       "raw_actor_text": "Guest 55555555", "player_id": "55555555-5555-4555-8555-555555555555",
+       "game_player_id": "77777777-7777-4777-8777-777777777777", "payload": {"actor": "Guest 55555555"}},
+      {"event_order": 3002, "event_type": "tile_placed", "raw_line": "Someone placed Ocean tile at 12", "confidence_level": "high", "review_state": "not_required",
+       "event_identity": "tile:3002:placed:mars:12:ocean", "source_line_number": 3002, "source_space_id": "12",
+       "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+       "board_space": "12", "tile_type": "ocean", "tile_type_class": "ocean",
+       "raw_actor_text": "Unknown Actor", "payload": {"actor": "Unknown Actor"}},
+      {"event_order": 3003, "event_type": "tile_placed", "raw_line": "Greenery replaced at 14", "confidence_level": "medium", "review_state": "not_required",
+       "event_identity": "tile:3003:replaced:mars:14:greenery", "source_line_number": 3003, "source_space_id": "14",
+       "placement_action": "replaced", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unowned",
+       "board_space": "14", "tile_type": "greenery", "tile_type_class": "greenery", "payload": {}},
+      {"event_order": 3004, "event_type": "tile_placed", "raw_line": "Special converted at 15", "confidence_level": "medium", "review_state": "not_required",
+       "event_identity": "tile:3004:converted:mars:15:special", "source_line_number": 3004, "source_space_id": "15",
+       "placement_action": "converted", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "neutral",
+       "board_space": "15", "tile_type": "mining_rights", "tile_type_class": "special", "payload": {}},
+      {"event_order": 3005, "event_type": "tile_placed", "raw_line": "Ownership changed at 16", "confidence_level": "low", "review_state": "needs_review",
+       "event_identity": "tile:3005:ownership_changed:mars:16:city", "source_line_number": 3005, "source_space_id": "16",
+       "placement_action": "ownership_changed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "explicit_owner",
+       "owner_player_id": "55555555-5555-4555-8555-555555555555", "owner_game_player_id": "77777777-7777-4777-8777-777777777777",
+       "board_space": "16", "tile_type": "city", "tile_type_class": "city", "payload": {}},
+      {"event_order": 3006, "event_type": "tile_placed", "raw_line": "Future Tile at 17", "confidence_level": "low", "review_state": "needs_review",
+       "event_identity": "tile:3006:unresolved:mars:17:future_tile", "source_line_number": 3006, "source_space_id": "17",
+       "placement_action": "unresolved", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unresolved",
+       "board_space": "17", "tile_type": "Future Tile", "tile_type_class": "unresolved", "payload": {"is_known_tile_type": false}},
+      {"event_order": 3007, "event_type": "tile_removed", "raw_line": "Ocean removed at 12", "confidence_level": "high", "review_state": "not_required",
+       "event_identity": "tile:3007:removed:mars:12:ocean", "source_line_number": 3007, "source_space_id": "12",
+       "placement_action": "removed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "not_applicable",
+       "board_space": "12", "tile_type": "ocean", "tile_type_class": "ocean", "payload": {}},
+      {"event_order": 3008, "event_type": "tile_placed", "raw_line": "Ocean placed at 12 again", "confidence_level": "high", "review_state": "not_required",
+       "event_identity": "tile:3008:placed:mars:12:ocean", "source_line_number": 3008, "source_space_id": "12",
+       "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+       "board_space": "12", "tile_type": "ocean", "tile_type_class": "ocean", "payload": {}},
+      {"event_order": 3009, "event_type": "tile_placed", "raw_line": "Moon mine placed at m07", "confidence_level": "high", "review_state": "not_required",
+       "event_identity": "tile:3009:placed:moon:m07:moon_mine", "source_line_number": 3009, "source_space_id": "m07",
+       "placement_action": "placed", "placement_board": "moon", "placement_format": "flat-id", "ownership_state": "unknown",
+       "board_space": "m07", "tile_type": "moon_mine", "tile_type_class": "special", "payload": {}}
+    ]'::jsonb
+  );
+  reset role;
+end $$;
+
+do $$
+declare v_row record; n int;
+begin
+  -- Grid coordinates, attribution, actor text, and class survive verbatim.
+  select board_row, board_position, game_player_id, player_id, raw_actor_text, tile_type_class
+  into v_row
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444' and event_order = 3001;
+  if v_row.board_row <> 5 or v_row.board_position <> 3
+     or v_row.game_player_id <> '77777777-7777-4777-8777-777777777777'
+     or v_row.player_id <> '55555555-5555-4555-8555-555555555555'
+     or v_row.raw_actor_text <> 'Guest 55555555'
+     or v_row.tile_type_class <> 'city' then
+    raise exception 'ASSERT FAIL L1a: attributed grid placement did not persist verbatim';
+  end if;
+
+  -- Unattributed actor: raw text preserved, no player fabricated.
+  select player_id, game_player_id, raw_actor_text into v_row
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444' and event_order = 3002;
+  if v_row.player_id is not null or v_row.game_player_id is not null
+     or v_row.raw_actor_text <> 'Unknown Actor' then
+    raise exception 'ASSERT FAIL L1b: unattributed actor was altered';
+  end if;
+
+  -- Every extended action and ownership value persisted.
+  select count(*) into n
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444'
+    and event_order between 3001 and 3009;
+  if n <> 9 then
+    raise exception 'ASSERT FAIL L1c: expected 9 placement rows, got %', n;
+  end if;
+  select count(distinct placement_action) into n
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444'
+    and event_order between 3001 and 3009;
+  if n <> 6 then
+    raise exception 'ASSERT FAIL L1d: expected all 6 placement actions, got %', n;
+  end if;
+
+  -- Explicit-owner evidence carries both owner identifiers.
+  select owner_player_id, owner_game_player_id into v_row
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444' and event_order = 3005;
+  if v_row.owner_player_id is null or v_row.owner_game_player_id is null then
+    raise exception 'ASSERT FAIL L1e: explicit_owner row lost its owner identifiers';
+  end if;
+
+  -- The legitimate repeated placement kept both rows with distinct identities.
+  select count(*) into n
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444'
+    and board_space = '12' and event_type = 'tile_placed';
+  if n <> 2 then
+    raise exception 'ASSERT FAIL L1f: expected 2 repeated placements on space 12, got %', n;
+  end if;
+end $$;
+
+-- L2: retrying the same payload is idempotent (same rows, same values).
+do $$
+declare n int; v_payload jsonb;
+begin
+  -- Rebuild the identical payload from the persisted rows first (as the
+  -- test superuser — payload construction is plumbing, the retry through
+  -- the RPC as an authenticated editor is the behavior under test).
+  select
+    (select jsonb_agg(jsonb_build_object(
+        'event_order', gle.event_order,
+        'event_type', gle.event_type,
+        'raw_line', gle.raw_line,
+        'confidence_level', gle.confidence_level,
+        'review_state', gle.review_state,
+        'event_identity', gle.event_identity,
+        'source_line_number', gle.source_line_number,
+        'source_space_id', gle.source_space_id,
+        'placement_action', gle.placement_action,
+        'placement_board', gle.placement_board,
+        'placement_format', gle.placement_format,
+        'ownership_state', gle.ownership_state,
+        'owner_player_id', gle.owner_player_id,
+        'owner_game_player_id', gle.owner_game_player_id,
+        'board_space', gle.board_space,
+        'board_row', gle.board_row,
+        'board_position', gle.board_position,
+        'tile_type', gle.tile_type,
+        'tile_type_class', gle.tile_type_class,
+        'raw_actor_text', gle.raw_actor_text,
+        'player_id', gle.player_id,
+        'game_player_id', gle.game_player_id,
+        'payload', gle.payload))
+     from public.game_log_events gle
+     where gle.game_log_import_id = '44444444-4444-4444-8444-444444444444')
+  into v_payload;
+
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  perform public.replace_game_log_events(
+    '44444444-4444-4444-8444-444444444444',
+    v_payload
+  );
+  reset role;
+  select count(*) into n
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444'
+    and event_order between 3001 and 3009;
+  if n <> 9 then
+    raise exception 'ASSERT FAIL L2: retry changed the placement row count to %', n;
+  end if;
+end $$;
+
+-- L3: owner identifiers without explicit_owner evidence are rejected.
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 3101, "event_type": "tile_placed", "raw_line": "x", "confidence_level": "high",
+         "event_identity": "tile:3101:placed:mars:20:city", "source_line_number": 3101, "source_space_id": "20",
+         "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+         "owner_player_id": "55555555-5555-4555-8555-555555555555",
+         "board_space": "20", "tile_type": "city", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL L3: owner id accepted without explicit_owner evidence';
+  exception when check_violation then null; end;
+  reset role;
+end $$;
+
+-- L4: a game-player row from a different game is rejected.
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 3102, "event_type": "tile_placed", "raw_line": "x", "confidence_level": "high",
+         "event_identity": "tile:3102:placed:mars:21:city", "source_line_number": 3102, "source_space_id": "21",
+         "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+         "player_id": "55555555-5555-4555-8555-555555555555",
+         "game_player_id": "99999999-8888-4888-8888-999999999999",
+         "board_space": "21", "tile_type": "city", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL L4: cross-game game-player accepted';
+  exception when foreign_key_violation then null; end;
+  reset role;
+end $$;
+
+-- L5: board-layout contract — Mars spaces outside 03..63 and malformed Moon
+-- spaces are rejected.
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 3103, "event_type": "tile_placed", "raw_line": "x", "confidence_level": "high",
+         "event_identity": "tile:3103:placed:mars:99:city", "source_line_number": 3103, "source_space_id": "99",
+         "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+         "board_space": "99", "tile_type": "city", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL L5a: off-board Mars space 99 accepted';
+  exception when check_violation then null; end;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 3104, "event_type": "tile_placed", "raw_line": "x", "confidence_level": "high",
+         "event_identity": "tile:3104:placed:moon:zz9:mine", "source_line_number": 3104, "source_space_id": "zz9",
+         "placement_action": "placed", "placement_board": "moon", "placement_format": "flat-id", "ownership_state": "unknown",
+         "board_space": "zz9", "tile_type": "moon_mine", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL L5b: malformed Moon space accepted';
+  exception when check_violation then null; end;
+  reset role;
+end $$;
+
+-- L6: duplicate placement identities within one payload are rejected.
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 3105, "event_type": "tile_placed", "raw_line": "x", "confidence_level": "high",
+         "event_identity": "tile:dup:placed:mars:22:city", "source_line_number": 3105, "source_space_id": "22",
+         "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+         "board_space": "22", "tile_type": "city", "payload": {}},
+        {"event_order": 3106, "event_type": "tile_placed", "raw_line": "y", "confidence_level": "high",
+         "event_identity": "tile:dup:placed:mars:22:city", "source_line_number": 3106, "source_space_id": "22",
+         "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+         "board_space": "22", "tile_type": "city", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL L6: duplicate placement identities accepted';
+  exception when unique_violation then null; end;
+  reset role;
+end $$;
+
+-- L7: out-of-vocabulary action, ownership, and tile class are rejected.
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 3107, "event_type": "tile_placed", "raw_line": "x", "confidence_level": "high",
+         "event_identity": "tile:3107:teleported:mars:23:city", "source_line_number": 3107, "source_space_id": "23",
+         "placement_action": "teleported", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+         "board_space": "23", "tile_type": "city", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL L7a: unsupported placement action accepted';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 3108, "event_type": "tile_placed", "raw_line": "x", "confidence_level": "high",
+         "event_identity": "tile:3108:placed:mars:23:city", "source_line_number": 3108, "source_space_id": "23",
+         "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "stolen",
+         "board_space": "23", "tile_type": "city", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL L7b: unsupported ownership state accepted';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 3109, "event_type": "tile_placed", "raw_line": "x", "confidence_level": "high",
+         "event_identity": "tile:3109:placed:mars:23:city", "source_line_number": 3109, "source_space_id": "23",
+         "placement_action": "placed", "placement_board": "mars", "placement_format": "flat-id", "ownership_state": "unknown",
+         "board_space": "23", "tile_type": "city", "tile_type_class": "volcano", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL L7c: unsupported tile class accepted';
+  exception when invalid_parameter_value then null; end;
+  reset role;
+end $$;
+
 select 'ALL_ASSERTIONS_PASSED' as result;

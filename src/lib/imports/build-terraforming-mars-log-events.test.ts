@@ -244,6 +244,89 @@ describe('buildTerraformingMarsLogEvents', () => {
     expect(unresolved.ownership_state).toBe('unknown');
   });
 
+  it('emits first-class actor text, tile class, and optional game-player attribution', () => {
+    const exportedLogText = [
+      'Generation 2',
+      'Alice placed greenery tile on row 4 position 2',
+      'Bob placed Unreleased Future Tile tile at 09',
+    ].join('\n');
+    const tileActions = parseTerraformingMarsTileActions(exportedLogText).actions;
+    const result = buildTerraformingMarsLogEvents({
+      exportedLogText,
+      gamePlayerIdByPlayerId: new Map([['player-alice', 'game-player-alice']]),
+      mapId: MAP_ID,
+      objectiveEvidence: [],
+      playedEntityEvidence: [],
+      playerResolutions: [
+        { selectedPlayerId: 'player-alice', sourcePlayerText: 'Alice' },
+        { selectedPlayerId: 'player-bob', sourcePlayerText: 'Bob' },
+      ],
+      tileActions,
+    });
+    const [, greenery, unknownTile] = result.events;
+
+    // The verbatim actor is a first-class field, no longer only payload JSON,
+    // and exact game-participant evidence attaches the game-player row.
+    expect(greenery).toMatchObject({
+      game_player_id: 'game-player-alice',
+      player_id: 'player-alice',
+      raw_actor_text: 'Alice',
+      tile_type_class: 'greenery',
+    });
+
+    // A resolved player without participant evidence keeps a null
+    // game_player_id (never fabricated), and an unknown tile label is an
+    // explicitly unresolved class, not a guessed one.
+    expect(unknownTile).toMatchObject({
+      game_player_id: null,
+      player_id: 'player-bob',
+      raw_actor_text: 'Bob',
+      tile_type_class: 'unresolved',
+    });
+  });
+
+  it('records the verified exception card as the ocean placement source entity', () => {
+    const exportedLogText = [
+      'Generation 3',
+      'Alice placed ocean tile at 08',
+      'Bob placed ocean tile at 07',
+    ].join('\n');
+    const tileActions = parseTerraformingMarsTileActions(exportedLogText).actions;
+    const result = buildTerraformingMarsLogEvents({
+      exportedLogText,
+      mapId: MAP_ID,
+      objectiveEvidence: [],
+      offReserveOceanEvidence: {
+        exceptionSpaceIds: ['08'],
+        exceptions: [
+          {
+            cardId: 'card-artificial-lake',
+            cardLineNumber: 1,
+            normalizedActor: 'alice',
+            oceanLineNumber: 2,
+            spaceId: '08',
+          },
+        ],
+      },
+      playedEntityEvidence: [],
+      tileActions,
+    });
+    const oceans = result.events.filter(
+      (event) => event.event_type === 'tile_placed',
+    );
+
+    // Only the exception-linked ocean records its explicit source card; the
+    // ordinary ocean carries no source-entity claim.
+    expect(oceans[0]).toMatchObject({
+      board_space: '08',
+      source_entity: 'card-artificial-lake',
+    });
+    expect(oceans[1]).toMatchObject({
+      board_space: '07',
+      source_entity: null,
+    });
+  });
+
   it('produces deterministic, idempotent placement identities', () => {
     const exportedLogText = [
       'Generation 1',

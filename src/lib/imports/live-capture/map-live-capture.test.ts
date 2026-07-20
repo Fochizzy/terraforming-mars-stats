@@ -323,6 +323,68 @@ describe('legacy import mapping', () => {
     });
   });
 
+  it('maps the extended placement vocabulary and prefers first-class actor and class columns', () => {
+    const { issues, placements } = mapLegacyPlacements([
+      legacyEventRow({
+        board_space: '30',
+        event_identity: 'tile:7:replaced:mars:30:greenery',
+        event_order: 7,
+        event_type: 'tile_placed',
+        ownership_state: 'unowned',
+        payload: { actor: 'Stale Payload Actor' },
+        placement_action: 'replaced',
+        placement_board: 'mars',
+        placement_format: 'flat-id',
+        raw_actor_text: 'Column Actor',
+        tile_type: 'greenery',
+        tile_type_class: 'greenery',
+      }),
+      legacyEventRow({
+        board_space: '31',
+        event_identity: 'tile:8:ownership_changed:mars:31:city',
+        event_order: 8,
+        event_type: 'tile_placed',
+        ownership_state: 'neutral',
+        placement_action: 'ownership_changed',
+        placement_board: 'mars',
+        placement_format: 'flat-id',
+        tile_type: 'city',
+      }),
+      legacyEventRow({
+        board_space: '32',
+        event_identity: 'tile:9:unresolved:mars:32:future',
+        event_order: 9,
+        event_type: 'tile_placed',
+        ownership_state: 'unresolved',
+        placement_action: 'unresolved',
+        placement_board: 'mars',
+        placement_format: 'flat-id',
+        tile_type: 'Future Tile',
+        tile_type_class: 'unresolved',
+      }),
+    ]);
+    expect(issues).toEqual([]);
+    // The stored action column is authoritative; the first-class actor and
+    // class columns win over the payload copy; rows without the gated
+    // columns keep honest nulls.
+    expect(placements[0]).toMatchObject({
+      ownershipState: 'unowned',
+      placementAction: 'replace',
+      rawActorText: 'Column Actor',
+      tileTypeClass: 'greenery',
+    });
+    expect(placements[1]).toMatchObject({
+      ownershipState: 'neutral',
+      placementAction: 'ownership_change',
+      tileTypeClass: null,
+    });
+    expect(placements[2]).toMatchObject({
+      ownershipState: 'unresolved',
+      placementAction: 'unresolved',
+      tileTypeClass: 'unresolved',
+    });
+  });
+
   it('surfaces the persisted original-source identity and never invents one for older imports', () => {
     const base = {
       confidence_summary: null,
