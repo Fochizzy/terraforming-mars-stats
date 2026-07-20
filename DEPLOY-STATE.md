@@ -9,8 +9,8 @@ what.
 
 | | |
 |---|---|
-| Worker version | `5d290811-df66-424e-b1a0-e276d686044b` |
-| Source commit | `48ebf13e6` |
+| Worker version | `501d18ef-fea8-46ce-ba4a-7f7278945995` |
+| Source commit | `3a8664e7b` |
 | Source branch | `fix/live-42501-on-capture-v2` (off `data-capture-hardening-v2` @ `64918663a`) |
 | Built | 2026-07-20 01:47 UTC |
 | Deploy lock | Izzy |
@@ -53,7 +53,8 @@ build. Fill the commit in above on every deploy so nobody repeats that.
 | 07-20 01:47 | `219cacee` | `32c381c22` | 42501 fixes on the correct base. Superseded 30s later. |
 | 07-20 01:47 | `0732bd81` | `32c381c22` | Same code + pinned Server Actions key. |
 | 07-20 02:2x | `ffd765de` | `7972608f8` | Server-side import name matching. |
-| 07-20 02:5x | `5d290811` | `48ebf13e6` | Card-type filter fix (project deck). **Current.** |
+| 07-20 02:5x | `5d290811` | `48ebf13e6` | Card-type filter fix (project deck). |
+| 07-20 03:1x | `501d18ef` | `3a8664e7b` | Page card reads past the 1000-row cap. **Current.** |
 
 The three regressed deploys were built on `tm-stats-app`, which predates
 migration `20260718041532 remove_game_expansion_tracking`. They threw
