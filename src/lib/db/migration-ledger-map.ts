@@ -36,6 +36,10 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   '20260718154932', '20260718181600', '20260718200536', '20260718212722',
   '20260718234835', '20260719132042', '20260719191911', '20260719192054',
   '20260719192148', '20260719203944', '20260719204250', '20260719205420',
+  // Applied from the live-site session, no repo file: created the
+  // SECURITY DEFINER RPC public.match_import_player_names. Repo file
+  // 20260720120000 coarsens its disclosed match classification.
+  '20260720021300',
 ];
 
 /**
@@ -91,4 +95,7 @@ export const GATED_UNAPPLIED: readonly string[] = [
   '20260719234500',
   '20260720100000',
   '20260720110000',
+  // Pairs with the live-site reader move off private personal-name columns.
+  // Must be applied only after a compatible reader is deployed and verified.
+  '20260720120000',
 ];

@@ -74,6 +74,14 @@ lock_down_public_backup_tables`, and the live-site release `20260719132042
 data_capture_hardening_v2`). The repo does not carry these files; the
 disposable harness does not need them for the redesign's objects.
 
+`20260720021300 add_import_player_name_matching_rpc` also belongs here. It
+was applied from the live-site session and created the SECURITY DEFINER
+function `public.match_import_player_names`, which restored server-side
+import name matching after the personal-name Data API revokes. It is
+production-only with no repo file. The gated repo file
+`20260720120000_coarsen_import_name_match_reasons` amends that deployed
+function rather than creating it.
+
 ### Prepared and NOT applied (gated)
 
 | Repo file | Purpose | Gate |
@@ -82,6 +90,7 @@ disposable harness does not need them for the redesign's objects.
 | `20260719234500_separate_event_confidence_from_review_state` | confidence/review split (repeat-safe) | per-mutation protocol; pre-apply gate includes verifying no deployed writer emits the retired `'reviewed'` confidence (expand/contract) |
 | `20260720100000_add_guest_identity_alias_source_control` | guest RPC alias-recording control | per-mutation protocol; required before the redesign's roster/manual guest paths ship |
 | `20260720110000_extend_canonical_board_placement_contract` | full placement contract | per-mutation protocol; expansion-only (widened CHECKs, new nullable columns, rebuilt RPC) |
+| `20260720120000_coarsen_import_name_match_reasons` | closes the private-name confirmation oracle in `match_import_player_names` | per-mutation protocol; **must ship with** the live-site reader move off `display_name`/`normalized_display_name`/`full_name`/private aliases (B-02 + H-01 as one expand/contract sequence) |
 
 ## Deployment rules
 
