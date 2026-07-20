@@ -66,8 +66,8 @@ export default async function ClaimPlayerPage({
                     : `Exact name match across ${exactMatches.length} groups`}
                 </p>
                 <ul className="tm-muted-copy mt-3 grid gap-1 text-sm">
-                  {exactMatches.map((candidate) => (
-                    <li key={candidate.playerId}>{candidate.groupName}</li>
+                  {exactMatches.map((candidate, index) => (
+                    <li key={candidate.playerId}>{`Group ${index + 1}`}</li>
                   ))}
                 </ul>
                 <form action={handleClaimAll} className="mt-4">
@@ -83,13 +83,13 @@ export default async function ClaimPlayerPage({
               <div className="flex flex-col gap-3">
                 <p className="tm-data-label">Possible name matches</p>
                 <ul className="grid gap-3">
-                  {partialMatches.map((candidate) => (
+                  {partialMatches.map((candidate, index) => (
                     <li className="tm-stat-card" key={candidate.playerId}>
                       <p className="font-semibold text-stone-100">
                         {candidate.playerName}
                       </p>
                       <p className="tm-muted-copy mt-1 text-sm">
-                        {candidate.groupName}
+                        {`Group ${index + 1}`}
                       </p>
                       <form action={handleClaim} className="mt-4">
                         <input
