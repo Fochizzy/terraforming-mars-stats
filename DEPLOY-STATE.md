@@ -9,8 +9,8 @@ what.
 
 | | |
 |---|---|
-| Worker version | `501d18ef-fea8-46ce-ba4a-7f7278945995` |
-| Source commit | `3a8664e7b` |
+| Worker version | `39820427-0210-441e-9179-46fae2c94e84` |
+| Source commit | `c9eb1924a` |
 | Source branch | `fix/live-42501-on-capture-v2` (off `data-capture-hardening-v2` @ `64918663a`) |
 | Built | 2026-07-20 01:47 UTC |
 | Deploy lock | Izzy |
@@ -54,7 +54,17 @@ build. Fill the commit in above on every deploy so nobody repeats that.
 | 07-20 01:47 | `0732bd81` | `32c381c22` | Same code + pinned Server Actions key. |
 | 07-20 02:2x | `ffd765de` | `7972608f8` | Server-side import name matching. |
 | 07-20 02:5x | `5d290811` | `48ebf13e6` | Card-type filter fix (project deck). |
-| 07-20 03:1x | `501d18ef` | `3a8664e7b` | Page card reads past the 1000-row cap. **Current.** |
+| 07-20 03:1x | `501d18ef` | `3a8664e7b` | Page card reads past the 1000-row cap. |
+| 07-20 09:5x | `39820427` | `c9eb1924a` | Typed placement contract for tile events. **Current.** |
+
+**Do not re-add the `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` Worker secret from
+PowerShell.** Setting it on 07-20 stored a value that is not valid base64;
+wrangler reported success anyway. Next.js decodes that key while rendering
+Server Actions, so every authenticated render threw
+`InvalidCharacterError: atob() …` twice and Confirm silently did nothing. It was
+deleted; the build-time key from `.env.local` still pins actions across builds.
+If it is ever set again, write it from a shell that will not mangle stdin and
+then load an authenticated page and check `wrangler tail` before believing it.
 
 The three regressed deploys were built on `tm-stats-app`, which predates
 migration `20260718041532 remove_game_expansion_tracking`. They threw
