@@ -486,8 +486,6 @@ describe('finalizeGameLog', () => {
         insert: vi.fn().mockResolvedValue({ error: null }),
       })),
     };
-
-
     vi.mocked(createSupabaseServerClient)
       .mockResolvedValueOnce(finalClient as never)
       .mockResolvedValueOnce(shellClient as never)
@@ -650,7 +648,6 @@ describe('finalizeGameLog', () => {
         throw new Error(`Unexpected revision table ${table}`);
       }),
     };
-
     vi.mocked(createSupabaseServerClient)
       .mockResolvedValueOnce(finalClient as never)
       .mockResolvedValueOnce(shellClient as never)
@@ -932,8 +929,8 @@ describe('listSavedGames', () => {
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
       rpc: vi.fn().mockResolvedValue({
         data: [
-          { player_id: 'player-1', username: 'FridayMars' },
-          { player_id: 'player-2', username: 'Izzy' },
+          { is_linked: true, player_id: 'player-1', public_name: 'FridayMars' },
+          { is_linked: true, player_id: 'player-2', public_name: 'Izzy' },
         ],
         error: null,
       }),
@@ -1070,8 +1067,8 @@ describe('listSavedGames', () => {
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
       rpc: vi.fn().mockResolvedValue({
         data: [
-          { player_id: 'player-1', username: 'FridayMars' },
-          { player_id: 'player-2', username: 'Sam' },
+          { is_linked: true, player_id: 'player-1', public_name: 'FridayMars' },
+          { is_linked: true, player_id: 'player-2', public_name: 'Sam' },
         ],
         error: null,
       }),

@@ -1,15 +1,23 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
-import { personLabel } from '@/lib/people/person-label';
-import { fetchUsernamesByPlayerId } from './player-label-resolution';
+import { matchImportPlayerNames } from './import-player-resolution-repo';
+import { fetchPublicPlayerLabels } from './player-label-resolution';
 
 export type PlayerRow = {
-  claim_name?: string;
   id: string;
+  /**
+   * The privacy-safe public label: the linked account's username, or the
+   * stable neutral guest label. Never a raw roster/personal name. For rows
+   * returned by `createPlayerIfMissing` this echoes the requested name the
+   * caller just supplied; use `listPlayers` when rendering a roster.
+   */
   display_name: string;
-  full_name?: string | null;
   linked_user_id?: string | null;
-  username?: string | null;
+};
+
+type PlayerIdRow = {
+  id: string;
+  linked_user_id: string | null;
 };
 
 function normalizeOptionalText(value: string | null | undefined) {
@@ -17,33 +25,95 @@ function normalizeOptionalText(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
-export async function listPlayers(groupId: string) {
+/** Postgres/PostgREST insufficient_privilege. */
+function isInsufficientPrivilegeError(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === '42501'
+  );
+}
+
+export async function listPlayers(groupId: string): Promise<PlayerRow[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id')
+    .select('id, linked_user_id')
     .eq('group_id', groupId)
-    .order('display_name');
+    .order('created_at');
 
   if (error) {
     throw error;
   }
 
-  const rows = (data ?? []) as PlayerRow[];
-  const usernameByPlayerId = await fetchUsernamesByPlayerId(
+  const rows = (data ?? []) as PlayerIdRow[];
+  const labelByPlayerId = await fetchPublicPlayerLabels(
     supabase,
     rows.map((player) => player.id),
   );
 
-  return rows.map((player) => ({
-    ...player,
-    // Retained only for server-side claim matching; never render this value.
-    claim_name: player.display_name,
-    display_name: personLabel({
-      username: usernameByPlayerId.get(player.id),
-      displayName: player.display_name,
-    }),
-  }));
+  // Explicit field picks, not a spread: nothing beyond the id, the linkage,
+  // and the resolved public label can ever ride along into a roster payload.
+  return rows
+    .map((player) => ({
+      display_name: labelByPlayerId.get(player.id)?.publicName ?? 'Player',
+      id: player.id,
+      linked_user_id: player.linked_user_id,
+    }))
+    .sort((left, right) => left.display_name.localeCompare(right.display_name));
+}
+
+/**
+ * Find the roster row a typed display name refers to, in a way that works both
+ * while `players.normalized_display_name` is still directly readable and after
+ * it is restricted like `full_name` / `username` already are.
+ *
+ * The direct normalized-equality probe is authoritative while it is permitted.
+ * Once it returns `insufficient_privilege`, matching falls back to the
+ * security-definer name matcher, accepting only an exact match that belongs to
+ * this group's roster — a cross-group exact match is not this roster's player
+ * and must not suppress creation here.
+ */
+async function findRosterPlayerByDisplayName(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  groupId: string,
+  displayName: string,
+): Promise<PlayerIdRow | null> {
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, linked_user_id')
+    .eq('group_id', groupId)
+    .eq('normalized_display_name', normalizePlayerAlias(displayName))
+    .maybeSingle();
+
+  if (!error) {
+    return (data as PlayerIdRow | null) ?? null;
+  }
+
+  if (!isInsufficientPrivilegeError(error)) {
+    throw error;
+  }
+
+  const matches = await matchImportPlayerNames(groupId, [displayName]);
+  const exactMatch = matches.find((match) => match.matchReason === 'exact');
+
+  if (!exactMatch) {
+    return null;
+  }
+
+  const { data: groupPlayer, error: groupPlayerError } = await supabase
+    .from('players')
+    .select('id, linked_user_id')
+    .eq('group_id', groupId)
+    .eq('id', exactMatch.playerId)
+    .maybeSingle();
+
+  if (groupPlayerError) {
+    throw groupPlayerError;
+  }
+
+  return (groupPlayer as PlayerIdRow | null) ?? null;
 }
 
 export async function createPlayerIfMissing(input: {
@@ -52,22 +122,16 @@ export async function createPlayerIfMissing(input: {
   groupId: string;
   linkedUserId?: string | null;
   username?: string | null;
-}) {
+}): Promise<PlayerRow> {
   const supabase = await createSupabaseServerClient();
-  const normalizedDisplayName = normalizePlayerAlias(input.displayName);
-  const { data: existingPlayer, error: existingPlayerError } = await supabase
-    .from('players')
-    .select('id, display_name, linked_user_id')
-    .eq('group_id', input.groupId)
-    .eq('normalized_display_name', normalizedDisplayName)
-    .maybeSingle();
-
-  if (existingPlayerError) {
-    throw existingPlayerError;
-  }
+  const existingPlayer = await findRosterPlayerByDisplayName(
+    supabase,
+    input.groupId,
+    input.displayName,
+  );
 
   if (existingPlayer) {
-    return existingPlayer;
+    return { ...existingPlayer, display_name: input.displayName };
   }
 
   const { data, error } = await supabase
@@ -79,29 +143,24 @@ export async function createPlayerIfMissing(input: {
       linked_user_id: input.linkedUserId ?? null,
       username: normalizeOptionalText(input.username),
     })
-    .select('id, display_name, linked_user_id')
+    .select('id, linked_user_id')
     .single();
 
   if (!error) {
-    return data;
+    return { ...(data as PlayerIdRow), display_name: input.displayName };
   }
 
-  const { data: retryPlayer, error: retryPlayerError } = await supabase
-    .from('players')
-    .select('id, display_name, linked_user_id')
-    .eq('group_id', input.groupId)
-    .eq('normalized_display_name', normalizedDisplayName)
-    .maybeSingle();
-
-  if (retryPlayerError) {
-    throw retryPlayerError;
-  }
+  const retryPlayer = await findRosterPlayerByDisplayName(
+    supabase,
+    input.groupId,
+    input.displayName,
+  );
 
   if (!retryPlayer) {
     throw error;
   }
 
-  return retryPlayer;
+  return { ...retryPlayer, display_name: input.displayName };
 }
 
 /**
@@ -139,7 +198,7 @@ export async function linkPlayerToUser(input: {
   const supabase = await createSupabaseServerClient();
   const { data: targetPlayer, error: targetPlayerError } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id')
+    .select('id, linked_user_id')
     .eq('group_id', input.groupId)
     .eq('id', input.playerId)
     .maybeSingle();
@@ -160,7 +219,7 @@ export async function linkPlayerToUser(input: {
   }
 
   if (targetPlayer.linked_user_id === input.userId) {
-    return targetPlayer;
+    return targetPlayer as PlayerIdRow;
   }
 
   const { error: clearExistingLinkError } = await supabase
@@ -178,32 +237,12 @@ export async function linkPlayerToUser(input: {
     .update({ linked_user_id: input.userId })
     .eq('group_id', input.groupId)
     .eq('id', input.playerId)
-    .select('id, display_name, linked_user_id')
+    .select('id, linked_user_id')
     .single();
 
   if (error) {
     throw error;
   }
 
-  return data;
-}
-
-export async function upsertPlayer(input: {
-  id?: string;
-  group_id: string;
-  display_name: string;
-  linked_user_id?: string | null;
-}) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('players')
-    .upsert(input)
-    .select('id, display_name')
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return data as PlayerIdRow;
 }

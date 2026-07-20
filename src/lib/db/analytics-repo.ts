@@ -15,6 +15,7 @@ import {
 } from '@/lib/db/overall-analytics-aggregators';
 import {
   buildAnalyticsPlayerLabelMap,
+  fetchPublicPlayerLabels,
   fetchUsernamesByPlayerId,
   resolvePlayerLabelsInRows,
 } from '@/lib/db/player-label-resolution';
@@ -1085,7 +1086,7 @@ async function normalizeGlobalTerraformingShareMetrics(
 
   const { data: players, error } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id, normalized_display_name')
+    .select('id, linked_user_id')
     .in('id', playerIds);
 
   if (error) {
@@ -1547,10 +1548,8 @@ type RawSharedGameResultRow = RawFocusGameResultRow & {
 };
 
 type PlayerIdentityRow = {
-  display_name: string;
   id: string;
   linked_user_id: null | string;
-  normalized_display_name: null | string;
 };
 
 function mapFocusGameResultRow(row: RawFocusGameResultRow): FocusGameResultRow {
@@ -1583,34 +1582,51 @@ function focusRowToTrendRow(row: FocusGameResultRow): TrendRow {
   };
 }
 
+/**
+ * The cross-group identity of a person. A linked account is one person across
+ * all of their roster rows; an unlinked guest is one person per roster row.
+ *
+ * Guests were previously collapsed across groups by normalized display name.
+ * That key is private personal-name data, so it is no longer read; keying
+ * guests by their roster row matches the convention the import candidate pool
+ * already uses (`player:{id}`).
+ */
 function canonicalPersonId(identity: {
-  display_name: string;
+  id: string;
   linked_user_id: null | string;
-  normalized_display_name: null | string;
 }) {
   if (identity.linked_user_id) {
     return `user:${identity.linked_user_id}`;
   }
 
-  const name = (identity.normalized_display_name ?? identity.display_name).trim().toLowerCase();
-
-  return `name:${name}`;
+  return `player:${identity.id}`;
 }
 
 async function getLinkedPlayers(userId: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('players')
-    .select('id, display_name, group_id')
+    .select('id, group_id')
     .eq('linked_user_id', userId)
-    .order('created_at', { ascending: true })
-    .order('display_name', { ascending: true });
+    .order('created_at', { ascending: true });
 
   if (error) {
     throw error;
   }
 
-  return (data ?? []) as LinkedPlayerRow[];
+  const rows = (data ?? []) as Array<{ group_id: string | null; id: string }>;
+  const labelByPlayerId = await fetchPublicPlayerLabels(
+    supabase,
+    rows.map((row) => row.id),
+  );
+
+  // Explicit field picks, not a spread: only the id, group, and public label
+  // can travel into profile payloads.
+  return rows.map((row) => ({
+    display_name: labelByPlayerId.get(row.id)?.publicName ?? 'Player',
+    group_id: row.group_id,
+    id: row.id,
+  })) satisfies LinkedPlayerRow[];
 }
 
 function resolveProfileLabel(
@@ -5901,7 +5917,7 @@ export async function getCrossGroupFocusData(
   if (participantIds.length > 0) {
     const { data: participants, error: participantsError } = await supabase
       .from('players')
-      .select('id, display_name, linked_user_id, normalized_display_name')
+      .select('id, linked_user_id')
       .in('id', participantIds);
 
     if (participantsError) {
@@ -6323,7 +6339,7 @@ export async function getOverallAnalytics(
 
   const { data: players, error: playersError } = await supabase
     .from('players')
-    .select('id, display_name, linked_user_id, normalized_display_name')
+    .select('id, linked_user_id')
     .in('group_id', groupIds);
 
   if (playersError) {

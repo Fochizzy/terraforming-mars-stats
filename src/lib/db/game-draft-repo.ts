@@ -3,7 +3,7 @@ import type { FinalizedGamePayload } from '@/features/games/finalize-game';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
 import { getServerEnv } from '@/lib/env';
 import { personLabel } from '@/lib/people/person-label';
-import { resolvePlayerLabelsInRows } from './player-label-resolution';
+import { fetchPublicPlayerLabels } from './player-label-resolution';
 import { refreshGameMechanicCaptureForFinalizedGame } from './game-mechanic-capture-repo';
 
 type SavedGameStatus = 'draft' | 'finalized';
@@ -25,11 +25,6 @@ type GameRevisionRow = {
   created_at: string;
   game_id: string;
   snapshot: unknown;
-};
-
-type PlayerNameRow = {
-  display_name: string;
-  id: string;
 };
 
 type LegacyImportEvidenceRow = {
@@ -363,7 +358,7 @@ export async function listSavedGames(payload: {
 
   const playersQuery = supabase
     .from('players')
-    .select('id, display_name');
+    .select('id');
   const { data: players, error: playersError } =
     groupIds.length === 1
       ? await playersQuery.eq('group_id', groupIds[0])
@@ -381,13 +376,15 @@ export async function listSavedGames(payload: {
     }
   }
 
-  const labeledPlayers = await resolvePlayerLabelsInRows(
+  const playerLabelById = await fetchPublicPlayerLabels(
     supabase,
-    (players ?? []) as PlayerNameRow[],
-    [['id', 'display_name']],
+    ((players ?? []) as Array<{ id: string }>).map((player) => player.id),
   );
   const playerNameById = new Map(
-    labeledPlayers.map((player) => [player.id, player.display_name]),
+    [...playerLabelById].map(([playerId, label]) => [
+      playerId,
+      label.publicName,
+    ]),
   );
 
   return savedGames.map((game) => {

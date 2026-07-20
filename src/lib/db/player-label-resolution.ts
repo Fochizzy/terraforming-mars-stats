@@ -43,6 +43,49 @@ export async function fetchUsernamesByPlayerId(
   return usernameById;
 }
 
+export type PublicPlayerLabel = {
+  isLinked: boolean;
+  publicName: string;
+};
+
+/**
+ * Batch-resolve `players.id -> public label` through `get_public_player_names`:
+ * a linked account resolves to its username, an unlinked guest to its stable
+ * neutral label. This is the only sanctioned way to label a roster player —
+ * it never reads `players.display_name` (which may hold a guest's personal
+ * name), so it keeps working after the display columns are restricted.
+ */
+export async function fetchPublicPlayerLabels(
+  supabase: RpcCapableClient,
+  playerIds: string[],
+): Promise<Map<string, PublicPlayerLabel>> {
+  const uniqueIds = [...new Set(playerIds.filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return new Map();
+  }
+
+  const { data, error } = await supabase.rpc('get_public_player_names', {
+    p_player_ids: uniqueIds,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const labelById = new Map<string, PublicPlayerLabel>();
+  for (const row of (data ?? []) as Array<{
+    is_linked: boolean;
+    player_id: string;
+    public_name: string | null;
+  }>) {
+    labelById.set(row.player_id, {
+      isLinked: row.is_linked,
+      publicName: row.public_name?.trim() || 'Player',
+    });
+  }
+  return labelById;
+}
+
 export function buildAnalyticsPlayerLabelMap(
   playerIds: string[],
   usernameById: Map<string, string>,

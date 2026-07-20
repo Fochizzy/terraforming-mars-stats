@@ -91,6 +91,7 @@ describe('resolveLogGamePlayerReferences', () => {
       }), {
         createPlayerIfMissing,
         listPlayers,
+        matchImportPlayerNames: vi.fn().mockResolvedValue([]),
       }),
     ).resolves.toMatchObject({
       playerScores: {
@@ -126,7 +127,11 @@ describe('resolveLogGamePlayerReferences', () => {
     await expect(
       resolveLogGamePlayerReferences(
         buildDraft({ selectedPlayerIds: ['Revloki'] }),
-        { createPlayerIfMissing, listPlayers },
+        {
+          createPlayerIfMissing,
+          listPlayers,
+          matchImportPlayerNames: vi.fn().mockResolvedValue([]),
+        },
       ),
     ).resolves.toMatchObject({
       selectedPlayerIds: ['player-revloki'],
@@ -156,5 +161,67 @@ describe('resolveLogGamePlayerReferences', () => {
     });
 
     expect(createPlayerIfMissing).not.toHaveBeenCalled();
+  });
+
+  it('resolves a typed roster name through the server matcher when labels hide it', async () => {
+    // The roster shows a neutral guest label, so the typed real name cannot be
+    // matched against what the client sees. The security-definer matcher still
+    // recognizes it and points at the existing roster row.
+    const createPlayerIfMissing = vi.fn();
+    const listPlayers = vi.fn().mockResolvedValue([
+      { display_name: 'Guest 5F2A', id: 'player-guest', linked_user_id: null },
+    ]);
+    const matchImportPlayerNames = vi.fn().mockResolvedValue([
+      {
+        importedName: 'Jenna Kass',
+        matchReason: 'exact',
+        playerId: 'player-guest',
+        publicName: 'Guest 5F2A',
+      },
+    ]);
+
+    await expect(
+      resolveLogGamePlayerReferences(
+        buildDraft({ selectedPlayerIds: ['Jenna Kass'] }),
+        { createPlayerIfMissing, listPlayers, matchImportPlayerNames },
+      ),
+    ).resolves.toMatchObject({
+      selectedPlayerIds: ['player-guest'],
+    });
+
+    expect(matchImportPlayerNames).toHaveBeenCalledWith(
+      '11111111-1111-4111-8111-111111111111',
+      ['Jenna Kass'],
+    );
+    expect(createPlayerIfMissing).not.toHaveBeenCalled();
+  });
+
+  it('ignores a cross-group server match and creates the roster player instead', async () => {
+    const createPlayerIfMissing = vi.fn().mockResolvedValue({
+      display_name: 'Jenna Kass',
+      id: 'player-created',
+      linked_user_id: null,
+    });
+    const listPlayers = vi.fn().mockResolvedValue([]);
+    const matchImportPlayerNames = vi.fn().mockResolvedValue([
+      {
+        importedName: 'Jenna Kass',
+        // Exact, but for a player outside this group's roster.
+        matchReason: 'exact',
+        playerId: 'player-in-another-group',
+        publicName: 'Guest 77AA',
+      },
+    ]);
+
+    await expect(
+      resolveLogGamePlayerReferences(
+        buildDraft({ selectedPlayerIds: ['Jenna Kass'] }),
+        { createPlayerIfMissing, listPlayers, matchImportPlayerNames },
+      ),
+    ).resolves.toMatchObject({
+      selectedPlayerIds: ['player-created'],
+    });
+
+    expect(createPlayerIfMissing).toHaveBeenCalledTimes(1);
   });
 });

@@ -313,9 +313,7 @@ describe('getGlobalInsightMetrics', () => {
         totalActions: 119,
       },
     ]);
-    expect(playersSelect).toHaveBeenCalledWith(
-      'id, display_name, linked_user_id, normalized_display_name',
-    );
+    expect(playersSelect).toHaveBeenCalledWith('id, linked_user_id');
     expect(playersIn).toHaveBeenCalledWith('id', [
       'izzy-home',
       'izzy-weekend',
@@ -334,9 +332,7 @@ describe('getProfileAnalytics', () => {
       data: [{ display_name: 'Friday Mars', id: 'player-1' }],
       error: null,
     });
-    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
-      order: playersOrderByDisplayName,
-    });
+    const playersOrderByCreatedAt = playersOrderByDisplayName;
     const playersEqLinkedUserId = vi.fn().mockReturnValue({
       order: playersOrderByCreatedAt,
     });
@@ -357,7 +353,9 @@ describe('getProfileAnalytics', () => {
         data:
           fn === 'get_player_usernames'
             ? [{ player_id: 'player-1', username: 'friday' }]
-            : [],
+            : fn === 'get_public_player_names'
+              ? [{ is_linked: true, player_id: 'player-1', public_name: 'friday' }]
+              : [],
         error: null,
       })),
       from: vi.fn((table: string) => {
@@ -420,9 +418,7 @@ describe('getProfileAnalytics', () => {
       ],
       error: null,
     });
-    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
-      order: playersOrderByDisplayName,
-    });
+    const playersOrderByCreatedAt = playersOrderByDisplayName;
     const playersEqLinkedUserId = vi.fn().mockReturnValue({
       order: playersOrderByCreatedAt,
     });
@@ -443,7 +439,9 @@ describe('getProfileAnalytics', () => {
         data:
           fn === 'get_player_usernames'
             ? [{ player_id: 'player-2', username: 'weeknight' }]
-            : [],
+            : fn === 'get_public_player_names'
+              ? [{ is_linked: true, player_id: 'player-2', public_name: 'weeknight' }]
+              : [],
         error: null,
       })),
       from: vi.fn((table: string) => {
@@ -481,7 +479,7 @@ describe('getProfileAnalytics', () => {
       playerName: 'weeknight',
     });
 
-    expect(playersSelect).toHaveBeenCalledWith('id, display_name, group_id');
+    expect(playersSelect).toHaveBeenCalledWith('id, group_id');
     expect(analyticsIn).toHaveBeenCalledWith('player_id', ['player-2']);
   });
 
@@ -587,9 +585,7 @@ describe('getProfileAnalytics', () => {
       data: [{ display_name: 'Friday Mars', group_id: 'group-1', id: 'me-1' }],
       error: null,
     });
-    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
-      order: playersOrderByDisplayName,
-    });
+    const playersOrderByCreatedAt = playersOrderByDisplayName;
     const playersEqLinkedUserId = vi.fn().mockReturnValue({
       order: playersOrderByCreatedAt,
     });
@@ -600,7 +596,9 @@ describe('getProfileAnalytics', () => {
         data:
           fn === 'get_player_usernames'
             ? [{ player_id: 'me-1', username: 'Fochizzy' }]
-            : [],
+            : fn === 'get_public_player_names'
+              ? [{ is_linked: true, player_id: 'me-1', public_name: 'Fochizzy' }]
+              : [],
         error: null,
       })),
       from: vi.fn((table: string) => {
@@ -1001,9 +999,7 @@ describe('getProfileAnalytics', () => {
       data: [{ display_name: 'Friday Mars', group_id: 'group-1', id: 'me-1' }],
       error: null,
     });
-    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
-      order: playersOrderByDisplayName,
-    });
+    const playersOrderByCreatedAt = playersOrderByDisplayName;
     const playersEqLinkedUserId = vi.fn().mockReturnValue({
       order: playersOrderByCreatedAt,
     });
@@ -1024,7 +1020,9 @@ describe('getProfileAnalytics', () => {
         data:
           fn === 'get_player_usernames'
             ? [{ player_id: 'me-1', username: 'Fochizzy' }]
-            : [],
+            : fn === 'get_public_player_names'
+              ? [{ is_linked: true, player_id: 'me-1', public_name: 'Fochizzy' }]
+              : [],
         error: null,
       })),
       from: vi.fn((table: string) => {
@@ -1454,9 +1452,7 @@ describe('getProfileAnalytics', () => {
       data: [{ display_name: 'Friday Mars', group_id: 'group-1', id: 'me-1' }],
       error: null,
     });
-    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
-      order: playersOrderByDisplayName,
-    });
+    const playersOrderByCreatedAt = playersOrderByDisplayName;
     const playersEqLinkedUserId = vi.fn().mockReturnValue({
       order: playersOrderByCreatedAt,
     });
@@ -1629,9 +1625,7 @@ describe('getProfileAnalytics', () => {
       error: null,
     };
     const playersOrderByDisplayName = vi.fn().mockResolvedValue(linkedPlayersResult);
-    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
-      order: playersOrderByDisplayName,
-    });
+    const playersOrderByCreatedAt = playersOrderByDisplayName;
     const playersEqLinkedUserId = vi.fn().mockReturnValue({
       order: playersOrderByCreatedAt,
     });
@@ -1661,7 +1655,9 @@ describe('getProfileAnalytics', () => {
                 { player_id: 'corey-a', username: 'RevLoki' },
                 { player_id: 'corey-b', username: 'RevLoki' },
               ]
-            : [],
+            : fn === 'get_public_player_names'
+              ? [{ is_linked: true, player_id: 'me-1', public_name: 'Fochizzy' }, { is_linked: true, player_id: 'me-2', public_name: 'Fochizzy' }, { is_linked: true, player_id: 'corey-a', public_name: 'RevLoki' }, { is_linked: true, player_id: 'corey-b', public_name: 'RevLoki' }]
+              : [],
         error: null,
       })),
       from: vi.fn((table: string) => {
@@ -1831,9 +1827,7 @@ describe('getCrossGroupFocusData', () => {
       data: [{ display_name: 'Izzy Hodnett', group_id: 'group-1', id: 'izzy-1' }],
       error: null,
     });
-    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
-      order: playersOrderByDisplayName,
-    });
+    const playersOrderByCreatedAt = playersOrderByDisplayName;
     const playersEqLinkedUserId = vi.fn().mockReturnValue({
       order: playersOrderByCreatedAt,
     });
@@ -1873,7 +1867,9 @@ describe('getCrossGroupFocusData', () => {
                 { player_id: 'izzy-1', username: 'Fochizzy' },
                 { player_id: 'colette-1', username: 'ColetteUser' },
               ]
-            : [],
+            : fn === 'get_public_player_names'
+              ? [{ is_linked: true, player_id: 'izzy-1', public_name: 'Fochizzy' }, { is_linked: true, player_id: 'colette-1', public_name: 'ColetteUser' }]
+              : [],
         error: null,
       })),
       from: vi.fn((table: string) => {
@@ -1936,9 +1932,7 @@ describe('getCrossGroupFocusData', () => {
       data: [],
       error: null,
     });
-    const playersOrderByCreatedAt = vi.fn().mockReturnValue({
-      order: playersOrderByDisplayName,
-    });
+    const playersOrderByCreatedAt = playersOrderByDisplayName;
     const playersEqLinkedUserId = vi.fn().mockReturnValue({
       order: playersOrderByCreatedAt,
     });

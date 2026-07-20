@@ -5,16 +5,29 @@ import { PlayerList } from '@/features/groups/player-list';
 import { requireGroupContextOrRedirect } from '@/features/groups/require-group-context';
 import { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import { createPlayerIfMissing, linkPlayerToUser, listPlayers } from '@/lib/db/player-repo';
+import { listClaimablePlayerProfiles } from '@/lib/db/player-claim-repo';
 import { getUserProfile } from '@/lib/db/user-profile-repo';
 import { revalidatePath } from 'next/cache';
-import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 
 export default async function PlayersPage() {
   const context = await requireGroupContextOrRedirect();
-  const [players, userProfile] = await Promise.all([
+  const [players, userProfile, claimCandidates] = await Promise.all([
     listPlayers(context.groupId),
     getUserProfile(context.userId),
+    // "This roster row is probably you" comes from the claim candidates the
+    // security-definer RPC matched against the signed-in user's own identity —
+    // never from comparing personal-name columns here. The highlight is an
+    // affordance, so a failure to load it must not take down the roster.
+    listClaimablePlayerProfiles().catch(() => []),
   ]);
+  const claimablePlayerIds = new Set(
+    claimCandidates
+      .filter(
+        (candidate) =>
+          candidate.exactMatch && candidate.groupId === context.groupId,
+      )
+      .map((candidate) => candidate.playerId),
+  );
 
   async function handleAddPlayer(username: string) {
     'use server';
@@ -40,7 +53,7 @@ export default async function PlayersPage() {
     'use server';
 
     const activeContext = await requireCurrentGroupContext();
-    const linkedPlayer = await linkPlayerToUser({
+    await linkPlayerToUser({
       groupId: activeContext.groupId,
       playerId,
       userId: activeContext.userId,
@@ -52,7 +65,7 @@ export default async function PlayersPage() {
 
     return {
       status: 'success' as const,
-      message: `${linkedPlayer.display_name} is now linked to your profile.`,
+      message: 'That roster player is now linked to your profile.',
     };
   }
 
@@ -73,11 +86,7 @@ export default async function PlayersPage() {
         onLinkPlayer={handleLinkPlayer}
         players={players.map((player) => ({
           ...player,
-          matches_current_user: Boolean(
-            userProfile?.full_name &&
-              normalizePlayerAlias(player.claim_name ?? '') ===
-                normalizePlayerAlias(userProfile.full_name),
-          ),
+          matches_current_user: claimablePlayerIds.has(player.id),
         }))}
       />
     </AppShell>

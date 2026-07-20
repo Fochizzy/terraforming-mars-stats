@@ -4,6 +4,7 @@ import {
 } from '@/features/auth/username-auth';
 import { type LogGameDraftInput } from '@/lib/validation/log-game';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { matchImportPlayerNames } from './import-player-resolution-repo';
 import {
   createPlayerIfMissing,
   listPlayers,
@@ -13,6 +14,7 @@ import {
 type ResolverDependencies = {
   createPlayerIfMissing?: typeof createPlayerIfMissing;
   listPlayers?: typeof listPlayers;
+  matchImportPlayerNames?: typeof matchImportPlayerNames;
 };
 
 function remapRecord<T>(record: Record<string, T>, replacements: Map<string, string>) {
@@ -82,7 +84,9 @@ function parsePlayerReferenceName(reference: string) {
 function buildRosterMaps(players: PlayerRow[]) {
   return {
     byId: new Map(players.map((player) => [player.id, player])),
-    byNormalizedName: new Map(
+    // Keyed by the public label the person typing can actually see. Real
+    // roster and personal names are matched server-side instead.
+    byNormalizedLabel: new Map(
       players.map((player) => [normalizePlayerAlias(player.display_name), player]),
     ),
   };
@@ -95,35 +99,52 @@ export async function resolveLogGamePlayerReferences(
   const listPlayersImpl = dependencies.listPlayers ?? listPlayers;
   const createPlayerIfMissingImpl =
     dependencies.createPlayerIfMissing ?? createPlayerIfMissing;
+  const matchImportPlayerNamesImpl =
+    dependencies.matchImportPlayerNames ?? matchImportPlayerNames;
   const roster = await listPlayersImpl(form.groupId);
-  const { byId, byNormalizedName } = buildRosterMaps(roster);
+  const { byId, byNormalizedLabel } = buildRosterMaps(roster);
   const replacements = new Map<string, string>();
   const resolvedPlayerIds = new Set<string>();
+
+  const assignPlayer = (reference: string, player: Pick<PlayerRow, 'id'>) => {
+    if (resolvedPlayerIds.has(player.id)) {
+      throw new Error('Selected players must be unique within a game.');
+    }
+
+    replacements.set(reference, player.id);
+    resolvedPlayerIds.add(player.id);
+  };
 
   for (const reference of form.selectedPlayerIds) {
     const existingById = byId.get(reference);
 
     if (existingById) {
-      if (resolvedPlayerIds.has(existingById.id)) {
-        throw new Error('Selected players must be unique within a game.');
-      }
-
-      replacements.set(reference, existingById.id);
-      resolvedPlayerIds.add(existingById.id);
+      assignPlayer(reference, existingById);
       continue;
     }
 
     const displayName = parsePlayerReferenceName(reference);
     const normalizedName = normalizePlayerAlias(displayName);
-    const existingByName = byNormalizedName.get(normalizedName);
+    const existingByLabel = byNormalizedLabel.get(normalizedName);
 
-    if (existingByName) {
-      if (resolvedPlayerIds.has(existingByName.id)) {
-        throw new Error('Selected players must be unique within a game.');
-      }
+    if (existingByLabel) {
+      assignPlayer(reference, existingByLabel);
+      continue;
+    }
 
-      replacements.set(reference, existingByName.id);
-      resolvedPlayerIds.add(existingByName.id);
+    // The roster is labeled with public names only, so a typed roster/personal
+    // name has to be matched server-side, where the security-definer matcher
+    // still sees the private columns. Only an exact match that belongs to this
+    // group's roster counts — a cross-group match is not this roster's player.
+    const serverMatches = await matchImportPlayerNamesImpl(form.groupId, [
+      displayName,
+    ]);
+    const exactRosterMatch = serverMatches.find(
+      (match) => match.matchReason === 'exact' && byId.has(match.playerId),
+    );
+
+    if (exactRosterMatch) {
+      assignPlayer(reference, { id: exactRosterMatch.playerId });
       continue;
     }
 
@@ -133,13 +154,8 @@ export async function resolveLogGamePlayerReferences(
       linkedUserId: null,
     });
 
-    if (resolvedPlayerIds.has(created.id)) {
-      throw new Error('Selected players must be unique within a game.');
-    }
-
-    replacements.set(reference, created.id);
-    resolvedPlayerIds.add(created.id);
-    byNormalizedName.set(normalizedName, created);
+    assignPlayer(reference, created);
+    byNormalizedLabel.set(normalizedName, created);
   }
 
   return {
