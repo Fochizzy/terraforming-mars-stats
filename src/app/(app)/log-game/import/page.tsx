@@ -19,6 +19,7 @@ import {
 import {
   listImportResolutionPlayers,
   listImportResolutionPlayersForCurrentUser,
+  matchImportPlayerNames,
 } from '@/lib/db/import-player-resolution-repo';
 import {
   listPlayerImportAliasesForGroup,
@@ -67,6 +68,7 @@ import {
   parseScoreDetailsScreenshot,
   type ParsedScoreDetailsScreenshot,
 } from '@/lib/imports/parse-score-details-screenshot';
+import { applyServerPlayerMatches } from '@/lib/imports/apply-server-player-matches';
 import { resolveImportPlayerLinks } from '@/lib/imports/resolve-import-player-links';
 import { isUnauthenticatedAuthError } from '@/lib/supabase/auth-errors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -689,13 +691,34 @@ export default async function LogGameImportPage() {
         );
       }
 
-      const playerLinks = analyzeContext
-        ? resolveImportPlayerLinks(
+      let playerLinks: ReturnType<typeof resolveImportPlayerLinks> = {
+        matches: [],
+        unresolvedCount: 0,
+      };
+
+      if (analyzeContext) {
+        const resolved = resolveImportPlayerLinks(
+          screenshotEvidence.importedNames,
+          await listImportResolutionPlayersForCurrentUser(),
+          await listPlayerImportAliasesForGroup(analyzeContext.groupId),
+        );
+        // The client can only match on the public label now, so the
+        // security-definer matcher — which still reads full names, usernames
+        // and saved aliases — has the final say on who each name is.
+        const matches = applyServerPlayerMatches(
+          resolved.matches,
+          await matchImportPlayerNames(
+            analyzeContext.groupId,
             screenshotEvidence.importedNames,
-            await listImportResolutionPlayersForCurrentUser(),
-            await listPlayerImportAliasesForGroup(analyzeContext.groupId),
-          )
-        : { matches: [], unresolvedCount: 0 };
+          ),
+        );
+
+        playerLinks = {
+          matches,
+          unresolvedCount: matches.filter((match) => match.requiresConfirmation)
+            .length,
+        };
+      }
 
       return {
         status: 'success' as const,

@@ -81,6 +81,7 @@ const mockState = vi.hoisted(() => ({
   listCorporations: vi.fn(),
   listImportResolutionPlayers: vi.fn(),
   listImportResolutionPlayersForCurrentUser: vi.fn(),
+  matchImportPlayerNames: vi.fn(),
   listMapAwards: vi.fn(),
   listMapMilestones: vi.fn(),
   listMaps: vi.fn(),
@@ -162,6 +163,7 @@ vi.mock('@/lib/db/import-player-resolution-repo', () => ({
   listImportResolutionPlayers: mockState.listImportResolutionPlayers,
   listImportResolutionPlayersForCurrentUser:
     mockState.listImportResolutionPlayersForCurrentUser,
+  matchImportPlayerNames: mockState.matchImportPlayerNames,
 }));
 
 vi.mock('@/lib/db/player-repo', () => ({
@@ -273,6 +275,7 @@ describe('LogGameImportPage', () => {
       },
     ]);
     mockState.listPlayerImportAliasesForGroup.mockResolvedValue([]);
+    mockState.matchImportPlayerNames.mockResolvedValue([]);
     mockState.resolveOrCreateImportGroup.mockResolvedValue({
       createdNewGroup: false,
       createdProfileNames: [],

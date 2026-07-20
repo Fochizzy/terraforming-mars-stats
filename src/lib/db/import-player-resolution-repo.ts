@@ -84,6 +84,57 @@ function canonicalKeyForCandidate(row: RawIdentityCandidateRow) {
     : `player:${row.player_id}`;
 }
 
+export type ImportNameMatch = {
+  importedName: string;
+  matchReason: string;
+  playerId: string;
+  publicName: string;
+};
+
+type RawNameMatchRow = {
+  imported_name: string;
+  match_reason: string;
+  player_id: string;
+  public_name: string;
+};
+
+/**
+ * Ask the server which roster player each imported log name refers to.
+ *
+ * Matching needs `players.full_name` / `username` and the saved import aliases,
+ * none of which the Data API exposes any more, so it runs inside a
+ * security-definer RPC. Only a player id and the public label come back.
+ */
+export async function matchImportPlayerNames(
+  groupId: string,
+  importedNames: string[],
+): Promise<ImportNameMatch[]> {
+  const names = [
+    ...new Set(importedNames.map((name) => name.trim()).filter(Boolean)),
+  ];
+
+  if (names.length === 0) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc('match_import_player_names', {
+    p_group_id: groupId,
+    p_imported_names: names,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return ((data ?? []) as RawNameMatchRow[]).map((row) => ({
+    importedName: row.imported_name,
+    matchReason: row.match_reason,
+    playerId: row.player_id,
+    publicName: row.public_name,
+  }));
+}
+
 export async function listImportResolutionPlayers(groupId: string) {
   const supabase = await createSupabaseServerClient();
   const [candidates, { data: leaderboardRows, error: leaderboardError }] =
