@@ -1,5 +1,6 @@
 import { isUnauthenticatedAuthError } from '@/lib/supabase/auth-errors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { resolvePublicGroupLabels } from './group-label-resolution';
 import { setCurrentUserLastActiveGroup } from './user-profile-repo';
 
 export type CurrentGroupContext = {
@@ -44,9 +45,19 @@ export async function listCurrentUserGroups(): Promise<CurrentUserGroup[]> {
     throw error;
   }
 
-  return ((data ?? []) as CurrentUserGroupRow[]).map((membership) => ({
+  const memberships = (data ?? []) as CurrentUserGroupRow[];
+  // The RPC's own `group_name` is the raw stored `groups.name`, which may
+  // still hold a private-name concatenation from before this resolver
+  // existed. Every membership is resolved through the roster-derived public
+  // label instead; the RPC's name column is intentionally never read here.
+  const labelByGroupId = await resolvePublicGroupLabels(
+    supabase,
+    memberships.map((membership) => membership.group_id),
+  );
+
+  return memberships.map((membership) => ({
     groupId: membership.group_id,
-    groupName: membership.group_name,
+    groupName: labelByGroupId.get(membership.group_id) ?? 'Group',
     role: membership.role,
   }));
 }

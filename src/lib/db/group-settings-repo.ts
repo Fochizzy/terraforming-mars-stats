@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { resolvePublicGroupLabel } from './group-label-resolution';
 
 export type GroupSettingsSnapshot = {
   groupId: string;
@@ -28,19 +29,17 @@ async function resolvePromoSetIds(slugs: string[]) {
 
 export async function getGroupSettings(groupId: string): Promise<GroupSettingsSnapshot> {
   const supabase = await createSupabaseServerClient();
-  const [{ data: group, error: groupError }, { data: settings, error: settingsError }] =
-    await Promise.all([
-      supabase.from('groups').select('name').eq('id', groupId).single(),
-      supabase
-        .from('group_settings')
-        .select('global_analytics_enabled, default_map_id')
-        .eq('group_id', groupId)
-        .maybeSingle(),
-    ]);
-
-  if (groupError) {
-    throw groupError;
-  }
+  // The privacy-safe roster-derived label, never the raw `groups.name` —
+  // that stored value may still hold a private-name concatenation from
+  // before this resolver existed.
+  const [groupName, { data: settings, error: settingsError }] = await Promise.all([
+    resolvePublicGroupLabel(supabase, groupId),
+    supabase
+      .from('group_settings')
+      .select('global_analytics_enabled, default_map_id')
+      .eq('group_id', groupId)
+      .maybeSingle(),
+  ]);
 
   if (settingsError) {
     throw settingsError;
@@ -67,7 +66,7 @@ export async function getGroupSettings(groupId: string): Promise<GroupSettingsSn
 
   return {
     groupId,
-    groupName: group.name,
+    groupName,
     globalAnalyticsEnabled: settings?.global_analytics_enabled ?? false,
     defaultMapId: settings?.default_map_id ?? null,
     defaultPromoSetSlugs: promoSets.map((promoSet) => promoSet.slug),

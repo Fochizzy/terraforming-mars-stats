@@ -1,5 +1,15 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import { buildPublicGroupLabel } from './group-label-resolution';
+import { fetchPublicPlayerLabels } from './player-label-resolution';
+
+/**
+ * Placeholder only: satisfies the `groups.name` NOT NULL constraint for the
+ * instant between inserting a new group and updating it with the resolved
+ * public roster label once the roster's players exist. Never read back or
+ * returned to a caller.
+ */
+const PENDING_GROUP_NAME = 'New group';
 
 type GlobalPlayerRow = {
   created_at?: string | null;
@@ -130,12 +140,6 @@ export function findExactGroupRosterMatch(
   return matchingGroupIds[0] ?? null;
 }
 
-export function buildImportGroupName(participantNames: string[]) {
-  return [...participantNames]
-    .sort((left, right) => left.localeCompare(right))
-    .join(' / ');
-}
-
 export function buildImportGroupMemberRows(input: {
   groupId: string;
   participantIdentities: Array<Pick<ImportParticipantIdentity, 'linkedUserId'>>;
@@ -173,9 +177,11 @@ export function planImportGroupReconciliation(input: {
   confirmedPlayerIds: string[];
   groupName: string;
   originalRosterPlayerIds: string[];
-  rosterPlayers: Array<
-    Pick<GlobalPlayerRow, 'display_name' | 'id' | 'linked_user_id'>
-  >;
+  rosterPlayers: Array<{
+    id: string;
+    linked_user_id: string | null;
+    publicLabel: string;
+  }>;
 }): ImportGroupReconciliationPlan {
   if (
     input.confirmedPlayerIds.length === 0 ||
@@ -184,38 +190,39 @@ export function planImportGroupReconciliation(input: {
     return NOOP_RECONCILIATION_PLAN;
   }
 
-  const nameById = new Map(
-    input.rosterPlayers.map((player) => [player.id, player.display_name]),
+  const labelById = new Map(
+    input.rosterPlayers.map((player) => [player.id, player.publicLabel]),
   );
-  const originalNames: string[] = [];
+  const originalLabels: string[] = [];
 
   for (const playerId of input.originalRosterPlayerIds) {
-    const name = nameById.get(playerId);
+    const label = labelById.get(playerId);
 
-    if (name === undefined) {
+    if (label === undefined) {
       return NOOP_RECONCILIATION_PLAN;
     }
 
-    originalNames.push(name);
+    originalLabels.push(label);
   }
 
-  // Only reconcile while the group still bears the name auto-generated from
-  // the pre-review import roster; a manually created or renamed group keeps
-  // its roster and name untouched.
-  if (input.groupName !== buildImportGroupName(originalNames)) {
+  // Only reconcile while the group still bears the label auto-generated from
+  // the pre-review import roster; a manually created or renamed group — or
+  // one whose stored name predates this public-label scheme — keeps its
+  // roster and name untouched.
+  if (input.groupName !== buildPublicGroupLabel(originalLabels)) {
     return NOOP_RECONCILIATION_PLAN;
   }
 
-  const confirmedNames: string[] = [];
+  const confirmedLabels: string[] = [];
 
   for (const playerId of input.confirmedPlayerIds) {
-    const name = nameById.get(playerId);
+    const label = labelById.get(playerId);
 
-    if (name === undefined) {
+    if (label === undefined) {
       return NOOP_RECONCILIATION_PLAN;
     }
 
-    confirmedNames.push(name);
+    confirmedLabels.push(label);
   }
 
   const confirmedPlayerIdSet = new Set(input.confirmedPlayerIds);
@@ -225,7 +232,7 @@ export function planImportGroupReconciliation(input: {
         !confirmedPlayerIdSet.has(player.id) && !player.linked_user_id,
     )
     .map((player) => player.id);
-  const updatedGroupName = buildImportGroupName(confirmedNames);
+  const updatedGroupName = buildPublicGroupLabel(confirmedLabels);
 
   return {
     playerIdsToRemove,
@@ -296,7 +303,7 @@ export async function reconcileImportGroupAfterFinalize(input: {
       admin.from('groups').select('id, name').eq('id', input.groupId).single(),
       admin
         .from('players')
-        .select('id, display_name, linked_user_id')
+        .select('id, linked_user_id')
         .eq('group_id', input.groupId),
       admin
         .from('game_players')
@@ -327,6 +334,16 @@ export async function reconcileImportGroupAfterFinalize(input: {
     throw firstRevisionResult.error;
   }
 
+  const rosterRows = (rosterResult.data ?? []) as Array<
+    Pick<GlobalPlayerRow, 'id' | 'linked_user_id'>
+  >;
+  // The comparison and any rename below must reason about public labels only
+  // — never the private `display_name` column — so this never reads it.
+  const rosterLabelById = await fetchPublicPlayerLabels(
+    admin,
+    rosterRows.map((row) => row.id),
+  );
+
   const plan = planImportGroupReconciliation({
     confirmedPlayerIds: (
       (gamePlayersResult.data ?? []) as Array<{ player_id: string }>
@@ -335,9 +352,11 @@ export async function reconcileImportGroupAfterFinalize(input: {
     originalRosterPlayerIds: extractSnapshotSelectedPlayerIds(
       firstRevisionResult.data?.snapshot,
     ),
-    rosterPlayers: (rosterResult.data ?? []) as Array<
-      Pick<GlobalPlayerRow, 'display_name' | 'id' | 'linked_user_id'>
-    >,
+    rosterPlayers: rosterRows.map((row) => ({
+      id: row.id,
+      linked_user_id: row.linked_user_id,
+      publicLabel: rosterLabelById.get(row.id)?.publicName ?? 'Player',
+    })),
   });
 
   if (plan.playerIdsToRemove.length > 0) {
@@ -504,11 +523,25 @@ export async function resolveOrCreateImportGroup(input: {
 
       await addImportingUserAsEditor(admin, group.id, input.importingUserId);
 
+      // The matched group's stored `groups.name` may still hold a raw
+      // private-name concatenation from before this resolver existed, so the
+      // returned label is always resolved from the current roster rather
+      // than trusting the stored value.
+      const existingGroupLabelById = await fetchPublicPlayerLabels(
+        admin,
+        groupPlayers.map((player) => player.id),
+      );
+
       return {
         createdNewGroup: false,
         createdProfileNames: [] as string[],
         groupId: group.id,
-        groupName: group.name,
+        groupName: buildPublicGroupLabel(
+          groupPlayers.map(
+            (player) =>
+              existingGroupLabelById.get(player.id)?.publicName ?? 'Player',
+          ),
+        ),
         selectedPlayerIds,
       };
     }
@@ -516,18 +549,11 @@ export async function resolveOrCreateImportGroup(input: {
 
   const { data: group, error: groupError } = await admin
     .from('groups')
-    .insert({
-      // Name from the resolved roster, not the review labels. Those labels are
-      // public stand-ins ("lurker", "Guest 8F2A1B3C") and would name a group
-      // after a placeholder. It also keeps creation consistent with
-      // planImportGroupReconciliation, which decides whether a group still
-      // carries its auto-generated name by rebuilding it from player rows —
-      // naming from labels made every new group look manually renamed, so
-      // reconciliation silently skipped it.
-      name: buildImportGroupName(
-        participantIdentities.map((participant) => participant.displayName),
-      ),
-    })
+    // A NOT NULL placeholder — the roster doesn't exist yet to label from.
+    // Replaced with the resolved public-roster label right after the players
+    // below are inserted, so `groups.name` never persists a raw personal-name
+    // concatenation the way the old auto-naming did.
+    .insert({ name: PENDING_GROUP_NAME })
     .select('id, name')
     .single();
 
@@ -578,16 +604,35 @@ export async function resolveOrCreateImportGroup(input: {
     throw insertedPlayersError;
   }
 
+  const newRoster = (insertedPlayers ?? []) as GlobalPlayerRow[];
+  const newGroupLabelById = await fetchPublicPlayerLabels(
+    admin,
+    newRoster.map((player) => player.id),
+  );
+  const groupName = buildPublicGroupLabel(
+    newRoster.map(
+      (player) => newGroupLabelById.get(player.id)?.publicName ?? 'Player',
+    ),
+  );
+  const { error: renameGroupError } = await admin
+    .from('groups')
+    .update({ name: groupName })
+    .eq('id', group.id);
+
+  if (renameGroupError) {
+    throw renameGroupError;
+  }
+
   return {
     createdNewGroup: true,
     createdProfileNames: participantIdentities
       .filter((participant) => !participant.linkedUserId)
       .map((participant) => participant.displayName),
     groupId: group.id,
-    groupName: group.name,
+    groupName,
     selectedPlayerIds: selectImportPlayerIds(
       participantIdentities,
-      (insertedPlayers ?? []) as GlobalPlayerRow[],
+      newRoster,
     ),
   };
 }
