@@ -13,6 +13,20 @@ describe('countableCardTags', () => {
     expect(countableCardTags(['space'], 'Active')).toEqual(['space']);
   });
 
+  it('keeps tags on a legacy Project card', () => {
+    expect(countableCardTags(['science'], 'Project')).toEqual(['science']);
+  });
+
+  it('keeps tags on a Corporation card', () => {
+    expect(countableCardTags(['building'], 'Corporation')).toEqual([
+      'building',
+    ]);
+  });
+
+  it('keeps tags on a Prelude card', () => {
+    expect(countableCardTags(['plant'], 'Prelude')).toEqual(['plant']);
+  });
+
   it('keeps every tag on a non-event card', () => {
     expect(countableCardTags(['science', 'space'], 'Automated')).toEqual([
       'science',
@@ -56,9 +70,17 @@ describe('countableCardTags', () => {
     ]);
   });
 
-  it('keeps tags for an unfamiliar, unrecognized card type since it is not Event', () => {
-    expect(countableCardTags(['space'], 'SomeFutureCardType')).toEqual([
-      'space',
-    ]);
+  it('fails closed on an unrecognized card type instead of assuming it is safe', () => {
+    expect(countableCardTags(['space'], 'SomeFutureCardType')).toEqual([]);
+  });
+
+  it('fails closed on an empty-string card type', () => {
+    expect(countableCardTags(['space'], '')).toEqual([]);
+  });
+
+  it('fails closed on a card type that only differs from Event by case', () => {
+    // Not an alias for Event — this asserts the fail-closed default, not a
+    // case-insensitive match against EVENT_CARD_TYPE.
+    expect(countableCardTags(['space'], 'event')).toEqual([]);
   });
 });
