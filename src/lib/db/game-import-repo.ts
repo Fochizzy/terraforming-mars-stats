@@ -93,6 +93,145 @@ export type SaveGameLogImportSourceEvidence = {
   parserRunIdentity: string;
 };
 
+export type DuplicateGameLogImportMatch = {
+  createdAt: string;
+  gameId: string;
+  gameLogImportId: string;
+  gameStatus: string;
+  /**
+   * exact_bytes: the stored source is byte-identical to this submission.
+   * trimmed_equal: identical after outer-whitespace trimming (historical
+   * imports were stored trimmed, so a re-paste of the same log matches here).
+   * stored_hash_only: the stored hash matches but the text does not — a
+   * collision-grade anomaly surfaced for review, never silently treated as
+   * either a duplicate or a distinct source.
+   */
+  matchScope: 'exact_bytes' | 'trimmed_equal' | 'stored_hash_only';
+  parserVersion: string | null;
+  sameParserVersion: boolean;
+};
+
+async function sha256Hex(text: string) {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(text),
+  );
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Duplicate-source detection for the import action (audit finding H3). The
+ * deployed `find_duplicate_game_log_import` RPC is the fast group-scoped
+ * guard (called for both the exact original text and its trimmed form, since
+ * historical imports were stored trimmed), and the classified match list —
+ * hash candidates confirmed by text comparison — gives the reviewable
+ * detail: which game, its status, and whether the same parser version
+ * already ran. Reruns and corrections stay legitimate: nothing here is a
+ * unique constraint, and the caller decides what each match kind means.
+ */
+export async function findDuplicateGameLogImportSources(input: {
+  groupId: string;
+  originalSourceText: string;
+  parserVersion: string;
+}): Promise<{
+  deployedRpcDetected: boolean;
+  matches: DuplicateGameLogImportMatch[];
+}> {
+  const supabase = await createSupabaseServerClient();
+  const trimmedSourceText = input.originalSourceText.trim();
+  const [originalSha256, trimmedSha256] = await Promise.all([
+    sha256Hex(input.originalSourceText),
+    sha256Hex(trimmedSourceText),
+  ]);
+
+  const rpcTexts =
+    trimmedSourceText === input.originalSourceText
+      ? [input.originalSourceText]
+      : [input.originalSourceText, trimmedSourceText];
+  let deployedRpcDetected = false;
+  for (const text of rpcTexts) {
+    const { data, error } = await supabase.rpc(
+      'find_duplicate_game_log_import',
+      { p_group_id: input.groupId, p_raw_log_text: text },
+    );
+    if (error) {
+      throw error;
+    }
+    deployedRpcDetected = deployedRpcDetected || data === true;
+  }
+
+  const { data, error } = await supabase
+    .from('game_log_imports')
+    .select(
+      'id, game_id, created_at, parser_version, raw_log_text, games!inner(group_id, status)',
+    )
+    .eq('games.group_id', input.groupId)
+    .in('input_sha256', [...new Set([originalSha256, trimmedSha256])])
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  const matches = (data ?? []).map((row): DuplicateGameLogImportMatch => {
+    const game = Array.isArray(row.games) ? row.games[0] : row.games;
+    const storedText = row.raw_log_text ?? '';
+    return {
+      createdAt: row.created_at,
+      gameId: row.game_id,
+      gameLogImportId: row.id,
+      gameStatus: game?.status ?? 'unknown',
+      matchScope:
+        storedText === input.originalSourceText
+          ? 'exact_bytes'
+          : storedText === trimmedSourceText ||
+              storedText.trim() === trimmedSourceText
+            ? 'trimmed_equal'
+            : 'stored_hash_only',
+      parserVersion: row.parser_version,
+      sameParserVersion: row.parser_version === input.parserVersion,
+    };
+  });
+
+  return { deployedRpcDetected, matches };
+}
+
+/**
+ * Marks an import's persistence run complete (recoverable-run state, §19).
+ * Until this update lands, `confidence_summary.run.state` stays
+ * 'persisting' and readers must not treat the import as a complete
+ * canonical record. Historical imports predate the key entirely; a missing
+ * `run` block means a completed legacy import, never an incomplete one.
+ */
+export async function markGameLogImportRunComplete(input: {
+  confidenceSummary: Record<string, unknown>;
+  gameLogImportId: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const run =
+    (input.confidenceSummary['run'] as Record<string, unknown> | undefined) ??
+    {};
+  const { error } = await supabase
+    .from('game_log_imports')
+    .update({
+      confidence_summary: {
+        ...input.confidenceSummary,
+        run: {
+          ...run,
+          completed_at: new Date().toISOString(),
+          state: 'complete',
+        },
+      },
+    })
+    .eq('id', input.gameLogImportId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 function isMissingColumnError(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code;
   return code === '42703' || code === 'PGRST204';

@@ -17,10 +17,12 @@ const IMPORT_ID = '44444444-4444-4444-8444-444444444444';
 
 const mocks = vi.hoisted(() => ({
   correctAndSaveOcrText: vi.fn(),
+  findDuplicateGameLogImportSources: vi.fn(),
   getCurrentGroupContext: vi.fn(),
   getGroupSettings: vi.fn(),
   listImportGameReferenceCatalog: vi.fn(),
   listImportPlayerIdentityCandidates: vi.fn(),
+  markGameLogImportRunComplete: vi.fn(),
   requireCurrentGroupContext: vi.fn(),
   resolveImportPlayerIdentities: vi.fn(),
   revalidatePath: vi.fn(),
@@ -49,6 +51,8 @@ vi.mock('@/lib/db/game-draft-repo', () => ({
   saveDraftGame: mocks.saveDraftGame,
 }));
 vi.mock('@/lib/db/game-import-repo', () => ({
+  findDuplicateGameLogImportSources: mocks.findDuplicateGameLogImportSources,
+  markGameLogImportRunComplete: mocks.markGameLogImportRunComplete,
   saveGameExpansionFacts: mocks.saveGameExpansionFacts,
   saveGameLogImport: mocks.saveGameLogImport,
   saveParsedGameLogEvents: mocks.saveParsedGameLogEvents,
@@ -182,6 +186,11 @@ describe('import server action canonical persistence', () => {
         valueSource: 'imported',
       },
     ]);
+    mocks.findDuplicateGameLogImportSources.mockResolvedValue({
+      deployedRpcDetected: false,
+      matches: [],
+    });
+    mocks.markGameLogImportRunComplete.mockResolvedValue(undefined);
     mocks.saveDraftGame.mockResolvedValue({ gameId: GAME_ID });
     mocks.saveGameLogImport.mockResolvedValue({
       id: IMPORT_ID,
@@ -221,12 +230,14 @@ describe('import server action canonical persistence', () => {
       parserVersion: importPayload.parseMetadata.parserVersion,
     });
     expect(summary.source).toEqual({
+      duplicate_source_acknowledged: null,
       hash_scope: 'original_source_bytes',
       original_byte_length: expectedEvidence.originalByteLength,
       original_sha256: expectedEvidence.originalSha256,
       parser_run_identity: expectedEvidence.parserRunIdentity,
       parser_version: importPayload.parseMetadata.parserVersion,
-      stored_text_trimmed: false,
+      source_has_outer_whitespace: false,
+      stored_text_matches_original: true,
     });
     expect(summary.source.original_sha256).toMatch(/^[0-9a-f]{64}$/);
 
@@ -325,5 +336,170 @@ describe('import server action canonical persistence', () => {
     ).rejects.toThrow(/confirm the objective setup/i);
     expect(mocks.saveDraftGame).not.toHaveBeenCalled();
     expect(mocks.saveGameLogImport).not.toHaveBeenCalled();
+  });
+
+  const baseValues = () => ({
+    endgameScreenshot: null,
+    exportedGameLog,
+    generationCount: 2,
+    mapId: 'map-tharsis',
+    objectiveConfiguration: 'board_defined' as const,
+    playedOn: '2026-07-19',
+    playerCount: 1,
+    playerIdentities: [
+      {
+        mode: 'existing_player' as const,
+        selectedPlayerId: PLAYER_ID,
+        sourcePlayerText: 'FridayMars',
+        valueSource: 'imported' as const,
+      },
+    ],
+    scoreRows: [scoreRow],
+  });
+
+  it('hashes and stores the exact original bytes when the submission carries outer whitespace', async () => {
+    const paddedLog = `\n  ${exportedGameLog}\n\n`;
+    const result = await invokeAction({
+      ...baseValues(),
+      exportedGameLog: paddedLog,
+    });
+    expect(result).toMatchObject({ status: 'success' });
+
+    const importPayload = mocks.saveGameLogImport.mock.calls[0][0];
+    // The stored text is byte-identical to the submission — no trim anywhere.
+    expect(importPayload.rawLogText).toBe(paddedLog);
+
+    const originalEvidence = await buildImportSourceEvidence({
+      exportedLogText: paddedLog,
+      parserVersion: importPayload.parseMetadata.parserVersion,
+    });
+    const trimmedEvidence = await buildImportSourceEvidence({
+      exportedLogText: paddedLog.trim(),
+      parserVersion: importPayload.parseMetadata.parserVersion,
+    });
+    const summary = importPayload.parseMetadata.confidenceSummary;
+    expect(summary.source.original_sha256).toBe(
+      originalEvidence.originalSha256,
+    );
+    expect(summary.source.original_sha256).not.toBe(
+      trimmedEvidence.originalSha256,
+    );
+    expect(summary.source.source_has_outer_whitespace).toBe(true);
+    expect(importPayload.sourceEvidence).toEqual({
+      originalByteLength: originalEvidence.originalByteLength,
+      originalSha256: originalEvidence.originalSha256,
+      parserRunIdentity: originalEvidence.parserRunIdentity,
+    });
+
+    // Parsing still succeeds because the parser input is a separately
+    // trimmed value; the persisted events match the untrimmed submission's
+    // evidence line for line.
+    const events = mocks.saveParsedGameLogEvents.mock.calls[0][0].events;
+    expect(events.length).toBeGreaterThan(0);
+    expect(
+      events.find(
+        (event: { tile_type?: string | null }) => event.tile_type === 'ocean',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('returns a reviewable duplicate state before any write when the source already backs a game', async () => {
+    mocks.findDuplicateGameLogImportSources.mockResolvedValue({
+      deployedRpcDetected: true,
+      matches: [
+        {
+          createdAt: '2026-07-18T10:00:00Z',
+          gameId: 'existing-game-1',
+          gameLogImportId: 'existing-import-1',
+          gameStatus: 'finalized',
+          matchScope: 'exact_bytes',
+          parserVersion: 'terraforming-mars-exported-log-v1',
+          sameParserVersion: true,
+        },
+      ],
+    });
+
+    const result = await invokeAction(baseValues());
+    expect(result).toMatchObject({
+      status: 'duplicate_source',
+      duplicates: [
+        expect.objectContaining({
+          gameId: 'existing-game-1',
+          gameStatus: 'finalized',
+          matchScope: 'exact_bytes',
+        }),
+      ],
+    });
+    // Nothing was created: no guest resolution, no draft, no import row.
+    expect(mocks.resolveImportPlayerIdentities).not.toHaveBeenCalled();
+    expect(mocks.saveDraftGame).not.toHaveBeenCalled();
+    expect(mocks.saveGameLogImport).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a deployed-RPC duplicate signal even when no classified match is visible', async () => {
+    mocks.findDuplicateGameLogImportSources.mockResolvedValue({
+      deployedRpcDetected: true,
+      matches: [],
+    });
+
+    const result = await invokeAction(baseValues());
+    expect(result).toMatchObject({ status: 'duplicate_source' });
+    expect(mocks.saveDraftGame).not.toHaveBeenCalled();
+  });
+
+  it('proceeds on explicit acknowledgment and records the documented association', async () => {
+    mocks.findDuplicateGameLogImportSources.mockResolvedValue({
+      deployedRpcDetected: true,
+      matches: [
+        {
+          createdAt: '2026-07-18T10:00:00Z',
+          gameId: 'existing-game-1',
+          gameLogImportId: 'existing-import-1',
+          gameStatus: 'draft',
+          matchScope: 'trimmed_equal',
+          parserVersion: 'terraforming-mars-exported-log-v1',
+          sameParserVersion: true,
+        },
+      ],
+    });
+
+    const result = await invokeAction({
+      ...baseValues(),
+      acknowledgeDuplicateSource: true,
+    });
+    expect(result).toMatchObject({ status: 'success' });
+
+    const summary =
+      mocks.saveGameLogImport.mock.calls[0][0].parseMetadata.confidenceSummary;
+    expect(summary.source.duplicate_source_acknowledged).toEqual({
+      acknowledged: true,
+      matched_game_ids: ['existing-game-1'],
+    });
+  });
+
+  it('marks the persistence run complete only after every canonical write lands', async () => {
+    const result = await invokeAction(baseValues());
+    expect(result).toMatchObject({ status: 'success' });
+
+    const summary =
+      mocks.saveGameLogImport.mock.calls[0][0].parseMetadata.confidenceSummary;
+    expect(summary.run).toMatchObject({ state: 'persisting' });
+    expect(mocks.markGameLogImportRunComplete).toHaveBeenCalledWith({
+      confidenceSummary: summary,
+      gameLogImportId: IMPORT_ID,
+    });
+  });
+
+  it('leaves the run in persisting state when a canonical write fails (failure injection)', async () => {
+    mocks.saveParsedGameLogEvents.mockRejectedValue(
+      new Error('injected event persistence failure'),
+    );
+
+    await expect(invokeAction(baseValues())).rejects.toThrow(
+      'injected event persistence failure',
+    );
+    // The run never completes, so readers keep treating the import as a
+    // partial record instead of a successful one.
+    expect(mocks.markGameLogImportRunComplete).not.toHaveBeenCalled();
   });
 });

@@ -605,3 +605,156 @@ describe('getLatestGameLogImportSummary', () => {
     });
   });
 });
+
+describe('findDuplicateGameLogImportSources', () => {
+  const groupId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const originalSourceText = '\nGeneration 1\nFridayMars placed Ocean tile at 07\n';
+
+  function mockDuplicateClient(rows: unknown[], rpcResults: boolean[]) {
+    const rpc = vi.fn(() =>
+      Promise.resolve({ data: rpcResults.shift() ?? false, error: null }),
+    );
+    const order = vi.fn().mockResolvedValue({ data: rows, error: null });
+    const builder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order,
+    };
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn(() => builder),
+      rpc,
+    } as never);
+    return { builder, rpc };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('classifies exact, trimmed, and hash-only matches without collapsing them', async () => {
+    const trimmed = originalSourceText.trim();
+    const { rpc } = mockDuplicateClient(
+      [
+        {
+          created_at: '2026-07-10T00:00:00Z',
+          game_id: 'game-exact',
+          games: { group_id: groupId, status: 'finalized' },
+          id: 'import-exact',
+          parser_version: 'terraforming-mars-exported-log-v1',
+          raw_log_text: originalSourceText,
+        },
+        {
+          created_at: '2026-07-11T00:00:00Z',
+          game_id: 'game-trimmed',
+          games: { group_id: groupId, status: 'draft' },
+          id: 'import-trimmed',
+          parser_version: 'older-parser-v0',
+          raw_log_text: trimmed,
+        },
+        {
+          created_at: '2026-07-12T00:00:00Z',
+          game_id: 'game-collision',
+          games: { group_id: groupId, status: 'finalized' },
+          id: 'import-collision',
+          parser_version: 'terraforming-mars-exported-log-v1',
+          raw_log_text: 'entirely different text with a colliding stored hash',
+        },
+      ],
+      [true, true],
+    );
+
+    const result = await repo.findDuplicateGameLogImportSources({
+      groupId,
+      originalSourceText,
+      parserVersion: 'terraforming-mars-exported-log-v1',
+    });
+
+    expect(result.deployedRpcDetected).toBe(true);
+    // The deployed RPC is exercised for both the exact original text and the
+    // trimmed form (historical imports were stored trimmed).
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(rpc).toHaveBeenCalledWith('find_duplicate_game_log_import', {
+      p_group_id: groupId,
+      p_raw_log_text: originalSourceText,
+    });
+    expect(rpc).toHaveBeenCalledWith('find_duplicate_game_log_import', {
+      p_group_id: groupId,
+      p_raw_log_text: trimmed,
+    });
+    expect(result.matches).toEqual([
+      expect.objectContaining({
+        gameId: 'game-exact',
+        gameStatus: 'finalized',
+        matchScope: 'exact_bytes',
+        sameParserVersion: true,
+      }),
+      expect.objectContaining({
+        gameId: 'game-trimmed',
+        gameStatus: 'draft',
+        matchScope: 'trimmed_equal',
+        sameParserVersion: false,
+      }),
+      expect.objectContaining({
+        gameId: 'game-collision',
+        matchScope: 'stored_hash_only',
+      }),
+    ]);
+  });
+
+  it('returns no matches for a novel source and calls the RPC once when already trimmed', async () => {
+    const { rpc } = mockDuplicateClient([], [false]);
+
+    const result = await repo.findDuplicateGameLogImportSources({
+      groupId,
+      originalSourceText: 'Generation 1',
+      parserVersion: 'terraforming-mars-exported-log-v1',
+    });
+
+    expect(result).toEqual({ deployedRpcDetected: false, matches: [] });
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('markGameLogImportRunComplete', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('flips the recoverable run state to complete without dropping the rest of the summary', async () => {
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn((_value: unknown) => ({ eq }));
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return { update };
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    await repo.markGameLogImportRunComplete({
+      confidenceSummary: {
+        run: { started_at: '2026-07-19T20:00:00Z', state: 'persisting' },
+        source: { original_sha256: 'abc' },
+      },
+      gameLogImportId: 'import-1',
+    });
+
+    const updated = update.mock.calls[0][0] as unknown as {
+      confidence_summary: {
+        run: { completed_at?: string; started_at: string; state: string };
+        source: { original_sha256: string };
+      };
+    };
+    expect(updated.confidence_summary.run.state).toBe('complete');
+    expect(updated.confidence_summary.run.started_at).toBe(
+      '2026-07-19T20:00:00Z',
+    );
+    expect(typeof updated.confidence_summary.run.completed_at).toBe('string');
+    expect(updated.confidence_summary.source).toEqual({
+      original_sha256: 'abc',
+    });
+    expect(eq).toHaveBeenCalledWith('id', 'import-1');
+  });
+});

@@ -31,6 +31,7 @@ export function LogGameImportShell({
   const router = useRouter();
 
   async function handleStartImport(values: {
+    acknowledgeDuplicateSource: boolean;
     endgameScreenshot: File | null;
     exportedGameLog: string;
     generationCount: number;
@@ -47,6 +48,9 @@ export function LogGameImportShell({
   }): Promise<WebImportActionResult> {
     try {
       const result = await onCreateImportDraft({
+        // Explicit duplicate-source confirmation travels only when the
+        // importer checked it against the currently pasted text.
+        acknowledgeDuplicateSource: values.acknowledgeDuplicateSource,
         endgameScreenshot: values.endgameScreenshot,
         endgameScreenshotName: values.endgameScreenshot?.name ?? null,
         exportedGameLog: values.exportedGameLog,

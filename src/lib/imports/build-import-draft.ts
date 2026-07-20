@@ -22,7 +22,14 @@ import { buildImportDraftNotes } from './build-import-draft-notes';
 import type { ImportObjectiveConfiguration } from './objective-configuration';
 
 export type ImportDraftValues = {
+  /**
+   * Explicit importer confirmation that a detected duplicate source should
+   * still be imported as a separate record. Never defaulted on; the action
+   * records the acknowledgment and the matched game ids as evidence.
+   */
+  acknowledgeDuplicateSource?: boolean;
   endgameScreenshotName?: string | null;
+  /** Exact original submitted text — never trimmed or normalized. */
   exportedGameLog: string;
   generationCount: number;
   mapId: string;

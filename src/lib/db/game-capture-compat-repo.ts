@@ -313,6 +313,20 @@ export async function readCanonicalGameCapture(input: {
     }
   }
 
+  // Recoverable-run state (§19): an import whose persistence run never
+  // flipped to 'complete' is a partial record — surfaced, never silently
+  // read as finished. Historical imports predate the run block; a missing
+  // block means a completed legacy import.
+  const importRunState = (
+    importRow.confidence_summary as { run?: { state?: string } } | null
+  )?.run?.state;
+  if (importRunState != null && importRunState !== 'complete') {
+    issues.push({
+      code: 'incomplete_import_run',
+      message: `import ${importRow.id} persistence run is '${importRunState}' — canonical rows may be partial and must not be read as a complete record`,
+    });
+  }
+
   const mappedEvents = mapLegacyEvents(legacyEventRows);
   const mappedPlacements = mapLegacyPlacements(legacyEventRows);
   issues.push(...mappedEvents.issues, ...mappedPlacements.issues);

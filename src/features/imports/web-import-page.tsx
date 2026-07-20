@@ -68,12 +68,24 @@ export type WebImportDraftValues = {
   scoreRows: ImportedScoreRow[];
   resultAwardPlacements: ParsedScreenshotAwardPlacement[];
   resultMilestoneClaims: ParsedScreenshotMilestoneClaim[];
+  acknowledgeDuplicateSource: boolean;
+};
+
+export type WebImportDuplicateSourceMatch = {
+  createdAt: string;
+  gameId: string;
+  gameLogImportId: string;
+  gameStatus: string;
+  matchScope: 'exact_bytes' | 'trimmed_equal' | 'stored_hash_only';
+  parserVersion: string | null;
+  sameParserVersion: boolean;
 };
 
 export type WebImportActionResult = {
+  duplicates?: WebImportDuplicateSourceMatch[];
   gameId?: string;
   message?: string;
-  status: 'error' | 'idle' | 'success';
+  status: 'duplicate_source' | 'error' | 'idle' | 'success';
 };
 
 type WebImportPageProps = {
@@ -238,19 +250,33 @@ export function WebImportPage({
     status: 'idle',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [duplicateSourceNotice, setDuplicateSourceNotice] = useState<{
+    duplicates: WebImportDuplicateSourceMatch[];
+    message: string;
+  } | null>(null);
+  const [acknowledgeDuplicateSource, setAcknowledgeDuplicateSource] =
+    useState(false);
 
   const isResultPdf = Boolean(
     endgameScreenshot && isTerraformingMarsResultPdf(endgameScreenshot),
   );
   const screenshotTextForLog = isResultPdf ? '' : rawOcrText;
+  // Parsing uses the trimmed variant — identical to the server's parser
+  // input — so preview line numbers match the persisted evidence. The
+  // submission itself carries the exact original text; hashing and storage
+  // never see a trimmed value.
+  const parserInputText = useMemo(
+    () => exportedGameLog.trim(),
+    [exportedGameLog],
+  );
   const parseResult = useMemo(
     () =>
       parseTerraformingMarsLog({
         catalog: referenceCatalog,
-        exportedLogText: exportedGameLog,
+        exportedLogText: parserInputText,
         screenshotOcrText: screenshotTextForLog,
       }),
-    [exportedGameLog, screenshotTextForLog, referenceCatalog],
+    [parserInputText, screenshotTextForLog, referenceCatalog],
   );
   const playerEvidenceFingerprint = parseResult.players
     .map((player) => player.normalizedValue)
@@ -259,9 +285,9 @@ export function WebImportPage({
     () =>
       parseTerraformingMarsPlayedEntities({
         catalog: referenceCatalog,
-        exportedLogText: exportedGameLog,
+        exportedLogText: parserInputText,
       }),
-    [exportedGameLog, referenceCatalog],
+    [parserInputText, referenceCatalog],
   );
   const reviewedPlayedEntityEvidence = useMemo(
     () =>
@@ -289,8 +315,8 @@ export function WebImportPage({
     [resultPdfParse, screenshotScoreParse],
   );
   const tileActionSet = useMemo(
-    () => parseTerraformingMarsTileActions(exportedGameLog),
-    [exportedGameLog],
+    () => parseTerraformingMarsTileActions(parserInputText),
+    [parserInputText],
   );
   const reconstructedBoard = useMemo(
     () => buildImportedBoardState(tileActionSet.actions),
@@ -412,6 +438,7 @@ export function WebImportPage({
     scoreRows,
     resultAwardPlacements: resultPdfParse?.awardPlacements ?? [],
     resultMilestoneClaims: resultPdfParse?.milestoneClaims ?? [],
+    acknowledgeDuplicateSource,
   };
   const [savedFingerprint, setSavedFingerprint] = useState(() =>
     importDraftFingerprint(currentValues),
@@ -426,6 +453,14 @@ export function WebImportPage({
       resultPdfParse?.generationCount ?? parseResult.generationCount ?? 0,
     );
   }, [parseResult.generationCount, resultPdfParse?.generationCount]);
+
+  // A duplicate acknowledgment applies to one specific source text; editing
+  // the pasted log withdraws both the notice and the acknowledgment so a
+  // stale confirmation can never authorize a different log.
+  useEffect(() => {
+    setAcknowledgeDuplicateSource(false);
+    setDuplicateSourceNotice(null);
+  }, [exportedGameLog]);
 
   useEffect(() => {
     setConfirmedMapId(mapReview.detectedMapId ?? '');
@@ -728,7 +763,9 @@ export function WebImportPage({
     try {
       const submittedValues = {
         ...currentValues,
-        exportedGameLog: exportedGameLog.trim(),
+        // The exact original text is submitted — no trim. The server hashes
+        // and stores these bytes verbatim; only parsing uses a trimmed copy.
+        exportedGameLog,
         playerIdentities: parsedPlayerIdentities.map((identity) =>
           identity.success ? identity.data : identity,
         ) as ImportPlayerIdentityDraftInput[],
@@ -736,8 +773,18 @@ export function WebImportPage({
       const result = await onStartImport(submittedValues);
 
       setFeedback(result);
+      if (result.status === 'duplicate_source') {
+        setDuplicateSourceNotice({
+          duplicates: result.duplicates ?? [],
+          message:
+            result.message ??
+            'This log already backs a game in this group. Review it before importing again.',
+        });
+      }
       if (result.status === 'success') {
         setSavedFingerprint(importDraftFingerprint(submittedValues));
+        setDuplicateSourceNotice(null);
+        setAcknowledgeDuplicateSource(false);
       }
     } catch (error) {
       setFeedback({
@@ -1186,13 +1233,74 @@ export function WebImportPage({
           </section>
         ) : null}
 
+        {duplicateSourceNotice ? (
+          <section
+            aria-labelledby="duplicate-source-heading"
+            className="rounded-xl border border-amber-500/50 bg-amber-950/30 p-4 text-sm text-amber-100"
+          >
+            <h3
+              className="font-semibold text-amber-200"
+              id="duplicate-source-heading"
+            >
+              This log already backs a game in this group
+            </h3>
+            <p className="mt-2">{duplicateSourceNotice.message}</p>
+            {duplicateSourceNotice.duplicates.length > 0 ? (
+              <ul className="mt-3 grid gap-1">
+                {duplicateSourceNotice.duplicates.map((duplicate) => (
+                  <li key={duplicate.gameLogImportId}>
+                    Game {duplicate.gameId.slice(0, 8)} ({duplicate.gameStatus}
+                    ), imported{' '}
+                    {new Date(duplicate.createdAt).toLocaleDateString()} —{' '}
+                    {duplicate.matchScope === 'exact_bytes'
+                      ? 'identical source'
+                      : duplicate.matchScope === 'trimmed_equal'
+                        ? 'identical source (whitespace differs)'
+                        : 'stored hash matches but text differs — review before continuing'}
+                    {duplicate.sameParserVersion
+                      ? ', same parser version'
+                      : ', different parser version'}
+                    {duplicate.gameStatus === 'draft' ? (
+                      <>
+                        {' · '}
+                        <Link
+                          className="font-semibold text-orange-300 underline decoration-orange-500/60 underline-offset-4"
+                          href={`/log-game?gameId=${duplicate.gameId}`}
+                        >
+                          Resume that draft
+                        </Link>
+                      </>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <label className="mt-4 flex items-start gap-3">
+              <input
+                checked={acknowledgeDuplicateSource}
+                className="mt-1 h-4 w-4"
+                onChange={(event) =>
+                  setAcknowledgeDuplicateSource(event.target.checked)
+                }
+                type="checkbox"
+              />
+              <span>
+                I reviewed the matches above and confirm this submission is
+                intentionally a separate game record using the same source.
+                Saving again with this confirmation records the association
+                with the matched games as import evidence.
+              </span>
+            </label>
+          </section>
+        ) : null}
+
         {feedback.message ? (
           <p
             aria-live={feedback.status === 'error' ? 'assertive' : 'polite'}
             className={
-              feedback.status === 'error'
-                ? 'text-sm text-amber-200'
-                : 'text-sm text-emerald-300'
+              feedback.status === 'success'
+                ? 'text-sm text-emerald-300'
+                : 'text-sm text-amber-200'
             }
             role={feedback.status === 'error' ? 'alert' : 'status'}
           >

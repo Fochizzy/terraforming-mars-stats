@@ -350,7 +350,14 @@ export type CanonicalCaptureIssue = {
     | 'duplicate_placement_identity'
     | 'unsupported_contract_version'
     | 'semantic_violation'
-    | 'invalid_row';
+    | 'invalid_row'
+    /**
+     * The import's persistence run never reached 'complete'
+     * (confidence_summary.run.state) — its canonical rows are partial and
+     * must not be read as a finished record. Historical imports predate the
+     * run block entirely; its absence never raises this issue.
+     */
+    | 'incomplete_import_run';
   message: string;
 };
 
