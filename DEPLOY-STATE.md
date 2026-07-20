@@ -17,25 +17,90 @@ version→commit linkage.
 | | |
 |---|---|
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
-| Worker version | `c23bfbd7-9729-4981-9f45-aee05c242d31` |
+| Worker version | `15fba7e9-2443-440c-8a1f-b5b9231d7ff6` |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `fix/live-42501-on-capture-v2` (tracked at `origin/fix/live-42501-on-capture-v2`, tip `14abb8d1d` = one docs-only commit ahead of the deployed code) |
-| Source commit | `59dda6c0f` (ledger-correlated; Cloudflare metadata carries no commit — see Evidence) |
-| Deployed (UTC) | 2026-07-20 15:14:05Z (`wrangler deployments list`) |
+| Source branch | `release/step-43-production-compatibility` (pushed to `origin`; `origin/release/step-43-production-compatibility` independently confirmed to resolve to the exact deployed SHA) |
+| Source commit | `a40d49662825474c98813aa44abb577b8830cc68` — resolved by the deploy-time stamp print, not inferred |
+| Deployed (UTC) | 2026-07-20 18:33:13.965Z (`wrangler deployments list`, 100% traffic) |
 | Deploy lock | **Izzy** |
-| Active clean deployment worktree | `C:\tmp\tm-step-43-production-reader` on branch `release/step-43-production-compatibility` (created from `origin/fix/live-42501-on-capture-v2` @ `14abb8d1d`) |
-| DB migration ledger head | `20260720021300 add_import_player_name_matching_rpc` |
-| Rollback worker version | `eb4e5821` (live-capture v2 build, commit `bf081d918`) |
-| Verified | 2026-07-20 16:44 UTC, against `wrangler deployments list`, `origin/fix/live-42501-on-capture-v2`, and the production migration ledger |
+| Active clean deployment worktree | `C:\tmp\tm-step-43-production-reader` on branch `release/step-43-production-compatibility` (candidate `a40d49662`, base `14abb8d1d`) |
+| DB migration ledger head | `20260720021300 add_import_player_name_matching_rpc` (unchanged — no migration applied this release) |
+| Rollback worker version | `c23bfbd7-9729-4981-9f45-aee05c242d31` (previous production build, commit `59dda6c0f`; `eb4e5821`/`bf081d918` remains the deeper live-capture-v2 fallback) |
+| Verified | 2026-07-20 18:3x UTC — see "Step 4.3 code-only deploy" below for exact evidence and its gaps |
 
-**Evidence for the source commit.** Every Cloudflare deployment record shows
-`Source: Unknown` with no message or tag, so the version→commit linkage above
-rests on this ledger's own deploy history plus branch archaeology (the
-2026-07-20 third-remediation audit re-verified it). That is exactly the gap the
-runtime deployment stamp closes: **from the next release onward,
-`/api/deploy-info` on the deployed worker is the authoritative source of the
-running commit, branch, build time, and environment** — this table then merely
-mirrors it.
+**Evidence for the source commit.** This is the **first release built by the
+stamping deploy path**: `scripts/deploy/deploy-with-stamp.ts` printed
+`TM_STATS_SOURCE_COMMIT=a40d49662825474c98813aa44abb577b8830cc68` immediately
+before invoking the build, from a verified-clean worktree at that exact `git
+rev-parse HEAD`. The resulting version (`15fba7e9`) was then confirmed at 100%
+of `wrangler deployments list` traffic. **The authenticated `/api/deploy-info`
+HTTP fetch — the intended steady-state verification path — was not completed
+this session** (see below); until it is, this row's commit is build-time
+correlated, not live-endpoint confirmed. Do that fetch before relying on this
+row for anything higher-stakes than routine reference.
+
+### Step 4.3 code-only deploy — 2026-07-20 18:3x UTC
+
+Deployed by this session under owner authorization ("AUTHORIZE CODE-ONLY
+DEPLOY", exact candidate `a40d49662825474c98813aa44abb577b8830cc68`).
+
+**Confirmed:**
+- Worktree was clean and at `a40d49662` immediately before and after deploy
+  (`git status --porcelain` empty, `git rev-parse HEAD` matched).
+- `release/step-43-production-compatibility` pushed to `origin`;
+  `origin/release/step-43-production-compatibility` independently fetched and
+  resolved to `a40d49662825474c98813aa44abb577b8830cc68` from a second
+  worktree.
+- Critical focused suite (15 files / 146 tests: deployment-stamp,
+  `/api/deploy-info` route, cloudflare-config, privacy sentinel, import
+  matching + link resolution, tile attribution, player-repo,
+  log-game-player-resolution, analytics-repo, game-draft-repo,
+  game-import-repo, import/review/roster pages) — all passed.
+- `npx tsc --noEmit`, `git diff --check`, `git status` — all clean immediately
+  before deploy.
+- `npm run check:schema` (predeploy gate) — passed, ran again automatically as
+  part of `npm run deploy`.
+- Deploy-time stamp printed the exact candidate SHA before the build ran (see
+  Evidence above).
+- `wrangler deployments list` shows `15fba7e9-2443-440c-8a1f-b5b9231d7ff6` at
+  100% traffic, created `2026-07-20T18:33:13.965Z`.
+- Passive read-only monitoring immediately after deploy: `wrangler tail` for a
+  ~20s window showed no error traffic; Supabase `api`/`postgres` logs (24h
+  window) showed **no PGRST205** and **no tile `CHECK` constraint violations**
+  anywhere in the reviewed range; the most recent request in that window
+  (`get_public_landing_stats`, unauthenticated) returned 200.
+- Confirmed **zero database mutations**: no migration applied, no privilege
+  or RLS change, no backfill, no guest neutralization. `execute_sql` calls this
+  session were all read-only (`select`/log queries), and both fetched logs are
+  read-only by nature.
+
+**NOT completed this session — do before treating this deploy as fully
+verified:**
+- **The authenticated `/api/deploy-info` HTTP fetch was not performed.**
+  Verifying it requires a signed-in session; entering a username/PIN to
+  authenticate is a credential-entry action this session will not perform
+  regardless of authorization, and using the owner's real-browser session was
+  offered and declined. **Action needed:** the owner (or a session with a
+  sanctioned auth path) should load `https://tm-stats.com/api/deploy-info`
+  while signed in and confirm `sourceCommit` reads
+  `a40d49662825474c98813aa44abb577b8830cc68`.
+- **No functional walkthrough of Import Analyze, import review, group
+  roster, new participant creation, public player labels, coarse matching, or
+  a tile-containing import was performed**, for the same reason. The
+  `permission denied for schema analytics` / `permission denied for table
+  player_import_aliases` entries visible in the Supabase `postgres` logs
+  around this deploy window are from this session's own `check:schema` probe
+  script (anon-key, `select=*&limit=0` against every referenced table/schema,
+  `node` user agent) — **not** from real application traffic — and are
+  expected, pre-existing tooling noise, not a regression signal. No
+  authenticated-user request against the new deploy was observed in either
+  direction (success or failure) because none occurred during the monitoring
+  window.
+- Net: the **mechanics** of this release (correct commit, correct worktree,
+  correct branch, stamped, gated, tested, live) are confirmed; the
+  **functional/authenticated behavior** of the privacy reader, coarse
+  matching, and tile attribution against real production traffic is not yet
+  independently observed by this session.
 
 ## Deployment sources — allowed and prohibited
 
@@ -79,14 +144,17 @@ Do **not** deploy from:
 
 ## Open production follow-ups
 
-- **Step 4.3 expand/contract pair (in progress).** The privacy-compatible
-  reader (public-name labels, coarse match-reason consumption, tile
-  attribution, deployment stamp) is prepared on
-  `release/step-43-production-compatibility` and awaits an explicitly
-  authorized code-only deploy. Only after that deploy is runtime-verified may
-  the paired contract migration `20260720120000
-  coarsen_import_name_match_reasons` be applied — under its own separate
-  authorization, per the redesign repo's gated-migration ledger. The 114-row
+- **Step 4.3 expand/contract pair (deployed, runtime verification incomplete).**
+  The privacy-compatible reader (public-name labels, coarse match-reason
+  consumption, tile attribution, deployment stamp) is deployed as worker
+  `15fba7e9` from `release/step-43-production-compatibility` @ `a40d49662`.
+  **Before applying the paired contract migration `20260720120000
+  coarsen_import_name_match_reasons`, complete the runtime verification this
+  session could not**: an authenticated `/api/deploy-info` fetch confirming
+  `sourceCommit=a40d49662825474c98813aa44abb577b8830cc68`, plus a functional
+  pass over Import Analyze, import review, group roster, participant
+  creation, public labels, and coarse matching. Only after both the migration
+  may be applied — under its own separate authorization. The 114-row
   tile-attribution backfill and guest re-neutralization remain separately
   authorized steps, in that order (backfill first — two rows resolve solely
   through the guest's current display name).
