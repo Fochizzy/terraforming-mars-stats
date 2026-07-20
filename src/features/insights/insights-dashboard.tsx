@@ -1803,6 +1803,15 @@ export function InsightsDashboard({
     () => buildOverallLeaderboardRows(focusPeople),
     [focusPeople],
   );
+  // overallAnalytics.leaderboardRows is intentionally always empty (see
+  // getOverallGroupAnalytics) because most Overall-scope sections source
+  // performance from the focus bundle instead. PlayerComparisonSummary reads
+  // analytics.leaderboardRows directly, so it needs the real per-person rows
+  // grafted in here or every comparison shows 0 games regardless of history.
+  const overallAnalyticsForComparison = useMemo(
+    () => ({ ...overallAnalytics, leaderboardRows: overallLeaderboardRows }),
+    [overallAnalytics, overallLeaderboardRows],
+  );
   const isGroupScope = focusScope === 'group';
   const bundle = isGroupScope
     ? null
@@ -2472,7 +2481,7 @@ export function InsightsDashboard({
 
           {comparePerson !== null ? (
             <PlayerComparisonSummary
-              analytics={overallAnalytics}
+              analytics={overallAnalyticsForComparison}
               currentUserCanonicalId={currentUserCanonicalId}
               extended={overallExtended}
               focusPeople={focusPeople}
