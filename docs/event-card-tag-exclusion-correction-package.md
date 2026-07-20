@@ -17,7 +17,11 @@ canonical `card_type`, and even when it correctly detected an Event, it kept
 one tag (`event`) instead of zero. Both derivation call sites
 (`derive-player-tag-summaries.ts`, `derive-card-score-evidence.ts`) inherited
 the bug. The prospective fix (this branch) makes `countableCardTags` take
-`cardType` explicitly and return `[]` whenever `cardType === 'Event'`.
+`cardType` explicitly and fails closed: it returns `sourceTags` only when
+`cardType` is on an explicit known-safe list (`Automated`, `Active`,
+`Project`, `Corporation`, `Prelude`), and returns `[]` for `Event` **or any
+other, unrecognized card type** — an unfamiliar type is never silently
+assumed to be a safe non-Event card.
 
 ## 2. Migration
 
