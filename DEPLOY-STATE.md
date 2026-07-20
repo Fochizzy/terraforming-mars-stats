@@ -9,8 +9,8 @@ what.
 
 | | |
 |---|---|
-| Worker version | `0732bd81-5933-4168-86bc-e250350ee43a` |
-| Source commit | `32c381c22` |
+| Worker version | `ffd765de-71c1-43ab-b579-b8688d20ce71` |
+| Source commit | `7972608f8` |
 | Source branch | `fix/live-42501-on-capture-v2` (off `data-capture-hardening-v2` @ `64918663a`) |
 | Built | 2026-07-20 01:47 UTC |
 | Deploy lock | Izzy |
@@ -51,7 +51,8 @@ build. Fill the commit in above on every deploy so nobody repeats that.
 | 07-20 01:16 | `ffbecea6` | `369b90182` | Clean rebuild. Still regressed. |
 | 07-20 01:27 | `eb4e5821` | `bf081d918` | Rollback to restore service. |
 | 07-20 01:47 | `219cacee` | `32c381c22` | 42501 fixes on the correct base. Superseded 30s later. |
-| 07-20 01:47 | `0732bd81` | `32c381c22` | Same code + pinned Server Actions key. **Current.** |
+| 07-20 01:47 | `0732bd81` | `32c381c22` | Same code + pinned Server Actions key. |
+| 07-20 02:2x | `ffd765de` | `7972608f8` | Server-side import name matching. **Current.** |
 
 The three regressed deploys were built on `tm-stats-app`, which predates
 migration `20260718041532 remove_game_expansion_tracking`. They threw
@@ -62,12 +63,23 @@ class of drift before it reaches production.
 
 ## Open follow-ups
 
-- **Security-definer matching RPC.** Replaces the interim 42501 tolerance in
-  `listPlayerImportAliasesForGroup`. Inputs: imported names. Outputs: player id
-  + public name only, never stored alias texts. Design against the
-  guest-identity privacy contract; apply under separate authorization after the
-  Step 4.3 closure audit. Until it exists, import auto-matching has no
-  saved-alias or full-name axis.
+- **Duplicate-group consolidation — pending the Step 4.3 audit.** Six unlinked
+  rows are the entire membership of two duplicate groups: `869467ec` duplicates
+  `0bed9a67` (4 phantoms, 0 games, plus a broken empty draft `feaa89ab`), and
+  `987ce716` duplicates `19426f66` (2 rows holding 2 games and 83 log events).
+  Fixing means moving those 2 games onto the linked Izzy/James in `19426f66`,
+  re-pointing the log events, then dropping both groups. Note
+  `game_log_events.player_id` / `owner_player_id` are `ON DELETE SET NULL`, not
+  cascade, so events must be re-pointed *before* any delete, inside one
+  transaction with a `mig_backup_*` snapshot. Held because it changes the very
+  row counts the Step 4.3 historical-preservation audit verifies.
+- **Jenna Kass's game needs re-importing.** Her group `6cb73dce`
+  ("Colette LeRoux / Corey Jansen / Jenna Kass") and its games were destroyed by
+  the 2026-07-12 group migrations. Only score rows survive, in
+  `mig_backup_game_players` for games `e58c3171` / `e061fb0d` — which are
+  duplicates of one another, so it is one real game, not two. Re-import the log
+  rather than restoring: the backup has no `played_on`, map, generation count,
+  or log events. Verify against Corey 117 / Colette 79 / Jenna 73.
 - **`tm-stats-app` and `main` are stale — do not deploy them.** Both still
   reference `expansions`, `game_expansions`, and `group_default_expansions`,
   which no longer exist. Merge this branch forward into `main`, make `main` the
