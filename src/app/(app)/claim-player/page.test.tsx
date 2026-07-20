@@ -30,12 +30,11 @@ describe('ClaimPlayerPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders matched saved player candidates with group names', async () => {
+  it('renders matched saved player candidates with an ordinal group disambiguator, never a raw group name', async () => {
     vi.mocked(listClaimablePlayerProfiles).mockResolvedValue([
       {
         exactMatch: true,
         groupId: 'group-1',
-        groupName: 'Mars Club',
         matchReason: 'exact',
         playerId: 'player-1',
         playerName: 'Friday Mars',
@@ -49,7 +48,7 @@ describe('ClaimPlayerPage', () => {
     );
 
     expect(screen.getByText(/friday mars/i)).toBeInTheDocument();
-    expect(screen.getByText(/mars club/i)).toBeInTheDocument();
+    expect(screen.getByText(/^group 1$/i)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /claim this profile/i }),
     ).toBeInTheDocument();
@@ -63,7 +62,6 @@ describe('ClaimPlayerPage', () => {
       {
         exactMatch: true,
         groupId: 'group-1',
-        groupName: 'Mars Club',
         matchReason: 'exact',
         playerId: 'player-1',
         playerName: 'Friday Mars',
@@ -71,7 +69,6 @@ describe('ClaimPlayerPage', () => {
       {
         exactMatch: true,
         groupId: 'group-2',
-        groupName: 'Second Table',
         matchReason: 'exact',
         playerId: 'player-2',
         playerName: 'Friday Mars',
@@ -85,8 +82,8 @@ describe('ClaimPlayerPage', () => {
     );
 
     expect(screen.getByText(/across 2 groups/i)).toBeInTheDocument();
-    expect(screen.getByText(/mars club/i)).toBeInTheDocument();
-    expect(screen.getByText(/second table/i)).toBeInTheDocument();
+    expect(screen.getByText(/^group 1$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^group 2$/i)).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /claim all my profiles/i }),
     ).toBeInTheDocument();

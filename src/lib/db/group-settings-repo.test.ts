@@ -52,18 +52,16 @@ describe('getGroupSettings', () => {
     vi.clearAllMocks();
   });
 
-  it('loads group settings without querying removed expansion tables', async () => {
+  it('loads group settings from the public roster label, never a raw groups.name select', async () => {
     const groupId = '550e8400-e29b-41d4-a716-446655440000';
     const from = vi.fn((table: string) => {
-      if (table === 'groups') {
+      if (table === 'players') {
         return {
           select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { name: 'Weeknight Mars' },
-                error: null,
-              }),
-            })),
+            in: vi.fn().mockResolvedValue({
+              data: [{ group_id: groupId, id: 'player-a' }],
+              error: null,
+            }),
           })),
         };
       }
@@ -94,8 +92,25 @@ describe('getGroupSettings', () => {
 
       throw new Error(`Unexpected table: ${table}`);
     });
+    const rpc = vi.fn((fn: string, args: { p_player_ids: string[] }) => {
+      if (fn !== 'get_public_player_names') {
+        throw new Error(`Unexpected rpc ${fn}`);
+      }
 
-    vi.mocked(createSupabaseServerClient).mockResolvedValue({ from } as never);
+      return Promise.resolve({
+        data: args.p_player_ids.map((playerId) => ({
+          is_linked: true,
+          player_id: playerId,
+          public_name: playerId === 'player-a' ? 'Weeknight Mars' : null,
+        })),
+        error: null,
+      });
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from,
+      rpc,
+    } as never);
 
     await expect(getGroupSettings(groupId)).resolves.toEqual({
       defaultMapId: 'map-tharsis',
@@ -104,10 +119,10 @@ describe('getGroupSettings', () => {
       groupId,
       groupName: 'Weeknight Mars',
     });
-    expect(from.mock.calls.map(([table]) => table)).toEqual([
-      'groups',
-      'group_settings',
-      'group_default_promo_sets',
-    ]);
+    // A raw `groups.name` select must never be part of this read.
+    expect(from.mock.calls.map(([table]) => table)).not.toContain('groups');
+    expect(rpc).toHaveBeenCalledWith('get_public_player_names', {
+      p_player_ids: ['player-a'],
+    });
   });
 });
