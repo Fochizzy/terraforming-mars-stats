@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import {
   getCrossGroupFocusData,
   getGlobalInsightMetrics,
+  getOverallGroupAnalytics,
   getProfileAnalytics,
   listGroupInteractions,
   rewriteLineupLabels,
@@ -1985,5 +1986,90 @@ describe('rewriteLineupLabels', () => {
     rewriteLineupLabels(rows, () => 'corey');
 
     expect(rows[0].lineup_label).toBe('Solo setup');
+  });
+});
+
+describe('getOverallGroupAnalytics', () => {
+  afterEach(() => {
+    vi.mocked(createSupabaseServerClient).mockReset();
+  });
+
+  type ViewResult = { data?: unknown[]; error?: Error };
+
+  function buildFakeSupabase(viewResults: Record<string, ViewResult>) {
+    const resolveView = (view: string) => {
+      const result = viewResults[view];
+      if (!result) {
+        return { data: [], error: null };
+      }
+      if (result.error) {
+        return { data: null, error: result.error };
+      }
+      return { data: result.data ?? [], error: null };
+    };
+
+    const analyticsClient = {
+      from: (view: string) => ({
+        select: () => ({
+          in: async () => resolveView(view),
+        }),
+      }),
+    };
+
+    return { schema: () => analyticsClient };
+  }
+
+  const identityLookup = (playerId: string, fallbackName: string | null) => ({
+    canonicalId: playerId,
+    displayName: fallbackName ?? 'Unknown',
+  });
+
+  it('preserves interaction data that loaded even when a sibling view (e.g. lineup_effects) fails', async () => {
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(
+      buildFakeSupabase({
+        lineup_effects: {
+          error: Object.assign(new Error('canceling statement due to statement timeout'), {
+            code: '57014',
+          }),
+        },
+        player_interactions: {
+          data: [
+            {
+              average_placement: 1.5,
+              average_score: 86,
+              games_played: 4,
+              group_id: 'group-1',
+              interaction_type: 'corporation_prelude_pair',
+              label: 'Tharsis Republic | Allied Bank',
+              player_id: 'player-1',
+              player_name: 'Alice',
+              win_rate: 0.75,
+              wins: 3,
+            },
+          ],
+        },
+      }) as never,
+    );
+
+    const result = await getOverallGroupAnalytics(['group-1'], identityLookup);
+
+    // The failing view degrades to empty and is recorded as unavailable...
+    expect(result.lineupEffectRows).toEqual([]);
+    expect(result.unavailableSections).toContain('lineupEffectRows');
+
+    // ...but the sibling view that succeeded keeps its real data and is not
+    // wiped out by the other view's rejection (Promise.all all-or-nothing).
+    expect(result.playerInteractionRows).toHaveLength(1);
+    expect(result.playerInteractionRows[0]?.label).toBe('Tharsis Republic | Allied Bank');
+    expect(result.unavailableSections).not.toContain('playerInteractionRows');
+  });
+
+  it('leaves unavailableSections empty when every view genuinely returns zero rows', async () => {
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(buildFakeSupabase({}) as never);
+
+    const result = await getOverallGroupAnalytics(['group-1'], identityLookup);
+
+    expect(result.playerInteractionRows).toEqual([]);
+    expect(result.unavailableSections).toEqual([]);
   });
 });

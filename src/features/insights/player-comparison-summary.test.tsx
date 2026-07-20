@@ -500,6 +500,58 @@ describe('PlayerComparisonSummary', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('renders a distinguishable unavailable message for tag profiles when the tag view failed, not the generic no-data copy', () => {
+    render(
+      <PlayerComparisonSummary
+        analytics={analyticsWithLeaderboard}
+        extended={buildExtended({ unavailableSections: ['tagOutcomeRows'] })}
+        focusPeople={focusPeopleBase}
+        selectedCanonicalIds={['user:alice', 'user:bob']}
+      />,
+    );
+
+    expect(
+      screen.getAllByText(/temporarily unavailable/i).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/tag evidence will appear/i)).not.toBeInTheDocument();
+    // The games/win-rate header pills still render from the real leaderboard —
+    // a failed tag query must not blank out data that loaded successfully.
+    expect(screen.getAllByText(/6 games/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders a distinguishable unavailable message for pairings when the interaction view failed, not the generic no-data copy', () => {
+    render(
+      <PlayerComparisonSummary
+        analytics={buildGroupAnalytics({ unavailableSections: ['playerInteractionRows'] })}
+        extended={extendedWithTags}
+        focusPeople={focusPeopleBase}
+        selectedCanonicalIds={['user:alice', 'user:bob']}
+      />,
+    );
+
+    expect(
+      screen.getAllByText(/temporarily unavailable/i).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByText(/Corporation and Prelude preferences will appear/i),
+    ).not.toBeInTheDocument();
+    // Tag profiles are a separate query that succeeded — must still render.
+    expect(screen.getAllByText(/science/i).length).toBeGreaterThan(0);
+  });
+
+  it('does not claim unavailable when a section is genuinely empty (no unavailableSections entry)', () => {
+    render(
+      <PlayerComparisonSummary
+        analytics={buildGroupAnalytics()}
+        extended={buildExtended()}
+        focusPeople={focusPeopleBase}
+        selectedCanonicalIds={['user:alice', 'user:bob']}
+      />,
+    );
+
+    expect(screen.queryByText(/temporarily unavailable/i)).not.toBeInTheDocument();
+  });
+
   it('uses accessible section labels', () => {
     render(
       <PlayerComparisonSummary
