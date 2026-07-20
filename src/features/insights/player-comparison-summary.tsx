@@ -324,18 +324,30 @@ function TagProfileCard({
   allProfiles,
   player,
   profile,
+  unavailable,
 }: {
   allProfiles: Map<string, TagProfileRow[]>;
   player: DisplayPlayer;
   profile: TagProfileRow[];
+  unavailable: boolean;
 }) {
   return (
     <article className="flex h-full min-w-0 flex-col rounded-2xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] sm:p-5">
       <PlayerHeader player={player} />
       {profile.length === 0 ? (
         <p className="mt-5 text-sm leading-6 text-stone-400">
-          Tag evidence will appear after imported finalized games include card-tag
-          summaries.
+          {unavailable ? (
+            <>
+              Tag profile is temporarily unavailable — the comparison data
+              couldn&apos;t be loaded just now. Your logged games are intact;
+              try refreshing shortly.
+            </>
+          ) : (
+            <>
+              Tag evidence will appear after imported finalized games include
+              card-tag summaries.
+            </>
+          )}
         </p>
       ) : (
         <div className="mt-4">
@@ -389,17 +401,29 @@ function TagProfileCard({
 function PairingCard({
   pairings,
   player,
+  unavailable,
 }: {
   pairings: PlayerInteractionRow[];
   player: DisplayPlayer;
+  unavailable: boolean;
 }) {
   return (
     <article className="flex h-full min-w-0 flex-col rounded-2xl border border-white/[0.08] bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] sm:p-5">
       <PlayerHeader player={player} />
       {pairings.length === 0 ? (
         <p className="mt-5 text-sm leading-6 text-stone-400">
-          Corporation and Prelude preferences will appear after finalized games
-          include both selections.
+          {unavailable ? (
+            <>
+              Corporation and Prelude preferences are temporarily unavailable
+              — the comparison data couldn&apos;t be loaded just now. Your
+              logged games are intact; try refreshing shortly.
+            </>
+          ) : (
+            <>
+              Corporation and Prelude preferences will appear after finalized
+              games include both selections.
+            </>
+          )}
         </p>
       ) : (
         <div className="mt-4 grid flex-1 auto-rows-fr gap-3">
@@ -667,6 +691,12 @@ export function PlayerComparisonSummary({
     ]),
   );
   const insights = buildComparisonInsights(analytics, players, tagProfiles);
+  const tagsUnavailable = Boolean(
+    extended.unavailableSections?.includes('tagOutcomeRows'),
+  );
+  const pairingsUnavailable = Boolean(
+    analytics.unavailableSections?.includes('playerInteractionRows'),
+  );
 
   return (
     <div className="flex flex-col gap-5" data-player-comparison-summary>
@@ -686,6 +716,7 @@ export function PlayerComparisonSummary({
               key={player.canonicalId}
               player={player}
               profile={tagProfiles.get(player.canonicalId) ?? []}
+              unavailable={tagsUnavailable}
             />
           ))}
         </div>
@@ -709,6 +740,7 @@ export function PlayerComparisonSummary({
                 player.canonicalId,
               )}
               player={player}
+              unavailable={pairingsUnavailable}
             />
           ))}
         </div>
