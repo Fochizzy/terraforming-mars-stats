@@ -9,8 +9,8 @@ what.
 
 | | |
 |---|---|
-| Worker version | `ffd765de-71c1-43ab-b579-b8688d20ce71` |
-| Source commit | `7972608f8` |
+| Worker version | `5d290811-df66-424e-b1a0-e276d686044b` |
+| Source commit | `48ebf13e6` |
 | Source branch | `fix/live-42501-on-capture-v2` (off `data-capture-hardening-v2` @ `64918663a`) |
 | Built | 2026-07-20 01:47 UTC |
 | Deploy lock | Izzy |
@@ -52,7 +52,8 @@ build. Fill the commit in above on every deploy so nobody repeats that.
 | 07-20 01:27 | `eb4e5821` | `bf081d918` | Rollback to restore service. |
 | 07-20 01:47 | `219cacee` | `32c381c22` | 42501 fixes on the correct base. Superseded 30s later. |
 | 07-20 01:47 | `0732bd81` | `32c381c22` | Same code + pinned Server Actions key. |
-| 07-20 02:2x | `ffd765de` | `7972608f8` | Server-side import name matching. **Current.** |
+| 07-20 02:2x | `ffd765de` | `7972608f8` | Server-side import name matching. |
+| 07-20 02:5x | `5d290811` | `48ebf13e6` | Card-type filter fix (project deck). **Current.** |
 
 The three regressed deploys were built on `tm-stats-app`, which predates
 migration `20260718041532 remove_game_expansion_tracking`. They threw
