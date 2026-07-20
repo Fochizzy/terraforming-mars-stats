@@ -381,19 +381,60 @@ const PROJECT_CARD_TYPES = ['Automated', 'Active', 'Event', 'Project'];
 /** Everything a player can play from hand, for matching names in a game log. */
 const PLAYABLE_CARD_TYPES = [...PROJECT_CARD_TYPES, 'Corporation', 'Prelude'];
 
+const CARD_PAGE_SIZE = 1000;
+
+/**
+ * Read every matching card, a page at a time.
+ *
+ * PostgREST caps a response at 1000 rows and reports no error when it truncates,
+ * so a plain `select` silently returns a prefix. The playable catalog is already
+ * past that limit, and because these reads are ordered by name the loss lands on
+ * the tail of the alphabet — cards after "To…" simply stopped matching imported
+ * logs. Paging keeps each request under the cap.
+ */
+async function fetchAllCardRows<TRow>(
+  page: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: unknown; error: unknown }>,
+): Promise<TRow[]> {
+  const rows: TRow[] = [];
+
+  for (let from = 0; ; from += CARD_PAGE_SIZE) {
+    const { data, error } = await page(from, from + CARD_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const batch = (data ?? []) as TRow[];
+    rows.push(...batch);
+
+    if (batch.length < CARD_PAGE_SIZE) {
+      return rows;
+    }
+  }
+}
+
 export async function listCards(): Promise<CardOption[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('cards')
-    .select(
-      'id, card_number, card_name, expansion_code, promo_set_id, required_expansion_codes',
-    )
-    .in('card_type', PROJECT_CARD_TYPES)
-    .order('card_name');
-
-  if (error) {
-    throw error;
-  }
+  const data = await fetchAllCardRows<{
+    card_name: string;
+    card_number: string;
+    expansion_code: string;
+    id: string;
+    promo_set_id: string | null;
+    required_expansion_codes: string[] | null;
+  }>((from, to) =>
+    supabase
+      .from('cards')
+      .select(
+        'id, card_number, card_name, expansion_code, promo_set_id, required_expansion_codes',
+      )
+      .in('card_type', PROJECT_CARD_TYPES)
+      .order('card_name')
+      .range(from, to),
+  );
 
   const promoSetSlugById = await resolvePromoSetSlugByIdMap(
     data
@@ -466,32 +507,7 @@ export async function listPromoCards(): Promise<PromoCardOption[]> {
 
 export async function listCardScoringReferences(): Promise<CardScoringReference[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('cards')
-    .select(
-      [
-        'id',
-        'source_card_id',
-        'card_number',
-        'card_name',
-        'card_type',
-        'expansion_code',
-        'promo_set_id',
-        'required_expansion_codes',
-        'image_url',
-        'thumbnail_path',
-        'full_image_path',
-        'gameplay_tags',
-      ].join(', '),
-    )
-    .in('card_type', PROJECT_CARD_TYPES)
-    .order('card_name');
-
-  if (error) {
-    throw error;
-  }
-
-  const cardRows = data as unknown as Array<{
+  const cardRows = await fetchAllCardRows<{
     card_name: string;
     card_number: string;
     card_type: string;
@@ -504,7 +520,29 @@ export async function listCardScoringReferences(): Promise<CardScoringReference[
     required_expansion_codes: unknown;
     source_card_id: string;
     thumbnail_path: string | null;
-  }>;
+  }>((from, to) =>
+    supabase
+      .from('cards')
+      .select(
+        [
+          'id',
+          'source_card_id',
+          'card_number',
+          'card_name',
+          'card_type',
+          'expansion_code',
+          'promo_set_id',
+          'required_expansion_codes',
+          'image_url',
+          'thumbnail_path',
+          'full_image_path',
+          'gameplay_tags',
+        ].join(', '),
+      )
+      .in('card_type', PROJECT_CARD_TYPES)
+      .order('card_name')
+      .range(from, to),
+  );
 
   const promoSetSlugById = await resolvePromoSetSlugByIdMap(
     cardRows
@@ -621,24 +659,25 @@ export type CardTagReference = {
 
 export async function listCardTagReferences(): Promise<CardTagReference[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('cards')
-    .select('id, card_name, card_type, gameplay_tags, image_url, full_image_path')
-    .in('card_type', PLAYABLE_CARD_TYPES)
-    .order('card_name');
-
-  if (error) {
-    throw error;
-  }
-
-  return (data as unknown as Array<{
+  const cardRows = await fetchAllCardRows<{
     card_name: string;
     card_type: string;
     full_image_path: string | null;
     gameplay_tags: unknown;
     id: string;
     image_url: string;
-  }>).map((card) => ({
+  }>((from, to) =>
+    supabase
+      .from('cards')
+      .select(
+        'id, card_name, card_type, gameplay_tags, image_url, full_image_path',
+      )
+      .in('card_type', PLAYABLE_CARD_TYPES)
+      .order('card_name')
+      .range(from, to),
+  );
+
+  return cardRows.map((card) => ({
     id: card.id,
     cardName: card.card_name,
     cardType: card.card_type,
