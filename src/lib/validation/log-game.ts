@@ -141,9 +141,13 @@ export const logGameDraftSchema = z.object({
   mapId: z.string(),
   playerCount: z.number().min(1).max(5),
   generationCount: z.number().min(1),
+  // A snapshot missing this field (drafts saved before the field existed)
+  // resumes as 'unknown' — requiring review — never as a silently confirmed
+  // board_defined setup. New manual forms still start at board_defined via
+  // the page-level defaults; imported drafts set it explicitly.
   objectiveConfiguration: z
     .enum(IMPORT_OBJECTIVE_CONFIGURATIONS)
-    .default('board_defined'),
+    .default('unknown'),
   guaranteedMergerOffer: z.boolean().nullable().default(null),
   mergerOfferRuleSource: z.enum(MERGER_OFFER_RULE_SOURCES).default('unknown'),
   promoSetSlugs: z.array(z.string()).default([]),

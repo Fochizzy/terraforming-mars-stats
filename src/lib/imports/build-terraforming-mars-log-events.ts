@@ -104,11 +104,15 @@ export function derivePlacementTileClass(
  * Sources that carry explicit ownership evidence must supply it through this
  * seam instead of editing call sites.
  */
-export function derivePlacementOwnership(_tileAction: ImportTileAction): {
+export function derivePlacementOwnership(tileAction: ImportTileAction): {
   ownerGamePlayerId: string | null;
   ownerPlayerId: string | null;
   ownershipState: GameLogOwnershipState;
 } {
+  // The exported log records no ownership statement for any tile action, so
+  // no field of the action can change the answer today; the parameter exists
+  // so evidence-bearing sources extend this seam instead of the call sites.
+  void tileAction;
   return {
     ownerGamePlayerId: null,
     ownerPlayerId: null,

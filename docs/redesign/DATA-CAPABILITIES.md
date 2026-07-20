@@ -1036,11 +1036,51 @@ rows).
 ## Source identity
 
 Every new redesign import records the original-submission SHA-256 and byte
-length, a deterministic parser-run identity `(source hash, parser version)`,
-and whether the stored text was trimmed. The server-derived `input_sha256`
-digests the stored trimmed text; live-capture v2's `source_sha256` digests the
-original bytes. The digests are distinct facts, joined by
-`game_log_import_id`, and are never compared to one another.
+length and a deterministic parser-run identity `(source hash, parser
+version)`. Since the 2026-07-20 remediation (audit H6), **nothing trims the
+immutable source anywhere**: the client submits the exact original text, the
+persistence layer stores it byte-identical, `original_sha256` digests those
+original bytes (a trailing newline, leading whitespace, or CRLF-vs-LF
+difference changes it), and the evidence records
+`source_has_outer_whitespace` plus `stored_text_matches_original: true`.
+Parsing uses a separately trimmed value on both client and server so line
+numbers stay stable. For NEW imports the trigger-derived `input_sha256`
+(stored text) therefore equals `original_sha256`; for HISTORICAL imports the
+stored text was trimmed by the old client, so `input_sha256` covers trimmed
+text and the original bytes were never captured (never inferred).
+Live-capture v2's `source_sha256` digests its own original bytes; the
+digests are distinct facts, joined by `game_log_import_id`, and are never
+compared to one another.
+
+## Duplicate-source detection and recoverable import runs (2026-07-20)
+
+The import action detects duplicate sources before any write: the deployed
+`find_duplicate_game_log_import` RPC (checked for both the exact original
+text and its trimmed form) plus classified hash-candidate matches
+(`exact_bytes` / `trimmed_equal` / `stored_hash_only`, draft vs finalized,
+same-parser flag). A detected duplicate returns a reviewable
+`duplicate_source` state; an explicit importer acknowledgment proceeds and
+records the matched game ids as import evidence. No unique constraint —
+reruns and corrections stay legitimate. The one pre-existing finalized
+duplicate pair in production remains a separately authorized follow-up.
+Each import also records `confidence_summary.run`
+(`persisting` → `complete`); a run that never completes is surfaced by the
+adapter as `incomplete_import_run` and is not a complete canonical record. A
+missing run block means a completed historical import.
+
+## Canonical placement capability (gated migration 20260720110000)
+
+The redesign-owned placement model persists, first-class: the full action
+vocabulary (placed/removed/replaced/converted/ownership_changed/unresolved),
+ownership (explicit_owner/neutral/unowned/unknown/not_applicable/unresolved,
+owner ids only under explicit_owner), verbatim `raw_actor_text`, the coarse
+`tile_type_class` beside the fine upstream code, grid row/position beside
+the converted flat id, the verified off-reserve exception card as
+`source_entity`, and original-source identity columns on the import row.
+The exported log carries no ownership statements, so parsed placements stay
+`unknown` with no owner ids — never fabricated. Historical rows keep null in
+the new columns (no invented actor text or class); enriching them would be a
+separately authorized backfill.
 
 ## Fixture matrix update
 

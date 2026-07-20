@@ -410,23 +410,39 @@ cross-repository contract the redesign now implements:
 
 ### Current next approved work
 
-Phase 4, Step 4.3 is active. The bounded F-01–F-10 remediation is
-repository-complete at commits `cfafd823`..`6e6e1859`, and its four gated
-production mutation groups (privacy hardening `20260719191911`, event contract
-`20260719192054`, objective aliases `20260719192148`, and the 1,500-row
-placement backfill) are **applied and verified** (2026-07-19, user-approved),
-followed by the F-01 completion and audit-view invoker fixes
+Phase 4, Step 4.3 is **BLOCKED pending re-audit**. The bounded F-01–F-10
+remediation is repository-complete at commits `cfafd823`..`6e6e1859`, and its
+four gated production mutation groups (privacy hardening `20260719191911`,
+event contract `20260719192054`, objective aliases `20260719192148`, and the
+1,500-row placement backfill) are **applied and verified** (2026-07-19,
+user-approved), followed by the F-01 completion and audit-view invoker fixes
 (`20260719203944`/`20260719204250`/`20260719205420`). The 2026-07-19
 continuation session added the live-site v2 compatibility layer, the
-confidence/review-state split (gated migration `20260719234500`, prepared, not
-applied), deterministic import source identity, the semantic matrix, labelled
-synthetic fixtures, executable negative authorization tests, and the third
-immutable reconciliation artifact
-(`docs/redesign/reports/phase-04-step-03-compat/`). Step 4.3 is closed only
-after a fresh independent read-only audit passes. Phase 3 and Phase 4 Steps
-4.1-4.2 are complete. Do not begin Step 4.4/4.5 or Phase 5. The un-applied
-Merger production migration/backfill package remains separately owner-gated.
-Authoritative handoff:
+confidence/review-state split, deterministic import source identity, the
+semantic matrix, labelled synthetic fixtures, executable negative
+authorization tests, and the third immutable reconciliation artifact.
+
+The second independent closure audit returned **BLOCKED**; the 2026-07-20
+remediation pass resolved its findings repository-side: client payloads carry
+no private normalized names and every guest-creation path yields neutral
+public labels; the redesign-owned placement persistence meets the full
+canonical contract; the split migration is repeat-safe with review state
+persisting end to end; the exact original submission is hashed and stored
+untrimmed with duplicate sources surfaced for explicit review; client and
+server share one map gate over identical exception evidence; labelled
+fixtures reach real database assertions; the overwritten historical dry run
+is restored beside a separate production artifact with per-system,
+measured-only reconciliation metrics; and the migration↔ledger mapping is
+governed with a drift-detecting test
+(`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`). Three migrations remain
+prepared and NOT applied (`20260719234500`, `20260720100000`,
+`20260720110000`); the redesign application is not deployed. A durable
+release gate was adopted: privilege/schema contractions follow the
+expand/contract order (deploy the reader/writer first, verify, then
+contract). Step 4.3 is closed only after a fresh independent read-only audit
+passes. Phase 3 and Phase 4 Steps 4.1-4.2 are complete. Do not begin Step
+4.4/4.5 or Phase 5. The un-applied Merger production migration/backfill
+package remains separately owner-gated. Authoritative handoff:
 `docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
 
 ### Completed
@@ -1343,17 +1359,23 @@ Update these fields whenever this file changes materially:
 
 ## 28. Current Maintenance Header
 
-- **Last updated:** 2026-07-19
+- **Last updated:** 2026-07-20
 - **Current phase:** Phase 4 — Log a Game (active)
 - **Current substep:** Step 4.3 — Import Validation, Evidence, and Claimable
-  Guest Identity (**active, not closed**). The F-01–F-10 closure-audit
-  remediation is repository-complete (`cfafd823`..`6e6e1859`); its three
-  remediation migrations and the 1,500-row placement backfill are prepared and
-  executable-tested but not yet applied to production (gated). Step 4.3B
-  (Venus/Colonies import facts) remains production-verified within it.
-- **Next gated substep:** Apply the four gated Step 4.3 production mutation
-  groups per protocol, then request a fresh independent closure audit. Do not
-  begin Step 4.4 until that audit passes.
+  Guest Identity (**BLOCKED pending re-audit, not closed**). The F-01–F-10
+  remediation's four production mutation groups were applied and verified
+  2026-07-19; the second closure audit returned BLOCKED, and the 2026-07-20
+  remediation pass resolved its Blocker/High findings in the repository.
+  Three migrations remain prepared and NOT applied (`20260719234500`,
+  `20260720100000`, `20260720110000`); the redesign application is not
+  deployed; live-site v2 is deployed with zero capture rows as of the
+  recorded verification; backup-table security remediation is complete.
+  Step 4.3B (Venus/Colonies import facts) remains production-verified
+  within it.
+- **Next gated substep:** A fresh independent read-only Step 4.3 closure
+  audit. Do not begin Step 4.4 until that audit passes; applying the three
+  gated migrations requires the per-mutation protocol and, for the
+  confidence-constraint tightening, the expand/contract deployment order.
 - **Step 4.2 completion commit:** recorded by post-commit verification after
   this document is committed
 - **Step 4.1 completion commit:** recorded by post-commit verification after

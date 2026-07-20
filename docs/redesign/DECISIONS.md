@@ -914,8 +914,14 @@ and planned zero writes on the second pass.
 ## Phase 4, Step 4.3 — closure-audit remediation (F-01–F-10), 2026-07-19
 
 Approved as a bounded remediation of the independent Step 4.3 closure audit.
-Repository-complete at commits `cfafd823`..`6e6e1859`; the production migrations
-and placement backfill are prepared and gated.
+Repository-complete at commits `cfafd823`..`6e6e1859`. The four gated
+production mutation groups were subsequently **applied and verified on
+2026-07-19** under the per-mutation protocol (user approved "apply all
+four"); the ledger records them as `20260719191911`/`20260719192054`/
+`20260719192148` plus the 1,500-row placement backfill, with the F-01
+completion and audit-view fixes as `20260719203944`/`20260719204250`/
+`20260719205420` (status language reconciled 2026-07-20 per audit B3/F-10 —
+this entry previously still described that work as "prepared and gated").
 
 - **Guest-identity privacy is a server boundary, not a display concern (F-01).**
   Private identity material lives in the `private` schema with no
@@ -965,10 +971,10 @@ and placement backfill are prepared and gated.
   real Venus/Colonies-positive export exists locally, so none is invented; the
   pinned upstream fragment is the authoritative positive corpus.
 - **Production mutation stays gated (F-08/F-10).** The privacy, event-contract,
-  and alias migrations and the 1,500-row placement backfill are applied only
+  and alias migrations and the 1,500-row placement backfill were applied only
   under the per-mutation protocol (exact SQL, tables, expected rows, rollback,
-  re-run preflight, stop conditions). Step 4.3 is closed only after a fresh
-  independent read-only audit passes.
+  re-run preflight, stop conditions) — executed and verified 2026-07-19.
+  Step 4.3 is closed only after a fresh independent read-only audit passes.
 
 ## Phase 4, Step 4.3 — live-site v2 compatibility and the confidence/review-state split, 2026-07-19
 
@@ -1022,3 +1028,75 @@ the prepared live-site data-capture contract.
   identity of `(source hash, parser version)` mirroring the v2 rerun rule; the
   server-derived stored-text hash is preserved separately and the two digests
   are never conflated.
+
+## Phase 4, Step 4.3 — second closure-blocker remediation, 2026-07-20
+
+Approved as the second bounded remediation of the independent Step 4.3
+closure audit (BLOCKED verdict). Durable decisions:
+
+- **Expand/contract is a standing release gate.** A privilege or schema
+  contraction (REVOKE, DROP, constraint tightening) must never be applied to
+  production while a currently deployed reader or writer still depends on
+  the old shape. Order: deploy the code that no longer needs it → verify →
+  contract. Adopted after the 2026-07-19 incident in which the F-01 column
+  revokes (correct in themselves) broke the deployed live-site frontend the
+  moment they landed. Gated migration `20260719234500`'s pre-apply protocol
+  therefore includes verifying that no deployed writer emits the retired
+  `'reviewed'` confidence value.
+- **The redesign-owned placement model carries the full canonical contract**
+  (gated migration `20260720110000`): actions placed/removed/replaced/
+  converted/ownership_changed/unresolved; ownership explicit_owner/neutral/
+  unowned/unknown/not_applicable/unresolved with owner ids permitted only
+  under explicit_owner; first-class raw actor text and a constrained coarse
+  tile class beside the fine upstream code; first-class original-source
+  identity on the import row; and the map-independent board-layout format
+  check in the RPC. Per-map geometry semantics remain application-layer.
+  The redesign still never writes `game_capture_*` rows; the adapter maps
+  the repository vocabulary onto the shared canonical one as pure renames.
+- **The immutable source is the exact original submission.** No trim,
+  line-ending normalization, Unicode normalization, or re-encoding anywhere
+  between submission and storage; `original_sha256` digests those bytes and
+  the stored text is byte-identical to them. Parsing uses a separately
+  trimmed value on both client and server so line numbers stay stable.
+- **Duplicate sources are reviewed, never silently re-imported.** The import
+  action runs duplicate detection before any write (deployed
+  `find_duplicate_game_log_import` plus classified matches: exact bytes /
+  trimmed-equal / stored-hash-only, draft vs finalized, same-parser flag)
+  and returns an explicit `duplicate_source` state. An intentional re-import
+  requires the importer's explicit acknowledgment, which is recorded with
+  the matched game ids as import evidence. No unique constraint — reruns
+  and corrections stay legitimate. The pre-existing finalized duplicate pair
+  remains a separately authorized production follow-up.
+- **One shared map gate.** `evaluateImportMapGate` is the single rule for
+  client preview and server action, over identical detector inputs
+  including the verified off-reserve-ocean exception evidence; only a true
+  conflict or a confident different-map detection blocks a save.
+- **Import persistence carries a recoverable run state.**
+  `confidence_summary.run` records persisting→complete; a run that never
+  completes is surfaced by the adapter as `incomplete_import_run` and must
+  not be read as a finished record. A missing run block means a completed
+  historical import. Full single-transaction persistence remains deferred
+  (it would redesign the Step 4.4 boundary); the limitation is documented.
+- **A resumed draft never invents confirmed setup.** A snapshot missing
+  `objectiveConfiguration` resumes as `unknown` (requiring review), never as
+  `board_defined`.
+- **Dry-run and production artifacts are permanently separate.** The
+  overwritten Venus/Colonies dry run was restored byte-exact from
+  `41bc1221e`; production execution lives in its own artifact; a repository
+  test pins every pair's separation and non-contradiction.
+- **Reconciliation metrics are per-system and measured-only.** Coverage is
+  never claimed for "either system"; duplicate source hashes are measured in
+  both systems; adapter failures are reported only when actually measured.
+- **The migration↔ledger map is governed.**
+  `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` +
+  `src/lib/db/migration-ledger-map.ts` classify every repository migration
+  against the verified production ledger (repo-native, renamed-drift,
+  reconstructed, unconfirmed-remote, gated), with a drift-detecting test.
+  `supabase/migrations/` is not a safe direct `db push` source; production
+  changes continue through the per-mutation protocol in version order.
+- **Non-import guest creation records no import evidence.** Gated migration
+  `20260720100000` adds `p_record_import_alias` (default true) so the
+  roster and Manual Entry guest paths — now routed through the guarded
+  guest RPC with private personal-name storage and neutral public labels —
+  never write a false `game_log` alias row. The raw `display_name` writers
+  are removed entirely.

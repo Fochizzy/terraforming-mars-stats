@@ -90,10 +90,23 @@ the game predates the v2 cutoff or was imported through the redesign path.
 The first v2 query doubles as the schema probe: a missing-relation answer
 (PostgREST `PGRST205` / PostgreSQL `42P01`) sets
 `captureSchemaPresent = false` and falls through to the legacy path. The same
-pattern covers the redesign's own gated column: `game_log_events.review_state`
-is selected optimistically and the query is retried without it on a
-missing-column answer (`42703` / `PGRST204`), so the adapter works before and
-after migration `20260719234500` is applied.
+pattern covers the redesign's own gated columns, one migration at a time:
+the legacy event read tries `review_state` (migration `20260719234500`) plus
+`raw_actor_text`/`tile_type_class` (migration `20260720110000`)
+optimistically, degrading on a missing-column answer (`42703` / `PGRST204`)
+first to the review-state-only list and then to the base list — so an
+environment holding any prefix of the gated sequence reads correctly, and a
+review-state-bearing database never loses that column just because the
+placement columns are absent. The adapter also surfaces
+`confidence_summary.run.state` values other than `complete` as an
+`incomplete_import_run` issue (recoverable-run contract); a missing run
+block means a completed historical import.
+
+The adapter's select lists are additionally pinned against a read-only
+capture of the deployed v2 schema
+(`src/lib/imports/live-capture/deployed-v2-schema.ts` and its contract
+test), so a renamed, removed, or retyped v2 column fails the suite instead
+of passing through an argument-discarding mock.
 
 ## Table-by-table mapping
 
@@ -105,10 +118,16 @@ RLS boundary and is not re-serialized into DTOs.
 
 Hash semantics are explicit: v2's `source_sha256` digests the original,
 untrimmed source bytes (`hashScope: 'original_source_bytes'`); the legacy
-`game_log_imports.input_sha256` is a server-derived digest of the stored,
-trimmed `raw_log_text` (`hashScope: 'stored_trimmed_log_text'`). The two are
-different digests over different byte sequences and are never compared to one
-another; v2 sources join legacy imports via `game_log_import_id`, not hashes.
+`game_log_imports.input_sha256` is a server-derived digest of the stored
+`raw_log_text` (`hashScope: 'stored_trimmed_log_text'` — named for the
+historical rows, which the old client stored trimmed). Since the 2026-07-20
+remediation (audit H6) the redesign stores the source byte-identical to the
+submission, so for NEW imports the stored-text digest equals the
+original-byte digest and the first-class `original_source_sha256` column
+(gated migration `20260720110000`) records it explicitly; historical
+imports' original bytes were never captured and are never inferred. The two
+hash kinds remain distinct facts and are never compared to one another; v2
+sources join legacy imports via `game_log_import_id`, not hashes.
 
 ### `game_capture_parser_runs` → `CanonicalParserRun`
 
@@ -179,9 +198,10 @@ Vocabulary mapping:
 
 | Concern | v2 | Legacy | Canonical |
 | --- | --- | --- | --- |
-| Action | `place/replace/remove/convert/ownership_change/unresolved` | `placed`/`removed` | v2 vocabulary; legacy `placed`→`place`, `removed`→`remove` (pure renames) |
-| Ownership | `owned/neutral/unowned/unresolved` | `explicit_owner/unknown/not_applicable` | union; legacy `explicit_owner`→`owned` (owner ids ride along), `unknown`/`not_applicable` preserved |
-| Tile type | coarse class (`ocean/city/greenery/special/neutral/unresolved`) | fine upstream code (`mining_rights`, `moon_mine`, …) | value preserved verbatim plus `tileTypeVocabulary` (`capture_coarse_class` vs `upstream_tile_code`); the adapter does not invent a translation between vocabularies |
+| Action | `place/replace/remove/convert/ownership_change/unresolved` | full repository vocabulary since gated migration `20260720110000` (`placed/removed/replaced/converted/ownership_changed/unresolved`; older rows carry only `placed`/`removed`) | v2 vocabulary; the stored legacy action column is authoritative and maps as pure renames (`placed`→`place`, …, `ownership_changed`→`ownership_change`); rows predating the typed columns fall back to the event type's place/remove meaning |
+| Ownership | `owned/neutral/unowned/unresolved` | `explicit_owner/neutral/unowned/unknown/not_applicable/unresolved` (widened by `20260720110000`; owner ids only under `explicit_owner`) | union; legacy `explicit_owner`→`owned` (owner ids ride along), everything else preserved |
+| Tile type | coarse class (`ocean/city/greenery/special/neutral/unresolved`) | fine upstream code (`mining_rights`, `moon_mine`, …) plus, since `20260720110000`, a first-class coarse `tile_type_class` | value preserved verbatim plus `tileTypeVocabulary`; canonical `tileTypeClass` carries the coarse class only when the origin recorded one (v2's `tile_type` is that class; legacy rows predating the column stay null) — the adapter never derives it from the fine code |
+| Actor | `raw_actor_text` | first-class `raw_actor_text` since `20260720110000`; older rows keep the payload copy | first-class column preferred, payload fallback, honest null |
 | Identity | `placement_uid` | tile event `event_identity` (or derived `legacy-order:` fallback) | duplicates → `duplicate_placement_identity` issue |
 
 Legacy owner columns (`owner_player_id`, `owner_game_player_id`) are carried;

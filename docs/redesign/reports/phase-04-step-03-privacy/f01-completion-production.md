@@ -43,10 +43,20 @@ sending it to the browser without rendering it, is explicitly insufficient.
 
 ## Applied migrations (ledger)
 
+> **Correction (2026-07-20, audit finding B3):** this table originally
+> recorded the repo *filename* timestamps as the ledger versions. The actual
+> production ledger versions — re-verified read-only against
+> `supabase_migrations.schema_migrations` — are `20260719203944` and
+> `20260719204250` (`apply_migration` stamps the apply-time version; the SQL
+> is byte-identical to the repo files). The follow-up view fix below was
+> likewise applied as ledger version `20260719205420`, not `20260719230000`.
+> The full mapping lives in
+> `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`.
+
 | Ledger version | Name | Repo file |
 | --- | --- | --- |
-| `20260719223000` | `isolate_player_personal_names_from_data_api` | `20260719223000_…` |
-| `20260719223500` | `enable_rls_on_player_legacy_identities` | `20260719223500_…` |
+| `20260719203944` | `isolate_player_personal_names_from_data_api` | `20260719223000_…` |
+| `20260719204250` | `enable_rls_on_player_legacy_identities` | `20260719223500_…` |
 
 ## Changes
 
@@ -162,8 +172,9 @@ So import integrity metadata — game ids, parse status, parser version,
 input/output sha256 and validation errors — was readable for **every import in
 the system** by an unauthenticated caller holding only the public anon key.
 
-Fixed by ledger migration `20260719230000`
-(`security_invoker_on_import_integrity_audit`). Verified after: `anon` returns
+Fixed by ledger migration `20260719205420`
+(`security_invoker_on_import_integrity_audit`; repo file
+`20260719230000_…` — see the correction note above). Verified after: `anon` returns
 **0** rows, the member returns exactly **39** (equal to their base-table
 permission), `service_role` still returns 42, and the advisor ERROR count is
 **0**. No application code reads this view; its only other reference is the

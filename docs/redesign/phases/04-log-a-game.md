@@ -427,18 +427,39 @@ execution is unverified; static migration tests pass. The production migration
 and 42-row backfill are independently verified. No push or deployment occurred.
 
 Step 4.3B (the Venus/Colonies import facts above) is production-verified, but
-**Step 4.3 as a whole is ACTIVE, not complete.** The independent closure audit
+**Step 4.3 as a whole remains BLOCKED pending a fresh independent read-only
+closure audit; Step 4.4 has not begun.** The independent closure audit
 reopened Step 4.3 for the bounded F-01–F-10 remediation
 (repository-complete at commits `cfafd823`..`6e6e1859`, production mutations
 applied and verified 2026-07-19). The 2026-07-19 continuation session then
 integrated the deployed live-site data-capture v2 contract through a versioned
 read adapter (`docs/redesign/reference/LIVE-SITE-DATA-CAPTURE-V2-COMPATIBILITY.md`),
-split event confidence from review state (gated migration `20260719234500`,
-prepared and executable-tested, not applied), wired deterministic source
+split event confidence from review state, wired deterministic source
 identity into the import action, added the executable semantic matrix,
 labelled synthetic full-export fixtures, negative RPC authorization tests, and
 the third immutable reconciliation artifact
-(`docs/redesign/reports/phase-04-step-03-compat/`). See
+(`docs/redesign/reports/phase-04-step-03-compat/`).
+
+A second independent audit returned **BLOCKED**; the 2026-07-20 remediation
+pass resolved its findings: private normalized names are out of every client
+payload and all guest-creation paths use neutral public labels (F-01/B4/H5);
+the redesign-owned placement persistence carries the complete canonical
+contract via gated migration `20260720110000` (F-02); gated migration
+`20260719234500` is repeat-safe and review state persists end to end
+(F-03/H2); the exact original submission is hashed and stored untrimmed and
+duplicate sources surface as an explicit reviewable state in the real import
+action (H6/H3); client and server share one map gate over identical
+off-reserve-ocean exception evidence (F-05/H1); labelled fixtures flow
+through the real action into real database assertions in the executable
+harness (F-09/H4); the overwritten historical dry run is restored beside a
+separate production artifact and reconciliation metrics are per-system and
+measured-only (F-08/§16/§17); and the migration↔ledger drift is corrected
+and governed (`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`, B3/F-10/§18).
+Live-site v2 remains deployed with zero capture rows as of the recorded
+verification; the redesign application is not deployed; migrations
+`20260719234500`, `20260720100000`, and `20260720110000` are prepared, not
+applied; backup-table security remediation is complete; no production
+mutation occurred in the remediation. See
 `docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
 Step 4.3 is closed only after a fresh independent read-only audit passes. Do not
 begin Step 4.4; it requires an explicit assignment. Step 4.4 consumes the

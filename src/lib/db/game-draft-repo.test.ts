@@ -130,6 +130,11 @@ describe('getDraftGameForm', () => {
     );
     expect(JSON.stringify(loaded)).not.toContain('known private name');
 
+    // The legacy snapshot above predates objectiveConfiguration. Resuming it
+    // must require review ('unknown'), never silently confirm board_defined
+    // setup that was never recorded.
+    expect(loaded).toMatchObject({ objectiveConfiguration: 'unknown' });
+
     expect(gameQuery.eq).toHaveBeenCalledWith(
       'group_id',
       '11111111-1111-4111-8111-111111111111',

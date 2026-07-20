@@ -723,7 +723,10 @@ describe('markGameLogImportRunComplete', () => {
 
   it('flips the recoverable run state to complete without dropping the rest of the summary', async () => {
     const eq = vi.fn().mockResolvedValue({ error: null });
-    const update = vi.fn((_value: unknown) => ({ eq }));
+    const update = vi.fn((value: unknown) => {
+      void value;
+      return { eq };
+    });
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
       from: vi.fn((table: string) => {
         if (table === 'game_log_imports') {

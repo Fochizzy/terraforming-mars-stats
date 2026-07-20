@@ -3,33 +3,169 @@
 ## Current substep
 
 Phase 4, Step 4.3 — Import Validation, Evidence Review, and Claimable Guest
-Identity (**ACTIVE — the F-01–F-10 remediation and its production mutations are
-complete and verified, and the 2026-07-19 continuation session has integrated
-the deployed live-site data-capture v2 contract, split event confidence from
-review state, wired deterministic source identity into the import action, and
-produced the third immutable reconciliation artifact. One new migration
-(`20260719234500_separate_event_confidence_from_review_state.sql`) is prepared
-and executable-tested but NOT applied to production. Awaiting a fresh
-independent read-only closure audit. Step 4.3 is NOT closed.**)
+Identity (**BLOCKED-pending-reaudit — the second bounded remediation pass
+(2026-07-20) resolved every Blocker and High finding of the independent
+closure audit: private normalized names are out of client payloads and guest
+public labels are neutral on every creation path (F-01/B4/H5), the canonical
+board-placement contract is complete (F-02), the confidence/review split
+migration is repeat-safe and review state persists end to end (F-03/H2),
+true original bytes are hashed and duplicate sources are detected in the
+import action (H6/H3), client and server share one map gate over identical
+exception evidence (F-05/H1), format-faithful fixtures reach real database
+assertions (F-09/H4), the overwritten historical dry run is restored beside
+a separate production artifact and the reconciliation metrics are honest
+(F-08/§16/§17), and the ledger/documentation drift is corrected and mapped
+(B3/F-10/§18). Step 4.3 remains blocked pending a fresh independent
+read-only closure audit. Step 4.4 has not begun.**)
 
 ## Current owner
 
-Claude Fable 5 — Phase 4, Step 4.3 remediation continuation and live-site v2
-compatibility integration
+Claude Fable 5 — Phase 4, Step 4.3 closure-blocker remediation (second pass)
 
 ## Status
 
-**Phase 4 - Log a Game - Active. Step 4.3 is ACTIVE (not closed).** The bounded
-remediation of the independent closure audit (findings F-01–F-10) is
-repository-complete at commits `cfafd823`..`4e20aeb8`, its four production
-mutation groups are applied and verified, and the continuation session
-`435077bf`..(see handoff for the final commit) integrates the live-site v2
-contract. Validation for the continuation is green: 171 test files / 910 tests
-(`--no-file-parallelism`), `tsc --noEmit` clean, lint exit 0 with the four
-baseline warnings, build 32/32 pages with middleware, `git diff --check` clean,
-and the executable migration harness passes end to end.
+**Phase 4 - Log a Game - Active. Step 4.3 is BLOCKED pending re-audit (not
+closed, not self-approved).** The remediation commits build on `8e11d3167`
+(the user's expanded master-guide docs commit on top of audit-end
+`c9473be25`); the full commit list and finding-by-finding resolution matrix
+are in the authoritative handoff. Validation at the final commit: typecheck
+clean, full vitest suite green (`--no-file-parallelism`), lint at the four
+baseline warnings, production build green, `git diff --check` clean, and the
+executable PostgreSQL harness passes end to end — including double
+application of both gated migrations, the pre-split RPC compatibility pin,
+the guest-privacy lifecycle, the full placement contract through the real
+RPC, and the fixture-to-persistence bridge
+(`ALL_FIXTURE_ASSERTIONS_PASSED`).
 
-### Live-site data-capture v2 relationship (verified 2026-07-19)
+### Production status (verified read-only 2026-07-20)
+
+- **Live-site v2 is deployed** (ledger `20260719132042
+  data_capture_hardening_v2`; cutoff 2026-07-19 13:20:42Z; parser
+  `tm-data-capture-v2` deployed 13:24:14Z) and its capture data tables held
+  **zero rows** as of the recorded verification.
+- **The redesign application is not deployed.** Production serves the
+  live-site app (worker rolled back to version `eb4e5821…`, the 13:24Z
+  v2-hardening build, after an unrelated live-site incident on 2026-07-19;
+  see the handoff's deploy-events record). Deploy coordination now lives in
+  the live repo's DEPLOY-STATE.md with the user holding the deploy lock.
+- **Migration `20260719234500` is NOT applied**, and neither are the two new
+  gated migrations `20260720100000` (guest RPC alias-recording control) and
+  `20260720110000` (placement contract). The reconstruction files
+  `20260711232834`/`20260712114538` are skipped by version. The full
+  filename↔ledger mapping (with a drift-detecting test) is
+  `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`.
+- **Backup-table security remediation is complete** (remote ledger
+  `20260718234835 lock_down_public_backup_tables`), not outstanding.
+- **No production mutation was performed by this remediation** — read-only
+  verification only; zero rows, grants, policies, or schema objects changed.
+
+### Production baseline re-based (user-directed, 2026-07-19/20)
+
+Between the audit's verified starting state and this remediation's final
+verification, the **user directed** operations in a concurrent session
+(player linking and duplicate cleanup, plus deletion of the one draft game
+so its wrong-group import can be retried). Re-verified read-only afterwards:
+**41** games (all finalized), **41** imports, **14,402** events, **1,467**
+typed placements (the deleted draft carried the 33 unresolved-attribution
+placements; all remaining placements are attributed), **41** expansion facts
+(all `historical_parser_verified_owner_confirmed_absent`, **0** non-null
+final Venus, **0** Venus/Colony events, **0** non-unknown ownership), and
+**25** players (1 unlinked). This is documented provenance, not drift; the
+audit-era figures (42/42/14,816/1,500/42, 28 players) were correct when
+captured. Known follow-ups deliberately deferred until after the closure
+audit: merging the duplicate same-roster groups `987ce716`/`19426f66`, the
+wrong-group guest hazard for the pending re-import, and resolving the
+duplicate-source finalized game pair
+(`30750df1-…`/`784f9a7c-…`, one shared source hash — now blocked at import
+time by the remediated action).
+
+### Second remediation pass outcomes (2026-07-20)
+
+- **Privacy (F-01/B4/H5).** `normalizedImportedValue` is removed from the
+  client-facing resolution schema, its confidence-summary serialization, and
+  legacy snapshots are stripped at the parse boundary on resume. Every
+  first-and-last-name guest creation path — imports, `/group/players` (now
+  explicit first/last fields), and Manual Entry's new-player references —
+  goes through the guarded `resolve_import_guest_identity` RPC with private
+  storage and neutral `Guest XXXXXXXX` labels; the raw `display_name`
+  writers (`createPlayerIfMissing`, `upsertPlayer`) are removed. Gated
+  migration `20260720100000` adds `p_record_import_alias` so non-import
+  creations record no false `game_log` alias evidence. Executable section K
+  proves the lifecycle end to end with sentinel names.
+- **Placements (F-02).** Gated migration `20260720110000` completes the
+  redesign-owned contract: actions
+  placed/removed/replaced/converted/ownership_changed/unresolved, ownership
+  explicit_owner/neutral/unowned/unknown/not_applicable/unresolved,
+  first-class `raw_actor_text` and constrained `tile_type_class` on events,
+  first-class `original_source_sha256`/`original_source_byte_length`/
+  `parser_run_identity` on imports, an owner-ids-require-explicit_owner
+  rule, and the map-independent board-layout check in the rebuilt RPC. The
+  builder emits the new fields (ownership stays evidence-seamed and unknown
+  — never fabricated), and the adapter maps the widened vocabulary with
+  honest nulls on rows predating the columns. Executable section L drives
+  every case through the real RPC.
+- **Review state (F-03/H2).** `20260719234500` is repeat-safe (guarded DDL;
+  the harness applies it twice) and `pre-split-compat.sql` pins today's
+  production behavior: the emitted payload (with the `review_state` key) is
+  accepted by the deployed pre-split RPC and the computed review value is
+  discarded — the exact gap the gated migration closes. Sections J/L/M
+  assert all four review states against persisted rows, including the fixed
+  `not_required` default that is never re-derived from confidence.
+- **Source integrity (H6/H3/§19).** No trim anywhere on the immutable
+  source: stored text is byte-identical to the submission and
+  `original_sha256` covers the true original bytes (CRLF/LF, trailing
+  newline, and leading whitespace all change it; parsing uses a separately
+  trimmed value on both client and server). Duplicate-source detection runs
+  in the action before any write via the deployed
+  `find_duplicate_game_log_import` RPC plus classified matches
+  (exact/trimmed/hash-only, draft/finalized, same-parser), returning a
+  reviewable `duplicate_source` state; an explicit acknowledgment proceeds
+  and records the association. `confidence_summary.run` carries a
+  recoverable persisting→complete state; the adapter surfaces incomplete
+  runs and failure injection proves partial runs are never read as
+  successful.
+- **Map gate (F-05/H1).** `evaluateImportMapGate` is the one shared rule;
+  the client resolves the same off-reserve exception evidence the server
+  resolves, so a verified Artificial Lake ocean passes both sides while an
+  unexplained off-reserve ocean against board-defined objectives stays a
+  true conflict.
+- **Fixture bridge (F-09/H4).** `build-fixture-payloads.ts` drives the real
+  `createImportDraft` entry (extracted behind an explicit dependency seam)
+  per mechanic category into the disposable PostgreSQL through the real RPC,
+  with SQL assertions on persisted states, counts, hashes, placements,
+  attribution, and review values; `buildGameExpansionFactInput` has direct
+  unit tests. The conflicting-evidence record enters at the parser/fact
+  layer — the one documented deviation, since explicit absent-option
+  evidence is not constructible through the action's trusted inputs.
+- **Reports (F-08/§16/§17).** The Venus/Colonies dry run is restored
+  byte-exact from `41bc1221e`; the production execution lives in
+  `venus-colonies-historical-production.{md,json}` with a correction note;
+  a test pins every dry-run/production pair as separate. The reconciliation
+  artifact is regenerated with per-system coverage, both systems' duplicate
+  metrics (surfacing the real legacy duplicate pair), and no unmeasured
+  adapter-failure figure. The deployed v2 schema is captured as a contract
+  fixture with tests that fail on renamed/missing/retyped columns, and the
+  adapter's mocked harness now asserts the actual runtime select lists.
+- **Resume semantics (§19).** A draft snapshot missing
+  `objectiveConfiguration` resumes as `unknown` (requires review), never as
+  silently confirmed `board_defined`.
+
+**Step 4.3 must not be marked complete until a fresh independent read-only
+audit passes. Step 4.4 has not started.**
+
+Authoritative handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
+
+### Prior pass — F-01–F-10 remediation and v2 continuation (2026-07-19)
+
+The first bounded remediation (F-01–F-10, commits `cfafd823`..`4e20aeb8`,
+four production mutation groups applied and verified) and the 2026-07-19
+continuation session (`435077bf`.., live-site v2 integration) are recorded
+below as completed history. Its validation was green at the time: 171 test
+files / 910 tests, typecheck clean, lint at the four baseline warnings,
+build 32/32 pages, executable harness passing.
+
+### Live-site data-capture v2 relationship (verified 2026-07-19; counts re-based 2026-07-20 — see above)
 
 The live site's `data-capture-hardening-v2` release **is deployed to
 production** — verified read-only against `qjtwgrjjwnqafbvkkfex`, not taken
@@ -109,9 +245,11 @@ neutralized `players.display_name`, while the actual personal-name data in
 real authenticated member returned all 6 unlinked players' `full_name` and
 `username`; for the 22 linked players those values are an exact denormalized copy
 of the otherwise self-only `public.user_profiles`, exposing all 4 distinct real
-people. Closed by ledger migrations `20260719223000`
-(`isolate_player_personal_names_from_data_api`) and `20260719223500`
-(`enable_rls_on_player_legacy_identities`): the 6 unlinked rows' values are
+people. Closed by ledger migrations `20260719203944`
+(`isolate_player_personal_names_from_data_api`, repo file `20260719223000_…`)
+and `20260719204250` (`enable_rls_on_player_legacy_identities`, repo file
+`20260719223500_…`; ledger versions corrected 2026-07-20 per audit B3 — see
+`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`): the 6 unlinked rows' values are
 preserved in `private.player_legacy_identities` (private schema, client grants
 revoked, RLS deny-all) rather than destroyed, and table-level SELECT on
 `public.players` is revoked from `anon`/`authenticated` then re-granted per
@@ -133,8 +271,9 @@ cross-tenant exposure. The view has no tenant filter and was created without
 signed-out `anon` caller saw all 42 rows (RLS permits 0) and an ordinary member
 saw 42 (RLS permits 39), disclosing game ids, parse status, parser version,
 sha256 values and validation errors for every import in the system. Closed by
-ledger migration `20260719230000`
-(`security_invoker_on_import_integrity_audit`); `anon` now returns 0, the member
+ledger migration `20260719205420`
+(`security_invoker_on_import_integrity_audit`, repo file `20260719230000_…`;
+ledger version corrected 2026-07-20 per audit B3); `anon` now returns 0, the member
 returns exactly 39, `service_role` still returns 42, and **security advisors
 report 0 ERROR**. No application code reads the view.
 
@@ -575,23 +714,24 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Step 4.3 remains active.** The four gated production mutation groups from the
-F-01–F-10 pass are applied and verified, and the 2026-07-19 continuation
-session's work (live-site v2 compatibility adapter and specification,
-confidence/review-state split, source-identity wiring, semantic matrix,
-fixtures, reconciliation artifact, executable negative tests) is
-repository-complete. One migration remains prepared and gated:
-`supabase/migrations/20260719234500_separate_event_confidence_from_review_state.sql`
-is executable-tested but **NOT applied to production** (no production row uses
-the retired value, verified read-only; the redesign code emits payloads
-compatible with both the pre- and post-migration RPC). The **next action is a
-fresh independent read-only Step 4.3 closure audit.** Do not self-approve Step
-4.3, and do not begin Step 4.4/4.5/Phase 5, push, or deploy without separate
-authorization. Reports: `docs/redesign/reports/phase-04-step-03-placement/`,
-`docs/redesign/reports/phase-04-step-03b/`, and
-`docs/redesign/reports/phase-04-step-03-compat/`. No application push or
-deployment occurred in this session, and no production row, grant, policy, or
-schema object was changed by it.
+**Step 4.3 remains blocked pending re-audit.** The second bounded remediation
+pass (2026-07-20) resolved every Blocker and High finding (F-01/F-02/F-03/
+F-05/F-08/F-09/F-10, B3/B4, H1–H6) plus the coupled Medium findings
+(recoverable import-run state; `objectiveConfiguration` resume default).
+Three migrations remain prepared and gated — `20260719234500`
+(repeat-safe), `20260720100000`, and `20260720110000` — all
+executable-tested (including double application) and **NOT applied to
+production**; the emitted payloads remain valid against the deployed
+pre-migration contracts. The **next action is a fresh independent read-only
+Step 4.3 closure audit** (Claude Opus 4.8 Max, per the assignment). Do not
+self-approve Step 4.3, and do not begin Step 4.4/4.5/Phase 5, push, or
+deploy without separate authorization. Reports:
+`docs/redesign/reports/phase-04-step-03-placement/`,
+`docs/redesign/reports/phase-04-step-03b/` (dry run and production now
+separate artifacts), and `docs/redesign/reports/phase-04-step-03-compat/`
+(regenerated 2026-07-20). No application push or deployment occurred in
+this session, and no production row, grant, policy, or schema object was
+changed by it.
 
 ## Active blockers
 
