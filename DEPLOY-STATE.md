@@ -85,6 +85,16 @@ class of drift before it reaches production.
   cascade, so events must be re-pointed *before* any delete, inside one
   transaction with a `mig_backup_*` snapshot. Held because it changes the very
   row counts the Step 4.3 historical-preservation audit verifies.
+- **Tag summaries were backfilled on 2026-07-20** via
+  `npx tsx scripts/backfill/recompute-tag-summaries.ts` (dry run by default,
+  `--apply` to write). It rewrote 1582 rows across 41 imports, taking card
+  matching from 98.3% to 100% (4772/4772) and recovering 81 cards that were
+  unresolved at import time. Net tags moved -9, because the 07-18 upstream
+  catalogue sync revised gameplay tags on cards that had already been imported;
+  the backfill adopts the current catalogue. Backup:
+  `private.mig_backup_tag_summaries_20260720` (1694 rows). The script is
+  idempotent — a second dry run reports zero changes. Re-run it after any
+  catalogue sync.
 - **Jenna Kass's game needs re-importing.** Her group `6cb73dce`
   ("Colette LeRoux / Corey Jansen / Jenna Kass") and its games were destroyed by
   the 2026-07-12 group migrations. Only score rows survive, in

@@ -376,10 +376,14 @@ export async function listStyles(): Promise<StyleOption[]> {
  * and `Standard Action` stay out: they are board actions, not cards held in
  * hand, and the log records them as their own event type.
  */
-const PROJECT_CARD_TYPES = ['Automated', 'Active', 'Event', 'Project'];
+export const PROJECT_CARD_TYPES = ['Automated', 'Active', 'Event', 'Project'];
 
 /** Everything a player can play from hand, for matching names in a game log. */
-const PLAYABLE_CARD_TYPES = [...PROJECT_CARD_TYPES, 'Corporation', 'Prelude'];
+export const PLAYABLE_CARD_TYPES = [
+  ...PROJECT_CARD_TYPES,
+  'Corporation',
+  'Prelude',
+];
 
 const CARD_PAGE_SIZE = 1000;
 

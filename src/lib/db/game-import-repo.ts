@@ -402,7 +402,7 @@ function isTagSummaryCodeConstraintError(error: unknown) {
   );
 }
 
-function buildGameLogTagSummaryRows(input: {
+export function buildGameLogTagSummaryRows(input: {
   gameLogImportId: string;
   tagCodes: readonly PlayerTagCode[];
   tagSummaries: ImportPlayerTagSummary[];
