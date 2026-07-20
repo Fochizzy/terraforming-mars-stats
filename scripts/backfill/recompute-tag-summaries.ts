@@ -72,12 +72,13 @@ async function readAll<TRow>(
 async function loadCardReferences(client: MinimalClient) {
   const rows = await readAll<{
     card_name: string;
+    card_type: string;
     gameplay_tags: string[] | null;
     id: string;
   }>((from, to) =>
     client
       .from('cards')
-      .select('id, card_name, gameplay_tags')
+      .select('id, card_name, card_type, gameplay_tags')
       .in('card_type', PLAYABLE_CARD_TYPES)
       .order('card_name')
       .range(from, to),
@@ -85,6 +86,7 @@ async function loadCardReferences(client: MinimalClient) {
 
   return rows.map((row) => ({
     cardName: row.card_name,
+    cardType: row.card_type,
     id: row.id,
     sourceTags: (row.gameplay_tags ?? []) as never,
   }));

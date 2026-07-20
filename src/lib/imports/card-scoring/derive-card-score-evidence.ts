@@ -68,7 +68,7 @@ function getTagCounts(cards: Iterable<CardScoringReference>) {
       .map(normalizeTagToken)
       .filter((normalizedTag) => normalizedTag.length > 0);
 
-    for (const normalizedTag of countableCardTags(normalizedTags)) {
+    for (const normalizedTag of countableCardTags(normalizedTags, card.cardType)) {
       tagCounts[normalizedTag] = (tagCounts[normalizedTag] ?? 0) + 1;
     }
   }

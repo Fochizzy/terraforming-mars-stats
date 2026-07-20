@@ -59,7 +59,7 @@ export type ImportPlayerTagSummary = {
 
 type TagSummaryCardReference = Pick<
   CardScoringReference,
-  'cardName' | 'id' | 'sourceTags'
+  'cardName' | 'cardType' | 'id' | 'sourceTags'
 > &
   Partial<Pick<CardScoringReference, 'fullImageUrl'>>;
 
@@ -168,7 +168,9 @@ export function derivePlayerTagSummaries(input: {
 
     const distinctTagSignatures = new Set(
       candidateCards.map((card) =>
-        [...normalizeSourceTags(card.sourceTags)].sort().join('|'),
+        [card.cardType, ...[...normalizeSourceTags(card.sourceTags)].sort()].join(
+          '|',
+        ),
       ),
     );
 
@@ -197,7 +199,7 @@ export function derivePlayerTagSummaries(input: {
     const card = candidateCards[0]!;
     const sourceTags = normalizeSourceTags(card.sourceTags);
 
-    for (const sourceTag of countableCardTags(sourceTags)) {
+    for (const sourceTag of countableCardTags(sourceTags, card.cardType)) {
       playerSummary.tagCounts[sourceTag] += 1;
       playerSummary.totalTags += 1;
     }
