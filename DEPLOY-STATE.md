@@ -3,30 +3,60 @@
 Shared between concurrent working sessions. **Read this before deploying;
 update it immediately after.** The Cloudflare account, the production database,
 and this repo are all shared, so this file is the only record of who changed
-what.
+what — until the runtime deployment stamp below supersedes it for the
+version→commit linkage.
+
+> **Stale copies exist.** The ordinary checkout at
+> `C:\Users\izzyh\Documents\Terraforming Mars` holds an *untracked, outdated*
+> `DEPLOY-STATE.md` (it still claims `eb4e5821` is current with an unknown
+> commit). The authoritative ledger is this tracked file at the head of the
+> production branch. Do not act on any other copy.
 
 ## Current production
 
 | | |
 |---|---|
+| Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
 | Worker version | `c23bfbd7-9729-4981-9f45-aee05c242d31` |
-| Source commit | `59dda6c0f` |
-| Source branch | `fix/live-42501-on-capture-v2` (off `data-capture-hardening-v2` @ `64918663a`) |
-| Built | 2026-07-20 01:47 UTC |
-| Deploy lock | Izzy |
+| Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
+| Source branch | `fix/live-42501-on-capture-v2` (tracked at `origin/fix/live-42501-on-capture-v2`, tip `14abb8d1d` = one docs-only commit ahead of the deployed code) |
+| Source commit | `59dda6c0f` (ledger-correlated; Cloudflare metadata carries no commit — see Evidence) |
+| Deployed (UTC) | 2026-07-20 15:14:05Z (`wrangler deployments list`) |
+| Deploy lock | **Izzy** |
+| Active clean deployment worktree | `C:\tmp\tm-step-43-production-reader` on branch `release/step-43-production-compatibility` (created from `origin/fix/live-42501-on-capture-v2` @ `14abb8d1d`) |
+| DB migration ledger head | `20260720021300 add_import_player_name_matching_rpc` |
+| Rollback worker version | `eb4e5821` (live-capture v2 build, commit `bf081d918`) |
+| Verified | 2026-07-20 16:44 UTC, against `wrangler deployments list`, `origin/fix/live-42501-on-capture-v2`, and the production migration ledger |
 
-Note that `wrangler secret put` publishes a **new version** carrying the same
-code plus the updated bindings. This deploy uploaded `219cacee`, then pinning
-`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` superseded it with `0732bd81`. Always
-re-check `wrangler deployments list` after touching secrets; the version id the
-deploy printed is not necessarily the one serving traffic.
+**Evidence for the source commit.** Every Cloudflare deployment record shows
+`Source: Unknown` with no message or tag, so the version→commit linkage above
+rests on this ledger's own deploy history plus branch archaeology (the
+2026-07-20 third-remediation audit re-verified it). That is exactly the gap the
+runtime deployment stamp closes: **from the next release onward,
+`/api/deploy-info` on the deployed worker is the authoritative source of the
+running commit, branch, build time, and environment** — this table then merely
+mirrors it.
 
-`wrangler` records no source commit (`Source: Unknown (version_upload)`), which
-is why the previous build had to be identified forensically: its
-`compatibility_date` of 2026-07-14 matched `data-capture-hardening-v2` and not
-`tm-stats-app`'s 2026-07-04, the branch contained `8c33bc0f2 fix: remove stale
-expansion tracking`, and the branch tip was committed 20 minutes after the
-build. Fill the commit in above on every deploy so nobody repeats that.
+## Deployment sources — allowed and prohibited
+
+Deploy **only** from the recorded clean worktree and branch above, at a
+reviewed commit, via `npm run deploy` (which now refuses a dirty tree or a
+missing commit SHA).
+
+Do **not** deploy from:
+
+- `data-capture-hardening-v2` — predates all 11 production fixes on
+  `fix/live-42501-on-capture-v2`; deploying it reverts them at once;
+- the ordinary live-site checkout at
+  `C:\Users\izzyh\Documents\Terraforming Mars` — it sits on the unrelated
+  dirty branch `move-score-profile-below-insights-lab`;
+- the redesign repository/worktree
+  (`C:\Users\izzyh\Documents\Terraforming Mars Redesign`,
+  branch `redesign/tm-stats-dashboard-rebuild`) — different application line
+  sharing this database;
+- `tm-stats-app` or `main` — both predate migration
+  `20260718041532 remove_game_expansion_tracking` and throw `PGRST205` on
+  `/log-game` in production.
 
 ## Rules
 
@@ -39,13 +69,73 @@ build. Fill the commit in above on every deploy so nobody repeats that.
    hook. It asserts every `.from('…')` in `src/` exists in the live database.
    If it fails, the build is out of step with the schema — fix the drift, do
    not bypass the gate.
-4. **Record every deploy below**, worker version *and* source commit.
+4. **Every release must be stamped.** `npm run deploy` runs
+   `scripts/deploy/deploy-with-stamp.ts`, which bakes the repository, branch,
+   full commit SHA, build timestamp, and environment into the artifact and
+   refuses to ship without them. After deploying, verify
+   `https://tm-stats.com/api/deploy-info` (authenticated) reports the commit
+   you just shipped, then record the new worker version here.
+5. **Record every deploy below**, worker version *and* source commit.
+
+## Open production follow-ups
+
+- **Step 4.3 expand/contract pair (in progress).** The privacy-compatible
+  reader (public-name labels, coarse match-reason consumption, tile
+  attribution, deployment stamp) is prepared on
+  `release/step-43-production-compatibility` and awaits an explicitly
+  authorized code-only deploy. Only after that deploy is runtime-verified may
+  the paired contract migration `20260720120000
+  coarsen_import_name_match_reasons` be applied — under its own separate
+  authorization, per the redesign repo's gated-migration ledger. The 114-row
+  tile-attribution backfill and guest re-neutralization remain separately
+  authorized steps, in that order (backfill first — two rows resolve solely
+  through the guest's current display name).
+- **Capture participant resolution still reads `players.display_name`.**
+  `game-mechanic-capture-repo.ts` resolves capture actors via
+  `players!inner(display_name)` under the authenticated role. It works today
+  and is wrapped in best-effort handlers, but the eventual display-column
+  restriction will degrade capture attribution until it gets a definer-side
+  resolver. Pair that work with whichever migration restricts the display
+  columns; it is deliberately not part of the Step 4.3 code-only release.
+- **Jenna Kass's game needs re-importing.** Her group `6cb73dce`
+  ("Colette LeRoux / Corey Jansen / Jenna Kass") and its games were destroyed by
+  the 2026-07-12 group migrations. Only score rows survive, in
+  `mig_backup_game_players` for games `e58c3171` / `e061fb0d` — which are
+  duplicates of one another, so it is one real game, not two. Re-import the log
+  rather than restoring: the backup has no `played_on`, map, generation count,
+  or log events. Verify against Corey 117 / Colette 79 / Jenna 73.
+- **`tm-stats-app` and `main` are stale — do not deploy them.** Both still
+  reference `expansions`, `game_expansions`, and `group_default_expansions`,
+  which no longer exist. Merge the production branch forward into `main`, make
+  `main` the deploy source, and have both sessions branch from it.
 
 ## History
 
-| When (UTC) | Version | Commit | Notes |
+### 2026-07-20 — Step 4.3 code-expansion session (this update)
+
+Corrections made while repairing this ledger:
+
+- The previous revision's "Built 2026-07-20 01:47 UTC" in Current production
+  described `0732bd81`, not the current `c23bfbd7`; the deploy-history times
+  below were recorded in local EDT despite the UTC header (Cloudflare shows
+  `c23bfbd7` at 15:14Z, the table said 11:0x). Times below are kept as
+  recorded, now labeled correctly.
+- The previous revision's "**This branch is not on any remote**" warning is
+  resolved: `fix/live-42501-on-capture-v2` was pushed to `origin` with owner
+  approval during the third remediation pass and verified again today
+  (`origin/fix/live-42501-on-capture-v2` = `14abb8d1d`).
+- Completed follow-ups moved out of the active list: duplicate-group
+  consolidation (done 2026-07-20, backups in `private.mig_backup_group_*`),
+  tag-summary backfill (done 2026-07-20 via
+  `scripts/backfill/recompute-tag-summaries.ts`, idempotent, backup
+  `private.mig_backup_tag_summaries_20260720`; re-run after any catalogue
+  sync).
+
+### Deploy history (times as originally recorded, EDT before 2026-07-20 12:00)
+
+| When (EDT) | Version | Commit | Notes |
 |---|---|---|---|
-| 07-19 13:24 | `eb4e5821` | `bf081d918` | Live-capture v2. |
+| 07-19 13:24 | `eb4e5821` | `bf081d918` | Live-capture v2. **Rollback target.** |
 | 07-19 23:23 | `d80b155c` | `a0eba76fc` | 42501 fix on `tm-stats-app`. Regressed prod. |
 | 07-19 23:31 | `7f6c4017` | `369b90182` | Added alias tolerance. Still regressed. |
 | 07-20 01:16 | `ffbecea6` | `369b90182` | Clean rebuild. Still regressed. |
@@ -58,14 +148,16 @@ build. Fill the commit in above on every deploy so nobody repeats that.
 | 07-20 09:5x | `39820427` | `c9eb1924a` | Typed placement contract for tile events. |
 | 07-20 10:0x | `1b3dbac3` | `980165021` | Slug tile names into the event identity format. |
 | 07-20 10:3x | `21e3047e` | `20921cf46` | Route the import roster by confirmed player id. |
-| 07-20 11:0x | `c23bfbd7` | `59dda6c0f` | Name new groups from the roster, not review labels. **Current.** |
+| 07-20 11:14 | `c23bfbd7` | `59dda6c0f` | Name new groups from the roster, not review labels. **Current** (15:14 UTC). |
 
-> **This branch is not on any remote.** `fix/live-42501-on-capture-v2` is 15+
-> commits ahead of `data-capture-hardening-v2`, and neither branch has been
-> pushed. Production runs code that exists only on one machine, and deploying
-> `data-capture-hardening-v2` would revert every fix below at once. Push before
-> anything else:
-> `git push -u origin fix/live-42501-on-capture-v2`
+### Standing operational notes
+
+Note that `wrangler secret put` publishes a **new version** carrying the same
+code plus the updated bindings. The 07-20 01:47 deploy uploaded `219cacee`,
+then pinning `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` superseded it with
+`0732bd81`. Always re-check `wrangler deployments list` after touching
+secrets; the version id the deploy printed is not necessarily the one serving
+traffic.
 
 **Do not re-add the `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` Worker secret from
 PowerShell.** Setting it on 07-20 stored a value that is not valid base64;
@@ -83,48 +175,6 @@ migration `20260718041532 remove_game_expansion_tracking`. They threw
 `/log-game/review` for signed-in users. `check:schema` now catches exactly this
 class of drift before it reaches production.
 
-## Open follow-ups
-
-- ~~**Duplicate-group consolidation**~~ — done 2026-07-20. Both duplicate-roster
-  pairs merged (`987ce716`→`19426f66`, `fd69bce9`→`817f330c`), the empty group
-  removed, all group names realigned to their rosters, and Jenna Kass's
-  identity repaired. Final: 10 groups, 27 players, 1 unlinked, 44 games, 121
-  game_players, zero duplicate names, zero name/roster mismatches. Backups:
-  `private.mig_backup_group_merge_20260720`,
-  `private.mig_backup_group_merge2_20260720`,
-  `private.mig_backup_group_names_20260720`,
-  `private.mig_backup_jenna_fix_20260720`.
-  Note for anyone doing similar surgery: `game_log_events.player_id` and
-  `owner_player_id` are `ON DELETE SET NULL`, not cascade — re-point events
-  *before* deleting a player or attribution nulls silently.
-- ~~**Previous consolidation note**~~ superseded by the entry above. Six unlinked
-  rows are the entire membership of two duplicate groups: `869467ec` duplicates
-  `0bed9a67` (4 phantoms, 0 games, plus a broken empty draft `feaa89ab`), and
-  `987ce716` duplicates `19426f66` (2 rows holding 2 games and 83 log events).
-  Fixing means moving those 2 games onto the linked Izzy/James in `19426f66`,
-  re-pointing the log events, then dropping both groups. Note
-  `game_log_events.player_id` / `owner_player_id` are `ON DELETE SET NULL`, not
-  cascade, so events must be re-pointed *before* any delete, inside one
-  transaction with a `mig_backup_*` snapshot. Held because it changes the very
-  row counts the Step 4.3 historical-preservation audit verifies.
-- **Tag summaries were backfilled on 2026-07-20** via
-  `npx tsx scripts/backfill/recompute-tag-summaries.ts` (dry run by default,
-  `--apply` to write). It rewrote 1582 rows across 41 imports, taking card
-  matching from 98.3% to 100% (4772/4772) and recovering 81 cards that were
-  unresolved at import time. Net tags moved -9, because the 07-18 upstream
-  catalogue sync revised gameplay tags on cards that had already been imported;
-  the backfill adopts the current catalogue. Backup:
-  `private.mig_backup_tag_summaries_20260720` (1694 rows). The script is
-  idempotent — a second dry run reports zero changes. Re-run it after any
-  catalogue sync.
-- **Jenna Kass's game needs re-importing.** Her group `6cb73dce`
-  ("Colette LeRoux / Corey Jansen / Jenna Kass") and its games were destroyed by
-  the 2026-07-12 group migrations. Only score rows survive, in
-  `mig_backup_game_players` for games `e58c3171` / `e061fb0d` — which are
-  duplicates of one another, so it is one real game, not two. Re-import the log
-  rather than restoring: the backup has no `played_on`, map, generation count,
-  or log events. Verify against Corey 117 / Colette 79 / Jenna 73.
-- **`tm-stats-app` and `main` are stale — do not deploy them.** Both still
-  reference `expansions`, `game_expansions`, and `group_default_expansions`,
-  which no longer exist. Merge this branch forward into `main`, make `main` the
-  deploy source, and have both sessions branch from it.
+Group-surgery note for anyone repeating it: `game_log_events.player_id` and
+`owner_player_id` are `ON DELETE SET NULL`, not cascade — re-point events
+*before* deleting a player or attribution nulls silently.

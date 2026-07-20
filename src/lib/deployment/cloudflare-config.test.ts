@@ -20,9 +20,21 @@ describe('Cloudflare deployment config', () => {
     expect(packageJson.scripts?.preview).toBe(
       'opennextjs-cloudflare build && opennextjs-cloudflare preview',
     );
+    // Deploys go through the stamping wrapper so every release carries a
+    // runtime-verifiable source commit; the wrapper still runs the
+    // opennextjs-cloudflare build + deploy pair.
     expect(packageJson.scripts?.deploy).toBe(
-      'opennextjs-cloudflare build && opennextjs-cloudflare deploy',
+      'tsx scripts/deploy/deploy-with-stamp.ts',
     );
+
+    const deployScript = readFileSync(
+      path.join(repoRoot, 'scripts/deploy/deploy-with-stamp.ts'),
+      'utf8',
+    );
+
+    expect(deployScript).toContain("['opennextjs-cloudflare', 'build']");
+    expect(deployScript).toContain("['opennextjs-cloudflare', 'deploy']");
+    expect(deployScript).toContain('buildDeploymentStampEnv');
     expect(packageJson.scripts?.['cf-typegen']).toBe(
       'wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts',
     );
