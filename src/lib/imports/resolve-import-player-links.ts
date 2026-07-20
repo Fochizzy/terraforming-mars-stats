@@ -23,15 +23,12 @@ export type ImportPlayerLinkCandidate = {
   id: string;
   linkedFullName: string | null;
   linkedUsername: string | null;
-  matchReason:
-    | 'alias_exact'
-    | 'display_name_exact'
-    | 'display_name_partial'
-    | 'fallback'
-    | 'full_name_exact'
-    | 'full_name_partial'
-    | 'username_exact'
-    | 'username_partial';
+  /**
+   * Coarse classification only. Which field produced a match is never
+   * disclosed — not by the server matcher, and not by this client resolver —
+   * so review payloads carry no field-specific matching evidence.
+   */
+  matchReason: 'exact' | 'fallback' | 'partial';
   matchScore: number;
 };
 
@@ -40,32 +37,36 @@ export type ImportPlayerLinkMatch = {
   importedName: string;
   requiresConfirmation: boolean;
   selectedPlayerId: string | null;
-  status: 'alias' | 'ambiguous' | 'exact' | 'suggested' | 'unmatched';
+  status: 'ambiguous' | 'exact' | 'suggested' | 'unmatched';
 };
 
-type CandidateScore = Pick<
-  ImportPlayerLinkCandidate,
-  'matchReason' | 'matchScore'
->;
+/**
+ * Internal precedence between match axes, kept so the SAME candidate keeps
+ * winning that always did. The axis stays private: every score maps onto the
+ * coarse exact/partial/fallback classification before anything leaves this
+ * module.
+ */
+const INTERNAL_MATCH_SCORES = {
+  aliasExact: 250,
+  displayNameExact: 400,
+  displayNamePartial: 200,
+  fullNameExact: 350,
+  fullNamePartial: 180,
+  usernameExact: 300,
+  usernamePartial: 160,
+} as const;
 
-const exactReasonOrder = new Map<
-  ImportPlayerLinkCandidate['matchReason'],
-  CandidateScore
->([
-  ['display_name_exact', { matchReason: 'display_name_exact', matchScore: 400 }],
-  ['full_name_exact', { matchReason: 'full_name_exact', matchScore: 350 }],
-  ['username_exact', { matchReason: 'username_exact', matchScore: 300 }],
-  ['alias_exact', { matchReason: 'alias_exact', matchScore: 250 }],
-]);
+const EXACT_SCORE_FLOOR = INTERNAL_MATCH_SCORES.aliasExact;
 
-const partialReasonOrder = new Map<
-  ImportPlayerLinkCandidate['matchReason'],
-  CandidateScore
->([
-  ['display_name_partial', { matchReason: 'display_name_partial', matchScore: 200 }],
-  ['full_name_partial', { matchReason: 'full_name_partial', matchScore: 180 }],
-  ['username_partial', { matchReason: 'username_partial', matchScore: 160 }],
-]);
+function coarseReasonForScore(
+  matchScore: number,
+): ImportPlayerLinkCandidate['matchReason'] {
+  if (matchScore >= EXACT_SCORE_FLOOR) {
+    return 'exact';
+  }
+
+  return matchScore > 0 ? 'partial' : 'fallback';
+}
 
 function tokenizeNormalizedName(value: string) {
   return value.split(' ').filter(Boolean);
@@ -224,27 +225,33 @@ function buildPlayerCandidate(input: {
     );
   };
 
+  const scoredCandidate = (matchScore: number): ImportPlayerLinkCandidate => ({
+    ...fallbackCandidate,
+    matchReason: coarseReasonForScore(matchScore),
+    matchScore,
+  });
+
   let candidate = fallbackCandidate;
 
   if (isExactMatchFor(input.player.displayName)) {
-    candidate = chooseHigherScore(candidate, {
-      ...fallbackCandidate,
-      ...exactReasonOrder.get('display_name_exact')!,
-    });
+    candidate = chooseHigherScore(
+      candidate,
+      scoredCandidate(INTERNAL_MATCH_SCORES.displayNameExact),
+    );
   }
 
   if (isExactMatchFor(input.player.linkedFullName ?? '')) {
-    candidate = chooseHigherScore(candidate, {
-      ...fallbackCandidate,
-      ...exactReasonOrder.get('full_name_exact')!,
-    });
+    candidate = chooseHigherScore(
+      candidate,
+      scoredCandidate(INTERNAL_MATCH_SCORES.fullNameExact),
+    );
   }
 
   if (isExactMatchFor(input.player.linkedUsername ?? '')) {
-    candidate = chooseHigherScore(candidate, {
-      ...fallbackCandidate,
-      ...exactReasonOrder.get('username_exact')!,
-    });
+    candidate = chooseHigherScore(
+      candidate,
+      scoredCandidate(INTERNAL_MATCH_SCORES.usernameExact),
+    );
   }
 
   if (
@@ -254,10 +261,10 @@ function buildPlayerCandidate(input: {
         alias.normalizedAlias === input.normalizedImportedName,
     )
   ) {
-    candidate = chooseHigherScore(candidate, {
-      ...fallbackCandidate,
-      ...exactReasonOrder.get('alias_exact')!,
-    });
+    candidate = chooseHigherScore(
+      candidate,
+      scoredCandidate(INTERNAL_MATCH_SCORES.aliasExact),
+    );
   }
 
   if (
@@ -265,10 +272,10 @@ function buildPlayerCandidate(input: {
     displayName !== input.normalizedImportedName &&
     isTokenPrefixMatch(input.normalizedImportedName, displayName)
   ) {
-    candidate = chooseHigherScore(candidate, {
-      ...fallbackCandidate,
-      ...partialReasonOrder.get('display_name_partial')!,
-    });
+    candidate = chooseHigherScore(
+      candidate,
+      scoredCandidate(INTERNAL_MATCH_SCORES.displayNamePartial),
+    );
   }
 
   if (
@@ -276,10 +283,10 @@ function buildPlayerCandidate(input: {
     fullName !== input.normalizedImportedName &&
     isTokenPrefixMatch(input.normalizedImportedName, fullName)
   ) {
-    candidate = chooseHigherScore(candidate, {
-      ...fallbackCandidate,
-      ...partialReasonOrder.get('full_name_partial')!,
-    });
+    candidate = chooseHigherScore(
+      candidate,
+      scoredCandidate(INTERNAL_MATCH_SCORES.fullNamePartial),
+    );
   }
 
   if (
@@ -287,10 +294,10 @@ function buildPlayerCandidate(input: {
     username !== input.normalizedImportedName &&
     isTokenPrefixMatch(input.normalizedImportedName, username)
   ) {
-    candidate = chooseHigherScore(candidate, {
-      ...fallbackCandidate,
-      ...partialReasonOrder.get('username_partial')!,
-    });
+    candidate = chooseHigherScore(
+      candidate,
+      scoredCandidate(INTERNAL_MATCH_SCORES.usernamePartial),
+    );
   }
 
   return candidate;
@@ -348,19 +355,14 @@ export function resolveImportPlayerLinks(
     );
     const hasExactTie = topScoreMatches.length > 1;
     const hasUnbrokenTie = topGamesPlayedMatches.length > 1;
-    const isExactMatch =
-      topCandidate.matchReason === 'display_name_exact' ||
-      topCandidate.matchReason === 'full_name_exact' ||
-      topCandidate.matchReason === 'username_exact';
-    const isAliasMatch = topCandidate.matchReason === 'alias_exact';
 
-    if ((isExactMatch || isAliasMatch) && !hasExactTie) {
+    if (topCandidate.matchReason === 'exact' && !hasExactTie) {
       return {
         candidates,
         importedName,
         requiresConfirmation: false,
         selectedPlayerId: topCandidate.id,
-        status: isAliasMatch ? 'alias' : 'exact',
+        status: 'exact',
       };
     }
 

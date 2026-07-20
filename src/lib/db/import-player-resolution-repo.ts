@@ -84,9 +84,17 @@ function canonicalKeyForCandidate(row: RawIdentityCandidateRow) {
     : `player:${row.player_id}`;
 }
 
+/**
+ * The only match classification the application consumes. The matcher RPC's
+ * fine-grained reasons (`full_name_exact`, `alias_exact`, …) disclose which
+ * private field matched, so they stop at this repository boundary and never
+ * reach a caller, a serialized prop, or the client.
+ */
+export type ImportNameMatchReason = 'exact' | 'partial';
+
 export type ImportNameMatch = {
   importedName: string;
-  matchReason: string;
+  matchReason: ImportNameMatchReason;
   playerId: string;
   publicName: string;
 };
@@ -99,11 +107,32 @@ type RawNameMatchRow = {
 };
 
 /**
+ * Mirrors the bounds the coarse matcher RPC enforces (64 names of at most 128
+ * characters), so a request that is valid today stays valid after that
+ * migration is applied.
+ */
+const MAX_MATCH_CANDIDATE_NAMES = 64;
+const MAX_MATCH_CANDIDATE_LENGTH = 128;
+
+/**
+ * Collapse any matcher response — today's fine-grained reasons or the coarse
+ * `exact`/`partial` the gated replacement RPC returns — onto the coarse
+ * classification. Unrecognized values rank as `partial`, which keeps the match
+ * suggested-but-unconfirmed rather than silently auto-applied.
+ */
+function coarsenMatchReason(rawReason: string): ImportNameMatchReason {
+  return rawReason === 'exact' || rawReason.endsWith('_exact')
+    ? 'exact'
+    : 'partial';
+}
+
+/**
  * Ask the server which roster player each imported log name refers to.
  *
  * Matching needs `players.full_name` / `username` and the saved import aliases,
  * none of which the Data API exposes any more, so it runs inside a
- * security-definer RPC. Only a player id and the public label come back.
+ * security-definer RPC. Only a player id, the public label, and a coarse
+ * exact/partial classification come back.
  */
 export async function matchImportPlayerNames(
   groupId: string,
@@ -111,7 +140,9 @@ export async function matchImportPlayerNames(
 ): Promise<ImportNameMatch[]> {
   const names = [
     ...new Set(importedNames.map((name) => name.trim()).filter(Boolean)),
-  ];
+  ]
+    .filter((name) => name.length <= MAX_MATCH_CANDIDATE_LENGTH)
+    .slice(0, MAX_MATCH_CANDIDATE_NAMES);
 
   if (names.length === 0) {
     return [];
@@ -129,7 +160,7 @@ export async function matchImportPlayerNames(
 
   return ((data ?? []) as RawNameMatchRow[]).map((row) => ({
     importedName: row.imported_name,
-    matchReason: row.match_reason,
+    matchReason: coarsenMatchReason(row.match_reason),
     playerId: row.player_id,
     publicName: row.public_name,
   }));

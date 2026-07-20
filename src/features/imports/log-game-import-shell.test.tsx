@@ -65,7 +65,7 @@ describe('LogGameImportShell', () => {
                 id: 'player-1',
                 linkedFullName: 'Friday Mars',
                 linkedUsername: 'friday-mars',
-                matchReason: 'display_name_exact' as const,
+                matchReason: 'exact' as const,
                 matchScore: 400,
               },
               {
@@ -193,7 +193,7 @@ describe('LogGameImportShell', () => {
                 id: 'player-1',
                 linkedFullName: 'Friday Mars',
                 linkedUsername: 'friday-mars',
-                matchReason: 'display_name_exact' as const,
+                matchReason: 'exact' as const,
                 matchScore: 400,
               },
             ],

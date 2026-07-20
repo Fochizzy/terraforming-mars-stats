@@ -30,7 +30,7 @@ describe('applyServerPlayerMatches', () => {
       [
         {
           importedName: 'Corey',
-          matchReason: 'alias_exact',
+          matchReason: 'exact',
           playerId: 'player-1',
           publicName: 'lurker',
         },
@@ -40,7 +40,7 @@ describe('applyServerPlayerMatches', () => {
     expect(result[0]).toMatchObject({
       requiresConfirmation: false,
       selectedPlayerId: 'player-1',
-      status: 'alias',
+      status: 'exact',
     });
   });
 
@@ -55,7 +55,7 @@ describe('applyServerPlayerMatches', () => {
       [
         {
           importedName: 'Izzy',
-          matchReason: 'alias_exact',
+          matchReason: 'exact',
           playerId: 'other-group-row',
           publicName: 'fochizzy',
         },
@@ -71,7 +71,7 @@ describe('applyServerPlayerMatches', () => {
       [
         {
           importedName: 'Jam',
-          matchReason: 'full_name_partial',
+          matchReason: 'partial',
           playerId: 'player-2',
           publicName: 'revloki',
         },
@@ -97,7 +97,7 @@ describe('applyServerPlayerMatches', () => {
         [
           {
             importedName: 'Jenna',
-            matchReason: 'alias_exact',
+            matchReason: 'exact',
             playerId: 'not-in-candidates',
             publicName: 'someone-else',
           },

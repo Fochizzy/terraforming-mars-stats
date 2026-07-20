@@ -28,7 +28,7 @@ export function applyCreatedImportPlayerToReview(
           id: input.createdPlayerId,
           linkedFullName: input.fullName ?? null,
           linkedUsername: input.username ?? null,
-          matchReason: 'display_name_exact' as const,
+          matchReason: 'exact' as const,
           matchScore: 400,
         },
         ...link.candidates.filter((candidate) => candidate.id !== input.createdPlayerId),

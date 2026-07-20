@@ -30,19 +30,16 @@ function describeCandidateName(
   return candidate.linkedUsername ?? candidate.displayName;
 }
 
+/**
+ * Match explanations are deliberately coarse: which field matched (roster
+ * name, private profile name, saved alias, …) is never disclosed to the
+ * reviewer, only how confident the match is.
+ */
 function describeMatchReason(matchReason: ImportPlayerLinkMatch['candidates'][number]['matchReason']) {
   switch (matchReason) {
-    case 'display_name_exact':
-      return 'Matched by roster name';
-    case 'full_name_exact':
-      return 'Matched by profile name';
-    case 'username_exact':
-      return 'Matched by username';
-    case 'alias_exact':
-      return 'Matched by saved alias';
-    case 'display_name_partial':
-    case 'full_name_partial':
-    case 'username_partial':
+    case 'exact':
+      return 'Matched by name';
+    case 'partial':
       return 'Matched by partial name';
     default:
       return 'Manual roster choice';

@@ -39,7 +39,7 @@ describe('resolveImportPlayerLinks', () => {
     expect(result.matches[0]?.candidates[0]).toMatchObject({
       displayName: 'Izzy',
       id: 'player-1',
-      matchReason: 'display_name_exact',
+      matchReason: 'exact',
     });
     expect(result.matches[1]).toMatchObject({
       importedName: 'COREY',
@@ -50,7 +50,7 @@ describe('resolveImportPlayerLinks', () => {
     expect(result.matches[1]?.candidates[0]).toMatchObject({
       displayName: 'Corey',
       id: 'player-2',
-      matchReason: 'display_name_exact',
+      matchReason: 'exact',
     });
   });
 
@@ -67,7 +67,7 @@ describe('resolveImportPlayerLinks', () => {
     expect(result.matches[0]?.candidates[0]).toMatchObject({
       displayName: 'Izzy',
       id: 'player-1',
-      matchReason: 'full_name_exact',
+      matchReason: 'exact',
     });
   });
 
@@ -109,7 +109,7 @@ describe('resolveImportPlayerLinks', () => {
     });
     expect(result.matches[0]?.candidates[0]).toMatchObject({
       id: 'player-colette',
-      matchReason: 'username_exact',
+      matchReason: 'exact',
     });
   });
 
@@ -137,7 +137,7 @@ describe('resolveImportPlayerLinks', () => {
     expect(result.matches[0]?.candidates[0]).toMatchObject({
       displayName: 'Izzy',
       id: 'player-1',
-      matchReason: 'username_exact',
+      matchReason: 'exact',
     });
   });
 
@@ -179,12 +179,12 @@ describe('resolveImportPlayerLinks', () => {
             {
               gamesPlayed: 15,
               id: 'izzy-group-b',
-              matchReason: 'alias_exact',
+              matchReason: 'exact',
             },
           ],
           requiresConfirmation: false,
           selectedPlayerId: 'izzy-group-b',
-          status: 'alias',
+          status: 'exact',
         },
       ],
       unresolvedCount: 0,
@@ -227,7 +227,7 @@ describe('resolveImportPlayerLinks', () => {
     expect(result.matches[0]?.candidates[0]).toMatchObject({
       displayName: 'James Hodnett',
       id: 'player-jh',
-      matchReason: 'display_name_partial',
+      matchReason: 'partial',
     });
   });
 

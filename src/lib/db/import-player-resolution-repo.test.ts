@@ -4,6 +4,7 @@ import { listCurrentUserGroups } from './group-context-repo';
 import {
   listImportResolutionPlayers,
   listImportResolutionPlayersForCurrentUser,
+  matchImportPlayerNames,
 } from './import-player-resolution-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -186,5 +187,159 @@ describe('listImportResolutionPlayersForCurrentUser', () => {
     await expect(listImportResolutionPlayersForCurrentUser()).resolves.toEqual(
       [],
     );
+  });
+});
+
+describe('matchImportPlayerNames', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function mockMatcher(
+    rows: Array<{
+      imported_name: string;
+      match_reason: string;
+      player_id: string;
+      public_name: string;
+    }>,
+  ) {
+    const rpc = vi.fn(
+      async (fn: string, ...rest: Array<Record<string, unknown>>) => {
+        void rest;
+        if (fn !== 'match_import_player_names') {
+          throw new Error(`Unexpected rpc ${fn}`);
+        }
+
+        return { data: rows, error: null };
+      },
+    );
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        throw new Error(`The Data API must not read ${table} for matching`);
+      }),
+      rpc,
+    } as never);
+
+    return { rpc };
+  }
+
+  it("coarsens today's fine-grained reasons so no matching axis escapes the repository", async () => {
+    mockMatcher([
+      {
+        imported_name: 'Izzy',
+        match_reason: 'display_name_exact',
+        player_id: 'player-1',
+        public_name: 'fochizzy',
+      },
+      {
+        imported_name: 'Corey',
+        match_reason: 'full_name_exact',
+        player_id: 'player-2',
+        public_name: 'lurker',
+      },
+      {
+        imported_name: 'Jenna',
+        match_reason: 'alias_exact',
+        player_id: 'player-3',
+        public_name: 'Guest 5F2A',
+      },
+      {
+        imported_name: 'Jam',
+        match_reason: 'full_name_partial',
+        player_id: 'player-4',
+        public_name: 'revloki',
+      },
+    ]);
+
+    const matches = await matchImportPlayerNames('group-1', [
+      'Izzy',
+      'Corey',
+      'Jenna',
+      'Jam',
+    ]);
+
+    expect(matches.map((match) => match.matchReason)).toEqual([
+      'exact',
+      'exact',
+      'exact',
+      'partial',
+    ]);
+    expect(JSON.stringify(matches)).not.toMatch(
+      /display_name|full_name|alias|username_/,
+    );
+  });
+
+  it('passes the future coarse response through unchanged', async () => {
+    mockMatcher([
+      {
+        imported_name: 'Izzy',
+        match_reason: 'exact',
+        player_id: 'player-1',
+        public_name: 'fochizzy',
+      },
+      {
+        imported_name: 'Jam',
+        match_reason: 'partial',
+        player_id: 'player-2',
+        public_name: 'revloki',
+      },
+    ]);
+
+    await expect(
+      matchImportPlayerNames('group-1', ['Izzy', 'Jam']),
+    ).resolves.toEqual([
+      {
+        importedName: 'Izzy',
+        matchReason: 'exact',
+        playerId: 'player-1',
+        publicName: 'fochizzy',
+      },
+      {
+        importedName: 'Jam',
+        matchReason: 'partial',
+        playerId: 'player-2',
+        publicName: 'revloki',
+      },
+    ]);
+  });
+
+  it('ranks an unrecognized reason as partial so it stays reviewable', async () => {
+    mockMatcher([
+      {
+        imported_name: 'Izzy',
+        match_reason: 'some_future_reason',
+        player_id: 'player-1',
+        public_name: 'fochizzy',
+      },
+    ]);
+
+    const [match] = await matchImportPlayerNames('group-1', ['Izzy']);
+
+    expect(match?.matchReason).toBe('partial');
+  });
+
+  it('bounds the request to the coarse RPC contract: 64 names of at most 128 characters', async () => {
+    const { rpc } = mockMatcher([]);
+    const names = Array.from({ length: 80 }, (_, index) => `Player ${index}`);
+    const overlongName = 'x'.repeat(129);
+
+    await matchImportPlayerNames('group-1', [overlongName, ...names]);
+
+    const submitted = rpc.mock.calls[0]?.[1] as
+      | { p_imported_names: string[] }
+      | undefined;
+
+    expect(submitted?.p_imported_names).toHaveLength(64);
+    expect(submitted?.p_imported_names).not.toContain(overlongName);
+  });
+
+  it('skips the request entirely when nothing sendable remains', async () => {
+    const { rpc } = mockMatcher([]);
+
+    await expect(
+      matchImportPlayerNames('group-1', ['   ', 'y'.repeat(200)]),
+    ).resolves.toEqual([]);
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

@@ -14,7 +14,7 @@ function buildCandidate(
     id: 'player-1',
     linkedFullName: null,
     linkedUsername: null,
-    matchReason: 'display_name_exact',
+    matchReason: 'exact',
     matchScore: 400,
     ...overrides,
   };

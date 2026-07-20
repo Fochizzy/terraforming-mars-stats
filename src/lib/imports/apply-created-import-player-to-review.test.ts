@@ -17,7 +17,7 @@ describe('applyCreatedImportPlayerToReview', () => {
               id: 'player-1',
               linkedFullName: 'Friday Mars',
               linkedUsername: 'friday-mars',
-              matchReason: 'display_name_exact' as const,
+              matchReason: 'exact' as const,
               matchScore: 400,
             },
           ],
@@ -73,7 +73,7 @@ describe('applyCreatedImportPlayerToReview', () => {
       id: 'player-new',
       linkedFullName: null,
       linkedUsername: null,
-      matchReason: 'display_name_exact',
+      matchReason: 'exact',
       matchScore: 400,
     });
   });
