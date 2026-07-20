@@ -147,6 +147,27 @@ describe('completeAuthSession', () => {
     });
   });
 
+  it('routes to manual claim instead of crashing when auto-claim throws (e.g. a permission error)', async () => {
+    vi.mocked(getCurrentGroupContext).mockResolvedValue(null);
+    vi.mocked(resolveSavedPlayerAutoClaim).mockRejectedValue(
+      new Error('permission denied for function list_claimable_player_profiles'),
+    );
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(
+      completeAuthSession({ nextPath: '/profile' }),
+    ).resolves.toEqual({
+      redirectPath: '/claim-player?next=%2Fprofile',
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('resolveSavedPlayerAutoClaim failed'),
+      expect.any(Error),
+    );
+
+    consoleErrorSpy.mockRestore();
+  });
+
   it('sends recovery sessions straight to auth reset-pin before claim routing', async () => {
     vi.mocked(getCurrentGroupContext).mockResolvedValue(null);
     vi.mocked(resolveSavedPlayerAutoClaim).mockResolvedValue({

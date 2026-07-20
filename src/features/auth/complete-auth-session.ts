@@ -89,7 +89,26 @@ export async function completeAuthSession(input: { nextPath: string }) {
     };
   }
 
-  const claimResult = await resolveSavedPlayerAutoClaim();
+  let claimResult: Awaited<ReturnType<typeof resolveSavedPlayerAutoClaim>>;
+
+  try {
+    claimResult = await resolveSavedPlayerAutoClaim();
+  } catch (error) {
+    // The claim RPCs can fail for reasons outside the signed-in user's
+    // control (e.g. a missing grant, a transient outage). That must not
+    // block sign-in completion itself -- fall through to the same manual
+    // claim page a genuine "no candidates" result already sends new
+    // no-group users to, and log the real cause server-side so an
+    // unavailable RPC stays distinguishable from an honest empty result.
+    console.error(
+      'resolveSavedPlayerAutoClaim failed during auth completion; routing to manual claim instead of crashing.',
+      error,
+    );
+
+    return {
+      redirectPath: buildAuthCompleteClaimPath(resolvedNextPath),
+    };
+  }
 
   if (claimResult.status === 'claimed-and-joined') {
     return {
