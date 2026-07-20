@@ -6,7 +6,117 @@ import {
   resolveNewMergerOfferRuleSnapshot,
   unknownMergerOfferRuleSnapshot,
 } from '@/lib/merger/merger-rule-snapshot';
+import {
+  ATTRIBUTABLE_PLACEMENT_ACTIONS,
+  buildTileActorIndex,
+  resolveTileEventAttributions,
+  type StoredPlayerIdentityResolution,
+} from '@/lib/imports/resolve-tile-event-attribution';
 import { refreshGameMetricSnapshots } from './metric-refresh-repo';
+
+/**
+ * Imported placement events are persisted while the game is still a draft, when
+ * its `game_players` rows do not exist yet, so they are written unattributed.
+ * Finalization is the first moment the same-game participant map exists, so it
+ * is where attribution is resolved.
+ *
+ * Only exact evidence is used: the import's own recorded identity resolutions,
+ * matched to the actor text the parser preserved. An actor that is unresolved,
+ * ambiguous, or not a participant of this game stays unattributed — attribution
+ * is never inferred from neighbouring events or approximate names.
+ *
+ * Re-running finalization is safe: already-attributed rows are excluded by the
+ * null predicate, so a retry writes nothing.
+ */
+async function attributeImportedPlacementEvents(gameId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: imports, error: importsError } = await supabase
+    .from('game_log_imports')
+    .select('id, confidence_summary')
+    .eq('game_id', gameId);
+
+  if (importsError) {
+    throw importsError;
+  }
+
+  if (!imports || imports.length === 0) {
+    return { attributed: 0 };
+  }
+
+  const { data: participants, error: participantsError } = await supabase
+    .from('game_players')
+    .select('id, player_id')
+    .eq('game_id', gameId);
+
+  if (participantsError) {
+    throw participantsError;
+  }
+
+  const gamePlayerIdByPlayerId = new Map(
+    (participants ?? []).map((participant) => [
+      participant.player_id,
+      participant.id,
+    ]),
+  );
+
+  let attributed = 0;
+
+  for (const importRow of imports) {
+    const confidenceSummary = (importRow.confidence_summary ?? {}) as {
+      player_identity_resolutions?: StoredPlayerIdentityResolution[];
+    };
+    const actorIndex = buildTileActorIndex(
+      confidenceSummary.player_identity_resolutions ?? [],
+    );
+
+    if (actorIndex.size === 0) {
+      continue;
+    }
+
+    const { data: events, error: eventsError } = await supabase
+      .from('game_log_events')
+      .select('id, payload')
+      .eq('game_log_import_id', importRow.id)
+      .in('placement_action', [...ATTRIBUTABLE_PLACEMENT_ACTIONS])
+      .is('player_id', null)
+      .is('game_player_id', null);
+
+    if (eventsError) {
+      throw eventsError;
+    }
+
+    const attributions = resolveTileEventAttributions({
+      actorIndex,
+      events: (events ?? []).map((event) => ({
+        actorText:
+          (event.payload as { actor?: string | null } | null)?.actor ?? null,
+        eventId: event.id,
+      })),
+      gamePlayerIdByPlayerId,
+    });
+
+    for (const attribution of attributions) {
+      const { error: updateError } = await supabase
+        .from('game_log_events')
+        .update({
+          game_player_id: attribution.gamePlayerId,
+          player_id: attribution.playerId,
+        })
+        .eq('id', attribution.eventId)
+        .is('player_id', null)
+        .is('game_player_id', null);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      attributed += 1;
+    }
+  }
+
+  return { attributed };
+}
 
 async function resolvePromoSetIds(slugs: string[]) {
   if (slugs.length === 0) {
@@ -451,6 +561,10 @@ export async function finalizeGameLog(payload: {
     payload.finalizedPayload.revision.snapshot,
     payload.finalizedPayload.revision.note,
   );
+
+  // Attribute before refreshing metrics so derived snapshots see the resolved
+  // per-player placements rather than the unattributed draft state.
+  await attributeImportedPlacementEvents(gameId);
 
   await refreshGameMetricSnapshots(gameId);
 

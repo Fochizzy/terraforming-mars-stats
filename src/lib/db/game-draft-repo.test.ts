@@ -230,11 +230,27 @@ describe('finalizeGameLog', () => {
       }),
     };
 
+    // Finalization attributes imported placement events last. This game has no
+    // import, so attribution reads the empty import list and returns without
+    // touching any event.
+    const importSelectEq = vi.fn().mockResolvedValue({ data: [], error: null });
+    const importSelect = vi.fn(() => ({ eq: importSelectEq }));
+    const attributionClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return { select: importSelect };
+        }
+
+        throw new Error(`Unexpected attribution table ${table}`);
+      }),
+    };
+
     vi.mocked(createSupabaseServerClient)
       .mockResolvedValueOnce(finalizeClient as never)
       .mockResolvedValueOnce(upsertClient as never)
       .mockResolvedValueOnce(setupClient as never)
-      .mockResolvedValueOnce(revisionClient as never);
+      .mockResolvedValueOnce(revisionClient as never)
+      .mockResolvedValueOnce(attributionClient as never);
 
     await expect(
       repo.finalizeGameLog({
