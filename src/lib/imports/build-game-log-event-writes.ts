@@ -13,6 +13,19 @@ function buildCardIdByName(cards: Array<Pick<CardOption, 'cardName' | 'id'>>) {
 }
 
 /**
+ * Identity segments are constrained to `^[a-z0-9][a-z0-9:_-]{0,199}$`, so a
+ * special tile named from its card ("Commercial District") has to be slugged
+ * the same way the stored rows already do it: lowercase, runs of anything else
+ * collapsed to an underscore.
+ */
+function toIdentitySegment(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+/**
  * Stable identity for one tile placement, matching the shape already stored on
  * every existing tile row: `tile:<line>:<action>:<board>:<space>:<tile>`. The
  * line number makes it unique within an import, which the write RPC enforces.
@@ -28,8 +41,8 @@ function buildTilePlacementIdentity(input: {
     input.lineNumber,
     input.placementAction,
     'mars',
-    input.space,
-    input.tile,
+    toIdentitySegment(input.space),
+    toIdentitySegment(input.tile),
   ].join(':');
 }
 
