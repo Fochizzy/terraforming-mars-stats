@@ -15,7 +15,6 @@ function buildCandidate(
     linkedFullName: null,
     linkedUsername: null,
     matchReason: 'exact',
-    matchScore: 400,
     ...overrides,
   };
 }

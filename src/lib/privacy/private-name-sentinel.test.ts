@@ -195,10 +195,31 @@ describe('private personal names never reach serialized review payloads', () => 
     expect(serialized).not.toMatch(
       /display_name_exact|full_name_(exact|partial)|alias_exact|username_(exact|partial)|normalized_name/,
     );
+    // The internal ranking score is itself private matching evidence: its
+    // value is unique per axis (alias vs. display name vs. username), so it
+    // must never reach the serialized payload even though matchReason does.
+    expect(serialized).not.toContain('matchScore');
     // The alias hit auto-selects the guest, but is disclosed only as 'exact'.
     expect(withServerVerdict[0]).toMatchObject({
       selectedPlayerId: 'player-guest',
       status: 'exact',
     });
+
+    // 'Jenna' matched on a saved private alias (score 250); 'fochizzy'
+    // matched on the public display name (score 400). Both axes coarsen to
+    // the same 'exact' reason and the same candidate shape, so an inspecting
+    // client cannot tell a private-alias hit from a public-name hit.
+    const guestCandidate = withServerVerdict[0]?.candidates.find(
+      (candidate) => candidate.id === 'player-guest',
+    );
+    const izzyCandidate = withServerVerdict[1]?.candidates.find(
+      (candidate) => candidate.id === 'player-izzy',
+    );
+
+    expect(guestCandidate?.matchReason).toBe('exact');
+    expect(izzyCandidate?.matchReason).toBe('exact');
+    expect(Object.keys(guestCandidate!).sort()).toEqual(
+      Object.keys(izzyCandidate!).sort(),
+    );
   });
 });

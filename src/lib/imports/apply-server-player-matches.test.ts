@@ -9,7 +9,6 @@ function candidate(id: string, displayName: string) {
     linkedFullName: null,
     linkedUsername: null,
     matchReason: 'fallback' as const,
-    matchScore: 0,
   };
 }
 

@@ -29,8 +29,30 @@ export type ImportPlayerLinkCandidate = {
    * so review payloads carry no field-specific matching evidence.
    */
   matchReason: 'exact' | 'fallback' | 'partial';
-  matchScore: number;
 };
+
+/**
+ * Ranking-only candidate shape used while this module is choosing and
+ * ordering matches. `matchScore` is unique per matching axis (alias vs.
+ * username vs. display name, exact vs. partial — see
+ * `INTERNAL_MATCH_SCORES`), so it never leaves this module: serializing it
+ * would hand an inspecting client the exact private field that produced the
+ * match, defeating the coarsening `matchReason` exists to provide.
+ */
+type ScoredCandidate = ImportPlayerLinkCandidate & { matchScore: number };
+
+function toPublicCandidate(
+  candidate: ScoredCandidate,
+): ImportPlayerLinkCandidate {
+  return {
+    displayName: candidate.displayName,
+    gamesPlayed: candidate.gamesPlayed,
+    id: candidate.id,
+    linkedFullName: candidate.linkedFullName,
+    linkedUsername: candidate.linkedUsername,
+    matchReason: candidate.matchReason,
+  };
+}
 
 export type ImportPlayerLinkMatch = {
   candidates: ImportPlayerLinkCandidate[];
@@ -88,10 +110,7 @@ function isTokenPrefixMatch(importedName: string, candidateName: string) {
   );
 }
 
-function compareCandidates(
-  left: ImportPlayerLinkCandidate,
-  right: ImportPlayerLinkCandidate,
-) {
+function compareCandidates(left: ScoredCandidate, right: ScoredCandidate) {
   return (
     right.matchScore - left.matchScore ||
     right.gamesPlayed - left.gamesPlayed ||
@@ -168,9 +187,7 @@ function collapsePlayersByCanonicalIdentity(players: ImportGroupPlayer[]) {
   });
 }
 
-function buildFallbackCandidate(
-  player: ImportGroupPlayer,
-): ImportPlayerLinkCandidate {
+function buildFallbackCandidate(player: ImportGroupPlayer): ScoredCandidate {
   return {
     displayName: player.displayName,
     gamesPlayed: player.gamesPlayed ?? 0,
@@ -182,10 +199,7 @@ function buildFallbackCandidate(
   };
 }
 
-function chooseHigherScore(
-  current: ImportPlayerLinkCandidate,
-  next: ImportPlayerLinkCandidate,
-) {
+function chooseHigherScore(current: ScoredCandidate, next: ScoredCandidate) {
   return compareCandidates(current, next) <= 0 ? current : next;
 }
 
@@ -194,7 +208,7 @@ function buildPlayerCandidate(input: {
   importedName: string;
   normalizedImportedName: string;
   player: ImportGroupPlayer;
-}): ImportPlayerLinkCandidate {
+}): ScoredCandidate {
   const fallbackCandidate = buildFallbackCandidate(input.player);
   const displayName = normalizePlayerAlias(input.player.displayName);
   const fullName = normalizePlayerAlias(input.player.linkedFullName ?? '');
@@ -225,7 +239,7 @@ function buildPlayerCandidate(input: {
     );
   };
 
-  const scoredCandidate = (matchScore: number): ImportPlayerLinkCandidate => ({
+  const scoredCandidate = (matchScore: number): ScoredCandidate => ({
     ...fallbackCandidate,
     matchReason: coarseReasonForScore(matchScore),
     matchScore,
@@ -316,7 +330,8 @@ export function resolveImportPlayerLinks(
       return {
         candidates: resolutionPlayers
           .map((player) => buildFallbackCandidate(player))
-          .sort(compareCandidates),
+          .sort(compareCandidates)
+          .map(toPublicCandidate),
         importedName,
         requiresConfirmation: true,
         selectedPlayerId: null,
@@ -324,7 +339,7 @@ export function resolveImportPlayerLinks(
       };
     }
 
-    const candidates = resolutionPlayers
+    const scoredCandidates = resolutionPlayers
       .map((player) =>
         buildPlayerCandidate({
           aliases,
@@ -334,8 +349,11 @@ export function resolveImportPlayerLinks(
         }),
       )
       .sort(compareCandidates);
+    // The public candidate list handed to callers and, eventually, the
+    // browser — ranking evidence (matchScore) never crosses this boundary.
+    const candidates = scoredCandidates.map(toPublicCandidate);
 
-    const topCandidate = candidates[0];
+    const topCandidate = scoredCandidates[0];
 
     if (!topCandidate || topCandidate.matchScore === 0) {
       return {
@@ -347,7 +365,7 @@ export function resolveImportPlayerLinks(
       };
     }
 
-    const topScoreMatches = candidates.filter(
+    const topScoreMatches = scoredCandidates.filter(
       (candidate) => candidate.matchScore === topCandidate.matchScore,
     );
     const topGamesPlayedMatches = topScoreMatches.filter(

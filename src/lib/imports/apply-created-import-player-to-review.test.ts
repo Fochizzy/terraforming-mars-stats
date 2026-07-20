@@ -74,8 +74,10 @@ describe('applyCreatedImportPlayerToReview', () => {
       linkedFullName: null,
       linkedUsername: null,
       matchReason: 'exact',
-      matchScore: 400,
     });
+    expect(result.playerLinks[1]?.candidates[0]).not.toHaveProperty(
+      'matchScore',
+    );
   });
 
   it('returns the original review when no matching import row exists', () => {

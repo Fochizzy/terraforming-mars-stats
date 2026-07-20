@@ -327,4 +327,132 @@ describe('resolveImportPlayerLinks', () => {
       unresolvedCount: 1,
     });
   });
+
+  describe('candidate privacy boundary', () => {
+    /**
+     * The internal ranking score is unique per matching axis (alias vs.
+     * display name vs. username, exact vs. partial). If it ever leaked, an
+     * inspecting client could tell which private field produced a match even
+     * though matchReason only ever says 'exact' or 'partial'.
+     */
+    it('never exposes the internal match score, on any candidate in any match state', () => {
+      const aliasMatched = resolveImportPlayerLinks(
+        ['Iz'],
+        groupPlayers,
+        [
+          {
+            aliasText: 'Iz',
+            normalizedAlias: 'iz',
+            playerId: 'player-1',
+            sourceType: 'game_log',
+          },
+        ],
+      );
+      const nameMatched = resolveImportPlayerLinks([' izzy '], groupPlayers, []);
+      const partialMatched = resolveImportPlayerLinks(['James H'], [
+        {
+          displayName: 'James Hodnett',
+          gamesPlayed: 6,
+          id: 'player-jh',
+          linkedFullName: 'James Hodnett',
+          linkedUsername: 'jhodnett',
+        },
+      ], []);
+      const unmatched = resolveImportPlayerLinks(['Morgan'], groupPlayers, []);
+
+      for (const result of [aliasMatched, nameMatched, partialMatched, unmatched]) {
+        for (const match of result.matches) {
+          for (const candidate of match.candidates) {
+            expect(candidate).not.toHaveProperty('matchScore');
+            expect(Object.keys(candidate).sort()).toEqual([
+              'displayName',
+              'gamesPlayed',
+              'id',
+              'linkedFullName',
+              'linkedUsername',
+              'matchReason',
+            ]);
+          }
+        }
+
+        expect(JSON.stringify(result)).not.toContain('matchScore');
+      }
+    });
+
+    /**
+     * An alias-backed match and a display-name-exact match are different
+     * private axes internally, but must be indistinguishable in the public
+     * payload: same shape, same coarse reason, no numeric tell.
+     */
+    it('makes an alias match and a display-name match indistinguishable on the wire', () => {
+      const aliasResult = resolveImportPlayerLinks(
+        ['Iz'],
+        [groupPlayers[0]!],
+        [
+          {
+            aliasText: 'Iz',
+            normalizedAlias: 'iz',
+            playerId: 'player-1',
+            sourceType: 'game_log',
+          },
+        ],
+      );
+      const nameResult = resolveImportPlayerLinks([' izzy '], [groupPlayers[0]!], []);
+
+      const aliasCandidate = aliasResult.matches[0]?.candidates[0];
+      const nameCandidate = nameResult.matches[0]?.candidates[0];
+
+      expect(aliasCandidate?.matchReason).toBe('exact');
+      expect(nameCandidate?.matchReason).toBe('exact');
+      expect(Object.keys(aliasCandidate!).sort()).toEqual(
+        Object.keys(nameCandidate!).sort(),
+      );
+    });
+
+    /**
+     * Ordering must still be driven by the (now-internal) match score: an
+     * exact match still outranks a mere partial match, and a plain fallback
+     * still sorts last — proving the refactor that hid matchScore from
+     * callers did not change selection behavior.
+     */
+    it('keeps deterministic score-driven ordering after matchScore is hidden from callers', () => {
+      const result = resolveImportPlayerLinks(
+        ['James'],
+        [
+          {
+            displayName: 'James',
+            gamesPlayed: 1,
+            id: 'player-exact',
+            linkedFullName: null,
+            linkedUsername: null,
+          },
+          {
+            displayName: 'James Hodnett',
+            gamesPlayed: 99,
+            id: 'player-partial',
+            linkedFullName: null,
+            linkedUsername: null,
+          },
+          {
+            displayName: 'Unrelated Player',
+            gamesPlayed: 50,
+            id: 'player-fallback',
+            linkedFullName: null,
+            linkedUsername: null,
+          },
+        ],
+        [],
+      );
+      const candidateIds = result.matches[0]?.candidates.map((c) => c.id);
+
+      // Exact beats partial beats fallback regardless of games played, so a
+      // higher games-played count on the partial/fallback rows must not
+      // reorder them ahead of the exact match.
+      expect(candidateIds).toEqual([
+        'player-exact',
+        'player-partial',
+        'player-fallback',
+      ]);
+    });
+  });
 });
