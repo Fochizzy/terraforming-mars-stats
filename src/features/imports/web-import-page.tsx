@@ -35,6 +35,8 @@ import {
   type ImportPlayedEntityType,
 } from '@/lib/imports/parse-terraforming-mars-played-entities';
 import { detectImportBoardMapIndependent } from '@/lib/imports/detect-import-board-map-independent';
+import { evaluateImportMapGate } from '@/lib/imports/import-map-gate';
+import { resolveOffReserveOceanEvidence } from '@/lib/imports/resolve-off-reserve-ocean-evidence';
 import { parseTerraformingMarsTileActions } from '@/lib/imports/parse-terraforming-mars-tile-actions';
 import { buildImportedBoardState } from '@/lib/imports/build-imported-board-state';
 import {
@@ -338,15 +340,37 @@ export function WebImportPage({
       }),
     [objectiveCorrections, originalObjectiveEvidence, referenceCatalog],
   );
+  // The exact evidence the server-authoritative action resolves: verified
+  // off-reserve ocean placements linked to source-backed exception cards.
+  // Feeding the detector the same exception space ids keeps the client
+  // preview's map validation semantically identical to the server's, so a
+  // valid special action is never blocked by a premature client-only
+  // conflict (F-05/H1).
+  const offReserveOceanEvidence = useMemo(
+    () =>
+      resolveOffReserveOceanEvidence({
+        cards: referenceCatalog.cards,
+        playedEntityEvidence: reviewedPlayedEntityEvidence,
+        tileActions: tileActionSet.actions,
+      }),
+    [
+      referenceCatalog.cards,
+      reviewedPlayedEntityEvidence,
+      tileActionSet.actions,
+    ],
+  );
   const mapReview = useMemo(
     () => detectImportBoardMapIndependent({
       catalog: referenceCatalog,
       objectiveConfiguration,
       objectiveEvidence: reviewedObjectiveEvidence,
       oceanSpaceIds: tileActionSet.oceanSpaceIds,
+      offReserveOceanExceptionSpaceIds:
+        offReserveOceanEvidence.exceptionSpaceIds,
     }),
     [
       objectiveConfiguration,
+      offReserveOceanEvidence.exceptionSpaceIds,
       referenceCatalog,
       reviewedObjectiveEvidence,
       tileActionSet.oceanSpaceIds,
@@ -648,16 +672,19 @@ export function WebImportPage({
       });
       return;
     }
-    // Mirror the server's map gate so a board/objective conflict, or a chosen
-    // map that contradicts a confident board detection, is surfaced with its
-    // specific reason instead of a generic save error.
-    if (
-      mapReview.kind === 'conflicting' ||
-      (mapReview.kind === 'confident' &&
-        mapReview.detectedMapId !== null &&
-        mapReview.detectedMapId !== confirmedMapId)
-    ) {
-      setFeedback({ status: 'error', message: mapReview.message });
+    // The ONE shared map-gate rule (evaluateImportMapGate) — identical to the
+    // server's, over identical detector inputs including the off-reserve
+    // exception evidence — so the specific reason is surfaced here and the
+    // server never disagrees with the preview.
+    const mapGate = evaluateImportMapGate({
+      confirmedMapId,
+      mapReview,
+    });
+    if (mapGate.blocked) {
+      setFeedback({
+        status: 'error',
+        message: mapGate.message ?? mapReview.message,
+      });
       return;
     }
     const selectedMilestoneIds = new Set(

@@ -24,6 +24,7 @@ import {
   type TrustedExpansionOptionEvidence,
 } from '@/lib/imports/parse-terraforming-mars-expansion-mechanics';
 import { detectImportBoardMapIndependent } from '@/lib/imports/detect-import-board-map-independent';
+import { evaluateImportMapGate } from '@/lib/imports/import-map-gate';
 import { resolveOffReserveOceanEvidence } from '@/lib/imports/resolve-off-reserve-ocean-evidence';
 import { parseTerraformingMarsTileActions } from '@/lib/imports/parse-terraforming-mars-tile-actions';
 import { buildImportedBoardState } from '@/lib/imports/build-imported-board-state';
@@ -239,17 +240,20 @@ export async function createImportDraft(
   );
   // Every map is selectable, including Hollandia when objectives are
   // randomized. The confirmed map is rejected only when the reference catalog
-  // is broken, the objective setup is still unconfirmed, board evidence
-  // conflicts with the objective configuration, or the detector is confident
-  // about a different map than the one chosen.
+  // is broken, the objective setup is still unconfirmed, or the ONE shared
+  // map-gate rule (evaluateImportMapGate — identical on the client preview,
+  // over identical detector inputs including the off-reserve exception
+  // evidence) reports a true conflict or a confident detection of a
+  // different map.
+  const mapGate = evaluateImportMapGate({
+    confirmedMapId: values.mapId,
+    mapReview,
+  });
   if (
     !selectedMap ||
     objectiveConfiguration === 'unknown' ||
     logParse.referenceAudit.blockingIssues.length > 0 ||
-    mapReview.kind === 'conflicting' ||
-    (mapReview.kind === 'confident' &&
-      mapReview.detectedMapId !== null &&
-      mapReview.detectedMapId !== values.mapId)
+    mapGate.blocked
   ) {
     throw new Error(
       'Confirm the objective setup and a map consistent with the reconstructed board and objective evidence before saving.',
