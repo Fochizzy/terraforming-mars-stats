@@ -214,6 +214,16 @@ export type ExtendedGroupAnalytics = {
   playerMilestoneClaimRows: PlayerMilestoneClaimRow[];
   tagOutcomeRows: TagOutcomeRow[];
   tilePlacementRows: TilePlacementRow[];
+  /**
+   * Keys (matching the ExtendedGroupAnalytics field names above) whose source
+   * query failed (timeout, transient error, etc.) rather than genuinely
+   * returning zero rows. Optional and absent/undefined is equivalent to no
+   * known failures (existing callers that don't populate it are unaffected).
+   * A field can be both empty AND absent from this list (real zero rows) or
+   * empty AND present here (query failed, data unknown) — callers must not
+   * conflate the two when choosing empty-state copy.
+   */
+  unavailableSections?: string[];
 };
 
 type ExtendedAnalyticsSupabaseClient = Awaited<
@@ -845,6 +855,28 @@ export function sortGenerationPaceRows(rows: GenerationPaceRow[]) {
   );
 }
 
+/**
+ * Runs one extended-analytics fetch without letting its failure (timeout,
+ * transient error) take down the sibling fetches it's batched with in
+ * Promise.all. A failure degrades to an empty array for that field alone and
+ * records `key` in `unavailableSections` so the UI can render "temporarily
+ * unavailable" instead of silently claiming the section has no data.
+ */
+async function settleExtendedFetch<T>(
+  key: string,
+  label: string,
+  unavailableSections: string[],
+  load: Promise<T[]>,
+): Promise<T[]> {
+  try {
+    return await load;
+  } catch (error) {
+    console.error(`[insights] Extended analytics "${label}" failed`, error);
+    unavailableSections.push(key);
+    return [];
+  }
+}
+
 async function listView<TRaw, TRow>(
   view: string,
   groupId: string | string[],
@@ -1309,6 +1341,10 @@ export async function listCardOutcomes(groupId: string) {
 export async function getExtendedGroupAnalytics(
   groupId: string,
 ): Promise<ExtendedGroupAnalytics> {
+  const unavailableSections: string[] = [];
+  const settle = <T>(key: string, label: string, load: Promise<T[]>) =>
+    settleExtendedFetch(key, label, unavailableSections, load);
+
   const [
     placementDistributionRows,
     playerCountPerformanceRows,
@@ -1326,21 +1362,21 @@ export async function getExtendedGroupAnalytics(
     tagOutcomeRows,
     cardOutcomeRows,
   ] = await Promise.all([
-    listPlacementDistribution(groupId),
-    listPlayerCountPerformance(groupId),
-    listGenerationDistribution(groupId),
-    listGameLengthPerformance(groupId),
-    listGroupMapPerformance(groupId),
-    listPlayerMapPerformance(groupId),
-    listMilestoneEconomics(groupId),
-    listPlayerMilestoneClaims(groupId),
-    listAwardOutcomes(groupId),
-    listPlayerAwardFundingOutcomes(groupId),
-    listAwardFunderWinnerMatrix(groupId),
-    listGenerationPace(groupId),
-    listTilePlacements(groupId),
-    listTagOutcomes(groupId),
-    listCardOutcomes(groupId),
+    settle('placementDistributionRows', 'player_placement_distribution', listPlacementDistribution(groupId)),
+    settle('playerCountPerformanceRows', 'player_count_performance', listPlayerCountPerformance(groupId)),
+    settle('generationDistributionRows', 'group_generation_distribution', listGenerationDistribution(groupId)),
+    settle('gameLengthPerformanceRows', 'player_game_length_performance', listGameLengthPerformance(groupId)),
+    settle('groupMapPerformanceRows', 'group_map_performance', listGroupMapPerformance(groupId)),
+    settle('playerMapPerformanceRows', 'player_map_performance', listPlayerMapPerformance(groupId)),
+    settle('milestoneEconomicsRows', 'group_milestone_economics', listMilestoneEconomics(groupId)),
+    settle('playerMilestoneClaimRows', 'player_milestone_claims', listPlayerMilestoneClaims(groupId)),
+    settle('awardOutcomeRows', 'group_award_outcomes', listAwardOutcomes(groupId)),
+    settle('playerAwardFundingRows', 'player_award_funding_outcomes', listPlayerAwardFundingOutcomes(groupId)),
+    settle('awardFunderWinnerRows', 'award_funder_winner_matrix', listAwardFunderWinnerMatrix(groupId)),
+    settle('generationPaceRows', 'game_generation_pace', listGenerationPace(groupId)),
+    settle('tilePlacementRows', 'game_tile_placements', listTilePlacements(groupId)),
+    settle('tagOutcomeRows', 'player_tag_outcomes', listTagOutcomes(groupId)),
+    settle('cardOutcomeRows', 'player_card_outcomes', listCardOutcomes(groupId)),
   ]);
 
   return {
@@ -1359,6 +1395,7 @@ export async function getExtendedGroupAnalytics(
     playerMilestoneClaimRows,
     tagOutcomeRows,
     tilePlacementRows,
+    unavailableSections,
   };
 }
 
@@ -1418,6 +1455,7 @@ export function buildEmptyExtendedAnalytics(): ExtendedGroupAnalytics {
     playerMilestoneClaimRows: [],
     tagOutcomeRows: [],
     tilePlacementRows: [],
+    unavailableSections: [],
   };
 }
 
@@ -1444,6 +1482,10 @@ export async function getOverallExtendedAnalytics(
     return buildEmptyExtendedAnalytics();
   }
 
+  const unavailableSections: string[] = [];
+  const settle = <T>(key: string, label: string, load: Promise<T[]>) =>
+    settleExtendedFetch(key, label, unavailableSections, load);
+
   const [
     placementRows,
     playerCountRows,
@@ -1461,80 +1503,140 @@ export async function getOverallExtendedAnalytics(
     tagOutcomeRaw,
     cardOutcomeRaw,
   ] = await Promise.all([
-    listView<RawPlacementDistributionRow, PlacementDistributionRow>(
+    settle(
+      'placementDistributionRows',
       'player_placement_distribution',
-      groupIds,
-      mapPlacementDistributionRow,
+      listView<RawPlacementDistributionRow, PlacementDistributionRow>(
+        'player_placement_distribution',
+        groupIds,
+        mapPlacementDistributionRow,
+      ),
     ),
-    listView<RawPlayerCountPerformanceRow, PlayerCountPerformanceRow>(
+    settle(
+      'playerCountPerformanceRows',
       'player_count_performance',
-      groupIds,
-      mapPlayerCountPerformanceRow,
+      listView<RawPlayerCountPerformanceRow, PlayerCountPerformanceRow>(
+        'player_count_performance',
+        groupIds,
+        mapPlayerCountPerformanceRow,
+      ),
     ),
-    listView<RawGenerationDistributionRow, GenerationDistributionRow>(
+    settle(
+      'generationDistributionRows',
       'group_generation_distribution',
-      groupIds,
-      mapGenerationDistributionRow,
+      listView<RawGenerationDistributionRow, GenerationDistributionRow>(
+        'group_generation_distribution',
+        groupIds,
+        mapGenerationDistributionRow,
+      ),
     ),
-    listView<RawGameLengthPerformanceRow, GameLengthPerformanceRow>(
+    settle(
+      'gameLengthPerformanceRows',
       'player_game_length_performance',
-      groupIds,
-      mapGameLengthPerformanceRow,
+      listView<RawGameLengthPerformanceRow, GameLengthPerformanceRow>(
+        'player_game_length_performance',
+        groupIds,
+        mapGameLengthPerformanceRow,
+      ),
     ),
-    listView<RawGroupMapPerformanceRow, GroupMapPerformanceRow>(
+    settle(
+      'groupMapPerformanceRows',
       'group_map_performance',
-      groupIds,
-      mapGroupMapPerformanceRow,
+      listView<RawGroupMapPerformanceRow, GroupMapPerformanceRow>(
+        'group_map_performance',
+        groupIds,
+        mapGroupMapPerformanceRow,
+      ),
     ),
-    listView<RawPlayerMapPerformanceRow, PlayerMapPerformanceRow>(
+    settle(
+      'playerMapPerformanceRows',
       'player_map_performance',
-      groupIds,
-      mapPlayerMapPerformanceRow,
+      listView<RawPlayerMapPerformanceRow, PlayerMapPerformanceRow>(
+        'player_map_performance',
+        groupIds,
+        mapPlayerMapPerformanceRow,
+      ),
     ),
-    listView<RawMilestoneEconomicsRow, MilestoneEconomicsRow>(
+    settle(
+      'milestoneEconomicsRows',
       'group_milestone_economics',
-      groupIds,
-      mapMilestoneEconomicsRow,
+      listView<RawMilestoneEconomicsRow, MilestoneEconomicsRow>(
+        'group_milestone_economics',
+        groupIds,
+        mapMilestoneEconomicsRow,
+      ),
     ),
-    listView<RawPlayerMilestoneClaimRow, PlayerMilestoneClaimRow>(
+    settle(
+      'playerMilestoneClaimRows',
       'player_milestone_claims',
-      groupIds,
-      mapPlayerMilestoneClaimRow,
+      listView<RawPlayerMilestoneClaimRow, PlayerMilestoneClaimRow>(
+        'player_milestone_claims',
+        groupIds,
+        mapPlayerMilestoneClaimRow,
+      ),
     ),
-    listView<RawAwardOutcomeRow, AwardOutcomeRow>(
+    settle(
+      'awardOutcomeRows',
       'group_award_outcomes',
-      groupIds,
-      mapAwardOutcomeRow,
+      listView<RawAwardOutcomeRow, AwardOutcomeRow>(
+        'group_award_outcomes',
+        groupIds,
+        mapAwardOutcomeRow,
+      ),
     ),
-    listView<RawPlayerAwardFundingOutcomeRow, PlayerAwardFundingOutcomeRow>(
+    settle(
+      'playerAwardFundingRows',
       'player_award_funding_outcomes',
-      groupIds,
-      mapPlayerAwardFundingOutcomeRow,
+      listView<RawPlayerAwardFundingOutcomeRow, PlayerAwardFundingOutcomeRow>(
+        'player_award_funding_outcomes',
+        groupIds,
+        mapPlayerAwardFundingOutcomeRow,
+      ),
     ),
-    listView<RawAwardFunderWinnerRow, AwardFunderWinnerRow>(
+    settle(
+      'awardFunderWinnerRows',
       'award_funder_winner_matrix',
-      groupIds,
-      mapAwardFunderWinnerRow,
+      listView<RawAwardFunderWinnerRow, AwardFunderWinnerRow>(
+        'award_funder_winner_matrix',
+        groupIds,
+        mapAwardFunderWinnerRow,
+      ),
     ),
-    listView<RawGenerationPaceRow, GenerationPaceRow>(
+    settle(
+      'generationPaceRows',
       'game_generation_pace',
-      groupIds,
-      mapGenerationPaceRow,
+      listView<RawGenerationPaceRow, GenerationPaceRow>(
+        'game_generation_pace',
+        groupIds,
+        mapGenerationPaceRow,
+      ),
     ),
-    listView<RawTilePlacementRow, TilePlacementRow>(
+    settle(
+      'tilePlacementRows',
       'game_tile_placements',
-      groupIds,
-      mapTilePlacementRow,
+      listView<RawTilePlacementRow, TilePlacementRow>(
+        'game_tile_placements',
+        groupIds,
+        mapTilePlacementRow,
+      ),
     ),
-    listView<RawTagOutcomeRow, TagOutcomeRow>(
+    settle(
+      'tagOutcomeRows',
       'player_tag_outcomes',
-      groupIds,
-      mapTagOutcomeRow,
+      listView<RawTagOutcomeRow, TagOutcomeRow>(
+        'player_tag_outcomes',
+        groupIds,
+        mapTagOutcomeRow,
+      ),
     ),
-    listView<RawCardOutcomeRow, CardOutcomeRow>(
+    settle(
+      'cardOutcomeRows',
       'player_card_outcomes',
-      groupIds,
-      mapCardOutcomeRow,
+      listView<RawCardOutcomeRow, CardOutcomeRow>(
+        'player_card_outcomes',
+        groupIds,
+        mapCardOutcomeRow,
+      ),
     ),
   ]);
   const importedOutcomes =
@@ -1649,5 +1751,6 @@ export async function getOverallExtendedAnalytics(
         left.playedOn.localeCompare(right.playedOn) ||
         left.cardName.localeCompare(right.cardName),
     ),
+    unavailableSections,
   };
 }

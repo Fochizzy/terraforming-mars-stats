@@ -523,6 +523,13 @@ export type GroupAnalytics = {
   playerTrendRows: TrendRow[];
   scoreAverages: ScoreSourceAverages | null;
   styleAgreementRows: StyleAgreementRow[];
+  /**
+   * Keys (matching the GroupAnalytics field names above) whose source query
+   * failed rather than genuinely returning zero rows. Optional; only
+   * `getOverallGroupAnalytics` currently populates it. See the matching field
+   * on ExtendedGroupAnalytics for the full contract.
+   */
+  unavailableSections?: string[];
 };
 
 export type TrendRow = {
@@ -6216,6 +6223,16 @@ export async function getOverallGroupAnalytics(
 
     return data ?? [];
   };
+  const unavailableSections: string[] = [];
+  const settleRows = async (key: string, view: string) => {
+    try {
+      return await fetchRows(view);
+    } catch (error) {
+      console.error(`[insights] Overall analytics view "${view}" failed`, error);
+      unavailableSections.push(key);
+      return [];
+    }
+  };
 
   const [
     groupStyleRaw,
@@ -6225,12 +6242,12 @@ export async function getOverallGroupAnalytics(
     lineupRaw,
     styleAgreementRaw,
   ] = await Promise.all([
-    fetchRows('group_style_performance'),
-    fetchRows('player_style_performance'),
-    fetchRows('group_interactions'),
-    fetchRows('player_interactions'),
-    fetchRows('lineup_effects'),
-    fetchRows('style_agreement'),
+    settleRows('groupStylePerformanceRows', 'group_style_performance'),
+    settleRows('playerStylePerformanceRows', 'player_style_performance'),
+    settleRows('groupInteractionRows', 'group_interactions'),
+    settleRows('playerInteractionRows', 'player_interactions'),
+    settleRows('lineupEffectRows', 'lineup_effects'),
+    settleRows('styleAgreementRows', 'style_agreement'),
   ]);
 
   const lineupRows = lineupRaw as RawLineupEffectRow[];
@@ -6289,6 +6306,7 @@ export async function getOverallGroupAnalytics(
         lookup,
       ),
     ),
+    unavailableSections,
   };
 }
 
