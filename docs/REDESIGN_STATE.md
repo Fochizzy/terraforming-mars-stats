@@ -20,7 +20,43 @@ read-only closure audit. Step 4.4 has not begun.**)
 
 ## Current owner
 
-Claude Fable 5 — Phase 4, Step 4.3 closure-blocker remediation (second pass)
+Claude Opus 4.8 — Phase 4, Step 4.3 closure-blocker remediation (third pass,
+**PARTIAL**)
+
+### Third remediation pass (2026-07-20) — PARTIAL, still BLOCKED
+
+Authoritative handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-THIRD-REMEDIATION-PARTIAL-HANDOFF.md`.
+
+Delivered and validated (commits `594244875`, `1efd6f447`):
+
+- **Tile attribution (WS4).** `finalizeGameLog` now attributes imported
+  placement events from the import's own recorded identity resolutions once
+  the same-game participant map exists. Ambiguous, unresolved, and
+  non-participant actors stay unattributed; retries are no-ops. 14 new tests.
+- **Matching oracle (WS3).** Gated migration `20260720120000` coarsens the
+  `match_import_player_names` disclosure to `exact`/`partial`. Both
+  `match_reason` and `match_score` are coarsened — the score mapped 1:1 onto
+  the reason and was a parallel oracle. Internal ranking unchanged, input
+  bounded, authorization and `search_path=''` preserved. **Not applied.**
+- **Ledger (WS6, partial).** Production-only `20260720021300` registered;
+  `20260720120000` recorded as gated.
+- **Backfill package (WS4).** `supabase/verification/tile-attribution-*.sql`,
+  dry-run validated read-only: 114 rows, 3 games, 3 imports, 0 excluded.
+  **Not executed.**
+
+Not delivered: **WS1** (executable expand/contract gate — blocked on the
+absence of any runtime-verifiable deployment stamp to gate on) and **WS2**
+(live-site privacy reader move, the B-02 half of the pair). WS5 deliberately
+not executed; the owner retains the deploy lock.
+
+**Ordering correction.** The tile backfill must run *before* guest
+re-neutralization. Two of the 114 rows resolve solely through the unlinked
+guest's `display_name`; neutralizing first destroys that evidence permanently.
+
+No production mutation was performed. The one outward-facing action was the
+owner-approved `git push` of the live branch `fix/live-42501-on-capture-v2`,
+which had existed on no remote while serving production.
 
 ## Status
 
