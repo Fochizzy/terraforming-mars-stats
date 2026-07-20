@@ -26,13 +26,40 @@
 --
 -- This mapping is exercised by the executable migration harness
 -- (supabase/tests/executable/run.sh), which seeds overloaded legacy rows
--- before applying this migration and asserts the split afterwards.
+-- before applying this migration, asserts the split afterwards, and applies
+-- this file TWICE to prove repeat safety.
+--
+-- Repeat-safety contract (audit F-03/H2): every operation below is guarded,
+-- so the file is safe on a clean baseline, on an upgrade from the prior
+-- redesign schema, on a partially applied local development state, and on
+-- repeat execution. Invalid legacy values are never hidden: the legacy
+-- split UPDATE runs before the constraint tightens, and the re-added CHECK
+-- validates every existing row (it is never created NOT VALID).
+--
+-- Ordering note: migration 20260720110000 later redefines
+-- replace_game_log_events with the completed placement contract. Repeat
+-- execution therefore means replaying the pending sequence in version order
+-- (as migration tooling does); the harness proves that ordered replay
+-- converges.
 
 -- 1. Review-state column (existing rows are canonical parses: not_required).
 alter table public.game_log_events
-  add column review_state text not null default 'not_required'
-    constraint game_log_events_review_state_valid
-    check (review_state in ('not_required', 'needs_review', 'reviewed', 'rejected'));
+  add column if not exists review_state text;
+
+update public.game_log_events
+set review_state = 'not_required'
+where review_state is null;
+
+alter table public.game_log_events
+  alter column review_state set default 'not_required';
+alter table public.game_log_events
+  alter column review_state set not null;
+
+alter table public.game_log_events
+  drop constraint if exists game_log_events_review_state_valid;
+alter table public.game_log_events
+  add constraint game_log_events_review_state_valid
+  check (review_state in ('not_required', 'needs_review', 'reviewed', 'rejected'));
 
 comment on column public.game_log_events.review_state is
   'Human-review lifecycle for this event: not_required, needs_review, reviewed, or rejected. Never overloaded into confidence_level.';
@@ -52,9 +79,12 @@ set
   end
 where confidence_level = 'reviewed';
 
--- 3. Confidence is now strictly evidence strength.
+-- 3. Confidence is now strictly evidence strength. The guarded drop/re-add
+-- pair converges on repeat execution; the re-added CHECK validates every
+-- existing row, so an out-of-contract value that somehow survived step 2
+-- fails the migration loudly instead of being hidden.
 alter table public.game_log_events
-  drop constraint game_log_events_confidence_level_valid;
+  drop constraint if exists game_log_events_confidence_level_valid;
 
 alter table public.game_log_events
   add constraint game_log_events_confidence_level_valid

@@ -695,4 +695,52 @@ do $$ begin
   reset role;
 end $$;
 
+-- M) Review-state end-to-end persistence through the production RPC after
+-- the split migration (F-03, WS3). Together with J (reviewed) and L
+-- (needs_review, not_required), this completes persisted-row coverage of
+-- all four states, the explicit default, and rejection of invalid values.
+do $$
+declare v_state text;
+begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  perform public.replace_game_log_events(
+    '44444444-4444-4444-8444-444444444444',
+    '[{"event_order": 4001, "event_type": "card_played", "raw_line": "X played Rejected Card", "confidence_level": "low", "review_state": "rejected", "payload": {}},
+      {"event_order": 4002, "event_type": "card_played", "raw_line": "X played Defaulted Card", "confidence_level": "low", "payload": {}}]'::jsonb
+  );
+  reset role;
+
+  select review_state into v_state
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444' and event_order = 4001;
+  if v_state <> 'rejected' then
+    raise exception 'ASSERT FAIL M1: explicit rejected state persisted as %', v_state;
+  end if;
+
+  -- A payload without the key takes the explicit not_required default. The
+  -- row is deliberately LOW confidence: the default is a fixed value for
+  -- pre-split callers, never re-derived from confidence (a derivation would
+  -- have produced needs_review here).
+  select review_state into v_state
+  from public.game_log_events
+  where game_log_import_id = '44444444-4444-4444-8444-444444444444' and event_order = 4002;
+  if v_state <> 'not_required' then
+    raise exception 'ASSERT FAIL M2: missing review_state defaulted to %', v_state;
+  end if;
+end $$;
+
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+  set local role authenticated;
+  begin
+    perform public.replace_game_log_events(
+      '44444444-4444-4444-8444-444444444444',
+      '[{"event_order": 4003, "event_type": "card_played", "raw_line": "x", "confidence_level": "low", "review_state": "maybe_later", "payload": {}}]'::jsonb
+    );
+    raise exception 'ASSERT FAIL M3: invalid review_state accepted by the RPC';
+  exception when invalid_parameter_value then null; end;
+  reset role;
+end $$;
+
 select 'ALL_ASSERTIONS_PASSED' as result;

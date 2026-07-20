@@ -63,10 +63,24 @@ PSQL -q -c "insert into public.game_log_events (game_log_import_id, event_order,
   ('44444444-4444-4444-8444-444444444444', 900, 'milestone_claimed', 'X claimed Terraformer', 'reviewed', null, '{\"resolution\":\"corrected\"}'::jsonb),
   ('44444444-4444-4444-8444-444444444444', 901, 'colony_traded', 'X traded with Atlantis', 'reviewed', '901:colony_traded:none', '{\"canonical_colony_name\":\"Atlantis\"}'::jsonb);"
 
+echo "== pre-migration RPC payload compatibility (deployed contract) =="
+# The exact payload the redesign emits — including the review_state key —
+# must succeed against the PRE-split RPC (which ignores the extra key), and
+# the review_state column must not exist yet. This is the state production
+# is in today: review_state is computed and cannot persist until the gated
+# migration is applied.
+PSQL -q -f "$HERE/pre-split-compat.sql"
+
 echo "== apply confidence/review-state split migration =="
 PSQL -q -f "$SPLIT_MIGRATION"
 
+echo "== repeat-safety: apply the split migration a second time =="
+PSQL -q -f "$SPLIT_MIGRATION"
+
 echo "== apply canonical board-placement contract migration =="
+PSQL -q -f "$PLACEMENT_MIGRATION"
+
+echo "== repeat-safety: apply the placement-contract migration a second time =="
 PSQL -q -f "$PLACEMENT_MIGRATION"
 
 echo "== behavioural assertions =="
