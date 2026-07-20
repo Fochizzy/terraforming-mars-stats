@@ -34,17 +34,27 @@ export type GameLogImportSummary = {
 };
 
 export type SaveGameLogEventInput = {
+  boardPosition?: number | null;
+  boardRow?: number | null;
   boardSpace?: string | null;
   cardId?: string | null;
   confidenceLevel: string;
+  /** Required for tile events; see `replace_game_log_events`. */
+  eventIdentity?: string | null;
   eventOrder: number;
   eventType: string;
   generationNumber?: number | null;
   lineClassification?: string | null;
+  ownershipState?: string | null;
   payload?: Record<string, unknown>;
+  placementAction?: string | null;
+  placementBoard?: string | null;
+  placementFormat?: string | null;
   rawLine: string;
   resourceAmount?: number | null;
   resourceType?: string | null;
+  sourceLineNumber?: number | null;
+  sourceSpaceId?: string | null;
   tileType?: string | null;
 };
 
@@ -655,17 +665,26 @@ export async function saveGameLogEvents(input: {
 
   const { data, error } = await supabase.rpc('replace_game_log_events', {
     p_events: input.events.map((event) => ({
+      board_position: event.boardPosition ?? null,
+      board_row: event.boardRow ?? null,
       board_space: event.boardSpace ?? null,
       card_id: event.cardId ?? null,
       confidence_level: event.confidenceLevel,
+      event_identity: event.eventIdentity ?? null,
       event_order: event.eventOrder,
       event_type: event.eventType,
       generation_number: event.generationNumber ?? null,
       line_classification: event.lineClassification ?? null,
+      ownership_state: event.ownershipState ?? null,
       payload: event.payload ?? {},
+      placement_action: event.placementAction ?? null,
+      placement_board: event.placementBoard ?? null,
+      placement_format: event.placementFormat ?? null,
       raw_line: event.rawLine,
       resource_amount: event.resourceAmount ?? null,
       resource_type: event.resourceType ?? null,
+      source_line_number: event.sourceLineNumber ?? null,
+      source_space_id: event.sourceSpaceId ?? null,
       tile_type: event.tileType ?? null,
     })),
     p_game_log_import_id: input.gameLogImportId,

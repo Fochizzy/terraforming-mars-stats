@@ -12,6 +12,27 @@ function buildCardIdByName(cards: Array<Pick<CardOption, 'cardName' | 'id'>>) {
   );
 }
 
+/**
+ * Stable identity for one tile placement, matching the shape already stored on
+ * every existing tile row: `tile:<line>:<action>:<board>:<space>:<tile>`. The
+ * line number makes it unique within an import, which the write RPC enforces.
+ */
+function buildTilePlacementIdentity(input: {
+  lineNumber: number;
+  placementAction: 'placed' | 'removed';
+  space: string;
+  tile: string;
+}) {
+  return [
+    'tile',
+    input.lineNumber,
+    input.placementAction,
+    'mars',
+    input.space,
+    input.tile,
+  ].join(':');
+}
+
 function buildCardPointBreakdownWrite(
   breakdown: ParsedCardPointBreakdown,
   generationNumber: number | null,
@@ -86,18 +107,40 @@ function buildParsedEventWrite(input: {
       };
     case 'tile_placed':
       return {
+        ...(input.event.boardPosition !== undefined
+          ? { boardPosition: input.event.boardPosition }
+          : {}),
+        ...(input.event.boardRow !== undefined
+          ? { boardRow: input.event.boardRow }
+          : {}),
         boardSpace: input.event.space,
         confidenceLevel: 'high',
+        // Tile rows carry a typed placement contract: the database rejects any
+        // that cannot say what was placed, where it came from, and who owns it.
+        // The log line never states ownership, so that stays explicitly unknown
+        // rather than being guessed.
+        eventIdentity: buildTilePlacementIdentity({
+          lineNumber: input.event.lineNumber,
+          placementAction: 'placed',
+          space: input.event.space,
+          tile: input.event.tile,
+        }),
         eventOrder: input.event.lineNumber,
         eventType: input.event.eventType,
         ...(input.currentGeneration !== null
           ? { generationNumber: input.currentGeneration }
           : {}),
         lineClassification: 'event',
+        ownershipState: 'unknown',
         payload: {
           actor: input.event.actor,
         },
+        placementAction: 'placed',
+        placementBoard: 'mars',
+        placementFormat: input.event.placementFormat ?? 'flat-id',
         rawLine: input.event.rawLine,
+        sourceLineNumber: input.event.lineNumber,
+        sourceSpaceId: input.event.space,
         tileType: input.event.tile,
       };
     case 'global_parameter_changed':

@@ -10,7 +10,16 @@ export type GameLogEvent =
     }
   | {
       actor: string;
+      /** Grid coordinates, kept when the log gave row/position rather than a flat id. */
+      boardPosition?: number;
+      boardRow?: number;
       eventType: 'tile_placed';
+      /**
+       * How the log addressed the space, before it was normalised to `space`.
+       * Both classifier branches set it; absent only in older fixtures, which
+       * fall back to the flat form.
+       */
+      placementFormat?: 'flat-id' | 'grid';
       space: string;
       tile: string;
     }
@@ -147,6 +156,7 @@ export function classifyGameLogLine(line: string): GameLogLineClassification {
       event: {
         actor: tileMatch[1].trim(),
         eventType: 'tile_placed',
+        placementFormat: 'flat-id',
         space: tileMatch[3].trim(),
         tile: tileMatch[2].trim(),
       },
@@ -171,7 +181,10 @@ export function classifyGameLogLine(line: string): GameLogLineClassification {
       return {
         event: {
           actor: tileRowPositionMatch[1].trim(),
+          boardPosition: Number(tileRowPositionMatch[4]),
+          boardRow: Number(tileRowPositionMatch[3]),
           eventType: 'tile_placed',
+          placementFormat: 'grid',
           space,
           tile: tileRowPositionMatch[2].trim(),
         },

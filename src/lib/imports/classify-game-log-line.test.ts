@@ -41,6 +41,7 @@ describe('classifyGameLogLine', () => {
       event: {
         actor: 'Izzy',
         eventType: 'tile_placed',
+        placementFormat: 'flat-id',
         space: '29',
         tile: 'greenery',
       },
@@ -56,7 +57,10 @@ describe('classifyGameLogLine', () => {
     ).toEqual({
       event: {
         actor: 'James',
+        boardPosition: 7,
+        boardRow: 3,
         eventType: 'tile_placed',
+        placementFormat: 'grid',
         space: '20',
         tile: 'city',
       },

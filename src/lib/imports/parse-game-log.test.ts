@@ -107,6 +107,7 @@ describe('parseGameLog', () => {
           actor: 'Izzy',
           eventType: 'tile_placed',
           lineNumber: 12,
+          placementFormat: 'flat-id',
           rawLine: 'Izzy placed greenery tile at 29',
           space: '29',
           tile: 'greenery',
