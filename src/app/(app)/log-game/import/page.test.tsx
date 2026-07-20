@@ -976,6 +976,11 @@ describe('LogGameImportPage', () => {
           ignoredLineCount: 0,
           parsedEventCount: 2,
         },
+        // The confirmed name→player mapping is persisted with the import so
+        // finalization can attribute placement events later.
+        playerResolutions: [
+          { selectedPlayerId: 'player-1', sourcePlayerText: 'Friday Mars' },
+        ],
         rawLogText: EXPORTED_GAME_LOG,
         screenshots: [expect.objectContaining({ kind: 'endgame_score' })],
         userId: 'user-1',

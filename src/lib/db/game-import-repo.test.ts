@@ -19,6 +19,90 @@ describe('saveGameLogImport', () => {
     delete mutableEnv['SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE'];
   });
 
+  it('persists confirmed player resolutions with the import for later attribution', async () => {
+    const importInsert = vi.fn().mockReturnThis();
+    const importSelect = vi.fn().mockReturnThis();
+    const importSingle = vi.fn().mockResolvedValue({
+      data: { id: 'import-1' },
+      error: null,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            insert: importInsert,
+            select: importSelect,
+            single: importSingle,
+          };
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      storage: { from: vi.fn() },
+    } as never);
+
+    await repo.saveGameLogImport({
+      gameId: 'game-1',
+      logParseSummary: {
+        contextLineCount: 1,
+        drawInfoLineCount: 0,
+        ignoredLineCount: 0,
+        parsedEventCount: 4,
+      },
+      playerResolutions: [
+        { selectedPlayerId: 'player-1', sourcePlayerText: 'Izzy' },
+        { selectedPlayerId: 'player-2', sourcePlayerText: 'Jenna' },
+      ],
+      rawLogText: 'Izzy placed a city\nJenna placed an ocean',
+      userId: 'user-1',
+    });
+
+    expect(importInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        confidence_summary: {
+          contextLineCount: 1,
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          parsedEventCount: 4,
+          player_identity_resolutions: [
+            { selected_player_id: 'player-1', source_player_text: 'Izzy' },
+            { selected_player_id: 'player-2', source_player_text: 'Jenna' },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('leaves the stored confidence summary untouched when no resolutions are confirmed', async () => {
+    const importInsert = vi.fn().mockReturnThis();
+    const importSelect = vi.fn().mockReturnThis();
+    const importSingle = vi.fn().mockResolvedValue({
+      data: { id: 'import-1' },
+      error: null,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: vi.fn(() => ({
+        insert: importInsert,
+        select: importSelect,
+        single: importSingle,
+      })),
+      storage: { from: vi.fn() },
+    } as never);
+
+    await repo.saveGameLogImport({
+      gameId: 'game-1',
+      playerResolutions: [],
+      rawLogText: 'Izzy placed a city',
+      userId: 'user-1',
+    });
+
+    expect(importInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ confidence_summary: {} }),
+    );
+  });
+
   it('stores raw logs and screenshot metadata in separate tables', async () => {
     const upload = vi.fn().mockResolvedValue({
       data: { path: 'game-1/abc-endgame-results-png' },

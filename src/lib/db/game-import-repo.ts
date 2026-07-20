@@ -472,6 +472,17 @@ export async function saveGameLogImport(input: {
     ignoredLineCount: number;
     parsedEventCount: number;
   };
+  /**
+   * The reviewer-confirmed identity of each imported name, persisted with the
+   * import so finalization can attribute placement events from the import's
+   * own evidence. `sourcePlayerText` is the verbatim name the log used — it is
+   * already part of `raw_log_text` on this same row, so no new data class is
+   * stored — and `selectedPlayerId` is the confirmed roster player.
+   */
+  playerResolutions?: Array<{
+    selectedPlayerId: string;
+    sourcePlayerText: string;
+  }>;
   rawLogText: string;
   screenshotParse?: SaveGameLogScreenshotParseInput;
   screenshotFile?: File | null;
@@ -513,7 +524,23 @@ export async function saveGameLogImport(input: {
   const { data, error } = await supabase
     .from('game_log_imports')
     .insert({
-      confidence_summary: input.logParseSummary ?? {},
+      confidence_summary: {
+        ...(input.logParseSummary ?? {}),
+        ...(input.playerResolutions && input.playerResolutions.length > 0
+          ? {
+              // Same stored shape the redesign repo writes, so both producers
+              // stay readable by one attribution contract. No normalized
+              // matching keys here: those are private personal-name data and
+              // stay server-side.
+              player_identity_resolutions: input.playerResolutions.map(
+                (resolution) => ({
+                  selected_player_id: resolution.selectedPlayerId,
+                  source_player_text: resolution.sourcePlayerText,
+                }),
+              ),
+            }
+          : {}),
+      },
       created_by_user_id: input.userId,
       detected_source: 'manual_web_import',
       game_id: input.gameId,

@@ -987,6 +987,13 @@ export default async function LogGameImportPage() {
           ignoredLineCount: parsedGameLog.ignoredLineCount,
           parsedEventCount: parsedGameLog.events.length,
         },
+        // The confirmed name→player mapping travels with the import so
+        // finalization can attribute placement events from the import's own
+        // recorded evidence rather than re-deriving names later.
+        playerResolutions: rosterPlayerLinks.map((link) => ({
+          selectedPlayerId: link.playerId,
+          sourcePlayerText: link.importedName,
+        })),
         rawLogText: values.exportedGameLog,
         screenshots: values.endgameScreenshot
           ? [

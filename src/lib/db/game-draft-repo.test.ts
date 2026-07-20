@@ -486,11 +486,25 @@ describe('finalizeGameLog', () => {
         insert: vi.fn().mockResolvedValue({ error: null }),
       })),
     };
+    const attributionClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+
+        throw new Error(`Unexpected attribution table ${table}`);
+      }),
+    };
+
     vi.mocked(createSupabaseServerClient)
       .mockResolvedValueOnce(finalClient as never)
       .mockResolvedValueOnce(shellClient as never)
       .mockResolvedValueOnce(setupClient as never)
-      .mockResolvedValueOnce(revisionClient as never);
+      .mockResolvedValueOnce(revisionClient as never)
+      .mockResolvedValueOnce(attributionClient as never);
 
     await expect(
       repo.finalizeGameLog({
@@ -648,11 +662,25 @@ describe('finalizeGameLog', () => {
         throw new Error(`Unexpected revision table ${table}`);
       }),
     };
+    const attributionClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
+        }
+
+        throw new Error(`Unexpected attribution table ${table}`);
+      }),
+    };
+
     vi.mocked(createSupabaseServerClient)
       .mockResolvedValueOnce(finalClient as never)
       .mockResolvedValueOnce(shellClient as never)
       .mockResolvedValueOnce(setupClient as never)
-      .mockResolvedValueOnce(revisionClient as never);
+      .mockResolvedValueOnce(revisionClient as never)
+      .mockResolvedValueOnce(attributionClient as never);
 
     await expect(
       repo.finalizeGameLog({
@@ -764,6 +792,361 @@ describe('finalizeGameLog', () => {
       mapId: 'tharsis',
       playedOn: '2026-07-08',
       playerCount: 1,
+    });
+  });
+});
+
+describe('finalizeGameLog imported placement attribution', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function buildFinalizeInput() {
+    return {
+      form: {
+        awardClaims: {},
+        gameId: 'game-1',
+        generationCount: 10,
+        groupId: '11111111-1111-4111-8111-111111111111',
+        mapId: 'tharsis',
+        milestoneClaims: {},
+        notes: '',
+        playedOn: '2026-07-08',
+        playerCount: 2,
+        playerScores: {},
+        playerSelections: {},
+        playerStyles: {},
+        promoSetSlugs: [],
+        selectedPlayerIds: ['player-izzy', 'player-guest'],
+      },
+      finalizedPayload: {
+        awards: [],
+        corporations: [],
+        declaredStyles: [],
+        gameUpdate: {
+          catalog_snapshot_id: null,
+          status: 'finalized' as const,
+        },
+        inferredStyles: [],
+        keyCards: [],
+        midgamePreludes: [],
+        milestones: [],
+        players: [
+          {
+            awardPoints: 0,
+            cardPointsAnimals: null,
+            cardPointsJovian: null,
+            cardPointsMicrobes: null,
+            cardPointsTotal: 0,
+            citiesPoints: 0,
+            corporationId: null,
+            corporationIds: [],
+            finalMegacredits: 0,
+            greeneryPoints: 0,
+            isWinner: true,
+            milestonePoints: 0,
+            otherCardPoints: null,
+            placement: 1,
+            playerId: 'player-izzy',
+            totalPoints: 55,
+            trPoints: 40,
+          },
+          {
+            awardPoints: 0,
+            cardPointsAnimals: null,
+            cardPointsJovian: null,
+            cardPointsMicrobes: null,
+            cardPointsTotal: 0,
+            citiesPoints: 0,
+            corporationId: null,
+            corporationIds: [],
+            finalMegacredits: 0,
+            greeneryPoints: 0,
+            isWinner: false,
+            milestonePoints: 0,
+            otherCardPoints: null,
+            placement: 2,
+            playerId: 'player-guest',
+            totalPoints: 41,
+            trPoints: 33,
+          },
+        ],
+        preludes: [],
+        review: {
+          coverage: {
+            playersWithCardBreakdown: 0,
+            playersWithDeclaredStyle: 0,
+            playersWithKeyCards: 0,
+            playersWithOptionalSubscores: 0,
+          },
+          issues: [],
+        },
+        revision: {
+          note: 'Finalize game results',
+          snapshot: {},
+        },
+      },
+      userId: 'user-1',
+    };
+  }
+
+  /**
+   * The first four clients cover the shell/setup/revision writes exactly like
+   * the finalize tests above; the fifth is the attribution pass under test.
+   */
+  function mockFinalizeClients(attributionClient: { from: unknown }) {
+    const finalGamePlayersDeleteQuery = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const finalGamePlayersInsertQuery = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue({
+        data: [
+          { id: 'gp-izzy', player_id: 'player-izzy' },
+          { id: 'gp-guest', player_id: 'player-guest' },
+        ],
+        error: null,
+      }),
+    };
+    let gamePlayersCallCount = 0;
+    const finalClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_players') {
+          gamePlayersCallCount += 1;
+          return gamePlayersCallCount === 1
+            ? finalGamePlayersDeleteQuery
+            : finalGamePlayersInsertQuery;
+        }
+
+        throw new Error(`Unexpected finalization table ${table}`);
+      }),
+    };
+    const shellClient = {
+      from: vi.fn(() => ({
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'game-1' },
+          error: null,
+        }),
+      })),
+    };
+    const setupClient = {
+      from: vi.fn(() => ({
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      })),
+    };
+    const revisionClient = {
+      from: vi.fn(() => ({
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      })),
+    };
+
+    vi.mocked(createSupabaseServerClient)
+      .mockResolvedValueOnce(finalClient as never)
+      .mockResolvedValueOnce(shellClient as never)
+      .mockResolvedValueOnce(setupClient as never)
+      .mockResolvedValueOnce(revisionClient as never)
+      .mockResolvedValueOnce(attributionClient as never);
+  }
+
+  it('attributes draft-imported placement events from the import\'s stored resolutions after inserting participants', async () => {
+    const importsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: 'import-1',
+            confidence_summary: {
+              parsedEventCount: 3,
+              player_identity_resolutions: [
+                // A linked player and an unlinked guest, both confirmed at
+                // import review time.
+                {
+                  selected_player_id: 'player-izzy',
+                  source_player_text: 'Izzy',
+                },
+                {
+                  selected_player_id: 'player-guest',
+                  source_player_text: 'Jenna',
+                },
+              ],
+            },
+          },
+        ],
+        error: null,
+      }),
+    };
+    const eventsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      is: vi.fn().mockResolvedValue({
+        data: [
+          { id: 'event-1', payload: { actor: 'Izzy' } },
+          { id: 'event-2', payload: { actor: 'Jenna' } },
+          // Unknown actor: stays unattributed rather than being guessed.
+          { id: 'event-3', payload: { actor: 'World Government' } },
+          { id: 'event-4', payload: {} },
+        ],
+        error: null,
+      }),
+    };
+    const updateCalls: Array<{
+      predicate: Array<[string, unknown]>;
+      values: Record<string, unknown>;
+    }> = [];
+
+    function buildUpdateQuery() {
+      const call: {
+        predicate: Array<[string, unknown]>;
+        values: Record<string, unknown>;
+      } = { predicate: [], values: {} };
+      const query = {
+        update: vi.fn((values: Record<string, unknown>) => {
+          call.values = values;
+          return query;
+        }),
+        eq: vi.fn((column: string, value: unknown) => {
+          call.predicate.push([column, value]);
+          return query;
+        }),
+        is: vi.fn(async (column: string, value: unknown) => {
+          call.predicate.push([column, value]);
+          updateCalls.push(call);
+          return { error: null };
+        }),
+      };
+      return query;
+    }
+
+    let eventsCallCount = 0;
+    const attributionClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return importsQuery;
+        }
+
+        if (table === 'game_log_events') {
+          eventsCallCount += 1;
+          return eventsCallCount === 1 ? eventsQuery : buildUpdateQuery();
+        }
+
+        throw new Error(`Unexpected attribution table ${table}`);
+      }),
+    };
+    mockFinalizeClients(attributionClient);
+
+    await expect(repo.finalizeGameLog(buildFinalizeInput())).resolves.toEqual({
+      gameId: 'game-1',
+    });
+
+    // Only placement rows still lacking a game_player_id are candidates.
+    expect(eventsQuery.in).toHaveBeenCalledWith('placement_action', [
+      'placed',
+      'removed',
+    ]);
+    expect(eventsQuery.is).toHaveBeenCalledWith('game_player_id', null);
+
+    expect(updateCalls).toEqual([
+      {
+        predicate: [
+          ['id', 'event-1'],
+          ['game_player_id', null],
+        ],
+        values: { game_player_id: 'gp-izzy', player_id: 'player-izzy' },
+      },
+      {
+        predicate: [
+          ['id', 'event-2'],
+          ['game_player_id', null],
+        ],
+        values: { game_player_id: 'gp-guest', player_id: 'player-guest' },
+      },
+    ]);
+  });
+
+  it('writes nothing on a retry: already-attributed rows are excluded by the null predicate', async () => {
+    const importsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: 'import-1',
+            confidence_summary: {
+              player_identity_resolutions: [
+                {
+                  selected_player_id: 'player-izzy',
+                  source_player_text: 'Izzy',
+                },
+              ],
+            },
+          },
+        ],
+        error: null,
+      }),
+    };
+    const eventsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      // Every row already carries its attribution, so the null predicate
+      // returns nothing and no update runs.
+      is: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    const attributionClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return importsQuery;
+        }
+
+        if (table === 'game_log_events') {
+          return eventsQuery;
+        }
+
+        throw new Error(`Unexpected attribution table ${table}`);
+      }),
+    };
+    mockFinalizeClients(attributionClient);
+
+    await expect(repo.finalizeGameLog(buildFinalizeInput())).resolves.toEqual({
+      gameId: 'game-1',
+    });
+
+    expect(eventsQuery.is).toHaveBeenCalledWith('game_player_id', null);
+    // from('game_log_events') ran once for the read and never for an update.
+    const eventTableCalls = attributionClient.from.mock.calls.filter(
+      ([table]) => table === 'game_log_events',
+    );
+    expect(eventTableCalls).toHaveLength(1);
+  });
+
+  it('skips attribution entirely for imports without stored resolutions', async () => {
+    const importsQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: [{ id: 'import-legacy', confidence_summary: {} }],
+        error: null,
+      }),
+    };
+    const attributionClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'game_log_imports') {
+          return importsQuery;
+        }
+
+        throw new Error(
+          `game_log_events must not be touched without resolutions (${table})`,
+        );
+      }),
+    };
+    mockFinalizeClients(attributionClient);
+
+    await expect(repo.finalizeGameLog(buildFinalizeInput())).resolves.toEqual({
+      gameId: 'game-1',
     });
   });
 });

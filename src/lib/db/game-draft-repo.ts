@@ -3,6 +3,12 @@ import type { FinalizedGamePayload } from '@/features/games/finalize-game';
 import { logGameDraftSchema, type LogGameDraftInput } from '@/lib/validation/log-game';
 import { getServerEnv } from '@/lib/env';
 import { personLabel } from '@/lib/people/person-label';
+import {
+  ATTRIBUTABLE_PLACEMENT_ACTIONS,
+  buildTileActorIndex,
+  resolveTileEventAttributions,
+  type StoredPlayerIdentityResolution,
+} from '@/lib/imports/resolve-tile-event-attribution';
 import { fetchPublicPlayerLabels } from './player-label-resolution';
 import { refreshGameMechanicCaptureForFinalizedGame } from './game-mechanic-capture-repo';
 
@@ -560,6 +566,96 @@ export async function reopenSavedGame(payload: {
   return { gameId: reopenedGame.id as string };
 }
 
+/**
+ * Imported placement events are persisted while the game is still a draft,
+ * when its `game_players` rows do not exist yet, so they are written with null
+ * `player_id` / `game_player_id`. Finalization is the first moment the
+ * same-game participant map exists, so it is where attribution is resolved.
+ *
+ * Only exact evidence is used: the import's own recorded identity resolutions
+ * (`confidence_summary.player_identity_resolutions`), matched to the actor
+ * text the parser preserved in the event payload. An actor that is unresolved,
+ * ambiguous, or not a participant of this game stays unattributed —
+ * attribution is never inferred from neighbouring events, approximate names,
+ * ordering, or the game owner.
+ *
+ * The predicate is `game_player_id is null` on both the read and the write:
+ * a plain retry writes nothing, and a re-finalize — which deletes and
+ * re-inserts `game_players`, nulling `game_player_id` on attributed rows via
+ * its `on delete set null` FK — re-resolves those rows against the fresh
+ * participant map from the same stored evidence.
+ */
+async function attributeImportedPlacementEvents(
+  gameId: string,
+  gamePlayerIdByPlayerId: ReadonlyMap<string, string>,
+) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: imports, error: importsError } = await supabase
+    .from('game_log_imports')
+    .select('id, confidence_summary')
+    .eq('game_id', gameId);
+
+  if (importsError) {
+    throw importsError;
+  }
+
+  let attributed = 0;
+
+  for (const importRow of imports ?? []) {
+    const confidenceSummary = (importRow.confidence_summary ?? {}) as {
+      player_identity_resolutions?: StoredPlayerIdentityResolution[];
+    };
+    const actorIndex = buildTileActorIndex(
+      confidenceSummary.player_identity_resolutions ?? [],
+    );
+
+    if (actorIndex.size === 0) {
+      continue;
+    }
+
+    const { data: events, error: eventsError } = await supabase
+      .from('game_log_events')
+      .select('id, payload')
+      .eq('game_log_import_id', importRow.id)
+      .in('placement_action', [...ATTRIBUTABLE_PLACEMENT_ACTIONS])
+      .is('game_player_id', null);
+
+    if (eventsError) {
+      throw eventsError;
+    }
+
+    const attributions = resolveTileEventAttributions({
+      actorIndex,
+      events: (events ?? []).map((event) => ({
+        actorText:
+          (event.payload as { actor?: string | null } | null)?.actor ?? null,
+        eventId: event.id as string,
+      })),
+      gamePlayerIdByPlayerId,
+    });
+
+    for (const attribution of attributions) {
+      const { error: updateError } = await supabase
+        .from('game_log_events')
+        .update({
+          game_player_id: attribution.gamePlayerId,
+          player_id: attribution.playerId,
+        })
+        .eq('id', attribution.eventId)
+        .is('game_player_id', null);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      attributed += 1;
+    }
+  }
+
+  return { attributed };
+}
+
 export async function finalizeGameLog(payload: {
   form: LogGameDraftInput;
   finalizedPayload: FinalizedGamePayload;
@@ -777,6 +873,11 @@ export async function finalizeGameLog(payload: {
     { ...payload.finalizedPayload.revision.snapshot, ...parsed, gameId },
     payload.finalizedPayload.revision.note,
   );
+
+  // Attribute imported placement events from the participant rows inserted
+  // above, before the capture refresh, so downstream readers see the resolved
+  // per-player placements rather than the unattributed draft state.
+  await attributeImportedPlacementEvents(gameId, gamePlayerIdByPlayerId);
 
   // Capture is a hidden, additive fact store; a failure here must never block
   // finalizing a game. It resolves stable participant ids and can be re-run.
