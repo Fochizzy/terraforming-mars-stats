@@ -255,8 +255,18 @@ export async function createImportDraft(
     logParse.referenceAudit.blockingIssues.length > 0 ||
     mapGate.blocked
   ) {
+    const reasons = [
+      !selectedMap ? 'the confirmed map is not in the reference catalog' : null,
+      objectiveConfiguration === 'unknown'
+        ? 'the objective setup is unconfirmed'
+        : null,
+      ...logParse.referenceAudit.blockingIssues.map(
+        (issue) => issue.message,
+      ),
+      mapGate.blocked ? mapGate.message : null,
+    ].filter((reason): reason is string => reason !== null);
     throw new Error(
-      'Confirm the objective setup and a map consistent with the reconstructed board and objective evidence before saving.',
+      `Confirm the objective setup and a map consistent with the reconstructed board and objective evidence before saving. (${reasons.join(' ')})`,
     );
   }
   const selectedMilestoneIds = new Set(

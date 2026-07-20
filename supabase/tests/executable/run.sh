@@ -86,6 +86,18 @@ PSQL -q -f "$PLACEMENT_MIGRATION"
 echo "== behavioural assertions =="
 PSQL -q -f "$HERE/assertions.sql"
 
+echo "== fixture-to-persistence bridge: real action -> real RPC -> database =="
+THARSIS_MAP_ID=$(PSQL -tAc "select id from public.maps where code = 'tharsis'")
+FIXTURE_OUT_SQL="$PGDATA-fixtures.sql" \
+THARSIS_MAP_ID="$THARSIS_MAP_ID" \
+GROUP_ID="22222222-2222-4222-8222-222222222222" \
+USER_ID="11111111-1111-4111-8111-111111111111" \
+PLAYER_A_ID="55555555-5555-4555-8555-555555555555" \
+PLAYER_B_ID="5b5b5b5b-5b5b-45b5-85b5-5b5b5b5b5b5b" \
+  "$REPO/node_modules/.bin/tsx" "$HERE/build-fixture-payloads.ts"
+PSQL -q -f "$PGDATA-fixtures.sql"
+PSQL -q -f "$HERE/fixture-assertions.sql"
+
 echo "== idempotency: re-apply alias migration =="
 PSQL -q -f "$ALIAS_MIGRATION"
 n=$(PSQL -tAc "select count(*) from public.domain_text_aliases where source='catalog'")

@@ -48,6 +48,38 @@ values (
   'Guest 55555555'
 );
 
+-- Second seat for the two-player fixture bridge.
+insert into public.players (id, group_id, display_name)
+values (
+  '5b5b5b5b-5b5b-45b5-85b5-5b5b5b5b5b5b',
+  '22222222-2222-4222-8222-222222222222',
+  'Guest 5B5B5B5B'
+);
+
+-- Fixture-support catalog rows (deterministic ids shared with
+-- build-fixture-payloads.ts). Cards are required because
+-- game_log_events.card_id references public.cards(id); the objective rows
+-- back the board-defined tharsis relationships the fixtures claim.
+insert into public.cards (
+  id, source_card_id, card_number, card_name, card_type,
+  expansion_code, expansion_name, image_url, source_attribution
+) values
+  ('f1c0a11e-0000-4000-8000-000000000116', 'fixture-card-116', '116',
+   'Artificial Lake', 'automated', 'base', 'Base Game',
+   'https://example.invalid/artificial-lake.png', 'executable fixture bridge'),
+  ('f1c0a11e-0000-4000-8000-000000000201', 'fixture-card-201', '201',
+   'Sponsors', 'automated', 'base', 'Base Game',
+   'https://example.invalid/sponsors.png', 'executable fixture bridge'),
+  ('f1c0a11e-0000-4000-8000-000000000202', 'fixture-card-202', '202',
+   'Mining Colony', 'automated', 'colonies', 'Colonies',
+   'https://example.invalid/mining-colony.png', 'executable fixture bridge');
+
+insert into public.milestones (id, code, name) values
+  ('a1b20001-a1b2-4001-8001-000000000001', 'fixture_mayor', 'Mayor');
+
+insert into public.awards (id, code, name) values
+  ('a1b20002-a1b2-4002-8002-000000000002', 'fixture_banker', 'Banker');
+
 -- Exact game-participant evidence for placement attribution tests, plus a
 -- second game whose participant row must be rejected by the first game's
 -- import (cross-game game-player rejection).
