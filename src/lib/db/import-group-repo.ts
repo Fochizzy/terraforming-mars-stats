@@ -517,7 +517,16 @@ export async function resolveOrCreateImportGroup(input: {
   const { data: group, error: groupError } = await admin
     .from('groups')
     .insert({
-      name: buildImportGroupName(input.participantNames),
+      // Name from the resolved roster, not the review labels. Those labels are
+      // public stand-ins ("lurker", "Guest 8F2A1B3C") and would name a group
+      // after a placeholder. It also keeps creation consistent with
+      // planImportGroupReconciliation, which decides whether a group still
+      // carries its auto-generated name by rebuilding it from player rows —
+      // naming from labels made every new group look manually renamed, so
+      // reconciliation silently skipped it.
+      name: buildImportGroupName(
+        participantIdentities.map((participant) => participant.displayName),
+      ),
     })
     .select('id, name')
     .single();
