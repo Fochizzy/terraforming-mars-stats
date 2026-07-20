@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { readCanonicalGameCapture } from './game-capture-compat-repo';
+import {
+  EVENT_COLUMNS,
+  MAP_DETECTION_COLUMNS,
+  PARSER_RUN_COLUMNS,
+  PLACEMENT_COLUMNS,
+  readCanonicalGameCapture,
+  SOURCE_COLUMNS,
+  UNSUPPORTED_COLUMNS,
+} from './game-capture-compat-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
@@ -8,10 +16,19 @@ vi.mock('@/lib/supabase/server', () => ({
 
 type QueryResult = { data?: unknown; error?: unknown };
 
-function queryBuilder(result: QueryResult) {
+function queryBuilder(
+  result: QueryResult,
+  onSelect: (columns: string) => void,
+) {
   const builder: Record<string, unknown> = {};
   const chain = () => builder;
-  builder.select = vi.fn(chain);
+  // The selected column list is CAPTURED and asserted (audit §17) — a
+  // select-list drift or column rename can no longer pass silently through
+  // an argument-discarding mock.
+  builder.select = vi.fn((columns: string) => {
+    onSelect(columns);
+    return builder;
+  });
   builder.eq = vi.fn(chain);
   builder.order = vi.fn(chain);
   builder.limit = vi.fn(chain);
@@ -28,15 +45,18 @@ function mockSupabase(queues: Record<string, QueryResult[]>) {
   const pending = Object.fromEntries(
     Object.entries(queues).map(([table, results]) => [table, [...results]]),
   );
+  const selectedColumns: Record<string, string[]> = {};
   const from = vi.fn((table: string) => {
     const next = pending[table]?.shift();
     if (!next) {
       throw new Error(`Unexpected query for table ${table}`);
     }
-    return queryBuilder(next);
+    return queryBuilder(next, (columns) => {
+      (selectedColumns[table] ??= []).push(columns);
+    });
   });
   vi.mocked(createSupabaseServerClient).mockResolvedValue({ from } as never);
-  return { from };
+  return { from, selectedColumns };
 }
 
 const GAME_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -160,7 +180,7 @@ describe('readCanonicalGameCapture', () => {
   });
 
   it('prefers the newest supported v2 parser run and reports unsupported versions', async () => {
-    mockSupabase({
+    const { selectedColumns } = mockSupabase({
       game_capture_parser_runs: [
         {
           data: [
@@ -322,6 +342,26 @@ describe('readCanonicalGameCapture', () => {
     expect(capture.events).toHaveLength(1);
     expect(capture.issues.filter((issue) => issue.code === 'semantic_violation'))
       .toEqual([]);
+
+    // The runtime selects are exactly the exported contract lists that the
+    // deployed-schema fixture test verifies column by column (audit §17):
+    // renaming a v2 column now fails here or there, never silently.
+    expect(selectedColumns['game_capture_parser_runs']).toEqual([
+      PARSER_RUN_COLUMNS,
+    ]);
+    expect(selectedColumns['game_capture_import_sources']).toEqual([
+      SOURCE_COLUMNS,
+    ]);
+    expect(selectedColumns['game_capture_events']).toEqual([EVENT_COLUMNS]);
+    expect(selectedColumns['game_capture_board_placements']).toEqual([
+      PLACEMENT_COLUMNS,
+    ]);
+    expect(selectedColumns['game_capture_map_detections']).toEqual([
+      MAP_DETECTION_COLUMNS,
+    ]);
+    expect(selectedColumns['game_capture_unsupported_evidence']).toEqual([
+      UNSUPPORTED_COLUMNS,
+    ]);
   });
 
   it('reports availability none for a game with no import evidence while preserving historical facts', async () => {

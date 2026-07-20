@@ -276,7 +276,7 @@
     }
   ],
   "plannedWriteCount": 42,
-  "productionWritePerformed": false,
+  "productionWritePerformed": true,
   "totalHistoricalGames": 42,
   "unexpectedColoniesEvents": 0,
   "unexpectedColoniesPresence": 0,
@@ -284,7 +284,30 @@
   "unexpectedVenusPresence": 0,
   "unresolvedPlayerAssociations": 0,
   "unsupportedPatterns": 0,
-  "generatedAt": "2026-07-18T19:39:18.704Z",
-  "schemaReady": false,
-  "writeVerification": null
+  "generatedAt": "2026-07-18T20:07:09.167Z",
+  "schemaReady": true,
+  "writeVerification": {
+    "actualPersistedRows": 42,
+    "existingBackfillRows": 0,
+    "expectedPersistedRows": 42,
+    "newlyInsertedRows": 42,
+    "secondRunPlannedWrites": 0,
+    "historicalEventRowsCreated": 0,
+    "unrelatedDataUnchanged": true,
+    "verifiedUnrelatedTables": [
+      "game_awards",
+      "game_log_events",
+      "game_log_imports",
+      "game_milestones",
+      "game_player_declared_styles",
+      "game_player_inferred_styles",
+      "game_player_key_cards",
+      "game_player_preludes",
+      "game_players",
+      "game_promo_sets",
+      "game_result_screenshot_imports",
+      "game_revisions",
+      "games"
+    ]
+  }
 }

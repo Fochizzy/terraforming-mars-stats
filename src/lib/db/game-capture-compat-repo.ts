@@ -49,22 +49,22 @@ import {
   type LegacyGameLogImportRow,
 } from '@/lib/imports/live-capture/map-live-capture';
 
-const PARSER_RUN_COLUMNS =
+export const PARSER_RUN_COLUMNS =
   'id, game_id, game_log_import_id, source_id, source_sha256, parser_version, workflow_version, coverage_state, coverage, provenance, parser_ran_at';
 
-const SOURCE_COLUMNS =
+export const SOURCE_COLUMNS =
   'id, game_id, game_log_import_id, source_format, source_route, source_sha256, source_byte_length, upstream_app_version, export_generated_at, imported_at';
 
-const EVENT_COLUMNS =
+export const EVENT_COLUMNS =
   'id, event_uid, game_id, parser_run_id, source_sha256, event_sequence, generation_number, player_id, game_player_id, attribution_status, event_category, event_type, canonical_entity_id, source_line_number, source_text, normalized_text, parameter_type, value_before, value_after, amount, confidence, coverage_state, provenance, detail';
 
-const PLACEMENT_COLUMNS =
+export const PLACEMENT_COLUMNS =
   'id, placement_uid, game_id, event_id, parser_run_id, event_sequence, generation_number, player_id, game_player_id, raw_actor_text, attribution_status, map_id, map_code, canonical_board_space_id, upstream_numeric_space_id, board_row, board_position, tile_type, placement_action, ownership_state, source_card_or_action, raw_evidence, confidence, parser_version, provenance';
 
-const MAP_DETECTION_COLUMNS =
+export const MAP_DETECTION_COLUMNS =
   'id, game_id, parser_run_id, game_log_import_id, exported_map_value, detection_state, detected_map_id, detected_map_code, candidate_map_codes, ocean_evidence, objective_evidence, randomized_objectives, conflict_state, unsupported_map, confidence, parser_version, provenance';
 
-const UNSUPPORTED_COLUMNS =
+export const UNSUPPORTED_COLUMNS =
   'id, game_id, parser_run_id, source_line_number, raw_evidence, normalized_pattern, reason, parser_version';
 
 const LEGACY_IMPORT_COLUMNS =

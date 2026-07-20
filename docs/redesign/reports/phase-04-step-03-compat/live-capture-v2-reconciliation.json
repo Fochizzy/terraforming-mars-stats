@@ -1,63 +1,64 @@
 {
   "report": "live-capture-v2-compatibility-reconciliation",
-  "generatedAt": "2026-07-19T22:45:00Z",
+  "generatedAt": "2026-07-20T13:45:00Z",
   "productionProject": "qjtwgrjjwnqafbvkkfex",
   "mode": "read-only",
   "writesPerformed": 0,
   "queries": "supabase/verification/live-capture-v2-reconciliation.sql",
+  "supersedes": "2026-07-19T22:45:00Z artifact (metric set corrected per audit §16: per-system coverage, duplicate legacy source hashes measured, no unmeasured adapter-failure figure)",
   "liveCaptureDeployment": {
-    "ledgerVersion": "20260719132042",
-    "migrationName": "data_capture_hardening_v2",
-    "cutoffAt": "2026-07-19T13:20:42.476Z",
-    "parserDeployedAt": "2026-07-19T13:24:14.726Z",
+    "ledgerMigration": "20260719132042 data_capture_hardening_v2",
+    "cutoff": "2026-07-19T13:20:42Z",
+    "parserDeployedAt": "2026-07-19T13:24:14Z",
     "parserVersion": "tm-data-capture-v2"
   },
+  "baselineChangeNote": "User-directed operations in a concurrent session (player linking/dedup and deletion of the one draft game for a wrong-group import retry) changed counts from the audit's verified starting state: 42→41 games (draft deleted), 42→41 imports, 14816→14402 events, 1500→1467 typed placements (the draft's 33 unresolved-attribution placements), 42→41 expansion facts, 28→25 players. Re-baselined with this provenance; not drift and not a redesign-session mutation.",
   "counts": {
-    "totalGames": 42,
-    "gamesWithLegacyImportData": 42,
-    "gamesLegacyOnly": 42,
-    "gamesWithV2Sources": 0,
-    "gamesWithV2ParserRuns": 0,
-    "gamesWithV2CanonicalEvents": 0,
-    "gamesWithV2CanonicalPlacements": 0,
-    "gamesWithExpansionState": 42,
-    "gamesMissingExpansionState": 0,
-    "v2RunsMissingSource": 0,
-    "legacyImportsMissingInputHash": 0,
-    "duplicateV2SourceHashes": 0,
-    "duplicateV2EventIdentities": 0,
-    "duplicateV2PlacementIdentities": 0,
-    "duplicateLegacyEventIdentities": 0,
-    "unsupportedV2ContractVersions": 0
+    "total_games": 41,
+    "games_with_legacy_source_data": 41,
+    "games_with_legacy_input_hash": 41,
+    "legacy_imports_with_canonical_events": 41,
+    "games_with_legacy_canonical_events": 41,
+    "games_with_legacy_typed_placements": 41,
+    "games_with_v2_sources": 0,
+    "games_with_v2_parser_runs": 0,
+    "games_with_v2_events": 0,
+    "games_with_v2_placements": 0,
+    "games_adapter_compatible_via_v2": 0,
+    "games_requiring_legacy_fallback": 41,
+    "games_missing_source": 0,
+    "games_with_expansion_state": 41,
+    "games_missing_expansion_state": 0,
+    "v2_parser_versions_observed": "",
+    "unsupported_v2_contract_versions": 0,
+    "legacy_parser_versions_observed": "manual-web-import-v2",
+    "v2_runs_missing_source": 0,
+    "legacy_imports_missing_input_hash": 0,
+    "duplicate_legacy_source_hashes": 1,
+    "legacy_imports_sharing_a_duplicate_hash": 2,
+    "duplicate_v2_source_hashes": 0,
+    "duplicate_v2_event_identities": 0,
+    "duplicate_v2_placement_identities": 0,
+    "duplicate_legacy_event_identities": 0,
+    "duplicate_legacy_placement_identities": 0
   },
-  "parserVersionsObserved": {
-    "v2CaptureRuns": [],
-    "legacyImports": ["manual-web-import-v2"]
+  "duplicateLegacySourcePair": {
+    "inputSha256": "04d2e3feb0e82e0302d500e9255229d7c92a2c151863aca9b68fd432c45cd1d7",
+    "gameIdsInImportOrder": [
+      "30750df1-38a1-4ae4-a10c-4571752c3315",
+      "784f9a7c-be97-43cb-bb1a-35332909e8b5"
+    ],
+    "statuses": ["finalized", "finalized"],
+    "resolution": "separately authorized production data-integrity follow-up; not mutated by Step 4.3"
   },
   "expansionStateDistribution": [
     {
-      "venusNextState": "historical_parser_verified_owner_confirmed_absent",
-      "coloniesState": "historical_parser_verified_owner_confirmed_absent",
-      "games": 42,
-      "nonNullFinalVenus": 0,
-      "backfilled": 42
+      "venus_next_state": "historical_parser_verified_owner_confirmed_absent",
+      "colonies_state": "historical_parser_verified_owner_confirmed_absent",
+      "games": 41,
+      "non_null_final_venus": 0,
+      "backfilled": 41
     }
   ],
-  "adapter": {
-    "module": "src/lib/db/game-capture-compat-repo.ts",
-    "supportedParserVersions": ["tm-data-capture-v2"],
-    "adapterFailuresObserved": 0,
-    "notes": "Adapter behavior for missing schema, missing runs, rerun selection, unsupported contract versions, duplicate identities, and pre-split review_state absence is executable-tested in game-capture-compat-repo.test.ts and map-live-capture.test.ts; no production adapter execution occurred for this report."
-  },
-  "missingSourceCases": {
-    "v2RunsWithoutSourceRow": 0,
-    "gamesWithoutAnyImportEvidence": 0
-  },
-  "interpretation": [
-    "Every one of the 42 historical games is legacy-only: imported before the v2 cutoff by the live site's manual-web-import-v2 parser, with server-derived input hashes present on all 42 imports.",
-    "The v2 capture stores are deployed and empty: no real post-cutoff import has occurred yet (the deployment's throwaway verification game was removed).",
-    "All 42 games carry historical_parser_verified_owner_confirmed_absent for both mechanics with null final Venus (never zero) from the authorized 42-row backfill.",
-    "No duplicate source hashes, event identities, or placement identities exist in either system.",
-    "No unsupported v2 contract versions were observed."
-  ]
+  "adapterExecution": "none — adapter-compatibility figures derive from stored facts (supported parser-run presence); no adapter failure rate is claimed because none was measured"
 }
