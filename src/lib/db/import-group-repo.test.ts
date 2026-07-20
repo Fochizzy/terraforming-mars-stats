@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { buildPublicGroupLabel } from './group-label-resolution';
 import {
   buildImportGroupMemberRows,
   buildGroupRosterSignature,
-  buildImportGroupName,
   findExactGroupRosterMatch,
   planImportGroupReconciliation,
   reconcileImportGroupAfterFinalize,
@@ -238,29 +238,35 @@ describe('buildImportGroupMemberRows', () => {
 
 describe('planImportGroupReconciliation', () => {
   // Roster after a review pass: the two OCR misreads created at draft time
-  // plus the corrected players the reviewer actually selected.
+  // plus the corrected players the reviewer actually selected. Labels are
+  // public (never a private display_name) — this function only ever reasons
+  // about the public label a player currently resolves to.
   const rosterPlayers = [
-    { display_name: 'Colette LeRoux', id: 'phantom-1', linked_user_id: null },
-    { display_name: 'Corey Jansen', id: 'phantom-2', linked_user_id: null },
+    { id: 'phantom-1', linked_user_id: null, publicLabel: 'Guest AAAA0001' },
+    { id: 'phantom-2', linked_user_id: null, publicLabel: 'Guest BBBB0002' },
     {
-      display_name: 'Izzy Hodnett',
       id: 'confirmed-1',
       linked_user_id: 'user-izzy',
+      publicLabel: 'fochizzy',
     },
-    { display_name: 'Corey', id: 'confirmed-2', linked_user_id: null },
+    {
+      id: 'confirmed-2',
+      linked_user_id: null,
+      publicLabel: 'Guest CCCC0003',
+    },
   ];
 
   it('prunes phantom import players and renames the auto-generated group from confirmed participants', () => {
     expect(
       planImportGroupReconciliation({
         confirmedPlayerIds: ['confirmed-1', 'confirmed-2'],
-        groupName: buildImportGroupName(['Colette LeRoux', 'Corey Jansen']),
+        groupName: buildPublicGroupLabel(['Guest AAAA0001', 'Guest BBBB0002']),
         originalRosterPlayerIds: ['phantom-1', 'phantom-2'],
         rosterPlayers,
       }),
     ).toEqual({
       playerIdsToRemove: ['phantom-1', 'phantom-2'],
-      updatedGroupName: 'Corey / Izzy Hodnett',
+      updatedGroupName: buildPublicGroupLabel(['fochizzy', 'Guest CCCC0003']),
     });
   });
 
@@ -268,13 +274,13 @@ describe('planImportGroupReconciliation', () => {
     expect(
       planImportGroupReconciliation({
         confirmedPlayerIds: ['confirmed-2'],
-        groupName: buildImportGroupName(['Colette LeRoux', 'Corey Jansen']),
+        groupName: buildPublicGroupLabel(['Guest AAAA0001', 'Guest BBBB0002']),
         originalRosterPlayerIds: ['phantom-1', 'phantom-2'],
         rosterPlayers,
       }),
     ).toEqual({
       playerIdsToRemove: ['phantom-1', 'phantom-2'],
-      updatedGroupName: 'Corey',
+      updatedGroupName: 'Guest CCCC0003',
     });
   });
 
@@ -296,7 +302,7 @@ describe('planImportGroupReconciliation', () => {
     expect(
       planImportGroupReconciliation({
         confirmedPlayerIds: ['confirmed-1', 'confirmed-2'],
-        groupName: buildImportGroupName(['Colette LeRoux', 'Corey Jansen']),
+        groupName: buildPublicGroupLabel(['Guest AAAA0001', 'Guest BBBB0002']),
         originalRosterPlayerIds: ['phantom-1', 'deleted-player'],
         rosterPlayers,
       }),
@@ -310,7 +316,7 @@ describe('planImportGroupReconciliation', () => {
     expect(
       planImportGroupReconciliation({
         confirmedPlayerIds: ['phantom-1', 'phantom-2'],
-        groupName: buildImportGroupName(['Colette LeRoux', 'Corey Jansen']),
+        groupName: buildPublicGroupLabel(['Guest AAAA0001', 'Guest BBBB0002']),
         originalRosterPlayerIds: ['phantom-1', 'phantom-2'],
         rosterPlayers,
       }),
@@ -328,9 +334,9 @@ type AdminMockState = {
   games: Array<{ id: string; status: string }>;
   group: { id: string; name: string };
   players: Array<{
-    display_name: string;
     id: string;
     linked_user_id: string | null;
+    publicLabel: string;
   }>;
 };
 
@@ -341,6 +347,9 @@ function createAdminClientMock(state: AdminMockState) {
     deletedPlayerIds: null as string[] | null,
     updatedGroupName: null as string | null,
   };
+  const publicLabelById = new Map(
+    state.players.map((player) => [player.id, player.publicLabel]),
+  );
 
   function resolveQuery(table: string, ops: RecordedOp[]) {
     const opNames = ops.map((op) => op.method);
@@ -371,7 +380,15 @@ function createAdminClientMock(state: AdminMockState) {
         return { data: null, error: null };
       }
 
-      return { data: state.players, error: null };
+      // The reconciliation path never selects display_name — only id and
+      // linked_user_id — so the mock row shape matches that contract.
+      return {
+        data: state.players.map((player) => ({
+          id: player.id,
+          linked_user_id: player.linked_user_id,
+        })),
+        error: null,
+      };
     }
 
     if (table === 'game_players') {
@@ -415,7 +432,27 @@ function createAdminClientMock(state: AdminMockState) {
   }
 
   return {
-    client: { from: (table: string) => createQueryStub(table) },
+    client: {
+      from: (table: string) => createQueryStub(table),
+      // Stands in for the production `get_public_player_names` RPC: it never
+      // reads a private column, only the label the roster fixture assigns.
+      rpc: (fn: string, args: Record<string, unknown>) => {
+        if (fn !== 'get_public_player_names') {
+          throw new Error(`Unexpected rpc ${fn}`);
+        }
+
+        const requestedIds = args.p_player_ids as string[];
+        return Promise.resolve({
+          data: requestedIds.map((playerId) => ({
+            is_linked: state.players.find((player) => player.id === playerId)
+              ?.linked_user_id != null,
+            player_id: playerId,
+            public_name: publicLabelById.get(playerId) ?? null,
+          })),
+          error: null,
+        });
+      },
+    },
     writes,
   };
 }
@@ -430,16 +467,23 @@ describe('reconcileImportGroupAfterFinalize', () => {
     gameLogImports: [{ id: 'import-1' }],
     gamePlayers: [{ player_id: 'confirmed-1' }, { player_id: 'confirmed-2' }],
     games: [{ id: 'game-1', status: 'finalized' }],
-    group: { id: 'group-1', name: 'Colette LeRoux / Corey Jansen' },
+    group: {
+      id: 'group-1',
+      name: buildPublicGroupLabel(['Guest AAAA0001', 'Guest BBBB0002']),
+    },
     players: [
-      { display_name: 'Colette LeRoux', id: 'phantom-1', linked_user_id: null },
-      { display_name: 'Corey Jansen', id: 'phantom-2', linked_user_id: null },
+      { id: 'phantom-1', linked_user_id: null, publicLabel: 'Guest AAAA0001' },
+      { id: 'phantom-2', linked_user_id: null, publicLabel: 'Guest BBBB0002' },
       {
-        display_name: 'Izzy Hodnett',
         id: 'confirmed-1',
         linked_user_id: 'user-izzy',
+        publicLabel: 'fochizzy',
       },
-      { display_name: 'Corey', id: 'confirmed-2', linked_user_id: null },
+      {
+        id: 'confirmed-2',
+        linked_user_id: null,
+        publicLabel: 'Guest CCCC0003',
+      },
     ],
   };
 
@@ -454,11 +498,13 @@ describe('reconcileImportGroupAfterFinalize', () => {
       }),
     ).resolves.toEqual({
       playerIdsToRemove: ['phantom-1', 'phantom-2'],
-      updatedGroupName: 'Corey / Izzy Hodnett',
+      updatedGroupName: buildPublicGroupLabel(['fochizzy', 'Guest CCCC0003']),
     });
 
     expect(writes.deletedPlayerIds).toEqual(['phantom-1', 'phantom-2']);
-    expect(writes.updatedGroupName).toBe('Corey / Izzy Hodnett');
+    expect(writes.updatedGroupName).toBe(
+      buildPublicGroupLabel(['fochizzy', 'Guest CCCC0003']),
+    );
   });
 
   it('leaves groups with other games untouched', async () => {
@@ -568,13 +614,16 @@ type ResolveMockState = {
     id: string;
     linked_user_id: string | null;
   }>;
+  /** Public label the `get_public_player_names` rpc mock resolves per id. */
+  publicLabelById: Record<string, string>;
 };
 
 function createResolveAdminMock(state: ResolveMockState) {
   const groupMemberUpserts: ResolveGroupMemberUpsert[] = [];
+  const writes = { updatedGroupName: null as string | null };
 
   function createQueryStub(table: string) {
-    const ctx = { didInsert: false };
+    const ctx = { didInsert: false, didUpdate: false };
     const stub: Record<string, unknown> = {};
 
     for (const method of ['eq', 'in', 'order', 'select']) {
@@ -583,6 +632,15 @@ function createResolveAdminMock(state: ResolveMockState) {
 
     stub.insert = () => {
       ctx.didInsert = true;
+      return stub;
+    };
+    stub.update = (values: { name?: string }) => {
+      ctx.didUpdate = true;
+
+      if (table === 'groups' && typeof values.name === 'string') {
+        writes.updatedGroupName = values.name;
+      }
+
       return stub;
     };
     stub.upsert = (rows: unknown, options: unknown) => {
@@ -600,6 +658,10 @@ function createResolveAdminMock(state: ResolveMockState) {
       }
 
       if (table === 'groups') {
+        if (ctx.didUpdate) {
+          return { data: null, error: null };
+        }
+
         return { data: state.insertedGroup, error: null };
       }
 
@@ -620,9 +682,33 @@ function createResolveAdminMock(state: ResolveMockState) {
     return stub;
   }
 
+  function rpc(fn: string, args: Record<string, unknown>) {
+    if (fn !== 'get_public_player_names') {
+      throw new Error(`Unexpected rpc ${fn}`);
+    }
+
+    const requestedIds = args.p_player_ids as string[];
+    const allPlayers = [...state.existingPlayers, ...state.insertedPlayers];
+
+    return Promise.resolve({
+      data: requestedIds.map((playerId) => ({
+        is_linked:
+          allPlayers.find((player) => player.id === playerId)
+            ?.linked_user_id != null,
+        player_id: playerId,
+        public_name: state.publicLabelById[playerId] ?? null,
+      })),
+      error: null,
+    });
+  }
+
   return {
-    client: { from: (table: string) => createQueryStub(table) },
+    client: {
+      from: (table: string) => createQueryStub(table),
+      rpc,
+    },
     groupMemberUpserts,
+    writes,
   };
 }
 
@@ -632,33 +718,51 @@ describe('resolveOrCreateImportGroup', () => {
   });
 
   it('adds the importing user as an editor of a newly created group even when they are not a participant', async () => {
-    const { client, groupMemberUpserts } = createResolveAdminMock({
+    // Distinctive values that could only appear in the result if a private
+    // personal name leaked through the new-group naming path.
+    const SENTINEL_ALICE = 'Xyzzy-Private-Fullname-Alice';
+    const SENTINEL_BOB = 'Xyzzy-Private-Fullname-Bob';
+    const { client, groupMemberUpserts, writes } = createResolveAdminMock({
       existingPlayers: [],
-      insertedGroup: { id: 'group-new', name: 'Alice / Bob' },
+      insertedGroup: { id: 'group-new', name: 'New group' },
       insertedPlayers: [
         {
-          display_name: 'Alice',
+          display_name: SENTINEL_ALICE,
           group_id: 'group-new',
           id: 'player-alice',
           linked_user_id: null,
         },
         {
-          display_name: 'Bob',
+          display_name: SENTINEL_BOB,
           group_id: 'group-new',
           id: 'player-bob',
           linked_user_id: null,
         },
       ],
+      publicLabelById: {
+        'player-alice': 'Guest 1111AAAA',
+        'player-bob': 'Guest 2222BBBB',
+      },
     });
     vi.mocked(createSupabaseAdminClient).mockReturnValue(client as never);
 
     const result = await resolveOrCreateImportGroup({
       importingUserId: 'user-importer',
-      participantNames: ['Alice', 'Bob'],
+      participantNames: [SENTINEL_ALICE, SENTINEL_BOB],
     });
 
     expect(result.createdNewGroup).toBe(true);
     expect(result.groupId).toBe('group-new');
+    // The returned and persisted group name is the roster's public label,
+    // never the private display name the participants were submitted as.
+    const expectedGroupName = buildPublicGroupLabel([
+      'Guest 1111AAAA',
+      'Guest 2222BBBB',
+    ]);
+    expect(result.groupName).toBe(expectedGroupName);
+    expect(writes.updatedGroupName).toBe(expectedGroupName);
+    expect(result.groupName).not.toContain(SENTINEL_ALICE);
+    expect(result.groupName).not.toContain(SENTINEL_BOB);
     expect(result.selectedPlayerIds).toEqual(['player-alice', 'player-bob']);
     // The importer is not a roster participant, so they must still be granted
     // editor access — added only when absent so an existing role is preserved.
