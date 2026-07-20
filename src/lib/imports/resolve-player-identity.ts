@@ -8,19 +8,18 @@ export type PlayerIdentity = {
 /**
  * The username + full name shown by default for an imported player, before the
  * reviewer edits anything. The username defaults to the matched candidate's
- * username (its roster name for a plain roster player), falling back to the
- * name the import used; the full name comes from the candidate when known.
+ * public display name, falling back to the name the import used. The public
+ * candidate DTO carries no private full name, so full name has no
+ * candidate-derived default — a reviewer types one, or (for a freshly created
+ * player) it's already tracked separately in the identity/form state.
  */
 export function resolvePlayerIdentityDefault(input: {
   candidate: ImportPlayerLinkCandidate | null | undefined;
   importedName: string;
 }): PlayerIdentity {
   return {
-    fullName: input.candidate?.linkedFullName ?? '',
-    username:
-      input.candidate?.linkedUsername ??
-      input.candidate?.displayName ??
-      input.importedName,
+    fullName: '',
+    username: input.candidate?.displayName ?? input.importedName,
   };
 }
 

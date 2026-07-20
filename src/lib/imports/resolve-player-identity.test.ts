@@ -12,25 +12,21 @@ function buildCandidate(
     displayName: 'Roster Name',
     gamesPlayed: 0,
     id: 'player-1',
-    linkedFullName: null,
-    linkedUsername: null,
     matchReason: 'exact',
     ...overrides,
   };
 }
 
 describe('resolvePlayerIdentityDefault', () => {
-  it('prefers the candidate username, then display name, then imported name', () => {
+  it('uses the candidate display name for username, and no candidate-derived full name', () => {
+    // The public candidate DTO carries no private full name field, so the
+    // default full name is always empty regardless of the candidate.
     expect(
       resolvePlayerIdentityDefault({
-        candidate: buildCandidate({
-          displayName: 'James Hodnett',
-          linkedFullName: 'James Hodnett',
-          linkedUsername: 'RevLoki',
-        }),
+        candidate: buildCandidate({ displayName: 'James Hodnett' }),
         importedName: 'James',
       }),
-    ).toEqual({ fullName: 'James Hodnett', username: 'RevLoki' });
+    ).toEqual({ fullName: '', username: 'James Hodnett' });
 
     expect(
       resolvePlayerIdentityDefault({
@@ -47,10 +43,7 @@ describe('resolvePlayerIdentityDefault', () => {
 
 describe('resolveEffectivePlayerIdentity', () => {
   it('uses the reviewer override when present, falling back per field', () => {
-    const candidate = buildCandidate({
-      linkedFullName: 'James Hodnett',
-      linkedUsername: 'RevLoki',
-    });
+    const candidate = buildCandidate({ displayName: 'James Hodnett' });
 
     expect(
       resolveEffectivePlayerIdentity({
@@ -58,14 +51,16 @@ describe('resolveEffectivePlayerIdentity', () => {
         importedName: 'James',
         override: { username: 'rev-2' },
       }),
-    ).toEqual({ fullName: 'James Hodnett', username: 'rev-2' });
+    ).toEqual({ fullName: '', username: 'rev-2' });
 
+    // Full name has no candidate-derived default, so a reviewer-typed
+    // override is the only way it's ever populated.
     expect(
       resolveEffectivePlayerIdentity({
         candidate,
         importedName: 'James',
-        override: { fullName: '', username: '' },
+        override: { fullName: 'Manually Typed Name', username: '' },
       }),
-    ).toEqual({ fullName: '', username: '' });
+    ).toEqual({ fullName: 'Manually Typed Name', username: '' });
   });
 });

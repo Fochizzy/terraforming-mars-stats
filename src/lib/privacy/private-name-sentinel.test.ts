@@ -199,6 +199,11 @@ describe('private personal names never reach serialized review payloads', () => 
     // value is unique per axis (alias vs. display name vs. username), so it
     // must never reach the serialized payload even though matchReason does.
     expect(serialized).not.toContain('matchScore');
+    // Nor does any replacement numeric fingerprint, or the private identity
+    // fields the candidate DTO used to carry.
+    expect(serialized).not.toMatch(/"rank"|"priority"|"confidence"/);
+    expect(serialized).not.toContain('linkedFullName');
+    expect(serialized).not.toContain('linkedUsername');
     // The alias hit auto-selects the guest, but is disclosed only as 'exact'.
     expect(withServerVerdict[0]).toMatchObject({
       selectedPlayerId: 'player-guest',

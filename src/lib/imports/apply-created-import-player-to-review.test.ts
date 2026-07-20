@@ -15,10 +15,7 @@ describe('applyCreatedImportPlayerToReview', () => {
               displayName: 'Friday Mars',
               gamesPlayed: 11,
               id: 'player-1',
-              linkedFullName: 'Friday Mars',
-              linkedUsername: 'friday-mars',
               matchReason: 'exact' as const,
-              matchScore: 400,
             },
           ],
           importedName: 'Friday Mars',
@@ -32,10 +29,7 @@ describe('applyCreatedImportPlayerToReview', () => {
               displayName: 'Second Seat',
               gamesPlayed: 4,
               id: 'player-2',
-              linkedFullName: null,
-              linkedUsername: null,
               matchReason: 'fallback' as const,
-              matchScore: 0,
             },
           ],
           importedName: 'Unknown Friend',
@@ -67,17 +61,12 @@ describe('applyCreatedImportPlayerToReview', () => {
       selectedPlayerId: 'player-new',
       status: 'exact',
     });
-    expect(result.playerLinks[1]?.candidates[0]).toMatchObject({
+    expect(result.playerLinks[1]?.candidates[0]).toEqual({
       displayName: 'Unknown Friend',
       gamesPlayed: 0,
       id: 'player-new',
-      linkedFullName: null,
-      linkedUsername: null,
       matchReason: 'exact',
     });
-    expect(result.playerLinks[1]?.candidates[0]).not.toHaveProperty(
-      'matchScore',
-    );
   });
 
   it('returns the original review when no matching import row exists', () => {

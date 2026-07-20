@@ -19,18 +19,6 @@ type ImportPlayerResolutionPanelProps = {
 };
 
 /**
- * Account-linked players carry a username alongside their roster name; unlinked
- * roster players now carry one on the player row itself. Either way this page
- * identifies people by their username, so prefer it and fall back to the roster
- * name. Matching still runs across every name and the username upstream.
- */
-function describeCandidateName(
-  candidate: ImportPlayerLinkMatch['candidates'][number],
-) {
-  return candidate.linkedUsername ?? candidate.displayName;
-}
-
-/**
  * Match explanations are deliberately coarse: which field matched (roster
  * name, private profile name, saved alias, …) is never disclosed to the
  * reviewer, only how confident the match is.
@@ -107,7 +95,7 @@ export function ImportPlayerResolutionPanel({
                   <option value="">Choose player...</option>
                   {link.candidates.map((candidate) => (
                     <option key={`${link.importedName}-${candidate.id}`} value={candidate.id}>
-                      {describeCandidateName(candidate)}
+                      {candidate.displayName}
                       {candidate.gamesPlayed > 0
                         ? ` (${candidate.gamesPlayed} games)`
                         : ''}

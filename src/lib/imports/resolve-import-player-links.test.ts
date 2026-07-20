@@ -368,8 +368,6 @@ describe('resolveImportPlayerLinks', () => {
               'displayName',
               'gamesPlayed',
               'id',
-              'linkedFullName',
-              'linkedUsername',
               'matchReason',
             ]);
           }
@@ -410,12 +408,15 @@ describe('resolveImportPlayerLinks', () => {
     });
 
     /**
-     * Ordering must still be driven by the (now-internal) match score: an
-     * exact match still outranks a mere partial match, and a plain fallback
-     * still sorts last — proving the refactor that hid matchScore from
-     * callers did not change selection behavior.
+     * The public array's ordering is driven by the COARSE matchReason tier
+     * (exact > partial > fallback), not by the private matchScore that
+     * decided which tier a candidate landed in: an exact match still sorts
+     * ahead of a mere partial match, and a plain fallback still sorts last,
+     * even though none of this is decided by score any more. See
+     * `comparePublicCandidates` — the internal `compareCandidates`/
+     * `matchScore` ordering only ever drives `selectedPlayerId`/`status`.
      */
-    it('keeps deterministic score-driven ordering after matchScore is hidden from callers', () => {
+    it('keeps exact-before-partial-before-fallback tiering in the public candidate order', () => {
       const result = resolveImportPlayerLinks(
         ['James'],
         [
@@ -452,6 +453,121 @@ describe('resolveImportPlayerLinks', () => {
         'player-exact',
         'player-partial',
         'player-fallback',
+      ]);
+    });
+
+    /**
+     * The scenario the ordering-side-channel review flagged: three players
+     * all coarsen to the SAME 'exact' matchReason for one imported name, but
+     * internally they got there through three different private axes —
+     * public display name (highest internal score), a private linked
+     * username, and a private saved alias (lowest internal score). gamesPlayed
+     * is tied for all three, and the public displayName labels are chosen so
+     * alphabetical order and the private score order disagree, isolating
+     * which one actually governs the public array.
+     */
+    it('never lets private matching-axis precedence leak through same-array candidate order', () => {
+      const importedName = 'Zulu';
+      const players = [
+        {
+          // Matches via PUBLIC display name exact — highest internal score.
+          displayName: 'Zulu',
+          gamesPlayed: 5,
+          id: 'player-by-displayname',
+          linkedFullName: null,
+          linkedUsername: null,
+        },
+        {
+          // Matches via PRIVATE linkedUsername exact — middle internal score.
+          displayName: 'Alpha',
+          gamesPlayed: 5,
+          id: 'player-by-username',
+          linkedFullName: null,
+          linkedUsername: 'Zulu',
+        },
+        {
+          // Matches via PRIVATE saved alias exact — lowest internal score.
+          displayName: 'Mike',
+          gamesPlayed: 5,
+          id: 'player-by-alias',
+          linkedFullName: null,
+          linkedUsername: null,
+        },
+      ];
+      const aliases = [
+        {
+          aliasText: 'Zulu',
+          normalizedAlias: 'zulu',
+          playerId: 'player-by-alias',
+          sourceType: 'game_log',
+        },
+      ];
+
+      const result = resolveImportPlayerLinks([importedName], players, aliases);
+      const match = result.matches[0]!;
+      const serialized = JSON.stringify(match);
+
+      // All three land in the same coarse bucket.
+      expect(match.candidates.map((c) => c.matchReason)).toEqual([
+        'exact',
+        'exact',
+        'exact',
+      ]);
+      // No numeric score or equivalent rank/priority/confidence field exists
+      // anywhere in the serialized match.
+      expect(serialized).not.toMatch(/matchScore|"rank"|"priority"|"confidence"/);
+      expect(match.candidates.every((c) => Object.keys(c).sort().join(',') ===
+        'displayName,gamesPlayed,id,matchReason')).toBe(true);
+
+      // Public order is alphabetical by displayName (gamesPlayed is tied) —
+      // NOT the private 400/300/250 axis-priority order, which would have
+      // been [by-displayname, by-username, by-alias].
+      expect(match.candidates.map((c) => c.id)).toEqual([
+        'player-by-username', // "Alpha"
+        'player-by-alias', // "Mike"
+        'player-by-displayname', // "Zulu"
+      ]);
+
+      // The internal decision — which candidate is auto-selected — is
+      // unaffected by the public array's order and still reflects the
+      // highest-scoring private axis (display-name exact), even though that
+      // candidate is listed LAST in the public array.
+      expect(match.selectedPlayerId).toBe('player-by-displayname');
+      expect(match.status).toBe('exact');
+      expect(match.requiresConfirmation).toBe(false);
+
+      // Re-run with the axes that produced "Alpha" and "Mike" swapped: same
+      // public sort fields (displayName, gamesPlayed), different private
+      // axis backing each. Public order must not move.
+      const swappedPlayers = [
+        players[0]!,
+        {
+          ...players[1]!,
+          linkedUsername: null,
+        },
+        {
+          ...players[2]!,
+          linkedUsername: 'Zulu',
+        },
+      ];
+      const swappedAliases = [
+        {
+          aliasText: 'Zulu',
+          normalizedAlias: 'zulu',
+          playerId: 'player-by-username',
+          sourceType: 'game_log',
+        },
+      ];
+      const swappedResult = resolveImportPlayerLinks(
+        [importedName],
+        swappedPlayers,
+        swappedAliases,
+      );
+
+      expect(swappedResult.matches[0]?.candidates.map((c) => c.id)).toEqual([
+        'player-by-username',
+        'player-by-alias',
+        'player-by-displayname',
       ]);
     });
   });

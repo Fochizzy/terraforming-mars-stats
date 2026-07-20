@@ -6,8 +6,6 @@ function candidate(id: string, displayName: string) {
     displayName,
     gamesPlayed: 0,
     id,
-    linkedFullName: null,
-    linkedUsername: null,
     matchReason: 'fallback' as const,
   };
 }

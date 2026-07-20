@@ -779,9 +779,7 @@ export function WebImportPage({
           ? applyCreatedImportPlayerToReview(current, {
               createdPlayerId: createdPlayer.id,
               displayName: createdPlayer.displayName,
-              fullName: createdFullName,
               importedName,
-              username: createdUsername,
             })
           : current,
       );

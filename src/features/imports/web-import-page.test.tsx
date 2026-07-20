@@ -46,19 +46,13 @@ const review = {
           displayName: 'Friday Mars',
           gamesPlayed: 11,
           id: 'player-1',
-          linkedFullName: 'Friday Mars',
-          linkedUsername: 'friday-mars',
           matchReason: 'exact' as const,
-          matchScore: 400,
         },
         {
           displayName: 'Second Seat',
           gamesPlayed: 4,
           id: 'player-2',
-          linkedFullName: null,
-          linkedUsername: null,
           matchReason: 'fallback' as const,
-          matchScore: 0,
         },
       ],
       importedName: 'Friday Mars',
@@ -72,19 +66,13 @@ const review = {
           displayName: 'Second Seat',
           gamesPlayed: 4,
           id: 'player-2',
-          linkedFullName: null,
-          linkedUsername: null,
           matchReason: 'fallback' as const,
-          matchScore: 0,
         },
         {
           displayName: 'Third Seat',
           gamesPlayed: 2,
           id: 'player-3',
-          linkedFullName: null,
-          linkedUsername: null,
           matchReason: 'fallback' as const,
-          matchScore: 0,
         },
       ],
       importedName: 'Unknown Friend',
@@ -939,10 +927,11 @@ describe('WebImportPage', () => {
       { importedName: 'Friday Mars', playerId: 'player-1' },
       { importedName: 'Unknown Friend', playerId: 'player-new' },
     ]);
-    // The matched row carries the candidate's username/full name by default; the
-    // created row carries the identity that was created for it.
+    // The matched row's username defaults to the candidate's public display
+    // name (there is no private-username default any more); the created row
+    // carries the identity that was created for it.
     expect(JSON.parse(String(submittedFormData.get('playerIdentities')))).toEqual([
-      { fullName: 'Friday Mars', importedName: 'Friday Mars', username: 'friday-mars' },
+      { fullName: '', importedName: 'Friday Mars', username: 'Friday Mars' },
       { fullName: '', importedName: 'Unknown Friend', username: 'Unknown Friend' },
     ]);
   });
@@ -987,7 +976,7 @@ describe('WebImportPage', () => {
     const usernameInput = await screen.findByLabelText(
       /username for friday mars/i,
     );
-    expect(usernameInput).toHaveValue('friday-mars');
+    expect(usernameInput).toHaveValue('Friday Mars');
     await user.clear(usernameInput);
     await user.type(usernameInput, 'friday-2');
 
@@ -1008,7 +997,7 @@ describe('WebImportPage', () => {
       String(submittedFormData.get('playerIdentities')),
     );
     expect(submittedIdentities).toContainEqual({
-      fullName: 'Friday Mars',
+      fullName: '',
       importedName: 'Friday Mars',
       username: 'friday-2',
     });

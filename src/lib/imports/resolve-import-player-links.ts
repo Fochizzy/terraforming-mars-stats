@@ -21,12 +21,11 @@ export type ImportPlayerLinkCandidate = {
   displayName: string;
   gamesPlayed: number;
   id: string;
-  linkedFullName: string | null;
-  linkedUsername: string | null;
   /**
    * Coarse classification only. Which field produced a match is never
    * disclosed — not by the server matcher, and not by this client resolver —
-   * so review payloads carry no field-specific matching evidence.
+   * so review payloads carry no field-specific matching evidence. Array
+   * position carries the same guarantee: see `comparePublicCandidates`.
    */
   matchReason: 'exact' | 'fallback' | 'partial';
 };
@@ -35,9 +34,13 @@ export type ImportPlayerLinkCandidate = {
  * Ranking-only candidate shape used while this module is choosing and
  * ordering matches. `matchScore` is unique per matching axis (alias vs.
  * username vs. display name, exact vs. partial — see
- * `INTERNAL_MATCH_SCORES`), so it never leaves this module: serializing it
- * would hand an inspecting client the exact private field that produced the
- * match, defeating the coarsening `matchReason` exists to provide.
+ * `INTERNAL_MATCH_SCORES`), so it never leaves this module: serializing it —
+ * or even preserving the order it produces — would hand an inspecting client
+ * the exact private field that produced the match, defeating the coarsening
+ * `matchReason` exists to provide. `compareCandidates`/`scoredCandidates`
+ * below exist only to pick `selectedPlayerId`/`status`/tie behavior; the
+ * public `candidates` array handed back to callers is reordered separately by
+ * `comparePublicCandidates`, which never looks at `matchScore`.
  */
 type ScoredCandidate = ImportPlayerLinkCandidate & { matchScore: number };
 
@@ -48,10 +51,39 @@ function toPublicCandidate(
     displayName: candidate.displayName,
     gamesPlayed: candidate.gamesPlayed,
     id: candidate.id,
-    linkedFullName: candidate.linkedFullName,
-    linkedUsername: candidate.linkedUsername,
     matchReason: candidate.matchReason,
   };
+}
+
+const PUBLIC_MATCH_REASON_RANK: Record<
+  ImportPlayerLinkCandidate['matchReason'],
+  number
+> = {
+  exact: 2,
+  fallback: 0,
+  partial: 1,
+};
+
+/**
+ * Display order for the public candidate list. Ranks only by fields already
+ * authorized for the browser (coarse matchReason tier, gamesPlayed, the
+ * approved public displayName, and id as a final deterministic tie-break) —
+ * never by the private matchScore that decided *which* tier a candidate
+ * landed in. Two candidates that both coarsen to `exact` via different
+ * private axes are therefore unordered relative to each other by axis; only
+ * gamesPlayed/name/id can move one ahead of the other.
+ */
+function comparePublicCandidates(
+  left: ImportPlayerLinkCandidate,
+  right: ImportPlayerLinkCandidate,
+) {
+  return (
+    PUBLIC_MATCH_REASON_RANK[right.matchReason] -
+      PUBLIC_MATCH_REASON_RANK[left.matchReason] ||
+    right.gamesPlayed - left.gamesPlayed ||
+    left.displayName.localeCompare(right.displayName) ||
+    left.id.localeCompare(right.id)
+  );
 }
 
 export type ImportPlayerLinkMatch = {
@@ -192,8 +224,6 @@ function buildFallbackCandidate(player: ImportGroupPlayer): ScoredCandidate {
     displayName: player.displayName,
     gamesPlayed: player.gamesPlayed ?? 0,
     id: player.id,
-    linkedFullName: player.linkedFullName ?? null,
-    linkedUsername: player.linkedUsername ?? null,
     matchReason: 'fallback',
     matchScore: 0,
   };
@@ -330,8 +360,8 @@ export function resolveImportPlayerLinks(
       return {
         candidates: resolutionPlayers
           .map((player) => buildFallbackCandidate(player))
-          .sort(compareCandidates)
-          .map(toPublicCandidate),
+          .map(toPublicCandidate)
+          .sort(comparePublicCandidates),
         importedName,
         requiresConfirmation: true,
         selectedPlayerId: null,
@@ -350,8 +380,13 @@ export function resolveImportPlayerLinks(
       )
       .sort(compareCandidates);
     // The public candidate list handed to callers and, eventually, the
-    // browser — ranking evidence (matchScore) never crosses this boundary.
-    const candidates = scoredCandidates.map(toPublicCandidate);
+    // browser. Its order is independently derived by comparePublicCandidates
+    // — never inherited from scoredCandidates' order — because inheriting it
+    // would let array position stand in for the matchScore field that was
+    // just stripped out.
+    const candidates = scoredCandidates
+      .map(toPublicCandidate)
+      .sort(comparePublicCandidates);
 
     const topCandidate = scoredCandidates[0];
 

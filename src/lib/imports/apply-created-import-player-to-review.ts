@@ -5,9 +5,7 @@ export function applyCreatedImportPlayerToReview(
   input: {
     createdPlayerId: string;
     displayName: string;
-    fullName?: string | null;
     importedName: string;
-    username?: string | null;
   },
 ): ImportReviewModel {
   let didUpdate = false;
@@ -26,8 +24,6 @@ export function applyCreatedImportPlayerToReview(
           displayName: input.displayName,
           gamesPlayed: 0,
           id: input.createdPlayerId,
-          linkedFullName: input.fullName ?? null,
-          linkedUsername: input.username ?? null,
           matchReason: 'exact' as const,
         },
         ...link.candidates.filter((candidate) => candidate.id !== input.createdPlayerId),
