@@ -9,19 +9,24 @@ what.
 
 | | |
 |---|---|
-| Worker version | `eb4e5821-49b8-489d-a8c0-4e170f45adbb` |
-| Source commit | `bf081d918` |
-| Source branch | `Fochizzy/moonrakers-app/data-capture-hardening-v2` |
-| Built | 2026-07-19 13:24 UTC |
+| Worker version | `0732bd81-5933-4168-86bc-e250350ee43a` |
+| Source commit | `32c381c22` |
+| Source branch | `fix/live-42501-on-capture-v2` (off `data-capture-hardening-v2` @ `64918663a`) |
+| Built | 2026-07-20 01:47 UTC |
 | Deploy lock | Izzy |
 
-`wrangler` records no source commit (`Source: Unknown (version_upload)`), so
-`bf081d918` was identified by three independent signals: the version's
-`compatibility_date` of 2026-07-14 matches this branch's `wrangler.jsonc` and
-not `tm-stats-app`'s 2026-07-04; the branch contains `8c33bc0f2 fix: remove
-stale expansion tracking`; and the branch tip `64918663a` was committed 20
-minutes *after* the build. Record the commit yourself from now on rather than
-reconstructing it this way.
+Note that `wrangler secret put` publishes a **new version** carrying the same
+code plus the updated bindings. This deploy uploaded `219cacee`, then pinning
+`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` superseded it with `0732bd81`. Always
+re-check `wrangler deployments list` after touching secrets; the version id the
+deploy printed is not necessarily the one serving traffic.
+
+`wrangler` records no source commit (`Source: Unknown (version_upload)`), which
+is why the previous build had to be identified forensically: its
+`compatibility_date` of 2026-07-14 matched `data-capture-hardening-v2` and not
+`tm-stats-app`'s 2026-07-04, the branch contained `8c33bc0f2 fix: remove stale
+expansion tracking`, and the branch tip was committed 20 minutes after the
+build. Fill the commit in above on every deploy so nobody repeats that.
 
 ## Rules
 
@@ -45,6 +50,8 @@ reconstructing it this way.
 | 07-19 23:31 | `7f6c4017` | `369b90182` | Added alias tolerance. Still regressed. |
 | 07-20 01:16 | `ffbecea6` | `369b90182` | Clean rebuild. Still regressed. |
 | 07-20 01:27 | `eb4e5821` | `bf081d918` | Rollback to restore service. |
+| 07-20 01:47 | `219cacee` | `32c381c22` | 42501 fixes on the correct base. Superseded 30s later. |
+| 07-20 01:47 | `0732bd81` | `32c381c22` | Same code + pinned Server Actions key. **Current.** |
 
 The three regressed deploys were built on `tm-stats-app`, which predates
 migration `20260718041532 remove_game_expansion_tracking`. They threw
