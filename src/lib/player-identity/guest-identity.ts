@@ -72,10 +72,17 @@ export type ImportPlayerIdentityDraftInput = z.input<
   typeof importPlayerIdentityInputSchema
 >;
 
+// Client-facing resolution contract. It deliberately carries NO private
+// normalization output: `normalizedImportedValue` (the server's normalized
+// username/personal-name matching key) is private matching data under
+// docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md and must never
+// enter draft snapshots, hydration payloads, or any client DTO. Server-side
+// matching happens entirely inside the resolve_import_guest_identity RPC.
+// Because zod strips unknown keys, parsing a legacy snapshot that still
+// contains the retired key removes it before any client sees the value.
 export const importedPlayerResolutionSchema = z.object({
   decision: z.enum(['linked', 'reused', 'created']),
   identityMode: z.enum(['existing_player', ...GUEST_IDENTITY_MODES]),
-  normalizedImportedValue: z.string().nullable(),
   parserIdentity: z.enum([
     'manual-web-import-v1',
     'terraforming-mars-exported-log-v1',

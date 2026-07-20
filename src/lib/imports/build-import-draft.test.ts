@@ -189,7 +189,6 @@ describe('buildImportDraft', () => {
         {
           decision: 'reused',
           identityMode: 'username',
-          normalizedImportedValue: 'fridaymars',
           parserIdentity: 'manual-web-import-v1',
           selectedPlayerId: playerId,
           sourceFormat: 'manual_web_import',

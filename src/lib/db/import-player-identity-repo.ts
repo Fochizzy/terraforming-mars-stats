@@ -12,8 +12,11 @@ type RawIdentityCandidateRow = {
   public_name: string;
 };
 
+// The RPC also returns `normalized_imported_value` (the private normalized
+// matching key). It is deliberately absent from this row type: the key is
+// private personal-name data and is consumed only inside the database
+// function; the application never reads it off the wire.
 type RawResolvedGuestRow = {
-  normalized_imported_value: string;
   player_id: string;
   public_name: string;
   resolution_state:
@@ -41,6 +44,71 @@ export async function listImportPlayerIdentityCandidates(
       isLinked: player.is_linked,
       publicName: player.public_name,
     }));
+}
+
+/**
+ * Creates (or reuses, when exactly one eligible guest already matches) an
+ * unlinked guest identified by first and last name, through the same guarded
+ * SECURITY DEFINER RPC the import flow uses. The personal name is stored only
+ * in `private.player_private_identities`; `public.players.display_name`
+ * receives the neutral `Guest XXXXXXXX` label, so no personal name ever
+ * becomes a broadly readable public display value.
+ *
+ * `p_record_import_alias: false` keeps `player_import_aliases` honest: alias
+ * rows are import evidence (`source_type = 'game_log' | 'screenshot_ocr'`),
+ * and a roster or manual-entry addition is not import evidence. Future-import
+ * matching still works through the private identity row. This parameter
+ * exists only after the gated migration
+ * 20260720100000_add_guest_identity_alias_source_control is applied; the
+ * roster and manual-entry guest paths ship together with it.
+ */
+export async function createOrReuseGuestPlayerByPersonalName(input: {
+  firstName: string;
+  groupId: string;
+  lastName: string;
+}): Promise<{
+  id: string;
+  publicName: string;
+  resolutionState: 'existing_unlinked_guest' | 'newly_created_unlinked_guest';
+}> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase.rpc('resolve_import_guest_identity', {
+    p_create_new: true,
+    p_group_id: input.groupId,
+    p_guest_first_name: input.firstName,
+    p_guest_last_name: input.lastName,
+    p_guest_username: null,
+    p_identity_mode: 'personal_name',
+    p_record_import_alias: false,
+    p_selected_player_id: null,
+  });
+
+  if (error) {
+    // A missing 8-parameter signature means the gated migration has not been
+    // applied to this database. Fail with the capability gap named rather
+    // than falling back to the 7-parameter call: that fallback would record
+    // a player_import_aliases row with source_type 'game_log' for a
+    // non-import creation, which is false import evidence.
+    if (error.code === 'PGRST202' || error.code === '42883') {
+      throw new Error(
+        'Guest creation outside imports requires migration 20260720100000_add_guest_identity_alias_source_control.',
+      );
+    }
+    throw error;
+  }
+
+  const result = ((data ?? []) as RawResolvedGuestRow[])[0];
+
+  if (!result) {
+    throw new Error('The guest identity could not be created.');
+  }
+
+  return {
+    id: result.player_id,
+    publicName: result.public_name,
+    resolutionState: result.resolution_state,
+  };
 }
 
 export async function resolveImportPlayerIdentities(input: {
@@ -73,7 +141,6 @@ export async function resolveImportPlayerIdentities(input: {
       resolutions.push({
         decision: selected.isLinked ? 'linked' : 'reused',
         identityMode: 'existing_player',
-        normalizedImportedValue: null,
         parserIdentity: input.parserIdentity ?? 'manual-web-import-v1',
         selectedPlayerId: selected.id,
         sourceFormat: input.sourceFormat ?? 'manual_web_import',
@@ -120,7 +187,6 @@ export async function resolveImportPlayerIdentities(input: {
           ? 'reused'
           : 'created',
       identityMode: identity.mode,
-      normalizedImportedValue: result.normalized_imported_value,
       parserIdentity: input.parserIdentity ?? 'manual-web-import-v1',
       selectedPlayerId: result.player_id,
       sourceFormat: input.sourceFormat ?? 'manual_web_import',

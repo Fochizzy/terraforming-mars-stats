@@ -116,6 +116,20 @@ describe('getDraftGameForm', () => {
     });
     expect(loaded).not.toHaveProperty('expansionCodes');
 
+    // A legacy snapshot may still carry the retired private matching key
+    // (`normalizedImportedValue`). Resume must strip it at the parse
+    // boundary so no caller — including an unrelated group member resuming
+    // this draft — can retrieve the private value from the client form.
+    const resumedResolutions = (
+      loaded as {
+        importedPlayerResolutions: Array<Record<string, unknown>>;
+      }
+    ).importedPlayerResolutions;
+    expect(resumedResolutions[0]).not.toHaveProperty(
+      'normalizedImportedValue',
+    );
+    expect(JSON.stringify(loaded)).not.toContain('known private name');
+
     expect(gameQuery.eq).toHaveBeenCalledWith(
       'group_id',
       '11111111-1111-4111-8111-111111111111',

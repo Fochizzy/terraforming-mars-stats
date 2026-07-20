@@ -174,7 +174,6 @@ describe('import server action canonical persistence', () => {
       {
         decision: 'linked',
         identityMode: 'existing_player',
-        normalizedImportedValue: null,
         parserIdentity: 'terraforming-mars-exported-log-v1',
         selectedPlayerId: PLAYER_ID,
         sourceFormat: 'terraforming_mars_exported_log',
@@ -287,6 +286,20 @@ describe('import server action canonical persistence', () => {
       final_venus_scale: null,
       venus_next_state: 'incomplete_evidence',
     });
+
+    // --- No private normalization output in any persistence payload ---
+    // The retired `normalizedImportedValue` matching key is private
+    // personal-name data; every payload the action hands to a persistence
+    // boundary (draft snapshot, import row + confidence summary, events,
+    // expansion facts) must be free of it in both naming conventions.
+    const persistedPayloads = JSON.stringify([
+      mocks.saveDraftGame.mock.calls,
+      mocks.saveGameLogImport.mock.calls,
+      mocks.saveParsedGameLogEvents.mock.calls,
+      mocks.saveGameExpansionFacts.mock.calls,
+    ]);
+    expect(persistedPayloads).not.toContain('normalizedImportedValue');
+    expect(persistedPayloads).not.toContain('normalized_imported_value');
   });
 
   it('rejects saving when the objective setup is still unconfirmed', async () => {

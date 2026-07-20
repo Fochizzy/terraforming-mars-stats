@@ -1,10 +1,10 @@
 'use client';
 
 import { startTransition, useState } from 'react';
-import { signupFullNameSchema } from '@/features/auth/username-auth';
+import { guestPersonalNameSchema } from '@/lib/player-identity/guest-personal-name';
 
 type PlayerListProps = {
-  onAddPlayer: (displayName: string) => Promise<{
+  onAddPlayer: (input: { firstName: string; lastName: string }) => Promise<{
     status: 'success' | 'error';
     message: string;
   }>;
@@ -16,14 +16,18 @@ type PlayerListProps = {
 };
 
 export function PlayerList({ onAddPlayer, players }: PlayerListProps) {
-  const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState<{
     status: 'success' | 'error';
     text: string;
   } | null>(null);
-  const fullNameResult = signupFullNameSchema.safeParse(displayName);
-  const canAddPlayer = fullNameResult.success;
+  const personalNameResult = guestPersonalNameSchema.safeParse({
+    firstName,
+    lastName,
+  });
+  const canAddPlayer = personalNameResult.success;
 
   return (
     <section className="rounded-2xl border border-orange-900/40 bg-black/25 p-4">
@@ -32,18 +36,20 @@ export function PlayerList({ onAddPlayer, players }: PlayerListProps) {
       </h2>
       <p className="mt-2 text-sm text-stone-300">
         Add shared player records, link signed-in users when needed, and keep
-        the group roster consistent between games.
+        the group roster consistent between games. A guest&rsquo;s first and
+        last name stay private: the roster shows a neutral guest label until
+        the person registers and claims the profile.
       </p>
       <form
-        className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"
+        className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!fullNameResult.success) {
+          if (!personalNameResult.success) {
             setMessage({
               status: 'error',
               text:
-                fullNameResult.error.issues[0]?.message ??
-                'Enter a full player name in First Name Last Name format.',
+                personalNameResult.error.issues[0]?.message ??
+                'Enter both a first and last name.',
             });
             return;
           }
@@ -51,10 +57,11 @@ export function PlayerList({ onAddPlayer, players }: PlayerListProps) {
           setMessage(null);
           startTransition(async () => {
             try {
-              const result = await onAddPlayer(fullNameResult.data);
+              const result = await onAddPlayer(personalNameResult.data);
               setMessage({ status: result.status, text: result.message });
               if (result.status === 'success') {
-                setDisplayName('');
+                setFirstName('');
+                setLastName('');
               }
             } catch (error) {
               setMessage({
@@ -71,13 +78,23 @@ export function PlayerList({ onAddPlayer, players }: PlayerListProps) {
         }}
       >
         <label className="flex flex-col gap-2 text-sm">
-          <span className="font-semibold text-stone-200">Add Player Name</span>
+          <span className="font-semibold text-stone-200">First Name</span>
           <input
-            aria-label="Add Player Name"
+            aria-label="First Name"
             className="rounded-xl border border-stone-800 bg-stone-950/70 px-4 py-3 text-stone-100"
-            onChange={(event) => setDisplayName(event.target.value)}
-            placeholder="First Name Last Name"
-            value={displayName}
+            onChange={(event) => setFirstName(event.target.value)}
+            placeholder="First name"
+            value={firstName}
+          />
+        </label>
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="font-semibold text-stone-200">Last Name</span>
+          <input
+            aria-label="Last Name"
+            className="rounded-xl border border-stone-800 bg-stone-950/70 px-4 py-3 text-stone-100"
+            onChange={(event) => setLastName(event.target.value)}
+            placeholder="Last name"
+            value={lastName}
           />
         </label>
         <button

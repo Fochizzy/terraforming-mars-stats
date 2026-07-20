@@ -125,11 +125,11 @@ export async function saveGameLogImport(input: {
       confidence_summary: {
         ...(input.parseMetadata?.confidenceSummary ?? {}),
         player_identity_resolutions: (input.playerResolutions ?? []).map(
+          // No private normalization output here: normalized matching keys
+          // are private personal-name data and stay inside the server RPC.
           (resolution) => ({
             decision: resolution.decision,
             identity_mode: resolution.identityMode,
-            normalized_imported_value:
-              resolution.normalizedImportedValue,
             parser_identity: resolution.parserIdentity,
             selected_player_id: resolution.selectedPlayerId,
             source_format: resolution.sourceFormat,

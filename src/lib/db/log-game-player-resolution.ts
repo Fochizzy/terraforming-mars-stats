@@ -1,16 +1,26 @@
 import { signupFullNameSchema } from '@/features/auth/username-auth';
 import { type LogGameDraftInput } from '@/lib/validation/log-game';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
-import {
-  createPlayerIfMissing,
-  listPlayers,
-  type PlayerRow,
-} from './player-repo';
+import { createOrReuseGuestPlayerByPersonalName } from './import-player-identity-repo';
+import { listPlayers, type PlayerRow } from './player-repo';
 
 type ResolverDependencies = {
-  createPlayerIfMissing?: typeof createPlayerIfMissing;
+  createGuestPlayerByPersonalName?: typeof createOrReuseGuestPlayerByPersonalName;
   listPlayers?: typeof listPlayers;
 };
+
+/**
+ * Splits a validated "First … Last" full name into the explicit first/last
+ * components the guest-identity contract stores. The convention is
+ * deterministic — first whitespace-separated token is the first name, the
+ * remainder is the last name — and it is match-insensitive: the private
+ * matching key is the normalized concatenation, so where the split lands
+ * never changes which guest a name resolves to.
+ */
+export function splitValidatedFullName(fullName: string) {
+  const [firstName, ...rest] = fullName.split(' ');
+  return { firstName, lastName: rest.join(' ') };
+}
 
 function remapRecord<T>(record: Record<string, T>, replacements: Map<string, string>) {
   return Object.fromEntries(
@@ -69,8 +79,9 @@ export async function resolveLogGamePlayerReferences(
   dependencies: ResolverDependencies = {},
 ) {
   const listPlayersImpl = dependencies.listPlayers ?? listPlayers;
-  const createPlayerIfMissingImpl =
-    dependencies.createPlayerIfMissing ?? createPlayerIfMissing;
+  const createGuestImpl =
+    dependencies.createGuestPlayerByPersonalName ??
+    createOrReuseGuestPlayerByPersonalName;
   const roster = await listPlayersImpl(form.groupId);
   const { byId, byNormalizedName } = buildRosterMaps(roster);
   const replacements = new Map<string, string>();
@@ -103,19 +114,30 @@ export async function resolveLogGamePlayerReferences(
       continue;
     }
 
-    const created = await createPlayerIfMissingImpl({
-      displayName,
+    // A new manual reference is a first-and-last-name guest. Creation goes
+    // through the guarded guest RPC: the personal name is stored privately,
+    // public.players.display_name receives a neutral label, and an existing
+    // guest with the same normalized personal name is reused instead of
+    // duplicated. The typed name is never written to a readable column.
+    const { firstName, lastName } = splitValidatedFullName(displayName);
+    const created = await createGuestImpl({
+      firstName,
       groupId: form.groupId,
-      linkedUserId: null,
+      lastName,
     });
 
     if (resolvedPlayerIds.has(created.id)) {
       throw new Error('Selected players must be unique within a game.');
     }
 
+    const createdRow: PlayerRow = {
+      display_name: created.publicName,
+      id: created.id,
+      linked_user_id: null,
+    };
     replacements.set(reference, created.id);
     resolvedPlayerIds.add(created.id);
-    byNormalizedName.set(normalizedName, created);
+    byNormalizedName.set(normalizedName, createdRow);
   }
 
   return {
