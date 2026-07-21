@@ -373,7 +373,7 @@ function InteractionList({
           {rows.map((row) => (
             <li className="flex items-start gap-2" key={`${row.label}-${row.gamesPlayed}`}>
               <CorporationLogo
-                className="mt-0.5 h-6 w-6 shrink-0 rounded-sm"
+                className="mt-0.5 h-6 w-12 shrink-0 rounded-sm"
                 name={row.label.split(' | ')[0] ?? row.label}
                 size={24}
               />

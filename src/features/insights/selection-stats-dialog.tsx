@@ -120,7 +120,11 @@ function SelectionStatsDialog({
           </div>
         ) : kind === 'Corporation' ? (
           <div className="mt-4 flex justify-center">
-            <CorporationLogo className="h-auto max-h-[180px] w-auto" name={name} size={180} />
+            <CorporationLogo
+              className="h-auto max-h-[180px] w-auto max-w-full"
+              name={name}
+              size={180}
+            />
           </div>
         ) : null}
 
