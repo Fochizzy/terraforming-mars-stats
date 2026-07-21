@@ -1100,3 +1100,54 @@ closure audit (BLOCKED verdict). Durable decisions:
   guest RPC with private personal-name storage and neutral public labels —
   never write a false `game_log` alias row. The raw `display_name` writers
   are removed entirely.
+
+
+## Phase 7 — Leaderboard rating color bands
+
+Decided by explicit user decision in the analytics-decisions session on
+2026-07-21. Display-layer decision within the Phase 7 leaderboard cluster;
+does not authorize implementation.
+
+- Color tiers key off a player's ELO rating distance from the 1500 baseline
+  (rating − 1500), applied to whichever ELO scope is on display (quarter or
+  year). The actual rating number is always shown alongside the color; color is
+  never the only signal (honors the no-color-alone accessibility rule).
+- Bands (integer-inclusive, no gaps):
+  - delta ≤ −100 → deep red
+  - −99 to −50 → purple
+  - −49 to +49 → no color (neutral)
+  - +50 to +99 → green
+  - delta ≥ +100 → gold
+- The low and high bands are open-ended. ELO is unbounded, so ratings beyond
+  ±150 from baseline clamp into deep red or gold rather than losing color. There
+  is no ±150 rating cap; the earlier −150/+150 framing was an assumed scale
+  limit ELO does not have.
+- Deep red (not black) is the worst-tier color, so it stays legible on the app's
+  dark surface (#141a22), where a literal black fill would vanish.
+- Exact hex values for deep red, purple, green, and gold are pinned at
+  implementation and contrast-tested on the dark surface; the band boundaries
+  above are fixed regardless of final hues.
+
+## Phase 7 — Leaderboard eligibility and Confidence marker
+
+Decided by explicit user decision in the analytics-decisions session on
+2026-07-21, resolving the eligibility/minimum-history portion of the Phase 7
+cluster. Does not authorize implementation.
+
+- Every player appears on the leaderboard from their first rated game. No hidden
+  provisional period and no minimum-games gate removes anyone from the board
+  (matches the adopted AsoBrain "appear after first game" behavior).
+- A rating is provisional below 3 games and established at 3+ games, counted
+  within the displayed scope's window. Quarterly hard resets make per-quarter
+  samples thin, so many quarter ratings may stay provisional all quarter; this
+  is expected, not a defect.
+- The Confidence marker is a sample-maturity percentage = min(games / 3, 100%):
+  1 game → 33%, 2 → 67%, 3+ → 100% (Established). It plateaus at 100% at three
+  games and does not distinguish three games from many.
+- This is a sample-maturity indicator, not a statistical confidence — pure ELO
+  carries no rating-deviation term. Methodology copy must describe it as
+  progress toward an established rating, not as a probability the rating is
+  correct, so a 100% does not overclaim certainty.
+- The Win Point Differential metric ranking keeps its own separate minimum-wins
+  eligibility gate (MASTER-RULES requirement), distinct from this 3-game ELO
+  threshold; the minimum-wins value is not yet set.
