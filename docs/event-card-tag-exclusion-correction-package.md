@@ -1,8 +1,14 @@
 # Historical correction package — Event-card tag exclusion
 
-Status: **prepared and locally verified; production not mutated.** Awaiting
-explicit authorization before any migration application, backfill, or metric
-refresh against production.
+Status: **APPLIED to production on 2026-07-21 08:13:55 UTC (ledger version
+`20260721081355 fix_event_card_tag_snapshot_correction`); verification
+passed.** See the final section at the end of this document ("Production
+application result — 2026-07-21") for the completed outcome. Everything
+below this point — the design, the three review rounds, and the "production
+not mutated" / "awaiting explicit authorization" language throughout — is
+the pre-application design and review record as it stood before that
+authorization was given, and remains accurate as history; it is not rewritten
+here to read as if it were produced after application.
 
 **2026-07-21 update**: an independent, read-only production inventory found
 that the migration's target predicate itself is unchanged and still correct
@@ -1317,3 +1323,142 @@ transaction. Each is addressed on its own terms below, not waved through as
    `rebuild_metric_summaries_base`/`rebuild_additional_metric_summaries`
    across the apply window, since production has no `_rebuild_marker`
    table).
+
+**Steps 2–6 above have since been completed.** See "Production application
+result — 2026-07-21" below for the actual outcome, recorded separately from
+this plan rather than edited into it.
+
+## 10. Production application result — 2026-07-21
+
+**This section records what actually happened when this migration was
+applied. Everything above (§1–§9) is the pre-application design, review, and
+verification record, preserved as history — it is not restated or rewritten
+here.** Where a figure below differs from an earlier reading in §4 (e.g.
+§4.4's 43-game/118-player reading), that is expected drift between
+point-in-time inventories, exactly as §4.2/§4.3/§4.4 each already warned —
+not a discrepancy in the predicate logic.
+
+**Repository candidate and migration identity:**
+- Candidate commit: `ab9e11191f1f0b276b3a1dd278750a66a5742c0e`
+- Repository branch: `fix/event-card-snapshot-migration-bounded-rebuild`
+- Migration path:
+  `supabase/migrations/20260720223000_fix_event_card_tag_snapshot_correction.sql`
+- SHA-256 of that exact file's content at the candidate commit (LF line
+  endings): `2eba01204cff08c7220d1b7c2f78c02e45b1332a7f621e28c1606e9d800d48f4`
+  — independently recomputed against the candidate commit by the session
+  that wrote this section, and confirmed to match.
+
+**Ledger identity** (confirmed via `list_migrations` against Supabase project
+`qjtwgrjjwnqafbvkkfex` by the session that wrote this section):
+- Version: `20260721081355`, name `fix_event_card_tag_snapshot_correction`.
+- Immediately preceded by `20260721035955 secure_public_player_labels_service_role`.
+- Ledger row count 107 → 108, independently recounted from the full
+  `list_migrations` result.
+- The repository filename timestamp `20260720223000` is filename/identity
+  only and is **not** the ledger version — future reapplication guards must
+  key on the exact ledger name `fix_event_card_tag_snapshot_correction`, not
+  on finding remote version `20260720223000` (it will never appear under
+  that version).
+
+**Application timestamp:** 2026-07-21 08:13:55 UTC.
+
+**Convergence** (as reported by the production-application session):
+
+| | Pre-application | Post-application |
+| --- | --- | --- |
+| Targeted games | 45 | 0 |
+| Targeted resolved players | 122 | 0 |
+| Event-signal targets | 109 | 0 residual |
+| Total-mismatch targets | 99 | 0 residual |
+| Matching both signals | 86 | — |
+| Missing player snapshot rows | 13 | 0 nonzero Event-tag snapshot rows |
+| Contaminated Event-tag rows | 109 | 0 |
+| Spurious Event-tag units | 658 | 0 |
+| Unresolved / ambiguous / malformed targets | 0 / 0 / 0 | — |
+
+This is the **actual completed production result**, distinct from the
+planned/verified pre-application behavior in §2.1, §6, and §9 above: those
+sections describe what the harness proved the migration *would* do against
+disposable/local fixtures and a point-in-time production inventory; the table
+above is what the production-application session reported actually happened
+when the migration ran against live production data at the timestamp above.
+
+**Before/after table deltas** (as reported by the production-application
+session):
+
+| Table | Before | After |
+| --- | --- | --- |
+| `game_player_metric_snapshots` | 109 | 122 |
+| `game_player_tag_metric_snapshots` | 1526 | 1708 |
+| `game_milestone_metric_snapshots` | 117 | 135 |
+| `game_award_metric_snapshots` | 186 | 203 |
+
+**Root-evidence stability** (`game_log_tag_summaries`, as reported by the
+production-application session): total rows 1778 → 1778, Event rows 127 →
+127, Event value sum 0 → 0, nonzero Event rows 0 → 0, aggregate digest
+`19168d42d66bea93495f8b8ef6587abb` before and after — consistent with §2's
+design intent that this migration never writes to root.
+
+**Guarded-function restoration** (as reported by the production-application
+session), matching the neutralize/restore design in §2.1/§2.1.1 and the
+convergence checks in §7:
+- `public.rebuild_metric_summaries()`: body SHA-256
+  `1301ade233da95c487e8d9e3e9739cd3cccbfbb7e789682cf3400f94c7f9d8da`, full
+  function-definition SHA-256
+  `1c94896bfe75e52618354cf9734bd891cb2e98eb68f86ee1eec79ba2ed65eb7c`, OID
+  `19392`, ACL `{postgres=X/postgres}` — owner-only, matching §2.1.2's
+  reviewed ACL exactly. No migration-scoped no-op body survived the run.
+- `public.refresh_game_metric_snapshots_internal(uuid, boolean)`: body
+  SHA-256 `4b90d50c7353c9a035d454c31480e45bb42a22550335030b9390337c4665c65c`,
+  OID `19296`, owner and ACL unchanged.
+
+**Summary-rebuild result:** consistent with the "exactly one global rebuild"
+property proven in §2.1/§6 item 14 — the production-application session
+reported the migration's neutralize/restore strategy behaved as designed.
+This section does not independently re-derive that count from a fresh
+pre-application `pg_stat_user_functions` baseline specific to this
+production run (see "Known non-blocking evidence limitations" below).
+
+**Non-target stability** (as reported by the production-application
+session): the two unresolved non-target games identified in earlier review
+remain outside this correction and still contain zero snapshot rows across
+all four refreshed tables; no repair of those games was performed or
+authorized here.
+
+**Application-deployment distinction — no application code was deployed by
+this migration.** Worker remained `08f9191f-7b06-4fa3-88dd-b3421d3ae89f`,
+traffic remained 100%, and deployed application source remained associated
+with `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` throughout. This migration is
+a database-only change; it did not require, and was not bundled with, any
+worker deploy, parser change, card-scoring change, Venus/Colonies change,
+secret rotation, environment change, or RLS change.
+
+**Rollback:** not needed. No automatic rerun of this migration is permitted;
+any future corrective database action requires a new owner-authorized gate,
+tracked separately from this completed workstream.
+
+**Known non-blocking evidence limitations:**
+- Exactly-one-rebuild is structurally proven by the harness (§6 item 14) but
+  was not independently isolated through a fresh pre-application
+  PostgreSQL-statistics baseline captured specifically for this production
+  run.
+- Authenticated application-source confirmation (`/api/deploy-info`) was
+  carried forward from the prior deploy record rather than freshly re-fetched
+  for this migration, on the basis that the immutable worker version did not
+  change.
+- Several global summary-table dimensions increased in the before/after
+  deltas above precisely because previously-missing target snapshots (the
+  13 missing-player-snapshot-row targets) became materialized by this run —
+  expected, not a regression.
+
+**Future reapplication guard, restated for this section:** key on the exact
+ledger name `fix_event_card_tag_snapshot_correction`. Do not key on finding
+remote ledger version `20260720223000` — it is a repository filename/identity
+value only and will never appear as a ledger version. No manual ledger
+repair or alias row is required.
+
+The Event-card database workstream is complete. This section, and the
+corresponding dated entry in `DEPLOY-STATE.md`, are a documentation-only
+reconciliation of an already-applied, already-verified production migration
+— no migration, refresh, or rebuild was executed by the session that wrote
+this section.
