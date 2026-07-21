@@ -59,10 +59,64 @@ Required GitHub Actions secret:
 The public Supabase project URL is set directly in the workflow as
 `https://qjtwgrjjwnqafbvkkfex.supabase.co`.
 
+## Database migrations
+
+**The authoritative record of what is applied to production is
+[`DEPLOY-STATE.md`](../DEPLOY-STATE.md)**, at the head of the production
+branch. Record every migration there — worker version and source commit for an
+application deploy, or an explicit "database-only" note when no deploy
+accompanies it. This file is a runbook; it is not a chronological log.
+
+Against the **existing production project**, apply a migration as both a repo
+file under `supabase/migrations/` *and* via the Supabase MCP `apply_migration`.
+Do **not** use `supabase db push` there: it reconciles the whole ledger, and
+production's migration history has known drift from this repository (see
+`DEPLOY-STATE.md`). `db push` is for standing up a *new* project, as in step 2
+of Launch order below.
+
+Two things that follow from the drift, both learned the hard way:
+
+- A view's live definition may not match the repo migration that appears to
+  define it. Capture `pg_get_viewdef(...)` before replacing one, and keep that
+  capture as the rollback artifact rather than pointing at an older migration
+  file.
+- The repository filename prefix is not the ledger version. The server assigns
+  its own version at apply time, so any guard against re-running a migration
+  must key on the ledger **name**.
+
+When replacing an analytics view, keep the `security_invoker` reloption and
+re-`grant select ... to authenticated` — `create or replace view` preserves
+grants, but a drop-and-create does not.
+
+Verify role-dependent behaviour as the `authenticated` role, not through MCP:
+the service role has no `statement_timeout` and hides exactly the failures this
+matters for.
+
+```sql
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"<user-uuid>","role":"authenticated"}';
+set local statement_timeout = '8s';
+```
+
+Reproduce with the filter the application actually sends. A view can be fast
+read unfiltered and time out under the app's `where group_id = any(...)`,
+because the filter changes the plan.
+
+### Applied to production
+
+| Ledger version | Name | Deploy? |
+| --- | --- | --- |
+| `20260721193508` | `fold_player_card_outcome_context_into_definer` — folds the `analytics.player_card_outcomes` context joins into a SECURITY DEFINER function; Insights Overall shape 11,789 ms → ~300 ms, output byte-identical. Repo file `supabase/migrations/20260721194500_...`; rollback `supabase/migrations/verification/20260721194500_player_card_outcomes_prefold_rollback.sql`. | Database-only — no worker change |
+
+Earlier entries, and the full evidence for this one, are in
+[`DEPLOY-STATE.md`](../DEPLOY-STATE.md).
+
 ## Launch order
 
 1. Create the new Supabase project.
-2. Apply the repo migrations with `npx.cmd supabase db push`.
+2. Apply the repo migrations with `npx.cmd supabase db push`. This is the
+   new-project path only — see "Database migrations" above for how to change
+   the existing production project.
 3. The seed migration now loads the stable expansion, map, and style dimensions automatically when you push schema changes.
 4. Run `npm.cmd run catalog:publish` to create a catalog snapshot row and upsert the Terraforming Mars card-browser cards, corporations, preludes, tags, and promo-set links.
 5. Add the remaining corporation, prelude, promo-set, milestone, award, and card imports before inviting the first group.
