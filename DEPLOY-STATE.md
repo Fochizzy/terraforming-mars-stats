@@ -24,7 +24,7 @@ version→commit linkage.
 | Deployed (UTC) | 2026-07-21 04:21:42.798Z (`wrangler deployments list`, 100% traffic) |
 | Deploy lock | **Released — Event-card migration `20260721081355` recorded and verified. No production session currently holds the lock.** Available for the next deployment session, which must update this row before starting. |
 | Active clean deployment worktree | `C:\tmp\tm-final-ws2-event-card-42501-deploy` — no longer needed once this entry is read; candidate `2b9a5e3a5`, base `9b7a00555` (merge-base confirmed, 9 commits ahead / 0 behind, 26-file diff) |
-| DB migration ledger head | `20260721035955 secure_public_player_labels_service_role` (unchanged — no migration applied this release; Event-card snapshot migration `20260720223000` and gated migration `20260720120000` both confirmed still absent from the ledger, before and after this deploy). **Superseded 2026-07-21 08:13:55 UTC**: a separate, documentation-tracked *database migration* (no application deploy) subsequently advanced the ledger head to `20260721081355 fix_event_card_tag_snapshot_correction` — see "Event-card snapshot migration — production database correction" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration. |
+| DB migration ledger head | `20260721035955 secure_public_player_labels_service_role` (unchanged — no migration applied this release; Event-card snapshot migration `20260720223000` and gated migration `20260720120000` both confirmed still absent from the ledger, before and after this deploy). **Superseded 2026-07-21 08:13:55 UTC**: a separate, documentation-tracked *database migration* (no application deploy) subsequently advanced the ledger head to `20260721081355 fix_event_card_tag_snapshot_correction` — see "Event-card snapshot migration — production database correction" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration. **Superseded again 2026-07-21 19:35:08 UTC**: a second documentation-tracked *database migration* (no application deploy) advanced the ledger head to `20260721193508 fold_player_card_outcome_context_into_definer` — see "player_card_outcomes definer fold" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration too. |
 | Rollback worker version | `79d5b795-eb81-4962-aa5a-bfff26359a36` (immediately prior production build, 100% traffic 2026-07-21T00:15:19.080Z through this deploy; source commit `9b7a00555f216f4a741e819e8795238c362584f9`, confirmed via the prior deployment-record commit `3a8f4eb24`) |
 | Verified | 2026-07-21 ~04:20-04:30 UTC — see "Combined WS2/Event-card/42501 deploy" below for exact evidence and its gaps |
 
@@ -48,6 +48,83 @@ migration facts below — found no corroborating artifact for it anywhere in
 this repository's history; it is recorded here as reported, not as
 self-verified. The historical fact that the original 04:2x UTC deploy session
 could not perform it (see above) stands unchanged.
+
+### player_card_outcomes definer fold — production database — 2026-07-21 19:35:08 UTC
+
+**Database-only migration. No application deployment occurred** — the worker
+version, source commit, and traffic split in "Current production" above are
+unchanged. Applied under owner authorization ("Apply now") after the deploy
+lock was confirmed released. The view's column list, types, order,
+`security_invoker=true` reloption and `authenticated:SELECT` grant are all
+unchanged, so no frontend change was needed or made.
+
+**Identity:**
+- Repository migration path:
+  `supabase/migrations/20260721194500_fold_player_card_outcome_context_into_definer.sql`
+- Repository branch: `fix/player-card-outcomes-timeout` (branched from
+  `2f38b1e6a` on `fix/live-compare-data-remove-declared-style`); commit
+  `814e60210`
+- Server-assigned ledger version: `20260721193508`, name
+  `fold_player_card_outcome_context_into_definer`. As with the Event-card
+  entry, the repository filename prefix (`20260721194500`) is the filename
+  identity only and will never appear in the ledger — guard on the **name**.
+- Previous ledger head: `20260721081355 fix_event_card_tag_snapshot_correction`
+
+**What it fixes.** `analytics.player_card_outcomes` is `security_invoker`, and
+its context joins (`player_game_results`, `game_players`, `maps`, and a lateral
+over `game_player_corporations`) re-evaluated `can_read_game_player` /
+`can_read_game` / `is_group_member` per row. Read *unfiltered* the planner hides
+this behind a Memoize node (4,510 loops → 117, ~550ms), which is why the view
+looks healthy in isolation. The Insights Overall scope reads it as
+`where group_id = any(...)` (`listView` in `extended-analytics-repo.ts`); with
+that qualifier the planner abandons Memoize and pays the RLS calls per row —
+**11.8s against the 8s `statement_timeout` on `authenticated`**, so PostgREST
+returned 500 (57014) and every card-outcome Insights section rendered empty.
+This also explains why indexing `game_player_id` on the style tables changed
+nothing. The migration folds the joins into the SECURITY DEFINER function
+`analytics.player_card_outcomes_detailed_for_caller()`, so the enrichment runs
+once per distinct game player and the caller's filter applies to the function's
+result instead of rewriting its plan.
+
+**Verification (measured directly, `set local role authenticated` with
+`request.jwt.claims`, since the MCP service role has no statement timeout and
+hides the problem):**
+- Output **byte-identical** before and after, for all four production users and
+  a synthetic non-member, in both the filtered and unfiltered shapes: same row
+  counts and same md5 over all sixteen columns. Non-member returns 0 rows.
+- Post-application, live (not in a rolled-back transaction), filtered shape
+  under an enforced 8s `statement_timeout`: 4,704 rows / 929ms (cold), 4,415 /
+  327ms, 4,151 / 285ms, 2,653 / 184ms, 0 / 18ms. Pre-fold the 4,415-row case
+  was 11,789ms.
+- New function confirmed `SECURITY DEFINER`, `stable`, owner `postgres`,
+  `search_path=""`, ACL `{postgres=X/postgres,authenticated=X/postgres}` — no
+  PUBLIC/anon EXECUTE.
+
+**Deliberate non-change (worth knowing).** Running the folded query as definer
+*would* have bypassed the RLS on `public.players` that gates the
+`player_game_results` join. That gate is why user `a6149ac0` currently sees
+`style_code=unclassified` / `outcome_method=unclassified_method` /
+`pace_bucket=unknown_pace` / `player_count=null` / `map_name=Unknown map` on 95
+rows of game `b840e565` — a game they **created** but whose group
+(`256d11a3`, "Colette LeRoux / Corey Jansen / James Hodnett") they are not a
+member of, so `can_read_game` passes while the `players` rows stay invisible.
+The predicate is re-applied explicitly in the function to keep output
+identical. Note the inconsistency is pre-existing and arguably backwards: the
+player *names*, corporations, and win flags for that game are already visible
+to that user through the base definer function — only the map/pace/style/table
+-size context is withheld. Widening it is a visibility decision, deliberately
+not bundled into a performance fix.
+
+**Rollback.** Run
+`supabase/migrations/verification/20260721194500_player_card_outcomes_prefold_rollback.sql`.
+It is definition-only — no data was mutated in either direction. **Do not roll
+back by re-running `20260714134000_extend_player_card_outcome_context.sql`**:
+the definition actually live in production before the fold did not match that
+repository file (it carries an extra `when pgr.game_id is null then
+'unclassified_method'` branch, arriving through the known repo/production
+migration-history drift), so that file would silently change behaviour rather
+than restore it. The rollback file holds the exact `pg_get_viewdef` capture
+taken immediately before the change.
 
 ### Event-card snapshot migration — production database correction — 2026-07-21 08:13:55 UTC
 
