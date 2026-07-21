@@ -37,6 +37,13 @@ const CANONICAL_COLONIES = new Set([
   'luna', 'miranda', 'pluto', 'titan', 'triton', 'venus',
 ]);
 
+// Venus lines that carry a configuration or summary value rather than a game
+// action. A bare digit anywhere in the line is deliberately NOT enough to count
+// as one: that escape hatch silently swallowed real Venus raises, which carry a
+// step count, leaving no event, no evidence and no warning behind.
+const VENUS_OPTION_VALUE = /\b(?:true|false|enabled|disabled|yes|no)\b/i;
+const VENUS_SCALE_SUMMARY = /\bvenus\s+scale\s*(?:is|=|:)\s*\d+\b/i;
+
 function normalizeLine(line: string): string {
   // Some upstream exports prefix a "[timestamp]:" token; strip it for matching
   // but keep the original for evidence.
@@ -356,8 +363,10 @@ export function parseGameCapture(input: ParseGameCaptureInput): GameCaptureResul
     }
 
     // --- Venus tracker changes ------------------------------------------
+    // Upstream renders the step count as "step", "steps" or the literal
+    // "step(s)"; accept all three without broadening to arbitrary Venus prose.
     const venusStepMatch = line.match(
-      /^(.*?)\s+increased\s+venus\s+scale\s+(-?\d+)\s+step\(s\)\.?$/i,
+      /^(.*?)\s+increased\s+venus\s+scale\s+(-?\d+)\s+step(?:s|\(s\))?\.?$/i,
     );
     if (venusStepMatch) {
       const steps = Number(venusStepMatch[2]);
@@ -366,6 +375,42 @@ export function parseGameCapture(input: ParseGameCaptureInput): GameCaptureResul
       if (steps !== 0) {
         hasVenusCanonicalEvidence = true;
         const { name: actor, worldGovernment } = resolveActor(venusStepMatch[1]);
+        pushEvent({
+          amount: steps,
+          attributionStatus: actor ? 'explicit_unresolved' : 'unattributed',
+          canonicalEntityId: 'venus',
+          confidence: 'high',
+          coverageState: 'complete',
+          detail: { trackerSteps: steps, ...(worldGovernment ? { worldGovernment: true } : {}) },
+          eventCategory: 'venus',
+          eventType: 'venus_raised',
+          normalizedText: line,
+          parameterType: 'venus',
+          provenance: 'parser_derived',
+          sourceLineNumber: lineNumber,
+          sourcePlayerName: actor,
+          sourceText: rawLine,
+          valueAfter: null,
+          valueBefore: null,
+        });
+      }
+      return;
+    }
+
+    // The observed upstream wording for an asteroid-funded raise. Bound to this
+    // exact sentence shape: the actor is whatever precedes "removed an asteroid
+    // resource", and only an unsigned step count is accepted. Splitting at the
+    // first action verb instead would store the action clause as a player name.
+    const venusAsteroidRaiseMatch = line.match(
+      /^(.*?)\s+removed\s+an\s+asteroid\s+resource\s+to\s+increase\s+venus\s+scale\s+(\d+)\s+step(?:s|\(s\))?\.?$/i,
+    );
+    if (venusAsteroidRaiseMatch) {
+      const steps = Number(venusAsteroidRaiseMatch[2]);
+      recognizedLines += 1;
+      actionLineCount += 1;
+      if (steps !== 0) {
+        hasVenusCanonicalEvidence = true;
+        const { name: actor, worldGovernment } = resolveActor(venusAsteroidRaiseMatch[1]);
         pushEvent({
           amount: steps,
           attributionStatus: actor ? 'explicit_unresolved' : 'unattributed',
@@ -422,7 +467,10 @@ export function parseGameCapture(input: ParseGameCaptureInput): GameCaptureResul
 
     if (/\bvenus\s+(?:next|scale|tracker|global\s+parameter|option|extension)\b/i.test(line)) {
       recognizedLines += 1;
-      if (!/(?:true|false|enabled|disabled|yes|no|\d+)/i.test(line)) {
+      // Only an option value or an explicit scale summary counts as a
+      // recognized non-action form. Anything else referencing a Venus mechanic
+      // is unsupported wording and must be surfaced, digits or not.
+      if (!VENUS_OPTION_VALUE.test(line) && !VENUS_SCALE_SUMMARY.test(line)) {
         hasUnsupportedVenusEvidence = true;
         unsupportedLineCount += 1;
         unsupported.push({

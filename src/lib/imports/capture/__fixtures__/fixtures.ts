@@ -1,14 +1,18 @@
 // Sanitized capture fixtures.
 //
-// Provenance and privacy: the 42 retained production exports were inspected
-// read-only to learn the exact upstream line grammar (e.g. "<player> placed
-// <tile> tile at NN", "<player> played <cost> <card>", "Generation N",
-// "<player> passed", World Government global-parameter lines). None of the
-// retained production exports contain Venus Next or Colonies gameplay, so those
-// scenarios are necessarily synthetic. Every fixture below is format-faithful
-// but fully sanitized: fictional player names (Ada/Bruno/Cira/Deb), no real
-// player names, and no production identifiers or UUIDs. Each fixture records
-// its source, export shape, and expected canonical result.
+// Provenance and privacy: retained production exports were inspected read-only
+// to learn the exact upstream line grammar (e.g. "<player> placed <tile> tile at
+// NN", "<player> played <cost> <card>", "Generation N", "<player> passed",
+// World Government global-parameter lines, and the Venus scale raise wording).
+// An earlier revision of this header claimed that no retained production export
+// contained Venus gameplay; that was wrong. At least one retained export does
+// record Venus scale raises, so the Venus wording below is modelled on observed
+// upstream phrasing rather than invented. No Colonies gameplay has been observed
+// in a retained export, so those scenarios remain wholly invented. Every fixture
+// below is format-faithful but fully sanitized: fictional player names
+// (Ada/Bruno/Cira/Deb), no real player names, and no production identifiers or
+// UUIDs. Each fixture records its source, export shape, and expected canonical
+// result.
 
 export type CaptureFixture = {
   expected: {
@@ -116,6 +120,36 @@ const ROW_POSITION_BOARD = [
   'Ada passed',
 ].join('\n');
 
+// Venus raises in the observed upstream "removed an asteroid resource to
+// increase Venus scale N step" wording, with no Venus option line and no
+// terminal Venus scale summary. This is the shape that previously produced zero
+// Venus events, because the raise wording matched no typed pattern and the
+// generic Venus branch suppressed the evidence on account of the step digit.
+const VENUS_ASTEROID_RAISES = [
+  'Generation 1',
+  'Ada played 16 Psyche',
+  'Ada removed an asteroid resource to increase Venus scale 1 step',
+  'Bruno played 12 Research Outpost',
+  'Bruno removed an asteroid resource to increase Venus scale 1 step',
+  'Ada placed city tile at 19',
+  'Ada removed an asteroid resource to increase Venus scale 1 step',
+  'Ada passed',
+  'Bruno passed',
+  'Generation 2',
+  'Bruno removed an asteroid resource to increase Venus scale 1 step',
+  'Ada removed an asteroid resource to increase Venus scale 1 step',
+  'Bruno placed greenery tile at 20',
+  'Bruno removed an asteroid resource to increase Venus scale 1 step',
+  'Ada removed an asteroid resource to increase Venus scale 1 step',
+  'Bruno passed',
+  'Ada passed',
+  'Generation 3',
+  'Ada removed an asteroid resource to increase Venus scale 1 step',
+  'Cira acted as World Government and removed an asteroid resource to increase Venus scale 1 step',
+  'Ada passed',
+  'Bruno passed',
+].join('\n');
+
 // Unsupported Venus wording that must be retained, not silently dropped or
 // treated as authoritative absence.
 const UNSUPPORTED_VENUS_WORDING = [
@@ -158,7 +192,7 @@ export const captureFixtures: CaptureFixture[] = [
     exportDate: '2026-07-18',
     id: 'venus_only',
     log: VENUS_ONLY,
-    sanitization: 'fictional names; synthetic Venus content (no production export contains Venus)',
+    sanitization: 'fictional names; Venus content reproduced in sanitized form from observed upstream wording',
     scenario: 'Venus only, attributed + unattributed raises, final scale',
     source: 'synthetic-format-faithful',
     upstreamVersion: 'tfm-web-log',
@@ -205,6 +239,24 @@ export const captureFixtures: CaptureFixture[] = [
     log: ROW_POSITION_BOARD,
     sanitization: 'fictional names; synthetic row/position placements',
     scenario: 'Row/position board format + off-reserve ocean',
+    source: 'synthetic-format-faithful',
+    upstreamVersion: 'tfm-web-log',
+  },
+  {
+    expected: {
+      coloniesState: 'confirmed_absent',
+      finalVenusScale: null,
+      notableEventTypes: [
+        'venus_raised', 'card_played', 'tile_placed', 'generation_started',
+        'player_passed',
+      ],
+      venusState: 'confirmed_present',
+    },
+    exportDate: '2026-07-21',
+    id: 'venus_asteroid_raises',
+    log: VENUS_ASTEROID_RAISES,
+    sanitization: 'fictional names; observed upstream Venus raise wording, no real names or ids',
+    scenario: 'Venus raises via asteroid removal; no option line, no terminal scale',
     source: 'synthetic-format-faithful',
     upstreamVersion: 'tfm-web-log',
   },
