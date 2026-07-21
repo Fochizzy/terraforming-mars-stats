@@ -13,6 +13,7 @@ import {
   mergePlayerStylePerformance,
   mergeStyleAgreement,
 } from '@/lib/db/overall-analytics-aggregators';
+import { loadOverallViewOrEmpty } from '@/lib/db/overall-analytics-degradation';
 import {
   buildAnalyticsPlayerLabelMap,
   fetchPublicPlayerLabels,
@@ -6236,12 +6237,12 @@ export async function getOverallGroupAnalytics(
     lineupRaw,
     styleAgreementRaw,
   ] = await Promise.all([
-    fetchRows('group_style_performance'),
-    fetchRows('player_style_performance'),
-    fetchRows('group_interactions'),
-    fetchRows('player_interactions'),
-    fetchRows('lineup_effects'),
-    fetchRows('style_agreement'),
+    loadOverallViewOrEmpty('group_style_performance', fetchRows('group_style_performance')),
+    loadOverallViewOrEmpty('player_style_performance', fetchRows('player_style_performance')),
+    loadOverallViewOrEmpty('group_interactions', fetchRows('group_interactions')),
+    loadOverallViewOrEmpty('player_interactions', fetchRows('player_interactions')),
+    loadOverallViewOrEmpty('lineup_effects', fetchRows('lineup_effects')),
+    loadOverallViewOrEmpty('style_agreement', fetchRows('style_agreement')),
   ]);
 
   const lineupRows = lineupRaw as RawLineupEffectRow[];

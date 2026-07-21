@@ -1,6 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { listImportedCardAndTagOutcomes } from './extended-analytics-repo';
+import {
+  getOverallExtendedAnalytics,
+  listImportedCardAndTagOutcomes,
+} from './extended-analytics-repo';
 
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: vi.fn(),
@@ -140,5 +143,107 @@ describe('listImportedCardAndTagOutcomes', () => {
         tagCount: 1,
       }),
     ]);
+  });
+});
+
+/**
+ * Overall scope reads twenty-odd analytics views for one render. A single
+ * failing view used to reject the shared Promise.all, which discarded every
+ * other view's rows and blanked the entire scope — Tag profiles and Preferred
+ * corporations included, even though their own views had returned data.
+ */
+describe('getOverallExtendedAnalytics', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function mockAnalyticsViews(responseFor: (table: string) => unknown) {
+    const query = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      for (const method of ['select', 'in', 'eq', 'gt', 'order']) {
+        chain[method] = () => chain;
+      }
+      chain.then = (
+        resolve: (value: unknown) => unknown,
+        reject: (reason: unknown) => unknown,
+      ) => Promise.resolve(responseFor(table)).then(resolve, reject);
+      return chain;
+    };
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      from: (table: string) => query(table),
+      rpc: async () => ({ data: [], error: null }),
+      schema: () => ({ from: (table: string) => query(table) }),
+    } as never);
+  }
+
+  it('keeps the views that loaded when one view times out', async () => {
+    const timeout = {
+      code: '57014',
+      message: 'canceling statement due to statement timeout',
+    };
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    mockAnalyticsViews((table) => {
+      if (table === 'player_card_outcomes') {
+        return { data: null, error: timeout };
+      }
+
+      if (table === 'player_tag_outcomes') {
+        return {
+          data: [
+            {
+              corporation_id: 'corp-1',
+              corporation_name: 'Helion',
+              game_id: 'game-1',
+              group_id: 'group-1',
+              is_winner: true,
+              played_on: '2026-07-01',
+              player_id: 'player-1',
+              player_name: 'Friday Mars',
+              tag_code: 'space',
+              tag_count: 4,
+              total_points: 80,
+            },
+          ],
+          error: null,
+        };
+      }
+
+      if (table === 'player_placement_distribution') {
+        return {
+          data: [
+            {
+              games_played: 3,
+              group_id: 'group-1',
+              placement: 1,
+              player_id: 'player-1',
+              player_name: 'Friday Mars',
+            },
+          ],
+          error: null,
+        };
+      }
+
+      return { data: [], error: null };
+    });
+
+    const extended = await getOverallExtendedAnalytics(
+      ['group-1'],
+      (playerId) => ({ canonicalId: `user:${playerId}`, displayName: 'Friday Mars' }),
+      3,
+    );
+
+    expect(extended.tagOutcomeRows).toEqual([
+      expect.objectContaining({ playerId: 'user:player-1', tagCode: 'space', tagCount: 4 }),
+    ]);
+    expect(extended.placementDistributionRows).toEqual([
+      expect.objectContaining({ gamesPlayed: 3, placement: 1 }),
+    ]);
+    expect(extended.cardOutcomeRows).toEqual([]);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('player_card_outcomes'),
+      timeout,
+    );
   });
 });

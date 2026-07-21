@@ -16,6 +16,7 @@ import {
   remapTagOutcomes,
   remapTilePlacements,
 } from '@/lib/db/overall-analytics-aggregators';
+import { loadOverallViewOrEmpty } from '@/lib/db/overall-analytics-degradation';
 import { resolvePlayerLabelsInRows } from '@/lib/db/player-label-resolution';
 import { countableCardTags } from '@/lib/imports/countable-card-tags';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -1466,80 +1467,125 @@ export async function getOverallExtendedAnalytics(
     tagOutcomeRaw,
     cardOutcomeRaw,
   ] = await Promise.all([
-    listView<RawPlacementDistributionRow, PlacementDistributionRow>(
+    loadOverallViewOrEmpty(
       'player_placement_distribution',
-      groupIds,
-      mapPlacementDistributionRow,
+      listView<RawPlacementDistributionRow, PlacementDistributionRow>(
+        'player_placement_distribution',
+        groupIds,
+        mapPlacementDistributionRow,
+      ),
     ),
-    listView<RawPlayerCountPerformanceRow, PlayerCountPerformanceRow>(
+    loadOverallViewOrEmpty(
       'player_count_performance',
-      groupIds,
-      mapPlayerCountPerformanceRow,
+      listView<RawPlayerCountPerformanceRow, PlayerCountPerformanceRow>(
+        'player_count_performance',
+        groupIds,
+        mapPlayerCountPerformanceRow,
+      ),
     ),
-    listView<RawGenerationDistributionRow, GenerationDistributionRow>(
+    loadOverallViewOrEmpty(
       'group_generation_distribution',
-      groupIds,
-      mapGenerationDistributionRow,
+      listView<RawGenerationDistributionRow, GenerationDistributionRow>(
+        'group_generation_distribution',
+        groupIds,
+        mapGenerationDistributionRow,
+      ),
     ),
-    listView<RawGameLengthPerformanceRow, GameLengthPerformanceRow>(
+    loadOverallViewOrEmpty(
       'player_game_length_performance',
-      groupIds,
-      mapGameLengthPerformanceRow,
+      listView<RawGameLengthPerformanceRow, GameLengthPerformanceRow>(
+        'player_game_length_performance',
+        groupIds,
+        mapGameLengthPerformanceRow,
+      ),
     ),
-    listView<RawGroupMapPerformanceRow, GroupMapPerformanceRow>(
+    loadOverallViewOrEmpty(
       'group_map_performance',
-      groupIds,
-      mapGroupMapPerformanceRow,
+      listView<RawGroupMapPerformanceRow, GroupMapPerformanceRow>(
+        'group_map_performance',
+        groupIds,
+        mapGroupMapPerformanceRow,
+      ),
     ),
-    listView<RawPlayerMapPerformanceRow, PlayerMapPerformanceRow>(
+    loadOverallViewOrEmpty(
       'player_map_performance',
-      groupIds,
-      mapPlayerMapPerformanceRow,
+      listView<RawPlayerMapPerformanceRow, PlayerMapPerformanceRow>(
+        'player_map_performance',
+        groupIds,
+        mapPlayerMapPerformanceRow,
+      ),
     ),
-    listView<RawMilestoneEconomicsRow, MilestoneEconomicsRow>(
+    loadOverallViewOrEmpty(
       'group_milestone_economics',
-      groupIds,
-      mapMilestoneEconomicsRow,
+      listView<RawMilestoneEconomicsRow, MilestoneEconomicsRow>(
+        'group_milestone_economics',
+        groupIds,
+        mapMilestoneEconomicsRow,
+      ),
     ),
-    listView<RawPlayerMilestoneClaimRow, PlayerMilestoneClaimRow>(
+    loadOverallViewOrEmpty(
       'player_milestone_claims',
-      groupIds,
-      mapPlayerMilestoneClaimRow,
+      listView<RawPlayerMilestoneClaimRow, PlayerMilestoneClaimRow>(
+        'player_milestone_claims',
+        groupIds,
+        mapPlayerMilestoneClaimRow,
+      ),
     ),
-    listView<RawAwardOutcomeRow, AwardOutcomeRow>(
+    loadOverallViewOrEmpty(
       'group_award_outcomes',
-      groupIds,
-      mapAwardOutcomeRow,
+      listView<RawAwardOutcomeRow, AwardOutcomeRow>(
+        'group_award_outcomes',
+        groupIds,
+        mapAwardOutcomeRow,
+      ),
     ),
-    listView<RawPlayerAwardFundingOutcomeRow, PlayerAwardFundingOutcomeRow>(
+    loadOverallViewOrEmpty(
       'player_award_funding_outcomes',
-      groupIds,
-      mapPlayerAwardFundingOutcomeRow,
+      listView<RawPlayerAwardFundingOutcomeRow, PlayerAwardFundingOutcomeRow>(
+        'player_award_funding_outcomes',
+        groupIds,
+        mapPlayerAwardFundingOutcomeRow,
+      ),
     ),
-    listView<RawAwardFunderWinnerRow, AwardFunderWinnerRow>(
+    loadOverallViewOrEmpty(
       'award_funder_winner_matrix',
-      groupIds,
-      mapAwardFunderWinnerRow,
+      listView<RawAwardFunderWinnerRow, AwardFunderWinnerRow>(
+        'award_funder_winner_matrix',
+        groupIds,
+        mapAwardFunderWinnerRow,
+      ),
     ),
-    listView<RawGenerationPaceRow, GenerationPaceRow>(
+    loadOverallViewOrEmpty(
       'game_generation_pace',
-      groupIds,
-      mapGenerationPaceRow,
+      listView<RawGenerationPaceRow, GenerationPaceRow>(
+        'game_generation_pace',
+        groupIds,
+        mapGenerationPaceRow,
+      ),
     ),
-    listView<RawTilePlacementRow, TilePlacementRow>(
+    loadOverallViewOrEmpty(
       'game_tile_placements',
-      groupIds,
-      mapTilePlacementRow,
+      listView<RawTilePlacementRow, TilePlacementRow>(
+        'game_tile_placements',
+        groupIds,
+        mapTilePlacementRow,
+      ),
     ),
-    listView<RawTagOutcomeRow, TagOutcomeRow>(
+    loadOverallViewOrEmpty(
       'player_tag_outcomes',
-      groupIds,
-      mapTagOutcomeRow,
+      listView<RawTagOutcomeRow, TagOutcomeRow>(
+        'player_tag_outcomes',
+        groupIds,
+        mapTagOutcomeRow,
+      ),
     ),
-    listView<RawCardOutcomeRow, CardOutcomeRow>(
+    loadOverallViewOrEmpty(
       'player_card_outcomes',
-      groupIds,
-      mapCardOutcomeRow,
+      listView<RawCardOutcomeRow, CardOutcomeRow>(
+        'player_card_outcomes',
+        groupIds,
+        mapCardOutcomeRow,
+      ),
     ),
   ]);
   const importedOutcomes =
