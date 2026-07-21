@@ -15,6 +15,13 @@ recorded below. The count and head are pinned in
 `PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that disagrees fails
 rather than silently overwriting.
 
+**Re-attested read-only later on 2026-07-21** for the claim-RPC grant
+reconciliation: still 110 entries, still head `20260721201734`, and the snapshot
+in `PRODUCTION_LEDGER_VERSIONS` is an exact set match. No entry was added or
+removed. What changed is a *classification*, not the ledger:
+`20260720221937 grant_authenticated_claim_rpc_execute` moved from production-only
+to renamed drift, because its file is now carried here as `20260720190000`.
+
 ## What the gate enforces
 
 The drift test runs in **both** directions, and the two directions catch
@@ -49,6 +56,52 @@ are recorded under the **apply-time timestamp**, not the filename timestamp.
 The SQL was verified byte-identical at application time; only the version
 label differs. This is expected drift, now documented rather than implicit.
 
+### The one deliberate byte-divergence
+
+`20260718050924_claimable_guest_identity_privacy` is the single exception, and
+it is intentional rather than drift. As applied (ledger `20260718181600`) it
+ended with six revokes of EXECUTE on `list_claimable_player_profiles()` and
+`claim_player_profile(uuid)` from `public`, `anon` and `authenticated`, written
+when registration-time claiming was still deferred. Production then restored
+that grant — ledger `20260720221937 grant_authenticated_claim_rpc_execute` — so
+replaying the file as applied left the claim RPCs unreachable for every
+signed-in caller, and a clean-baseline replay of this directory reproduced a
+state production has not been in since 2026-07-20.
+
+Those six lines are removed from the repo file, and nothing else in it changed.
+The file itself carries the reasoning at that position. Two facts keep this
+honest rather than convenient:
+
+- The ledger #106 hardening (`20260721201734`, repo file `20260721173000`)
+  changed what those functions **disclose and accept**, never **who may call
+  them**. It creates, drops and grants nothing. It does not make the revoke
+  safe; the dimensions are orthogonal.
+- The file never touched `claim_player_profiles_by_name()`. Replaying the
+  revoke therefore disabled the explicitly confirmed, per-profile claim path
+  required by `GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` while leaving the
+  unconfirmed bulk auto-link path callable — a net privacy regression.
+
+`supabase/tests/claimable-guest-identity-privacy-migration.test.ts` pins the
+absence of those revokes, so the block cannot silently return.
+
+### `20260718050924` is not gated, and must never be applied
+
+It is recorded here as renamed drift, and `GATED_UNAPPLIED` does not contain
+it. Earlier records — including `DEPLOY-STATE.md` — describe it as a "gated"
+migration awaiting reconciliation. That is wrong: only its *version string* is
+absent from the ledger; its *content* is applied, as `20260718181600`.
+
+Applying the file to production is never correct. It would abort on `42P07`
+(its unguarded index names already exist) **after** executing
+`create table public.player_private_identities` — the Data-API-exposed table of
+guest first names, last names and normalized personal names that
+`20260718212339` (ledger `20260719191911`) moved into the `private` schema —
+and it would revert the hardened definer functions installed by
+`20260719191911` and `20260721035955`. Its non-idempotency is a **safety
+property**, documented in the file: guarding those statements would let an
+accidental `db push` succeed instead of aborting. No `if not exists` guard may
+be added to it, and the migration test pins that too.
+
 ## Classifications
 
 ### Applied, same version (repo-native)
@@ -71,6 +124,7 @@ skips them by version.
 | `20260719223000_isolate_player_personal_names_from_data_api` | `20260719203944` | isolate_player_personal_names_from_data_api |
 | `20260719223500_enable_rls_on_player_legacy_identities` | `20260719204250` | enable_rls_on_player_legacy_identities |
 | `20260719230000_security_invoker_on_import_integrity_audit` | `20260719205420` | security_invoker_on_import_integrity_audit |
+| `20260720190000_grant_authenticated_claim_rpc_execute` | `20260720221937` | grant_authenticated_claim_rpc_execute |
 | `20260721173000_harden_claim_rpc_privacy` | `20260721201734` | harden_claim_rpc_privacy |
 
 These files must **never** be renamed to their ledger versions casually and
@@ -95,6 +149,17 @@ production, but the definitions this lineage recorded for the three claim RPCs
 were still the pre-fix, vulnerable ones. A redesign deploy or `db diff` taken
 against that stale record could have reintroduced the enumeration oracle and
 silently reverted production.
+
+**The B-05 grant row is name-keyed for the same reason**, and carried for a
+parallel one. `apply_migration` stamped `20260720221937` over the filename
+version `20260720190000`; `grant_authenticated_claim_rpc_execute` is the only
+key common to the file and the ledger entry. Before it was carried, no file on
+this branch restored the `authenticated` EXECUTE that `20260718050924` revoked
+— `20260706190000_add_saved_player_claim_functions` grants nothing at all, and
+the #106 hardening grants nothing either — so a clean-baseline replay of this
+directory ended with the claim RPCs unreachable for every signed-in caller,
+which is not the state production is in. Carrying it, together with removing
+the revoke block, is what closes that gap.
 
 ### Applied under an unconfirmed `remote_only` version
 
@@ -136,20 +201,19 @@ production-only with no repo file. The gated repo file
 function rather than creating it.
 
 Every ledger version in this category is now registered explicitly in
-`PRODUCTION_ONLY_LEDGER_VERSIONS` (69 entries), which is what makes the
+`PRODUCTION_ONLY_LEDGER_VERSIONS` (68 entries), which is what makes the
 ledger → repo direction complete. Most are remote-only history whose migration
 *names* were never captured, so no name is asserted for them; the entries whose
 identity is attested carry provenance in `PRODUCTION_ONLY_ENTRY_PROVENANCE`.
 
 ### Applied from another branch (2026-07-20 → 2026-07-21)
 
-Four entries were added to the ledger after the 2026-07-20 snapshot and still
+Three entries were added to the ledger after the 2026-07-20 snapshot and still
 have no file on this branch; each was applied from another branch under a
 renamed ledger version.
 
 | Ledger version | Ledger name | Source file (other branch) | Branch |
 | --- | --- | --- | --- |
-| `20260720221937` | grant_authenticated_claim_rpc_execute | `20260720190000_grant_authenticated_claim_rpc_execute.sql` | `b11cae71b` (`fix/b05-claim-rpc-authenticated-grants`) |
 | `20260721035955` | secure_public_player_labels_service_role | `20260721013000_secure_public_player_labels_service_role.sql` | `origin/fix/public-player-label-service-role-boundary` |
 | `20260721081355` | fix_event_card_tag_snapshot_correction | `20260720223000_fix_event_card_tag_snapshot_correction.sql` | `origin/fix/event-card-snapshot-migration-bounded-rebuild` |
 | `20260721193508` | fold_player_card_outcome_context_into_definer | `20260721194500_fold_player_card_outcome_context_into_definer.sql` | `814e60210` (`fix/live-compare-data-remove-declared-style`) |
@@ -158,12 +222,14 @@ The last row is the `player_card_outcomes` timeout remediation. Note that its
 ledger version *precedes* its filename version — the reason renamed applications
 are paired by name rather than by timestamp order.
 
-The fifth 2026-07-21 addition, `20260721201734 harden_claim_rpc_privacy`, was
-also applied from another branch but is **not** listed here: its file is now
-carried on this branch as `20260721173000`, so it is renamed drift with a
-declared hazard class rather than a production-only entry.
+Two further entries from this window are **not** listed here, because their
+files are now carried on this branch and they are therefore renamed drift with
+declared hazard classes rather than production-only entries:
+`20260720221937 grant_authenticated_claim_rpc_execute` (carried as
+`20260720190000`) and `20260721201734 harden_claim_rpc_privacy` (carried as
+`20260721173000`).
 
-Because the four files above are not on this branch they carry no hazard class
+Because the three files above are not on this branch they carry no hazard class
 here.
 Hazard class is declared per **file present on this branch**; if one of these
 files is ever brought over it must gain a declaration at that point. Until
@@ -201,7 +267,7 @@ the SQL alone does not record. A file with no declaration fails as
   reconciliations, comments, no-op history placeholders.
 
 Where a file mixes hazards, the strongest present wins. Current declarations:
-**14 contraction, 28 expansion, 8 neutral** (50 files).
+**14 contraction, 29 expansion, 8 neutral** (51 files).
 
 ### Contractions
 
@@ -211,7 +277,7 @@ Where a file mixes hazards, the strongest present wins. Current declarations:
 | `20260715032000_prevent_future_game_log_backfills` | triggers reject writes the deployed contract accepted |
 | `20260715113501_restore_ocr_confirmation_function` | revokes PUBLIC/anon execute on the already-deployed confirmation function |
 | `20260718041532_remove_game_expansion_tracking` | drops `game_expansions`, `group_default_expansions`, `expansions` |
-| `20260718050924_claimable_guest_identity_privacy` | revokes on pre-existing functions and the `private` schema; drops alias constraints |
+| `20260718050924_claimable_guest_identity_privacy` | revokes on pre-existing functions and the `private` schema; drops alias constraints; drops two `domain_text_aliases` read policies and replaces them with a narrower one. Still a contraction after the claim-RPC revokes were removed — none of those other narrowings changed |
 | `20260718212339_remediate_guest_identity_privacy_boundary` | drops member-read policies on private identities; revokes execute on a pre-existing function |
 | `20260718212340_harden_game_log_event_contract` | tightens CHECKs on the deployed `game_log_events` contract |
 | `20260719223000_isolate_player_personal_names_from_data_api` | the Data API revokes that broke the deployed frontend on 2026-07-19 |
@@ -232,9 +298,18 @@ result. It creates, drops and grants nothing: `authenticated` keeps EXECUTE on
 all three functions (ledger `20260720221937`), and the live claim flow depends
 on that. The narrowing is entirely in what the bodies disclose and accept.
 
-Two declarations deserve their reasoning stated, because the raw SQL reads the
-other way:
+Three declarations deserve their reasoning stated, because the raw SQL reads
+the other way:
 
+- `20260720190000_grant_authenticated_claim_rpc_execute` contains four `REVOKE`
+  statements, and is still an `expansion`. What it revokes is the implicit
+  `PUBLIC` EXECUTE that `CREATE FUNCTION` grants by default (plus `anon` on
+  `claim_player_profiles_by_name()`), and it grants explicit EXECUTE to
+  `authenticated` on all three claim RPCs in the same file. No deployed reader
+  was written against the `PUBLIC` grant, and the functions' own
+  `auth.uid() is null` gate already rejected anonymous callers, so nothing is
+  stranded: every real signed-in caller gains access rather than losing it.
+  Declared `expansion`.
 - `20260720100000_add_guest_identity_alias_source_control` **drops** the
   deployed 7-argument `resolve_import_guest_identity` signature, but creates an
   8-argument superset whose new parameter defaults to the previous behaviour,

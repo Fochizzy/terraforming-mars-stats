@@ -86,7 +86,10 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   // 20260720120000 coarsens its disclosed match classification.
   '20260720021300',
   // Added between the 2026-07-20 and 2026-07-21 attestations, all applied
-  // from other branches. See PRODUCTION_ONLY_ENTRY_PROVENANCE.
+  // from other branches. 20260720221937 is the ledger record of the claim-RPC
+  // grant whose file this branch now carries as 20260720190000
+  // (APPLIED_UNDER_DIFFERENT_LEDGER_VERSION); the other two have no file here
+  // and are registered in PRODUCTION_ONLY_ENTRY_PROVENANCE.
   '20260720221937', '20260721035955', '20260721081355',
   // Added between the two 2026-07-21 attestations, both applied from the
   // live-site lineage. 20260721193508 has no file on this branch
@@ -100,6 +103,16 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
  * Repo files applied to production under a DIFFERENT ledger version
  * (apply_migration stamped the apply-time version; SQL verified
  * byte-identical at application time). Filename version → ledger version.
+ *
+ * ONE deliberate exception, recorded so it is never mistaken for drift:
+ * 20260718050924 no longer matches the SQL applied as 20260718181600. Its
+ * six revokes of EXECUTE on list_claimable_player_profiles() and
+ * claim_player_profile(uuid) were removed, because production restored that
+ * grant afterwards (ledger 20260720221937) and replaying the revoke left the
+ * claim RPCs unreachable for every signed-in caller. The divergence is
+ * confined to that block, is explained in the file itself, and is what makes
+ * a clean-baseline replay reproduce production's ACL. See
+ * docs/redesign/reference/MIGRATION-LEDGER-MAP.md.
  */
 export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION: Readonly<
   Record<string, string>
@@ -113,6 +126,14 @@ export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION: Readonly<
   '20260719223000': '20260719203944',
   '20260719223500': '20260719204250',
   '20260719230000': '20260719205420',
+  // B-05 claim-RPC grant. Applied from the live-site branch
+  // fix/b05-claim-rpc-authenticated-grants (b11cae71b); the apply tool stamped
+  // the UTC apply time (20260720221937) over the filename version
+  // (20260720190000). Carried onto this branch so a clean-baseline replay
+  // reproduces production's explicit `authenticated` EXECUTE on the claim RPCs
+  // instead of leaving them unreachable. Pairing is by NAME — see
+  // APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME.
+  '20260720190000': '20260720221937',
   // Ledger #106. Applied from the live-site branch
   // fix/106-claim-rpc-privacy-remediation; the Supabase apply tool stamped the
   // UTC apply time (20260721201734) over the filename version (20260721173000).
@@ -144,6 +165,10 @@ export interface NameKeyedRenamedApply {
 export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME: Readonly<
   Record<string, NameKeyedRenamedApply>
 > = {
+  grant_authenticated_claim_rpc_execute: {
+    fileVersion: '20260720190000',
+    ledgerVersion: '20260720221937',
+  },
   harden_claim_rpc_privacy: {
     fileVersion: '20260721173000',
     ledgerVersion: '20260721201734',
@@ -224,8 +249,10 @@ export const PRODUCTION_ONLY_LEDGER_VERSIONS: readonly string[] = [
   '20260716043235', '20260716054430', '20260717020330', '20260717020622',
   '20260717022105', '20260717031053', '20260717032629',
   // Attested identities; see PRODUCTION_ONLY_ENTRY_PROVENANCE.
+  // 20260720221937 was registered here until its file (20260720190000) was
+  // carried onto this branch; it is now a renamed-drift target instead.
   '20260718212722', '20260718234835', '20260719132042', '20260720021300',
-  '20260720221937', '20260721035955', '20260721081355', '20260721193508',
+  '20260721035955', '20260721081355', '20260721193508',
 ];
 
 export interface ProductionOnlyProvenance {
@@ -283,13 +310,6 @@ export const PRODUCTION_ONLY_ENTRY_PROVENANCE: Readonly<
     sourceFileName: null,
     sourceRef: null,
     note: 'Created the SECURITY DEFINER RPC public.match_import_player_names. Gated repo file 20260720120000 coarsens its disclosed classification and is therefore a REPLACE of this deployed predecessor, not a CREATE.',
-  },
-  '20260720221937': {
-    name: 'grant_authenticated_claim_rpc_execute',
-    sourceFileVersion: '20260720190000',
-    sourceFileName: '20260720190000_grant_authenticated_claim_rpc_execute.sql',
-    sourceRef: 'b11cae71b (fix/b05-claim-rpc-authenticated-grants)',
-    note: 'Privilege GRANT. Applied under a renamed ledger version; the filename version differs from the ledger version.',
   },
   '20260721035955': {
     name: 'secure_public_player_labels_service_role',
@@ -440,6 +460,15 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // Narrows the disclosed match classification a deployed caller can read
   // (fine-grained match_reason/match_score → coarse exact/partial).
   '20260720120000': 'contraction', // coarsen_import_name_match_reasons
+  // B-05. Revokes only the PUBLIC pseudo-role grant (and anon on
+  // claim_player_profiles_by_name) while granting explicit EXECUTE to
+  // `authenticated` on all three claim RPCs. The revoked PUBLIC grant is the
+  // implicit CREATE FUNCTION default, not a surface any deployed reader was
+  // written against; every real signed-in caller gains access rather than
+  // losing it, and no anonymous caller could get past the functions' own
+  // `auth.uid() is null` gate anyway. Nothing is stranded, so it is an
+  // expansion despite containing REVOKE statements.
+  '20260720190000': 'expansion', // grant_authenticated_claim_rpc_execute
   // Ledger #106. Rebuilds three deployed claim RPCs to disclose less and
   // accept less: prefix/substring name matching is replaced by exact whole-name
   // matching, a 3-character input floor and a 10-row cap are imposed, the

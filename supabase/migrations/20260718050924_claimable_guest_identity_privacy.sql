@@ -168,6 +168,27 @@ check (identity_mode is null or identity_mode in ('username', 'personal_name'));
 alter table public.player_import_aliases
 drop constraint if exists player_import_aliases_group_id_source_type_normalized_alias_key;
 
+-- DELIBERATELY NOT IDEMPOTENT. The three `create unique index` statements below
+-- and the `create policy` further down carry no `if not exists` / `drop ... if
+-- exists` guard, and none may ever be added.
+--
+-- This file's content is already applied to production, as ledger 20260718181600
+-- (renamed drift: the apply tool stamped its own version over the filename).
+-- Its own version is absent from the ledger, so a `supabase db push` -- which
+-- this directory is explicitly not a safe source for -- would try to run it
+-- again. Un-guarded, that attempt aborts here on 42P07 (these index names
+-- already exist in production) after doing nothing that persists under a
+-- transactional runner. Guarded, the same accidental push would SUCCEED, and by
+-- then it has already executed `create table public.player_private_identities`
+-- above: a Data-API-exposed table of guest first names, last names and
+-- normalized personal names, which migration 20260718212339 (ledger
+-- 20260719191911) moved into the `private` schema precisely so it would not
+-- exist in `public`. It would also revert the hardened definer functions that
+-- later migrations installed.
+--
+-- The duplicate-object errors are therefore a safety property of this file, not
+-- a defect in it. Fixing the "bug" would convert a loud, harmless abort into a
+-- silent privacy regression.
 create unique index player_import_aliases_legacy_unique_idx
 on public.player_import_aliases (group_id, source_type, normalized_alias)
 where identity_mode is null;
@@ -520,14 +541,41 @@ grant execute on function public.resolve_import_guest_identity(
   uuid, text, text, text, text, uuid, boolean
 ) to authenticated;
 
--- Registration-time claiming remains deferred. Disable the legacy full-name
--- matcher so unrelated callers cannot enumerate private claim candidates.
-revoke execute on function public.list_claimable_player_profiles() from public;
-revoke execute on function public.list_claimable_player_profiles() from anon;
-revoke execute on function public.list_claimable_player_profiles() from authenticated;
-revoke execute on function public.claim_player_profile(uuid) from public;
-revoke execute on function public.claim_player_profile(uuid) from anon;
-revoke execute on function public.claim_player_profile(uuid) from authenticated;
+-- The claim RPCs are deliberately NOT revoked here.
+--
+-- This position previously held six revokes -- EXECUTE on
+-- public.list_claimable_player_profiles() and public.claim_player_profile(uuid)
+-- from public, anon and authenticated -- on the premise that registration-time
+-- claiming was deferred. That premise no longer holds, and each of the three
+-- reasons below is sufficient on its own:
+--
+--   * Registration-time claiming is live, and the confirmed path is the one the
+--     contract requires. GUEST-PLAYER-IDENTITY-AND-PRIVACY.md mandates the
+--     confirmed-claim lifecycle: the registrant reviews and explicitly confirms
+--     the intended identity. This file never touched
+--     public.claim_player_profiles_by_name(), so revoking here would disable the
+--     explicitly confirmed, per-profile path while leaving the unconfirmed bulk
+--     auto-link path fully callable -- a net privacy regression, not a
+--     tightening.
+--   * authenticated EXECUTE is production state, not an oversight. Production
+--     ledger 20260720221937 grant_authenticated_claim_rpc_execute granted it;
+--     the repo file carrying that grant is
+--     20260720190000_grant_authenticated_claim_rpc_execute.sql, later in this
+--     replay. The live claim flow depends on it: /claim-player, the auto-claim
+--     in completeAuthSession, and the roster "probably you" highlight.
+--   * The ledger #106 hardening does not make a revoke safe. Ledger
+--     20260721201734 harden_claim_rpc_privacy (repo file 20260721173000) rebuilt
+--     what these functions DISCLOSE and ACCEPT -- exact whole-value matching, a
+--     3-character input floor, a 10-row cap, a neutral 'Unclaimed player' label,
+--     a null group label, and lock-before-judge -- and deliberately changed
+--     nothing about WHO MAY CALL them. Caller set and disclosure are orthogonal.
+--
+-- Removing the revokes is what makes a clean-baseline replay of this directory
+-- reproduce production's ACL, instead of a state in which no signed-in caller
+-- can claim a saved player. Consequently this file is no longer byte-identical
+-- to the SQL applied to production as ledger 20260718181600. That divergence is
+-- deliberate, is confined to this block, and is recorded in
+-- docs/redesign/reference/MIGRATION-LEDGER-MAP.md.
 
 -- Preserve the existing analytics contract while resolving every visible
 -- claimed-player name from the current registered username.

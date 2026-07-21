@@ -102,16 +102,65 @@ describe('claimable guest identity and privacy migration', () => {
     );
     expect(migration).toContain("using (entity_type <> 'player')");
     expect(migration).toContain(
-      'revoke execute on function public.list_claimable_player_profiles() from authenticated',
-    );
-    expect(migration).toContain(
-      'revoke execute on function public.claim_player_profile(uuid) from authenticated',
-    );
-    expect(migration).toContain(
       'create or replace function public.get_ocr_domain_dictionary',
     );
     expect(migration).toContain(
       'revoke execute on function public.get_ocr_domain_dictionary(uuid) from anon',
+    );
+  });
+
+  it('never revokes execute on the saved-player claim RPCs', () => {
+    // Inverted deliberately. This file used to revoke EXECUTE on both functions
+    // from public, anon and authenticated, and these assertions used to REQUIRE
+    // that. Production restored the grant afterwards (ledger 20260720221937
+    // grant_authenticated_claim_rpc_execute, carried here as repo file
+    // 20260720190000), so replaying the revoke leaves the claim RPCs unreachable
+    // for every signed-in caller and diverges the clean-baseline replay from
+    // production. Ledger 20260721201734 harden_claim_rpc_privacy narrowed what
+    // these functions disclose and accept, never who may call them, so it does
+    // not make a revoke safe. Pinned so the block cannot silently return.
+    for (const target of [
+      'public.list_claimable_player_profiles()',
+      'public.claim_player_profile(uuid)',
+    ]) {
+      for (const grantee of ['public', 'anon', 'authenticated']) {
+        expect(
+          migration,
+          `20260718050924 must not revoke execute on ${target} from ${grantee}`,
+        ).not.toContain(
+          `revoke execute on function ${target} from ${grantee}`,
+        );
+      }
+    }
+    // The grant those RPCs actually depend on lives in its own migration.
+    expect(migration).not.toContain(
+      'grant execute on function public.list_claimable_player_profiles()',
+    );
+  });
+
+  it('stays deliberately non-idempotent so an accidental replay aborts', () => {
+    // The duplicate-object errors are this file's safeguard: its content is
+    // already applied to production (ledger 20260718181600) under a different
+    // version, so a `supabase db push` would try to run it again. Un-guarded it
+    // aborts on 42P07; guarded it would SUCCEED, having already created the
+    // Data-API-exposed public.player_private_identities table that migration
+    // 20260718212339 moved into the private schema.
+    for (const statement of [
+      'create unique index player_import_aliases_legacy_unique_idx',
+      'create unique index player_import_aliases_username_unique_idx',
+      'create unique index player_import_aliases_personal_name_unique_idx',
+      'create policy "authenticated read non-player domain aliases"',
+    ]) {
+      expect(migration, `${statement} must remain unguarded`).toContain(
+        statement,
+      );
+    }
+    expect(migration).not.toContain('create unique index if not exists');
+    expect(migration).not.toContain('create index if not exists');
+    expect(migration).not.toContain('create table if not exists');
+    expect(migration).not.toContain('create policy if not exists');
+    expect(migration).not.toContain(
+      'drop policy if exists "authenticated read non-player domain aliases"',
     );
   });
 
