@@ -285,7 +285,7 @@ function buildColumns(
           ) : null}
           {kind === 'Corporation' && hasCorporationLogo(row.name) ? (
             <CorporationLogo
-              className="h-8 w-8 shrink-0 rounded-lg border border-white/10 bg-white/[0.05] p-0.5"
+              className="h-8 w-16 shrink-0 rounded-lg border border-white/10 bg-white/[0.05] p-0.5"
               name={row.name}
               size={32}
             />
