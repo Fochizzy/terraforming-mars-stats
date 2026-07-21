@@ -17,6 +17,7 @@ import {
   remapTilePlacements,
 } from '@/lib/db/overall-analytics-aggregators';
 import { resolvePlayerLabelsInRows } from '@/lib/db/player-label-resolution';
+import { countableCardTags } from '@/lib/imports/countable-card-tags';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type PlacementDistributionRow = {
@@ -437,6 +438,7 @@ type RawImportedGameLogAliasRow = {
 
 type RawImportedCardCatalogRow = {
   card_name: string;
+  card_type: string;
   gameplay_tags: string[] | null;
   id: string;
 };
@@ -864,7 +866,7 @@ async function listView<TRaw, TRow>(
   return rows.map(mapRow);
 }
 
-async function listImportedCardAndTagOutcomes(
+export async function listImportedCardAndTagOutcomes(
   groupId: string | string[],
 ): Promise<{
   cardOutcomeRows: CardOutcomeRow[];
@@ -949,7 +951,7 @@ async function listImportedCardAndTagOutcomes(
       uniqueCardIds.length > 0
         ? await supabase
             .from('cards')
-            .select('id, card_name, gameplay_tags')
+            .select('id, card_name, card_type, gameplay_tags')
             .in('id', uniqueCardIds)
         : { data: [], error: null };
 
@@ -1055,7 +1057,10 @@ async function listImportedCardAndTagOutcomes(
         continue;
       }
 
-      for (const tagCode of normalizeGameplayTags(card.gameplay_tags)) {
+      for (const tagCode of countableCardTags(
+        normalizeGameplayTags(card.gameplay_tags),
+        card.card_type,
+      )) {
         const tagKey = `${actor.gameId}|${actor.playerId}|${tagCode}`;
         const tagRow = tagTotals.get(tagKey) ?? {
           gameId: actor.gameId,

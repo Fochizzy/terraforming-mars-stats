@@ -20,6 +20,7 @@ import {
   resolvePlayerLabelsInRows,
 } from '@/lib/db/player-label-resolution';
 import { getBoardSpaceMap } from '@/lib/imports/board-space-maps';
+import { countableCardTags } from '@/lib/imports/countable-card-tags';
 import { getSelectionStats } from '@/lib/db/selection-stats-repo';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -2791,6 +2792,7 @@ type RawProfileGameLogAliasRow = {
 
 type RawProfileCardCatalogRow = {
   card_name: string;
+  card_type: string;
   gameplay_tags: string[] | null;
   id: string;
   printed_victory_points: number | string | null;
@@ -4197,7 +4199,10 @@ function buildProfileExpansionProfile({
           engine.cardPrintedVp += printedVp;
           generationSnapshot.cardPrintedVp += printedVp;
 
-          for (const tag of normalizeGameplayTags(card.gameplay_tags)) {
+          for (const tag of countableCardTags(
+            normalizeGameplayTags(card.gameplay_tags),
+            card.card_type,
+          )) {
             tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
           }
         }
@@ -4916,7 +4921,7 @@ async function listProfileCardCatalogRows(
   try {
     const { data, error } = await supabase
       .from('cards')
-      .select('id, card_name, gameplay_tags, printed_victory_points')
+      .select('id, card_name, card_type, gameplay_tags, printed_victory_points')
       .in('id', uniqueCardIds);
 
     if (error) {
@@ -5069,7 +5074,10 @@ function buildProfileTagStats(
       continue;
     }
 
-    for (const tagCode of normalizeGameplayTags(card.gameplay_tags)) {
+    for (const tagCode of countableCardTags(
+      normalizeGameplayTags(card.gameplay_tags),
+      card.card_type,
+    )) {
       const entry = totals.get(tagCode) ?? {
         gameIds: new Set<string>(),
         totalTags: 0,
