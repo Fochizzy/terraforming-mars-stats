@@ -1201,3 +1201,44 @@ authorize implementation.
   the current-quarter ELO ladder (the live race); the year ladder is available
   as a secondary view/toggle. Exact toggle placement and the user-facing
   methodology / last-refresh copy are display details deferred to implementation.
+- **`20260718050924` is applied, not gated, and is never to be applied.**
+  Its content is live as ledger `20260718181600` (renamed drift); only its
+  version string is absent from the ledger. Records describing it as a
+  "gated" migration awaiting reconciliation — including `DEPLOY-STATE.md` —
+  are wrong, and the label is itself a hazard because it invites an apply.
+  Applying the file would abort on `42P07` *after* creating the
+  Data-API-exposed `public.player_private_identities`, and would revert
+  hardening applied by `20260719191911` and `20260721035955`.
+- **A migration file records the replay, not the byte history, when the two
+  conflict.** `20260718050924`'s six revokes of EXECUTE on
+  `list_claimable_player_profiles()` and `claim_player_profile(uuid)` are
+  removed from the repository file, making it the single deliberate
+  exception to renamed-drift byte-identity. Production restored that grant
+  afterwards (ledger `20260720221937`), so replaying the revoke modelled a
+  database in which no signed-in caller can claim a saved player. The
+  divergence is confined to that block and recorded in the file, in
+  `MIGRATION-LEDGER-MAP.md`, and in the constant's docstring. The ledger
+  #106 hardening (`20260721201734`) narrowed what those functions *disclose
+  and accept*, never *who may call them*, and therefore never made the
+  revoke safe — caller set and disclosure stay orthogonal dimensions.
+- **Non-idempotency can be a safety property, and is here.** The unguarded
+  `create unique index` and `create policy` statements in `20260718050924`
+  must keep no `if not exists` guard. Because the file's content is already
+  applied under a different version, an accidental `supabase db push` would
+  re-run it; unguarded it aborts, guarded it would *succeed* and create the
+  Data-API-exposed private-identity table. A repository test pins both the
+  absence of the revokes and the presence of the unguarded statements.
+- **A production-only ledger entry that repo migrations depend on is modelled
+  as a harness fixture, never as a migration.** `20260720190000` (carried from
+  `b11cae71b` for ledger `20260720221937`) grants on
+  `claim_player_profiles_by_name()`, created by production-only entry
+  `20260712115539`, which has no repo file. The predecessor is supplied by
+  `supabase/tests/executable/production-preimage-20260712115539-…sql`,
+  following the `20260720021300` precedent: reconstructed from
+  repository-local evidence, fidelity confirmed against production by hash,
+  headed as a fixture that must never enter `supabase/migrations/` nor be
+  cited as evidence about production. Where a retired definition carried a
+  privacy defect, the fixture models the *current* deployed body rather than
+  the historical one — the enumeration oracle #106 removed is not
+  reintroduced into the repository even for tests, at the cost of exercising
+  that migration as a REPLACE rather than a behavioural before/after.

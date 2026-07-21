@@ -52,6 +52,16 @@ COARSEN_MIGRATION="$MIGRATIONS/20260720120000_coarsen_import_name_match_reasons.
 # than a CREATE. See the file header for exactly what it is and is not.
 MATCH_PREIMAGE="$HERE/production-preimage-20260720021300-match-import-player-names.sql"
 
+# Modelled pre-image of production-only ledger entry 20260712115539, which has
+# no repo file. It creates public.claim_player_profiles_by_name(), one of the
+# three functions CLAIM_GRANT_MIGRATION revokes and grants on; without it that
+# migration aborts on "function does not exist". Installed inside the history
+# loop immediately before the grant, so the grant's revokes remove something
+# real and the resulting ACL is a proof rather than an inherited default. See
+# the file header for exactly what it is and is not.
+CLAIM_PREIMAGE="$HERE/production-preimage-20260712115539-claim-players-by-name.sql"
+CLAIM_GRANT_MIGRATION="$MIGRATIONS/20260720190000_grant_authenticated_claim_rpc_execute.sql"
+
 cleanup() { "$PGBIN/pg_ctl" -D "$PGDATA" stop -m immediate >/dev/null 2>&1 || true; rm -rf "$PGDATA"; }
 trap cleanup EXIT
 
@@ -76,6 +86,10 @@ for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$GUEST_ALIAS_MIGRATION" ] && continue
   [ "$f" = "$PLACEMENT_MIGRATION" ] && continue
   [ "$f" = "$COARSEN_MIGRATION" ] && continue
+  if [ "$f" = "$CLAIM_GRANT_MIGRATION" ]; then
+    echo "   model production-only ledger entry 20260712115539 (no repo file)"
+    PSQL -q -f "$CLAIM_PREIMAGE"
+  fi
   PSQL -q -f "$f"
 done
 echo "   history applied"

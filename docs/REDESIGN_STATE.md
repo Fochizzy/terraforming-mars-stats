@@ -159,9 +159,78 @@ exit 0; lint at the four baseline warnings, none new; production build green;
 `bash supabase/tests/executable/run.sh` passes end to end, with the new file
 replaying last in the production-history half; `git diff --check` clean.
 
-The gated `20260718050924` reconciliation remains a **separate parked
-follow-up** and was not touched. WS2, WS1 Layer B/C, converge, and the closure
-audit have not begun.
+WS2, WS1 Layer B/C, converge, and the closure audit have not begun. The
+`20260718050924` reconciliation was parked at that point and is now delivered —
+see the next section, which also corrects the "gated" label used above.
+
+### Claim-RPC grant and replay safety reconciled (2026-07-21)
+
+Branch `fix/reconcile-claim-rpc-grant-replay-safety`, off redesign HEAD
+`c5021a52f`. Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-RECONCILE-CLAIM-RPC-GRANT-REPLAY-SAFETY.md`.
+Two read-only production reads (ledger metadata; one function definition for a
+fidelity check); no production write, nothing pushed, deployed, or applied.
+
+**`20260718050924` is not gated.** `GATED_UNAPPLIED` does not contain it and
+`APPLIED_UNDER_DIFFERENT_LEDGER_VERSION` maps it to `20260718181600`, which is
+in the live ledger. Only its *version string* is absent from the ledger; its
+*content* is applied. Earlier records — including `DEPLOY-STATE.md` — call it
+"gated", which is wrong and is itself an exposure path, since it invites an
+apply under the per-mutation protocol.
+
+**The defect, measured** in a disposable cluster at `c5021a52f` before any
+edit: a clean-baseline replay left `list_claimable_player_profiles()` and
+`claim_player_profile(uuid)` at `{postgres=X}` — `authenticated` could not
+execute either — and left `claim_player_profiles_by_name()` on the default
+`PUBLIC` grant, callable by `anon`. Production holds `authenticated=X` on all
+three and `anon` on none. Two causes: this file's six revokes (lines 525–530),
+and the fact that the restoring grant (ledger `20260720221937`) had no file on
+this lineage.
+
+- **Revoke block removed**, replaced by a comment giving three independent
+  reasons: the contract requires the confirmed-claim lifecycle and the file
+  never touched `claim_player_profiles_by_name()`, so the revoke disabled the
+  confirmed path while leaving the unconfirmed bulk path open; `authenticated`
+  EXECUTE is production state; and ledger `20260721201734` changed what the
+  functions *disclose and accept*, never *who may call them*. Nothing else in
+  the file changed. It is consequently **no longer byte-identical** to the SQL
+  applied as `20260718181600` — the one deliberate exception, recorded in both
+  the map doc and the constant's docstring.
+- **Non-idempotency preserved as a safety property**, with a comment saying so.
+  The unguarded index and policy statements make an accidental `db push` abort
+  on `42P07`; guarded, it would succeed, having already created the
+  Data-API-exposed `public.player_private_identities`. No `if not exists` was
+  added anywhere.
+- **Grant carried verbatim.**
+  `20260720190000_grant_authenticated_claim_rpc_execute.sql` from `b11cae71b`,
+  blob-identity proven (`f1ad9cb9b…` both sides). Registered as renamed drift
+  `→ 20260720221937`, name-keyed, hazard `expansion` (its REVOKEs remove only
+  the implicit `PUBLIC` default and `anon`; nothing is stranded).
+  `20260720221937` moved out of the production-only register (69 → 68).
+- **Harness pre-image added** for production-only ledger entry
+  `20260712115539`, which creates `claim_player_profiles_by_name()` and has no
+  repo file — without it the grant migration aborted. Body reconstructed from
+  repository-local evidence with fidelity **confirmed by hash** against
+  production (`b68036b3c…`, 2925 bytes); deliberately the current body, not the
+  July-12 original that carried the prefix-fanout oracle. Stated limitation:
+  #106 is exercised as a REPLACE on that function, not as a behavioural
+  before/after.
+- **Ledger re-attested read-only: still 110 entries, head `20260721201734`**,
+  exact set match. Declarations now 14 contraction, **29** expansion, 8 neutral
+  (51 files).
+
+**Replay end state**, measured against the repository files: all three claim
+RPCs end with explicit `authenticated` EXECUTE, no `anon`, no `PUBLIC` —
+production's shape, and the previous `anon` exposure on
+`claim_player_profiles_by_name()` is closed.
+
+Validation at the final commit: 177 files / 973 tests pass; `npx tsc --noEmit`
+exit 0; lint at the four baseline warnings, none new; production build green;
+`bash supabase/tests/executable/run.sh` passes end to end; `git diff --check`
+clean.
+
+`20260718050924` must never be applied to production under any protocol. WS2,
+WS1 Layer B/C, converge, and the closure audit remain not begun.
 
 ## Status
 
