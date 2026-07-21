@@ -17,27 +17,117 @@ version→commit linkage.
 | | |
 |---|---|
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
-| Worker version | `15fba7e9-2443-440c-8a1f-b5b9231d7ff6` |
+| Worker version | `08f9191f-7b06-4fa3-88dd-b3421d3ae89f` |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `release/step-43-production-compatibility` (pushed to `origin`; `origin/release/step-43-production-compatibility` independently confirmed to resolve to the exact deployed SHA) |
-| Source commit | `a40d49662825474c98813aa44abb577b8830cc68` — resolved by the deploy-time stamp print, not inferred |
-| Deployed (UTC) | 2026-07-20 18:33:13.965Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **Izzy** |
-| Active clean deployment worktree | `C:\tmp\tm-step-43-production-reader` on branch `release/step-43-production-compatibility` (candidate `a40d49662`, base `14abb8d1d`) |
-| DB migration ledger head | `20260720021300 add_import_player_name_matching_rpc` (unchanged — no migration applied this release) |
-| Rollback worker version | `c23bfbd7-9729-4981-9f45-aee05c242d31` (previous production build, commit `59dda6c0f`; `eb4e5821`/`bf081d918` remains the deeper live-capture-v2 fallback) |
-| Verified | 2026-07-20 18:3x UTC — see "Step 4.3 code-only deploy" below for exact evidence and its gaps |
+| Source branch | `integration/final-ws2-event-card-42501` (pushed to `origin`; `origin/integration/final-ws2-event-card-42501` independently confirmed to resolve to the exact deployed SHA both before and after this deploy) |
+| Source commit | `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` — resolved by the deploy-time stamp print (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`, since the build ran from a detached HEAD), not inferred |
+| Deployed (UTC) | 2026-07-21 04:21:42.798Z (`wrangler deployments list`, 100% traffic) |
+| Deploy lock | **Released back — combined WS2/Event-card/42501 deploy complete.** Available for the next session; update this row before starting new work. |
+| Active clean deployment worktree | `C:\tmp\tm-final-ws2-event-card-42501-deploy` — no longer needed once this entry is read; candidate `2b9a5e3a5`, base `9b7a00555` (merge-base confirmed, 9 commits ahead / 0 behind, 26-file diff) |
+| DB migration ledger head | `20260721035955 secure_public_player_labels_service_role` (unchanged — no migration applied this release; Event-card snapshot migration `20260720223000` and gated migration `20260720120000` both confirmed still absent from the ledger, before and after this deploy) |
+| Rollback worker version | `79d5b795-eb81-4962-aa5a-bfff26359a36` (immediately prior production build, 100% traffic 2026-07-21T00:15:19.080Z through this deploy; source commit `9b7a00555f216f4a741e819e8795238c362584f9`, confirmed via the prior deployment-record commit `3a8f4eb24`) |
+| Verified | 2026-07-21 ~04:20-04:30 UTC — see "Combined WS2/Event-card/42501 deploy" below for exact evidence and its gaps |
 
-**Evidence for the source commit.** This is the **first release built by the
-stamping deploy path**: `scripts/deploy/deploy-with-stamp.ts` printed
-`TM_STATS_SOURCE_COMMIT=a40d49662825474c98813aa44abb577b8830cc68` immediately
-before invoking the build, from a verified-clean worktree at that exact `git
-rev-parse HEAD`. The resulting version (`15fba7e9`) was then confirmed at 100%
-of `wrangler deployments list` traffic. **The authenticated `/api/deploy-info`
-HTTP fetch — the intended steady-state verification path — was not completed
-this session** (see below); until it is, this row's commit is build-time
-correlated, not live-endpoint confirmed. Do that fetch before relying on this
-row for anything higher-stakes than routine reference.
+**Evidence for the source commit.** `scripts/deploy/deploy-with-stamp.ts`
+printed `TM_STATS_SOURCE_COMMIT=2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` and
+`TM_STATS_SOURCE_BRANCH=integration/final-ws2-event-card-42501` immediately
+before invoking the build, from a verified-clean detached-HEAD worktree at
+that exact `git rev-parse HEAD`. The resulting version (`08f9191f`) was then
+confirmed at 100% of `wrangler deployments list` traffic. **The authenticated
+`/api/deploy-info` HTTP fetch — the intended steady-state verification path —
+was not completed this session** (it returned `{"error":"Authentication
+required."}` unauthenticated, as expected; a signed-in fetch was not
+performed — entering credentials to authenticate is not something this
+session will do). Until that fetch is done, this row's commit is
+build-time/ledger-history correlated, not live-endpoint confirmed.
+
+### Combined WS2/Event-card/42501 deploy — 2026-07-21 04:2x UTC
+
+Deployed by this session under owner authorization ("Full execution as
+written" against a pre-scoped deployment directive naming exact candidate
+`2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`). No database migration was
+authorized or applied by this deploy.
+
+**Confirmed:**
+- `origin/integration/final-ws2-event-card-42501` resolved to
+  `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` before creating the deploy
+  worktree; re-checked after deploy, unchanged.
+- Merge-base of the candidate against the prior production source
+  (`9b7a00555f216f4a741e819e8795238c362584f9`) is exactly that commit — 9
+  commits ahead, 0 behind, 26-file diff (`git diff --name-only`), matching
+  the approved candidate exactly.
+- Fresh detached worktree at `C:\tmp\tm-final-ws2-event-card-42501-deploy`;
+  `git status --porcelain` empty and `HEAD` matched the candidate SHA
+  immediately before deploy.
+- Focused suites: Workstream 2 privacy (six-file manifest derived from the
+  diff between the prior deployed base and the WS2 privacy commit —
+  `web-import-page.test.tsx`, `apply-created-import-player-to-review.test.ts`,
+  `apply-server-player-matches.test.ts`, `resolve-import-player-links.test.ts`,
+  `resolve-player-identity.test.ts`, `private-name-sentinel.test.ts`) —
+  **55/55 passed**. Event-card (`card-type-vocabulary`, `analytics-repo`,
+  `extended-analytics-repo`, `derive-card-score-evidence`,
+  `countable-card-tags`, `derive-player-tag-summaries`) — **50/50 passed**.
+  42501 (`import-group-repo`, `public-player-labels-service-role-migration`) —
+  **27/27 passed**.
+- `npx tsc --noEmit` — clean. `npm run build` — succeeded, 34/34 static
+  pages, no errors (only pre-existing lint warnings). `git diff --check` —
+  clean. `npm run check:schema` — passed (51 referenced tables confirmed
+  against the live project; 14 dynamic call sites unchecked, as always).
+- `npm run lint` — only the two known pre-existing warnings on Event-card
+  files: `_fallbackName` unused in `src/lib/db/analytics-repo.ts` (present,
+  unchanged); `scripts/backfill/recompute-tag-summaries.ts` is outside
+  `next lint`'s default scope so its `no-explicit-any` finding was not
+  re-observed this run but was not touched. No new blocking findings.
+- DB compatibility (read-only, via Supabase MCP): migration ledger head is
+  `20260721035955 secure_public_player_labels_service_role`; live
+  `pg_proc` introspection of `public.get_public_player_names` confirms
+  `SECURITY DEFINER`, owner `postgres`, language `plpgsql`, empty
+  `search_path`, output `(player_id uuid, public_name text, is_linked
+  boolean)`, EXECUTE granted to `authenticated`/`service_role` only (no
+  anon/PUBLIC grant); `service_role` confirmed to still hold no `USAGE` on
+  schema `private`. Event-card migration `20260720223000` and migration
+  `20260720120000` both confirmed absent from the ledger.
+- Deploy-time stamp printed the exact candidate SHA and explicit source
+  branch before the build ran (see Evidence above).
+- `wrangler deployments list` shows `08f9191f-7b06-4fa3-88dd-b3421d3ae89f` at
+  100% traffic, created `2026-07-21T04:21:42.798Z`; the immediately prior
+  version (`79d5b795-eb81-4962-aa5a-bfff26359a36`, 100% traffic since
+  `2026-07-21T00:15:19.080Z`) remains present in the deployments list as the
+  rollback target.
+- Post-deploy read-only health checks: `https://tm-stats.com/` → 200;
+  `https://tm-stats.com/login` → 200; `https://tm-stats.com/insights` → 307
+  (expected redirect, unauthenticated); unauthenticated
+  `https://tm-stats.com/api/deploy-info` → `{"error":"Authentication
+  required."}` (expected — the route requires a signed-in session).
+  Supabase `postgres` and `api` logs (24h window) reviewed: `api` service
+  returned zero log rows; the `postgres` errors present are all timestamped
+  before this deploy's build/publish window and match already-documented
+  incidents (migration-application probing, `check:schema`'s anon-key
+  existence probe, and the pre-existing 42501 incident signatures) — no new
+  error burst correlated with this deploy.
+- Confirmed **zero database mutations** this session: all Supabase MCP calls
+  were read-only (`list_migrations`, `select`-only `execute_sql`, `get_logs`).
+
+**NOT completed this session — do before treating this deploy as fully
+verified:**
+- **The authenticated `/api/deploy-info` HTTP fetch was not performed** for
+  the same reason as the Step 4.3 deploy below: it requires a signed-in
+  session, and entering credentials to authenticate is not something this
+  session will do. **Action needed:** the owner (or a session with a
+  sanctioned auth path) should load `https://tm-stats.com/api/deploy-info`
+  while signed in and confirm `sourceCommit` reads
+  `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`.
+- **No functional walkthrough of Confirm Import Draft, Analyze Import
+  Evidence, or any other live import flow was performed.** The owner
+  separately reported the previously failing upload/import action succeeded
+  after migration `20260721035955`; this session did not independently
+  re-run or observe that flow, and Analyze Import Evidence / Confirm Import
+  Draft were explicitly out of scope for this deploy.
+- Net: the **mechanics** of this release (correct commit, correct worktree,
+  correct branch, stamped, gated, tested, live, no DB writes) are confirmed;
+  the **functional/authenticated behavior** of the combined change set
+  against real production traffic is not yet independently observed by this
+  session.
 
 ### Step 4.3 code-only deploy — 2026-07-20 18:3x UTC
 
