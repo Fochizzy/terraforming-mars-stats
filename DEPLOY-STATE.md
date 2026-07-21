@@ -17,16 +17,16 @@ version→commit linkage.
 | | |
 |---|---|
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
-| Worker version | `08f9191f-7b06-4fa3-88dd-b3421d3ae89f` |
+| Worker version | `178229f3-bfa4-4776-826a-e344daf23d72` |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `integration/final-ws2-event-card-42501` (pushed to `origin`; `origin/integration/final-ws2-event-card-42501` independently confirmed to resolve to the exact deployed SHA both before and after this deploy) |
-| Source commit | `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` — resolved by the deploy-time stamp print (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`, since the build ran from a detached HEAD), not inferred |
-| Deployed (UTC) | 2026-07-21 04:21:42.798Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **HELD — 2026-07-21, `player_card_outcomes` session, for the Insights "Overall" joint release from `fix/live-compare-data-remove-declared-style` @ `a8ad9fa31`.** Taken under direct owner instruction ("deploy and push to make live"). The frontend session had stated it intended to deploy this same branch — **do not deploy it concurrently**; this row is released below when the deploy is recorded. |
-| Active clean deployment worktree | `C:\tmp\tm-final-ws2-event-card-42501-deploy` — no longer needed once this entry is read; candidate `2b9a5e3a5`, base `9b7a00555` (merge-base confirmed, 9 commits ahead / 0 behind, 26-file diff) |
+| Source branch | `fix/live-compare-data-remove-declared-style` (pushed to `origin`; `origin/…` confirmed to resolve to `4dec49a42` before the build) |
+| Source commit | `4dec49a423013b319a2904b35eb70396b1398800` — printed by the deploy-time stamp (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`), not inferred |
+| Deployed (UTC) | 2026-07-21 19:49:51.928Z (`wrangler deployments list`, 100% traffic) |
+| Deploy lock | **Released — Insights "Overall" joint release deployed and recorded below. No production session currently holds the lock.** Available for the next deployment session, which must update this row before starting. |
+| Active clean deployment worktree | `C:\tmp\tm-live-compare-data` — clean at `4dec49a42`, real `node_modules`, `.next`/`.open-next` cleared before the build |
 | DB migration ledger head | `20260721035955 secure_public_player_labels_service_role` (unchanged — no migration applied this release; Event-card snapshot migration `20260720223000` and gated migration `20260720120000` both confirmed still absent from the ledger, before and after this deploy). **Superseded 2026-07-21 08:13:55 UTC**: a separate, documentation-tracked *database migration* (no application deploy) subsequently advanced the ledger head to `20260721081355 fix_event_card_tag_snapshot_correction` — see "Event-card snapshot migration — production database correction" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration. **Superseded again 2026-07-21 19:35:08 UTC**: a second documentation-tracked *database migration* (no application deploy) advanced the ledger head to `20260721193508 fold_player_card_outcome_context_into_definer` — see "player_card_outcomes definer fold" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration too. |
-| Rollback worker version | `79d5b795-eb81-4962-aa5a-bfff26359a36` (immediately prior production build, 100% traffic 2026-07-21T00:15:19.080Z through this deploy; source commit `9b7a00555f216f4a741e819e8795238c362584f9`, confirmed via the prior deployment-record commit `3a8f4eb24`) |
-| Verified | 2026-07-21 ~04:20-04:30 UTC — see "Combined WS2/Event-card/42501 deploy" below for exact evidence and its gaps |
+| Rollback worker version | `2ee56485-dc7b-4074-b6ce-db82061d91ae` (immediately prior production version, 100% traffic 2026-07-21T16:37:11.457Z through this deploy). **Its source commit is unknown** — it is one of the two unrecorded deploys below, so rolling back to it lands on code no ledger entry describes. If a rollback is needed, prefer redeploying a known commit from `fix/live-compare-data-remove-declared-style`. |
+| Verified | 2026-07-21 19:5x UTC — see "Insights Overall joint release" below |
 
 **Evidence for the source commit.** `scripts/deploy/deploy-with-stamp.ts`
 printed `TM_STATS_SOURCE_COMMIT=2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` and
@@ -401,15 +401,63 @@ verified:**
   matching, and tile attribution against real production traffic is not yet
   independently observed by this session.
 
-## Pending release — Insights "Overall" scope (2026-07-21)
+## Insights "Overall" joint release — 2026-07-21 19:49:51 UTC — SHIPPED
 
-Two sessions, one release. **The database half is live; the frontend half is
-not deployed yet.**
+Two sessions, one release. **Both halves are now live.**
 
 | Half | Change | State |
 |---|---|---|
 | Database | `20260721193508 fold_player_card_outcome_context_into_definer` | **Applied to production 2026-07-21 19:35:08 UTC** — full evidence above under "player_card_outcomes definer fold" |
-| Frontend | `fix/live-compare-data-remove-declared-style` @ `df9d0c2cc` | Committed; `check:schema` 51/51; **not deployed**. The deploy lock is free — take it before shipping and record it here |
+| Frontend | `fix/live-compare-data-remove-declared-style` @ `4dec49a42` | **Deployed 2026-07-21 19:49:51.928Z** as worker `178229f3-bfa4-4776-826a-e344daf23d72`, 100% traffic |
+
+Deployed by the `player_card_outcomes` session under direct owner instruction
+("deploy and push to make live"), holding the deploy lock, from the clean
+worktree `C:\tmp\tm-live-compare-data`. Database half went first, ~15 minutes
+ahead of the frontend — the safe order here, since `2f38b1e6a` only removes an
+amplification and does not depend on the migration.
+
+**Confirmed:**
+- Worktree clean at `4dec49a42` immediately before the build; `node_modules` a
+  real directory, not the symlink that breaks Workers builds; `.next` and
+  `.open-next` cleared first to avoid shipping a stale bundle.
+- `origin/fix/live-compare-data-remove-declared-style` pushed and confirmed at
+  `4dec49a42` before the build ran.
+- `npm run deploy` ran `check:schema` through the `predeploy` hook and the
+  deploy-time stamp printed
+  `sourceCommit=4dec49a423013b319a2904b35eb70396b1398800`.
+- `wrangler deployments list` shows `178229f3-bfa4-4776-826a-e344daf23d72` at
+  100% traffic, created `2026-07-21T19:49:51.928Z`.
+- Post-deploy health checks: `https://tm-stats.com/` → 200; `/login` → 200;
+  `/insights` → 307 (expected redirect, unauthenticated); `/api/deploy-info` →
+  401 `{"error":"Authentication required."}` (expected).
+
+**NOT completed — do before treating this as fully verified:**
+- **The authenticated `/api/deploy-info` fetch was not performed**, for the same
+  reason as every prior entry: it needs a signed-in session and this session
+  will not enter credentials. **Action needed:** load
+  `https://tm-stats.com/api/deploy-info` while signed in and confirm
+  `sourceCommit` reads `4dec49a423013b319a2904b35eb70396b1398800`.
+- **No authenticated walkthrough of `/insights` Overall was performed.** The
+  whole point of this release is that Tag profiles, Preferred corporations,
+  pts-per-board-tile, greenery share, best map and the card-outcome sections
+  now render. That is unobserved: the migration is verified at the SQL level
+  and the frontend at the HTTP level, but nobody has looked at the page.
+
+### Ledger gap found during this deploy
+
+`wrangler deployments list` shows **two production deploys today that no ledger
+entry describes**, between the recorded 04:21:42Z deploy and this one:
+
+| Created (UTC) | Version | Recorded? |
+|---|---|---|
+| 2026-07-21T09:47:55.840Z | `2c0ef541-0171-469c-a83d-2e91757f4e14` | **No** |
+| 2026-07-21T16:37:11.457Z | `2ee56485-dc7b-4074-b6ce-db82061d91ae` | **No** |
+
+So the "Current production" table was describing `08f9191f` (04:21Z) while
+production had actually moved on twice. Whoever ran those should record their
+source commits — until then the immediate rollback target is code no entry
+identifies, which is why the rollback row above now recommends redeploying a
+known commit instead. Rule 5 exists for exactly this.
 
 **Why it needed both halves.** `analytics.player_card_outcomes` exceeded the 8 s
 `authenticated` `statement_timeout`, so PostgREST returned 500 (57014). Both
