@@ -51,6 +51,19 @@ function hasFiniteScoreValue(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
+// Finite-only, deliberately without the non-negative floor: the review UI
+// (buildCardScoringCrossChecks in build-import-review-model.ts) flags a
+// calculated-versus-screenshot disagreement using a finite-only comparison,
+// including negative complete calculated totals (the score-details parser
+// accepts signed card VP tokens). If the draft's conflict gate below used
+// the non-negative hasFiniteScoreValue instead, a negative calculated value
+// would be invisible to the gate and the merge would fall through to
+// silently save the screenshot/log value — exactly the displayed-conflict/
+// silently-saved-draft contradiction this comparison exists to prevent.
+function isFiniteScoreValue(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 function mergeCrossCheckedScoreValue(input: {
   authoritativeValue?: number;
   calculatedValue?: number;
@@ -66,10 +79,15 @@ function mergeCrossCheckedScoreValue(input: {
   // would flag that comparison as a conflict, the draft must actually blank
   // the field: this check runs before every other source below — including
   // the engine-authoritative log block — so nothing can silently accept a
-  // value the UI is telling the user to manually review.
+  // value the UI is telling the user to manually review. The comparison
+  // itself only requires both sides to be finite (matching the review
+  // model's comparability rule) — it must not require the calculated value
+  // to be non-negative, or a negative calculated conflict would be invisible
+  // here. The non-negative floor still applies below to whichever value is
+  // actually selected and returned.
   if (
-    hasFiniteScoreValue(input.calculatedValue) &&
-    hasFiniteScoreValue(input.screenshotValue) &&
+    isFiniteScoreValue(input.calculatedValue) &&
+    isFiniteScoreValue(input.screenshotValue) &&
     input.calculatedValue !== input.screenshotValue
   ) {
     return undefined;

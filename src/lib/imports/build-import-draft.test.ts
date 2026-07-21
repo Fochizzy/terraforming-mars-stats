@@ -755,6 +755,82 @@ describe('buildImportDraft', () => {
         ).toBeUndefined();
       });
     });
+
+    // The calculated-versus-screenshot conflict gate must treat a negative
+    // complete calculated value as comparable (finite-only), not eligible
+    // (finite-and-non-negative) — otherwise a negative calculation is
+    // invisible to the gate and the merge falls through to silently save
+    // the screenshot/log value, even though buildCardScoringCrossChecks in
+    // build-import-review-model.ts (finite-only comparison, no floor) has
+    // already reported the same disagreement as a displayed 'conflict'. The
+    // score-details parser accepts signed card VP tokens, so this is a
+    // reachable production path, not a synthetic-only case.
+    describe('negative calculated card-score conflicts (finite-only conflict gate)', () => {
+      it('reproduces the reported defect: blanks cardPointsTotal when a complete calculated -3 disagrees with a screenshot 25 and no log row exists', () => {
+        expect(
+          buildCardFieldDraftValue({
+            calculated: { value: -3 },
+            field: 'cardPointsTotal',
+            screenshotValue: 25,
+          }),
+        ).toBeUndefined();
+      });
+
+      it('blanks cardPointsTotal even when a plain scraped log value agrees with the screenshot, not the negative calculation', () => {
+        expect(
+          buildCardFieldDraftValue({
+            calculated: { value: -3 },
+            field: 'cardPointsTotal',
+            logValue: 25,
+            screenshotValue: 25,
+          }),
+        ).toBeUndefined();
+      });
+
+      it('blanks cardPointsTotal even when the authoritative structured log agrees with the screenshot, not the negative calculation (prior agreement must not bypass the displayed conflict)', () => {
+        expect(
+          buildCardFieldDraftValue({
+            authoritativeValue: 25,
+            calculated: { value: -3 },
+            field: 'cardPointsTotal',
+            screenshotValue: 25,
+          }),
+        ).toBeUndefined();
+      });
+
+      for (const field of CARD_FIELDS) {
+        describe(field, () => {
+          it('blanks the field when a complete negative calculation disagrees with a non-negative screenshot value', () => {
+            expect(
+              buildCardFieldDraftValue({
+                calculated: { value: -3 },
+                field,
+                screenshotValue: 25,
+              }),
+            ).toBeUndefined();
+          });
+
+          it('does not blank the field when an incomplete calculation carries a negative intermediate value (no new blanking rule for incomplete evidence)', () => {
+            expect(
+              buildCardFieldDraftValue({
+                calculated: { complete: false, hasPendingCard: true, value: -3 },
+                field,
+                screenshotValue: 25,
+              }),
+            ).toBe(25);
+          });
+        });
+      }
+
+      it('retains existing source-precedence behavior when there is no calculated evidence at all (finite-only gate never engages)', () => {
+        expect(
+          buildCardFieldDraftValue({
+            field: 'cardPointsTotal',
+            screenshotValue: 25,
+          }),
+        ).toBe(25);
+      });
+    });
   });
 
   it('merges proved curated board award values and leaves unresolved board card values unset', () => {
