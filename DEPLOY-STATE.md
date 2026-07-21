@@ -127,6 +127,103 @@ following this repo's own established integration-branch convention — this
 is a prerequisite for that workstream's own future deployment task, not
 something this deploy needed to resolve.
 
+### Venus post-deploy authenticated and functional follow-up — 2026-07-21
+
+**Classification: PASS WITH NON-BLOCKING NOTES.** This is a documentation-only
+addendum. No deployment, migration, rollback, deploy-lock claim, or database
+mutation occurred as part of this entry. It closes the two gaps the deploy
+entry above truthfully recorded as not completed at deploy time — it does not
+rewrite or erase that historical fact; both gaps genuinely existed at the
+04:2x/09:4x UTC deploy time and were closed later by this separate,
+owner-assisted follow-up session.
+
+**Authenticated deploy-info — closed.** Using the owner's own already-signed-in
+browser session (read-only; no credentials, cookies, or tokens were seen or
+handled by the assisting session), a live fetch of
+`https://tm-stats.com/api/deploy-info` reported:
+- `sourceBranch: integration/venus-capture-to-increase-pattern`
+- `sourceCommit: 9ab74dd4a10c737aaaed062a4047dbd66c37b1b6`
+
+Exact match to the deployed candidate. The worker remained
+`2c0ef541-0171-469c-a83d-2e91757f4e14` at 100% traffic throughout, with no
+newer deployment observed.
+
+**Stale Server Action error — did not reproduce.** The previously reported
+`Server Action ... was not found on the server` failure was not seen during a
+freshly loaded authenticated page, form interaction, import analysis, or
+review. Treated as resolved stale-client/version-skew behavior for this
+verification specifically — this does not claim every possible stale browser
+session everywhere is now impossible.
+
+**Functional import walkthrough — completed, with a duplicate-guard result.**
+The game used for verification had already been imported and saved in an
+earlier, separate session, before this follow-up began. Re-confirming it on
+the fresh page was correctly rejected by the existing "cannot upload a game
+twice" duplicate protection. This rejection is expected, correct behavior —
+**not** a deployment failure. No second game was created, no duplicate record
+exists, and no production cleanup was required. Because the game already
+existed, no new save or reopen of a newly-created record occurred during this
+follow-up; verification instead proceeded via read-only inspection of the
+already-persisted record.
+
+**Read-only persisted-capture comparison (sanitized — no player names, game
+IDs, group names, or raw log text).** The already-saved game's v2 capture
+data were compared against its raw source evidence line-by-line:
+- Parser version: `tm-data-capture-v2` (unchanged).
+- Colonies state: `confirmed_present`. Venus Next state: `confirmed_absent`.
+- 9 canonical Colonies events — 2 colony-build events, 7 colony-trade
+  events — across 3 canonical colonies (Titan, Io, Miranda). Every event
+  matched the source exactly: no duplicate canonical events, no invented
+  canonical events, no missing supported build/trade events, no invented
+  player attribution.
+- Venus events: 0. Cross-mechanic isolation held — a Colonies-heavy game
+  produced zero false Venus events, and no colony named after a global
+  parameter (e.g. Venus-the-colony vs. Venus-the-scale) was confused with the
+  other mechanic.
+
+**Live Venus evidence — scope limitation, stated precisely.** This
+verification game contained no Venus gameplay at all. It therefore verified
+the deployed worker, the authenticated source stamp, the fresh-page import
+path, duplicate protection, persisted Colonies behavior, and negative
+Venus/Colonies isolation (zero Venus events from an all-Colonies game). **It
+did not exercise the new positive asteroid-removal Venus wording** (`<actor>
+removed an asteroid resource to increase Venus scale N step(s)`) against a
+real production sample — no game containing that wording was available for
+this follow-up. That positive pattern remains covered by the focused
+automated parser suite recorded in the deploy entry above (50/50 tests
+passed), not by a live production sample.
+
+**Non-blocking pre-existing Colonies gap (not introduced by this Venus
+deployment — the Colonies code path in `parse-game-capture.ts` is untouched
+by the Venus diff, confirmed both by static diff review and by this live
+behavioral check).** Three source lines describing colony-track movement —
+shapes such as `<player> increased Titan colony track 1 step(s)`, `<player>
+decreased Io colony track 1 step`, `<player> increased Titan colony track 2
+step(s)` — produced no canonical Colonies event and no unsupported-evidence
+row. The parser explicitly recognizes Colonies *build* and *trade* actions,
+but these *track-movement* forms fall through every pattern (Colonies action
+patterns, the Colonies option-line pattern, and the shared line classifier)
+into the generic `context` bucket, which is silently treated as inert prose.
+The persisted coverage for this game reported `recognizedLines: 586` and
+`unsupportedLines: 0` — **this does not establish complete Colonies mechanic
+coverage**, because generic context lines count as "recognized" without ever
+producing a canonical event or an unsupported-evidence record. This is
+classified as pre-existing, non-blocking for this deployment, and a future
+parser-hardening/backlog item. No code change or issue was created for it in
+this task; it is documented here only.
+
+**Mutation and privacy boundary.** All database inspection in this follow-up
+was read-only (`execute_sql` SELECT statements and read-only log/migration
+calls only). No new game was saved, no duplicate was created, no migration
+was applied, no reparse/repair/backfill occurred, no deployment occurred, and
+no deploy lock was claimed. No private player names, game identifiers, group
+names, or raw log text appear in this entry.
+
+**Net result:** live functional acceptance for this Venus deployment is now
+complete. The Venus deployment workstream is closed. The Colonies
+track-movement gap above is a separate, future backlog item — not part of
+this deployment's scope and not authorized for implementation here.
+
 ### Event-card snapshot migration — production database correction — 2026-07-21 08:13:55 UTC
 
 **This is a database-only migration record. No application deployment
