@@ -58,6 +58,23 @@ function mergeCrossCheckedScoreValue(input: {
   logValue?: number;
   screenshotValue?: number;
 }) {
+  // A complete calculated card breakdown (see the provenance note on
+  // buildCardScoringCrossChecks in build-import-review-model.ts — it is
+  // largely a differently-read region of the same uploaded evidence, not an
+  // independent external source) is exactly the evidence the review UI
+  // compares against the screenshot's card-point fields. Whenever the UI
+  // would flag that comparison as a conflict, the draft must actually blank
+  // the field: this check runs before every other source below — including
+  // the engine-authoritative log block — so nothing can silently accept a
+  // value the UI is telling the user to manually review.
+  if (
+    hasFiniteScoreValue(input.calculatedValue) &&
+    hasFiniteScoreValue(input.screenshotValue) &&
+    input.calculatedValue !== input.screenshotValue
+  ) {
+    return undefined;
+  }
+
   // The exported log's machine-written final-scores block is written by the
   // game engine itself, so it wins outright over screenshot OCR readings.
   if (hasFiniteScoreValue(input.authoritativeValue)) {
@@ -76,18 +93,6 @@ function mergeCrossCheckedScoreValue(input: {
   }
 
   if (hasFiniteScoreValue(input.screenshotValue)) {
-    // A complete calculated card breakdown is independent evidence — derived
-    // from log events and board state, not from the screenshot OCR reading —
-    // so when it disagrees with the screenshot and no log row is present to
-    // arbitrate, treat it like any other two-source conflict: blank the
-    // field rather than silently trusting the screenshot.
-    if (
-      hasFiniteScoreValue(input.calculatedValue) &&
-      input.calculatedValue !== input.screenshotValue
-    ) {
-      return undefined;
-    }
-
     return input.screenshotValue;
   }
 
@@ -518,7 +523,7 @@ export function buildImportDraft(input: {
       const provedCuratedBoardCardPoints =
         expectedCuratedBoardCardPointsByPlayerId.get(playerId);
       // Pending cards could resolve into any category, so only a *complete*
-      // calculation can stand as independent evidence for a conflict check.
+      // calculation is trustworthy enough to gate a conflict check on.
       const completeCalculatedCardPointsTotal =
         cardScoringSummary?.totals.complete
           ? cardScoringSummary.totals.total

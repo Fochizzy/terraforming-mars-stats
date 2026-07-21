@@ -459,7 +459,13 @@ describe('ImportReviewPanel', () => {
           parsedEventCount: 3,
           playerLinks: [],
           requiresPlayerConfirmation: false,
-          scoreCandidates: [{ cardPointsTotal: 31, playerName: 'Izzy' }],
+          // James has no calculated-card evidence, so his screenshot_only
+          // line must be preserved exactly as before — only Izzy's is
+          // superseded by the combined calculated-card message.
+          scoreCandidates: [
+            { cardPointsTotal: 31, playerName: 'Izzy' },
+            { totalPoints: 40, playerName: 'James' },
+          ],
           scoreCrossChecks: [
             {
               conflictingFields: [],
@@ -467,19 +473,30 @@ describe('ImportReviewPanel', () => {
               playerName: 'Izzy',
               status: 'screenshot_only',
             },
+            {
+              conflictingFields: [],
+              matchingFields: [],
+              playerName: 'James',
+              status: 'screenshot_only',
+            },
           ],
         }}
       />,
     );
 
-    // The old message must not be the only thing shown for Izzy.
+    // The obsolete standalone line the owner reported must be gone for Izzy,
+    // once a combined calculated-card explanation exists for her.
     expect(
-      screen.getByText(/izzy: the screenshot provided score data without a log score row/i),
-    ).toBeInTheDocument();
+      screen.queryByText(/izzy: the screenshot provided score data without a log score row/i),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText(
         /no explicit log score row was present.*izzy: the summary card score and calculated card details agree at 31 vp/i,
       ),
+    ).toBeInTheDocument();
+    // James has no calculated-card evidence, so his original message is untouched.
+    expect(
+      screen.getByText(/james: the screenshot provided score data without a log score row/i),
     ).toBeInTheDocument();
     // The Calculated Card Scoring panel must remain visible.
     expect(
@@ -526,6 +543,57 @@ describe('ImportReviewPanel', () => {
     expect(
       screen.getByText(
         /izzy: the summary card score and calculated card details disagree on card points \(calculated 25 vs\. summary 31\)\. manual review is required/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('suppresses the redundant screenshot_only line for a conflicting calculated cross-check too, matched by normalized player name', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          cardScoring: [],
+          cardScoringCrossChecks: [
+            {
+              conflictingFields: [
+                { calculatedValue: 25, field: 'cardPointsTotal', referenceValue: 31 },
+              ],
+              hasExplicitLogScoreRow: false,
+              matchingFields: [],
+              pendingCardCount: 0,
+              // Differs in case from the scoreCrossChecks entry below —
+              // normalized matching must still associate them as the same
+              // player, not raw display-string equality.
+              playerName: 'izzy',
+              status: 'conflict',
+            },
+          ],
+          detectedParticipantNames: ['Izzy'],
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [{ cardPointsTotal: 31, playerName: 'Izzy' }],
+          scoreCrossChecks: [
+            {
+              conflictingFields: [],
+              matchingFields: [],
+              playerName: 'Izzy',
+              status: 'screenshot_only',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByText(/^izzy: the screenshot provided score data without a log score row\.$/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /izzy: the summary card score and calculated card details disagree on card points/i,
       ),
     ).toBeInTheDocument();
   });

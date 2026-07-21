@@ -517,158 +517,244 @@ describe('buildImportDraft', () => {
     expect(draft.playerScores['player-1']?.cardPointsTotal).toBeUndefined();
   });
 
-  it('blanks cardPointsTotal for manual review when a complete calculated card total disagrees with the screenshot and no log row exists to arbitrate', () => {
-    const draft = buildImportDraft({
-      cardScoring: [
-        {
-          autoScoredCards: [
+  describe('three-source card-score arbitration matrix', () => {
+    type CardFieldKey =
+      | 'cardPointsAnimals'
+      | 'cardPointsJovian'
+      | 'cardPointsMicrobes'
+      | 'cardPointsTotal';
+
+    const TOTALS_KEY_BY_FIELD: Record<
+      CardFieldKey,
+      'animals' | 'jovian' | 'microbes' | 'total'
+    > = {
+      cardPointsAnimals: 'animals',
+      cardPointsJovian: 'jovian',
+      cardPointsMicrobes: 'microbes',
+      cardPointsTotal: 'total',
+    };
+    // Free-text log-scraping alias understood by parseImportPlayerScores for
+    // each field (see fieldPatterns in parse-import-player-scores.ts).
+    const LOG_TEXT_LABEL_BY_FIELD: Record<CardFieldKey, string> = {
+      cardPointsAnimals: 'Animals',
+      cardPointsJovian: 'Jovian',
+      cardPointsMicrobes: 'Microbes',
+      cardPointsTotal: 'Cards',
+    };
+
+    function buildCardFieldDraftValue(input: {
+      // Only meaningful for cardPointsTotal: the community app's exported log
+      // has no machine-written "Player: ..." block for card categories, so
+      // there is no authoritative source for animals/jovian/microbes.
+      authoritativeValue?: number;
+      calculated?: { complete?: boolean; hasPendingCard?: boolean; value: number };
+      field: CardFieldKey;
+      logValue?: number;
+      screenshotValue?: number;
+    }) {
+      const totalsKey = TOTALS_KEY_BY_FIELD[input.field];
+      const exportedGameLogLines = ['Friday Mars played Pets'];
+
+      if (input.authoritativeValue !== undefined) {
+        exportedGameLogLines.push(
+          `Player: Friday Mars, Total: 999, TR: 1, VP: ${input.authoritativeValue}, MC: 1`,
+        );
+      } else if (input.logValue !== undefined) {
+        exportedGameLogLines.push(
+          `Friday Mars: ${LOG_TEXT_LABEL_BY_FIELD[input.field]} ${input.logValue}`,
+        );
+      }
+
+      const cardScoring = input.calculated
+        ? [
             {
-              cardId: 'card-1',
-              cardName: 'Pets',
-              category: 'animals',
-              evidenceSummary: '3 animal => 3 VP',
-              humanSummary: '1 VP per animal on this card',
-              points: 3,
-              sourceType: 'curated',
+              autoScoredCards: [],
+              pendingCards: input.calculated.hasPendingCard
+                ? [
+                    {
+                      cardId: 'card-pending',
+                      cardName: 'Ganymede Colony',
+                      reason:
+                        'OCR could not confirm the tile count for this card.',
+                    },
+                  ]
+                : [],
+              playerName: 'Friday Mars',
+              totals: {
+                animals: 0,
+                complete: input.calculated.complete ?? true,
+                jovian: 0,
+                microbes: 0,
+                other: 0,
+                total: input.calculated.value,
+                [totalsKey]: input.calculated.value,
+              },
             },
-          ],
-          pendingCards: [],
-          playerName: 'Friday Mars',
-          totals: {
-            animals: 3,
-            complete: true,
-            jovian: 0,
-            microbes: 0,
-            other: 2,
-            total: 5,
-          },
+          ]
+        : [];
+
+      const draft = buildImportDraft({
+        cardScoring,
+        defaultPromoSetSlugs: [],
+        groupId: '11111111-1111-4111-8111-111111111111',
+        importValues: {
+          endgameScreenshotName:
+            input.screenshotValue === undefined ? null : 'endgame.png',
+          exportedGameLog: exportedGameLogLines.join('\n'),
+          generationCount: 11,
+          mapId: 'tharsis',
+          participantNames: ['Friday Mars'],
+          playedOn: '2026-07-04',
+          playerCount: 1,
         },
-      ],
-      defaultPromoSetSlugs: [],
-      groupId: '11111111-1111-4111-8111-111111111111',
-      importValues: {
-        endgameScreenshotName: 'endgame.png',
-        exportedGameLog: 'Friday Mars played Pets',
-        generationCount: 11,
-        mapId: 'tharsis',
-        participantNames: ['Friday Mars'],
-        playedOn: '2026-07-04',
-        playerCount: 1,
-      },
-      playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
-      scoreCandidates: [
-        { cardPointsTotal: 9, playerName: 'Friday Mars' },
-      ],
-      selectedPlayerIds: ['player-1'],
+        playerSelections: [
+          { importedName: 'Friday Mars', playerId: 'player-1' },
+        ],
+        scoreCandidates:
+          input.screenshotValue === undefined
+            ? []
+            : [
+                {
+                  [input.field]: input.screenshotValue,
+                  playerName: 'Friday Mars',
+                },
+              ],
+        selectedPlayerIds: ['player-1'],
+      });
+
+      return draft.playerScores['player-1']?.[input.field];
+    }
+
+    const CARD_FIELDS: CardFieldKey[] = [
+      'cardPointsTotal',
+      'cardPointsAnimals',
+      'cardPointsMicrobes',
+      'cardPointsJovian',
+    ];
+
+    for (const field of CARD_FIELDS) {
+      describe(field, () => {
+        it('case 1: retains the value when log, screenshot, and calculated all agree', () => {
+          expect(
+            buildCardFieldDraftValue({
+              calculated: { value: 25 },
+              field,
+              logValue: 25,
+              screenshotValue: 25,
+            }),
+          ).toBe(25);
+        });
+
+        it('case 2: blanks the field when log and screenshot agree but the complete calculation differs', () => {
+          expect(
+            buildCardFieldDraftValue({
+              calculated: { value: 19 },
+              field,
+              logValue: 25,
+              screenshotValue: 25,
+            }),
+          ).toBeUndefined();
+        });
+
+        it('case 4: blanks the field when screenshot and calculated agree but the log differs (existing log-vs-screenshot conflict safety)', () => {
+          expect(
+            buildCardFieldDraftValue({
+              calculated: { value: 25 },
+              field,
+              logValue: 19,
+              screenshotValue: 25,
+            }),
+          ).toBeUndefined();
+        });
+
+        it('case 5: blanks the field when log, screenshot, and calculated all differ', () => {
+          expect(
+            buildCardFieldDraftValue({
+              calculated: { value: 19 },
+              field,
+              logValue: 12,
+              screenshotValue: 25,
+            }),
+          ).toBeUndefined();
+        });
+
+        it('case 8: blanks the field when there is no log row and the screenshot differs from a complete calculation', () => {
+          expect(
+            buildCardFieldDraftValue({
+              calculated: { value: 19 },
+              field,
+              screenshotValue: 25,
+            }),
+          ).toBeUndefined();
+        });
+
+        it('case 9: does not blank the field against an incomplete calculation, even when it numerically differs from the screenshot', () => {
+          expect(
+            buildCardFieldDraftValue({
+              calculated: { complete: false, hasPendingCard: true, value: 19 },
+              field,
+              screenshotValue: 25,
+            }),
+          ).toBe(25);
+        });
+
+        it('case 10: does not invent a conflict when the screenshot is missing this field', () => {
+          expect(
+            buildCardFieldDraftValue({
+              calculated: { value: 19 },
+              field,
+            }),
+          ).toBe(field === 'cardPointsTotal' ? 19 : undefined);
+        });
+
+        it('case 11: leaves existing screenshot-only behavior unchanged when there is no calculated evidence', () => {
+          expect(
+            buildCardFieldDraftValue({
+              field,
+              screenshotValue: 25,
+            }),
+          ).toBe(25);
+        });
+      });
+    }
+
+    describe('cardPointsTotal (authoritative log cases)', () => {
+      it('case 3: blanks the field when the log agrees with calculated but the screenshot differs', () => {
+        // The community app's exported log has no machine-written "VP" block
+        // for a value that only agrees with the calculation, so this is
+        // exercised through the plain scraped logValue path.
+        expect(
+          buildCardFieldDraftValue({
+            calculated: { value: 19 },
+            field: 'cardPointsTotal',
+            logValue: 19,
+            screenshotValue: 25,
+          }),
+        ).toBeUndefined();
+      });
+
+      it('case 6: blanks the field when the authoritative structured log agrees with the screenshot but calculated differs', () => {
+        expect(
+          buildCardFieldDraftValue({
+            authoritativeValue: 25,
+            calculated: { value: 19 },
+            field: 'cardPointsTotal',
+            screenshotValue: 25,
+          }),
+        ).toBeUndefined();
+      });
+
+      it('case 7: blanks the field when the authoritative structured log agrees with calculated but the screenshot differs', () => {
+        expect(
+          buildCardFieldDraftValue({
+            authoritativeValue: 19,
+            calculated: { value: 19 },
+            field: 'cardPointsTotal',
+            screenshotValue: 25,
+          }),
+        ).toBeUndefined();
+      });
     });
-
-    // The screenshot (9) and the complete calculated total (5) disagree, and
-    // there is no log row to arbitrate: this must never be resolved silently.
-    expect(draft.playerScores['player-1']?.cardPointsTotal).toBeUndefined();
-  });
-
-  it('still trusts the screenshot card total when it agrees with a complete calculated total', () => {
-    const draft = buildImportDraft({
-      cardScoring: [
-        {
-          autoScoredCards: [
-            {
-              cardId: 'card-1',
-              cardName: 'Pets',
-              category: 'animals',
-              evidenceSummary: '3 animal => 3 VP',
-              humanSummary: '1 VP per animal on this card',
-              points: 3,
-              sourceType: 'curated',
-            },
-          ],
-          pendingCards: [],
-          playerName: 'Friday Mars',
-          totals: {
-            animals: 3,
-            complete: true,
-            jovian: 0,
-            microbes: 0,
-            other: 2,
-            total: 5,
-          },
-        },
-      ],
-      defaultPromoSetSlugs: [],
-      groupId: '11111111-1111-4111-8111-111111111111',
-      importValues: {
-        endgameScreenshotName: 'endgame.png',
-        exportedGameLog: 'Friday Mars played Pets',
-        generationCount: 11,
-        mapId: 'tharsis',
-        participantNames: ['Friday Mars'],
-        playedOn: '2026-07-04',
-        playerCount: 1,
-      },
-      playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
-      scoreCandidates: [
-        { cardPointsTotal: 5, playerName: 'Friday Mars' },
-      ],
-      selectedPlayerIds: ['player-1'],
-    });
-
-    expect(draft.playerScores['player-1']?.cardPointsTotal).toBe(5);
-  });
-
-  it('does not blank cardPointsTotal against an incomplete calculated total, even when it differs from the screenshot', () => {
-    const draft = buildImportDraft({
-      cardScoring: [
-        {
-          autoScoredCards: [
-            {
-              cardId: 'card-1',
-              cardName: 'Pets',
-              category: 'animals',
-              evidenceSummary: '3 animal => 3 VP',
-              humanSummary: '1 VP per animal on this card',
-              points: 3,
-              sourceType: 'curated',
-            },
-          ],
-          pendingCards: [
-            {
-              cardId: 'card-2',
-              cardName: 'Ganymede Colony',
-              reason: 'OCR could not confirm the tile count for this card.',
-            },
-          ],
-          playerName: 'Friday Mars',
-          totals: {
-            animals: 3,
-            complete: false,
-            jovian: 0,
-            microbes: 0,
-            other: 0,
-            total: 3,
-          },
-        },
-      ],
-      defaultPromoSetSlugs: [],
-      groupId: '11111111-1111-4111-8111-111111111111',
-      importValues: {
-        endgameScreenshotName: 'endgame.png',
-        exportedGameLog: 'Friday Mars played Pets',
-        generationCount: 11,
-        mapId: 'tharsis',
-        participantNames: ['Friday Mars'],
-        playedOn: '2026-07-04',
-        playerCount: 1,
-      },
-      playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
-      scoreCandidates: [
-        { cardPointsTotal: 9, playerName: 'Friday Mars' },
-      ],
-      selectedPlayerIds: ['player-1'],
-    });
-
-    // An incomplete calculation must not be trusted enough to blank a value
-    // it disagrees with — the screenshot reading still wins.
-    expect(draft.playerScores['player-1']?.cardPointsTotal).toBe(9);
   });
 
   it('merges proved curated board award values and leaves unresolved board card values unset', () => {

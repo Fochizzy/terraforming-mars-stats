@@ -6,6 +6,7 @@ import type {
 } from '@/lib/imports/build-import-review-model';
 import type { CuratedBoardImportItem } from '@/lib/imports/score-curated-board-import-items';
 import type { ImportReviewJumpTarget } from '@/lib/imports/import-review-jump-state';
+import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
 import type { PlayerIdentity } from '@/lib/imports/resolve-player-identity';
 import { ImportCardScoringPanel } from './import-card-scoring-panel';
 import { ImportPlayerResolutionPanel } from './import-player-resolution-panel';
@@ -192,8 +193,21 @@ export function ImportReviewPanel({
     const jumpTarget = buildBoardReviewJumpTarget(item);
     return jumpTarget ? [jumpTarget] : [];
   });
-  const scoreCrossChecks = review.scoreCrossChecks ?? [];
   const cardScoringCrossChecks = review.cardScoringCrossChecks ?? [];
+  const playerNamesWithCardScoringCrossCheck = new Set(
+    cardScoringCrossChecks.map((check) => normalizePlayerAlias(check.playerName)),
+  );
+  // A calculated-card cross-check message already states "no explicit log
+  // score row was present" for this player, so the generic screenshot_only
+  // line under it would just repeat the same fact as a separate, seemingly
+  // contradictory line (this is the exact redundancy the owner reported).
+  const scoreCrossChecks = (review.scoreCrossChecks ?? []).filter(
+    (check) =>
+      check.status !== 'screenshot_only' ||
+      !playerNamesWithCardScoringCrossCheck.has(
+        normalizePlayerAlias(check.playerName),
+      ),
+  );
   const hasScoreConflicts =
     scoreCrossChecks.some((check) => check.status === 'conflict') ||
     cardScoringCrossChecks.some((check) => check.status === 'conflict');

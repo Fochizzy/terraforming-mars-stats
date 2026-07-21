@@ -27,10 +27,24 @@ export type ImportScoreCrossCheck = {
 
 /**
  * The subset of score-summary fields a calculated card-scoring breakdown can
- * actually justify. Unlike ImportScoreCrossCheck (log row vs. screenshot row
- * — two parsed readings of the same printed numbers), this compares the
- * screenshot's printed card points against an independently *derived* value
- * built from game-log events and board-state evidence.
+ * actually justify.
+ *
+ * Provenance note: in the currently wired-up import flow, `cardScoring` is
+ * produced by parseScoreDetailsScreenshot, which OCRs a "score details"
+ * column of the *same* uploaded evidence and reads each card's VP directly
+ * off that OCR text (see the "Direct score details screenshot: N VP."
+ * evidence summaries it emits). The game log is consulted only to identify
+ * which cards a player played and to size-check the OCR'd total, not to
+ * derive the VP values themselves — so this is best understood as an
+ * internal-consistency check between two separately-read regions of one
+ * uploaded document (a itemized card-detail column vs. a summary score row),
+ * not corroboration from a fully independent external source. It is still
+ * useful: a genuine OCR misread in either region is exactly what this catches.
+ * (A second, log/board-event-derived scoring path, calculateImportCardScores,
+ * exists in this codebase but has no production caller as of this writing —
+ * if it is ever wired in, this same comparison remains valid unchanged, and
+ * would additionally be corroboration from a source outside the uploaded
+ * screenshot.)
  */
 export type ImportCardScoringField =
   | 'cardPointsAnimals'
@@ -182,11 +196,13 @@ const CARD_SCORING_CROSS_CHECK_FIELDS: Array<{
 ];
 
 /**
- * Compares calculated card scoring (derived from game-log card/resource/tile
- * events plus board-state evidence — never from the screenshot's printed
- * numbers) against the screenshot's summary card-point fields. This is
- * genuinely independent evidence, so it participates in the cross-check even
- * when no explicit log score row exists to compare the screenshot against.
+ * Compares calculated card scoring against the screenshot's summary
+ * card-point fields (see the provenance note on ImportCardScoringField above
+ * — this is an internal-consistency check between two separately-read
+ * regions of the same uploaded evidence, not automatically an independent
+ * external source). It still participates in the cross-check even when no
+ * explicit log score row exists to compare the screenshot against, since an
+ * OCR discrepancy between the two regions is worth surfacing either way.
  */
 function buildCardScoringCrossChecks(input: {
   cardScoring: ImportPlayerCardScoringSummary[];
