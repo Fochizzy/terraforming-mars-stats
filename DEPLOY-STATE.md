@@ -17,16 +17,16 @@ version→commit linkage.
 | | |
 |---|---|
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
-| Worker version | `15fba7e9-2443-440c-8a1f-b5b9231d7ff6` |
+| Worker version | `79d5b795-eb81-4962-aa5a-bfff26359a36` |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `release/step-43-production-compatibility` (pushed to `origin`; `origin/release/step-43-production-compatibility` independently confirmed to resolve to the exact deployed SHA) |
-| Source commit | `a40d49662825474c98813aa44abb577b8830cc68` — resolved by the deploy-time stamp print, not inferred |
-| Deployed (UTC) | 2026-07-20 18:33:13.965Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **Released by Izzy 2026-07-20** (Step 4.3 verification effort abandoned/superseded); **reserved for the Workstream 2 privacy deploy, candidate `9b7a00555` only** |
-| Active clean deployment worktree | `C:\tmp\tm-ws2-privacy-deploy` on branch `fix/import-matchscore-client-privacy`, detached at candidate `9b7a00555f216f4a741e819e8795238c362584f9` (base `341d0d23a`). The prior row, `C:\tmp\tm-step-43-production-reader`, is released — see below. |
-| DB migration ledger head | `20260720021300 add_import_player_name_matching_rpc` (unchanged — no migration applied this release) |
-| Rollback worker version | `c23bfbd7-9729-4981-9f45-aee05c242d31` (previous production build, commit `59dda6c0f`; `eb4e5821`/`bf081d918` remains the deeper live-capture-v2 fallback) |
-| Verified | 2026-07-20 18:3x UTC — see "Step 4.3 code-only deploy" below for exact evidence and its gaps |
+| Source branch | `fix/import-matchscore-client-privacy` (pushed to `origin`; `origin/fix/import-matchscore-client-privacy` tip is the lock-transfer docs commit `792079d8a`, one commit ahead of the deployed candidate — the deploy itself was built from the candidate commit directly, detached, not from the branch tip) |
+| Source commit | `9b7a00555f216f4a741e819e8795238c362584f9` — printed by the deploy-time stamp (`TM_STATS_SOURCE_COMMIT`), not inferred; `TM_STATS_SOURCE_BRANCH` was passed explicitly since the build ran from a detached HEAD |
+| Deployed (UTC) | 2026-07-21 00:15:19.080Z (`wrangler deployments list`, 100% traffic) |
+| Deploy lock | **Released back — Workstream 2 privacy deploy complete.** Available for the next session; update this row before starting new work. |
+| Active clean deployment worktree | `C:\tmp\tm-ws2-privacy-deploy` — no longer needed once this entry is read; the prior rows (`tm-step-43-production-reader`) were already released. |
+| DB migration ledger head | `20260720021300 add_import_player_name_matching_rpc` (unchanged — no migration applied this release; migration `20260720120000` remains separately gated) |
+| Rollback worker version | `8cc152cb-bfed-4827-852a-fee9e944bf79` (immediately prior production build, 100% traffic 2026-07-20T21:50:08Z through this deploy; source commit unconfirmed — see gap note below) |
+| Verified | 2026-07-21 00:15-00:20 UTC — see "Workstream 2 privacy deploy" below for exact evidence and its gaps |
 
 **Evidence for the source commit.** This is the **first release built by the
 stamping deploy path**: `scripts/deploy/deploy-with-stamp.ts` printed
@@ -117,15 +117,81 @@ verified:**
   matching, and tile attribution against real production traffic is not yet
   independently observed by this session.
 
-### Workstream 2 privacy deploy — lock transfer, pre-deploy — 2026-07-20 ~23:5x UTC
+### Workstream 2 privacy deploy — 2026-07-20 23:5x UTC through 2026-07-21 00:2x UTC
 
 Owner (Izzy) confirmed directly, in chat, that the Step 4.3 verification
 effort above (`/api/deploy-info` fetch, functional walkthrough) is abandoned
 or superseded, released the deploy lock, and reserved it for a bounded
-Workstream 2 deploy: candidate `9b7a00555f216f4a741e819e8795238c362584f9` on
+deploy: candidate `9b7a00555f216f4a741e819e8795238c362584f9` on
 `fix/import-matchscore-client-privacy`, base `341d0d23a94b5dc80e49da374a55b9690291f277`.
-No migration is authorized as part of this deploy. Full deploy evidence will
-be appended here once it completes.
+No migration was authorized or applied as part of this deploy.
+
+**Confirmed:**
+- Worktree clean and at exactly `9b7a00555` immediately before deploy
+  (`git status --porcelain` empty, `git rev-parse HEAD` matched); the
+  lock-transfer docs commit (`792079d8a`) was pushed to `origin` first, then
+  the worktree was checked back out to the exact candidate SHA before
+  building, so the deployed artifact does not include it.
+- `origin/fix/import-matchscore-client-privacy` independently fetched and
+  resolves to `792079d8a` (candidate `9b7a00555` plus the docs-only commit).
+- Focused suite (6 files / 55 tests: import-player-link resolution, player
+  identity resolution, private-name sentinel, web-import-page,
+  apply-created-import-player-to-review, apply-server-player-matches) — all
+  passed.
+- Full suite: 8 failed / 5 files, 958 passed / 189 files — **exactly** the
+  documented pre-existing baseline, no new failures.
+- `npx tsc --noEmit` — clean. `next lint` on the 5 non-test changed files —
+  clean. `git diff --check` on the base..candidate range — clean.
+- `next build` (production build) — succeeded, 34/34 static pages, no errors.
+- `npm run check:schema` (predeploy gate) — passed, ran again automatically
+  as part of `npm run deploy`.
+- Deploy-time stamp printed `TM_STATS_SOURCE_COMMIT=9b7a00555...` before the
+  build ran, with `TM_STATS_SOURCE_BRANCH` explicitly overridden to
+  `fix/import-matchscore-client-privacy` (build ran from a detached HEAD, so
+  `git rev-parse --abbrev-ref HEAD` would otherwise have printed `HEAD`).
+- `wrangler deployments list` shows `79d5b795-eb81-4962-aa5a-bfff26359a36` at
+  100% traffic, created `2026-07-21T00:15:19.080Z`.
+- Passive read-only monitoring immediately after deploy: `wrangler tail` for
+  a short window showed 2 requests (`/` 200, `/api/deploy-info` 401), both
+  `Ok` at the Worker level, no exceptions. Supabase `postgres`/`api` logs for
+  the deploy window show the same `check:schema` schema-probe pattern as the
+  prior release (anon/service-role `select=*&limit=0` sweeps producing
+  expected `permission denied for schema analytics` / 403s on
+  analytics-schema views under security-invoker grants) — consistent with
+  the precedent in the section above, not a new regression.
+- Confirmed **zero database mutations** from this session: every
+  `execute_sql`/log call this session was read-only; `check:schema` only
+  issues `select ... limit 0`.
+
+**NOT completed this session — same boundary as the prior release:**
+- **No authenticated `/api/deploy-info` fetch or functional walkthrough of
+  Import Analyze, import review, group roster, or manual candidate
+  selection was performed.** This requires a signed-in owner session;
+  entering a username/PIN to authenticate is a credential-entry action this
+  session will not perform regardless of authorization. Payload-shape,
+  ordering, and DOM privacy guarantees are backed by the candidate's own
+  unit/component tests (`private-name-sentinel.test.ts`,
+  `resolve-import-player-links.test.ts` — 244 new lines covering the field
+  allowlist and tier/gamesPlayed/displayName/id ordering), not by a live
+  observation.
+- **Found while reviewing Supabase `api` logs for this window: a real,
+  non-probe request** (`GET /rest/v1/player_import_aliases?select=group_id,
+  normalized_alias,player_id&...&source_type=eq.game_log`, no `node` user
+  agent — i.e. real application traffic, not the schema-probe script) **got
+  403 at 2026-07-20 23:23:15 UTC**, roughly 50 minutes *before* this deploy
+  and while `8cc152cb` (the prior release) was serving 100% of traffic. This
+  is the same `player_import_aliases` permission gap the untracked, stale
+  ledger copy described as breaking the import Analyze action. It predates
+  and is unrelated to this candidate — candidate `9b7a00555` changes what
+  fields/ordering are exposed to the browser, not the underlying grant — but
+  it means a live functional walkthrough of Import Analyze, if attempted
+  right now by anyone, may still hit this pre-existing, separately-tracked
+  error. Worth owner attention independent of Workstream 2.
+- Net: the **mechanics** of this release (correct commit, correct worktree,
+  correct branch, stamped, gated, tested, live, zero mutations) are
+  confirmed; the **live authenticated behavior** of the privacy-hardened
+  import candidate list against real production traffic is not yet
+  independently observed by any session.
 
 ## Deployment sources — allowed and prohibited
 
