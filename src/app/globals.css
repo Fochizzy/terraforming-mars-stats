@@ -330,6 +330,24 @@ a {
     color: #d8eef8;
   }
 
+  .tm-pending-banner {
+    @apply inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em];
+    background: rgba(18, 24, 32, 0.94);
+    border-color: rgba(239, 185, 111, 0.45);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+    color: #f3d7b0;
+    font-family: var(--tm-font-display);
+  }
+
+  .tm-pending-content {
+    filter: saturate(0.55);
+    opacity: 0.4;
+    pointer-events: none;
+    transition:
+      opacity 160ms ease,
+      filter 160ms ease;
+  }
+
   .tm-button-primary {
     @apply rounded-full border px-5 py-3 text-center text-sm font-semibold;
     background: linear-gradient(180deg, #efb96f 0%, #d78643 48%, #bd612a 100%);

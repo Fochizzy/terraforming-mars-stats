@@ -898,6 +898,13 @@ describe('InsightsDashboard', () => {
     await user.click(okButton);
 
     expect(screen.getByText(/Focused on Second Seat overall/i)).toBeInTheDocument();
+    // Once the focus transition settles the button re-disables itself.
+    expect(okButton).toBeDisabled();
+
+    // Comparison applies on change, without a second OK press.
+    const compareSelect = screen.getByLabelText(/compare with player/i);
+    await user.selectOptions(compareSelect, 'user:me');
+    expect(compareSelect).toHaveValue('user:me');
   });
 
   it('does not surface promo catalog or map expansion interactions as stats', () => {

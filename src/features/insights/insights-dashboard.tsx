@@ -1,7 +1,7 @@
 'use client';
 
 import { type ReactNode, useMemo, useState, useTransition } from 'react';
-import { EyeOff, Plus } from 'lucide-react';
+import { EyeOff, Loader2, Plus } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -1700,6 +1700,7 @@ export function InsightsDashboard({
   );
   const [draftPersonId, setDraftPersonId] = useState<string>(initialSelectedPersonId);
   const [comparePersonId, setComparePersonId] = useState<string>('none');
+  const [draftComparePersonId, setDraftComparePersonId] = useState<string>('none');
   const [draftCombinationPlayerIds, setDraftCombinationPlayerIds] = useState<
     string[]
   >([]);
@@ -1709,6 +1710,9 @@ export function InsightsDashboard({
     string[]
   >(initialHiddenCombinationPlayerIds);
   const [, startPreferenceTransition] = useTransition();
+  // Applying a new focus re-derives every chart on this page, which takes long
+  // enough to look frozen. Run it as a transition so the pending UI paints first.
+  const [isFocusPending, startFocusTransition] = useTransition();
   const isPlayerCombinationMode = scopeMode === 'group';
   const combinationOptions = useMemo(
     () =>
@@ -2248,13 +2252,17 @@ export function InsightsDashboard({
                     className="tm-input mt-2 w-full appearance-none pr-9"
                     id="player-focus-select"
                     onChange={(event) => {
+                      const nextPersonId = event.target.value;
                       if (scopeMode === 'individual') {
-                        setDraftPersonId(event.target.value);
-                      } else {
-                        setSelectedPersonId(event.target.value);
-                        setDraftPersonId(event.target.value);
-                        setComparePersonId('none');
+                        setDraftPersonId(nextPersonId);
+                        return;
                       }
+                      setDraftPersonId(nextPersonId);
+                      setDraftComparePersonId('none');
+                      startFocusTransition(() => {
+                        setSelectedPersonId(nextPersonId);
+                        setComparePersonId('none');
+                      });
                     }}
                     value={draftPersonId}
                   >
@@ -2272,14 +2280,20 @@ export function InsightsDashboard({
                   </span>
                   {scopeMode === 'individual' ? (
                     <button
-                      className="tm-button-primary mt-2 px-4 py-1.5 text-xs"
-                      disabled={draftPersonId === selectedPersonId}
+                      className="tm-button-primary mt-2 inline-flex items-center gap-2 px-4 py-1.5 text-xs active:translate-y-px"
+                      disabled={isFocusPending || draftPersonId === selectedPersonId}
                       onClick={() => {
-                        setSelectedPersonId(draftPersonId);
-                        setComparePersonId('none');
+                        setDraftComparePersonId('none');
+                        startFocusTransition(() => {
+                          setSelectedPersonId(draftPersonId);
+                          setComparePersonId('none');
+                        });
                       }}
                       type="button"
                     >
+                      {isFocusPending ? (
+                        <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
+                      ) : null}
                       OK
                     </button>
                   ) : null}
@@ -2293,8 +2307,14 @@ export function InsightsDashboard({
                       aria-label="Compare with player"
                       className="tm-input mt-2 w-full appearance-none pr-9"
                       id="player-compare-select"
-                      onChange={(event) => setComparePersonId(event.target.value)}
-                      value={comparePersonId}
+                      onChange={(event) => {
+                        const nextCompareId = event.target.value;
+                        setDraftComparePersonId(nextCompareId);
+                        startFocusTransition(() => {
+                          setComparePersonId(nextCompareId);
+                        });
+                      }}
+                      value={draftComparePersonId}
                     >
                       <option value="none">— no comparison —</option>
                       {focusPeople
@@ -2365,258 +2385,326 @@ export function InsightsDashboard({
         </div>
       </ChartFrame>
 
-      {scopeMode === 'group' ? (
-        <ScoreProfilePanel averages={baseAnalytics.scoreAverages} />
+      {isFocusPending ? (
+        <div className="pointer-events-none sticky top-4 z-30 flex justify-center">
+          <p className="tm-pending-banner" role="status">
+            <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+            Recalculating insights…
+          </p>
+        </div>
       ) : null}
 
-      {hasAnalytics ? (
-        <>
-          <ChartFrame
-            description="Auto-generated highlights — the strongest signals for the current focus, each tagged with its sample size and confidence."
-            title="Insight Cards"
-          >
-            <div className="grid gap-3 md:grid-cols-2">
-              {insightCards.map((card) => (
-                <article className="tm-stat-card" key={`${card.title}-${card.body}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-semibold text-stone-100">{card.title}</h3>
-                    <p className="tm-accent-copy text-xs uppercase tracking-[0.2em]">
-                      {card.confidence}
-                    </p>
-                  </div>
-                  <p className="tm-muted-copy mt-2 text-sm">
-                    <GlossaryRichText>{card.body}</GlossaryRichText>
-                  </p>
-                  <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
-                    Sample size: {card.sampleSize}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </ChartFrame>
+      <div
+        aria-busy={isFocusPending}
+        className={`flex flex-col gap-4${isFocusPending ? ' tm-pending-content' : ''}`}
+      >
+        {scopeMode === 'group' ? (
+          <ScoreProfilePanel averages={baseAnalytics.scoreAverages} />
+        ) : null}
 
-          {expandedIndividualMetrics.length > 0 ? (
+        {hasAnalytics ? (
+          <>
             <ChartFrame
-              description="Ten player-specific lenses that explain what is driving wins, losses, tempo, style fit, and consistency."
-              title="Expanded Individual Metrics"
+              description="Auto-generated highlights — the strongest signals for the current focus, each tagged with its sample size and confidence."
+              title="Insight Cards"
             >
-              <div className="grid gap-3 lg:grid-cols-2">
-                {expandedIndividualMetrics.map((metric) => (
-                  <article className="tm-stat-card" key={metric.title}>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <h3 className="font-semibold text-stone-100">
-                        {metric.title}
-                      </h3>
+              <div className="grid gap-3 md:grid-cols-2">
+                {insightCards.map((card) => (
+                  <article className="tm-stat-card" key={`${card.title}-${card.body}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-semibold text-stone-100">{card.title}</h3>
                       <p className="tm-accent-copy text-xs uppercase tracking-[0.2em]">
-                        {metric.sampleSize} sample
-                        {metric.sampleSize === 1 ? '' : 's'}
+                        {card.confidence}
                       </p>
                     </div>
                     <p className="tm-muted-copy mt-2 text-sm">
-                      <GlossaryRichText>{metric.summary}</GlossaryRichText>
+                      <GlossaryRichText>{card.body}</GlossaryRichText>
                     </p>
-                    <dl className="mt-4 grid gap-2 sm:grid-cols-2">
-                      {metric.metrics.map((entry) => (
-                        <div
-                          className="rounded-md border border-white/10 bg-black/10 p-3"
-                          key={`${metric.title}-${entry.label}`}
-                        >
-                          <dt className="tm-data-label">{entry.label}</dt>
-                          <dd className="mt-1 break-words text-sm font-semibold text-stone-100">
-                            {entry.value}
-                          </dd>
-                          {entry.detail ? (
-                            <dd className="tm-muted-copy mt-1 text-xs">
-                              <GlossaryRichText>{entry.detail}</GlossaryRichText>
-                            </dd>
-                          ) : null}
-                        </div>
-                      ))}
-                    </dl>
-                    <p className="tm-muted-copy mt-3 text-xs">
-                      <GlossaryRichText>{metric.confidenceLabel}</GlossaryRichText>
+                    <p className="mt-3 text-xs" style={{ color: 'var(--tm-muted)' }}>
+                      Sample size: {card.sampleSize}
                     </p>
                   </article>
                 ))}
               </div>
             </ChartFrame>
-          ) : null}
 
-          {comparePerson !== null ? (
-            <PlayerComparisonSummary
-              analytics={overallAnalytics}
-              currentUserCanonicalId={currentUserCanonicalId}
-              extended={overallExtended}
-              focusPeople={focusPeople}
-              selectedCanonicalIds={[
-                effectiveSelectedPersonId,
-                comparePerson.canonicalId,
-              ]}
-            />
-          ) : null}
+            {expandedIndividualMetrics.length > 0 ? (
+              <ChartFrame
+                description="Ten player-specific lenses that explain what is driving wins, losses, tempo, style fit, and consistency."
+                title="Expanded Individual Metrics"
+              >
+                <div className="grid gap-3 lg:grid-cols-2">
+                  {expandedIndividualMetrics.map((metric) => (
+                    <article className="tm-stat-card" key={metric.title}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <h3 className="font-semibold text-stone-100">
+                          {metric.title}
+                        </h3>
+                        <p className="tm-accent-copy text-xs uppercase tracking-[0.2em]">
+                          {metric.sampleSize} sample
+                          {metric.sampleSize === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                      <p className="tm-muted-copy mt-2 text-sm">
+                        <GlossaryRichText>{metric.summary}</GlossaryRichText>
+                      </p>
+                      <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+                        {metric.metrics.map((entry) => (
+                          <div
+                            className="rounded-md border border-white/10 bg-black/10 p-3"
+                            key={`${metric.title}-${entry.label}`}
+                          >
+                            <dt className="tm-data-label">{entry.label}</dt>
+                            <dd className="mt-1 break-words text-sm font-semibold text-stone-100">
+                              {entry.value}
+                            </dd>
+                            {entry.detail ? (
+                              <dd className="tm-muted-copy mt-1 text-xs">
+                                <GlossaryRichText>{entry.detail}</GlossaryRichText>
+                              </dd>
+                            ) : null}
+                          </div>
+                        ))}
+                      </dl>
+                      <p className="tm-muted-copy mt-3 text-xs">
+                        <GlossaryRichText>{metric.confidenceLabel}</GlossaryRichText>
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </ChartFrame>
+            ) : null}
 
-          {isGroupScope && selectedPerson && !selectedPerson.inActiveGroup ? (
-            <ChartFrame title="Selected Group Unavailable">
-              <p className="tm-body-copy text-sm">
-                <GlossaryRichText>
-                  {`${focusPlayerName} does not have a player row in the selected group, so group-only breakdowns are unavailable for that combination.`}
-                </GlossaryRichText>
-              </p>
-            </ChartFrame>
-          ) : null}
+            {comparePerson !== null ? (
+              <PlayerComparisonSummary
+                analytics={overallAnalytics}
+                currentUserCanonicalId={currentUserCanonicalId}
+                extended={overallExtended}
+                focusPeople={focusPeople}
+                selectedCanonicalIds={[
+                  effectiveSelectedPersonId,
+                  comparePerson.canonicalId,
+                ]}
+              />
+            ) : null}
 
-          {!isGroupScope || showGroupContext ? (
-            <ChartFrame
-              description="Players ranked by weighted score, which blends win rate, average placement, and score margin. Taller bars rank higher; the highlighted bar is the current focus."
-              title={leaderboardTitle}
-            >
-              {leaderboardChartData.length === 0 ? (
-                <p className="tm-muted-copy text-sm">
+            {isGroupScope && selectedPerson && !selectedPerson.inActiveGroup ? (
+              <ChartFrame title="Selected Group Unavailable">
+                <p className="tm-body-copy text-sm">
                   <GlossaryRichText>
-                    Finalized leaderboard rows will appear here once games are logged.
+                    {`${focusPlayerName} does not have a player row in the selected group, so group-only breakdowns are unavailable for that combination.`}
                   </GlossaryRichText>
                 </p>
+              </ChartFrame>
+            ) : null}
+
+            {!isGroupScope || showGroupContext ? (
+              <ChartFrame
+                description="Players ranked by weighted score, which blends win rate, average placement, and score margin. Taller bars rank higher; the highlighted bar is the current focus."
+                title={leaderboardTitle}
+              >
+                {leaderboardChartData.length === 0 ? (
+                  <p className="tm-muted-copy text-sm">
+                    <GlossaryRichText>
+                      Finalized leaderboard rows will appear here once games are logged.
+                    </GlossaryRichText>
+                  </p>
+                ) : (
+                  <ResponsiveContainer height={260} width="100%">
+                    <BarChart
+                      data={leaderboardChartData}
+                      margin={{ bottom: 36, left: 0, right: 12, top: 24 }}
+                    >
+                      <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
+                      <XAxis
+                        angle={-20}
+                        dataKey="name"
+                        height={60}
+                        textAnchor="end"
+                        tick={chartAxisTick}
+                      />
+                      <YAxis
+                        domain={[0, (dataMax: number) => roundNumber(dataMax * 1.15)]}
+                        tick={chartAxisTick}
+                      />
+                      <Tooltip content={<LeaderboardTooltip />} cursor={{ fill: chartGridStroke }} />
+                      <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
+                        {leaderboardChartData.map((row) => (
+                          <Cell
+                            fill={
+                              row.isFocused
+                                ? chartSeriesColors.accent
+                                : chartSeriesColors.default
+                            }
+                            key={row.name}
+                            stroke={row.isFocused ? 'var(--tm-text)' : undefined}
+                            strokeWidth={row.isFocused ? 2 : 0}
+                          />
+                        ))}
+                        <LabelList
+                          dataKey="weightedScore"
+                          fill="var(--tm-muted)"
+                          fontSize={11}
+                          formatter={(value) =>
+                            typeof value === 'number' ? value.toFixed(2) : value
+                          }
+                          position="top"
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </ChartFrame>
+            ) : null}
+
+            {showExtendedSections ? (
+              <PlacementDistributionChart
+                rows={sectionExtended.placementDistributionRows}
+              />
+            ) : null}
+
+            <ChartFrame
+              description="Average victory points broken out by where they came from, showing which sources drive the scores."
+              title={scoreProfileTitle}
+            >
+              {scoreSourceData.length === 0 ? (
+                <p className="tm-muted-copy text-sm">
+                  Score-source averages will appear here after finalized games exist.
+                </p>
               ) : (
-                <ResponsiveContainer height={260} width="100%">
+                <ResponsiveContainer height={340} width="100%">
                   <BarChart
-                    data={leaderboardChartData}
-                    margin={{ bottom: 36, left: 0, right: 12, top: 24 }}
+                    data={scoreSourceData}
+                    layout="vertical"
+                    margin={{ bottom: 12, left: 48, right: 12, top: 12 }}
                   >
                     <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                    <XAxis
-                      angle={-20}
-                      dataKey="name"
-                      height={60}
-                      textAnchor="end"
-                      tick={chartAxisTick}
-                    />
+                    <XAxis tick={chartAxisTick} type="number" />
                     <YAxis
-                      domain={[0, (dataMax: number) => roundNumber(dataMax * 1.15)]}
+                      dataKey="label"
                       tick={chartAxisTick}
+                      type="category"
+                      width={88}
                     />
-                    <Tooltip content={<LeaderboardTooltip />} cursor={{ fill: chartGridStroke }} />
-                    <Bar dataKey="weightedScore" radius={[10, 10, 0, 0]}>
-                      {leaderboardChartData.map((row) => (
-                        <Cell
-                          fill={
-                            row.isFocused
-                              ? chartSeriesColors.accent
-                              : chartSeriesColors.default
-                          }
-                          key={row.name}
-                          stroke={row.isFocused ? 'var(--tm-text)' : undefined}
-                          strokeWidth={row.isFocused ? 2 : 0}
-                        />
-                      ))}
-                      <LabelList
-                        dataKey="weightedScore"
-                        fill="var(--tm-muted)"
-                        fontSize={11}
-                        formatter={(value) =>
-                          typeof value === 'number' ? value.toFixed(2) : value
-                        }
-                        position="top"
-                      />
-                    </Bar>
+                    <Tooltip contentStyle={chartTooltipStyle} />
+                    <Bar dataKey="value" fill={chartSeriesColors.accent} radius={[0, 10, 10, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </ChartFrame>
-          ) : null}
 
-          {showExtendedSections ? (
-            <PlacementDistributionChart
-              rows={sectionExtended.placementDistributionRows}
+            <ScoreSourceRadar
+              focusPlayerName={focusPlayerName}
+              groupAverages={radarGroupAverages}
+              playerAverages={radarPlayerAverages}
             />
-          ) : null}
 
-          <ChartFrame
-            description="Average victory points broken out by where they came from, showing which sources drive the scores."
-            title={scoreProfileTitle}
-          >
-            {scoreSourceData.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Score-source averages will appear here after finalized games exist.
-              </p>
-            ) : (
-              <ResponsiveContainer height={340} width="100%">
-                <BarChart
-                  data={scoreSourceData}
-                  layout="vertical"
-                  margin={{ bottom: 12, left: 48, right: 12, top: 12 }}
-                >
-                  <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                  <XAxis tick={chartAxisTick} type="number" />
-                  <YAxis
-                    dataKey="label"
-                    tick={chartAxisTick}
-                    type="category"
-                    width={88}
-                  />
-                  <Tooltip contentStyle={chartTooltipStyle} />
-                  <Bar dataKey="value" fill={chartSeriesColors.accent} radius={[0, 10, 10, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </ChartFrame>
+            {styleEffectivenessScopes.length > 0 && !isPlayerCombinationMode ? (
+              <StyleEffectivenessPanel scopes={styleEffectivenessScopes} />
+            ) : null}
 
-          <ScoreSourceRadar
-            focusPlayerName={focusPlayerName}
-            groupAverages={radarGroupAverages}
-            playerAverages={radarPlayerAverages}
-          />
+            {showExtendedSections ? (
+              <ChartFrame
+                description="Win rate by inferred play style, with the three best-performing styles broken out below the chart."
+                title="Best Style Snapshot"
+              >
+                {stylePerformanceData.length === 0 ? (
+                  <p className="tm-muted-copy text-sm">
+                    Best-style snapshots will appear once inferred styles have been
+                    recorded on finalized games.
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <ResponsiveContainer height={260} width="100%">
+                      <BarChart
+                        data={stylePerformanceData}
+                        margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
+                      >
+                        <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
+                        <XAxis
+                          angle={-20}
+                          dataKey="styleLabel"
+                          height={72}
+                          textAnchor="end"
+                          tick={chartAxisTick}
+                        />
+                        <YAxis tick={chartAxisTick} />
+                        <Tooltip contentStyle={chartTooltipStyle} />
+                        <Bar dataKey="winRate" fill={chartSeriesColors.tr} radius={[10, 10, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div className="grid gap-3">
+                      {selectedStylePerformanceRows.slice(0, 3).map((row) => (
+                        <article
+                          className="tm-stat-card"
+                          key={`${row.styleCode}-${row.gamesPlayed}`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="font-semibold text-stone-100">
+                              {humanizeStyleCode(row.styleCode)}
+                            </h3>
+                            <p className="tm-accent-copy text-sm">
+                              {formatPercent(row.winRate)}
+                            </p>
+                          </div>
+                          <p className="tm-muted-copy mt-2 text-sm">
+                            {row.gamesPlayed} games | avg {formatAverage(row.averageScore)} points
+                            | avg place {formatAverage(row.averagePlacement)}
+                          </p>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </ChartFrame>
+            ) : null}
 
-          {styleEffectivenessScopes.length > 0 && !isPlayerCombinationMode ? (
-            <StyleEffectivenessPanel scopes={styleEffectivenessScopes} />
-          ) : null}
-
-          {showExtendedSections ? (
             <ChartFrame
-              description="Win rate by inferred play style, with the three best-performing styles broken out below the chart."
-              title="Best Style Snapshot"
+              description="Average score by game date, tracing how form moves over time. The most recent results are listed under the line."
+              title="Trend Over Time"
             >
-              {stylePerformanceData.length === 0 ? (
+              {trendChartData.length === 0 ? (
                 <p className="tm-muted-copy text-sm">
-                  Best-style snapshots will appear once inferred styles have been
-                  recorded on finalized games.
+                  Trend evidence will appear after finalized games are logged.
                 </p>
               ) : (
                 <div className="flex flex-col gap-4">
-                  <ResponsiveContainer height={260} width="100%">
-                    <BarChart
-                      data={stylePerformanceData}
+                  <ResponsiveContainer height={280} width="100%">
+                    <LineChart
+                      data={trendChartData}
                       margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
                     >
                       <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
                       <XAxis
                         angle={-20}
-                        dataKey="styleLabel"
+                        dataKey="label"
                         height={72}
                         textAnchor="end"
                         tick={chartAxisTick}
                       />
                       <YAxis tick={chartAxisTick} />
                       <Tooltip contentStyle={chartTooltipStyle} />
-                      <Bar dataKey="winRate" fill={chartSeriesColors.tr} radius={[10, 10, 0, 0]} />
-                    </BarChart>
+                      <Line
+                        dataKey="score"
+                        dot
+                        stroke={chartSeriesColors.accent}
+                        strokeWidth={3}
+                        type="monotone"
+                      />
+                    </LineChart>
                   </ResponsiveContainer>
                   <div className="grid gap-3">
-                    {selectedStylePerformanceRows.slice(0, 3).map((row) => (
-                      <article
-                        className="tm-stat-card"
-                        key={`${row.styleCode}-${row.gamesPlayed}`}
-                      >
+                    {trendChartData.slice(-4).reverse().map((row) => (
+                      <article className="tm-stat-card" key={`${row.label}-${row.styleLabel}`}>
                         <div className="flex items-center justify-between gap-3">
-                          <h3 className="font-semibold text-stone-100">
-                            {humanizeStyleCode(row.styleCode)}
-                          </h3>
+                          <h3 className="font-semibold text-stone-100">{row.label}</h3>
                           <p className="tm-accent-copy text-sm">
-                            {formatPercent(row.winRate)}
+                            {formatAverage(row.score)} pts
                           </p>
                         </div>
                         <p className="tm-muted-copy mt-2 text-sm">
-                          {row.gamesPlayed} games | avg {formatAverage(row.averageScore)} points
-                          | avg place {formatAverage(row.averagePlacement)}
+                          {row.styleLabel} | {row.winRate}% win rate
+                          {row.count > 1 ? ` | ${row.count} results` : ''}
                         </p>
                       </article>
                     ))}
@@ -2624,300 +2712,246 @@ export function InsightsDashboard({
                 </div>
               )}
             </ChartFrame>
-          ) : null}
 
-          <ChartFrame
-            description="Average score by game date, tracing how form moves over time. The most recent results are listed under the line."
-            title="Trend Over Time"
-          >
-            {trendChartData.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Trend evidence will appear after finalized games are logged.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <ResponsiveContainer height={280} width="100%">
-                  <LineChart
-                    data={trendChartData}
-                    margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  >
-                    <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                    <XAxis
-                      angle={-20}
-                      dataKey="label"
-                      height={72}
-                      textAnchor="end"
-                      tick={chartAxisTick}
-                    />
-                    <YAxis tick={chartAxisTick} />
-                    <Tooltip contentStyle={chartTooltipStyle} />
-                    <Line
-                      dataKey="score"
-                      dot
-                      stroke={chartSeriesColors.accent}
-                      strokeWidth={3}
-                      type="monotone"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+            {showExtendedSections ? (
+              <>
+                <TableSizeChart
+                  focusPlayerId={sectionFocusPlayerId}
+                  focusPlayerName={sectionFocusPlayerName}
+                  rows={sectionExtended.playerCountPerformanceRows}
+                />
+
+                <GameLengthSection
+                  distributionRows={sectionExtended.generationDistributionRows}
+                  focusPlayerId={sectionFocusPlayerId}
+                  focusPlayerName={sectionFocusPlayerName}
+                  performanceRows={sectionExtended.gameLengthPerformanceRows}
+                />
+
+                <MapPerformanceSection
+                  focusPlayerId={sectionFocusPlayerId}
+                  focusPlayerName={sectionFocusPlayerName}
+                  groupRows={sectionExtended.groupMapPerformanceRows}
+                  mapGroups={mapAwardGroups}
+                  playerRows={sectionExtended.playerMapPerformanceRows}
+                  tileRows={sectionExtended.tilePlacementRows}
+                />
+              </>
+            ) : null}
+
+            <ChartFrame
+              description="Direct matchup records between players — wins-losses-ties and the average point margin across their shared games."
+              title="Head-to-Head Lens"
+            >
+              {focusedHeadToHeadRows.length === 0 ? (
+                <p className="tm-muted-copy text-sm">
+                  Head-to-head comparisons will appear after repeated finalized
+                  matchups are logged.
+                </p>
+              ) : (
                 <div className="grid gap-3">
-                  {trendChartData.slice(-4).reverse().map((row) => (
-                    <article className="tm-stat-card" key={`${row.label}-${row.styleLabel}`}>
+                  {focusedHeadToHeadRows.map((row) => (
+                    <article className="tm-stat-card" key={row.label}>
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-semibold text-stone-100">{row.label}</h3>
                         <p className="tm-accent-copy text-sm">
-                          {formatAverage(row.score)} pts
+                          {formatAverage(row.averageScoreDifferential)} pts
                         </p>
                       </div>
                       <p className="tm-muted-copy mt-2 text-sm">
-                        {row.styleLabel} | {row.winRate}% win rate
-                        {row.count > 1 ? ` | ${row.count} results` : ''}
+                        {row.wins}-{row.losses}-{row.ties} over {row.gamesPlayed} games
                       </p>
                     </article>
                   ))}
                 </div>
-              </div>
-            )}
-          </ChartFrame>
-
-          {showExtendedSections ? (
-            <>
-              <TableSizeChart
-                focusPlayerId={sectionFocusPlayerId}
-                focusPlayerName={sectionFocusPlayerName}
-                rows={sectionExtended.playerCountPerformanceRows}
-              />
-
-              <GameLengthSection
-                distributionRows={sectionExtended.generationDistributionRows}
-                focusPlayerId={sectionFocusPlayerId}
-                focusPlayerName={sectionFocusPlayerName}
-                performanceRows={sectionExtended.gameLengthPerformanceRows}
-              />
-
-              <MapPerformanceSection
-                focusPlayerId={sectionFocusPlayerId}
-                focusPlayerName={sectionFocusPlayerName}
-                groupRows={sectionExtended.groupMapPerformanceRows}
-                mapGroups={mapAwardGroups}
-                playerRows={sectionExtended.playerMapPerformanceRows}
-                tileRows={sectionExtended.tilePlacementRows}
-              />
-            </>
-          ) : null}
-
-          <ChartFrame
-            description="Direct matchup records between players — wins-losses-ties and the average point margin across their shared games."
-            title="Head-to-Head Lens"
-          >
-            {focusedHeadToHeadRows.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Head-to-head comparisons will appear after repeated finalized
-                matchups are logged.
-              </p>
-            ) : (
-              <div className="grid gap-3">
-                {focusedHeadToHeadRows.map((row) => (
-                  <article className="tm-stat-card" key={row.label}>
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-stone-100">{row.label}</h3>
-                      <p className="tm-accent-copy text-sm">
-                        {formatAverage(row.averageScoreDifferential)} pts
-                      </p>
-                    </div>
-                    <p className="tm-muted-copy mt-2 text-sm">
-                      {row.wins}-{row.losses}-{row.ties} over {row.gamesPlayed} games
-                    </p>
-                  </article>
-                ))}
-              </div>
-            )}
-          </ChartFrame>
-
-          {showExtendedSections ? (
-            <>
-          <ChartFrame
-            description="How win rate and average score shift depending on which players are at the table together."
-            title="Lineup Effects"
-          >
-            {selectedLineupRows.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Lineup effects will appear after repeated finalized group mixes are
-                logged.
-              </p>
-            ) : (
-              <div className="grid gap-3">
-                {selectedLineupRows.map((row) => (
-                  <article
-                    className="tm-stat-card"
-                    key={`${row.playerId}-${row.lineupLabel}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-stone-100">
-                        {sectionFocusPlayerId ? row.lineupLabel : row.playerName}
-                      </h3>
-                      <p className="tm-accent-copy text-sm">
-                        {formatPercent(row.winRate)}
-                      </p>
-                    </div>
-                    <p className="tm-muted-copy mt-2 text-sm">
-                      {sectionFocusPlayerId
-                        ? `${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points | ${formatAverage(row.averageGenerationCount)} gens`
-                        : `${truncateLabel(row.lineupLabel)} | ${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points`}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            )}
-          </ChartFrame>
-
-          {!isPlayerCombinationMode ? (
-            <>
-              <MilestoneEconomicsSection
-                focusPlayerId={sectionFocusPlayerId}
-                focusPlayerName={sectionFocusPlayerName}
-                groupRows={sectionExtended.milestoneEconomicsRows}
-                playerRows={sectionExtended.playerMilestoneClaimRows}
-              />
-
-              <AwardEconomicsSection
-                defaultScope={scopeMode === 'individual' ? 'all' : 'group'}
-                focusPlayerName={selectedPerson?.displayName ?? null}
-                groupFocusPlayerId={selectedPerson?.activeGroupPlayerId ?? null}
-                groupMatrixRows={extended.awardFunderWinnerRows}
-                groupOutcomeRows={extended.awardOutcomeRows}
-                groupPlayerAwardRows={extended.playerAwardFundingRows}
-                overallFocusPlayerId={selectedPerson?.canonicalId ?? null}
-                overallMatrixRows={overallExtended.awardFunderWinnerRows}
-                overallOutcomeRows={overallExtended.awardOutcomeRows}
-                overallPlayerAwardRows={overallExtended.playerAwardFundingRows}
-              />
-            </>
-          ) : null}
-
-          <CardOutcomesSection
-            focusPlayerId={sectionFocusPlayerId}
-            focusPlayerName={sectionFocusPlayerName}
-            rows={sectionExtended.cardOutcomeRows}
-          />
-
-          <TagOutcomesSection
-            dialogData={selectionDialogData}
-            focusPlayerId={sectionFocusPlayerId}
-            focusPlayerName={sectionFocusPlayerName}
-            rows={sectionExtended.tagOutcomeRows}
-          />
-
-          <GamePaceSection rows={sectionExtended.generationPaceRows} />
-
-          <BoardHeatmapSection
-            mapGroups={mapAwardGroups}
-            rows={sectionExtended.tilePlacementRows}
-            title={scopeMode === 'all' ? 'Global Board Heatmap' : 'Board Heatmap'}
-          />
-
-          {selectedInteractionRows.length > 0 ? (
-            <ChartFrame
-              description="Win rates for specific corporation-and-prelude pairings, ranked by how often they show up."
-              title="Interaction Insights"
-            >
-              <div className="grid gap-3">
-                {selectedInteractionRows.map((row) => (
-                  <article
-                    className="tm-stat-card"
-                    key={`${row.playerId ?? 'group'}-${row.interactionType}-${row.label}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-stone-100">
-                        <SelectionPairLabel
-                          dialogData={selectionDialogData}
-                          label={row.label}
-                        />
-                      </h3>
-                      <p className="tm-accent-copy text-sm">
-                        {formatPercent(row.winRate)}
-                      </p>
-                    </div>
-                    <p className="tm-muted-copy mt-2 text-sm">
-                      {humanizeInteractionType()} | {row.gamesPlayed} results | avg{' '}
-                      {formatAverage(row.averageScore)} points | avg place{' '}
-                      {formatAverage(row.averagePlacement)}
-                    </p>
-                  </article>
-                ))}
-              </div>
+              )}
             </ChartFrame>
-          ) : null}
-            </>
-          ) : null}
 
-          <ChartFrame
-            description="Share of finalized games that recorded each optional breakdown detail. Low bars mean the detail is missing from those games, not that it was zero."
-            title={coverageTitle}
-          >
-            {coverageData.length === 0 ? (
-              <p className="tm-muted-copy text-sm">
-                Coverage metrics will appear after finalized games are logged.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <ResponsiveContainer height={260} width="100%">
-                  <BarChart
-                    data={coverageData}
-                    margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
-                  >
-                    <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
-                    <XAxis
-                      angle={-20}
-                      dataKey="label"
-                      height={60}
-                      textAnchor="end"
-                      tick={chartAxisTick}
-                    />
-                    <YAxis tick={chartAxisTick} />
-                    <Tooltip contentStyle={chartTooltipStyle} />
-                    <Bar dataKey="value" fill={chartSeriesColors.accent} radius={[10, 10, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCoverage ? (
-                    <>
-                      <CoverageBadge
-                        label="Full card breakdown"
-                        value={selectedCoverage.cardBreakdownCoverage}
-                      />
-                      <CoverageBadge
-                        label="Microbe coverage"
-                        value={selectedCoverage.microbeCoverage}
-                      />
-                      <CoverageBadge
-                        label="Animal coverage"
-                        value={selectedCoverage.animalCoverage}
-                      />
-                      <CoverageBadge
-                        label="Jovian coverage"
-                        value={selectedCoverage.jovianCoverage}
-                      />
-                      <CoverageBadge
-                        label="Key-card coverage"
-                        value={selectedCoverage.keyCardCoverage}
-                      />
-                    </>
-                  ) : null}
+            {showExtendedSections ? (
+              <>
+            <ChartFrame
+              description="How win rate and average score shift depending on which players are at the table together."
+              title="Lineup Effects"
+            >
+              {selectedLineupRows.length === 0 ? (
+                <p className="tm-muted-copy text-sm">
+                  Lineup effects will appear after repeated finalized group mixes are
+                  logged.
+                </p>
+              ) : (
+                <div className="grid gap-3">
+                  {selectedLineupRows.map((row) => (
+                    <article
+                      className="tm-stat-card"
+                      key={`${row.playerId}-${row.lineupLabel}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="font-semibold text-stone-100">
+                          {sectionFocusPlayerId ? row.lineupLabel : row.playerName}
+                        </h3>
+                        <p className="tm-accent-copy text-sm">
+                          {formatPercent(row.winRate)}
+                        </p>
+                      </div>
+                      <p className="tm-muted-copy mt-2 text-sm">
+                        {sectionFocusPlayerId
+                          ? `${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points | ${formatAverage(row.averageGenerationCount)} gens`
+                          : `${truncateLabel(row.lineupLabel)} | ${row.gamesPlayed} games | avg ${formatAverage(row.averageScore)} points`}
+                      </p>
+                    </article>
+                  ))}
                 </div>
-              </div>
-            )}
+              )}
+            </ChartFrame>
+
+            {!isPlayerCombinationMode ? (
+              <>
+                <MilestoneEconomicsSection
+                  focusPlayerId={sectionFocusPlayerId}
+                  focusPlayerName={sectionFocusPlayerName}
+                  groupRows={sectionExtended.milestoneEconomicsRows}
+                  playerRows={sectionExtended.playerMilestoneClaimRows}
+                />
+
+                <AwardEconomicsSection
+                  defaultScope={scopeMode === 'individual' ? 'all' : 'group'}
+                  focusPlayerName={selectedPerson?.displayName ?? null}
+                  groupFocusPlayerId={selectedPerson?.activeGroupPlayerId ?? null}
+                  groupMatrixRows={extended.awardFunderWinnerRows}
+                  groupOutcomeRows={extended.awardOutcomeRows}
+                  groupPlayerAwardRows={extended.playerAwardFundingRows}
+                  overallFocusPlayerId={selectedPerson?.canonicalId ?? null}
+                  overallMatrixRows={overallExtended.awardFunderWinnerRows}
+                  overallOutcomeRows={overallExtended.awardOutcomeRows}
+                  overallPlayerAwardRows={overallExtended.playerAwardFundingRows}
+                />
+              </>
+            ) : null}
+
+            <CardOutcomesSection
+              focusPlayerId={sectionFocusPlayerId}
+              focusPlayerName={sectionFocusPlayerName}
+              rows={sectionExtended.cardOutcomeRows}
+            />
+
+            <TagOutcomesSection
+              dialogData={selectionDialogData}
+              focusPlayerId={sectionFocusPlayerId}
+              focusPlayerName={sectionFocusPlayerName}
+              rows={sectionExtended.tagOutcomeRows}
+            />
+
+            <GamePaceSection rows={sectionExtended.generationPaceRows} />
+
+            <BoardHeatmapSection
+              mapGroups={mapAwardGroups}
+              rows={sectionExtended.tilePlacementRows}
+              title={scopeMode === 'all' ? 'Global Board Heatmap' : 'Board Heatmap'}
+            />
+
+            {selectedInteractionRows.length > 0 ? (
+              <ChartFrame
+                description="Win rates for specific corporation-and-prelude pairings, ranked by how often they show up."
+                title="Interaction Insights"
+              >
+                <div className="grid gap-3">
+                  {selectedInteractionRows.map((row) => (
+                    <article
+                      className="tm-stat-card"
+                      key={`${row.playerId ?? 'group'}-${row.interactionType}-${row.label}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="font-semibold text-stone-100">
+                          <SelectionPairLabel
+                            dialogData={selectionDialogData}
+                            label={row.label}
+                          />
+                        </h3>
+                        <p className="tm-accent-copy text-sm">
+                          {formatPercent(row.winRate)}
+                        </p>
+                      </div>
+                      <p className="tm-muted-copy mt-2 text-sm">
+                        {humanizeInteractionType()} | {row.gamesPlayed} results | avg{' '}
+                        {formatAverage(row.averageScore)} points | avg place{' '}
+                        {formatAverage(row.averagePlacement)}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </ChartFrame>
+            ) : null}
+              </>
+            ) : null}
+
+            <ChartFrame
+              description="Share of finalized games that recorded each optional breakdown detail. Low bars mean the detail is missing from those games, not that it was zero."
+              title={coverageTitle}
+            >
+              {coverageData.length === 0 ? (
+                <p className="tm-muted-copy text-sm">
+                  Coverage metrics will appear after finalized games are logged.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <ResponsiveContainer height={260} width="100%">
+                    <BarChart
+                      data={coverageData}
+                      margin={{ bottom: 36, left: 0, right: 12, top: 12 }}
+                    >
+                      <CartesianGrid stroke={chartGridStroke} strokeDasharray="3 3" />
+                      <XAxis
+                        angle={-20}
+                        dataKey="label"
+                        height={60}
+                        textAnchor="end"
+                        tick={chartAxisTick}
+                      />
+                      <YAxis tick={chartAxisTick} />
+                      <Tooltip contentStyle={chartTooltipStyle} />
+                      <Bar dataKey="value" fill={chartSeriesColors.accent} radius={[10, 10, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCoverage ? (
+                      <>
+                        <CoverageBadge
+                          label="Full card breakdown"
+                          value={selectedCoverage.cardBreakdownCoverage}
+                        />
+                        <CoverageBadge
+                          label="Microbe coverage"
+                          value={selectedCoverage.microbeCoverage}
+                        />
+                        <CoverageBadge
+                          label="Animal coverage"
+                          value={selectedCoverage.animalCoverage}
+                        />
+                        <CoverageBadge
+                          label="Jovian coverage"
+                          value={selectedCoverage.jovianCoverage}
+                        />
+                        <CoverageBadge
+                          label="Key-card coverage"
+                          value={selectedCoverage.keyCardCoverage}
+                        />
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </ChartFrame>
+          </>
+        ) : (
+          <ChartFrame title="Insights Waiting on Finalized Games">
+            <p className="tm-body-copy text-sm">
+              <GlossaryRichText>
+                Finalize a few games to unlock leaderboard, style, lineup, and coverage insights.
+              </GlossaryRichText>
+            </p>
           </ChartFrame>
-        </>
-      ) : (
-        <ChartFrame title="Insights Waiting on Finalized Games">
-          <p className="tm-body-copy text-sm">
-            <GlossaryRichText>
-              Finalize a few games to unlock leaderboard, style, lineup, and coverage insights.
-            </GlossaryRichText>
-          </p>
-        </ChartFrame>
-      )}
+        )}
+      </div>
     </div>
   );
 }
