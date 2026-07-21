@@ -17,37 +17,115 @@ version→commit linkage.
 | | |
 |---|---|
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
-| Worker version | `08f9191f-7b06-4fa3-88dd-b3421d3ae89f` |
+| Worker version | `2c0ef541-0171-469c-a83d-2e91757f4e14` |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `integration/final-ws2-event-card-42501` (pushed to `origin`; `origin/integration/final-ws2-event-card-42501` independently confirmed to resolve to the exact deployed SHA both before and after this deploy) |
-| Source commit | `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` — resolved by the deploy-time stamp print (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`, since the build ran from a detached HEAD), not inferred |
-| Deployed (UTC) | 2026-07-21 04:21:42.798Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **Claimed — Venus production deployment of `9ab74dd4a10c737aaaed062a4047dbd66c37b1b6` is in progress. No other production deployment, migration, repair, reparse, or backfill may begin until this row is released.** |
-| Active clean deployment worktree | `C:\tmp\tm-venus-parser-deployment-readiness` — detached at `9ab74dd4a10c737aaaed062a4047dbd66c37b1b6`, `git status --porcelain` empty, `npm ci` already run cleanly |
-| DB migration ledger head | `20260721035955 secure_public_player_labels_service_role` (unchanged — no migration applied this release; Event-card snapshot migration `20260720223000` and gated migration `20260720120000` both confirmed still absent from the ledger, before and after this deploy). **Superseded 2026-07-21 08:13:55 UTC**: a separate, documentation-tracked *database migration* (no application deploy) subsequently advanced the ledger head to `20260721081355 fix_event_card_tag_snapshot_correction` — see "Event-card snapshot migration — production database correction" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration. |
-| Rollback worker version | `79d5b795-eb81-4962-aa5a-bfff26359a36` (immediately prior production build, 100% traffic 2026-07-21T00:15:19.080Z through this deploy; source commit `9b7a00555f216f4a741e819e8795238c362584f9`, confirmed via the prior deployment-record commit `3a8f4eb24`) |
-| Verified | 2026-07-21 ~04:20-04:30 UTC — see "Combined WS2/Event-card/42501 deploy" below for exact evidence and its gaps |
+| Source branch | `integration/venus-capture-to-increase-pattern` (pushed to `origin`; `origin/integration/venus-capture-to-increase-pattern` independently confirmed to resolve to the exact deployed SHA immediately before this deploy) |
+| Source commit | `9ab74dd4a10c737aaaed062a4047dbd66c37b1b6` — passed explicitly via `TM_STATS_SOURCE_BRANCH`/`TM_STATS_SOURCE_COMMIT` env vars before the build (the deploy worktree was a detached HEAD), not inferred |
+| Deployed (UTC) | 2026-07-21 09:47:53.078Z (`wrangler deployments list`, 100% traffic) |
+| Deploy lock | **Released — Venus deploy completed and verified below. No production session currently holds the lock.** |
+| DB migration ledger head | `20260721081355 fix_event_card_tag_snapshot_correction` (unchanged by this deploy — code-only release; no migration applied or authorized) |
+| Rollback worker version | `08f9191f-7b06-4fa3-88dd-b3421d3ae89f` (immediately prior production build, 100% traffic 2026-07-21T04:21:42.798Z through this deploy; source commit `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`) |
+| Verified | 2026-07-21 ~09:47-09:55 UTC — see "Venus capture parser correction deploy" below for exact evidence and gaps |
 
 **Evidence for the source commit.** `scripts/deploy/deploy-with-stamp.ts`
-printed `TM_STATS_SOURCE_COMMIT=2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` and
-`TM_STATS_SOURCE_BRANCH=integration/final-ws2-event-card-42501` immediately
-before invoking the build, from a verified-clean detached-HEAD worktree at
-that exact `git rev-parse HEAD`. The resulting version (`08f9191f`) was then
-confirmed at 100% of `wrangler deployments list` traffic. **The authenticated
-`/api/deploy-info` HTTP fetch — the intended steady-state verification path —
-was not completed this session** (it returned `{"error":"Authentication
-required."}` unauthenticated, as expected; a signed-in fetch was not
-performed — entering credentials to authenticate is not something this
-session will do). Until that fetch is done, this row's commit is
-build-time/ledger-history correlated, not live-endpoint confirmed.
-**Superseded**: a later card-scoring deployment-readiness review session
-reported completing the authenticated `/api/deploy-info` GET against this
-same immutable worker version and confirmed `sourceCommit` matched. This
-documentation task did not independently rerun that fetch, and — unlike the
-migration facts below — found no corroborating artifact for it anywhere in
-this repository's history; it is recorded here as reported, not as
-self-verified. The historical fact that the original 04:2x UTC deploy session
-could not perform it (see above) stands unchanged.
+printed `TM_STATS_SOURCE_COMMIT=9ab74dd4a10c737aaaed062a4047dbd66c37b1b6` and
+`TM_STATS_SOURCE_BRANCH=integration/venus-capture-to-increase-pattern`
+immediately before invoking the build, from a verified-clean detached-HEAD
+worktree at that exact `git rev-parse HEAD`. The resulting version
+(`2c0ef541`) was then confirmed at 100% of `wrangler deployments list`
+traffic. **The authenticated `/api/deploy-info` HTTP fetch was not completed
+this session either** (unauthenticated fetch returned `{"error":"Authentication
+required."}`, as expected; entering credentials to authenticate is not
+something this session will do). This is the same standing gap already
+recorded against the prior deploy above — this row's commit is
+build-time-stamp/ledger-history correlated, not live-endpoint confirmed.
+
+### Venus capture parser correction deploy — 2026-07-21 09:47:53 UTC
+
+Deployed by this session under explicit owner authorization ("I authorize
+deploying Venus integration commit 9ab74dd4a10c737aaaed062a4047dbd66c37b1b6
+from integration/venus-capture-to-increase-pattern to production. This
+authorization does not include any production reparse, repair, or backfill"),
+following a prior independent, read-only deployment-readiness review
+performed earlier in this same session (review worktree
+`C:\tmp\tm-venus-parser-deployment-readiness`, classification: PASS WITH
+NON-BLOCKING NOTES). No database migration was authorized or applied by this
+deploy.
+
+**Confirmed before deploying:**
+- `origin/integration/venus-capture-to-increase-pattern` resolved to
+  `9ab74dd4a10c737aaaed062a4047dbd66c37b1b6` immediately before deploying;
+  re-checked after, unchanged. Merge parents in order: `c91299da1` (first,
+  authoritative base at review time) then `cefe64cc7` (second, Venus
+  authoring branch tip).
+- Exact scope relative to the authoritative base: exactly 3 files —
+  `src/lib/imports/capture/parse-game-capture.ts`,
+  `src/lib/imports/capture/parse-game-capture.test.ts`,
+  `src/lib/imports/capture/__fixtures__/fixtures.ts`. No migration,
+  persistence, RPC, RLS, secret, environment, or card-scoring file touched.
+  `CAPTURE_PARSER_VERSION` unchanged (`tm-data-capture-v2`).
+- **Deploy lock claimed before starting** via commit `f9f5c447c` on this
+  branch (pushed and independently re-fetched/confirmed live before the
+  build began), then released by this entry.
+- Focused suite (`src/lib/imports/capture`) — **50/50 passed (2 files)**.
+  Full suite — **1026/1034 tests passed (187/192 files)**, the same 5
+  pre-existing failing files as the established baseline
+  (`src/lib/env.test.ts`, `src/features/insights/global-loss-cards-section.test.ts`,
+  `src/app/(app)/group/page.test.tsx`, `src/app/auth/callback/route.test.ts`
+  ×4, `src/app/auth/reset-pin/page.test.tsx`) — no new parser/import failure.
+- `npx tsc --noEmit` — clean. `npx eslint` on the 3 scoped files — 0 errors,
+  1 pre-existing warning (`EventCategory` unused). `git diff --check` against
+  the authoritative base — clean. `npm run build` — succeeded, 34/34 static
+  pages (only pre-existing esbuild duplicate-object-key warnings in the
+  bundler output, unrelated to this change).
+- Deploy-time stamp printed the exact candidate SHA and explicit source
+  branch before the build ran (see Evidence above).
+- `wrangler deployments list` shows `2c0ef541-0171-469c-a83d-2e91757f4e14` at
+  100% traffic, created `2026-07-21T09:47:53.078Z`; the immediately prior
+  version (`08f9191f-7b06-4fa3-88dd-b3421d3ae89f`, 100% traffic since
+  `2026-07-21T04:21:42.798Z`) remains present in the deployments list as the
+  rollback target.
+- Post-deploy read-only health checks: `https://tm-stats.com/` → 200;
+  `/login` → 200; `/insights`, `/cards`, `/log-game/import` → 307 (expected
+  redirects, unauthenticated); unauthenticated `/api/deploy-info` →
+  `{"error":"Authentication required."}` (expected). Supabase logs (24h
+  window) reviewed: `api` service returned zero rows; `postgres` errors
+  present are all pre-existing, already-documented signatures (`permission
+  denied for schema analytics` from `check:schema`'s own anon-key probe run
+  moments before this deploy as the `predeploy` gate; `permission denied for
+  table player_import_aliases` from the already-standing, unrelated 42501
+  issue) — no new error signature correlated with this deploy.
+- Confirmed **zero database mutations** this session: `list_migrations` and
+  `get_logs` calls were read-only; no migration was applied, no privilege or
+  RLS change, no backfill, no reparse.
+
+**NOT completed this session — same standing gaps as prior deploys:**
+- **The authenticated `/api/deploy-info` HTTP fetch was not performed**, for
+  the same reason as every prior deploy recorded in this file: it requires a
+  signed-in session, and entering credentials to authenticate is not
+  something this session will do. **Action needed:** the owner (or a session
+  with a sanctioned auth path) should load
+  `https://tm-stats.com/api/deploy-info` while signed in and confirm
+  `sourceCommit` reads `9ab74dd4a10c737aaaed062a4047dbd66c37b1b6`.
+- **No functional walkthrough of any live import flow was performed** (out
+  of scope; no reparse of any existing capture is authorized by this
+  deploy's authorization, and none was performed).
+- Net: the **mechanics** of this release (correct commit, correct worktree,
+  correct branch, stamped, gated, tested, live, no DB writes, deploy lock
+  claimed-then-released) are confirmed; the **authenticated-endpoint
+  confirmation** of the deployed commit is not yet independently observed by
+  this session.
+
+**Cross-workstream note carried forward from the pre-deploy review.**
+`integration/import-card-scoring-cross-check` (live tip `477da770b` at review
+time) is **not** rebased/merged onto this authoritative history and contains
+none of the Venus commits. Deploying that branch as-is, unmodified, in a
+future release **would revert this Venus parser fix**. Before card-scoring is
+ever deployed, its branch must first be re-integrated onto the
+then-current authoritative HEAD (which now includes this Venus deploy),
+following this repo's own established integration-branch convention — this
+is a prerequisite for that workstream's own future deployment task, not
+something this deploy needed to resolve.
 
 ### Event-card snapshot migration — production database correction — 2026-07-21 08:13:55 UTC
 
