@@ -38,11 +38,19 @@ const CANONICAL_COLONIES = new Set([
 ]);
 
 // Venus lines that carry a configuration or summary value rather than a game
-// action. A bare digit anywhere in the line is deliberately NOT enough to count
-// as one: that escape hatch silently swallowed real Venus raises, which carry a
-// step count, leaving no event, no evidence and no warning behind.
-const VENUS_OPTION_VALUE = /\b(?:true|false|enabled|disabled|yes|no)\b/i;
-const VENUS_SCALE_SUMMARY = /\bvenus\s+scale\s*(?:is|=|:)\s*\d+\b/i;
+// action. Both are anchored to the WHOLE normalized line: a mechanic sentence
+// that merely contains a boolean word ("Ada enabled a card effect and boosted
+// the Venus tracker by 3") or embeds a summary phrase ("Ada reported Venus
+// scale is 10 before boosting the tracker by 3") is unsupported action wording,
+// not configuration, and must still surface as evidence. A bare digit is
+// likewise not enough -- that escape hatch silently swallowed real Venus
+// raises, which carry a step count.
+//
+// The option form requires the Venus Next option/extension identity, not just
+// one of the value words, and reuses the vocabulary of detectOptionValues.
+const VENUS_OPTION_LINE =
+  /^venus\s+next(?:\s+(?:option|extension))?\s*(?::|=|is)?\s*(?:true|false|enabled|disabled|yes|no)\s*\.?$/i;
+const VENUS_SCALE_SUMMARY_LINE = /^venus\s+scale\s*(?::|=|is)\s*\d+\s*\.?$/i;
 
 function normalizeLine(line: string): string {
   // Some upstream exports prefix a "[timestamp]:" token; strip it for matching
@@ -467,10 +475,10 @@ export function parseGameCapture(input: ParseGameCaptureInput): GameCaptureResul
 
     if (/\bvenus\s+(?:next|scale|tracker|global\s+parameter|option|extension)\b/i.test(line)) {
       recognizedLines += 1;
-      // Only an option value or an explicit scale summary counts as a
+      // Only a complete option line or a complete scale summary counts as a
       // recognized non-action form. Anything else referencing a Venus mechanic
       // is unsupported wording and must be surfaced, digits or not.
-      if (!VENUS_OPTION_VALUE.test(line) && !VENUS_SCALE_SUMMARY.test(line)) {
+      if (!VENUS_OPTION_LINE.test(line) && !VENUS_SCALE_SUMMARY_LINE.test(line)) {
         hasUnsupportedVenusEvidence = true;
         unsupportedLineCount += 1;
         unsupported.push({

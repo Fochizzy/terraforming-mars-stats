@@ -303,6 +303,84 @@ describe('Venus unsupported-evidence policy', () => {
   });
 });
 
+// Mechanic lines that merely *contain* a boolean word or a summary phrase.
+// None of them is a configuration line, so none may buy silence.
+const VENUS_SILENT_SWALLOW_LINES = [
+  'Ada enabled a card effect and boosted the Venus tracker by 3',
+  'Ada said no and raised Venus scale by 3',
+  'Ada disabled an effect before changing the Venus tracker by 2',
+  'Ada reported Venus scale is 10 before boosting the tracker by 3',
+];
+
+// Approved complete-line configuration and summary forms.
+const VENUS_APPROVED_OPTION_LINES: Array<[string, string]> = [
+  ['Venus Next: true', 'confirmed_present'],
+  ['Venus Next is enabled', 'confirmed_present'],
+  ['Venus Next option: false', 'confirmed_absent'],
+  ['Venus Next extension = disabled', 'confirmed_absent'],
+];
+const VENUS_APPROVED_SUMMARY_LINES = [
+  'Venus scale is 10',
+  'Venus scale = 10',
+  'Venus scale: 10',
+];
+
+// Longer lines that embed an approved form, or carry a value word without the
+// Venus Next option identity.
+const VENUS_NEAR_MISS_LINES = [
+  'Ada set Venus Next: true midway through the game',
+  'Venus scale is 10 and the tracker kept moving',
+  'Venus tracker enabled the asteroid effect for Ada',
+];
+
+describe('Venus value whitelists are bound to complete approved lines', () => {
+  it.each(VENUS_SILENT_SWALLOW_LINES)('surfaces "%s" as unsupported wording', (line) => {
+    const result = parseRaw(fullExportWith(line));
+    expect(result.venus.events).toHaveLength(0);
+    expect(result.unsupported).toHaveLength(1);
+    expect(result.unsupported[0].reason).toBe('unsupported_venus_wording');
+    expect(result.unsupported[0].normalizedPattern).toBe('venus_reference_without_value');
+    expect(result.unsupported[0].rawEvidence).toBe(line);
+    expect(result.coverage.unsupportedLines).toBe(1);
+    expect(result.coverage.overallState).toBe('partial');
+    expect(result.venus.state).toBe('unsupported_log_pattern');
+    expect(result.venus.state).not.toBe('confirmed_absent');
+  });
+
+  it.each(VENUS_APPROVED_OPTION_LINES)(
+    'accepts "%s" as a configuration line and still harvests its option state',
+    (line, expectedState) => {
+      const result = parseRaw(fullExportWith(line));
+      expect(result.unsupported).toHaveLength(0);
+      expect(result.coverage.unsupportedLines).toBe(0);
+      expect(result.venus.events).toHaveLength(0);
+      // detectOptionValues is untouched, so the option still drives the state.
+      expect(result.venus.state).toBe(expectedState);
+    },
+  );
+
+  it.each(VENUS_APPROVED_SUMMARY_LINES)(
+    'accepts "%s" as a scale summary and still harvests the final scale',
+    (line) => {
+      const result = parseRaw(fullExportWith(line));
+      expect(result.unsupported).toHaveLength(0);
+      expect(result.coverage.unsupportedLines).toBe(0);
+      expect(result.venus.finalVenusScale).toBe(10);
+    },
+  );
+
+  it.each(VENUS_NEAR_MISS_LINES)(
+    'does not whitelist "%s" merely for embedding an approved form',
+    (line) => {
+      const result = parseRaw(fullExportWith(line));
+      expect(result.unsupported).toHaveLength(1);
+      expect(result.unsupported[0].reason).toBe('unsupported_venus_wording');
+      expect(result.unsupported[0].rawEvidence).toBe(line);
+      expect(result.coverage.unsupportedLines).toBe(1);
+    },
+  );
+});
+
 describe('capture fixture regressions', () => {
   it('reconfirms the declared expectation of every fixture', () => {
     expect(captureFixtures.length).toBeGreaterThanOrEqual(7);
