@@ -1,0 +1,94 @@
+-- Fail-closed identity guard (Step 1.5) proof fixtures -- added this round
+-- (independent-review corrections 1 and 2: exact restoration + in-migration
+-- drift guard for public.rebuild_metric_summaries()).
+--
+-- Each section below drifts exactly ONE guarded property of
+-- rebuild_metric_summaries() away from the exact definition
+-- v_expected_body / the migration's Step 1.5 guard expects, starting from a
+-- freshly loaded 01-schema-and-stubs.sql + 02-seed-fixtures.sql database
+-- (five real target games -- B, C, G, H, I -- are staged and ready to be
+-- wrongly processed if the guard did not stop the migration first). Run
+-- exactly ONE section per disposable database -- they are mutually
+-- exclusive drifts of the same function, not cumulative -- then run the real
+-- migration file and expect:
+--
+--   1. A single `ERROR: pre-migration guard (20260720223000) failed for
+--      public.rebuild_metric_summaries(): <property>: ...` naming the
+--      drifted property (or properties -- ACL drift trips both the
+--      aclexplode count check and the role-specific has_function_privilege
+--      check, and both names appear in the same message).
+--   2. Nonzero psql/DO exit -- no neutralize, no per-game refresh, no
+--      rebuild, no ACL change.
+--   3. dump-state.sql byte-identical before and after the failed run,
+--      INCLUDING rebuild_metric_summaries()'s own identity section -- the
+--      drifted definition is left exactly as drifted, not silently
+--      reverted to the migration's hardcoded expected copy (see "What this
+--      additionally proves" in the README: the guard fails closed, it does
+--      not fail safe-by-overwriting).
+--
+-- Reproduction (repeat per section, each against a fresh database):
+--   createdb -h 127.0.0.1 -p <port> -U postgres guard_drift_<n>
+--   psql ... -d guard_drift_<n> -f 01-schema-and-stubs.sql
+--   psql ... -d guard_drift_<n> -f 02-seed-fixtures.sql
+--   psql ... -d guard_drift_<n> -f dump-state.sql > pre.txt
+--   psql ... -d guard_drift_<n> -c "<the ONE drift statement below>"
+--   psql ... -d guard_drift_<n> -f ../../20260720223000_fix_event_card_tag_snapshot_correction.sql
+--     -- expect: ERROR, nonzero exit
+--   psql ... -d guard_drift_<n> -f dump-state.sql > post.txt
+--   diff pre.txt post.txt   -- expect: identical except for the one drift
+--                              statement's own effect (visible in the
+--                              identity section only, not in any snapshot/
+--                              summary/marker section)
+--   dropdb ... guard_drift_<n>
+
+-- === Section 1: body drift (proves harness proof item 4) ===============
+-- An extra statement not in the reviewed body. Semantically inert (adds an
+-- unused `perform 1`) but textually different, which is exactly the class
+-- of drift a real accidental or malicious edit to this function would
+-- produce.
+-- create or replace function public.rebuild_metric_summaries()
+-- returns void
+-- language plpgsql
+-- security definer
+-- set search_path to ''
+-- as $$
+-- begin
+--   perform 1; -- drift: extra no-op statement not in the reviewed definition
+--   if to_regprocedure('public.rebuild_metric_summaries_base()') is null then
+--     raise exception 'rebuild_metric_summaries_base() is required before rebuilding metric summaries'
+--       using errcode = '42883';
+--   end if;
+--
+--   perform public.rebuild_metric_summaries_base();
+--   perform public.rebuild_additional_metric_summaries();
+-- end;
+-- $$;
+
+-- === Section 2: owner drift (proves harness proof item 5) ===============
+-- do $$ begin
+--   if not exists (select 1 from pg_roles where rolname = 'drift_owner') then
+--     create role drift_owner;
+--   end if;
+-- end $$;
+-- alter function public.rebuild_metric_summaries() owner to drift_owner;
+
+-- === Section 3: security-mode drift (proves harness proof item 6) =======
+-- Also covers search_path drift by the same mechanism (ALTER FUNCTION ...
+-- SET search_path TO 'public' reproduces the search_path branch of the
+-- same guard check; SECURITY INVOKER reproduces the SECURITY DEFINER
+-- branch -- both are exercised as "search-path-or-security-mode" drift).
+-- alter function public.rebuild_metric_summaries() security invoker;
+-- -- alternative in the same category, not combined with the above in the
+-- -- same run:
+-- -- alter function public.rebuild_metric_summaries() set search_path to 'public';
+
+-- === Section 4: ACL drift (proves harness proof item 7) =================
+-- A single unexpected grant is enough to fail closed -- no revoke is
+-- required to reproduce this; the guard must catch an *added* grant just as
+-- readily as a missing revoke.
+-- grant execute on function public.rebuild_metric_summaries() to authenticated;
+
+-- Uncomment exactly one section above (or run its statement(s) directly via
+-- `psql -c`) per disposable database. Left commented here so this file can
+-- be loaded as-is without side effects, and so `\i` against it from psql
+-- (matching this harness's other files) is safe by default.

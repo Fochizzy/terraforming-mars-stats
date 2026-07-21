@@ -20,6 +20,41 @@ file. §9's deployment/backfill order is updated accordingly, and the
 authenticated `/api/deploy-info` source-verification step referenced there is
 **complete** (see §9) — it is no longer open evidence.
 
+**2026-07-21 update (round 2 — independent review of the execution-strategy
+correction)**: independent review of the round-1 execution-strategy fix
+(§2.1, commit `12eeb70e7b98927b31f73bb3b24c34b326648832`) passed the core
+neutralize/restore/guard-free strategy but required two corrections, both
+now applied to the migration file (still unapplied) and this doc:
+
+1. **Round 1's "byte-identical restoration" claim was false.** The restore
+   step's exact text was nested inside the migration's own indentation,
+   which added six spaces of stray leading whitespace to every line of the
+   restored body relative to the function's true stored `prosrc` —
+   confirmed against the harness: pre-migration `pg_get_functiondef` is 513
+   bytes, round 1's post-migration result was 577 bytes, identical apart
+   from that indentation (semantically inert, not textually identical).
+   Every place below that said round 1 already delivered byte-identical
+   restoration has been corrected to describe what is actually true as of
+   round 2: restoration is exact **starting with this round**, verified by
+   an empty `pg_get_functiondef` diff and an identical `oid`, not merely
+   claimed. See §2.1.1.
+2. **Round 1 had no in-migration guard against its own hardcoded body going
+   stale.** The migration hardcoded its belief about
+   `rebuild_metric_summaries()`'s current definition without verifying,
+   inside its own transaction, that the live function still matched that
+   belief when the migration actually runs. Round 2 adds a fail-closed
+   identity guard (migration Step 1.5) that checks signature, full body,
+   owner, language, security mode, search_path, volatility,
+   parallel-safety, strictness, leakproofness, return type, ACL, and
+   comment state before the first mutation, and raises rather than
+   proceeding on any mismatch. See §2.1.1.
+
+Round 2 is a local-only, disposable-PostgreSQL-only correction: no
+production database was read, connected to, or modified to produce any
+evidence for round 2, and round 2 does not re-read or refresh §4's
+production target inventory (that remains the responsibility of the
+external preflight in §9 immediately before any future application).
+
 Base: `origin/release/b05-auth-resilience-code-only` @
 `341d0d23a94b5dc80e49da374a55b9690291f277`. This document's execution-strategy
 correction (§2.1, §6, §9) was authored from
@@ -29,7 +64,9 @@ worker `08f9191f-7b06-4fa3-88dd-b3421d3ae89f`, source
 `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`, 100% traffic as of
 2026-07-21T04:21:42.798Z) — a later point on the same line of history as the
 original base above; nothing in §1–§5's code-fix and target-predicate content
-changed in that time.
+changed in that time. Round 2's exact-restoration and fail-closed-guard
+corrections (§2.1.1, §6, §9) were authored on top of round 1's commit,
+`12eeb70e7b98927b31f73bb3b24c34b326648832`.
 Candidate branch (target-predicate/code-fix content): `fix/event-card-tag-exclusion`.
 Candidate branch (this round's execution-strategy correction):
 `fix/event-card-snapshot-migration-bounded-rebuild`.
@@ -226,10 +263,17 @@ completely untouched. `rebuild_metric_summaries_base()` and
 `rebuild_metric_summaries()`'s own **signature** (zero arguments), owner,
 `SECURITY DEFINER` status, and `search_path` are unchanged throughout; only
 its **body** is temporarily replaced twice within the migration's own
-transaction, ending — on both success and the failure path — byte-identical
-to what it was before the migration ran. Verified directly: `pg_get_
-functiondef('public.rebuild_metric_summaries')` before and after a
-successful migration run is identical (see §6). Its EXECUTE grant today is
+transaction, ending — on the success path — byte-identical to what it was
+before the migration ran, and on the failure path, untouched (any failure
+before the restore step rolls back the neutralize step too — see §7).
+**This byte-identical claim was false in round 1** of this execution-strategy
+correction (`12eeb70e7b98927b31f73bb3b24c34b326648832`): its restore text was
+nested inside the migration's own indentation, adding stray leading
+whitespace to the restored body (513 bytes pre-migration vs. 577 bytes
+post-migration, semantically equivalent but not textually identical). It is
+true starting with round 2 — see §2.1.1 for the fix and §6 for the empty
+`pg_get_functiondef` diff and identical `oid` this round verified. Its
+EXECUTE grant today is
 owner-only (`{postgres=X/postgres}` — no `authenticated`, no `anon`, no
 `PUBLIC`, confirmed via `pg_proc.proacl`); `CREATE OR REPLACE FUNCTION` on an
 unchanged zero-argument signature preserves that ACL automatically, so
@@ -264,6 +308,138 @@ target game ids) — there is no injection surface. Keeping the entire
 migration as one top-level statement, as it already was, is deliberate: it
 guarantees atomicity under plain autocommit-per-statement execution, without
 depending on the migration runner wrapping the file in its own transaction.
+
+### 2.1.1 Round-2 corrections: exact restoration and a fail-closed identity guard
+
+Independent review of round 1 (`12eeb70e7b98927b31f73bb3b24c34b326648832`)
+passed the neutralize/restore execution strategy above but required two
+corrections before this migration is ready for a further round of review.
+Both are now in the migration file; neither changes the target predicate,
+the neutralize/restore *strategy*, the two-argument
+`refresh_game_metric_snapshots_internal` contract, or the "exactly one
+rebuild" property above.
+
+**Correction 1 — exact restoration, delivered rather than merely claimed.**
+Round 1's restore step built its `CREATE OR REPLACE FUNCTION ... AS
+$restore_body$ ... $restore_body$` text as a literal string nested inside
+the migration's own `DO` block indentation. Every line of the restored
+body's `begin ... end;` block therefore carried six extra leading spaces
+relative to the function's true stored `prosrc` — invisible to a casual
+read (the file still looked properly indented for a human reader) but not
+invisible to `pg_get_functiondef`: pre-migration, 513 bytes; round 1's
+post-migration result, 577 bytes. Semantically inert (the extra whitespace
+falls outside every string literal in the function body, so behavior was
+identical), but it meant round 1's own "byte-identical" claim was not
+actually true, and it would have made a simple pre/post
+`pg_get_functiondef` diff falsely report drift on every future comparison.
+
+Fixed by declaring the exact expected body once, as a `constant text`
+(`v_expected_body`) inside the migration's `DECLARE` section — its own
+internal indentation (every line starting at column zero) is independent of
+where that `DECLARE` line itself sits in the file — and restoring via
+`EXECUTE format($tag$create or replace function ... as %L$tag$,
+v_expected_body)`. `format()`'s `%L` (`quote_literal`) splices
+`v_expected_body`'s exact runtime value into the statement as a SQL string
+literal, so the function's stored `prosrc` after a successful run is
+guaranteed textually identical to `v_expected_body` — not reformatted or
+reindented by anything about the migration file's own layout. Verified
+directly this round (§6, harness proof items 17–18): `pg_get_functiondef`
+diff between immediately-pre- and immediately-post-migration is empty, and
+the function's `oid` is identical (`CREATE OR REPLACE FUNCTION` on an
+unchanged zero-argument signature never reassigns it).
+
+**Correction 2 — a fail-closed identity guard against time-of-check/
+time-of-use drift.** Round 1's migration hardcoded its belief about
+`rebuild_metric_summaries()`'s current definition (to build the neutralize
+and restore bodies) but never verified, inside its own transaction, that
+the *live* function still matched that belief when the migration actually
+runs. Between an external preflight read (this document, or the migration's
+own comments) and eventual application, nothing prevented
+`rebuild_metric_summaries()` from being changed in production — in which
+case round 1's migration would have silently neutralized the changed
+function, run the per-game loop, and permanently restored the stale
+hardcoded copy over the change, with no error at all. This project's recent
+history includes direct transactional testing of production functions
+(`tm-42501-migration-apply`/`tm-42501-production-preflight` worktrees), so
+this was treated as a real, not merely theoretical, risk.
+
+Fixed by a new Step 1.5 in the migration, immediately before the first
+`CREATE OR REPLACE FUNCTION` (the neutralize step) and before any snapshot
+or summary write: it reads the live `pg_proc`/`pg_language`/`pg_description`
+rows for `rebuild_metric_summaries()` and compares every behaviorally
+relevant property against the same `v_expected_body` the restore step uses
+(so the guard's "expected" and the restore's "actual new body" can never
+independently drift from each other):
+
+- Exact zero-argument signature (via `to_regprocedure('public.
+  rebuild_metric_summaries()')`, which only resolves an exact-arity match).
+- Full body (`prosrc`, compared to `v_expected_body` via `IS DISTINCT FROM`).
+- Owner (`pg_get_userbyid(proowner) = 'postgres'`).
+- Language (`plpgsql`).
+- `SECURITY DEFINER` status (`prosecdef`).
+- `search_path` (`proconfig` is exactly the one-element array
+  `{search_path=""}` — PostgreSQL's on-disk representation of a single `SET
+  search_path TO ''`, confirmed empirically against this exact function in
+  the harness, not assumed).
+- Volatility (`provolatile = 'v'`, i.e. `VOLATILE`, the default — not
+  declared `STABLE`/`IMMUTABLE`).
+- Parallel safety (`proparallel = 'u'`, i.e. `PARALLEL UNSAFE`, the
+  default).
+- Strictness (`proisstrict = false`, i.e. not declared `STRICT`).
+- Leakproofness (`proleakproof = false`).
+- Return type (`prorettype = 'void'::regtype`).
+- ACL: owner-only. Checked two ways — `aclexplode(coalesce(proacl,
+  acldefault('f', proowner)))` must contain no grantee other than the owner
+  (this also catches an unrevoked default, since PostgreSQL's function
+  default ACL already grants PUBLIC execute), and `has_function_privilege`
+  is checked explicitly for `anon`, `authenticated`, `service_role` (each
+  only if the role exists), and `public`.
+- Comment state (`obj_description(oid, 'pg_proc') is null` — this function
+  is expected to have no comment; if it ever legitimately gains one, the
+  guard's expected state must be updated at the same time as
+  `v_expected_body`, deliberately, not silently).
+
+Every check runs and every failure is collected into an array before
+raising, so one exception message names every property that differs, not
+just the first one found. On any mismatch, the guard raises immediately —
+before neutralizing anything, before refreshing any game, before rebuilding
+any summary, before touching any ACL — so the single top-level statement
+fails atomically: the *drifted* function is left exactly as drifted (the
+guard never overwrites it with the migration's hardcoded expected copy),
+and no snapshot, summary, or marker table is touched. Verified this round
+for four independent drift categories (§6 proof item 19; fixtures in
+`supabase/migrations/verification/20260720223000_fix_event_card_tag_
+snapshot_correction/05-guard-drift-fixtures.sql`): a one-statement body
+drift, an owner drift, a security-mode drift (`SECURITY INVOKER`), and an
+ACL drift (an added `authenticated` grant) each independently produce a
+guard exception naming that property, with a full state dump —including the
+function's own identity — byte-identical immediately before and
+immediately after the rejected run.
+
+The guard runs only inside the existing `if v_target_game_ids is not null`
+block, i.e. only when at least one game matches Step 1's predicate — on the
+no-target path, Step 2/3 already did not touch `rebuild_metric_summaries()`
+at all before this round, and still do not: the guard adds no new catalog
+read or function replacement on that path (§6 proof item 20).
+
+**This does not replace the external preflight in §9** — re-confirming the
+target *inventory* (which games/players currently match Step 1's predicate)
+immediately before application remains necessary, because that is
+data-dependent and cannot be baked into a guard that only inspects function
+metadata. What the guard removes is reliance on that preflight for the
+separate, narrower claim that `rebuild_metric_summaries()`'s *definition* is
+still the one this migration's execution strategy was reviewed against —
+that claim is now checked inside the migration's own transaction, every
+time it runs, not just once, externally, before a human clicks "apply."
+
+**Concurrency**: the guard's read and the neutralize step both execute
+inside this migration's single transaction, before commit. Ordinary
+PostgreSQL MVCC/catalog visibility means no concurrent session can observe
+either the transient neutralized (no-op) body or a partially-evaluated
+guard state at any point during the migration's run — other sessions see
+either the pre-migration definition or the fully-restored post-migration
+one, never an intermediate state. This is a property of PostgreSQL's
+transactional DDL that this correction relies on rather than implements.
 
 ### History of this migration's target-selection logic (for review legibility)
 
@@ -723,6 +899,52 @@ Eight fixture games proved, against the real file:
     neutralized — because the neutralize step is part of the same
     transaction that rolled back.
 
+**Round 2 (this correction) adds five further proven items, closing the two
+independent-review findings above:**
+
+17. **`rebuild_metric_summaries()`'s `oid` is identical before and after a
+    successful run** — `CREATE OR REPLACE FUNCTION` on an unchanged
+    zero-argument signature never reassigns the `oid`; confirmed directly,
+    not merely inferred from "the signature didn't change."
+18. **Exact restoration is real, not merely claimed**: the `pg_get_
+    functiondef` diff between immediately-pre- and immediately-post-migration
+    is empty on a successful run — this is the correction for round 1's
+    false byte-identical claim (513 bytes pre-migration vs. round 1's 577
+    bytes post-migration; both rounds are 513/513 as of this correction).
+19. **The Step 1.5 fail-closed identity guard catches four independent drift
+    categories before any mutation**: a one-statement body drift, an owner
+    drift, a security-mode drift (`SECURITY INVOKER`), and an ACL drift (an
+    added `authenticated` grant) — each proven with its own fixture
+    (`05-guard-drift-fixtures.sql`). In every case the migration raises
+    `pre-migration guard (20260720223000) failed for public.rebuild_metric_
+    summaries(): <property>: ...` naming the drifted propert(y/ies), no
+    snapshot/summary/marker table is written, no ACL changes, and —
+    critically distinct from "the migration failed but was safe" — the
+    *drifted* function is left exactly as drifted, not silently reverted to
+    the migration's hardcoded expected copy. A full state dump, now
+    including the function's own complete identity (owner, ACL, language,
+    security mode, search_path, volatility, parallel-safety, strictness,
+    leakproofness, return type, comment, `prosrc` length/md5, and `oid`), is
+    byte-identical immediately before and immediately after each
+    guard-rejected run.
+20. **The no-target path still never inspects or replaces
+    `rebuild_metric_summaries()`**: with every source table empty, the
+    migration succeeds, the function's definition is unchanged, and zero
+    rebuild-marker rows are inserted — the guard sits inside the same
+    `if v_target_game_ids is not null` block Step 2/3 already used, so it is
+    skipped entirely on this path, exactly as before this round.
+21. **The harness's one pre-existing forced-failure scenario (a poison game
+    injected mid-loop) still rolls back atomically** under the corrected
+    migration, including the new guard read and the new `format()`-based
+    restore — post-failure, `rebuild_metric_summaries()` is back in its
+    real, restored, byte-identical-to-pre-migration body, because the
+    guard's read, the neutralize step, and the (unreached) restore step are
+    all part of the same rolled-back transaction. **Note**: this harness
+    contains exactly **one** pre-existing failure-injection scenario, not
+    eight — see the harness README's "Note on 'eight failure windows'" for
+    the full accounting of what is and is not covered on the
+    failure-injection axis.
+
 `refresh_game_metric_snapshots_internal`, `rebuild_metric_summaries_base()`,
 and `rebuild_additional_metric_summaries()` are invoked through
 **simplified stubs**, not the real production functions — documented as the
@@ -745,6 +967,16 @@ implement scoring-share/normalized-efficiency/win-margin columns or
 milestone/award timing-bucket/ROI computation — out of scope for this
 correction and untouched by it. The migration file itself, and its
 target-selection query, ran unmodified and verbatim in every step above.
+
+This round adds `05-guard-drift-fixtures.sql` (the four guard-mismatch drift
+statements referenced in items 19 above) and `run-verification.sh` (an
+orchestration script that runs every case documented in the harness
+README — ordinary pass, second pass, no-target, rollback, all four guard
+drifts, and the pre-bounding rebuild-count comparison — against a
+disposable cluster in one command, printing a PASS/FAIL line per case). Both
+are targeted additions to the existing harness, not a parallel framework;
+neither replaces the manual, individually-reproducible steps already in the
+README.
 
 ## 7. Rollback / restoration evidence
 
@@ -774,19 +1006,35 @@ transaction. Each is addressed on its own terms below, not waved through as
   call site, not something this migration introduces. Pre-migration state
   is recoverable from PITR/backup; forward re-application reproduces the
   same result deterministically from current snapshot data.
-- **`rebuild_metric_summaries()`'s own body** (new consideration this
-  round, specific to the §2.1 fix): temporarily replaced twice within the
-  migration's single transaction (neutralize, then restore to the exact
-  original body) and restored before the transaction commits. On any
-  failure before the restore step, ordinary transactional rollback of
+- **`rebuild_metric_summaries()`'s own body** (§2.1, corrected §2.1.1):
+  temporarily replaced twice within the migration's single transaction
+  (neutralize, then restore to the exact original body, spliced in via
+  `format(..., %L, v_expected_body)` — see §2.1.1) and restored before the
+  transaction commits. On any failure before the restore step — including
+  the Step 1.5 guard itself raising — ordinary transactional rollback of
   `CREATE OR REPLACE FUNCTION` (transactional DDL, same as any other
   statement) undoes the neutralization along with every other write in the
-  same run — there is no separate manual restore path to get wrong, and
-  none is needed. **Convergence check**: `pg_get_functiondef('public.
+  same run; there is no separate manual restore path to get wrong, and none
+  is needed. **Convergence check**: `pg_get_functiondef('public.
   rebuild_metric_summaries')` immediately before and immediately after a
-  migration run (successful or failed) must be textually identical; this is
-  exercised directly in the harness (§6 item 16) and should be re-run as a
-  pre/post check around any future production application, not assumed.
+  successful migration run must be textually identical, and its `oid` must
+  be unchanged; this is exercised directly in the harness (§6 items 17–18,
+  round 2) and should be re-run as a pre/post check around any future
+  production application, not assumed.
+- **The Step 1.5 guard is the primary ACL/identity protection; the
+  post-restore `REVOKE` is defense-in-depth on top of it, not the other way
+  around** (§2.1.1): before this migration touches anything, the guard
+  already confirms `rebuild_metric_summaries()`'s current ACL is exactly
+  owner-only (no PUBLIC/anon/authenticated/service_role grant) — an
+  unexpected grant found at that point raises immediately and the migration
+  never reaches the neutralize step, the loop, the restore, or the
+  `revoke ... from public, anon` statement at all. The `REVOKE` after the
+  restore step therefore only ever re-affirms an ACL the guard has already
+  verified was correct moments earlier in the same transaction; it is not
+  what makes an unexpected grant safe, and was never intended to be — if the
+  guard did not exist, the `REVOKE` alone would have silently normalized an
+  unexpected grant instead of refusing to proceed, which is exactly the
+  failure mode round 2's guard closes.
 - **Symmetric-difference / convergence checks to run post-migration**:
   - `pg_get_functiondef` diff (above) on `rebuild_metric_summaries()` —
     expect empty.

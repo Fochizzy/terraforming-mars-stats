@@ -37,3 +37,28 @@ select proacl::text as acl from pg_proc where oid = 'public.rebuild_metric_summa
 
 \echo '=== refresh_game_metric_snapshots_internal(uuid, boolean) ACL (must remain unchanged: authenticated + owner only) ==='
 select proacl::text as acl from pg_proc where oid = 'public.refresh_game_metric_snapshots_internal(uuid, boolean)'::regprocedure;
+
+\echo '=== rebuild_metric_summaries() full identity: oid + every guarded property (20260720223000 correction round) ==='
+\echo '-- oid must be identical across a successful run (CREATE OR REPLACE FUNCTION on an unchanged'
+\echo '-- signature never reassigns the oid); every other column here must match the pre-migration'
+\echo '-- baseline byte-for-byte / value-for-value on a successful run, and must match the *drifted*'
+\echo '-- (not reviewed-expected) value after a guard-rejected run -- see the guard-mismatch fixtures.'
+select
+  p.oid,
+  pg_get_userbyid(p.proowner) as owner,
+  l.lanname as lang,
+  p.prosecdef as security_definer,
+  p.provolatile as volatility,
+  p.proparallel as parallel_safety,
+  p.proisstrict as is_strict,
+  p.proleakproof as is_leakproof,
+  (p.prorettype = 'void'::regtype) as returns_void,
+  p.pronargs as nargs,
+  p.proconfig as proconfig,
+  p.proacl::text as acl,
+  obj_description(p.oid, 'pg_proc') as comment,
+  octet_length(p.prosrc) as prosrc_octet_length,
+  md5(p.prosrc) as prosrc_md5
+from pg_proc p
+join pg_language l on l.oid = p.prolang
+where p.oid = to_regprocedure('public.rebuild_metric_summaries()');
