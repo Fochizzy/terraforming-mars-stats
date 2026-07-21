@@ -172,6 +172,10 @@ describe('migration-ledger map', () => {
     ).toBe('contraction');
     expect(MIGRATION_HAZARD_CLASS['20260719234500']).toBe('contraction');
     expect(MIGRATION_HAZARD_CLASS['20260719223000']).toBe('contraction');
+    expect(
+      MIGRATION_HAZARD_CLASS['20260720110000'],
+      'game_log_events_owner_requires_explicit_state is a CHECK on pre-existing columns added without `not valid`: it rejects owner ids alongside a non-explicit_owner ownership_state that the deployed contract accepts, so the widened vocabularies do not make the file an expansion',
+    ).toBe('contraction');
   });
 
   it('never lists a gated migration as applied', () => {

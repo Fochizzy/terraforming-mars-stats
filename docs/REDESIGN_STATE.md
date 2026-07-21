@@ -81,7 +81,9 @@ file under `supabase/migrations/` touched.
 - **Hazard class added, orthogonal to approval status.** Every migration file
   declares `contraction | expansion | neutral` explicitly (never derived from
   SQL); an undeclared file fails as `CLASSIFICATION_MISSING`. Current
-  declarations: 12 contraction, 29 expansion, 8 neutral.
+  declarations: 13 contraction, 28 expansion, 8 neutral. (`20260720110000` was
+  first declared `expansion`; an independent review disproved that on a
+  disposable local cluster and it was corrected to `contraction` — see below.)
 - **Harness reconciled.** The replay loop was applying gated `20260717190000`,
   `20260720100000` and `20260720120000` as if they were production history, so
   the "state production is in today" baseline ran against a database carrying

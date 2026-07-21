@@ -84,14 +84,21 @@ declare `contraction | expansion | neutral`; an undeclared file fails as
 SQL, because the hazard depends on what was *deployed before* the migration,
 which the SQL alone does not record.
 
-**12 contraction, 29 expansion, 8 neutral (49 files).** The contractions:
+**13 contraction, 28 expansion, 8 neutral (49 files).** The contractions:
 
 `20260704000000`, `20260715032000`, `20260715113501`, `20260718041532`,
 `20260718050924`, `20260718212339`, `20260718212340`, `20260719223000`,
-`20260719223500`, `20260719230000`, `20260719234500`, `20260720120000`.
+`20260719223500`, `20260719230000`, `20260719234500`, `20260720110000`,
+`20260720120000`.
 
 `20260720120000_coarsen_import_name_match_reasons` is `contraction` as
 assigned: it narrows a disclosed classification a caller can read.
+
+`20260720110000_extend_canonical_board_placement_contract` appears in that
+list only after correction. This handoff originally declared it `expansion`
+on the strength of its widened vocabularies and new nullable columns. The
+independent review of this branch disproved that; see
+"Correction (2026-07-21): 20260720110000" at the end of this handoff.
 
 Two declarations run against how the raw SQL reads, and are documented in the
 map:
@@ -258,3 +265,67 @@ build and deleted immediately afterwards. It is not committed (`.gitignore:39`).
 - **Guest re-neutralization, the tile backfill, the closure audit, Step 4.4 —
   not begun.** The ordering constraint from the third remediation pass still
   holds: the tile backfill must run *before* guest re-neutralization.
+
+## Correction (2026-07-21): 20260720110000 is a contraction
+
+The independent read-only review of this branch found one BLOCKER: this
+handoff and `MIGRATION_HAZARD_CLASS` declared
+`20260720110000_extend_canonical_board_placement_contract` as `expansion`.
+That declaration was wrong. It is corrected to `contraction` in the commit
+that carries this section.
+
+**Why the original declaration was wrong.** The file does widen the
+`placement_action` and `ownership_state` vocabularies (both strict supersets)
+and does add nullable columns, and that is what the `expansion` call rested
+on. But it also adds `game_log_events_owner_requires_explicit_state`:
+
+```sql
+check (
+  (owner_player_id is null and owner_game_player_id is null)
+  or ownership_state = 'explicit_owner'
+)
+```
+
+That is a CHECK on the **pre-existing** `owner_player_id`,
+`owner_game_player_id` and `ownership_state` columns, and it is **not**
+`not valid`, so it validates existing rows on apply. Under the deployed
+contract (`20260718212340`) `ownership_state` accepts `'unknown'` with no rule
+tying owner ids to it. The rebuilt RPC likewise adds three rejection paths its
+deployed predecessor did not have: `Owner identifiers require explicit_owner
+ownership evidence.`, `A Mars placement uses a space outside the board
+layout.`, and `A Moon placement uses a space outside the board layout.`
+("board layout" appears zero times in `20260718212340` and `20260719234500`.)
+
+**How it was proved.** Not by reading the SQL — on a disposable local
+PostgreSQL cluster with production history replayed and all five gated
+migrations excluded, exactly as `run.sh` models it:
+
+1. deployed contract, insert `owner_player_id` set with
+   `ownership_state = 'unknown'` → **accepted**;
+2. apply `20260720110000` over that row → **fails**:
+   `ERROR: check constraint "game_log_events_owner_requires_explicit_state" of
+   relation "game_log_events" is violated by some row`;
+3. clean table, migration applied, same insert → **rejected**.
+
+A row with `ownership_state` NULL is unaffected: `false OR NULL` is NULL and a
+CHECK only rejects on FALSE. The witness must use a non-null non-`explicit_owner`
+value.
+
+**Scope of the real-world risk, stated honestly.** `derivePlacementOwnership`
+returns null owner ids unconditionally, so the deployed writer probably emits
+no violating row and production probably holds none. That is a probability, not
+evidence — and confirming it is exactly the check the expand/contract gate
+exists to force. `expansion` is defined here as "safe to apply ahead of the
+code that uses it", which would have skipped that check. The classification
+is also now consistent with `20260718212340`, which this same map already
+classifies `contraction` for tightening CHECKs on this same table, and which
+at least used `not valid`.
+
+**Pre-apply gate this adds.** Before `20260720110000` is applied, confirm no
+`game_log_events` row carries owner ids with a non-`explicit_owner`
+`ownership_state`; one such row fails the `ALTER TABLE` outright.
+
+**Scope of the correction.** Hazard class only. No snapshot entry, partition
+classification, or other file's hazard declaration was touched; nothing under
+`supabase/migrations/` was modified; no production system was accessed. The
+migration remains gated and unapplied.

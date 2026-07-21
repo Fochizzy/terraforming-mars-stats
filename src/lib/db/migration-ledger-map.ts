@@ -368,7 +368,17 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // superset whose new parameter defaults to the previous behavior, so every
   // previously valid call still resolves.
   '20260720100000': 'expansion', // add_guest_identity_alias_source_control
-  '20260720110000': 'expansion', // extend_canonical_board_placement_contract
+  // Mixed hazard, so the strongest present wins. It widens the placement
+  // action and ownership vocabularies and adds nullable columns, but it also
+  // adds game_log_events_owner_requires_explicit_state — a CHECK on the
+  // PRE-EXISTING owner_player_id/owner_game_player_id/ownership_state columns,
+  // and NOT `not valid`, so it validates existing rows. The deployed contract
+  // accepts owner ids alongside ownership_state 'unknown'; afterwards that row
+  // is rejected and the ALTER TABLE itself fails if any such row exists. The
+  // rebuilt RPC likewise adds rejections its predecessor did not have (owner
+  // consistency, and the Mars/Moon board-layout format checks). Applying it
+  // therefore requires the expand/contract order, not an ahead-of-code apply.
+  '20260720110000': 'contraction', // extend_canonical_board_placement_contract
   // Narrows the disclosed match classification a deployed caller can read
   // (fine-grained match_reason/match_score → coarse exact/partial).
   '20260720120000': 'contraction', // coarsen_import_name_match_reasons

@@ -143,7 +143,7 @@ them.
 | `20260717190000_add_merger_offer_rule_snapshots` | expansion | Phase 2 Merger package | owner-approved group UUID + dry run + explicit authorization |
 | `20260719234500_separate_event_confidence_from_review_state` | **contraction** | confidence/review split (repeat-safe) | per-mutation protocol; pre-apply gate includes verifying no deployed writer emits the retired `'reviewed'` confidence (expand/contract) |
 | `20260720100000_add_guest_identity_alias_source_control` | expansion | guest RPC alias-recording control | per-mutation protocol; required before the redesign's roster/manual guest paths ship |
-| `20260720110000_extend_canonical_board_placement_contract` | expansion | full placement contract | per-mutation protocol; expansion-only (widened CHECKs, new nullable columns, rebuilt RPC) |
+| `20260720110000_extend_canonical_board_placement_contract` | **contraction** | full placement contract | per-mutation protocol; expand/contract order. The pre-apply gate must confirm no `game_log_events` row carries owner ids with a non-`explicit_owner` `ownership_state`: the added CHECK is not `not valid`, so one such row fails the `ALTER TABLE` |
 | `20260720120000_coarsen_import_name_match_reasons` | **contraction** | closes the private-name confirmation oracle in `match_import_player_names` | per-mutation protocol; **must ship with** the live-site reader move off `display_name`/`normalized_display_name`/`full_name`/private aliases (B-02 + H-01 as one expand/contract sequence) |
 
 ## Hazard classes
@@ -167,7 +167,7 @@ the SQL alone does not record. A file with no declaration fails as
   reconciliations, comments, no-op history placeholders.
 
 Where a file mixes hazards, the strongest present wins. Current declarations:
-**12 contraction, 29 expansion, 8 neutral** (49 files).
+**13 contraction, 28 expansion, 8 neutral** (49 files).
 
 ### Contractions
 
@@ -184,6 +184,7 @@ Where a file mixes hazards, the strongest present wins. Current declarations:
 | `20260719223500_enable_rls_on_player_legacy_identities` | enabling RLS narrows previously unrestricted access |
 | `20260719230000_security_invoker_on_import_integrity_audit` | moves the view to the caller's rights |
 | `20260719234500_separate_event_confidence_from_review_state` | retires `'reviewed'` from the confidence vocabulary |
+| `20260720110000_extend_canonical_board_placement_contract` | mixed, so the strongest wins. It widens the action/ownership vocabularies and adds nullable columns, but `game_log_events_owner_requires_explicit_state` is a CHECK on the pre-existing `owner_player_id`/`owner_game_player_id`/`ownership_state` columns, and not `not valid`. The deployed contract accepts owner ids alongside `ownership_state = 'unknown'`; afterwards that write is rejected and the `ALTER TABLE` fails if any such row already exists. The rebuilt RPC adds rejections its predecessor lacked (owner consistency; the Mars/Moon board-layout format checks) |
 | `20260720120000_coarsen_import_name_match_reasons` | narrows the disclosed match classification a deployed caller can read |
 
 Two declarations deserve their reasoning stated, because the raw SQL reads the
