@@ -204,7 +204,14 @@ where tag_code = 'event' and tag_count <> 0;
 
 Both queries are idempotent to re-run at any time.
 
-## 4. Affected-row inventory (production, read as of 2026-07-20, aggregates only)
+## 4. Affected-row inventory (production)
+
+### 4.1 Historical coarse inventory (read 2026-07-20, aggregates only)
+
+**39/109 was never the complete final migration target count. It was always
+a historical coarse Event-snapshot inventory** — derived from the §3 proxy
+queries, not from the migration's own target-selection CTE (§2). See §4.2 for
+the exact migration-target count, obtained during independent rereview.
 
 | Metric | Value |
 | --- | --- |
@@ -220,28 +227,209 @@ Both queries are idempotent to re-run at any time.
 | `global_map_metric_summaries.best_tag_lane = 'event'` | 0 |
 | `global_tag_metric_summaries` rows with `tag_code = 'event'` | 3 |
 
-**This table was read once, on 2026-07-20, against the production database,
-and has not been re-read since** — none of the gap-closure rounds after the
-original review accessed production. Two things follow from that:
+This table was read once, on 2026-07-20, against the production database, as
+part of the original review. Two things follow from that:
 
 - The 109 rows counted here were, at read time, all confirmed stale (root
   already clean for all 39 games, per the "39/39" row above) — i.e. every
   one of them is a legitimate target under the *current* migration's
   Event-tag signal too, not just the earlier nonzero-based one. This
   specific historical reading is not invalidated by the Signal-(a)
-  correction in §2.
-- What this table **cannot** confirm is whether production has any game
-  matching the *other* two cases the current migration additionally covers
-  and the earlier drafts missed: a game with zero root tag rows at all but a
-  stale nonzero persisted total, or a game with root evidence but no
-  persisted snapshot row at all. Re-run §3's queries, or better, a
-  standalone extraction of the migration's own target CTE, immediately
-  before deploy (§9) to get a current, exact answer — do not assume this
-  table's absence of such a case as of 2026-07-20 still holds.
+  correction in §2, and §4.2 confirms it exactly (109 event-signal players,
+  no drift).
+- What this table **could not** confirm — whether production has any game
+  matching the other two cases the current migration additionally covers and
+  the earlier drafts missed — is now answered in §4.2: **yes**, production has
+  3 such games.
 
 No player names, aliases, usernames, or raw log text were retrieved to
 produce this table — every query above is a `count(*)` / `count(distinct …)`
 aggregate.
+
+### 4.2 Exact migration-target inventory (independent rereview, current as of read time)
+
+An independent rereview of this branch (`fix/event-card-tag-exclusion` @
+`46b8bbfcccab1cd36368fc1bf32bfa8141f4cc21`) closed the gap §4.1 flagged, by
+extracting the migration's actual target-selection CTE (§2) into a
+standalone, read-only, aggregate-only `select` (§4.3) and running it directly
+against production — not the coarse proxy queries in §3.
+
+| Metric | Value |
+| --- | --- |
+| Exact target games (union of both §2 signals) | **42** |
+| Exact target game players (union of both §2 signals) | **116** |
+| Of those, matched by the Event-tag signal | 109 (identical to §4.1's coarse count — no drift) |
+| Of those, matched by the Total-tag-count signal | 93 |
+
+The additional scope beyond §4.1's coarse reading:
+
+| Metric | Value |
+| --- | --- |
+| Additional target game players not counted in §4.1 | **7** |
+| Additional target games not counted in §4.1 | **3** |
+| Of those 7: `game_player_metric_snapshots` row absent entirely | 7 / 7 |
+| Of those 7: root-derived expected `total_tag_count` nonzero | 7 / 7 |
+| Of those 7: root-derived expected `event` tag_count nonzero | 0 / 7 |
+| Of those 7: game `status = 'finalized'` | 7 / 7 |
+
+**These 7 game players across 3 finalized games are expected, valid migration
+targets — not evidence of a new defect.** Each is a finalized game whose
+`game_player_metric_snapshots` row was never created at all (a pre-existing
+"never snapshotted" gap, independent of the Event-card tag bug this package
+otherwise addresses); root has real, nonzero `total_tag_count` evidence for
+each. They are detected exclusively through the Total-tag-count signal's
+zero-aware missing-row comparison (§2, signal 2) — none of the 7 have a
+nonzero root-derived `event` tag_count, so none are matched by the Event-tag
+signal, and none were visible in §4.1's old nonzero-Event-row proxy query,
+which only ever looked at existing `game_player_tag_metric_snapshots` rows.
+
+This is exactly the class of case the executable harness's **Game I**
+fixture directly covers
+(`supabase/migrations/verification/20260720223000_fix_event_card_tag_snapshot_correction/`,
+harness README §6 item 8: "root total nonzero, `game_player_metric_snapshots`
+row entirely absent → refreshed, row created from scratch") — independently
+confirmed during rereview to behave correctly against this fixture before
+this production reading was taken.
+
+**Timestamp**: the exact UTC timestamp of the original 42/116 discovery
+queries (run earlier in the same independent-rereview session, before this
+documentation update began) was not separately captured and cannot be
+precisely reconstructed — stated explicitly here rather than invented. The
+aggregate-only confirmation query in §4.3 that reproduces the 7-player/
+3-game breakdown was run at approximately **2026-07-21 01:37 UTC**. Both
+reads occurred within one continuous review session spanning 2026-07-20 into
+2026-07-21 UTC, with no known intervening write activity against the
+affected tables between them.
+
+**Like §4.1, this reading is a point-in-time snapshot, not a live guarantee,
+and must be reconfirmed immediately before migration application (§9) —
+production data can change between this reading and deploy.**
+
+### 4.3 Query record (aggregate-only, read-only)
+
+Both queries below were run read-only against production. Neither retrieves
+player names, aliases, usernames, game IDs, player IDs, group IDs, or raw log
+text — every result is a `count(*)` / `count(distinct …)` aggregate. **No
+migration, refresh function, or rebuild function was executed** in producing
+either result.
+
+Primary query — adapts the migration's §2 target-selection CTE verbatim,
+replacing the migration's `perform`/write steps with a `count` in place of
+`array_agg`, to get the exact target-game and target-player counts (§4.2's
+first table):
+
+```sql
+with root_resolved as (
+  select
+    coalesce(glts.game_player_id, resolved_player.game_player_id) as game_player_id,
+    glts.game_log_import_id, glts.tag_code, glts.tag_count, glts.total_tag_count
+  from public.game_log_tag_summaries glts
+  join public.game_log_imports gli on gli.id = glts.game_log_import_id
+  left join lateral (
+    select gp_resolved.id as game_player_id
+    from public.game_players gp_resolved
+    join public.players p_resolved on p_resolved.id = gp_resolved.player_id
+    where gp_resolved.game_id = gli.game_id
+      and (
+        public.metric_normalized_label(p_resolved.display_name) = glts.normalized_player_name
+        or exists (select 1 from public.player_import_aliases pia
+          where pia.player_id = p_resolved.id and pia.source_type = 'game_log'
+            and pia.normalized_alias = glts.normalized_player_name)
+      )
+    order by gp_resolved.id limit 1
+  ) resolved_player on glts.game_player_id is null
+  where coalesce(glts.game_player_id, resolved_player.game_player_id) is not null
+),
+root_event_totals as (
+  select game_player_id, sum(tag_count)::integer as expected_event_tag_count
+  from (select game_player_id, game_log_import_id, max(tag_count) as tag_count
+        from root_resolved where tag_code = 'event' group by game_player_id, game_log_import_id) per_import
+  group by game_player_id
+),
+root_player_totals as (
+  select game_player_id, sum(per_import_total)::integer as expected_total_tag_count
+  from (select game_player_id, game_log_import_id, max(total_tag_count) as per_import_total
+        from root_resolved group by game_player_id, game_log_import_id) per_import
+  group by game_player_id
+),
+all_game_player_ids as (
+  select game_player_id from root_event_totals
+  union select game_player_id from root_player_totals
+  union select game_player_id from public.game_player_tag_metric_snapshots where tag_code = 'event'
+  union select game_player_id from public.game_player_metric_snapshots
+),
+event_signal as (
+  select gpi.game_player_id from all_game_player_ids gpi
+  left join root_event_totals ret on ret.game_player_id = gpi.game_player_id
+  left join public.game_player_tag_metric_snapshots snap_event
+    on snap_event.game_player_id = gpi.game_player_id and snap_event.tag_code = 'event'
+  where coalesce(ret.expected_event_tag_count, 0) <> coalesce(snap_event.tag_count, 0)
+),
+total_signal as (
+  select gpi.game_player_id from all_game_player_ids gpi
+  left join root_player_totals rpt on rpt.game_player_id = gpi.game_player_id
+  left join public.game_player_metric_snapshots snap_total on snap_total.game_player_id = gpi.game_player_id
+  where coalesce(rpt.expected_total_tag_count, 0) <> coalesce(snap_total.total_tag_count, 0)
+),
+target_game_players as (
+  select game_player_id, 'event' as via from event_signal
+  union
+  select game_player_id, 'total' as via from total_signal
+)
+select
+  count(distinct gp.game_id) as target_game_count,
+  count(distinct gp.id) filter (where tgp.via = 'event') as event_signal_players,
+  count(distinct gp.id) filter (where tgp.via = 'total') as total_signal_players,
+  count(distinct gp.id) as target_player_count
+from target_game_players tgp
+join public.game_players gp on gp.id = tgp.game_player_id;
+
+-- Result at read time: target_game_count=42, event_signal_players=109,
+-- total_signal_players=93, target_player_count=116.
+```
+
+Follow-up query — same CTEs, restricted to targets not already counted by the
+§4.1/§3 nonzero-event-snapshot proxy, to confirm the additional-scope
+breakdown (§4.2's second table) in aggregate-only form:
+
+```sql
+-- ...same root_resolved / root_event_totals / root_player_totals /
+-- all_game_player_ids / event_signal / total_signal CTEs as above, plus:
+extra as (
+  select tgp.game_player_id
+  from (
+    select game_player_id from event_signal
+    union
+    select game_player_id from total_signal
+  ) tgp
+  where tgp.game_player_id not in (
+    select game_player_id from public.game_player_tag_metric_snapshots
+    where tag_code = 'event' and tag_count <> 0
+  )
+)
+select
+  count(*) as extra_target_player_count,
+  count(distinct gp.game_id) as extra_target_game_count,
+  count(*) filter (where snap_total.game_player_id is null) as extra_with_snapshot_row_absent,
+  count(*) filter (where coalesce(rpt.expected_total_tag_count, 0) <> 0) as extra_with_nonzero_root_total,
+  count(*) filter (where coalesce(ret.expected_event_tag_count, 0) <> 0) as extra_with_nonzero_root_event,
+  count(*) filter (where g.status = 'finalized') as extra_finalized_count
+from extra e
+join public.game_players gp on gp.id = e.game_player_id
+join public.games g on g.id = gp.game_id
+left join root_event_totals ret on ret.game_player_id = e.game_player_id
+left join root_player_totals rpt on rpt.game_player_id = e.game_player_id
+left join public.game_player_metric_snapshots snap_total on snap_total.game_player_id = e.game_player_id;
+
+-- Result at read time (~2026-07-21 01:37 UTC): extra_target_player_count=7,
+-- extra_target_game_count=3, extra_with_snapshot_row_absent=7,
+-- extra_with_nonzero_root_total=7, extra_with_nonzero_root_event=0,
+-- extra_finalized_count=7.
+```
+
+Both queries are idempotent to re-run at any time; re-running is expected
+immediately before migration application (§9), since production data can
+change after this reading.
 
 ## 5. Code-fix verification (local — no production writes)
 
@@ -356,11 +544,12 @@ target-selection query, ran unmodified and verbatim in every step above.
    This includes the `analytics-repo.ts`/`extended-analytics-repo.ts` fixes
    and the shared vocabulary module, which take effect immediately on
    deploy with no migration dependency.
-2. Immediately before applying, get a current, exact answer for the
-   migration's actual target set (§2/§3) — the aggregate table in §4 is
-   from the original review and has not been re-read since; re-running the
-   informational queries in §3 is a coarse check, not a substitute for the
-   migration's own comparison logic.
+2. Immediately before applying, re-run §4.3's exact target-selection queries
+   again and reconfirm the counts. §4.2's 42-game/116-player reading is from
+   independent rereview (see §4.2's timestamp note) and is a point-in-time
+   snapshot, not a live guarantee — production data can change before
+   deploy. Re-running the coarse §3 proxy queries alone is not a substitute
+   for §4.3's exact, root-comparing logic.
 3. Apply `20260720223000_fix_event_card_tag_snapshot_correction.sql` through
    the approved production-change process.
 4. Re-run §3's second query and confirm it returns 0. (The first §3 query
