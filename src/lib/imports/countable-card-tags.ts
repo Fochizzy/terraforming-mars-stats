@@ -1,19 +1,17 @@
-export const EVENT_CARD_TYPE = 'Event';
+import {
+  EVENT_CARD_TYPE,
+  TAG_COUNTING_CARD_TYPES,
+} from '@/lib/cards/card-type-vocabulary';
+
+export { EVENT_CARD_TYPE };
 
 /**
  * Every canonical card type whose printed tags are known to count toward a
- * tag total. Must track `PROJECT_CARD_TYPES`/`PLAYABLE_CARD_TYPES` in
- * `src/lib/db/reference-repo.ts` minus `Event` — kept as a separate, local
- * constant (rather than importing that module) so this file stays
- * dependency-free and safe to use from scripts and tests.
+ * tag total: `TAG_COUNTING_CARD_TYPES` (`PLAYABLE_CARD_TYPES` minus `Event`)
+ * from the shared, dependency-free vocabulary module — importing it here
+ * cannot drift from `reference-repo.ts`, since both read the same constant.
  */
-const KNOWN_TAG_COUNTING_CARD_TYPES = new Set([
-  'Automated',
-  'Active',
-  'Project',
-  'Corporation',
-  'Prelude',
-]);
+const KNOWN_TAG_COUNTING_CARD_TYPES = new Set(TAG_COUNTING_CARD_TYPES);
 
 /**
  * A played Event is turned face down, so none of its printed tags — including

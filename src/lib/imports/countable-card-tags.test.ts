@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import {
+  PLAYABLE_CARD_TYPES,
+  TAG_COUNTING_CARD_TYPES,
+} from '@/lib/cards/card-type-vocabulary';
 import { countableCardTags } from './countable-card-tags';
 
 describe('countableCardTags', () => {
@@ -82,5 +86,25 @@ describe('countableCardTags', () => {
     // Not an alias for Event — this asserts the fail-closed default, not a
     // case-insensitive match against EVENT_CARD_TYPE.
     expect(countableCardTags(['space'], 'event')).toEqual([]);
+  });
+
+  it('tracks the canonical vocabulary rather than a hand-copied list', () => {
+    // Drives countableCardTags off the actual shared constants rather than
+    // literal strings, so a future edit to the canonical vocabulary that
+    // isn't also reflected in countableCardTags's behavior fails this test
+    // instead of silently drifting.
+    for (const cardType of TAG_COUNTING_CARD_TYPES) {
+      expect(countableCardTags(['space'], cardType)).toEqual(['space']);
+    }
+
+    const nonTagCountingPlayableTypes = PLAYABLE_CARD_TYPES.filter(
+      (cardType) => !TAG_COUNTING_CARD_TYPES.includes(cardType),
+    );
+
+    expect(nonTagCountingPlayableTypes).toEqual(['Event']);
+
+    for (const cardType of nonTagCountingPlayableTypes) {
+      expect(countableCardTags(['space'], cardType)).toEqual([]);
+    }
   });
 });
