@@ -1,14 +1,50 @@
 // Repository-migrations ↔ production-ledger map (audit §18).
 //
-// The production ledger (project qjtwgrjjwnqafbvkkfex) was captured READ-ONLY
-// via the management API on 2026-07-20. Human-readable companion:
-// docs/redesign/reference/MIGRATION-LEDGER-MAP.md. The drift test
-// (migration-ledger-map.test.ts) partitions every repo file and every ledger
-// version through this map and fails on anything unclassified — an
-// unexplained new file, a gated migration that appears applied, or a ledger
-// entry nothing accounts for.
+// The production ledger (project qjtwgrjjwnqafbvkkfex) is captured READ-ONLY
+// via the management API; the current snapshot is the 2026-07-21 attestation
+// recorded in PRODUCTION_LEDGER_ATTESTATION. Human-readable companion:
+// docs/redesign/reference/MIGRATION-LEDGER-MAP.md.
+//
+// The drift test (migration-ledger-map.test.ts) enforces this map in BOTH
+// directions and fails on anything unclassified:
+//
+//   repo → ledger   every migration file on this branch resolves to exactly
+//                   one classification, and to exactly one hazard class.
+//   ledger → repo   every version in PRODUCTION_LEDGER_VERSIONS resolves to
+//                   exactly one classification (LEDGER_INCOMPLETE otherwise),
+//                   so a new production-only entry cannot land unrecorded.
+//
+// The two dimensions are orthogonal. Classification answers "what is this
+// migration's relationship to production history"; hazard class answers "what
+// does applying it do to a deployed reader or writer". A gated migration can
+// be an expansion; an already-applied migration can have been a contraction.
 
-/** Every version in the production ledger as of 2026-07-20 (verified read-only). */
+/**
+ * Provenance of the current PRODUCTION_LEDGER_VERSIONS snapshot. Recorded so a
+ * later read-only attestation that disagrees on the count or head is a
+ * detectable mismatch rather than a silent overwrite.
+ */
+export const PRODUCTION_LEDGER_ATTESTATION = {
+  project: 'tm-stats (qjtwgrjjwnqafbvkkfex)',
+  /** Date of the read-only attestation this snapshot reproduces. */
+  attestedOn: '2026-07-21',
+  /** Total ledger entries at attestation time. */
+  entryCount: 108,
+  headVersion: '20260721081355',
+  headName: 'fix_event_card_tag_snapshot_correction',
+  /**
+   * The previous snapshot (2026-07-20) held 105 entries with max
+   * 20260720021300. The three entries above it are production applications
+   * made from other branches; see PRODUCTION_ONLY_ENTRY_PROVENANCE.
+   */
+  previousEntryCount: 105,
+  previousHeadVersion: '20260720021300',
+} as const;
+
+/**
+ * Every version in the production ledger as of the attestation above
+ * (verified read-only; this branch performs no production access).
+ */
 export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   '20260703120000', '20260703121500', '20260703123000', '20260703124500',
   '20260703130000', '20260704001728', '20260704030147', '20260704034500',
@@ -40,6 +76,9 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   // SECURITY DEFINER RPC public.match_import_player_names. Repo file
   // 20260720120000 coarsens its disclosed match classification.
   '20260720021300',
+  // Added between the 2026-07-20 and 2026-07-21 attestations, all applied
+  // from other branches. See PRODUCTION_ONLY_ENTRY_PROVENANCE.
+  '20260720221937', '20260721035955', '20260721081355',
 ];
 
 /**
@@ -99,3 +138,238 @@ export const GATED_UNAPPLIED: readonly string[] = [
   // Must be applied only after a compatible reader is deployed and verified.
   '20260720120000',
 ];
+
+/**
+ * Ledger versions with no migration file on this branch — production-only
+ * relative to this branch. Membership here is what makes the ledger→repo
+ * direction complete; an attested ledger entry that is not repo-native, not a
+ * renamed-drift target, not a reconstruction, and not listed here fails the
+ * gate as LEDGER_INCOMPLETE.
+ *
+ * Most of these are remote-only history whose migration NAMES were not part
+ * of the captured attestations, so no name is asserted for them. The entries
+ * whose identity IS attested carry provenance in
+ * PRODUCTION_ONLY_ENTRY_PROVENANCE.
+ */
+export const PRODUCTION_ONLY_LEDGER_VERSIONS: readonly string[] = [
+  // Remote-only analytics/RPC iteration history (names not captured).
+  '20260708164000', '20260708182805', '20260708201626', '20260708210555',
+  '20260708210608', '20260708210912', '20260708212912', '20260709204124',
+  '20260710013517', '20260710013631', '20260710013653', '20260710134348',
+  '20260710202359', '20260710205230', '20260710211520', '20260711110356',
+  '20260711111553', '20260711120809', '20260711123856', '20260711125146',
+  '20260711125251', '20260711134339', '20260711134417', '20260711160109',
+  '20260711160409', '20260711215135', '20260712112659', '20260712115539',
+  '20260712220257', '20260713115505', '20260713120000', '20260713120554',
+  '20260713121000', '20260713140000', '20260713211040', '20260714064956',
+  '20260714074501', '20260714100000', '20260714123000', '20260714133000',
+  '20260714134000', '20260714150000', '20260714160000', '20260714170000',
+  // Name-anonymized 'remote_only' entries. The content of the four files in
+  // APPLIED_UNDER_UNCONFIRMED_REMOTE_VERSION is live in production behind
+  // some subset of these, but the exact pairing is not confirmable.
+  '20260714233758', '20260715030517', '20260715031157', '20260715034351',
+  '20260715034414', '20260715170238',
+  // Further remote-only history (names not captured).
+  '20260715123125', '20260715130709', '20260715182325', '20260715182939',
+  '20260716043235', '20260716054430', '20260717020330', '20260717020622',
+  '20260717022105', '20260717031053', '20260717032629',
+  // Attested identities; see PRODUCTION_ONLY_ENTRY_PROVENANCE.
+  '20260718212722', '20260718234835', '20260719132042', '20260720021300',
+  '20260720221937', '20260721035955', '20260721081355',
+];
+
+export interface ProductionOnlyProvenance {
+  /** Ledger name as attested. */
+  readonly name: string;
+  /**
+   * Filename version of the source file on the branch it was applied from,
+   * when that differs from the ledger version (apply-time rename). Null when
+   * no source file is known outside production.
+   */
+  readonly sourceFileVersion: string | null;
+  /** Source filename on that branch, or null when unknown. */
+  readonly sourceFileName: string | null;
+  /** Branch or commit the application was made from, or null when unknown. */
+  readonly sourceRef: string | null;
+  readonly note: string;
+}
+
+/**
+ * Identity and provenance for the production-only entries whose names are
+ * attested. None of these files exist on this branch, so none of them carry a
+ * hazard class here — hazard class is declared per FILE present on this
+ * branch (see MIGRATION_HAZARD_CLASS). If one of these files is ever brought
+ * onto this branch it must gain a hazard-class declaration at that point;
+ * until then the ledger→repo completeness check is the only property that
+ * applies to it.
+ */
+export const PRODUCTION_ONLY_ENTRY_PROVENANCE: Readonly<
+  Record<string, ProductionOnlyProvenance>
+> = {
+  '20260718212722': {
+    name: 'add_game_mechanic_capture',
+    sourceFileVersion: '20260718204000',
+    sourceFileName: '20260718204000_add_game_mechanic_capture.sql',
+    sourceRef: null,
+    note: 'Live-site capture work; no file on this branch.',
+  },
+  '20260718234835': {
+    name: 'lock_down_public_backup_tables',
+    sourceFileVersion: null,
+    sourceFileName: null,
+    sourceRef: null,
+    note: 'Backup-table security remediation applied from the live-site session.',
+  },
+  '20260719132042': {
+    name: 'data_capture_hardening_v2',
+    sourceFileVersion: null,
+    sourceFileName: null,
+    sourceRef: null,
+    note: 'Live-site data-capture v2 release; the redesign reads it through readCanonicalGameCapture and never writes game_capture_* rows.',
+  },
+  '20260720021300': {
+    name: 'add_import_player_name_matching_rpc',
+    sourceFileVersion: null,
+    sourceFileName: null,
+    sourceRef: null,
+    note: 'Created the SECURITY DEFINER RPC public.match_import_player_names. Gated repo file 20260720120000 coarsens its disclosed classification and is therefore a REPLACE of this deployed predecessor, not a CREATE.',
+  },
+  '20260720221937': {
+    name: 'grant_authenticated_claim_rpc_execute',
+    sourceFileVersion: '20260720190000',
+    sourceFileName: '20260720190000_grant_authenticated_claim_rpc_execute.sql',
+    sourceRef: 'b11cae71b (fix/b05-claim-rpc-authenticated-grants)',
+    note: 'Privilege GRANT. Applied under a renamed ledger version; the filename version differs from the ledger version.',
+  },
+  '20260721035955': {
+    name: 'secure_public_player_labels_service_role',
+    sourceFileVersion: '20260721013000',
+    sourceFileName: '20260721013000_secure_public_player_labels_service_role.sql',
+    sourceRef: 'origin/fix/public-player-label-service-role-boundary',
+    note: 'Applied under a renamed ledger version.',
+  },
+  '20260721081355': {
+    name: 'fix_event_card_tag_snapshot_correction',
+    sourceFileVersion: '20260720223000',
+    sourceFileName: '20260720223000_fix_event_card_tag_snapshot_correction.sql',
+    sourceRef: 'origin/fix/event-card-snapshot-migration-bounded-rebuild',
+    note: 'Applied under a renamed ledger version. Current ledger head.',
+  },
+};
+
+/**
+ * Hazard class of a migration file, orthogonal to its ledger classification.
+ *
+ * Declared explicitly per file — never derived from the SQL, because the
+ * hazard depends on what was DEPLOYED before the migration, which the SQL
+ * alone does not record. A file with no declaration is a hard failure
+ * (CLASSIFICATION_MISSING), so a new migration cannot slip in unclassified.
+ *
+ * - `contraction` — removes or narrows a contract surface that existed before
+ *   this migration and does not restore an equal-or-broader replacement in
+ *   the same file: REVOKE on a pre-existing object, a dropped object with no
+ *   replacement, a tightened CHECK or constraint on an existing table, a
+ *   narrowed vocabulary, or a rebuilt function that discloses less. These
+ *   require the expand/contract order recorded in DECISIONS.md: deploy the
+ *   reader or writer that no longer needs the old shape, verify, contract.
+ * - `expansion` — only adds or widens: new tables, columns, functions,
+ *   policies or grants; relaxed constraints; a replacement that accepts every
+ *   previously valid call. Safe to apply ahead of the code that uses it.
+ * - `neutral` — no contract surface change at all: data-only seeds and
+ *   reconciliations, comments, and no-op history placeholders.
+ *
+ * Where a file mixes hazards, the strongest present wins.
+ */
+export type MigrationHazardClass = 'contraction' | 'expansion' | 'neutral';
+
+/**
+ * Declared hazard class for every migration FILE on this branch, keyed by
+ * filename version. Production-only entries with no file here are covered by
+ * the ledger→repo completeness check instead.
+ */
+export const MIGRATION_HAZARD_CLASS: Readonly<
+  Record<string, MigrationHazardClass>
+> = {
+  // Baseline creation: nothing was deployed against these objects yet.
+  '20260703120000': 'expansion', // create_core_tables
+  '20260703121500': 'expansion', // create_core_rls
+  '20260703123000': 'expansion', // create_reference_catalog
+  '20260703124500': 'expansion', // create_storage_policies
+  '20260703130000': 'expansion', // create_analytics_views
+  // Drops 11 pre-existing reference policies and creates none.
+  '20260704000000': 'contraction', // drop_superseded_reference_policies
+  '20260704001728': 'expansion', // add_group_write_and_reference_rls
+  '20260704030147': 'expansion', // add_game_log_imports_and_evidence_storage
+  // "owners manage *" policies replaced by broader "members manage *".
+  '20260704034500': 'expansion', // make_group_members_equally_privileged
+  '20260704043302': 'neutral', // seed_reference_dimensions (inserts only)
+  '20260704052314': 'expansion', // add_catalog_filter_metadata
+  // Same-name policy replacement that widens linked-participant access.
+  '20260704071832': 'expansion', // allow_linked_player_profile_access
+  '20260704090000': 'expansion', // extend_game_import_review_schema
+  '20260704100000': 'expansion', // add_import_coverage_analytics
+  // "editors ..." policies replaced by broader "members ...".
+  '20260704123000': 'expansion', // add_username_profiles_and_player_resolution
+  '20260706132454': 'neutral', // seed_all_map_milestones_and_awards
+  // Drops a unique constraint and widens an evidence-kind CHECK.
+  '20260706153000': 'expansion', // support_hybrid_card_score_imports
+  '20260706190000': 'expansion', // add_saved_player_claim_functions
+  '20260708013125': 'expansion', // grant_import_coverage_permissions
+  // create or replace of one function body; no contract surface change.
+  '20260708013631': 'neutral', // fix_replace_game_log_events_conflict_target
+  // New tables/functions, locked down at birth; policy drops are same-name
+  // replacements on tables this file creates.
+  '20260708142459': 'expansion', // add_persisted_metric_snapshots
+  '20260708143547': 'neutral', // remote_history_placeholder (no-op)
+  '20260708143922': 'neutral', // remote_history_placeholder (no-op)
+  '20260708150649': 'neutral', // remote_history_placeholder (no-op)
+  '20260708155338': 'expansion', // add_card_gameplay_tags (widened CHECK)
+  '20260708162535': 'neutral', // remote_history_placeholder (no-op)
+  // Reconstruction: creates the function and reproduces the deployed ACL.
+  '20260711232834': 'expansion', // add_find_duplicate_game_log_import
+  '20260712114538': 'expansion', // add_player_username_full_name
+  // Adds a column with a default, marks existing rows, replaces the trigger.
+  '20260714183000': 'expansion', // force_existing_user_pin_reset
+  // New column plus a unique index on it; no deployed writer could conflict.
+  '20260715024245': 'expansion', // add_user_profile_email
+  // Adds triggers that reject writes the deployed contract accepted.
+  '20260715032000': 'contraction', // prevent_future_game_log_backfills
+  '20260715043000': 'expansion', // add_domain_aware_ocr_corrections
+  // Revokes PUBLIC/anon execute on the already-deployed confirmation
+  // function (20260715043000 granted none of those revokes).
+  '20260715113501': 'contraction', // restore_ocr_confirmation_function
+  '20260717190000': 'expansion', // add_merger_offer_rule_snapshots
+  // Drops public.game_expansions, group_default_expansions, expansions.
+  '20260718041532': 'contraction', // remove_game_expansion_tracking
+  // Revokes on pre-existing functions and the private schema; drops
+  // pre-existing player_import_aliases constraints.
+  '20260718050924': 'contraction', // claimable_guest_identity_privacy
+  '20260718114500': 'expansion', // sync_upstream_cards_and_tile_catalog
+  // Column additions, an index, and a data reconciliation update.
+  '20260718120000': 'expansion', // reconcile_upstream_card_identities
+  '20260718200536': 'expansion', // add_venus_colonies_import_facts
+  // Drops member-read policies on private identities and revokes execute on
+  // a pre-existing candidate-listing function.
+  '20260718212339': 'contraction', // remediate_guest_identity_privacy_boundary
+  // Tightens CHECKs on the already-deployed game_log_events contract.
+  '20260718212340': 'contraction', // harden_game_log_event_contract
+  '20260718212342': 'neutral', // add_objective_catalog_aliases (inserts only)
+  // The Data API revokes that broke the deployed frontend on 2026-07-19 —
+  // the incident that made expand/contract a standing gate.
+  '20260719223000': 'contraction', // isolate_player_personal_names_from_data_api
+  // Enabling RLS narrows access that was previously unrestricted.
+  '20260719223500': 'contraction', // enable_rls_on_player_legacy_identities
+  // security_invoker moves the view to the caller's rights.
+  '20260719230000': 'contraction', // security_invoker_on_import_integrity_audit
+  // Retires 'reviewed' from the confidence vocabulary; its pre-apply gate
+  // already requires proving no deployed writer still emits it.
+  '20260719234500': 'contraction', // separate_event_confidence_from_review_state
+  // Drops the deployed 7-argument signature but creates an 8-argument
+  // superset whose new parameter defaults to the previous behavior, so every
+  // previously valid call still resolves.
+  '20260720100000': 'expansion', // add_guest_identity_alias_source_control
+  '20260720110000': 'expansion', // extend_canonical_board_placement_contract
+  // Narrows the disclosed match classification a deployed caller can read
+  // (fine-grained match_reason/match_score → coarse exact/partial).
+  '20260720120000': 'contraction', // coarsen_import_name_match_reasons
+};

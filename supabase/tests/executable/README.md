@@ -12,16 +12,50 @@ cluster is created on a spare port instead (see the
 (`bootstrap.sql`: `anon`/`authenticated`/`service_role` roles, an `auth` schema
 with `auth.uid()`, a minimal `storage` schema, `pgcrypto`), then:
 
-1. **Full history replay** — every migration in `supabase/migrations/` applies
-   cleanly, including `20260718212339` (privacy), `20260718212340` (event
-   contract), `20260718212342` (objective aliases), and `20260719234500`
-   (confidence/review-state split). The alias migration is deferred until the
-   objective catalogue is seeded, because its precondition correctly refuses to
-   run against a catalogue that does not match the approved mapping (the
-   catalogue is seed data, not a migration). The split migration is deferred
-   until two legacy overloaded `confidence_level = 'reviewed'` rows are seeded,
-   so its deterministic data mapping is exercised against real rows.
-2. **Behavioural assertions** (`assertions.sql`):
+1. **Production-history replay** — every migration in `supabase/migrations/`
+   that is actually applied to production applies cleanly, including
+   `20260718212339` (privacy), `20260718212340` (event contract) and
+   `20260718212342` (objective aliases). The alias migration is deferred until
+   the objective catalogue is seeded, because its precondition correctly
+   refuses to run against a catalogue that does not match the approved mapping
+   (the catalogue is seed data, not a migration).
+
+   **No migration in `GATED_UNAPPLIED` runs in this half.** The baseline
+   assertions below are claims about the state production is in today, so a
+   gated migration applied before them would make them assert against a
+   database production does not have.
+
+   One production-only ledger entry has no repo file and is needed here:
+   `20260720021300`, which created `public.match_import_player_names`. It is
+   modelled by
+   `production-preimage-20260720021300-match-import-player-names.sql` — a
+   reconstruction from repository-local evidence only, whose scope and limits
+   are stated in its own header.
+2. **Production-state baselines**:
+   - `pre-split-compat.sql` — the redesign's emitted payload (including the
+     `review_state` key) is accepted by the deployed pre-split RPC, and
+     `review_state` cannot yet persist.
+   - `match-oracle-pre-contraction.sql` — the deployed
+     `match_import_player_names` discloses the fine-grained matched field
+     (`display_name_exact` / `full_name_exact` / `username_exact` /
+     `alias_exact` / `display_name_partial`) with the 1:1 score, accepts an
+     unbounded candidate batch, and rejects a non-member. This is the oracle
+     the gated contraction closes.
+3. **Gated migrations** — every migration in `GATED_UNAPPLIED` is then applied
+   in ledger-version order, each twice for repeat-safety: `20260717190000`
+   (merger snapshots), `20260719234500` (confidence/review-state split — after
+   two legacy overloaded `confidence_level = 'reviewed'` rows are seeded, so
+   its deterministic data mapping runs against real rows), `20260720100000`
+   (guest-identity alias source control), `20260720110000` (canonical
+   placement contract) and `20260720120000` (match-reason contraction).
+   `match-oracle-post-contraction.sql` then proves the contraction is a true
+   REPLACE of its deployed predecessor: the disclosure is coarsened to
+   `exact`/`partial` and 2/1, every probe still resolves to the *same* player
+   (internal ranking unchanged), candidate input is now bounded, and the ACL
+   survived `create or replace` — the migration grants nothing of its own, so
+   the post-contraction call as `authenticated` can only succeed on the
+   inherited grant.
+4. **Behavioural assertions** (`assertions.sql`):
    - 23 canonical colonies and 7 catalog aliases are present.
    - the overloaded confidence `reviewed` is **rejected** after the split; an
      unsupported confidence is rejected; every canonical `review_state`
@@ -41,8 +75,8 @@ with `auth.uid()`, a minimal `storage` schema, `pgcrypto`), then:
      write; for an authorized editor it rejects duplicate event identities,
      an unrelated player UUID, and the overloaded confidence `reviewed`, and
      persists the split `confidence_level`/`review_state` values end to end.
-3. **Idempotency** — re-applying the alias migration leaves exactly 7 aliases.
-4. **Rollback** — deleting the seven deterministic alias ids removes only them
+5. **Idempotency** — re-applying the alias migration leaves exactly 7 aliases.
+6. **Rollback** — deleting the seven deterministic alias ids removes only them
    and leaves unrelated aliases untouched.
 
 The test database sets `check_function_bodies = off`, mirroring how the

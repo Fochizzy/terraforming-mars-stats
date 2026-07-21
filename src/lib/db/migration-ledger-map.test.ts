@@ -5,15 +5,38 @@ import {
   APPLIED_UNDER_DIFFERENT_LEDGER_VERSION,
   APPLIED_UNDER_UNCONFIRMED_REMOTE_VERSION,
   GATED_UNAPPLIED,
+  MIGRATION_HAZARD_CLASS,
+  PRODUCTION_LEDGER_ATTESTATION,
   PRODUCTION_LEDGER_VERSIONS,
+  PRODUCTION_ONLY_ENTRY_PROVENANCE,
+  PRODUCTION_ONLY_LEDGER_VERSIONS,
   RECONSTRUCTED_REMOTE_ONLY,
+  type MigrationHazardClass,
 } from './migration-ledger-map';
 
-// Migration-ledger drift check (audit §18). Every repo migration file must
-// be accounted for by exactly one classification, and the classifications
-// must stay mutually consistent with the captured production ledger. A new
-// migration file, a gated file that suddenly appears applied, or a renamed
-// mapping pointing at a nonexistent ledger version all fail here.
+// Migration-ledger drift check (audit §18), enforced in both directions.
+//
+// repo → ledger: every migration file must be accounted for by exactly one
+// classification, and the classifications must stay mutually consistent with
+// the captured production ledger. A new migration file, a gated file that
+// suddenly appears applied, or a renamed mapping pointing at a nonexistent
+// ledger version all fail here.
+//
+// ledger → repo: every captured ledger version must resolve to exactly one
+// classification too. Without this direction a production application made
+// from another branch could land in the ledger and leave no trace in the map
+// (LEDGER_INCOMPLETE).
+//
+// Hazard class is a separate, orthogonal dimension: every migration file must
+// declare whether applying it contracts, expands, or leaves unchanged the
+// contract surface a deployed reader or writer depends on
+// (CLASSIFICATION_MISSING).
+
+const HAZARD_CLASSES: readonly MigrationHazardClass[] = [
+  'contraction',
+  'expansion',
+  'neutral',
+];
 
 function repoMigrationVersions(): string[] {
   return readdirSync(resolve(process.cwd(), 'supabase/migrations'))
@@ -24,6 +47,29 @@ function repoMigrationVersions(): string[] {
 describe('migration-ledger map', () => {
   const ledger = new Set(PRODUCTION_LEDGER_VERSIONS);
   const repoVersions = repoMigrationVersions();
+  const repoVersionSet = new Set(repoVersions);
+  const renamedLedgerVersions = new Set(
+    Object.values(APPLIED_UNDER_DIFFERENT_LEDGER_VERSION),
+  );
+  const productionOnly = new Set(PRODUCTION_ONLY_LEDGER_VERSIONS);
+
+  it('matches the recorded read-only attestation', () => {
+    expect(
+      PRODUCTION_LEDGER_VERSIONS.length,
+      `the snapshot holds ${PRODUCTION_LEDGER_VERSIONS.length} entries but the ${PRODUCTION_LEDGER_ATTESTATION.attestedOn} attestation recorded ${PRODUCTION_LEDGER_ATTESTATION.entryCount} — re-attest read-only and update both together`,
+    ).toBe(PRODUCTION_LEDGER_ATTESTATION.entryCount);
+    expect(
+      PRODUCTION_LEDGER_VERSIONS[PRODUCTION_LEDGER_VERSIONS.length - 1],
+      'the snapshot head must equal the attested ledger head',
+    ).toBe(PRODUCTION_LEDGER_ATTESTATION.headVersion);
+    expect(ledger.size, 'the snapshot contains a duplicate version').toBe(
+      PRODUCTION_LEDGER_VERSIONS.length,
+    );
+    expect(
+      [...PRODUCTION_LEDGER_VERSIONS],
+      'the snapshot must stay in ledger (ascending version) order',
+    ).toEqual([...PRODUCTION_LEDGER_VERSIONS].sort());
+  });
 
   it('classifies every repo migration file exactly once', () => {
     for (const version of repoVersions) {
@@ -50,13 +96,95 @@ describe('migration-ledger map', () => {
     }
   });
 
+  it('classifies every production-ledger version exactly once', () => {
+    for (const version of PRODUCTION_LEDGER_VERSIONS) {
+      const classifications = [
+        repoVersionSet.has(version) &&
+        !RECONSTRUCTED_REMOTE_ONLY.includes(version)
+          ? 'repo_native_applied'
+          : null,
+        RECONSTRUCTED_REMOTE_ONLY.includes(version)
+          ? 'reconstructed_remote_only'
+          : null,
+        renamedLedgerVersions.has(version) ? 'renamed_drift_target' : null,
+        GATED_UNAPPLIED.includes(version) ? 'gated_unapplied' : null,
+        productionOnly.has(version) ? 'known_production_only' : null,
+      ].filter(Boolean);
+      expect(
+        classifications,
+        `LEDGER_INCOMPLETE: ledger version ${version} resolves to ${classifications.length} classifications (${classifications.join(', ') || 'none'}). Every attested ledger entry must be repo-native, a reconstruction, a renamed-drift target, or a registered production-only entry — re-attest read-only and update src/lib/db/migration-ledger-map.ts and docs/redesign/reference/MIGRATION-LEDGER-MAP.md together`,
+      ).toHaveLength(1);
+    }
+  });
+
+  it('keeps the production-only register honest', () => {
+    for (const version of PRODUCTION_ONLY_LEDGER_VERSIONS) {
+      expect(
+        ledger.has(version),
+        `${version} is registered production-only but is not in the captured ledger`,
+      ).toBe(true);
+      expect(
+        repoVersionSet.has(version),
+        `${version} is registered production-only but a migration file for it exists on this branch — reclassify it`,
+      ).toBe(false);
+      expect(
+        renamedLedgerVersions.has(version),
+        `${version} is registered production-only but is also a renamed-drift target`,
+      ).toBe(false);
+    }
+    expect(new Set(PRODUCTION_ONLY_LEDGER_VERSIONS).size).toBe(
+      PRODUCTION_ONLY_LEDGER_VERSIONS.length,
+    );
+    for (const version of Object.keys(PRODUCTION_ONLY_ENTRY_PROVENANCE)) {
+      expect(
+        productionOnly.has(version),
+        `provenance is recorded for ${version}, which is not a registered production-only ledger entry`,
+      ).toBe(true);
+    }
+  });
+
+  it('declares a hazard class for every migration file', () => {
+    for (const version of repoVersions) {
+      const declared = MIGRATION_HAZARD_CLASS[version];
+      expect(
+        declared,
+        `CLASSIFICATION_MISSING: migration ${version} has no declared hazard class. Declare it explicitly in MIGRATION_HAZARD_CLASS as contraction | expansion | neutral — the class depends on what was deployed before the migration and must never be inferred from the SQL`,
+      ).toBeDefined();
+      expect(
+        HAZARD_CLASSES,
+        `migration ${version} declares an unsupported hazard class ${String(declared)}`,
+      ).toContain(declared);
+    }
+    for (const version of Object.keys(MIGRATION_HAZARD_CLASS)) {
+      expect(
+        repoVersionSet.has(version),
+        `hazard class declared for ${version}, which has no migration file on this branch — production-only entries are covered by the ledger completeness check instead`,
+      ).toBe(true);
+    }
+  });
+
+  it('records the known contraction hazards', () => {
+    // Pinned so a later edit cannot quietly downgrade a contraction to an
+    // expansion and bypass the expand/contract release gate.
+    expect(
+      MIGRATION_HAZARD_CLASS['20260720120000'],
+      'coarsening the disclosed match classification narrows what a deployed caller can read',
+    ).toBe('contraction');
+    expect(MIGRATION_HAZARD_CLASS['20260719234500']).toBe('contraction');
+    expect(MIGRATION_HAZARD_CLASS['20260719223000']).toBe('contraction');
+  });
+
   it('never lists a gated migration as applied', () => {
     for (const version of GATED_UNAPPLIED) {
       expect(
         ledger.has(version),
-        `gated migration ${version} appears in the captured production ledger — if it was authorized and applied, reclassify it and re-verify; otherwise this is drift`,
+        `GATED_MIGRATION_APPLIED: gated migration ${version} appears in the captured production ledger — if it was authorized and applied, reclassify it and re-verify; otherwise this is drift`,
       ).toBe(false);
       expect(version in APPLIED_UNDER_DIFFERENT_LEDGER_VERSION).toBe(false);
+      expect(
+        productionOnly.has(version),
+        `gated migration ${version} is registered as a production-only ledger entry`,
+      ).toBe(false);
     }
   });
 
