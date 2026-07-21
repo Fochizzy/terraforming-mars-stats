@@ -1151,3 +1151,53 @@ cluster. Does not authorize implementation.
 - The Win Point Differential metric ranking keeps its own separate minimum-wins
   eligibility gate (MASTER-RULES requirement), distinct from this 3-game ELO
   threshold; the minimum-wins value is not yet set.
+
+
+## Phase 7 — Leaderboard opponent-adjustment boundary, tie-breaking, and default scope
+
+Decided by explicit user decision in the analytics-decisions session on
+2026-07-21. Closes the opponent-adjustment-boundary, tie-breaking, and
+default-scope items deferred by the seasonal-ELO methodology entry. Does not
+authorize implementation.
+
+- **One strength number, shared across phases.** The ELO rating is the single
+  opponent-strength model. Phase 7 produces it; Phase 17 consumes it. Phase 17
+  must not build a second strength model.
+  - **Phase 7 owns the ladder:** the ELO rating (quarter and year), the ranked
+    board, per-metric rankings, placement analysis, the Confidence marker, and
+    color bands. Opponent strength enters Phase 7 only through the rating itself
+    (who you beat).
+  - **Phase 17 owns opponent-relative analysis:** head-to-head records, matchup
+    heatmaps, and raw-vs-expected-vs-adjusted margin analysis, plus board
+    control and board intelligence. This is diagnostic, not a ranking.
+  - **The seam:** Phase 17 reads each game's pre-game Phase 7 ELO as its
+    opponent-strength input for expected-margin and adjustment math. Using the
+    pre-game value keeps Phase 17's no-target-leakage rule satisfied by
+    construction. No metric is defined in two places.
+
+- **ELO rank tie-breaking.** Applied in order; each step is used only when all
+  prior steps tie; the final step is deterministic and is never surfaced as a
+  visible "reason":
+  1. ELO rating (the ranking itself).
+  2. More games played in scope — an equal rating defended over more games ranks
+     higher.
+  3. Higher win rate in scope.
+  4. Better average placement in scope.
+  5. Stable player id (silent; guarantees a total, reproducible order).
+  "In scope" means within the displayed rating window (quarter or year).
+
+- **Metric rankings reuse the same shape:** metric value, then in-scope games
+  (or in-scope wins for Win Point Differential, per its minimum-wins rule), then
+  stable player id. No metric ranking is left with a nondeterministic order.
+
+- **Rating eligibility and missing data.** Only finalized games with a complete,
+  orderable finishing result feed the ELO computation. A game missing the
+  scores/placements needed to order its players is excluded from the rating; it
+  is never imputed, zero-filled, or treated as a result (consistent with the
+  missing-is-not-zero and no-fabrication rules). Exclusion from the rating does
+  not remove the game from other views.
+
+- **Default headline scope is the current quarter.** The leaderboard opens on
+  the current-quarter ELO ladder (the live race); the year ladder is available
+  as a secondary view/toggle. Exact toggle placement and the user-facing
+  methodology / last-refresh copy are display details deferred to implementation.
