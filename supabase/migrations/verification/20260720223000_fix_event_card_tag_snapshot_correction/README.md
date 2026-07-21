@@ -7,29 +7,51 @@ reproducible rather than only described in prose.
 
 ## History
 
-This harness has caught two real defects in earlier drafts of this migration,
-not just confirmed a correct one on the first attempt:
+This harness has caught three real defects in earlier drafts of this
+migration, not just confirmed a correct one on the first attempt:
 
 - **Gap 2** (closed earlier): the original total-tag-count comparison
   `inner join`ed persisted snapshots to a root rollup, silently dropping any
   game_player whose root-derived expected total was zero.
-- **Signal (a) tag-code-proxy** (closed this round): target selection for the
+- **Signal (a) tag-code-proxy** (closed earlier): target selection for the
   per-tag `event` row was `tag_code = 'event' and tag_count <> 0` — treating
   *any* nonzero count as proof of staleness, rather than comparing it against
   root. A legitimate nonzero `event` tag (a recognized non-Event card
   genuinely carrying a literal `event` gameplay tag — see
   `countable-card-tags.test.ts`) was selected and rewritten on **every**
   run, breaking repeat-safety, not just over-scoping.
-- **Zero-root total mismatch, revisited**: the fix for Gap 2 still missed the
-  case where root has *zero* tag rows at all for a player (not just a
-  low/zero rollup) and the case where the persisted
+- **Zero-root total mismatch, revisited** (closed earlier): the fix for Gap 2
+  still missed the case where root has *zero* tag rows at all for a player
+  (not just a low/zero rollup) and the case where the persisted
   `game_player_metric_snapshots` row is entirely absent (never snapshotted).
+- **Once-per-game global rebuild** (closed this round): the migration's Step
+  2 called `refresh_game_metric_snapshots_internal()` once per target game
+  and then Step 3 called `rebuild_metric_summaries()` once more, explicitly.
+  `refresh_game_metric_snapshots_internal()` itself unconditionally calls
+  `rebuild_metric_summaries()` at the end of *every* invocation (confirmed by
+  reading its live production definition, not assumed), and
+  `rebuild_metric_summaries()` unconditionally rebuilds
+  `player_metric_summaries`, `player_map_metric_summaries`, and eight
+  `global_*` summary tables from scratch on *every* call, for every group —
+  so N target games meant N+1 complete global rebuilds, not one. This was
+  invisible to the *previous* version of this harness because its
+  `refresh_game_metric_snapshots_internal` stub never called
+  `rebuild_metric_summaries()` internally at all — the stub only proved "one
+  rebuild call happened," not "how many." Closed by rebuilding the stub
+  topology to match production's real call graph one level deeper (see
+  "Stubs" below) and by bounding the migration itself (see the migration
+  file's own comments around its Step 2) to neutralize
+  `rebuild_metric_summaries()` for the duration of the per-game loop and
+  restore it, byte-identical to its pre-migration body, before a single real
+  rebuild call.
 
 The current fixtures (`02-seed-fixtures.sql`) and migration both reflect the
 corrected semantics: every comparison is root-value versus snapshot-value —
 never "is the snapshot value nonzero" — over the union of every
 `game_player_id` either side has evidence for, so absence on either side
-compares as zero via `coalesce(...)` rather than being silently dropped.
+compares as zero via `coalesce(...)` rather than being silently dropped. And
+the migration performs the corrected rebuild cascade exactly once, regardless
+of how many games it refreshes.
 
 ## What this proves
 
@@ -67,9 +89,39 @@ proving:
     re-touched** (the repeat-safety property the old signal (a) violated).
 12. A failure partway through the refresh loop → rolls back atomically, even
     for a game that would have succeeded had it processed before the
-    failure.
+    failure — **including** `rebuild_metric_summaries()` itself, which ends
+    the failed run back in its real, restored body rather than stuck
+    neutralized, because the neutralize step is part of the same rolled-back
+    transaction.
 13. Root `game_log_tag_summaries` → byte-identical before and after every
     run in this harness.
+14. **The global rebuild cascade runs exactly once per migration run that
+    touches at least one game — never once per game.** Proven by an exact
+    count, not an "it ran at least once" marker: `_rebuild_marker` carries a
+    `kind` column (`base`/`additional`) so the harness can distinguish
+    `rebuild_metric_summaries_base()` from `rebuild_additional_metric_
+    summaries()` and assert both ran exactly once each, even though five
+    games (B, C, G, H, I) were refreshed in the same run. Confirmed against
+    the *pre-bounding* migration text too (`04-defect-reproduction-pre-
+    correction-rebuild-count.sql`), run against this same corrected harness:
+    it produces **six** of each marker kind (five implicit + one explicit)
+    for the identical five-game target set — the concrete before/after
+    contrast this round's fix is verified against.
+15. **`game_milestone_metric_snapshots` and `game_award_metric_snapshots`
+    are represented and correctly scoped**, not just the two tag-related
+    tables: Game B (a target) has its milestone snapshot deleted and
+    reinserted (fresh `updated_at`) when refreshed; Game A (never a target)
+    has an award snapshot that remains byte-identical (unchanged
+    `updated_at`) across every run, proving the migration does not
+    over-reach into non-target games' milestone/award state.
+16. **`rebuild_metric_summaries()`'s live definition and ACL are
+    byte-identical before and after a successful migration run** —
+    `pg_get_functiondef` and `pg_proc.proacl` both confirmed unchanged
+    (owner-only execute: `{postgres=X/postgres}`, no authenticated, no anon,
+    no PUBLIC), and `refresh_game_metric_snapshots_internal(uuid,boolean)`'s
+    ACL (`{postgres=X/postgres,authenticated=X/postgres}`) is untouched by
+    this migration in every run, confirming the two-argument contract's
+    authorization surface is unaffected.
 
 ## Fixtures (`02-seed-fixtures.sql`)
 
@@ -88,6 +140,14 @@ rollback-test poison game, added separately by `03-rollback-test-setup.sql`).
 | 7 | G | **no tag rows at all** | total=`7` (stale; expected root total is `0`, not "no opinion") | total `→ 0` — mandatory case |
 | 8 | H | `event=2`, total=`2` | total=`2` (correct); **no `event` row in snapshot at all** | `event` row created, `tag_count=2` |
 | 9 | I | `space=3`, total=`3` | **no `game_player_metric_snapshots` row at all** | row created, total=`3` |
+
+Milestone/award fixtures (new this round, added after game I's rows in
+`02-seed-fixtures.sql`): one milestone claimed by Game B (a target, via both
+tag signals) and one award funded-and-won by Game A (never a target). Proves
+the per-game refresh loop correctly reaches
+`game_milestone_metric_snapshots`/`game_award_metric_snapshots` for target
+games and leaves them alone for non-target games — see "What this proves"
+items 14–16 above.
 
 ## Defect reproduction (before the Signal-(a) correction)
 
@@ -118,95 +178,168 @@ repository state) resolves all four.
 
 - `metric_normalized_label` — copied verbatim from
   `20260708142459_add_persisted_metric_snapshots.sql`.
-- `refresh_game_metric_snapshots_internal` — **simplified stub**, strengthened
-  this round to **delete-then-insert** `game_player_metric_snapshots` (not a
-  plain `UPDATE`), so a game whose players have never been snapshotted before
-  (Game I) gets a correct row created rather than silently doing nothing —
-  matching production's actual unconditional per-game-player INSERT. Also
-  now checks `games.status = 'finalized'` before writing, matching
-  production's early-return for non-finalized games. Faithfully reimplements
-  the identity resolution (`game_player_id` when root already carries it,
-  name/alias fallback when it doesn't) and the tag-count columns this
-  correction actually depends on. Does **not** implement milestone/award/
-  scoring-share snapshot rebuilding — out of scope for this correction and
-  untouched by it. This is the one place a production-only function had to
-  be stubbed rather than run verbatim; noted here as the limitation.
-- `rebuild_metric_summaries` — stub that records a call in a marker table
-  (`_rebuild_marker`), to prove *whether* it ran, without reimplementing the
-  global aggregate rebuild it performs in production (also out of scope).
+- `anon` / `authenticated` / `service_role` — minimal stub roles (created
+  only if absent), so the migration's `revoke ... from public, anon`
+  statement, and this file's own baseline ACL setup, have real roles to
+  target — matching production, where these roles always exist.
+- `refresh_game_metric_snapshots_internal` — **simplified stub**, faithfully
+  reimplements the identity resolution (`game_player_id` when root already
+  carries it, name/alias fallback when it doesn't) and the tag-count columns
+  this correction depends on, using **delete-then-insert** for
+  `game_player_metric_snapshots` (not a plain `UPDATE`), so a game whose
+  players have never been snapshotted before (Game I) gets a correct row
+  created rather than silently doing nothing. Checks
+  `games.status = 'finalized'` before writing, matching production's
+  early-return for non-finalized games. **New this round:** also
+  deletes/reinserts `game_milestone_metric_snapshots` and
+  `game_award_metric_snapshots` for the game (all four per-game snapshot
+  tables are now represented, not two), and **calls
+  `public.rebuild_metric_summaries()` unconditionally at the end of every
+  invocation, on both the finalized and early-return paths** — this is the
+  specific fidelity gap this round closes; the previous stub never made this
+  call at all, so it could not have caught the once-per-game rebuild defect
+  this round's migration correction fixes. Does **not** implement
+  scoring-share/normalized-efficiency/win-margin columns or
+  timing-bucket/ROI computation for milestones/awards — out of scope for
+  this correction and untouched by it.
+- `rebuild_metric_summaries_base` / `rebuild_additional_metric_summaries` —
+  **new this round**. Stubs standing in for the two functions production's
+  `rebuild_metric_summaries()` delegates to; each records a marker row
+  (`_rebuild_marker`, `kind` = `'base'`/`'additional'`) instead of
+  reimplementing the real global-aggregate SQL (out of scope, untouched).
+  Exist so the migration's own restored `rebuild_metric_summaries()` body —
+  which literally checks `to_regprocedure('public.rebuild_metric_summaries_
+  base()')` and calls both — has something real to call in this harness too,
+  not just in production.
+- `rebuild_metric_summaries` — **baseline body reproduced verbatim** from
+  `pg_get_functiondef('public.rebuild_metric_summaries')` read directly
+  against the live tm-stats database for this correction (the
+  `to_regprocedure` guard plus two `perform` calls), not a flattened
+  marker-only fake as in the previous round. This is deliberate: the
+  migration's own neutralize/restore steps operate on this exact function
+  during its run, and the harness needs to start from — and end at — the
+  same real definition production does, for the byte-identical
+  before/after comparison in `dump-state.sql` to mean anything.
 
 ## Reproduction
 
 ```sh
 # 1. Disposable cluster (adjust the PostgreSQL 18 bin path if different)
 initdb -D /tmp/pg-event-tag-verify -U postgres --auth=trust
-pg_ctl -D /tmp/pg-event-tag-verify -o "-p 55433" -l /tmp/pg-event-tag-verify.log start
+pg_ctl -D /tmp/pg-event-tag-verify -o "-p 55491" -l /tmp/pg-event-tag-verify.log start
 
 # 2. Schema, stubs, fixtures
-psql -h localhost -p 55433 -U postgres -v ON_ERROR_STOP=1 -f 01-schema-and-stubs.sql
-psql -h localhost -p 55433 -U postgres -v ON_ERROR_STOP=1 -f 02-seed-fixtures.sql
+psql -h 127.0.0.1 -p 55491 -U postgres -v ON_ERROR_STOP=1 -f 01-schema-and-stubs.sql
+psql -h 127.0.0.1 -p 55491 -U postgres -v ON_ERROR_STOP=1 -f 02-seed-fixtures.sql
 
 # 3. Run the REAL migration file (first pass)
-psql -h localhost -p 55433 -U postgres -v ON_ERROR_STOP=1 \
+psql -h 127.0.0.1 -p 55491 -U postgres -v ON_ERROR_STOP=1 \
   -f ../../20260720223000_fix_event_card_tag_snapshot_correction.sql
-psql -h localhost -p 55433 -U postgres -f dump-state.sql   # inspect
+psql -h 127.0.0.1 -p 55491 -U postgres -f dump-state.sql   # inspect
 
 # 4. Idempotency: run it again, diff against the post-first-run dump — expect
-#    zero differences, including Game F's row.
-psql -h localhost -p 55433 -U postgres -v ON_ERROR_STOP=1 \
+#    zero differences, including Game F's row and the rebuild_marker counts.
+psql -h 127.0.0.1 -p 55491 -U postgres -v ON_ERROR_STOP=1 \
   -f ../../20260720223000_fix_event_card_tag_snapshot_correction.sql
-psql -h localhost -p 55433 -U postgres -f dump-state.sql
+psql -h 127.0.0.1 -p 55491 -U postgres -f dump-state.sql
 
 # 5. Rollback: re-stale game B, add a poison game whose refresh throws, then
 #    run the real migration file again — expect a nonzero exit and a
-#    byte-identical dump before/after (including game B, unresolved).
-psql -h localhost -p 55433 -U postgres -v ON_ERROR_STOP=1 -f 03-rollback-test-setup.sql
-psql -h localhost -p 55433 -U postgres -v ON_ERROR_STOP=1 \
+#    byte-identical dump before/after (including game B, unresolved, and
+#    rebuild_metric_summaries() back to its real, restored body).
+psql -h 127.0.0.1 -p 55491 -U postgres -v ON_ERROR_STOP=1 -f 03-rollback-test-setup.sql
+psql -h 127.0.0.1 -p 55491 -U postgres -v ON_ERROR_STOP=1 \
   -f ../../20260720223000_fix_event_card_tag_snapshot_correction.sql   # expect ERROR, exit 3
 
-# 6. Tear down
+# 6. Rebuild-count defect reproduction: fresh database, same schema/fixtures,
+#    run the PRE-bounding migration text instead of the real file — expect
+#    six of each rebuild_marker kind (five implicit + one explicit), not one.
+createdb -h 127.0.0.1 -p 55491 -U postgres defect_repro
+psql -h 127.0.0.1 -p 55491 -U postgres -d defect_repro -v ON_ERROR_STOP=1 -f 01-schema-and-stubs.sql
+psql -h 127.0.0.1 -p 55491 -U postgres -d defect_repro -v ON_ERROR_STOP=1 -f 02-seed-fixtures.sql
+psql -h 127.0.0.1 -p 55491 -U postgres -d defect_repro -v ON_ERROR_STOP=1 \
+  -f 04-defect-reproduction-pre-correction-rebuild-count.sql
+psql -h 127.0.0.1 -p 55491 -U postgres -d defect_repro \
+  -c "select kind, count(*) from public._rebuild_marker group by kind order by kind;"
+dropdb -h 127.0.0.1 -p 55491 -U postgres defect_repro
+
+# 7. Tear down
 pg_ctl -D /tmp/pg-event-tag-verify stop
 ```
 
-## Actual results (this run, PostgreSQL 18.4, 2026-07-20)
+## Actual results (this run, PostgreSQL 18.4, 2026-07-21)
 
 - First pass: `DO` (success). Games A/D: no row changes, `updated_at`
   unchanged. Game B: `event` `1 → 0`, total `2 → 1`. Game C: total `5 → 3`,
   `building` value unchanged. **Game F: no row changes, `updated_at`
   unchanged — correctly left alone.** **Game G: total `7 → 0`.** Game H:
   `event` row created (`tag_count=2`), matching root. **Game I:
-  `game_player_metric_snapshots` row created from nothing (`total_tag_count=3`)**.
-  `_rebuild_marker` count `0 → 1`. Root `game_log_tag_summaries`: identical
-  before/after, including every row's `updated_at` — confirmed never
-  written.
+  `game_player_metric_snapshots` row created from nothing
+  (`total_tag_count=3`)**. Game B's milestone snapshot refreshed (fresh
+  `updated_at`); Game A's award snapshot **untouched** (`updated_at`
+  unchanged, despite Game A having real award activity). `_rebuild_marker`:
+  **exactly one `base` row and one `additional` row**, even though five
+  games (B, C, G, H, I) were refreshed. `rebuild_metric_summaries()`'s live
+  definition after the run is byte-identical to its pre-migration baseline
+  (`pg_get_functiondef` diff: none); its ACL is unchanged
+  (`{postgres=X/postgres}`); `refresh_game_metric_snapshots_internal(uuid,
+  boolean)`'s ACL is unchanged (`{postgres=X/postgres,authenticated=X/
+  postgres}`). Root `game_log_tag_summaries`: identical before/after,
+  including every row's `updated_at` — confirmed never written.
 - Second pass: `DO` (success). Full state dump byte-identical to the
-  post-first-pass dump — zero writes, `_rebuild_marker` count unchanged at
-  `1`. **Game F's row specifically confirmed not re-touched.**
+  post-first-pass dump (`diff` exit 0, zero output) — zero writes,
+  `_rebuild_marker` counts unchanged at one `base` / one `additional`.
+  **Game F's row specifically confirmed not re-touched.**
 - Rollback: re-staled game B and added a poison game whose stubbed refresh
-  raises. Running the real migration file produced
-  `ERROR: simulated refresh failure for poison game …`, psql exit code `3`.
-  Post-failure dump is byte-identical to the pre-run dump — game B's write
-  was rolled back along with the poison game's. `_rebuild_marker` count
-  unchanged (Step 3 never reached).
-- Defect reproduction (pre-correction migration text): Game F selected and
-  rewritten on both the first and second run (repeat-safety violated); Game
-  G, H, and I all left stale/incomplete (silently missed). See "Defect
-  reproduction" above.
+  raises. Running the real migration file produced `ERROR: simulated
+  refresh failure for poison game …`, psql exit code `3`. Post-failure
+  state: game B back to its re-staled values (`event=1`, `total=2`,
+  unresolved); `_rebuild_marker` counts unchanged at one `base` / one
+  `additional` — no new rebuild occurred; `rebuild_metric_summaries()`'s
+  live definition is the real, restored body (not stuck neutralized),
+  because the neutralize step is part of the same transaction that rolled
+  back.
+- Rebuild-count defect reproduction (pre-bounding migration text, run
+  against a fresh copy of *this round's* corrected harness — i.e., a
+  `refresh_game_metric_snapshots_internal` stub that really does call
+  `rebuild_metric_summaries()` internally): produced **six** `base` markers
+  and **six** `additional` markers for the same five-game target set (B, C,
+  G, H, I) — five implicit (one per game) plus one explicit. This is the
+  concrete before/after contrast for this round's fix: same target
+  predicate, same five games, 6× the rebuild work under the pre-bounding
+  Step 2/3 shape versus exactly 1× under the corrected one.
+- Target-predicate defect reproduction (pre-correction migration text, an
+  earlier round): Game F selected and rewritten on both the first and
+  second run (repeat-safety violated); Game G, H, and I all left
+  stale/incomplete (silently missed). See "Defect reproduction" above.
 
 ## Limitations
 
-- `refresh_game_metric_snapshots_internal` is stubbed, not executed verbatim
-  (see above) — the *migration file itself* is real and unmodified; only the
-  production function it calls is a simplified stand-in, because replicating
-  the full `games`/`game_players`/`milestones`/`awards`/scoring-share schema
-  graph was judged disproportionate to what this correction needs to prove
-  (the tag/total_tag_count columns and per-game-player row creation).
+- `refresh_game_metric_snapshots_internal`, `rebuild_metric_summaries_base`,
+  and `rebuild_additional_metric_summaries` are stubbed, not executed
+  verbatim — the *migration file itself* is real and unmodified, and (new
+  this round) `rebuild_metric_summaries` itself now runs as a **verbatim
+  copy** of its live production body, calling the stubbed base/additional
+  functions exactly as production's real `rebuild_metric_summaries` calls
+  its real base/additional functions. Only the innermost aggregation logic
+  (global summary table contents) remains a marker-only stand-in — out of
+  scope for this correction, which never reads or depends on those tables'
+  contents, only on how many times the cascade that rebuilds them runs.
+- Milestone/award snapshot columns are a deliberately reduced subset of
+  production's real schema (no timing buckets, ROI, placement, or
+  points-per-generation) — enough to prove delete+reinsert-per-target-game
+  and byte-identical-for-non-target-games, not a full reimplementation of
+  production's milestone/award snapshot logic, which this correction's
+  target predicate never depends on.
 - Runs against a local, empty, purpose-built schema, not a copy of
-  production. Row counts and the specific 39-game/109-row production
-  inventory are separately verified via the read-only production queries in
-  the correction-package doc, not reproduced here. That inventory has not
-  been re-read against production during any gap-closure round after the
-  original review; re-confirm with the doc's §3 queries before deploy.
+  production. Row counts and the specific production inventory (43
+  games / 118 players at last read, up from 42/116 due to one newly
+  finalized two-player game — see the correction-package doc) are
+  separately verified via the read-only production queries in that doc, not
+  reproduced here, and are not hardcoded into the migration's predicate or
+  into this harness's fixtures. That inventory is point-in-time evidence;
+  re-confirm with the doc's §4.3 queries immediately before any future
+  authorization to apply.
 - Not wired into `npm test` or CI — requires a local PostgreSQL 18 install.
   Re-run manually per the reproduction steps above when the migration
   changes.

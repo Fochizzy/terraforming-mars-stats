@@ -1,8 +1,11 @@
 -- Re-stale Game B (game_player 2) and add a "poison" Game (prefix 5) whose
 -- refresh will deliberately throw, to prove that a failure partway through
 -- the FOREACH loop rolls back every write the migration's single DO block
--- made in that run — including Game B's, even if Game B happens to be
--- processed before the poison game.
+-- made in that run -- including Game B's, even if Game B happens to be
+-- processed before the poison game -- AND that rebuild_metric_summaries()
+-- ends the run back in its real, restored, production-matching form (not
+-- left neutralized) precisely because the whole transaction, including the
+-- neutralize step, rolls back too.
 
 update public.game_player_metric_snapshots
 set total_tag_count = 2, updated_at = '2026-07-01 00:00:00+00'
@@ -41,13 +44,19 @@ insert into public.game_player_metric_snapshots (
 -- No matching event snapshot row -> definitely a target (root=3, snapshot
 -- absent -> coalesced 0, mismatch).
 
--- Make the refresh stub throw specifically for the poison game.
+-- Make the refresh stub throw specifically for the poison game. Otherwise
+-- identical to the real 01-schema-and-stubs.sql stub (four-table delete/
+-- insert, unconditional rebuild_metric_summaries() call on both exit
+-- paths) -- kept in sync by hand since this is a deliberately separate,
+-- narrowly-scoped copy for the failure-injection scenario only.
 create or replace function public.refresh_game_metric_snapshots_internal(
   p_game_id uuid,
   p_require_editor boolean default true
 )
 returns void
 language plpgsql
+security definer
+set search_path to ''
 as $$
 declare
   v_status text;
@@ -67,9 +76,12 @@ begin
   end if;
 
   delete from public.game_player_tag_metric_snapshots where game_id = p_game_id;
-  delete from public.game_player_metric_snapshots where game_id = p_game_id;
+  delete from public.game_milestone_metric_snapshots    where game_id = p_game_id;
+  delete from public.game_award_metric_snapshots        where game_id = p_game_id;
+  delete from public.game_player_metric_snapshots       where game_id = p_game_id;
 
   if v_status <> 'finalized' then
+    perform public.rebuild_metric_summaries();
     return;
   end if;
 
@@ -220,5 +232,23 @@ begin
   join public.game_player_metric_snapshots gps on gps.game_player_id = tag_counts.game_player_id
   left join player_tag_rollups on player_tag_rollups.game_player_id = tag_counts.game_player_id
   where gps.game_id = p_game_id;
+
+  insert into public.game_milestone_metric_snapshots (
+    game_id, game_milestone_id, group_id, milestone_id, winner_game_player_id
+  )
+  select gm.game_id, gm.id, g.group_id, gm.milestone_id, gm.winner_game_player_id
+  from public.game_milestones gm
+  join public.games g on g.id = gm.game_id
+  where gm.game_id = p_game_id;
+
+  insert into public.game_award_metric_snapshots (
+    game_id, game_award_id, group_id, award_id, funded_by_game_player_id, winner_game_player_id
+  )
+  select ga.game_id, ga.id, g.group_id, ga.award_id, ga.funded_by_game_player_id, ga.winner_game_player_id
+  from public.game_awards ga
+  join public.games g on g.id = ga.game_id
+  where ga.game_id = p_game_id;
+
+  perform public.rebuild_metric_summaries();
 end;
 $$;

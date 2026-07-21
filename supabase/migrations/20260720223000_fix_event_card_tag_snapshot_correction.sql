@@ -34,6 +34,32 @@
 -- either side compares as zero rather than being dropped or crashing on
 -- null. A merely nonzero value, on its own, is never sufficient evidence of
 -- staleness.
+--
+-- Execution-strategy correction (this round): every game selected above is
+-- refreshed via a call to refresh_game_metric_snapshots_internal(), which is
+-- correct and remains entirely unmodified below — but that function
+-- unconditionally calls rebuild_metric_summaries() itself at the end of
+-- every invocation (read directly from its live definition via
+-- pg_get_functiondef, not assumed), on both the finalized and the early-
+-- return non-finalized code paths. rebuild_metric_summaries() in turn
+-- unconditionally deletes and reinserts every row of player_metric_summaries,
+-- player_map_metric_summaries, and eight global_* summary tables on every
+-- single call, for every group, not just rows relevant to one game (also
+-- read directly from its live definition). Calling that function once per
+-- target game inside the loop below, on top of this migration's own explicit
+-- rebuild afterward, meant one implicit full global rebuild per game plus
+-- one final explicit one — correct in outcome, but dozens of complete global
+-- rebuilds in a single migration at the current inventory size, which is far
+-- more write volume and lock time than this correction needs. This was not
+-- caught earlier because the harness's previous stub recorded a rebuild call
+-- without modeling that refresh_game_metric_snapshots_internal triggers one
+-- internally on every call too, so the harness could not distinguish "one
+-- rebuild" from "one rebuild per game." See Step 2 below for the fix: an
+-- exactly-once rebuild, regardless of how many games this migration touches,
+-- via a migration-scoped neutralize/restore of rebuild_metric_summaries()
+-- that leaves its committed definition byte-identical to today's — no
+-- permanent change to any function's signature, ACL, owner, or behavior for
+-- any caller other than this migration's own transaction.
 do $$
 declare
   v_target_game_ids uuid[];
@@ -155,14 +181,111 @@ begin
   -- Step 2: refresh each affected game's snapshots from current source data
   -- via the existing, unmodified refresh function. p_require_editor is
   -- false because this runs administratively, not as an authenticated edit.
+  --
+  -- rebuild_metric_summaries() is temporarily neutralized to a no-op for the
+  -- duration of the loop below, so refresh_game_metric_snapshots_internal's
+  -- own internal call to it does no work on every iteration, then restored
+  -- to its exact real body (reproduced verbatim from the live definition
+  -- read for this correction) before Step 3's single real call. Neither
+  -- refresh_game_metric_snapshots_internal (its existing two-argument
+  -- contract, callers, and authorization behavior) nor
+  -- rebuild_metric_summaries_base() / rebuild_additional_metric_summaries()
+  -- (the functions the real body delegates to) are modified in any way —
+  -- only rebuild_metric_summaries()'s body is touched, and only transiently.
+  --
+  -- If anything below raises before the restore step runs (including a
+  -- failure inside the loop), the whole migration transaction rolls back,
+  -- which undoes the neutralization along with every other write here —
+  -- CREATE OR REPLACE FUNCTION is ordinary transactional DDL, so there is no
+  -- separate cleanup path that can be skipped or get out of sync. On
+  -- success, the restore runs before Step 3, so by the time this transaction
+  -- commits, rebuild_metric_summaries()'s definition, owner, SECURITY
+  -- DEFINER status, search_path, and EXECUTE grants are all back to exactly
+  -- what they were before this migration ran — this migration leaves no
+  -- permanent trace on that function. Its EXECUTE grant today is owner-only
+  -- (`{postgres=X/postgres}` — no authenticated, no anon, no PUBLIC),
+  -- confirmed by reading pg_proc.proacl directly; CREATE OR REPLACE FUNCTION
+  -- on an existing function preserves its ACL whenever the argument list is
+  -- unchanged, which it is here (zero arguments throughout), so neither
+  -- redefinition below needs to touch any GRANT for that reason alone — the
+  -- explicit REVOKE after the restore is defense-in-depth, not a response to
+  -- any ACL change this migration makes.
+  --
+  -- EXECUTE (dynamic SQL) is required for both redefinitions solely because
+  -- PL/pgSQL cannot run CREATE OR REPLACE FUNCTION as a direct statement
+  -- inside a DO block — there is no non-dynamic way to do this from inside a
+  -- single top-level statement. Every EXECUTE below runs a fully static,
+  -- hardcoded command string with no interpolated or concatenated values of
+  -- any kind (not even the game ids from Step 1), so there is no injection
+  -- surface. Keeping the whole migration as one top-level statement (as it
+  -- already was before this correction) is deliberate: it guarantees the
+  -- migration is atomic under plain autocommit-per-statement execution,
+  -- without depending on the migration runner wrapping the file in its own
+  -- transaction.
   if v_target_game_ids is not null then
+    execute $exec_neutralize$
+      create or replace function public.rebuild_metric_summaries()
+      returns void
+      language plpgsql
+      security definer
+      set search_path to ''
+      as $neutralize_body$
+      begin
+        -- Migration-scoped no-op (20260720223000): temporarily disables the
+        -- global-aggregate rebuild that refresh_game_metric_snapshots_internal
+        -- triggers internally, so the per-game loop this correction runs
+        -- does not perform one full rebuild per game. Restored to its real
+        -- body, verbatim, before this migration's own single explicit
+        -- rebuild call. If you are reading this as the function's live,
+        -- committed definition outside of that migration's own transaction,
+        -- something has gone wrong -- this body must never survive a commit.
+        null;
+      end;
+      $neutralize_body$;
+    $exec_neutralize$;
+
     foreach v_game_id in array v_target_game_ids loop
       perform public.refresh_game_metric_snapshots_internal(v_game_id, false);
     end loop;
 
+    -- Restore rebuild_metric_summaries() to its real, production body,
+    -- verbatim (reproduced from pg_get_functiondef() read for this
+    -- correction), before Step 3's single real rebuild call.
+    execute $exec_restore$
+      create or replace function public.rebuild_metric_summaries()
+      returns void
+      language plpgsql
+      security definer
+      set search_path to ''
+      as $restore_body$
+      begin
+        if to_regprocedure('public.rebuild_metric_summaries_base()') is null then
+          raise exception 'rebuild_metric_summaries_base() is required before rebuilding metric summaries'
+            using errcode = '42883';
+        end if;
+
+        perform public.rebuild_metric_summaries_base();
+        perform public.rebuild_additional_metric_summaries();
+      end;
+      $restore_body$;
+    $exec_restore$;
+
+    -- Defense-in-depth, not a response to any ACL change made above (see
+    -- the comment block before Step 2): rebuild_metric_summaries() already
+    -- has no PUBLIC/anon/authenticated grant, and CREATE OR REPLACE on an
+    -- unchanged zero-argument signature preserves whatever ACL already
+    -- existed, so this is expected to be a no-op in every environment where
+    -- it runs.
+    execute $exec_restore_acl$
+      revoke all on function public.rebuild_metric_summaries() from public, anon
+    $exec_restore_acl$;
+
     -- Step 3: rebuild the global/player aggregate tables (best_tag_lane,
     -- global_tag_metric_summaries, etc.) from the now-corrected per-game
-    -- snapshots. Only runs when at least one game was actually touched.
+    -- snapshots. Runs exactly once for the whole migration, regardless of
+    -- how many games were refreshed above -- not once per game -- because
+    -- rebuild_metric_summaries() has just been restored to its real body,
+    -- and every call to it during the loop above was neutralized.
     perform public.rebuild_metric_summaries();
   end if;
 end;

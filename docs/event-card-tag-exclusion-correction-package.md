@@ -4,9 +4,35 @@ Status: **prepared and locally verified; production not mutated.** Awaiting
 explicit authorization before any migration application, backfill, or metric
 refresh against production.
 
+**2026-07-21 update**: an independent, read-only production inventory found
+that the migration's target predicate itself is unchanged and still correct
+(see §4.3 for the current 43-game/118-player reading), but that the
+migration's *execution strategy* — looping over target games and calling
+`refresh_game_metric_snapshots_internal()` once per game, then
+`rebuild_metric_summaries()` once more explicitly — triggered one **complete
+global metric-summary rebuild per target game**, not the single rebuild the
+harness and this document previously implied. See the new §2.1 for the full
+explanation and §6 for the corrected, executable proof. The migration file
+(`20260720223000_fix_event_card_tag_snapshot_correction.sql`) has been edited
+in place to fix this — it has never been applied, so there is no "fix the
+fix" follow-up migration, only a corrected version of the same unapplied
+file. §9's deployment/backfill order is updated accordingly, and the
+authenticated `/api/deploy-info` source-verification step referenced there is
+**complete** (see §9) — it is no longer open evidence.
+
 Base: `origin/release/b05-auth-resilience-code-only` @
-`341d0d23a94b5dc80e49da374a55b9690291f277`.
-Candidate branch: `fix/event-card-tag-exclusion`.
+`341d0d23a94b5dc80e49da374a55b9690291f277`. This document's execution-strategy
+correction (§2.1, §6, §9) was authored from
+`fix/event-card-snapshot-migration-bounded-rebuild` @
+`9119f648a73a87367c54a00c2d10c0202a9562e8` (the deployment-record commit for
+worker `08f9191f-7b06-4fa3-88dd-b3421d3ae89f`, source
+`2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`, 100% traffic as of
+2026-07-21T04:21:42.798Z) — a later point on the same line of history as the
+original base above; nothing in §1–§5's code-fix and target-predicate content
+changed in that time.
+Candidate branch (target-predicate/code-fix content): `fix/event-card-tag-exclusion`.
+Candidate branch (this round's execution-strategy correction):
+`fix/event-card-snapshot-migration-bounded-rebuild`.
 Supabase project: `tm-stats` (`qjtwgrjjwnqafbvkkfex`, us-east-1, ACTIVE_HEALTHY).
 
 ## 1. Defect
@@ -97,10 +123,147 @@ between two copies of a list — fails the test.
 | --- | --- | --- |
 | `supabase/migrations/20260720223000_fix_event_card_tag_snapshot_correction.sql` | Refreshes persisted metric snapshots for every game matching either staleness signal below, via the existing `refresh_game_metric_snapshots_internal` / `rebuild_metric_summaries` functions, then rebuilds the global/player aggregates. | **Not yet — unapplied.** |
 
-No existing migration is edited or amended.
+No already-applied migration is edited or amended. `20260720223000` itself
+has never been applied, and has been edited in place across every round of
+review, including this one — consistent with this repo's general practice
+for an unapplied migration (see also the `get_public_player_names`
+cardinality fix, edited in place rather than layered with a follow-up).
 
 **Root table (`game_log_tag_summaries`) is read, never written, by this
 migration**, in every draft described below.
+
+### 2.1 Execution-strategy correction: bounding the global rebuild count
+
+**This is a correction to how the migration runs, not to which games or
+players it targets.** §2's target-selection logic (below) and §4's inventory
+are unaffected.
+
+**True live behavior, confirmed by reading each function's definition
+directly via `pg_get_functiondef` against the live tm-stats database (not
+assumed, not inferred from name or comment):**
+
+- `public.refresh_game_metric_snapshots_internal(p_game_id uuid,
+  p_require_editor boolean default true)` — on *every* invocation, for
+  *any* game (finalized or not): deletes and, for a finalized game,
+  reinserts all four per-game snapshot tables —
+  `game_player_metric_snapshots`, `game_player_tag_metric_snapshots`,
+  `game_milestone_metric_snapshots`, and `game_award_metric_snapshots` — and
+  then unconditionally calls `public.rebuild_metric_summaries()`, on both
+  the finalized code path and the early-return non-finalized path. This is
+  the function §2's migration calls once per target game; it was already
+  unmodified and correct in isolation, and remains so — it is not touched by
+  this correction at all.
+- `public.rebuild_metric_summaries()` — on *every* call: verifies
+  `rebuild_metric_summaries_base()` exists (raising `42883` if not), then
+  calls it, then calls `public.rebuild_additional_metric_summaries()`.
+- `public.rebuild_metric_summaries_base()` — unconditionally deletes and
+  fully reinserts **`player_metric_summaries`, `player_map_metric_summaries`,
+  `global_award_metric_summaries`, `global_milestone_metric_summaries`,
+  `global_tag_metric_summaries`, `global_style_metric_summaries`,
+  `global_corporation_metric_summaries`, `global_map_metric_summaries`,
+  `global_player_count_metric_summaries`,** and
+  **`global_generation_metric_summaries`** — ten tables, for **every group**,
+  not just groups touched by the games being refreshed.
+- `public.rebuild_additional_metric_summaries()` — unconditionally
+  recomputes `expected_win_probability`/`win_conversion_over_expected` on
+  every row of `game_player_metric_snapshots` (an update, not a
+  delete+insert), then updates **`player_metric_summaries`,
+  `player_map_metric_summaries`, `global_map_metric_summaries`,
+  `global_corporation_metric_summaries`, `global_style_metric_summaries`,
+  `global_tag_metric_summaries`, `global_milestone_metric_summaries`,
+  `global_award_metric_summaries`, `global_player_count_metric_summaries`,**
+  and **`global_generation_metric_summaries`** — the same player/global
+  summary layer `rebuild_metric_summaries_base()` just rebuilt, recomputing
+  derived columns on it.
+
+**The defect**: §2's migration loops over every target game and calls
+`refresh_game_metric_snapshots_internal()` once per game — correct, and the
+only way to refresh that game's own four snapshot tables — but because that
+function itself unconditionally calls `rebuild_metric_summaries()`, and the
+migration *also* calls `rebuild_metric_summaries()` once more explicitly
+after the loop (to pick up cross-game aggregates like `best_tag_lane`), the
+net effect was **one complete global-summary rebuild per target game, plus
+one more** — not the single rebuild a reader of §2's prose would expect. At
+the 42-game/116-player reading in §4.2, that is 43 complete rebuilds of ten
+global tables (for every group in the system, not just the affected ones)
+plus the per-game work itself, in a single transaction. At the current
+43-game/118-player reading (§4.3), the same shape is **44 complete global
+rebuilds**, not 43 — one more than the game count, from the trailing
+explicit call. This was never a correctness defect (every rebuild computes
+the same correct values a single rebuild would), but it is far more write
+volume, WAL, and lock time than the migration needs, and the previous
+harness (§6) could not have caught it: its
+`refresh_game_metric_snapshots_internal` stub never called
+`rebuild_metric_summaries()` internally at all, so the harness's rebuild
+marker could only prove "the explicit call happened once," not "how many
+rebuilds actually ran."
+
+**The fix**: the migration's Step 2 now temporarily neutralizes
+`rebuild_metric_summaries()` to a no-op for the duration of the per-game
+loop, then restores it to its exact real body (reproduced verbatim from the
+`pg_get_functiondef` read above) before Step 3's single, real,
+now-unsuppressed rebuild call. Concretely:
+
+1. `execute` a `create or replace function public.rebuild_metric_summaries()
+   ...` that makes the function a no-op, immediately before the loop.
+2. Run the loop exactly as before — `refresh_game_metric_snapshots_internal`
+   itself is completely unmodified; its internal call to
+   `rebuild_metric_summaries()` now does nothing, N times.
+3. `execute` a second `create or replace function
+   public.rebuild_metric_summaries() ...` that restores the exact original
+   body (the `to_regprocedure` guard plus the two `perform` calls),
+   immediately after the loop.
+4. `perform public.rebuild_metric_summaries();` — the single real rebuild,
+   exactly where §2's Step 3 already called it.
+
+**Net result: exactly one global rebuild for the whole migration, regardless
+of how many games it touches (zero if no game matches either signal, since
+the whole block — including the neutralize/restore — is inside the existing
+`if v_target_game_ids is not null` guard).** `refresh_game_metric_snapshots_
+internal`'s two-argument contract, callers, and authorization behavior are
+completely untouched. `rebuild_metric_summaries_base()` and
+`rebuild_additional_metric_summaries()` are completely untouched.
+`rebuild_metric_summaries()`'s own **signature** (zero arguments), owner,
+`SECURITY DEFINER` status, and `search_path` are unchanged throughout; only
+its **body** is temporarily replaced twice within the migration's own
+transaction, ending — on both success and the failure path — byte-identical
+to what it was before the migration ran. Verified directly: `pg_get_
+functiondef('public.rebuild_metric_summaries')` before and after a
+successful migration run is identical (see §6). Its EXECUTE grant today is
+owner-only (`{postgres=X/postgres}` — no `authenticated`, no `anon`, no
+`PUBLIC`, confirmed via `pg_proc.proacl`); `CREATE OR REPLACE FUNCTION` on an
+unchanged zero-argument signature preserves that ACL automatically, so
+neither redefinition needs to touch any `GRANT`, and the migration's own
+`revoke ... from public, anon` after the restore step is defense-in-depth,
+not a response to any ACL change it makes.
+
+**Why this design over the alternatives** (full analysis carried in this
+round's commit and PR description, not duplicated here): widening
+`refresh_game_metric_snapshots_internal`'s signature to accept a
+suppress-rebuild flag was rejected because it would permanently change a
+function with an existing `authenticated` grant and live application callers
+(every game finalize), for the sake of a one-time historical correction.
+Duplicating its full row-generation logic (including milestone/award
+snapshot generation) into a migration-local helper function was rejected
+because of the drift risk in maintaining a second copy of ~150 lines of
+production SQL, and because it does not remove the need to redefine
+`rebuild_metric_summaries()` in some form. The chosen design touches only the
+smallest, already owner-only-executable function in the call graph, changes
+nothing permanently, and reuses every other line of production logic
+verbatim — including for the edge case of a target game with no prior
+`game_player_metric_snapshots` row at all (§4.2's 7-player/3-game case),
+which is handled for free because the real, unmodified refresh function
+still runs for every target game.
+
+**Dynamic SQL**: `EXECUTE` is used for both `CREATE OR REPLACE FUNCTION`
+statements solely because PL/pgSQL cannot run DDL as a direct statement
+inside a `DO` block — there is no non-dynamic way to redefine a function from
+inside a single top-level statement. Every `EXECUTE` string is fully static
+and hardcoded, with no interpolated or concatenated values (not even the
+target game ids) — there is no injection surface. Keeping the entire
+migration as one top-level statement, as it already was, is deliberate: it
+guarantees atomicity under plain autocommit-per-statement execution, without
+depending on the migration runner wrapping the file in its own transaction.
 
 ### History of this migration's target-selection logic (for review legibility)
 
@@ -431,6 +594,36 @@ Both queries are idempotent to re-run at any time; re-running is expected
 immediately before migration application (§9), since production data can
 change after this reading.
 
+### 4.4 Fresh inventory, current as of this round (2026-07-21)
+
+A subsequent read-only production inventory, run as part of authoring this
+round's execution-strategy correction (§2.1), found:
+
+| Metric | Value |
+| --- | --- |
+| Exact target games (union of both §2 signals) | **43** |
+| Exact target game players (union of both §2 signals) | **118** |
+
+The change from §4.2/§4.3's 42-game/116-player reading is **fully explained
+by one newly finalized two-player game** — the target predicate itself
+continues to match exactly what the migration's own logic selects, with no
+false positives and no drift in the signal logic. The migration remains
+**unapplied**.
+
+**This is the rule, not an exception, and is exactly why §4.2 and §4.3 both
+already say a point-in-time reading is not a live guarantee**: the live
+target population can and does change through ordinary use of the
+application (every newly finalized game is a candidate to join or leave the
+target set, depending on its own tag data), independent of anything this
+correction package does. This is not evidence of a bug in the predicate, a
+reason to hardcode any particular game or player count into the migration
+(the migration's `do $$ ... $$` block computes its target set fresh, every
+run, from live data — no count from this document is ever compiled into it),
+or a reason to treat this reading as sufficient authorization on its own. A
+fresh inventory is required immediately before any future authorization to
+apply this migration, exactly as §4.2's and §4.3's closing notes already
+require and as §9 restates in its deployment order.
+
 ## 5. Code-fix verification (local — no production writes)
 
 Covered by unit and integration tests — `countable-card-tags.test.ts`,
@@ -496,33 +689,119 @@ Eight fixture games proved, against the real file:
     B's would-be correction was rolled back along with the poison game's.
 13. **Root never written**: `game_log_tag_summaries` — identical before and
     after every run in the harness, including every row's `updated_at`.
+14. **The global rebuild cascade runs exactly once per migration run,
+    regardless of how many games are refreshed** — proven by an exact count,
+    not an "at least once" marker. `_rebuild_marker` distinguishes
+    `rebuild_metric_summaries_base()` calls from `rebuild_additional_metric_
+    summaries()` calls; after the first pass above (five target games: B, C,
+    G, H, I), the harness shows **exactly one of each**, not five-or-six of
+    each. Run against the same corrected harness, the *pre-bounding*
+    migration text (the version of §2's Step 2/3 before this round's fix,
+    preserved for comparison at `04-defect-reproduction-pre-correction-
+    rebuild-count.sql`) produces **six** of each — five implicit (one per
+    target game) plus one explicit — for the identical five-game target set.
+    This is the concrete before/after evidence for §2.1's fix.
+15. **`game_milestone_metric_snapshots` and `game_award_metric_snapshots`
+    are exercised and correctly scoped**: game B (a target) has its
+    milestone snapshot deleted and reinserted (fresh `updated_at`) when
+    refreshed; game A (never a target, despite having real award activity of
+    its own) has an award snapshot that remains byte-identical
+    (`updated_at` unchanged) across every run — proving the migration does
+    not over-reach into non-target games' milestone/award state, and that
+    all four of production's real per-game snapshot tables (not just the
+    two tag-related ones) are represented in the harness.
+16. **`rebuild_metric_summaries()`'s live definition and ACL are
+    byte-identical before and after a successful run**: `pg_get_functiondef`
+    shows no diff, and `pg_proc.proacl` remains owner-only
+    (`{postgres=X/postgres}` — no `authenticated`, `anon`, or `PUBLIC`).
+    `refresh_game_metric_snapshots_internal(uuid, boolean)`'s ACL
+    (`{postgres=X/postgres,authenticated=X/postgres}`) is unchanged by this
+    migration in every run, confirming its two-argument contract's
+    authorization surface is unaffected. Confirmed again on the
+    forced-failure rollback run: the failed run leaves
+    `rebuild_metric_summaries()` in its real, restored body — not stuck
+    neutralized — because the neutralize step is part of the same
+    transaction that rolled back.
 
-`refresh_game_metric_snapshots_internal` / `rebuild_metric_summaries` were
-invoked through a **simplified stub**, not the real production functions —
-documented as the harness's limitation (see its README). The stub was
-strengthened this round to delete-then-insert `game_player_metric_snapshots`
-(matching production's actual unconditional per-game-player insert) instead
-of only updating existing rows, specifically so game I's "row entirely
-absent" case could be faithfully proven rather than assumed. It still does
-not implement milestone/award/scoring-share snapshot rebuilding — out of
-scope for this correction and untouched by it. Production's real definitions
-were separately read directly via `pg_get_functiondef` (not assumed) during
-the original review and confirmed to source
-`game_player_tag_metric_snapshots`/`total_tag_count` purely from
-`game_log_tag_summaries`, consistent with what the stub reproduces; that
-read has not been repeated since. The migration file itself, and its
+`refresh_game_metric_snapshots_internal`, `rebuild_metric_summaries_base()`,
+and `rebuild_additional_metric_summaries()` are invoked through
+**simplified stubs**, not the real production functions — documented as the
+harness's limitation (see its README). `rebuild_metric_summaries()` itself,
+however, is **no longer a flattened stub**: as of this round, its baseline
+body in the harness — and the body the migration's own restore step recreates
+mid-run — is a verbatim copy of the live production definition (the
+`to_regprocedure` guard plus two `perform` calls), read directly via
+`pg_get_functiondef` against the live tm-stats database for this round (see
+§2.1), not assumed or reused from an earlier read. The
+`refresh_game_metric_snapshots_internal` stub was strengthened this round to
+also delete/reinsert `game_milestone_metric_snapshots` and
+`game_award_metric_snapshots` (all four per-game snapshot tables are now
+represented, not two) and to call `rebuild_metric_summaries()` internally on
+every invocation, matching production's real control flow — this specific
+change is what let the harness catch the once-per-game rebuild defect in the
+first place; the previous stub's silence on this call is exactly why it went
+unnoticed until this round's fresh production read. It still does not
+implement scoring-share/normalized-efficiency/win-margin columns or
+milestone/award timing-bucket/ROI computation — out of scope for this
+correction and untouched by it. The migration file itself, and its
 target-selection query, ran unmodified and verbatim in every step above.
 
 ## 7. Rollback / restoration evidence
 
+Rollback here is **not trivial to characterize** — it spans four regenerated
+per-game snapshot tables, ten fully-rebuilt global summary tables, and one
+function whose body is temporarily replaced twice within the migration's own
+transaction. Each is addressed on its own terms below, not waved through as
+"the usual case."
+
 - **Root table**: not written by this migration — nothing to roll back.
-- **Snapshot tables**: `game_player_tag_metric_snapshots` and
-  `game_player_metric_snapshots` are fully regenerated (delete + insert) by
-  `refresh_game_metric_snapshots_internal` for exactly the affected game,
-  the same way it already runs today (e.g., on finalize) — a rollback is
-  simply "the state before this migration's run," recoverable from
-  PITR/backup, or forward-fixable by re-running the migration again
-  (idempotent — see §6 item 11).
+- **Per-game snapshot tables** (`game_player_metric_snapshots`,
+  `game_player_tag_metric_snapshots`, `game_milestone_metric_snapshots`,
+  `game_award_metric_snapshots`): fully regenerated (delete + insert) by
+  `refresh_game_metric_snapshots_internal` for exactly each target game, the
+  same way it already runs today (e.g., on finalize) — row `id` values and
+  `created_at` do **not** survive a refresh (delete+insert, not update); only
+  the *derived values* are guaranteed to converge back to what a fresh
+  refresh from current source data produces, which is the property that
+  makes forward re-application safe. A rollback is simply "the state before
+  this migration's run," recoverable from PITR/backup, or forward-fixable by
+  re-running the migration again (idempotent — see §6 item 11).
+- **Global summary tables** (the ten tables `rebuild_metric_summaries_base()`
+  rebuilds, listed in §2.1, plus the columns `rebuild_additional_metric_
+  summaries()` updates on top): rebuilt from scratch, for every group, by
+  the migration's single `rebuild_metric_summaries()` call (§2.1) — the same
+  full-rebuild semantics these tables already have today on every existing
+  call site, not something this migration introduces. Pre-migration state
+  is recoverable from PITR/backup; forward re-application reproduces the
+  same result deterministically from current snapshot data.
+- **`rebuild_metric_summaries()`'s own body** (new consideration this
+  round, specific to the §2.1 fix): temporarily replaced twice within the
+  migration's single transaction (neutralize, then restore to the exact
+  original body) and restored before the transaction commits. On any
+  failure before the restore step, ordinary transactional rollback of
+  `CREATE OR REPLACE FUNCTION` (transactional DDL, same as any other
+  statement) undoes the neutralization along with every other write in the
+  same run — there is no separate manual restore path to get wrong, and
+  none is needed. **Convergence check**: `pg_get_functiondef('public.
+  rebuild_metric_summaries')` immediately before and immediately after a
+  migration run (successful or failed) must be textually identical; this is
+  exercised directly in the harness (§6 item 16) and should be re-run as a
+  pre/post check around any future production application, not assumed.
+- **Symmetric-difference / convergence checks to run post-migration**:
+  - `pg_get_functiondef` diff (above) on `rebuild_metric_summaries()` —
+    expect empty.
+  - `pg_proc.proacl` diff on `rebuild_metric_summaries()` and
+    `refresh_game_metric_snapshots_internal(uuid, boolean)` — expect
+    unchanged on both.
+  - Re-run §4.3's target-selection query — expect `target_game_count=0,
+    target_player_count=0` immediately after a successful application
+    (modulo any new staleness introduced by imports that land between
+    application and the check).
+  - For a sampled non-target game (one *outside* the freshly re-run §4.3
+    result set, chosen before applying): its four per-game snapshot rows'
+    `updated_at` values, taken immediately before and immediately after
+    application, must be identical — direct evidence that non-target games
+    are not touched, beyond trusting the predicate logic alone.
 - **Forward-only preference**: as with `data-capture-hardening-v2`, the
   intended remedy for any discrepancy discovered later is a forward re-run of
   this same migration (safe — see §6), not a destructive rollback.
@@ -540,19 +819,46 @@ target-selection query, ran unmodified and verbatim in every step above.
 
 ## 9. Deployment/backfill order (for the record — not executed here)
 
-1. Deploy the code fix (this branch, once reviewed/merged) to `tm-stats.com`.
-   This includes the `analytics-repo.ts`/`extended-analytics-repo.ts` fixes
-   and the shared vocabulary module, which take effect immediately on
-   deploy with no migration dependency.
+1. ~~Deploy the code fix (this branch, once reviewed/merged) to
+   `tm-stats.com`.~~ **Done.** The code fix — `analytics-repo.ts` /
+   `extended-analytics-repo.ts`, the shared vocabulary module, and the other
+   WS2/42501-track fixes bundled into the same release — is live. Deployed
+   source commit `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`, worker
+   `08f9191f-7b06-4fa3-88dd-b3421d3ae89f`, 100% traffic as of
+   2026-07-21T04:21:42.798Z (deploy record commit `9119f648a`). **Verified**
+   via the authenticated `/api/deploy-info` endpoint, which the owner
+   confirmed returns `sourceCommit: 2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`
+   and `sourceBranch: integration/final-ws2-event-card-42501` — this is
+   completed evidence, not an open item. The owner has also completed a
+   normal live import successfully against this deployed version. No
+   database migration was applied by this deploy; the migration ledger head
+   is unchanged and `20260720223000` is confirmed still unapplied (§4.4).
 2. Immediately before applying, re-run §4.3's exact target-selection queries
-   again and reconfirm the counts. §4.2's 42-game/116-player reading is from
-   independent rereview (see §4.2's timestamp note) and is a point-in-time
-   snapshot, not a live guarantee — production data can change before
-   deploy. Re-running the coarse §3 proxy queries alone is not a substitute
-   for §4.3's exact, root-comparing logic.
-3. Apply `20260720223000_fix_event_card_tag_snapshot_correction.sql` through
-   the approved production-change process.
+   again and reconfirm the counts. §4.4's 43-game/118-player reading is the
+   most recent, but it too is a point-in-time snapshot, not a live guarantee
+   — this is the rule (§4.4), not a caveat specific to any one reading:
+   production data can and does change through ordinary use between any
+   reading and deploy. Re-running the coarse §3 proxy queries alone is not a
+   substitute for §4.3's exact, root-comparing logic. A fresh inventory run
+   immediately before this step is a hard prerequisite for authorization,
+   not optional due diligence.
+3. Apply the corrected `20260720223000_fix_event_card_tag_snapshot_
+   correction.sql` (§2.1) through the approved production-change process.
+   Unlike step 1, this step requires **no** application deployment — the
+   execution-strategy fix in §2.1 is entirely inside the migration file and
+   the (transiently modified, then restored) `rebuild_metric_summaries()`
+   function; nothing in the application's request path changes.
 4. Re-run §3's second query and confirm it returns 0. (The first §3 query
    returning nonzero is not itself a problem — see §1/§3 — but should trend
    toward matching root's already-clean state.)
 5. Spot-check `player_metric_summaries.best_tag_lane = 'event'` returns 0.
+6. Run §7's convergence checks: `pg_get_functiondef`/`pg_proc.proacl` diffs
+   on `rebuild_metric_summaries()` and
+   `refresh_game_metric_snapshots_internal(uuid, boolean)` (expect no
+   change to either), and confirm the migration produced exactly the
+   expected number of global rebuilds — one, not one-per-game (§2.1, §6
+   item 14) — via whatever production-safe observability is available at
+   apply time (e.g., `pg_stat_user_functions` call-count deltas on
+   `rebuild_metric_summaries_base`/`rebuild_additional_metric_summaries`
+   across the apply window, since production has no `_rebuild_marker`
+   table).

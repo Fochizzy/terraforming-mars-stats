@@ -160,3 +160,42 @@ insert into public.game_player_tag_metric_snapshots (
   ('c0000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000000', 'b0000000-0000-0000-0000-000000000006', 'event', 1, 1, 2, 2, 0, '2026-07-01 00:00:00+00', '2026-07-01 00:00:00+00');
   -- Game G: no per-tag rows (nothing to be stale about beyond the total).
   -- Game H: no 'event' row at all, despite root having event=2.
+
+-- Milestone/award fixtures -- proves the migration's per-game refresh loop
+-- correctly touches game_milestone_metric_snapshots / game_award_metric_
+-- snapshots for TARGET games (Game B, via the tag signals above) and, just
+-- as importantly, leaves them completely untouched for a game that is never
+-- a target (Game A), even though Game A has milestone/award activity of its
+-- own that could be wrongly refreshed by an over-broad implementation.
+insert into public.milestones (id, code) values
+  ('f0000000-0000-0000-0000-000000000001', 'terraformer');
+
+insert into public.awards (id, code) values
+  ('f0000000-0000-0000-0000-000000000002', 'banker');
+
+-- Game B (target, via both tag signals): claims the milestone.
+insert into public.game_milestones (id, game_id, milestone_id, winner_game_player_id) values
+  ('f1000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002');
+
+-- Game A (control, never a target): funds and wins the award.
+insert into public.game_awards (id, game_id, award_id, place, funded_by_game_player_id, winner_game_player_id) values
+  ('f2000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000002', 1, 'd0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001');
+
+-- Pre-existing snapshot rows, old updated_at so a real, later write (or its
+-- absence) is unambiguous in the diff.
+insert into public.game_milestone_metric_snapshots (
+  game_id, game_milestone_id, group_id, milestone_id, winner_game_player_id, created_at, updated_at
+) values (
+  'c0000000-0000-0000-0000-000000000002', 'f1000000-0000-0000-0000-000000000001',
+  'a0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000001',
+  'd0000000-0000-0000-0000-000000000002', '2026-07-01 00:00:00+00', '2026-07-01 00:00:00+00'
+);
+
+insert into public.game_award_metric_snapshots (
+  game_id, game_award_id, group_id, award_id, funded_by_game_player_id, winner_game_player_id, created_at, updated_at
+) values (
+  'c0000000-0000-0000-0000-000000000001', 'f2000000-0000-0000-0000-000000000001',
+  'a0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000002',
+  'd0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001',
+  '2026-07-01 00:00:00+00', '2026-07-01 00:00:00+00'
+);
