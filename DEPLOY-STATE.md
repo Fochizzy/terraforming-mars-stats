@@ -22,9 +22,9 @@ version→commit linkage.
 | Source branch | `integration/final-ws2-event-card-42501` (pushed to `origin`; `origin/integration/final-ws2-event-card-42501` independently confirmed to resolve to the exact deployed SHA both before and after this deploy) |
 | Source commit | `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d` — resolved by the deploy-time stamp print (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`, since the build ran from a detached HEAD), not inferred |
 | Deployed (UTC) | 2026-07-21 04:21:42.798Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **Released back — combined WS2/Event-card/42501 deploy complete.** Available for the next session; update this row before starting new work. |
+| Deploy lock | **Released — Event-card migration `20260721081355` recorded and verified. No production session currently holds the lock.** Available for the next deployment session, which must update this row before starting. |
 | Active clean deployment worktree | `C:\tmp\tm-final-ws2-event-card-42501-deploy` — no longer needed once this entry is read; candidate `2b9a5e3a5`, base `9b7a00555` (merge-base confirmed, 9 commits ahead / 0 behind, 26-file diff) |
-| DB migration ledger head | `20260721035955 secure_public_player_labels_service_role` (unchanged — no migration applied this release; Event-card snapshot migration `20260720223000` and gated migration `20260720120000` both confirmed still absent from the ledger, before and after this deploy) |
+| DB migration ledger head | `20260721035955 secure_public_player_labels_service_role` (unchanged — no migration applied this release; Event-card snapshot migration `20260720223000` and gated migration `20260720120000` both confirmed still absent from the ledger, before and after this deploy). **Superseded 2026-07-21 08:13:55 UTC**: a separate, documentation-tracked *database migration* (no application deploy) subsequently advanced the ledger head to `20260721081355 fix_event_card_tag_snapshot_correction` — see "Event-card snapshot migration — production database correction" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration. |
 | Rollback worker version | `79d5b795-eb81-4962-aa5a-bfff26359a36` (immediately prior production build, 100% traffic 2026-07-21T00:15:19.080Z through this deploy; source commit `9b7a00555f216f4a741e819e8795238c362584f9`, confirmed via the prior deployment-record commit `3a8f4eb24`) |
 | Verified | 2026-07-21 ~04:20-04:30 UTC — see "Combined WS2/Event-card/42501 deploy" below for exact evidence and its gaps |
 
@@ -40,6 +40,138 @@ required."}` unauthenticated, as expected; a signed-in fetch was not
 performed — entering credentials to authenticate is not something this
 session will do). Until that fetch is done, this row's commit is
 build-time/ledger-history correlated, not live-endpoint confirmed.
+**Superseded**: a later card-scoring deployment-readiness review session
+reported completing the authenticated `/api/deploy-info` GET against this
+same immutable worker version and confirmed `sourceCommit` matched. This
+documentation task did not independently rerun that fetch, and — unlike the
+migration facts below — found no corroborating artifact for it anywhere in
+this repository's history; it is recorded here as reported, not as
+self-verified. The historical fact that the original 04:2x UTC deploy session
+could not perform it (see above) stands unchanged.
+
+### Event-card snapshot migration — production database correction — 2026-07-21 08:13:55 UTC
+
+**This is a database-only migration record. No application deployment
+occurred as part of this entry** — the worker version, source commit, and
+traffic split in the "Current production" table above are unchanged by it.
+
+**Status:** completed successfully. Applied once, to production, under
+separate owner authorization from the WS2/Event-card/42501 deploy above.
+Immediate post-application verification passed (see "Production result"
+below). No further database write against this migration is authorized —
+any future corrective action requires a new owner-authorized gate.
+
+**Repository identity** (independently reconfirmed by this documentation
+session):
+- Candidate commit: `ab9e11191f1f0b276b3a1dd278750a66a5742c0e`
+- Repository branch: `fix/event-card-snapshot-migration-bounded-rebuild`
+- Repository migration path:
+  `supabase/migrations/20260720223000_fix_event_card_tag_snapshot_correction.sql`
+- SHA-256 of that file's exact content at the candidate commit (LF line
+  endings): `2eba01204cff08c7220d1b7c2f78c02e45b1332a7f621e28c1606e9d800d48f4`
+  — recomputed directly from `git show` of that commit while writing this
+  entry and confirmed to match exactly. (This is the file-content digest, not
+  a Git object/blob ID.)
+
+**Remote ledger identity** (independently reconfirmed via `list_migrations`
+against Supabase project `qjtwgrjjwnqafbvkkfex` while writing this entry):
+- Server-assigned version: `20260721081355`
+- Name: `fix_event_card_tag_snapshot_correction`
+- Previous ledger head: `20260721035955 secure_public_player_labels_service_role`
+- Ledger row count: 107 → 108; reconfirmed the live ledger contains exactly
+  one entry named `fix_event_card_tag_snapshot_correction`, at position 108
+  of 108, immediately after `20260721035955`.
+- **Repository-file-to-ledger-version mapping**: the repository filename
+  timestamp `20260720223000` is the migration's identity/filename prefix
+  only — it is **not**, and was never intended to be, the ledger version.
+  The ledger recorded this migration under the server-assigned version
+  `20260721081355` (the actual application time).
+
+**Reapplication rule.** Any future guard against re-running this migration
+must key on the exact ledger **name** `fix_event_card_tag_snapshot_correction`
+— not on finding remote ledger version `20260720223000`, which will never
+appear (see mapping above).
+
+**Production result.** The pre-application target counts, deltas, and
+before/after aggregate digest below are as reported by the completed
+production-application verification; this documentation task did not rerun
+the underlying correction SQL and cannot recompute a "before" state that no
+longer exists. Where this session re-derived a figure independently
+read-only against current production, that is noted.
+- Target convergence (as reported): pre-application 45 targeted games / 122
+  targeted resolved players (109 Event-signal, 99 total-mismatch, 86
+  overlapping both, 13 missing player-snapshot rows, 109 contaminated
+  Event-tag rows, 658 spurious Event-tag units; 0 unresolved/ambiguous/
+  malformed targets) → 0 of every one of those categories post-application.
+- Four snapshot-table deltas (as reported: 109→122 / 1526→1708 / 117→135 /
+  186→203). **Current-state values independently reconfirmed by this
+  session** via read-only query: `game_player_metric_snapshots` = 122,
+  `game_player_tag_metric_snapshots` = 1708, `game_milestone_metric_snapshots`
+  = 135, `game_award_metric_snapshots` = 203 — matching the reported
+  post-application figures. Zero nonzero-value `event`-tag rows remain in
+  `game_player_tag_metric_snapshots`.
+- Root evidence (`game_log_tag_summaries`) reported unchanged before/after:
+  1778 total rows, 127 `event`-tag rows, event value sum 0, 0 nonzero event
+  rows, aggregate digest `19168d42d66bea93495f8b8ef6587abb` both before and
+  after. **Independently reconfirmed by this session** (current state, read
+  -only): 1778 total rows, 127 `event`-tag rows, event tag-count sum 0, 0
+  nonzero event rows — all matching. This session's own digest query used a
+  different aggregation and did not reproduce `19168d42d66bea93495f8b8ef6587abb`
+  bit-for-bit; that specific digest is recorded as reported, not independently
+  reproduced.
+- Guarded-function restoration — **independently reconfirmed by this session**
+  via live `pg_proc` introspection: `public.rebuild_metric_summaries()`
+  (OID `19392`) body SHA-256 `1301ade233da95c487e8d9e3e9739cd3cccbfbb7e789682cf3400f94c7f9d8da`,
+  full function definition SHA-256
+  `1c94896bfe75e52618354cf9734bd891cb2e98eb68f86ee1eec79ba2ed65eb7c`, ACL
+  `{postgres=X/postgres}` — all match exactly; no migration-scoped no-op body
+  survived. `public.refresh_game_metric_snapshots_internal(uuid, boolean)`
+  (OID `19296`) body SHA-256
+  `4b90d50c7353c9a035d454c31480e45bb42a22550335030b9390337c4665c65c` — matches
+  exactly; owner and ACL unchanged.
+- Non-target stability (as reported): the two unresolved non-target games
+  remained outside the correction, still with zero snapshot rows across all
+  four refreshed tables; no repair of those games was performed or
+  authorized.
+
+**Application boundary** (independently reconfirmed by this session via
+`wrangler deployments list`):
+- No application deployment or worker-version change occurred as part of
+  this migration. Worker remains `08f9191f-7b06-4fa3-88dd-b3421d3ae89f` as
+  the most recent deployment, at 100% traffic, created
+  `2026-07-21T04:21:42.798Z` — unchanged and still the latest entry.
+  Deployed application source remains associated with
+  `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`.
+- No parser, card-scoring, Venus, secret, environment, or RLS operation was
+  bundled into this migration.
+- No repair of the two unresolved non-target games was performed or
+  authorized.
+
+**Known notes (non-blocking):**
+- Exactly-one-global-rebuild is structurally proven in the correction package
+  (harness item 14, §6) but was not independently isolated through a fresh
+  pre-application PostgreSQL-statistics baseline captured by this specific
+  production application.
+- Authenticated source confirmation for the current deployed application
+  (`/api/deploy-info`) was carried forward from the prior WS2/Event-card/42501
+  deploy entry above as not-yet-done at that time; see the superseding note
+  above this section for the subsequently reported (not independently
+  rerun) completion.
+- Several global summary dimensions increased (see the four-table deltas
+  above) because previously-missing target snapshots became materialized —
+  this is expected, not a regression.
+
+**Rollback and follow-up:**
+- No rollback was needed.
+- No automatic rerun is permitted; any future corrective database action
+  against this migration or its tables requires a new owner-authorized gate.
+- The Event-card database workstream (this migration) is complete.
+- This entry, and the corresponding final section in
+  `docs/event-card-tag-exclusion-correction-package.md` (recorded separately
+  on `docs/event-card-migration-production-record`), are a documentation-only
+  reconciliation of an already-applied, already-verified production
+  migration — no migration, refresh, or rebuild was executed by the session
+  that wrote this entry.
 
 ### Combined WS2/Event-card/42501 deploy — 2026-07-21 04:2x UTC
 
