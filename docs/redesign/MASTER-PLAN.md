@@ -434,9 +434,15 @@ fixtures reach real database assertions; the overwritten historical dry run
 is restored beside a separate production artifact with per-system,
 measured-only reconciliation metrics; and the migration↔ledger mapping is
 governed with a drift-detecting test
-(`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`). Three migrations remain
-prepared and NOT applied (`20260719234500`, `20260720100000`,
-`20260720110000`); the redesign application is not deployed. A durable
+(`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`). That gate is
+bidirectional as of the 2026-07-21 read-only ledger attestation (108 entries):
+every repository migration and every ledger version must resolve to exactly
+one classification, so a production application made from another branch
+cannot land unrecorded. Each migration file additionally declares an explicit
+hazard class (`contraction` / `expansion` / `neutral`), orthogonal to its
+approval status. Five migrations remain prepared and NOT applied
+(`20260717190000`, `20260719234500`, `20260720100000`, `20260720110000`,
+`20260720120000`); the redesign application is not deployed. A durable
 release gate was adopted: privilege/schema contractions follow the
 expand/contract order (deploy the reader/writer first, verify, then
 contract). Step 4.3 is closed only after a fresh independent read-only audit

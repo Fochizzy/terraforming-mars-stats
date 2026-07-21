@@ -21,7 +21,8 @@ read-only closure audit. Step 4.4 has not begun.**)
 ## Current owner
 
 Claude Opus 4.8 — Phase 4, Step 4.3 closure-blocker remediation (third pass,
-**PARTIAL**)
+**PARTIAL**; WS1 **Layer A only** delivered 2026-07-21 on
+`fix/step-43-ws1-layer-a-ledger-gate`)
 
 ### Third remediation pass (2026-07-20) — PARTIAL, still BLOCKED
 
@@ -58,6 +59,55 @@ No production mutation was performed. The one outward-facing action was the
 owner-approved `git push` of the live branch `fix/live-42501-on-capture-v2`,
 which had existed on no remote while serving production.
 
+### WS1 Layer A — ledger gate and harness reconciliation (2026-07-21)
+
+Branch `fix/step-43-ws1-layer-a-ledger-gate`, off `0c6f45dfa`. Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-WS1-LAYER-A-LEDGER-GATE.md`. Hermetic:
+no production access of any kind, nothing pushed, deployed, or applied, and no
+file under `supabase/migrations/` touched.
+
+- **Ledger snapshot refreshed to the 2026-07-21 read-only attestation:** 108
+  entries, head `20260721081355 fix_event_card_tag_snapshot_correction`. The
+  three additions over the previous 105-entry snapshot (`20260720221937`,
+  `20260721035955`, `20260721081355`) were all applied from *other* branches
+  under renamed ledger versions and have no file here; each is registered with
+  its provenance. The attestation date, count, and head are pinned so a later
+  count mismatch fails instead of being overwritten.
+- **The gate is now bidirectional.** It previously partitioned repo files only
+  — its own header claimed it partitioned the ledger too, but nothing iterated
+  the snapshot. Every ledger version must now resolve to exactly one
+  classification or fail as `LEDGER_INCOMPLETE`. This is precisely the hole the
+  three cross-branch applications fell through.
+- **Hazard class added, orthogonal to approval status.** Every migration file
+  declares `contraction | expansion | neutral` explicitly (never derived from
+  SQL); an undeclared file fails as `CLASSIFICATION_MISSING`. Current
+  declarations: 13 contraction, 28 expansion, 8 neutral. (`20260720110000` was
+  first declared `expansion`; an independent review disproved that on a
+  disposable local cluster and it was corrected to `contraction` — see below.)
+- **Harness reconciled.** The replay loop was applying gated `20260717190000`,
+  `20260720100000` and `20260720120000` as if they were production history, so
+  the "state production is in today" baseline ran against a database carrying
+  three never-applied migrations. All five gated migrations are now excluded
+  from the history replay and applied after the baselines, in ledger-version
+  order, each twice for repeat-safety.
+- **The contraction is exercised as a contraction.** `20260720120000` is a
+  `create or replace` whose only predecessor is production-only
+  `20260720021300` (no repo file), so the harness had been *creating* the
+  function rather than replacing it, with no assertion referencing it. A
+  modelled pre-image of the deployed predecessor is installed first, and the
+  disclosed classification is asserted before (fine-grained `full_name_exact`
+  etc. with the 1:1 score) and after (coarse `exact`/`partial`, same resolved
+  player, bounded input, ACL preserved). The pre-image is reconstructed from
+  repository-local evidence only and is confined to the harness.
+
+Validation at the final commit: `npx tsc --noEmit` exit 0; 177 files / 970
+tests pass; lint at the four baseline warnings; production build green;
+`bash supabase/tests/executable/run.sh` passes end to end; `git diff --check`
+clean.
+
+Not started by this work: **Layer B** and **Layer C** of WS1, **WS2**, guest
+re-neutralization, the tile backfill, the closure audit, and Step 4.4.
+
 ## Status
 
 **Phase 4 - Log a Game - Active. Step 4.3 is BLOCKED pending re-audit (not
@@ -88,8 +138,9 @@ RPC, and the fixture-to-persistence bridge
   gated migrations `20260720100000` (guest RPC alias-recording control) and
   `20260720110000` (placement contract). The reconstruction files
   `20260711232834`/`20260712114538` are skipped by version. The full
-  filename↔ledger mapping (with a drift-detecting test) is
-  `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`.
+  filename↔ledger mapping is `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`;
+  its drift test is bidirectional and hazard-classified as of the 2026-07-21
+  attestation (108 ledger entries, head `20260721081355`).
 - **Backup-table security remediation is complete** (remote ledger
   `20260718234835 lock_down_public_backup_tables`), not outstanding.
 - **No production mutation was performed by this remediation** — read-only

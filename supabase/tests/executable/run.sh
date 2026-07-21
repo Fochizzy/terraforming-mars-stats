@@ -5,8 +5,20 @@
 # 20260718212342 objective aliases).
 #
 # It stands up a disposable, trust-authenticated PostgreSQL cluster (no Docker),
-# replays the full migration history on it, then applies the alias migration
-# against a seeded objective catalogue and runs behavioural assertions,
+# then runs in two clearly separated halves:
+#
+#   1. PRODUCTION HISTORY. Replays only migrations that are actually applied to
+#      production, plus a modelled pre-image of the one production-only ledger
+#      entry the gated work depends on. The baseline assertions in this half
+#      (pre-split-compat.sql, match-oracle-pre-contraction.sql) are claims about
+#      the state production is in today, so no gated migration may be applied
+#      before them.
+#   2. GATED WORK. Applies every migration in GATED_UNAPPLIED, in ledger-version
+#      order, each twice for repeat-safety, then asserts the behaviour they add
+#      — including that the match-reason contraction is a true REPLACE of its
+#      deployed predecessor.
+#
+# Then the behavioural assertions, the fixture-to-persistence bridge,
 # idempotency, and a rollback check. Exit status is non-zero on any failure.
 #
 # Usage:
@@ -24,8 +36,21 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
 MIGRATIONS="$REPO/supabase/migrations"
 ALIAS_MIGRATION="$MIGRATIONS/20260718212342_add_objective_catalog_aliases.sql"
+
+# Every migration in GATED_UNAPPLIED (src/lib/db/migration-ledger-map.ts). None
+# of these is applied to production, so none of them may appear in the replay
+# that models production history — otherwise the "state production is in today"
+# baseline below asserts against a database production does not have.
+MERGER_MIGRATION="$MIGRATIONS/20260717190000_add_merger_offer_rule_snapshots.sql"
 SPLIT_MIGRATION="$MIGRATIONS/20260719234500_separate_event_confidence_from_review_state.sql"
+GUEST_ALIAS_MIGRATION="$MIGRATIONS/20260720100000_add_guest_identity_alias_source_control.sql"
 PLACEMENT_MIGRATION="$MIGRATIONS/20260720110000_extend_canonical_board_placement_contract.sql"
+COARSEN_MIGRATION="$MIGRATIONS/20260720120000_coarsen_import_name_match_reasons.sql"
+
+# Modelled pre-image of production-only ledger entry 20260720021300, which has
+# no repo file. Installing it is what makes COARSEN_MIGRATION a REPLACE rather
+# than a CREATE. See the file header for exactly what it is and is not.
+MATCH_PREIMAGE="$HERE/production-preimage-20260720021300-match-import-player-names.sql"
 
 cleanup() { "$PGBIN/pg_ctl" -D "$PGDATA" stop -m immediate >/dev/null 2>&1 || true; rm -rf "$PGDATA"; }
 trap cleanup EXIT
@@ -43,11 +68,14 @@ PSQL() { "$PGBIN/psql" -h 127.0.0.1 -p "$PORT" -U postgres -v ON_ERROR_STOP=1 -d
 echo "== bootstrap Supabase-compatible roles/auth/storage =="
 PSQL -q -f "$HERE/bootstrap.sql"
 
-echo "== replay migration history (alias + split + placement-contract deferred) =="
+echo "== replay production migration history (alias deferred; all gated excluded) =="
 for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$ALIAS_MIGRATION" ] && continue
+  [ "$f" = "$MERGER_MIGRATION" ] && continue
   [ "$f" = "$SPLIT_MIGRATION" ] && continue
+  [ "$f" = "$GUEST_ALIAS_MIGRATION" ] && continue
   [ "$f" = "$PLACEMENT_MIGRATION" ] && continue
+  [ "$f" = "$COARSEN_MIGRATION" ] && continue
   PSQL -q -f "$f"
 done
 echo "   history applied"
@@ -55,8 +83,11 @@ echo "   history applied"
 echo "== seed prerequisites + canonical objective catalogue =="
 PSQL -q -f "$HERE/seed.sql"
 
-echo "== apply objective alias migration =="
+echo "== apply objective alias migration (production history) =="
 PSQL -q -f "$ALIAS_MIGRATION"
+
+echo "== model production-only ledger entry 20260720021300 (no repo file) =="
+PSQL -q -f "$MATCH_PREIMAGE"
 
 echo "== seed legacy overloaded 'reviewed' confidence rows (pre-split contract) =="
 PSQL -q -c "insert into public.game_log_events (game_log_import_id, event_order, event_type, raw_line, confidence_level, event_identity, payload) values
@@ -68,8 +99,22 @@ echo "== pre-migration RPC payload compatibility (deployed contract) =="
 # must succeed against the PRE-split RPC (which ignores the extra key), and
 # the review_state column must not exist yet. This is the state production
 # is in today: review_state is computed and cannot persist until the gated
-# migration is applied.
+# migration is applied. Nothing gated has been applied above this line.
 PSQL -q -f "$HERE/pre-split-compat.sql"
+
+echo "== deployed match-oracle disclosure (pre-contraction baseline) =="
+PSQL -q -f "$HERE/match-oracle-pre-contraction.sql"
+
+# ---------------------------------------------------------------------------
+# Gated migrations start here, in ledger-version order. Everything above this
+# line models production; everything below is prepared-and-NOT-applied work.
+# ---------------------------------------------------------------------------
+
+echo "== apply gated merger offer/rule snapshot migration =="
+PSQL -q -f "$MERGER_MIGRATION"
+
+echo "== repeat-safety: apply the merger migration a second time =="
+PSQL -q -f "$MERGER_MIGRATION"
 
 echo "== apply confidence/review-state split migration =="
 PSQL -q -f "$SPLIT_MIGRATION"
@@ -77,11 +122,26 @@ PSQL -q -f "$SPLIT_MIGRATION"
 echo "== repeat-safety: apply the split migration a second time =="
 PSQL -q -f "$SPLIT_MIGRATION"
 
+echo "== apply gated guest-identity alias source-control migration =="
+PSQL -q -f "$GUEST_ALIAS_MIGRATION"
+
+echo "== repeat-safety: apply the guest-alias migration a second time =="
+PSQL -q -f "$GUEST_ALIAS_MIGRATION"
+
 echo "== apply canonical board-placement contract migration =="
 PSQL -q -f "$PLACEMENT_MIGRATION"
 
 echo "== repeat-safety: apply the placement-contract migration a second time =="
 PSQL -q -f "$PLACEMENT_MIGRATION"
+
+echo "== apply gated match-reason contraction (REPLACE of 20260720021300) =="
+PSQL -q -f "$COARSEN_MIGRATION"
+
+echo "== repeat-safety: apply the contraction a second time =="
+PSQL -q -f "$COARSEN_MIGRATION"
+
+echo "== coarsened match-oracle disclosure (post-contraction) =="
+PSQL -q -f "$HERE/match-oracle-post-contraction.sql"
 
 echo "== behavioural assertions =="
 PSQL -q -f "$HERE/assertions.sql"
