@@ -41,12 +41,17 @@ describe('get_public_player_names service-role migration', () => {
     );
   });
 
-  it('bounds and null-guards its uuid-array input', () => {
+  it('bounds and null-guards its uuid-array input by total element count', () => {
     const migration = getPublicPlayerNamesMigration();
 
+    // array_length(arr, 1) only measures one dimension: a multidimensional
+    // uuid[] can exceed 2000 total elements while its first dimension stays
+    // at or below 2000, silently bypassing a dimensional bound. cardinality()
+    // counts every element regardless of shape and must be used instead.
     expect(migration).toContain(
-      "if coalesce(array_length(p_player_ids, 1), 0) > 2000 then",
+      "if coalesce(cardinality(p_player_ids), 0) > 2000 then",
     );
+    expect(migration).not.toContain('array_length(p_player_ids');
     expect(migration).toContain("any(coalesce(p_player_ids, '{}'::uuid[]))");
   });
 

@@ -45,7 +45,14 @@ as $$
 begin
   -- Bound the input: the app batches roster/group lookups far below this, so
   -- anything larger is a bug or abuse, not a legitimate request.
-  if coalesce(array_length(p_player_ids, 1), 0) > 2000 then
+  --
+  -- Uses cardinality(), not array_length(..., 1): array_length only measures
+  -- one dimension, so a multidimensional uuid[] (e.g. 2 x 1001) can hold more
+  -- than 2000 total elements while its first dimension stays at or below
+  -- 2000, silently bypassing a dimensional check. cardinality() counts every
+  -- element regardless of dimensionality, lower bounds, or shape, matching
+  -- what `= any(p_player_ids)` below actually evaluates.
+  if coalesce(cardinality(p_player_ids), 0) > 2000 then
     raise exception 'get_public_player_names: too many player ids (max 2000)';
   end if;
 
