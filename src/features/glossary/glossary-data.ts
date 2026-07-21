@@ -193,38 +193,20 @@ export const glossaryCategories: GlossaryCategory[] = [
     id: 'play-styles',
     title: 'Play Styles',
     blurb:
-      'The strategic archetype a game was played in — both the style a player declares up front and the one inferred from how their points actually came together.',
+      'The strategic archetype a game was played in, inferred from how a player’s points actually came together.',
     terms: [
       {
         slug: 'play-style',
         term: 'Play Style',
         aliases: ['play styles', 'style identity', 'style profile'],
         definition:
-          "A game's strategic archetype — for example greenery-heavy, card-engine, or milestone-and-award focused. Each game can carry a declared style the player chose up front and an inferred style derived from how their points actually came together; the style sections compare the two and track which styles win most.",
-      },
-      {
-        slug: 'declared-style',
-        term: 'Declared Style',
-        definition:
-          'The play style a player records for themselves when a game is logged, capturing the plan they went in with. It is optional, so not every game has one.',
+          "A game's strategic archetype — for example greenery-heavy, card-engine, or milestone-and-award focused. Each finalized game is classified from how the player's points actually came together, and the style sections track which styles win most.",
       },
       {
         slug: 'inferred-style',
         term: 'Inferred Style',
         definition:
-          "A play style the app derives automatically from a player's actual score breakdown — the mix of terraform rating, card points, board tiles, milestones, and awards they ended up with. It reflects what happened, not what was planned, so it can differ from the declared style.",
-      },
-      {
-        slug: 'style-agreement',
-        term: 'Style Agreement',
-        definition:
-          "How often a player's declared style matched the style inferred from their scoring. Each game is scored as an exact match, a partial match (related archetypes), or a mismatch, and the section stacks those rates per player. Frequent mismatches can mean a player plans one way but scores another.",
-      },
-      {
-        slug: 'style-modifier',
-        term: 'Style Modifier',
-        definition:
-          'An optional secondary tag layered on a declared style to capture a supporting plan — for example a board-control game with an engine-building lean. A game can carry up to two modifiers alongside its primary declared style.',
+          "A play style the app derives automatically from a player's actual score breakdown — the mix of terraform rating, card points, board tiles, milestones, and awards they ended up with. It reflects what happened rather than what was planned, and it is the only style basis the analytics use.",
       },
       {
         slug: 'style-balanced',
@@ -429,7 +411,7 @@ export const glossaryCategories: GlossaryCategory[] = [
         term: 'Optional Data Coverage',
         aliases: ['coverage', 'optional-data coverage'],
         definition:
-          "The share of a player's or group's finalized games that recorded the optional breakdown details — full card-point breakdowns, microbe / animal / Jovian points, declared play style, and key cards. A low value means that detail is simply missing from those games, not that the value was zero, so treat the dependent charts as partial samples.",
+          "The share of a player's or group's finalized games that recorded the optional breakdown details — full card-point breakdowns, microbe / animal / Jovian points, and key cards. A low value means that detail is simply missing from those games, not that the value was zero, so treat the dependent charts as partial samples.",
       },
       {
         slug: 'full-card-breakdown-coverage',
@@ -454,12 +436,6 @@ export const glossaryCategories: GlossaryCategory[] = [
         term: 'Jovian Coverage',
         definition:
           'The share of finalized games that recorded Jovian points, which drives how reliable the Jovian score bucket is.',
-      },
-      {
-        slug: 'declared-style-coverage',
-        term: 'Declared Style Coverage',
-        definition:
-          'The share of finalized games where a player recorded a declared style. Style-agreement charts can only compare the games where this exists.',
       },
       {
         slug: 'key-card-coverage',

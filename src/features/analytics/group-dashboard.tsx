@@ -6,7 +6,6 @@ import type {
   GroupHeadToHeadRow,
   LineupEffectRow,
   ScoreSourceAverages,
-  StyleAgreementRow,
 } from '@/lib/db/analytics-repo';
 import { ScoreSourceList } from './score-source-list';
 
@@ -15,12 +14,6 @@ type GroupDashboardProps = {
   headToHeadRows?: GroupHeadToHeadRow[];
   lineupEffectRows?: LineupEffectRow[];
   scoreAverages?: ScoreSourceAverages | null;
-  styleAgreementRows?: Array<
-    Pick<
-      StyleAgreementRow,
-      'comparedGames' | 'exactMatchRate' | 'mismatchRate' | 'partialMatchRate' | 'playerName'
-    >
-  >;
 };
 
 function formatPercent(value: number) {
@@ -32,12 +25,10 @@ export function GroupDashboard({
   headToHeadRows = [],
   lineupEffectRows = [],
   scoreAverages = null,
-  styleAgreementRows = [],
 }: GroupDashboardProps) {
   const hasFinalizedAnalytics =
     headToHeadRows.length > 0 ||
     lineupEffectRows.length > 0 ||
-    styleAgreementRows.length > 0 ||
     coverage !== null ||
     scoreAverages !== null;
 
@@ -46,7 +37,7 @@ export function GroupDashboard({
       <ChartFrame title="Group Analytics">
         <p className="text-sm text-stone-300">
           <GlossaryRichText>
-            Finalize a few games to unlock the leaderboard, head-to-head, lineup, style, and coverage analytics for this group.
+            Finalize a few games to unlock the leaderboard, head-to-head, lineup, and coverage analytics for this group.
           </GlossaryRichText>
         </p>
       </ChartFrame>
@@ -107,34 +98,6 @@ export function GroupDashboard({
           </div>
         )}
       </ChartFrame>
-      <ChartFrame title="Style Agreement">
-        {styleAgreementRows.length === 0 ? (
-          <p className="text-sm text-stone-400">
-            <GlossaryRichText>
-              No declared-versus-inferred style comparisons are available yet.
-            </GlossaryRichText>
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {styleAgreementRows.slice(0, 5).map((row) => (
-              <article
-                className="tm-stat-card"
-                key={row.playerName}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-stone-100">{row.playerName}</p>
-                  <p className="tm-accent-copy text-sm">{formatPercent(row.exactMatchRate)}</p>
-                </div>
-                <p className="tm-muted-copy mt-2 text-sm">
-                  <GlossaryRichText>
-                    {`${row.comparedGames} compared games | partial ${formatPercent(row.partialMatchRate)} | mismatch ${formatPercent(row.mismatchRate)}`}
-                  </GlossaryRichText>
-                </p>
-              </article>
-            ))}
-          </div>
-        )}
-      </ChartFrame>
       <ChartFrame title="Optional Data Coverage">
         {coverage ? (
           <div className="flex flex-wrap gap-2">
@@ -142,7 +105,6 @@ export function GroupDashboard({
             <CoverageBadge label="Microbe coverage" value={coverage.microbeCoverage} />
             <CoverageBadge label="Animal coverage" value={coverage.animalCoverage} />
             <CoverageBadge label="Jovian coverage" value={coverage.jovianCoverage} />
-            <CoverageBadge label="Declared style coverage" value={coverage.declaredStyleCoverage} />
             <CoverageBadge label="Key-card coverage" value={coverage.keyCardCoverage} />
           </div>
         ) : (

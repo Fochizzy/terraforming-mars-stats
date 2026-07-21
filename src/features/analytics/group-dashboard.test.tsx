@@ -57,15 +57,6 @@ describe('GroupDashboard', () => {
         averageOtherCardPoints: 11.2,
         averageTrPoints: 25.3,
       },
-      styleAgreementRows: [
-        {
-          comparedGames: 4,
-          exactMatchRate: 0.5,
-          mismatchRate: 0.25,
-          partialMatchRate: 0.25,
-          playerName: 'Friday Mars',
-        },
-      ],
     };
 
     render(
@@ -76,7 +67,30 @@ describe('GroupDashboard', () => {
     expect(screen.getAllByText(/friday mars/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/second seat, third seat/i)).toBeInTheDocument();
     expect(screen.getByText(/score source averages/i)).toBeInTheDocument();
-    expect(screen.getByText(/declared style coverage/i)).toBeInTheDocument();
+    expect(screen.getByText(/key-card coverage/i)).toBeInTheDocument();
     expect(screen.getByText(/3-1-0 over 4 games/i)).toBeInTheDocument();
+  });
+
+  it('renders no declared-style surfaces', () => {
+    const props: ComponentProps<typeof GroupDashboard> = {
+      coverage: {
+        animalCoverage: 0.25,
+        cardBreakdownCoverage: 0.5,
+        declaredStyleCoverage: 0.75,
+        finalizedGames: 4,
+        finalizedPlayerResults: 16,
+        groupId: 'group-1',
+        jovianCoverage: 0.5,
+        keyCardCoverage: 0.25,
+        microbeCoverage: 0.75,
+      },
+    };
+
+    render(<GroupDashboard {...props} />);
+
+    expect(screen.queryByText(/declared style coverage/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/style agreement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/declared-versus-inferred/i)).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/declared/i);
   });
 });

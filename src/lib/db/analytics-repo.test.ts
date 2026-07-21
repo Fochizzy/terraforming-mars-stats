@@ -1970,18 +1970,25 @@ describe('getCrossGroupFocusData', () => {
       inActiveGroup: true,
       playerIds: ['colette-1'],
     });
+    // `opponentId` is the opponent's canonical person ID, not their group-local
+    // player row, so consumers can match a matchup without comparing names.
     expect(colette?.bundle.headToHeadRows).toEqual([
       {
         averageScoreDifferential: -10,
         gamesPlayed: 1,
         label: 'ColetteUser vs Fochizzy',
         losses: 1,
+        opponentId: 'user:user-1',
         ties: 0,
         wins: 0,
       },
     ]);
     expect(colette?.bundle.performance?.gamesPlayed).toBe(1);
     expect(colette?.bundle.trendRows).toHaveLength(1);
+
+    const fochizzy = people.find((person) => person.canonicalId === 'user:user-1');
+    expect(fochizzy?.bundle.headToHeadRows[0]?.opponentId).toBe('user:user-colette');
+    expect(fochizzy?.bundle.headToHeadRows[0]?.opponentId).not.toBe('colette-1');
   });
 
   it('returns an empty list when the user has no linked players', async () => {

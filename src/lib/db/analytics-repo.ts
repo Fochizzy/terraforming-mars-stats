@@ -6012,6 +6012,9 @@ export async function getCrossGroupFocusData(
           gamesPlayed: row.gamesPlayed,
           label: `${displayName} vs ${row.opponentName}`,
           losses: row.losses,
+          // Carried through so consumers can match a matchup to the opponent's
+          // canonical person instead of comparing display names.
+          opponentId: row.opponentId,
           ties: row.ties,
           wins: row.wins,
         }))

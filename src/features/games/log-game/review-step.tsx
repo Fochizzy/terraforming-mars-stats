@@ -93,12 +93,6 @@ export function ReviewStep({
                 </span>
               </li>
               <li className="flex items-center justify-between gap-3">
-                <span style={{ color: 'var(--tm-muted)' }}>Declared styles</span>
-                <span className="tm-accent-copy">
-                  {review.coverage.playersWithDeclaredStyle}
-                </span>
-              </li>
-              <li className="flex items-center justify-between gap-3">
                 <span style={{ color: 'var(--tm-muted)' }}>Key-card entries</span>
                 <span className="tm-accent-copy">
                   {review.coverage.playersWithKeyCards}

@@ -3,17 +3,23 @@ import type {
   AwardFunderWinnerRow,
   MilestoneEconomicsRow,
   PlayerMapPerformanceRow,
+  TagOutcomeRow,
   TilePlacementRow,
 } from '@/lib/db/extended-analytics-repo';
-import type { StyleAgreementRow } from '@/lib/db/analytics-repo';
+import type {
+  PlayerInteractionRow,
+  StyleAgreementRow,
+} from '@/lib/db/analytics-repo';
 import {
   type IdentityLookup,
   mergeAwardFunderWinnerMatrix,
   mergeGenerationDistribution,
   mergeMilestoneEconomics,
+  mergePlayerInteractions,
   mergePlayerMapPerformance,
   mergeStyleAgreement,
   OVERALL_GROUP_ID,
+  remapTagOutcomes,
   remapTilePlacements,
 } from '@/lib/db/overall-analytics-aggregators';
 
@@ -263,5 +269,93 @@ describe('overall-analytics-aggregators', () => {
       playerId: null,
       playerName: null,
     });
+  });
+
+  // The player comparison looks tag and corporation/Prelude evidence up by
+  // canonical person ID, so a group-local player row must never survive here.
+  it('remaps tag outcomes onto canonical person IDs', () => {
+    const rows: TagOutcomeRow[] = [
+      {
+        corporationId: null,
+        corporationName: 'Tharsis Republic',
+        gameId: 'game-1',
+        groupId: 'g1',
+        isWinner: true,
+        playedOn: '2026-01-01',
+        playerId: 'alice-g1',
+        playerName: 'Alice',
+        tagCode: 'science',
+        tagCount: 4,
+        totalPoints: 88,
+      },
+      {
+        corporationId: null,
+        corporationName: 'Tharsis Republic',
+        gameId: 'game-2',
+        groupId: 'g2',
+        isWinner: false,
+        playedOn: '2026-02-01',
+        playerId: 'alice-g2',
+        playerName: 'Alice',
+        tagCode: 'science',
+        tagCount: 3,
+        totalPoints: 74,
+      },
+    ];
+
+    const remapped = remapTagOutcomes(rows, lookup);
+
+    expect(remapped.map((row) => row.playerId)).toEqual([
+      'user:alice',
+      'user:alice',
+    ]);
+    expect(remapped.map((row) => row.groupId)).toEqual([
+      OVERALL_GROUP_ID,
+      OVERALL_GROUP_ID,
+    ]);
+    // Per-game rows stay distinct; only the identity collapses.
+    expect(remapped.map((row) => row.gameId)).toEqual(['game-1', 'game-2']);
+  });
+
+  it('collapses player interactions onto canonical person IDs', () => {
+    const rows: PlayerInteractionRow[] = [
+      {
+        averagePlacement: 1,
+        averageScore: 90,
+        gamesPlayed: 2,
+        groupId: 'g1',
+        interactionType: 'corporation_prelude_pair',
+        label: 'Tharsis Republic | Allied Bank',
+        playerId: 'alice-g1',
+        playerName: 'Alice',
+        winRate: 1,
+        wins: 2,
+      },
+      {
+        averagePlacement: 2,
+        averageScore: 80,
+        gamesPlayed: 2,
+        groupId: 'g2',
+        interactionType: 'corporation_prelude_pair',
+        label: 'Tharsis Republic | Allied Bank',
+        playerId: 'alice-g2',
+        playerName: 'Alice',
+        winRate: 0,
+        wins: 0,
+      },
+    ];
+
+    const merged = mergePlayerInteractions(rows, lookup);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({
+      gamesPlayed: 4,
+      groupId: OVERALL_GROUP_ID,
+      playerId: 'user:alice',
+      playerName: 'Alice',
+      winRate: 0.5,
+      wins: 2,
+    });
+    expect(merged.map((row) => row.playerId)).not.toContain('alice-g1');
   });
 });

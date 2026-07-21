@@ -36,7 +36,6 @@ import type {
   LeaderboardRow,
   ScoreSourceAverages,
   SharedGameResultRow,
-  StyleAgreementRow,
   TrendRow,
 } from '@/lib/db/analytics-repo';
 import type {
@@ -1257,13 +1256,9 @@ function buildOpponentAdjustedMetric({
 }
 
 function buildStyleFitMetric({
-  focusPlayerId,
   selectedStylePerformanceRows,
-  styleAgreementRows,
 }: {
-  focusPlayerId: string | null;
   selectedStylePerformanceRows: GroupStylePerformanceRow[];
-  styleAgreementRows: StyleAgreementRow[];
 }): ExpandedIndividualMetric {
   const mostPlayed =
     [...selectedStylePerformanceRows].sort(
@@ -1277,18 +1272,6 @@ function buildStyleFitMetric({
         right.gamesPlayed - left.gamesPlayed ||
         right.averageScore - left.averageScore,
     )[0] ?? null;
-  const agreementRows = focusPlayerId
-    ? styleAgreementRows.filter((row) => row.playerId === focusPlayerId)
-    : styleAgreementRows;
-  const agreementWeight = sumValues(
-    agreementRows.map((row) => row.comparedGames),
-  );
-  const exactAgreement =
-    agreementWeight > 0
-      ? sumValues(
-          agreementRows.map((row) => row.exactMatchRate * row.comparedGames),
-        ) / agreementWeight
-      : null;
   const winRateGap =
     mostPlayed && best ? best.winRate - mostPlayed.winRate : null;
 
@@ -1307,7 +1290,10 @@ function buildStyleFitMetric({
         best ? humanizeStyleCode(best.styleCode) : 'n/a',
       ),
       expandedMetricEntry('Win-rate gap', formatMetricPercentDelta(winRateGap)),
-      expandedMetricEntry('Style agreement', formatMetricPercent(exactAgreement)),
+      expandedMetricEntry(
+        'Games in best style',
+        best ? `${best.gamesPlayed}` : 'n/a',
+      ),
     ],
     sampleSize: selectedStylePerformanceRows.reduce(
       (sum, row) => sum + row.gamesPlayed,
@@ -1624,7 +1610,6 @@ function buildExpandedIndividualMetrics({
   selectedInteractionRows,
   selectedPersonCanonicalId,
   selectedStylePerformanceRows,
-  styleAgreementRows,
   targetPlayerIds,
   targetRows,
   tilePlacementRows,
@@ -1642,7 +1627,6 @@ function buildExpandedIndividualMetrics({
   selectedInteractionRows: DashboardInteractionRow[];
   selectedPersonCanonicalId: string | null;
   selectedStylePerformanceRows: GroupStylePerformanceRow[];
-  styleAgreementRows: StyleAgreementRow[];
   targetPlayerIds: Set<string> | null;
   targetRows: SharedGameResultRow[];
   tilePlacementRows: TilePlacementRow[];
@@ -1663,11 +1647,7 @@ function buildExpandedIndividualMetrics({
       targetPlayerIds,
       targetRows,
     }),
-    buildStyleFitMetric({
-      focusPlayerId,
-      selectedStylePerformanceRows,
-      styleAgreementRows,
-    }),
+    buildStyleFitMetric({ selectedStylePerformanceRows }),
     buildSignatureSelectionLiftMetric({
       cardOutcomeRows,
       currentUserCanonicalId,
@@ -1912,7 +1892,6 @@ export function InsightsDashboard({
         leaderboardRows: analytics.leaderboardRows,
         lineupEffectRows: analytics.lineupEffectRows,
         stylePerformanceRows: selectedStylePerformanceRows,
-        styleAgreementRows: analytics.styleAgreementRows,
         trendRows: analytics.playerTrendRows,
       });
     },
@@ -1922,7 +1901,6 @@ export function InsightsDashboard({
       analytics.leaderboardRows,
       analytics.lineupEffectRows,
       analytics.playerTrendRows,
-      analytics.styleAgreementRows,
       isGroupScope,
       focusPlayerName,
       overallFocusBundle,
@@ -1990,7 +1968,6 @@ export function InsightsDashboard({
             selectedInteractionRows,
             selectedPersonCanonicalId: selectedPerson?.canonicalId ?? null,
             selectedStylePerformanceRows,
-            styleAgreementRows: sectionAnalytics.styleAgreementRows,
             targetPlayerIds,
             targetRows: targetSharedGameRows,
             tilePlacementRows: sectionExtended.tilePlacementRows,
@@ -2002,7 +1979,6 @@ export function InsightsDashboard({
       focusedHeadToHeadRows,
       personalSelectionStats,
       scopeMode,
-      sectionAnalytics.styleAgreementRows,
       sectionExtended.cardOutcomeRows,
       sectionExtended.gameLengthPerformanceRows,
       sectionExtended.generationPaceRows,
@@ -2026,10 +2002,6 @@ export function InsightsDashboard({
         { label: 'Microbe', value: Math.round(selectedCoverage.microbeCoverage * 100) },
         { label: 'Animal', value: Math.round(selectedCoverage.animalCoverage * 100) },
         { label: 'Jovian', value: Math.round(selectedCoverage.jovianCoverage * 100) },
-        {
-          label: 'Declared',
-          value: Math.round(selectedCoverage.declaredStyleCoverage * 100),
-        },
         { label: 'Key Cards', value: Math.round(selectedCoverage.keyCardCoverage * 100) },
       ]
     : [];
@@ -2130,7 +2102,6 @@ export function InsightsDashboard({
     sectionAnalytics.headToHeadRows.length > 0 ||
     selectedInteractionRows.length > 0 ||
     sectionAnalytics.lineupEffectRows.length > 0 ||
-    sectionAnalytics.styleAgreementRows.length > 0 ||
     sectionAnalytics.scoreAverages !== null ||
     selectedCoverage !== null;
 
@@ -2379,7 +2350,8 @@ export function InsightsDashboard({
             form,{' '}
             <GlossaryLink slug="score-sources">score-source</GlossaryLink>{' '}
             patterns,{' '}
-            <GlossaryLink slug="style-agreement">style agreement</GlossaryLink>,{' '}
+            <GlossaryLink slug="inferred-style">inferred style</GlossaryLink>{' '}
+            performance,{' '}
             <GlossaryLink slug="head-to-head">head-to-head</GlossaryLink> edges,{' '}
             <GlossaryLink slug="lineup-effects">lineup effects</GlossaryLink>,{' '}
             <GlossaryLink slug="interaction-insights">
@@ -2925,10 +2897,6 @@ export function InsightsDashboard({
                       <CoverageBadge
                         label="Jovian coverage"
                         value={selectedCoverage.jovianCoverage}
-                      />
-                      <CoverageBadge
-                        label="Declared style coverage"
-                        value={selectedCoverage.declaredStyleCoverage}
                       />
                       <CoverageBadge
                         label="Key-card coverage"

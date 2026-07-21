@@ -114,7 +114,7 @@ describe('GlossaryLink', () => {
     const referencedSlugs = [
       'weighted-score',
       'score-sources',
-      'style-agreement',
+      'inferred-style',
       'head-to-head',
       'lineup-effects',
       'interaction-insights',
@@ -124,6 +124,38 @@ describe('GlossaryLink', () => {
     for (const slug of referencedSlugs) {
       expect(anchorIds.has(slug)).toBe(true);
     }
+  });
+
+  it('no longer exposes declared-style anchors', () => {
+    // Declared style was removed from every user-facing analytics surface, so
+    // the glossary must not keep dangling anchors for it.
+    for (const slug of [
+      'declared-style',
+      'declared-style-coverage',
+      'style-agreement',
+    ]) {
+      expect(anchorIds.has(slug)).toBe(false);
+    }
+  });
+});
+
+describe('glossary declared-style removal', () => {
+  it('never mentions declared style or style agreement in visible copy', () => {
+    const copy = glossaryCategories
+      .flatMap((category) => [
+        category.title,
+        category.blurb,
+        ...category.terms.flatMap((term) => [
+          term.term,
+          term.definition,
+          ...(term.aliases ?? []),
+        ]),
+      ])
+      .join('\n');
+
+    expect(copy).not.toMatch(/declared/i);
+    expect(copy).not.toMatch(/style agreement/i);
+    expect(copy).not.toMatch(/declared-versus-inferred/i);
   });
 });
 

@@ -703,6 +703,17 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/style identity/i)).toBeInTheDocument();
     expect(screen.getByText(/game log signal/i)).toBeInTheDocument();
     expect(screen.getAllByText(/commercial district/i).length).toBeGreaterThan(0);
+
+    // Declared style is absent from every user-facing surface even though the
+    // coverage row above still carries the stored declaredStyleCoverage value.
+    expect(screen.getByText(/key-card coverage/i)).toBeInTheDocument();
+    expect(screen.queryByText(/declared style coverage/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /style agreement/i }),
+    ).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Declared/i);
+    expect(document.body.textContent).not.toMatch(/Style Agreement/i);
+    expect(document.body.textContent).not.toMatch(/Declared-versus-inferred/i);
   });
 
   it('does not present zero removal totals as measured pressure when no parsed removal events exist', () => {

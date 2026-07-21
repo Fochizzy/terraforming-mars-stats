@@ -342,7 +342,7 @@ function ComparisonBody({
               </div>
             ) : (
               <p className="text-xs text-stone-500">
-                More declared or inferred style data needed.
+                More inferred style data needed.
               </p>
             )}
           </div>

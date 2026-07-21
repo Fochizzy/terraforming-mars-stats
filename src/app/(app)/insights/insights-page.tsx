@@ -106,6 +106,13 @@ const emptyStyleEffectiveness: StyleEffectivenessData = {
   styleRows: [],
 };
 
+/**
+ * Keeps the page renderable when one analytics source fails, at the cost of
+ * that section rendering as if it had no evidence. The log line names the
+ * substitution explicitly so an empty section in production is always
+ * attributable to a failure rather than mistaken for a genuine empty state —
+ * the two are indistinguishable downstream.
+ */
 async function loadInsightsDataOrDefault<T>(
   label: string,
   loadData: Promise<T>,
@@ -114,7 +121,10 @@ async function loadInsightsDataOrDefault<T>(
   try {
     return await loadData;
   } catch (error) {
-    console.error(`[insights] Failed to load ${label}`, error);
+    console.error(
+      `[insights] Failed to load ${label}; substituting empty fallback data`,
+      error,
+    );
     return fallback;
   }
 }

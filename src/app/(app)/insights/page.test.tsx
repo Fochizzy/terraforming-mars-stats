@@ -1,12 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CrossGroupFocusPerson } from '@/lib/db/analytics-repo';
 import { InsightsPageContent } from './insights-page';
 
 type CapturedInsightsDashboardProps = {
   children?: ReactNode;
   currentUserCanonicalId?: string;
-  focusPeople: Array<{ canonicalId: string; displayName: string }>;
+  focusPeople: CrossGroupFocusPerson[];
   mapAwardGroups?: Array<{
     awardNames: string[];
     mapCode: string;
@@ -362,19 +363,107 @@ describe('InsightsPage', () => {
     expect(screen.getByTestId('insights-dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('selection-stats-section')).toBeInTheDocument();
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[insights] Failed to load extended analytics',
+      '[insights] Failed to load extended analytics; substituting empty fallback data',
       expect.any(Error),
     );
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[insights] Failed to load personal selection stats',
+      '[insights] Failed to load personal selection stats; substituting empty fallback data',
       expect.any(Error),
     );
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[insights] Failed to load final terraforming action stats',
+      '[insights] Failed to load final terraforming action stats; substituting empty fallback data',
       expect.any(Error),
     );
 
     consoleErrorSpy.mockRestore();
+  });
+
+  // A failed query and a genuinely empty dataset both reach the dashboard as
+  // empty arrays, so the log line is the only thing that tells them apart.
+  it('logs a substituted fallback when cross-group focus data fails to load', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    mockState.getCrossGroupFocusData.mockRejectedValueOnce(
+      new Error('statement timeout'),
+    );
+
+    render(await InsightsPageContent({ mode: 'individual' }));
+
+    expect(captureState.insightsDashboardProps?.focusPeople).toEqual([]);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[insights] Failed to load cross-group focus players; substituting empty fallback data',
+      expect.any(Error),
+    );
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('logs nothing when cross-group focus data is legitimately empty', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    mockState.getCrossGroupFocusData.mockResolvedValueOnce([]);
+
+    render(await InsightsPageContent({ mode: 'individual' }));
+
+    expect(captureState.insightsDashboardProps?.focusPeople).toEqual([]);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('forwards non-zero focus bundles through the loader without flattening them', async () => {
+    mockState.getCrossGroupFocusData.mockResolvedValueOnce([
+      {
+        activeGroupPlayerId: 'player-self',
+        bundle: {
+          coverage: null,
+          headToHeadRows: [
+            {
+              averageScoreDifferential: 6.25,
+              gamesPlayed: 2,
+              label: 'Friday Mars vs Colette LeRoux',
+              losses: 0,
+              opponentId: 'user:colette',
+              ties: 0,
+              wins: 2,
+            },
+          ],
+          performance: {
+            averageLossGap: null,
+            averagePlacement: 1.2,
+            averageScore: 91,
+            averageWinMargin: 8,
+            differentialComponent: 0.1,
+            gamesPlayed: 9,
+            groupId: 'linked-profile',
+            placementComponent: 0.28,
+            playerId: 'linked-profile',
+            playerName: 'Friday Mars',
+            weightedScore: 0.82,
+            winRate: 0.778,
+            winRateComponent: 0.39,
+            wins: 7,
+          },
+          scoreAverages: null,
+          trendRows: [],
+        },
+        canonicalId: 'user:user-1',
+        displayName: 'Friday Mars',
+        inActiveGroup: true,
+        playerIds: ['player-self'],
+      },
+    ]);
+
+    render(await InsightsPageContent({ mode: 'individual' }));
+
+    const forwarded = captureState.insightsDashboardProps?.focusPeople[0];
+
+    expect(forwarded?.bundle?.performance?.gamesPlayed).toBe(9);
+    expect(forwarded?.bundle?.headToHeadRows[0]?.opponentId).toBe('user:colette');
   });
 
   it('renders group insights as a separate group-scoped page', async () => {

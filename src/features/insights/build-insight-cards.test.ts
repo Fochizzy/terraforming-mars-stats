@@ -108,18 +108,6 @@ describe('buildInsightCards', () => {
           wins: 2,
         },
       ],
-      styleAgreementRows: [
-        {
-          averageInferredConfidence: 0.8,
-          comparedGames: 4,
-          exactMatchRate: 0.5,
-          groupId: 'group-1',
-          mismatchRate: 0.25,
-          partialMatchRate: 0.25,
-          playerId: 'p1',
-          playerName: 'Friday Mars',
-        },
-      ],
       trendRows: [
         {
           gameId: 'g1',
@@ -172,14 +160,40 @@ describe('buildInsightCards', () => {
       ],
     } as never);
 
-    expect(cards).toHaveLength(7);
+    expect(cards).toHaveLength(6);
     expect(cards[0].body).toMatch(/Friday Mars/);
     expect(cards[0].body).toMatch(/75%/);
     expect(cards[1].body).toMatch(/Second Seat/);
     expect(cards[2].body).toMatch(/Second Seat, Third Seat/);
     expect(cards[3].body).toMatch(/Tharsis Republic \| Allied Bank/);
-    expect(cards[4].body).toMatch(/50%/);
-    expect(cards[5].body).toMatch(/Jovian payoff/i);
-    expect(cards[6].body).toMatch(/recent/i);
+    expect(cards[4].body).toMatch(/Jovian payoff/i);
+    expect(cards[5].body).toMatch(/recent/i);
+  });
+
+  it('never emits a declared-style agreement card', () => {
+    const cards = buildInsightCards({
+      focusPlayerId: 'p1',
+      focusPlayerName: 'Friday Mars',
+      stylePerformanceRows: [
+        {
+          averageGenerationCount: 11,
+          averagePlacement: 1.33,
+          averageScore: 88.1,
+          gamesPlayed: 3,
+          groupId: 'group-1',
+          playerId: 'p1',
+          playerName: 'Friday Mars',
+          styleCode: 'jovian_payoff',
+          winRate: 0.667,
+          wins: 2,
+        },
+      ],
+    });
+
+    expect(cards.map((card) => card.title)).not.toContain('Style Agreement');
+    for (const card of cards) {
+      expect(card.body).not.toMatch(/declared/i);
+      expect(card.body).not.toMatch(/style agreement/i);
+    }
   });
 });

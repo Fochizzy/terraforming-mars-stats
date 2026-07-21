@@ -1343,6 +1343,24 @@ describe('InsightsDashboard', () => {
     expect(
       screen.getByRole('heading', { name: /Tharsis Republic \| Allied Bank/i }),
     ).toBeInTheDocument();
+
+    // Declared style is gone from every user-facing surface even though the
+    // coverage row and style-agreement rows above still carry the stored data.
+    expect(
+      screen.getByRole('heading', { name: /Optional Data Coverage/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Key-card coverage/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Declared style coverage/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /Style Agreement/i }),
+    ).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Declared/i);
+    expect(document.body.textContent).not.toMatch(/Style Agreement/i);
+    expect(document.body.textContent).not.toMatch(/Declared-versus-inferred/i);
+    // The inferred-style analytics stay.
+    expect(
+      screen.getByRole('heading', { name: /Best Style Snapshot/i }),
+    ).toBeInTheDocument();
   });
 
   it('surfaces a cross-group person and hides group-only breakdowns for them', async () => {

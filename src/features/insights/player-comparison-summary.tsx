@@ -11,9 +11,10 @@ import {
 import { TagLabel } from '@/components/ui/tag-icon';
 import type {
   CrossGroupFocusPerson,
+  FocusedHeadToHeadRow,
   GroupAnalytics,
   PlayerInteractionRow,
-  PlayerScoreSourceAverages,
+  ScoreSourceAverages,
 } from '@/lib/db/analytics-repo';
 import type {
   ExtendedGroupAnalytics,
@@ -35,12 +36,22 @@ type TagProfileRow = {
   winRate: number;
 };
 
+/**
+ * The comparison always runs in cross-group ("Overall") scope, where the
+ * GroupAnalytics object it receives intentionally leaves the leaderboard,
+ * score-average, coverage and head-to-head arrays empty — those are sourced
+ * per person from the cross-group focus bundle instead. Everything that
+ * describes a single player therefore comes off `CrossGroupFocusPerson.bundle`,
+ * keyed by canonical person ID.
+ */
 type DisplayPlayer = {
   averageScore: number | null;
   canonicalId: string;
   displayName: string;
   gamesPlayed: number;
+  headToHeadRows: FocusedHeadToHeadRow[];
   isCurrentUser: boolean;
+  scoreAverages: ScoreSourceAverages | null;
   winRate: number | null;
 };
 
@@ -66,9 +77,7 @@ const scoreSourceKeys = [
   ['averageJovianPoints', 'Jovian'],
   ['averageMicrobePoints', 'Microbes'],
   ['averageAnimalPoints', 'Animals'],
-] as const satisfies ReadonlyArray<
-  readonly [keyof PlayerScoreSourceAverages, string]
->;
+] as const satisfies ReadonlyArray<readonly [keyof ScoreSourceAverages, string]>;
 
 function formatAverage(value: number, digits = 2) {
   return value.toLocaleString('en-US', {
@@ -451,6 +460,42 @@ function PairingCard({
   );
 }
 
+/**
+ * Direct-matchup evidence between two canonical persons. Each side's bundle
+ * carries the same games from its own perspective, so either row answers the
+ * question; the right-hand row is mirrored before use. Matching is by canonical
+ * `opponentId` only — display names are not an identity boundary, and a row
+ * without an opponent ID is treated as no evidence rather than name-matched.
+ */
+function findDirectMatchup(
+  left: DisplayPlayer,
+  right: DisplayPlayer,
+): { averageScoreDifferential: number; gamesPlayed: number } | null {
+  const fromLeft = left.headToHeadRows.find(
+    (row) => row.opponentId !== undefined && row.opponentId === right.canonicalId,
+  );
+
+  if (fromLeft) {
+    return {
+      averageScoreDifferential: fromLeft.averageScoreDifferential,
+      gamesPlayed: fromLeft.gamesPlayed,
+    };
+  }
+
+  const fromRight = right.headToHeadRows.find(
+    (row) => row.opponentId !== undefined && row.opponentId === left.canonicalId,
+  );
+
+  if (fromRight) {
+    return {
+      averageScoreDifferential: fromRight.averageScoreDifferential * -1,
+      gamesPlayed: fromRight.gamesPlayed,
+    };
+  }
+
+  return null;
+}
+
 function buildComparisonInsights(
   analytics: GroupAnalytics,
   players: DisplayPlayer[],
@@ -459,18 +504,8 @@ function buildComparisonInsights(
   const [left, right] = players;
   if (!left || !right) return [];
 
-  const headToHead = analytics.headToHeadRows.find(
-    (row) =>
-      (row.leftPlayerId === left.canonicalId &&
-        row.rightPlayerId === right.canonicalId) ||
-      (row.leftPlayerId === right.canonicalId &&
-        row.rightPlayerId === left.canonicalId),
-  );
-  const leftScoreEdge = headToHead
-    ? headToHead.leftPlayerId === left.canonicalId
-      ? headToHead.averageScoreDifferential
-      : headToHead.averageScoreDifferential * -1
-    : null;
+  const headToHead = findDirectMatchup(left, right);
+  const leftScoreEdge = headToHead?.averageScoreDifferential ?? null;
 
   const topStyle = (playerId: string) =>
     analytics.playerStylePerformanceRows
@@ -484,11 +519,10 @@ function buildComparisonInsights(
   const leftStyle = topStyle(left.canonicalId);
   const rightStyle = topStyle(right.canonicalId);
 
-  const scoreRows = new Map(
-    analytics.playerScoreAverages.map((row) => [row.playerId, row]),
-  );
-  const leftScores = scoreRows.get(left.canonicalId);
-  const rightScores = scoreRows.get(right.canonicalId);
+  // Score sources come from each person's cross-group bundle. `null` means the
+  // profile is unavailable, so no gap is claimed; a recorded 0 stays a real value.
+  const leftScores = left.scoreAverages;
+  const rightScores = right.scoreAverages;
   const largestScoreGap =
     leftScores && rightScores
       ? scoreSourceKeys
@@ -537,7 +571,7 @@ function buildComparisonInsights(
         leftStyle && rightStyle ? (
           leftStyle.styleCode === rightStyle.styleCode ? (
             <>
-              Both profiles lean{' '}
+              Both profiles infer as{' '}
               <strong className="text-stone-100">
                 {humanize(leftStyle.styleCode)}
               </strong>
@@ -555,7 +589,9 @@ function buildComparisonInsights(
           <>Style comparison will sharpen as more inferred-style games are recorded.</>
         ),
       icon: <Layers3 aria-hidden="true" className="h-4 w-4" />,
-      title: 'Style mirror',
+      // Inferred-style evidence only: `playerStylePerformanceRows` is derived
+      // from each finalized game's inferred primary style.
+      title: 'Inferred style mirror',
     },
     {
       body: largestScoreGap ? (
@@ -631,20 +667,18 @@ export function PlayerComparisonSummary({
   const peopleById = new Map(
     focusPeople.map((person) => [person.canonicalId, person]),
   );
-  const leaderboardById = new Map(
-    analytics.leaderboardRows.map((row) => [row.playerId, row]),
-  );
   const players = selectedCanonicalIds
     .map<DisplayPlayer>((canonicalId) => {
       const person = peopleById.get(canonicalId);
-      const performance = leaderboardById.get(canonicalId);
+      const performance = person?.bundle.performance ?? null;
       return {
         averageScore: performance?.averageScore ?? null,
         canonicalId,
-        displayName:
-          person?.displayName ?? performance?.playerName ?? 'Unknown player',
+        displayName: person?.displayName ?? 'Unknown player',
         gamesPlayed: performance?.gamesPlayed ?? 0,
+        headToHeadRows: person?.bundle.headToHeadRows ?? [],
         isCurrentUser: canonicalId === currentUserCanonicalId,
+        scoreAverages: person?.bundle.scoreAverages ?? null,
         winRate: performance?.winRate ?? null,
       };
     })

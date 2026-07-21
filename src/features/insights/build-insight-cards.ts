@@ -5,7 +5,6 @@ import type {
   GroupStylePerformanceRow,
   LeaderboardRow,
   LineupEffectRow,
-  StyleAgreementRow,
   TrendRow,
 } from '@/lib/db/analytics-repo';
 
@@ -55,7 +54,6 @@ type BuildInsightCardsInput = {
       playerName?: string;
     }
   >;
-  styleAgreementRows?: StyleAgreementRow[];
   trendRows?: TrendRow[];
 };
 
@@ -175,7 +173,6 @@ export function buildInsightCards({
   leaderboardRows = [],
   lineupEffectRows = [],
   stylePerformanceRows = [],
-  styleAgreementRows = [],
   trendRows = [],
 }: BuildInsightCardsInput): InsightCard[] {
   const cards: InsightCard[] = [];
@@ -265,20 +262,6 @@ export function buildInsightCards({
       body: focusPlayerName
         ? `${focusPlayerName} performs best with the ${interactionRow.label} ${interactionLabel}, winning ${formatPercent(interactionRow.winRate)} of ${interactionRow.gamesPlayed} finalized results and averaging ${formatAverage(interactionRow.averageScore)} points.`
         : `${interactionRow.label} is the strongest current ${interactionLabel} in the group, producing a ${formatPercent(interactionRow.winRate)} win rate across ${interactionRow.gamesPlayed} finalized results with ${formatAverage(interactionRow.averageScore)} average points.`,
-    });
-  }
-
-  const styleRow = focusPlayerId
-    ? styleAgreementRows.find((row) => row.playerId === focusPlayerId) ?? null
-    : styleAgreementRows[0] ?? null;
-
-  if (styleRow) {
-    cards.push({
-      title: 'Style Agreement',
-      tone: 'style',
-      sampleSize: styleRow.comparedGames,
-      confidence: getConfidence(styleRow.comparedGames),
-      body: `${styleRow.playerName} has exact declared-versus-inferred style agreement in ${formatPercent(styleRow.exactMatchRate)} of ${styleRow.comparedGames} tagged finalized games, with ${formatPercent(styleRow.partialMatchRate)} partial matches.`,
     });
   }
 
