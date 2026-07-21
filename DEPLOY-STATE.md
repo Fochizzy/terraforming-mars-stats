@@ -17,28 +17,93 @@ version→commit linkage.
 | | |
 |---|---|
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
-| Worker version | `2c0ef541-0171-469c-a83d-2e91757f4e14` |
+| Worker version | `2ee56485-dc7b-4074-b6ce-db82061d91ae` |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `integration/venus-capture-to-increase-pattern` (pushed to `origin`; `origin/integration/venus-capture-to-increase-pattern` independently confirmed to resolve to the exact deployed SHA immediately before this deploy) |
-| Source commit | `9ab74dd4a10c737aaaed062a4047dbd66c37b1b6` — passed explicitly via `TM_STATS_SOURCE_BRANCH`/`TM_STATS_SOURCE_COMMIT` env vars before the build (the deploy worktree was a detached HEAD), not inferred |
-| Deployed (UTC) | 2026-07-21 09:47:53.078Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **Claimed 2026-07-21 ~16:45 UTC — corporation banner-logo release of `release/corporation-banner-logos` @ `7ffc9961ff4ba599ff0b800c4ea8ef83664ad289` (code-only, no migration) is in progress. No other production deployment, migration, repair, reparse, or backfill may begin until this row is released.** |
+| Source branch | `release/corporation-banner-logos` (pushed to `origin`; `origin/release/corporation-banner-logos` confirmed to resolve to the exact deployed SHA immediately before the build) |
+| Source commit | `7ffc9961ff4ba599ff0b800c4ea8ef83664ad289` — resolved by the deploy-time stamp print from a clean, non-detached worktree at that exact `git rev-parse HEAD`, not inferred |
+| Deployed (UTC) | 2026-07-21 16:37:09.372Z (`wrangler deployments list`, 100% traffic) |
+| Deploy lock | **Released — corporation banner-logo release completed and verified below. No production session currently holds the lock.** |
 | DB migration ledger head | `20260721081355 fix_event_card_tag_snapshot_correction` (unchanged by this deploy — code-only release; no migration applied or authorized) |
-| Rollback worker version | `08f9191f-7b06-4fa3-88dd-b3421d3ae89f` (immediately prior production build, 100% traffic 2026-07-21T04:21:42.798Z through this deploy; source commit `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`) |
-| Verified | 2026-07-21 ~09:47-09:55 UTC — see "Venus capture parser correction deploy" below for exact evidence and gaps |
+| Rollback worker version | `2c0ef541-0171-469c-a83d-2e91757f4e14` (immediately prior production build, 100% traffic 2026-07-21T09:47:53.078Z through this deploy; source commit `9ab74dd4a10c737aaaed062a4047dbd66c37b1b6`) |
+| Verified | 2026-07-21 ~16:37-16:50 UTC — see "Corporation banner-logo release" below for exact evidence and gaps |
 
 **Evidence for the source commit.** `scripts/deploy/deploy-with-stamp.ts`
-printed `TM_STATS_SOURCE_COMMIT=9ab74dd4a10c737aaaed062a4047dbd66c37b1b6` and
-`TM_STATS_SOURCE_BRANCH=integration/venus-capture-to-increase-pattern`
-immediately before invoking the build, from a verified-clean detached-HEAD
-worktree at that exact `git rev-parse HEAD`. The resulting version
-(`2c0ef541`) was then confirmed at 100% of `wrangler deployments list`
-traffic. **The authenticated `/api/deploy-info` HTTP fetch was not completed
-this session either** (unauthenticated fetch returned `{"error":"Authentication
-required."}`, as expected; entering credentials to authenticate is not
-something this session will do). This is the same standing gap already
-recorded against the prior deploy above — this row's commit is
-build-time-stamp/ledger-history correlated, not live-endpoint confirmed.
+printed `TM_STATS_SOURCE_COMMIT=7ffc9961ff4ba599ff0b800c4ea8ef83664ad289` and
+`TM_STATS_SOURCE_BRANCH=release/corporation-banner-logos` immediately before
+invoking the build, from a verified-clean worktree
+(`C:\tmp\tm-corp-banner-logos-deploy`, `git status --porcelain` empty, real
+`npm ci`) at that exact `git rev-parse HEAD`. The resulting version
+(`2ee56485`) was then confirmed at 100% of `wrangler deployments list`
+traffic. Unlike prior releases this one also has a **content-level live
+confirmation** that does not depend on `/api/deploy-info`: the production
+client chunk `/_next/static/chunks/3736-5e3b064b32ba07fd.js` (HTTP 200,
+71,269 bytes) contains all 112 new banner object keys and zero of the
+superseded square-tile keys. **The authenticated `/api/deploy-info` HTTP
+fetch was still not completed** (unauthenticated fetch returns
+`{"error":"Authentication required."}`, as expected; entering credentials to
+authenticate is not something this session will do) — the same standing gap
+recorded against every prior deploy in this file.
+
+### Corporation banner-logo release — 2026-07-21 16:37:09 UTC
+
+Deployed under owner instruction ("Replace the supabase logo images with
+these and make live"), supplying
+`assets/Corps_Contrasting_Backgrounds_Large_Text_600x300.zip`. No database
+migration was applied, authorized, or needed.
+
+**Scope — logos only, deliberately.** The art swap already existed as commit
+`aa1ac1386` on `fix/live-compare-data-remove-declared-style`, authored by an
+earlier session at 12:58 UTC the same day and never deployed. That branch tip
+also carries an unrelated insights change (`41ace9f41`, player comparison
+sourced from cross-group focus bundles, ~20 files). Deploying the branch tip
+would have shipped both, so `aa1ac1386` was cherry-picked alone onto the
+then-live commit `9ab74dd4a`, producing `7ffc9961f`. The cherry-pick applied
+without conflict; `git diff 9ab74dd4a..7ffc9961f` is exactly the 6 files of
+the logo commit.
+
+**Asset state (pre-existing, verified not re-uploaded).** The 112 replacement
+objects were uploaded to the public `tm-corporation-logos` bucket at
+2026-07-21 12:45 UTC by that earlier session, content-addressed on the
+normalized bytes (`corporation-logo-<sha256>.png`, 600×300, `fit: contain`).
+Verified this session:
+- All 112 keys referenced by `CORPORATION_LOGO_PATHS` return HTTP 200 with
+  `content-type: image/png` from the public bucket — 112/112, no misses.
+- The map's 112 normalized keys are an exact bijection with the 112 distinct
+  `public.corporations.name` values (116 rows; Athena, Eris, Kuiper
+  Cooperative and Tycho Magnetics are each two edition records sharing one
+  name). No corporation without art, no orphaned art.
+- The prior 228 objects were left in place, so reverting this commit is a
+  complete rollback with no storage work.
+
+**Gates before deploying:**
+- `npx tsc --noEmit` — clean.
+- `npm run lint` — warnings only (pre-existing unused-var warnings), no errors.
+- `npm run test` — 1027/1036 passed. The 9 failures are pre-existing and
+  unrelated (`src/lib/env.test.ts`, `src/app/auth/callback/route.test.ts` ×4,
+  `src/app/auth/reset-pin/page.test.tsx`, `src/app/(app)/group/page.test.tsx`,
+  `src/features/insights/global-loss-cards-section.test.ts`,
+  `src/features/games/log-game/log-game-wizard.test.tsx`); `env.test.ts` was
+  confirmed to fail identically in an untouched worktree at `aa1ac1386`. All
+  7 corporation-logo tests pass.
+- `npm run check:schema` (also enforced by the `predeploy` hook) — "Schema OK:
+  all 51 referenced tables exist".
+- Deploy lock claimed before the build via commit `6300272ae` on this branch
+  (pushed), released by this entry.
+
+**Post-deploy verification:**
+- `wrangler deployments list` — `2ee56485-dc7b-4074-b6ce-db82061d91ae` at 100%
+  traffic, created 2026-07-21T16:37:09.372Z.
+- `https://tm-stats.com/` 200, `/login` 200, `/insights` 307 to login when
+  signed out (expected).
+- Live client chunk contains all 112 new keys, zero superseded keys (above).
+- **Gap:** no signed-in visual confirmation of the logos rendering in the
+  authenticated surfaces (insights tables, selection dialogs, player
+  comparison). The art is only rendered behind auth, and this session does not
+  sign in. The owner should eyeball `/insights` once.
+- **Content note, not a deploy defect:** the supplied `Steelaris.png` artwork
+  spells the corporation "STELLARIS". The mapping is correct (the file resolves
+  to the `steelaris` catalog key); the wordmark inside the image is the
+  supplied art's own spelling and needs new art to change.
 
 ### Venus capture parser correction deploy — 2026-07-21 09:47:53 UTC
 
