@@ -505,6 +505,18 @@ export async function resolveOrCreateImportGroup(input: {
     }
 
     if (group) {
+      // The matched group's stored `groups.name` may still hold a raw
+      // private-name concatenation from before this resolver existed, so the
+      // returned label is always resolved from the current roster rather
+      // than trusting the stored value. Resolved before the membership
+      // upserts below: this call has failed in production (42501 on the
+      // service-role path), and resolving first keeps a label failure from
+      // leaving membership writes behind on an aborted save.
+      const existingGroupLabelById = await fetchPublicPlayerLabels(
+        admin,
+        groupPlayers.map((player) => player.id),
+      );
+
       const existingMemberRows = buildImportGroupMemberRows({
         groupId: matchingGroupId,
         participantIdentities,
@@ -522,15 +534,6 @@ export async function resolveOrCreateImportGroup(input: {
       }
 
       await addImportingUserAsEditor(admin, group.id, input.importingUserId);
-
-      // The matched group's stored `groups.name` may still hold a raw
-      // private-name concatenation from before this resolver existed, so the
-      // returned label is always resolved from the current roster rather
-      // than trusting the stored value.
-      const existingGroupLabelById = await fetchPublicPlayerLabels(
-        admin,
-        groupPlayers.map((player) => player.id),
-      );
 
       return {
         createdNewGroup: false,

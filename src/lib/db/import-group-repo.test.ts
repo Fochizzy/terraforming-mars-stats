@@ -616,10 +616,14 @@ type ResolveMockState = {
   }>;
   /** Public label the `get_public_player_names` rpc mock resolves per id. */
   publicLabelById: Record<string, string>;
+  /** When set, the `get_public_player_names` rpc mock fails with this error. */
+  publicLabelRpcError?: { code: string; message: string };
 };
 
 function createResolveAdminMock(state: ResolveMockState) {
   const groupMemberUpserts: ResolveGroupMemberUpsert[] = [];
+  /** Interleaved rpc/write sequence, for asserting fail-before-write order. */
+  const callOrder: string[] = [];
   const writes = { updatedGroupName: null as string | null };
 
   function createQueryStub(table: string) {
@@ -646,6 +650,7 @@ function createResolveAdminMock(state: ResolveMockState) {
     stub.upsert = (rows: unknown, options: unknown) => {
       if (table === 'group_members') {
         groupMemberUpserts.push({ options, rows });
+        callOrder.push('upsert:group_members');
       }
       return stub;
     };
@@ -687,6 +692,12 @@ function createResolveAdminMock(state: ResolveMockState) {
       throw new Error(`Unexpected rpc ${fn}`);
     }
 
+    callOrder.push('rpc:get_public_player_names');
+
+    if (state.publicLabelRpcError) {
+      return Promise.resolve({ data: null, error: state.publicLabelRpcError });
+    }
+
     const requestedIds = args.p_player_ids as string[];
     const allPlayers = [...state.existingPlayers, ...state.insertedPlayers];
 
@@ -703,6 +714,7 @@ function createResolveAdminMock(state: ResolveMockState) {
   }
 
   return {
+    callOrder,
     client: {
       from: (table: string) => createQueryStub(table),
       rpc,
@@ -770,5 +782,76 @@ describe('resolveOrCreateImportGroup', () => {
       options: { ignoreDuplicates: true, onConflict: 'group_id,user_id' },
       rows: { group_id: 'group-new', role: 'editor', user_id: 'user-importer' },
     });
+  });
+
+  function createMatchedGroupState(): ResolveMockState {
+    return {
+      existingPlayers: [
+        {
+          created_at: '2026-07-01T00:00:00Z',
+          display_name: 'Ann',
+          group_id: 'group-existing',
+          id: 'player-ann',
+          linked_user_id: null,
+        },
+        {
+          created_at: '2026-07-01T00:00:01Z',
+          display_name: 'Ben',
+          group_id: 'group-existing',
+          id: 'player-ben',
+          linked_user_id: null,
+        },
+      ],
+      insertedGroup: { id: 'group-existing', name: 'Ann & Ben' },
+      insertedPlayers: [],
+      publicLabelById: {
+        'player-ann': 'Guest AAAA1111',
+        'player-ben': 'Guest BBBB2222',
+      },
+    };
+  }
+
+  it('resolves public labels before writing membership on the matched-group path', async () => {
+    const { callOrder, client } = createResolveAdminMock(
+      createMatchedGroupState(),
+    );
+    vi.mocked(createSupabaseAdminClient).mockReturnValue(client as never);
+
+    const result = await resolveOrCreateImportGroup({
+      importingUserId: 'user-importer',
+      participantNames: ['Ann', 'Ben'],
+    });
+
+    expect(result.createdNewGroup).toBe(false);
+    expect(result.groupId).toBe('group-existing');
+
+    // The label RPC failed in production (42501 on the service-role path)
+    // AFTER membership had already been written; the fetch must now come
+    // first so a label failure aborts the save before any write.
+    const firstLabelCall = callOrder.indexOf('rpc:get_public_player_names');
+    const firstMembershipWrite = callOrder.indexOf('upsert:group_members');
+    expect(firstLabelCall).toBeGreaterThanOrEqual(0);
+    expect(firstMembershipWrite).toBeGreaterThanOrEqual(0);
+    expect(firstLabelCall).toBeLessThan(firstMembershipWrite);
+  });
+
+  it('writes no membership when public-label resolution fails on the matched-group path', async () => {
+    const { client, groupMemberUpserts } = createResolveAdminMock({
+      ...createMatchedGroupState(),
+      publicLabelRpcError: {
+        code: '42501',
+        message: 'permission denied for schema private',
+      },
+    });
+    vi.mocked(createSupabaseAdminClient).mockReturnValue(client as never);
+
+    await expect(
+      resolveOrCreateImportGroup({
+        importingUserId: 'user-importer',
+        participantNames: ['Ann', 'Ben'],
+      }),
+    ).rejects.toMatchObject({ code: '42501' });
+
+    expect(groupMemberUpserts).toHaveLength(0);
   });
 });
