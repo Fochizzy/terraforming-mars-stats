@@ -22,7 +22,7 @@ version→commit linkage.
 | Source branch | `fix/live-compare-data-remove-declared-style` (pushed to `origin`; `origin/…` confirmed to resolve to `4dec49a42` before the build) |
 | Source commit | `4dec49a423013b319a2904b35eb70396b1398800` — printed by the deploy-time stamp (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`), not inferred |
 | Deployed (UTC) | 2026-07-21 19:49:51.928Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **HELD — insights focus pending-feedback session, taken 2026-07-21 21:0x UTC** for commit `540f27243` (frontend only, no migration). Previous holder released cleanly after the Insights "Overall" joint release. |
+| Deploy lock | **HELD BUT IDLE — insights focus pending-feedback session, taken 2026-07-21 21:0x UTC** for commit `540f27243`. The deploy was **not performed** (see "Pending release — insights focus pending feedback" below). Nothing is in flight and the commit is already pushed, so **another session may take this lock by editing this row** — no handover conversation needed. Previous holder released cleanly after the Insights "Overall" joint release. |
 | Active clean deployment worktree | `C:\tmp\tm-live-compare-data` — clean at `4dec49a42`, real `node_modules`, `.next`/`.open-next` cleared before the build |
 | DB migration ledger head | `20260721035955 secure_public_player_labels_service_role` (unchanged — no migration applied this release; Event-card snapshot migration `20260720223000` and gated migration `20260720120000` both confirmed still absent from the ledger, before and after this deploy). **Superseded 2026-07-21 08:13:55 UTC**: a separate, documentation-tracked *database migration* (no application deploy) subsequently advanced the ledger head to `20260721081355 fix_event_card_tag_snapshot_correction` — see "Event-card snapshot migration — production database correction" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration. **Superseded again 2026-07-21 19:35:08 UTC**: a second documentation-tracked *database migration* (no application deploy) advanced the ledger head to `20260721193508 fold_player_card_outcome_context_into_definer` — see "player_card_outcomes definer fold" below. Gated migration `20260720120000` remains absent from the ledger. The worker/source/traffic facts in this table are unaffected by that migration too. |
 | Rollback worker version | `2ee56485-dc7b-4074-b6ce-db82061d91ae` (immediately prior production version, 100% traffic 2026-07-21T16:37:11.457Z through this deploy). **Its source commit is unknown** — it is one of the two unrecorded deploys below, so rolling back to it lands on code no ledger entry describes. If a rollback is needed, prefer redeploying a known commit from `fix/live-compare-data-remove-declared-style`. |
@@ -400,6 +400,52 @@ verified:**
   **functional/authenticated behavior** of the privacy reader, coarse
   matching, and tile attribution against real production traffic is not yet
   independently observed by this session.
+
+## Pending release — insights focus pending feedback (2026-07-21) — NOT DEPLOYED
+
+Frontend only, no migration, no schema dependency. **Committed, pushed and
+verified; the production deploy was never run.** Production is still on
+`178229f3` @ `4dec49a42` — the row above is unchanged by this entry.
+
+| | |
+|---|---|
+| Commit | `540f27243` on `fix/live-compare-data-remove-declared-style` (pushed; `origin` confirmed at `f84cc56ac`, which is `540f27243` + this ledger's lock commit) |
+| Change | `useTransition` around the Insights player-focus / comparison change, a spinner and press state on the OK button, and a sticky "Recalculating insights…" banner with the results dimmed while pending |
+| Why | Applying a focus re-derives every chart in one blocking render. The owner reported the OK button looked dead — it was working, just with no feedback for several seconds. |
+| Risk | Low. Presentation only; no data access, no new `.from(...)` call sites, no server code touched. |
+
+**Verified before the deploy attempt:**
+- `tsc --noEmit` clean.
+- `npx vitest run`: 1051 passed. 8 failures in 5 files
+  (`src/app/(app)/group/page.test.tsx`, `src/app/auth/callback/route.test.ts`,
+  `src/app/auth/reset-pin/page.test.tsx`,
+  `src/features/insights/global-loss-cards-section.test.ts`,
+  `src/lib/env.test.ts`) — **all pre-existing**, confirmed by re-running the
+  same five files against a stashed tree and getting the identical 8 failures.
+  None are in `insights-dashboard.test.tsx`, which passes with a new assertion
+  covering the comparison select.
+- `npm run check:schema`: `Schema OK: all 51 referenced tables exist`.
+- `.next` and `.open-next` cleared; worktree `C:\tmp\tm-live-compare-data` clean
+  at the commit; `node_modules` a real directory.
+
+**Why it was not deployed.** `npm run deploy` was blocked by the operating
+harness's permission classifier, which requires direct owner approval for a
+production deploy. The session stopped there rather than routing around the
+gate. **Action needed:** from `C:\tmp\tm-live-compare-data`, run
+`TM_STATS_SOURCE_BRANCH=fix/live-compare-data-remove-declared-style npm run deploy`,
+then record the resulting worker version and stamped `sourceCommit` in this file.
+
+**Not verified — carried forward.** The change is visual and has never been
+seen rendered. `/insights` requires a signed-in session and this session does
+not enter credentials, so the spinner, the banner and the dimmed state are
+confirmed only by unit test and type check, not by looking at the page. Whoever
+deploys should watch one focus change on `/insights` before calling it good.
+
+**Also unfixed, noticed while working here.** Pressing OK resets Compare With to
+"— no comparison —" (pre-existing behaviour, not introduced by `540f27243`). If
+you set a focus and an opponent, then change the focus and press OK, the
+comparison silently clears. The owner was asked whether it should persist when
+the chosen opponent is still valid; that question is unanswered.
 
 ## Insights "Overall" joint release — 2026-07-21 19:49:51 UTC — SHIPPED
 
