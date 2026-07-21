@@ -803,6 +803,17 @@ describe('getProfileAnalytics', () => {
           tile_type: null,
         },
         {
+          card_id: 'card-solar-flare',
+          event_order: 2.05,
+          event_type: 'card_played',
+          game_log_import_id: 'import-1',
+          generation_number: null,
+          payload: { actor: 'FM Alias', cardName: 'Solar Flare' },
+          resource_amount: null,
+          resource_type: null,
+          tile_type: null,
+        },
+        {
           card_id: null,
           event_order: 2.1,
           event_type: 'global_parameter_changed',
@@ -980,15 +991,28 @@ describe('getProfileAnalytics', () => {
       data: [
         {
           card_name: 'Asteroid',
+          card_type: 'Automated',
           gameplay_tags: ['space'],
           id: 'card-asteroid',
           printed_victory_points: 0,
         },
         {
           card_name: 'Hackers',
+          card_type: 'Active',
           gameplay_tags: ['interaction'],
           id: 'card-hackers',
           printed_victory_points: 1,
+        },
+        {
+          // Tags deliberately don't overlap with Asteroid's 'space' tag: if
+          // Event exclusion regresses, 'event'/'microbe' tie at count 1 and
+          // 'Event' wins the alphabetical tiebreak, flipping the engine's top
+          // tag away from 'Space' — a discriminating, not coincidental, check.
+          card_name: 'Solar Flare',
+          card_type: 'Event',
+          gameplay_tags: ['event', 'microbe'],
+          id: 'card-solar-flare',
+          printed_victory_points: 0,
         },
       ],
       error: null,
@@ -1076,6 +1100,11 @@ describe('getProfileAnalytics', () => {
           plays: 1,
           wins: 1,
         }),
+        expect.objectContaining({
+          cardName: 'Solar Flare',
+          plays: 1,
+          wins: 1,
+        }),
       ],
       expansionProfile: {
         improvements: expect.arrayContaining([expect.stringMatching(/stabilize/i)]),
@@ -1086,7 +1115,21 @@ describe('getProfileAnalytics', () => {
               expect.objectContaining({ label: 'Snapshot Rows', value: '3' }),
             ]),
           }),
-          expect.objectContaining({ code: 'engine_shape' }),
+          expect.objectContaining({
+            code: 'engine_shape',
+            // The engine profile is scoped to the linked player's own plays
+            // (Asteroid + Solar Flare, not Corey's Hackers). Without Event
+            // exclusion, Solar Flare's 'event'/'microbe' tags would tie
+            // Asteroid's 'space' at count 1 and 'Event' would win the
+            // alphabetical tiebreak — so 'Space' remaining top proves the
+            // Event card's tags were excluded, not merely outweighed.
+            metrics: expect.arrayContaining([
+              expect.objectContaining({
+                label: 'Top Card Tag',
+                value: 'Space',
+              }),
+            ]),
+          }),
           expect.objectContaining({ code: 'scoring_reliability' }),
           expect.objectContaining({
             code: 'comeback_front_runner',
@@ -1112,9 +1155,19 @@ describe('getProfileAnalytics', () => {
           expect.stringMatching(/expanded profile backs/i),
         ]),
       },
+      // Solar Flare (Event) still shows up here — the card *play* legitimately
+      // counts toward victory-impact evidence. Only its printed tags must be
+      // excluded from tag-derived analytics (see the exact-match `tagOutcomes`
+      // assertion below: it stays at a single Space entry with totalTags: 1,
+      // proving Solar Flare's `event`/`space` tags never contributed).
       keyCards: [
         expect.objectContaining({
           cardName: 'Asteroid',
+          plays: 1,
+          wins: 1,
+        }),
+        expect.objectContaining({
+          cardName: 'Solar Flare',
           plays: 1,
           wins: 1,
         }),
@@ -1219,8 +1272,9 @@ describe('getProfileAnalytics', () => {
         }),
         rows: [
           expect.objectContaining({
-            actions: 3,
-            cardsPlayed: 1,
+            // 2 card plays (Asteroid + Solar Flare) in the opening phase.
+            actions: 4,
+            cardsPlayed: 2,
             gamesWithPeak: 1,
             phase: 'early',
           }),
@@ -1309,6 +1363,9 @@ describe('getProfileAnalytics', () => {
           }),
         ],
       },
+      // Exact-length array: Solar Flare (Event) plays 'event' and a second
+      // 'space' tag (see the cards mock above) — if either leaked in, this
+      // would show totalTags: 2 for Space and/or an extra Event entry.
       tagOutcomes: [
         expect.objectContaining({
           games: 1,

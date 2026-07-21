@@ -14,35 +14,82 @@ Supabase project: `tm-stats` (`qjtwgrjjwnqafbvkkfex`, us-east-1, ACTIVE_HEALTHY)
 `countableCardTags` (`src/lib/imports/countable-card-tags.ts`) decided
 "is this an Event?" from `sourceTags.includes('event')` instead of the card's
 canonical `card_type`, and even when it correctly detected an Event, it kept
-one tag (`event`) instead of zero. Both derivation call sites
-(`derive-player-tag-summaries.ts`, `derive-card-score-evidence.ts`) inherited
-the bug. The prospective fix (this branch) makes `countableCardTags` take
-`cardType` explicitly and fails closed: it returns `sourceTags` only when
+one tag (`event`) instead of zero. The prospective fix makes `countableCardTags`
+take `cardType` explicitly and fails closed: it returns `sourceTags` only when
 `cardType` is on an explicit known-safe list (`Automated`, `Active`,
 `Project`, `Corporation`, `Prelude`), and returns `[]` for `Event` **or any
 other, unrecognized card type** — an unfamiliar type is never silently
 assumed to be a safe non-Event card.
 
+Three call sites inherited the underlying "is this an Event?" question and
+are corrected by threading `card_type` through to `countableCardTags`:
+
+- `derive-player-tag-summaries.ts` — the live import path that writes
+  `game_log_tag_summaries` at import time.
+- `derive-card-score-evidence.ts` — card-scoring VP evidence. Currently has
+  no production caller (`calculateImportCardScores` is prepared but not yet
+  wired into the import flow), so this fix is correct but presently inert.
+- `analytics-repo.ts` (`listProfileCardCatalogRows` → the profile "engine"
+  tag tally and `buildProfileTagStats`) and `extended-analytics-repo.ts`
+  (`listImportedCardAndTagOutcomes`, the JS-side fallback used when the
+  `player_card_outcomes`/`player_tag_outcomes` analytics views return no
+  rows) — two **independent** tag-aggregation implementations that read
+  `cards.gameplay_tags` directly and previously had no `card_type` awareness
+  at all. Both now select `card_type` alongside `gameplay_tags` and gate
+  through the same `countableCardTags` helper, rather than reimplementing the
+  exclusion rule a third and fourth time. These are live, active code paths
+  (player profile "Engine Shape" section and the imported-game analytics
+  fallback), not dormant ones — unlike `deriveCardScoreEvidence`, they were
+  producing wrong counts today for any Event card carrying a non-`event`
+  printed tag (confirmed present in production, e.g. `space`, `crime`).
+
+`countable-card-tags.ts`'s fail-closed known-safe set intentionally stays a
+local, dependency-free constant rather than importing
+`PLAYABLE_CARD_TYPES`/`PROJECT_CARD_TYPES` from `reference-repo.ts` (so it
+stays usable from scripts and analytics modules without pulling in the
+Supabase-server-client-only reference layer); it is documented to track that
+source of truth, and reused (not reimplemented) at all four call sites above.
+
 ## 2. Migration
 
 | File | Role | Applies to production? |
 | --- | --- | --- |
-| `supabase/migrations/20260720223000_fix_event_card_tag_snapshot_correction.sql` | Zeroes any remaining root-level `event` tag_count rows, recomputes their sibling `total_tag_count`, then refreshes every affected game's persisted metric snapshots via the existing `refresh_game_metric_snapshots_internal` / `rebuild_metric_summaries` functions. | **Not yet — unapplied.** |
+| `supabase/migrations/20260720223000_fix_event_card_tag_snapshot_correction.sql` | Refreshes the persisted metric snapshots for every game whose `game_player_tag_metric_snapshots` still carries a stale nonzero `event` tag_count, via the existing `refresh_game_metric_snapshots_internal` / `rebuild_metric_summaries` functions, then rebuilds the global/player aggregates. | **Not yet — unapplied.** |
 
 No existing migration is edited or amended.
+
+**Root table (`game_log_tag_summaries`) is read, never written, by this
+migration.** An earlier draft of this migration also included a step that
+zeroed any `game_log_tag_summaries` row with `tag_code = 'event' and
+tag_count <> 0` directly, as a defensive measure. That step was removed: it
+used `tag_code = 'event'` alone as a proxy for "this was an Event card play,"
+which is not the actual contract — a recognized non-Event card can
+legitimately carry a literal `event` gameplay tag and keep it (see
+`countable-card-tags.test.ts`, "decides on canonical card type rather than
+tag-code presence," and the identical case in
+`derive-player-tag-summaries.test.ts`). A tag-code-only predicate can zero
+evidence the corrected code would have kept. `game_log_tag_summaries` is
+written once, per import, directly by the now-corrected derivation, so it
+does not need a defensive SQL-level rewrite going forward. If a stray bad
+root row is ever found, the safe correction is a card-type-aware
+rederivation via `scripts/backfill/recompute-tag-summaries.ts` (which reuses
+`derivePlayerTagSummaries` against current catalog `card_type` data), not a
+blanket zero on a tag-code proxy.
 
 ## 3. Dry-run query (read-only; run this first against production)
 
 ```sql
--- Root-level rows the bug wrote directly (forward-looking; see §4 for why
--- this is currently 0 rows in production).
-select count(*)                                   as affected_event_rows,
+-- Root-level rows the old bug could have written directly. Informational
+-- only — this migration does not act on this table. If this is ever nonzero,
+-- do not blanket-zero it; rederive via recompute-tag-summaries.ts instead
+-- (see §1/§2), since a nonzero row here is not proof the play was an Event.
+select count(*)                                   as root_event_nonzero_rows,
        count(distinct game_log_import_id)         as affected_imports
 from public.game_log_tag_summaries
 where tag_code = 'event' and tag_count <> 0;
 
--- Snapshot rows stale relative to (already-clean) root data — this is where
--- the current production anomaly actually lives.
+-- Snapshot rows stale relative to root data — this is what the migration
+-- actually targets.
 select count(*)                    as affected_tag_snapshot_rows,
        count(distinct game_id)     as affected_games
 from public.game_player_tag_metric_snapshots
@@ -69,91 +116,93 @@ used to produce §4.
 | `global_tag_metric_summaries` rows with `tag_code = 'event'` | 3 |
 
 **Reading this**: the import-time root table (`game_log_tag_summaries`) is
-currently already clean for every game — the 109/39 anomaly is entirely
-*stale, persisted metric snapshots* that were computed from the bug at some
-earlier point and never refreshed afterward. The migration's step 1–2 (root
-fix) is therefore a defensive no-op today, guarding only against imports made
-by the not-yet-fixed live code between now and deploy. The real fix today is
-steps 3–5 (targeted refresh of the 39 stale games + one global rebuild).
+already clean for every game — the 109/39 anomaly is entirely *stale,
+persisted metric snapshots* that were computed from the bug at some earlier
+point and never refreshed afterward. The migration's sole job is refreshing
+those 39 stale games' snapshots plus one global rebuild; root is read as
+input to that refresh, never written.
 
 No player names, aliases, usernames, or raw log text were retrieved to
 produce this table — every query above is a `count(*)` / `count(distinct …)`
 aggregate.
 
-## 5. Verification (local, executable — no production writes)
+## 5. Verification (local — no production writes)
 
-The root-level SQL logic (migration steps 1–2) was verified against a
-disposable local PostgreSQL 18 cluster (`initdb` + a standalone table
-matching the `game_log_tag_summaries` columns actually touched), seeded with:
-
-- a "bugged" import (`event` tag_count=1, `total_tag_count` inflated by 1),
-- an "already clean" import (`event` tag_count=0),
-- an unrelated control import with no `event` row at all.
-
-Confirmed by direct assertion:
-
-- the bugged import's `event` row is zeroed, its `total_tag_count` recomputes
-  to the correct value, and its *other* tag rows (`building`, `space`) are
-  untouched at the exact `tag_count` value they started with;
-- the clean import and the unrelated control import are **not written at
-  all** (row-level no-op, not just value-preserving);
-- `played_card_count` / `matched_card_count` / `unresolved_card_count` are
-  never modified by any step;
-- re-running the identical steps a second time finds zero rows to touch
-  (idempotency proof — a full before/after row diff over every column shows
-  0 changed rows on the second pass);
-- running against an empty table is a safe no-op.
-
-Steps 3–5 (`refresh_game_metric_snapshots_internal`,
-`rebuild_metric_summaries`) were **not** re-derived or re-tested here: they
-are pre-existing, unmodified, already-in-production functions being invoked
-through their existing designed interface (`p_require_editor => false` for
-administrative use), not new logic authored by this change. Their current
-production definition was read and confirmed unchanged in the relevant
-respect (still sourced solely from `game_log_tag_summaries`). Replicating the
-full `games` / `game_players` / `milestones` / `awards` schema graph locally
-to re-verify them was judged disproportionate to this fix's scope.
+- **Migration SQL**: verified by direct reading, not execution — the `do $$
+  … $$` block contains no `update`/`insert`/`delete` targeting
+  `game_log_tag_summaries` (root) at all; the only writes are the delete+
+  insert performed inside the pre-existing, unmodified
+  `refresh_game_metric_snapshots_internal` function for the target game set,
+  plus `rebuild_metric_summaries()`. Target-game selection
+  (`v_target_game_ids`) is a single, guarded `select … where tag_code =
+  'event' and tag_count <> 0` against `game_player_tag_metric_snapshots`,
+  identical in shape to the still-present §3 dry-run query — the same read
+  that already confirmed the current 109/39 figures.
+- **Idempotency**: by construction — a second run's `select` finds zero
+  stale rows (since the first run already refreshed them), so
+  `v_target_game_ids` is `null` and the `if` body (the only thing that
+  writes anything) never executes. No row-count/array-diff assertion is
+  needed to establish this; it follows directly from the guard.
+- `refresh_game_metric_snapshots_internal` / `rebuild_metric_summaries` were
+  **not** re-derived or re-tested here: they are pre-existing, unmodified,
+  already-in-production functions being invoked through their existing
+  designed interface (`p_require_editor => false` for administrative use),
+  not new logic authored by this change. Their current production definition
+  was read directly (`pg_get_functiondef`) and confirmed to source
+  `game_player_tag_metric_snapshots` purely from `game_log_tag_summaries`
+  with no independent tag-derivation logic — i.e. correcting/leaving-correct
+  root is sufficient to make a refresh correct.
+- **Code fix** (`countableCardTags` and its four call sites): covered by
+  unit and integration tests — `countable-card-tags.test.ts`,
+  `derive-player-tag-summaries.test.ts`,
+  `derive-card-score-evidence.test.ts`, an added Event-card fixture in
+  `analytics-repo.test.ts` (`getProfileAnalytics`, asserting both the
+  `tagOutcomes` and `engine_shape` "Top Card Tag" outputs), and a new
+  `extended-analytics-repo.test.ts` (`listImportedCardAndTagOutcomes`). Each
+  of the four call-site tests was confirmed to fail (showing the exact
+  pre-fix miscounting) when the corresponding fix line was temporarily
+  reverted, and to pass once restored — i.e. each is a genuine regression
+  check, not an incidental pass.
 
 ## 6. Rollback / restoration evidence
 
-- **Root table**: every row this migration could touch already has its
-  pre-image recoverable — `tag_code='event'` rows are only ever set to 0
-  from a previously-nonzero value; if a rollback is ever needed, restore from
-  the most recent database backup/PITR predating the migration's `updated_at`
-  timestamp. No row is deleted at any step.
+- **Root table**: not written by this migration — nothing to roll back.
 - **Snapshot tables**: `game_player_tag_metric_snapshots` and
   `game_player_metric_snapshots` are fully regenerated (delete + insert) by
-  `refresh_game_metric_snapshots_internal` for exactly the affected game
-  every time it already runs today (e.g., on finalize) — a rollback is simply
-  "the state before this migration's run," recoverable from PITR/backup, or
-  forward-fixable by re-running the migration again (idempotent).
+  `refresh_game_metric_snapshots_internal` for exactly the affected game,
+  the same way it already runs today (e.g., on finalize) — a rollback is
+  simply "the state before this migration's run," recoverable from
+  PITR/backup, or forward-fixable by re-running the migration again
+  (idempotent).
 - **Forward-only preference**: as with `data-capture-hardening-v2`, the
   intended remedy for any discrepancy discovered later is a forward re-run of
-  this same migration (safe — see idempotency proof), not a destructive
-  rollback.
+  this same migration (safe — see §5), not a destructive rollback.
 
 ## 7. Idempotency proof
 
-See §5. Second-run assertion explicitly checked: `v_affected_import_ids` is
-`NULL` on the second pass (zero rows matched), and a full row-level diff
-between the pre-second-run snapshot and post-second-run state shows 0 rows
-with a changed `tag_count` or `total_tag_count`.
+See §5. A second run's target-game query returns zero rows (the first run
+already refreshed every game the query would select), so the `if
+v_target_game_ids is not null` body — the only code that writes anything —
+does not execute on a second pass.
 
 ## 8. What this migration will NOT do
 
-- Will not touch any `tag_code` other than `event` (`tag_count` column).
+- Will not write to `game_log_tag_summaries` (root) at all — read-only
+  input to the refresh.
 - Will not touch `played_card_count`, `matched_card_count`, or
   `unresolved_card_count` anywhere.
-- Will not touch any game that isn't in the affected set (root-nonzero-event
-  ∪ stale-snapshot-event).
+- Will not touch any game outside the stale-snapshot set
+  (`game_player_tag_metric_snapshots.tag_code='event' and tag_count<>0`).
 - Will not run automatically — it is a prepared, unapplied `.sql` file only.
 
 ## 9. Deployment/backfill order (for the record — not executed here)
 
 1. Deploy the code fix (this branch, once reviewed/merged) to `tm-stats.com`.
-2. Re-run §3's dry-run queries immediately before applying, in case new
-   imports landed between this report and deploy.
+   This includes the `analytics-repo.ts`/`extended-analytics-repo.ts` fixes,
+   which take effect immediately on deploy with no migration dependency.
+2. Re-run §3's second query immediately before applying, in case new stale
+   snapshots appeared between this report and deploy.
 3. Apply `20260720223000_fix_event_card_tag_snapshot_correction.sql` through
    the approved production-change process.
-4. Re-run §3's queries and confirm both return 0.
+4. Re-run §3's second query and confirm it returns 0.
 5. Spot-check `player_metric_summaries.best_tag_lane = 'event'` returns 0.
