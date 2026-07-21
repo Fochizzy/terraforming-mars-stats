@@ -517,6 +517,160 @@ describe('buildImportDraft', () => {
     expect(draft.playerScores['player-1']?.cardPointsTotal).toBeUndefined();
   });
 
+  it('blanks cardPointsTotal for manual review when a complete calculated card total disagrees with the screenshot and no log row exists to arbitrate', () => {
+    const draft = buildImportDraft({
+      cardScoring: [
+        {
+          autoScoredCards: [
+            {
+              cardId: 'card-1',
+              cardName: 'Pets',
+              category: 'animals',
+              evidenceSummary: '3 animal => 3 VP',
+              humanSummary: '1 VP per animal on this card',
+              points: 3,
+              sourceType: 'curated',
+            },
+          ],
+          pendingCards: [],
+          playerName: 'Friday Mars',
+          totals: {
+            animals: 3,
+            complete: true,
+            jovian: 0,
+            microbes: 0,
+            other: 2,
+            total: 5,
+          },
+        },
+      ],
+      defaultPromoSetSlugs: [],
+      groupId: '11111111-1111-4111-8111-111111111111',
+      importValues: {
+        endgameScreenshotName: 'endgame.png',
+        exportedGameLog: 'Friday Mars played Pets',
+        generationCount: 11,
+        mapId: 'tharsis',
+        participantNames: ['Friday Mars'],
+        playedOn: '2026-07-04',
+        playerCount: 1,
+      },
+      playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
+      scoreCandidates: [
+        { cardPointsTotal: 9, playerName: 'Friday Mars' },
+      ],
+      selectedPlayerIds: ['player-1'],
+    });
+
+    // The screenshot (9) and the complete calculated total (5) disagree, and
+    // there is no log row to arbitrate: this must never be resolved silently.
+    expect(draft.playerScores['player-1']?.cardPointsTotal).toBeUndefined();
+  });
+
+  it('still trusts the screenshot card total when it agrees with a complete calculated total', () => {
+    const draft = buildImportDraft({
+      cardScoring: [
+        {
+          autoScoredCards: [
+            {
+              cardId: 'card-1',
+              cardName: 'Pets',
+              category: 'animals',
+              evidenceSummary: '3 animal => 3 VP',
+              humanSummary: '1 VP per animal on this card',
+              points: 3,
+              sourceType: 'curated',
+            },
+          ],
+          pendingCards: [],
+          playerName: 'Friday Mars',
+          totals: {
+            animals: 3,
+            complete: true,
+            jovian: 0,
+            microbes: 0,
+            other: 2,
+            total: 5,
+          },
+        },
+      ],
+      defaultPromoSetSlugs: [],
+      groupId: '11111111-1111-4111-8111-111111111111',
+      importValues: {
+        endgameScreenshotName: 'endgame.png',
+        exportedGameLog: 'Friday Mars played Pets',
+        generationCount: 11,
+        mapId: 'tharsis',
+        participantNames: ['Friday Mars'],
+        playedOn: '2026-07-04',
+        playerCount: 1,
+      },
+      playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
+      scoreCandidates: [
+        { cardPointsTotal: 5, playerName: 'Friday Mars' },
+      ],
+      selectedPlayerIds: ['player-1'],
+    });
+
+    expect(draft.playerScores['player-1']?.cardPointsTotal).toBe(5);
+  });
+
+  it('does not blank cardPointsTotal against an incomplete calculated total, even when it differs from the screenshot', () => {
+    const draft = buildImportDraft({
+      cardScoring: [
+        {
+          autoScoredCards: [
+            {
+              cardId: 'card-1',
+              cardName: 'Pets',
+              category: 'animals',
+              evidenceSummary: '3 animal => 3 VP',
+              humanSummary: '1 VP per animal on this card',
+              points: 3,
+              sourceType: 'curated',
+            },
+          ],
+          pendingCards: [
+            {
+              cardId: 'card-2',
+              cardName: 'Ganymede Colony',
+              reason: 'OCR could not confirm the tile count for this card.',
+            },
+          ],
+          playerName: 'Friday Mars',
+          totals: {
+            animals: 3,
+            complete: false,
+            jovian: 0,
+            microbes: 0,
+            other: 0,
+            total: 3,
+          },
+        },
+      ],
+      defaultPromoSetSlugs: [],
+      groupId: '11111111-1111-4111-8111-111111111111',
+      importValues: {
+        endgameScreenshotName: 'endgame.png',
+        exportedGameLog: 'Friday Mars played Pets',
+        generationCount: 11,
+        mapId: 'tharsis',
+        participantNames: ['Friday Mars'],
+        playedOn: '2026-07-04',
+        playerCount: 1,
+      },
+      playerSelections: [{ importedName: 'Friday Mars', playerId: 'player-1' }],
+      scoreCandidates: [
+        { cardPointsTotal: 9, playerName: 'Friday Mars' },
+      ],
+      selectedPlayerIds: ['player-1'],
+    });
+
+    // An incomplete calculation must not be trusted enough to blank a value
+    // it disagrees with — the screenshot reading still wins.
+    expect(draft.playerScores['player-1']?.cardPointsTotal).toBe(9);
+  });
+
   it('merges proved curated board award values and leaves unresolved board card values unset', () => {
     const curatedBoardItems: CuratedBoardImportItem[] = [
       {

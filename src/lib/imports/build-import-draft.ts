@@ -53,6 +53,7 @@ function hasFiniteScoreValue(value: unknown): value is number {
 
 function mergeCrossCheckedScoreValue(input: {
   authoritativeValue?: number;
+  calculatedValue?: number;
   fallbackValue?: number;
   logValue?: number;
   screenshotValue?: number;
@@ -75,6 +76,18 @@ function mergeCrossCheckedScoreValue(input: {
   }
 
   if (hasFiniteScoreValue(input.screenshotValue)) {
+    // A complete calculated card breakdown is independent evidence — derived
+    // from log events and board state, not from the screenshot OCR reading —
+    // so when it disagrees with the screenshot and no log row is present to
+    // arbitrate, treat it like any other two-source conflict: blank the
+    // field rather than silently trusting the screenshot.
+    if (
+      hasFiniteScoreValue(input.calculatedValue) &&
+      input.calculatedValue !== input.screenshotValue
+    ) {
+      return undefined;
+    }
+
     return input.screenshotValue;
   }
 
@@ -504,12 +517,27 @@ export function buildImportDraft(input: {
         ) ?? false;
       const provedCuratedBoardCardPoints =
         expectedCuratedBoardCardPointsByPlayerId.get(playerId);
+      // Pending cards could resolve into any category, so only a *complete*
+      // calculation can stand as independent evidence for a conflict check.
       const completeCalculatedCardPointsTotal =
         cardScoringSummary?.totals.complete
           ? cardScoringSummary.totals.total
           : undefined;
+      const completeCalculatedCardPointsAnimals =
+        cardScoringSummary?.totals.complete
+          ? cardScoringSummary.totals.animals
+          : undefined;
+      const completeCalculatedCardPointsJovian =
+        cardScoringSummary?.totals.complete
+          ? cardScoringSummary.totals.jovian
+          : undefined;
+      const completeCalculatedCardPointsMicrobes =
+        cardScoringSummary?.totals.complete
+          ? cardScoringSummary.totals.microbes
+          : undefined;
       const cardPointsAnimals =
         mergeCrossCheckedScoreValue({
+          calculatedValue: completeCalculatedCardPointsAnimals,
           fallbackValue:
             cardPointBreakdown?.cardPointsAnimals ??
             (hasCalculatedCategory('animals')
@@ -520,6 +548,7 @@ export function buildImportDraft(input: {
         });
       const cardPointsJovian =
         mergeCrossCheckedScoreValue({
+          calculatedValue: completeCalculatedCardPointsJovian,
           fallbackValue:
             cardPointBreakdown?.cardPointsJovian ??
             (hasCalculatedCategory('jovian')
@@ -530,6 +559,7 @@ export function buildImportDraft(input: {
         });
       const cardPointsMicrobes =
         mergeCrossCheckedScoreValue({
+          calculatedValue: completeCalculatedCardPointsMicrobes,
           fallbackValue:
             cardPointBreakdown?.cardPointsMicrobes ??
             (hasCalculatedCategory('microbes')
@@ -557,6 +587,7 @@ export function buildImportDraft(input: {
         cardPointsMicrobes,
         cardPointsTotal: mergeCrossCheckedScoreValue({
           authoritativeValue: structuredLogScore.cardPointsTotal,
+          calculatedValue: completeCalculatedCardPointsTotal,
           fallbackValue:
             completeCalculatedCardPointsTotal ??
             (allowBoardOnlyCardPointsTotalFallback

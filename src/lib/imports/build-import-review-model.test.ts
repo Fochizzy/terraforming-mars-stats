@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildImportReviewModel } from './build-import-review-model';
+import type { ImportPlayerCardScoringSummary } from './card-scoring/card-scoring-types';
 import type { CuratedBoardImportItem } from './score-curated-board-import-items';
 
 describe('buildImportReviewModel', () => {
@@ -175,6 +176,310 @@ describe('buildImportReviewModel', () => {
         },
       ],
       scoreCandidates: [{ playerName: 'Izzy H.', totalPoints: 62 }],
+    });
+  });
+
+  describe('cardScoringCrossChecks', () => {
+    function izzyCardScoring(
+      overrides?: Partial<ImportPlayerCardScoringSummary>,
+    ) {
+      return {
+        autoScoredCards: [],
+        pendingCards: [],
+        playerName: 'Izzy',
+        totals: {
+          animals: 9,
+          complete: true,
+          jovian: 3,
+          microbes: 2,
+          other: 17,
+          total: 31,
+        },
+        ...overrides,
+      };
+    }
+
+    function baseInput(
+      overrides?: Partial<Parameters<typeof buildImportReviewModel>[0]>,
+    ) {
+      return {
+        cardScoring: [izzyCardScoring()],
+        logParse: {
+          cardPointBreakdowns: [],
+          drawInfoLineCount: 0,
+          events: [],
+          ignoredLineCount: 0,
+        },
+        playerLinks: { matches: [], unresolvedCount: 0 },
+        screenshotParse: {
+          playerRows: [{ cardPointsTotal: 31, playerName: 'Izzy' }],
+        },
+        ...overrides,
+      };
+    }
+
+    it('case 1: reports a match against the screenshot summary when no explicit log score row exists (owner-reported scenario)', () => {
+      const model = buildImportReviewModel({
+        ...baseInput(),
+        cardScoring: [
+          izzyCardScoring(),
+          {
+            autoScoredCards: [],
+            pendingCards: [],
+            playerName: 'James',
+            totals: {
+              animals: 0,
+              complete: true,
+              jovian: 0,
+              microbes: 0,
+              other: 4,
+              total: 4,
+            },
+          },
+        ],
+        screenshotParse: {
+          playerRows: [
+            { cardPointsTotal: 31, playerName: 'Izzy' },
+            { cardPointsTotal: 4, playerName: 'James' },
+          ],
+        },
+      });
+
+      // The old "no usable cross-check evidence" impression must not stand alone.
+      expect(model.scoreCrossChecks).toEqual([
+        {
+          conflictingFields: [],
+          matchingFields: [],
+          playerName: 'Izzy',
+          status: 'screenshot_only',
+        },
+        {
+          conflictingFields: [],
+          matchingFields: [],
+          playerName: 'James',
+          status: 'screenshot_only',
+        },
+      ]);
+      expect(model.cardScoringCrossChecks).toEqual([
+        {
+          conflictingFields: [],
+          hasExplicitLogScoreRow: false,
+          matchingFields: [
+            { calculatedValue: 31, field: 'cardPointsTotal', referenceValue: 31 },
+          ],
+          pendingCardCount: 0,
+          playerName: 'Izzy',
+          status: 'matched',
+        },
+        {
+          conflictingFields: [],
+          hasExplicitLogScoreRow: false,
+          matchingFields: [
+            { calculatedValue: 4, field: 'cardPointsTotal', referenceValue: 4 },
+          ],
+          pendingCardCount: 0,
+          playerName: 'James',
+          status: 'matched',
+        },
+      ]);
+      // The Calculated Card Scoring panel data must remain intact.
+      expect(model.cardScoring).toHaveLength(2);
+    });
+
+    it('case 2: flags a conflict when a complete calculated total disagrees with the screenshot summary', () => {
+      const model = buildImportReviewModel(
+        baseInput({
+          screenshotParse: {
+            playerRows: [{ cardPointsTotal: 25, playerName: 'Izzy' }],
+          },
+        }),
+      );
+
+      expect(model.cardScoringCrossChecks).toEqual([
+        {
+          conflictingFields: [
+            { calculatedValue: 31, field: 'cardPointsTotal', referenceValue: 25 },
+          ],
+          hasExplicitLogScoreRow: false,
+          matchingFields: [],
+          pendingCardCount: 0,
+          playerName: 'Izzy',
+          status: 'conflict',
+        },
+      ]);
+    });
+
+    it('case 3: does not report a false conflict when the calculation is incomplete, even if the partial total differs from the screenshot', () => {
+      const model = buildImportReviewModel(
+        baseInput({
+          cardScoring: [
+            izzyCardScoring({
+              pendingCards: [
+                {
+                  cardId: 'card-x',
+                  cardName: 'Ganymede Colony',
+                  reason: 'OCR could not confirm the tile count for this card.',
+                },
+              ],
+              totals: {
+                animals: 9,
+                complete: false,
+                jovian: 3,
+                microbes: 2,
+                other: 5,
+                total: 19,
+              },
+            }),
+          ],
+        }),
+      );
+
+      expect(model.cardScoringCrossChecks).toEqual([
+        {
+          conflictingFields: [],
+          hasExplicitLogScoreRow: false,
+          matchingFields: [],
+          pendingCardCount: 1,
+          playerName: 'Izzy',
+          status: 'incomplete',
+        },
+      ]);
+    });
+
+    it('case 4: adds calculated evidence additively when an explicit log score row is also present, without disturbing the existing log-vs-screenshot comparison', () => {
+      const model = buildImportReviewModel(
+        baseInput({
+          logScoreCandidates: [
+            { cardPointsTotal: 31, playerName: 'Izzy', totalPoints: 90 },
+          ],
+          screenshotParse: {
+            playerRows: [
+              { cardPointsTotal: 31, playerName: 'Izzy', totalPoints: 90 },
+            ],
+          },
+        }),
+      );
+
+      expect(model.scoreCrossChecks).toEqual([
+        {
+          conflictingFields: [],
+          matchingFields: ['cardPointsTotal', 'totalPoints'],
+          playerName: 'Izzy',
+          status: 'matched',
+        },
+      ]);
+      expect(model.cardScoringCrossChecks).toEqual([
+        {
+          conflictingFields: [],
+          hasExplicitLogScoreRow: true,
+          matchingFields: [
+            { calculatedValue: 31, field: 'cardPointsTotal', referenceValue: 31 },
+          ],
+          pendingCardCount: 0,
+          playerName: 'Izzy',
+          status: 'matched',
+        },
+      ]);
+    });
+
+    it('case 5: associates calculated scoring with the correct player using normalized-name matching, without cross-player leakage', () => {
+      const model = buildImportReviewModel(
+        baseInput({
+          cardScoring: [
+            izzyCardScoring({ playerName: 'izzy   ' }),
+            {
+              autoScoredCards: [],
+              pendingCards: [],
+              playerName: 'Izzy H.',
+              totals: {
+                animals: 0,
+                complete: true,
+                jovian: 0,
+                microbes: 0,
+                other: 9,
+                total: 9,
+              },
+            },
+          ],
+          screenshotParse: {
+            playerRows: [
+              { cardPointsTotal: 31, playerName: 'Izzy' },
+              { cardPointsTotal: 40, playerName: 'Izzy H.' },
+            ],
+          },
+        }),
+      );
+
+      const byPlayer = new Map(
+        (model.cardScoringCrossChecks ?? []).map((check) => [
+          check.playerName,
+          check,
+        ]),
+      );
+
+      expect(byPlayer.get('izzy   ')).toMatchObject({
+        matchingFields: [
+          { calculatedValue: 31, field: 'cardPointsTotal', referenceValue: 31 },
+        ],
+        status: 'matched',
+      });
+      expect(byPlayer.get('Izzy H.')).toMatchObject({
+        conflictingFields: [
+          { calculatedValue: 9, field: 'cardPointsTotal', referenceValue: 40 },
+        ],
+        status: 'conflict',
+      });
+    });
+
+    it('case 6: does not invent a match or a conflict when the screenshot summary has no card-points field', () => {
+      const model = buildImportReviewModel(
+        baseInput({
+          screenshotParse: {
+            playerRows: [{ playerName: 'Izzy', totalPoints: 90, trPoints: 20 }],
+          },
+        }),
+      );
+
+      expect(model.cardScoringCrossChecks).toEqual([]);
+    });
+
+    it('case 7: compares only the component fields both sources actually expose', () => {
+      const model = buildImportReviewModel(
+        baseInput({
+          screenshotParse: {
+            playerRows: [{ cardPointsAnimals: 9, playerName: 'Izzy' }],
+          },
+        }),
+      );
+
+      expect(model.cardScoringCrossChecks).toEqual([
+        {
+          conflictingFields: [],
+          hasExplicitLogScoreRow: false,
+          matchingFields: [
+            { calculatedValue: 9, field: 'cardPointsAnimals', referenceValue: 9 },
+          ],
+          pendingCardCount: 0,
+          playerName: 'Izzy',
+          status: 'matched',
+        },
+      ]);
+    });
+
+    it('case 8: stays empty and preserves current screenshot_only behavior when no calculated evidence exists', () => {
+      const model = buildImportReviewModel(
+        baseInput({ cardScoring: [] }),
+      );
+
+      expect(model.cardScoringCrossChecks).toEqual([]);
+      expect(model.scoreCrossChecks).toEqual([
+        {
+          conflictingFields: [],
+          matchingFields: [],
+          playerName: 'Izzy',
+          status: 'screenshot_only',
+        },
+      ]);
     });
   });
 });

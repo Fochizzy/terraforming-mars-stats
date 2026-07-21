@@ -409,4 +409,164 @@ describe('ImportReviewPanel', () => {
       screen.getByText(/friday mars: log and screenshot disagree on total/i),
     ).toBeInTheDocument();
   });
+
+  it('cross-checks calculated card scoring against the screenshot summary when no log score row exists (owner-reported scenario)', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          cardScoring: [
+            {
+              autoScoredCards: [
+                {
+                  cardId: 'card-1',
+                  cardName: 'Ants',
+                  category: 'animals',
+                  evidenceSummary: '2 animals => 2 VP',
+                  humanSummary: '1 VP per animal on this card',
+                  points: 2,
+                  sourceType: 'curated',
+                },
+              ],
+              pendingCards: [],
+              playerName: 'Izzy',
+              totals: {
+                animals: 9,
+                complete: true,
+                jovian: 3,
+                microbes: 2,
+                other: 17,
+                total: 31,
+              },
+            },
+          ],
+          cardScoringCrossChecks: [
+            {
+              conflictingFields: [],
+              hasExplicitLogScoreRow: false,
+              matchingFields: [
+                { calculatedValue: 31, field: 'cardPointsTotal', referenceValue: 31 },
+              ],
+              pendingCardCount: 0,
+              playerName: 'Izzy',
+              status: 'matched',
+            },
+          ],
+          detectedParticipantNames: ['James', 'Izzy'],
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [{ cardPointsTotal: 31, playerName: 'Izzy' }],
+          scoreCrossChecks: [
+            {
+              conflictingFields: [],
+              matchingFields: [],
+              playerName: 'Izzy',
+              status: 'screenshot_only',
+            },
+          ],
+        }}
+      />,
+    );
+
+    // The old message must not be the only thing shown for Izzy.
+    expect(
+      screen.getByText(/izzy: the screenshot provided score data without a log score row/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /no explicit log score row was present.*izzy: the summary card score and calculated card details agree at 31 vp/i,
+      ),
+    ).toBeInTheDocument();
+    // The Calculated Card Scoring panel must remain visible.
+    expect(
+      screen.getByText(/izzy: 31 calculated card points/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/9 animal, 2 microbe, 3 jovian, 17 other/i)).toBeInTheDocument();
+  });
+
+  it('flags a conflict and requires manual review when calculated card scoring disagrees with the screenshot summary', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          cardScoring: [],
+          cardScoringCrossChecks: [
+            {
+              conflictingFields: [
+                { calculatedValue: 25, field: 'cardPointsTotal', referenceValue: 31 },
+              ],
+              hasExplicitLogScoreRow: false,
+              matchingFields: [],
+              pendingCardCount: 0,
+              playerName: 'Izzy',
+              status: 'conflict',
+            },
+          ],
+          detectedParticipantNames: ['Izzy'],
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [{ cardPointsTotal: 31, playerName: 'Izzy' }],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        /conflicting score fields will be left blank in the draft and must be entered manually before the game can be saved/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /izzy: the summary card score and calculated card details disagree on card points \(calculated 25 vs\. summary 31\)\. manual review is required/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('describes an incomplete calculated card score as partial evidence instead of a false conflict', () => {
+    render(
+      <ImportReviewPanel
+        onSelectionChange={() => {}}
+        playerSelections={{}}
+        review={{
+          cardScoring: [],
+          cardScoringCrossChecks: [
+            {
+              conflictingFields: [],
+              hasExplicitLogScoreRow: false,
+              matchingFields: [],
+              pendingCardCount: 1,
+              playerName: 'Izzy',
+              status: 'incomplete',
+            },
+          ],
+          detectedParticipantNames: ['Izzy'],
+          drawInfoLineCount: 0,
+          ignoredLineCount: 0,
+          parsedEventCount: 3,
+          playerLinks: [],
+          requiresPlayerConfirmation: false,
+          scoreCandidates: [{ cardPointsTotal: 31, playerName: 'Izzy' }],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        /izzy: calculated card scoring is still incomplete \(1 card pending review\), so it can't be fully cross-checked against the summary yet/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /conflicting score fields will be left blank in the draft/i,
+      ),
+    ).not.toBeInTheDocument();
+  });
 });

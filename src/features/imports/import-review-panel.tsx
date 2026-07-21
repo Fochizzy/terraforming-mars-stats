@@ -1,4 +1,6 @@
 import type {
+  ImportCardScoringCrossCheck,
+  ImportCardScoringFieldComparison,
   ImportReviewModel,
   ImportScoreCrossCheck,
 } from '@/lib/imports/build-import-review-model';
@@ -67,6 +69,40 @@ function buildScoreCrossCheckMessage(check: ImportScoreCrossCheck) {
     default:
       return '';
   }
+}
+
+function formatCardScoringFieldComparison(
+  comparison: ImportCardScoringFieldComparison,
+) {
+  return `${formatScoreFieldLabel(comparison.field)} (calculated ${comparison.calculatedValue} vs. summary ${comparison.referenceValue})`;
+}
+
+function buildCardScoringCrossCheckMessage(check: ImportCardScoringCrossCheck) {
+  const missingLogRowNote = check.hasExplicitLogScoreRow
+    ? ''
+    : 'No explicit log score row was present for this player. ';
+
+  if (check.status === 'incomplete') {
+    return `${missingLogRowNote}${check.playerName}: calculated card scoring is still incomplete (${formatCountLabel(check.pendingCardCount, 'card')} pending review), so it can't be fully cross-checked against the summary yet.`;
+  }
+
+  if (check.status === 'conflict') {
+    return `${missingLogRowNote}${check.playerName}: the summary card score and calculated card details disagree on ${check.conflictingFields
+      .map(formatCardScoringFieldComparison)
+      .join(', ')}. Manual review is required.`;
+  }
+
+  const totalMatch = check.matchingFields.find(
+    (field) => field.field === 'cardPointsTotal',
+  );
+
+  if (totalMatch) {
+    return `${missingLogRowNote}${check.playerName}: the summary card score and calculated card details agree at ${totalMatch.calculatedValue} VP.`;
+  }
+
+  return `${missingLogRowNote}${check.playerName}: the summary card score and calculated card details agree on ${formatScoreFieldList(
+    check.matchingFields.map((field) => field.field),
+  )}.`;
 }
 
 function formatManualReviewScoreFieldLabel(scoreField: ImportReviewJumpTarget['scoreField']) {
@@ -157,9 +193,10 @@ export function ImportReviewPanel({
     return jumpTarget ? [jumpTarget] : [];
   });
   const scoreCrossChecks = review.scoreCrossChecks ?? [];
-  const hasScoreConflicts = scoreCrossChecks.some(
-    (check) => check.status === 'conflict',
-  );
+  const cardScoringCrossChecks = review.cardScoringCrossChecks ?? [];
+  const hasScoreConflicts =
+    scoreCrossChecks.some((check) => check.status === 'conflict') ||
+    cardScoringCrossChecks.some((check) => check.status === 'conflict');
   const screenshotScoreDetails = review.screenshotScoreDetails ?? {
     awardPlacements: [],
     efficiencies: [],
@@ -225,7 +262,7 @@ export function ImportReviewPanel({
           </ul>
         </div>
       ) : null}
-      {scoreCrossChecks.length > 0 ? (
+      {scoreCrossChecks.length > 0 || cardScoringCrossChecks.length > 0 ? (
         <div className="rounded-2xl border border-cyan-400/25 bg-cyan-500/10 p-4">
           <h3 className="tm-data-label text-xs">Evidence Cross-Check</h3>
           {hasScoreConflicts ? (
@@ -238,6 +275,11 @@ export function ImportReviewPanel({
             {scoreCrossChecks.map((check) => (
               <li key={`${check.playerName}-${check.status}`}>
                 {buildScoreCrossCheckMessage(check)}
+              </li>
+            ))}
+            {cardScoringCrossChecks.map((check) => (
+              <li key={`card-scoring-${check.playerName}-${check.status}`}>
+                {buildCardScoringCrossCheckMessage(check)}
               </li>
             ))}
           </ul>
