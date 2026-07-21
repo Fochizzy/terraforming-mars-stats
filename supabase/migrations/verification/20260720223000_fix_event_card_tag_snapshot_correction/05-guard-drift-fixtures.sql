@@ -82,13 +82,97 @@
 -- -- same run:
 -- -- alter function public.rebuild_metric_summaries() set search_path to 'public';
 
--- === Section 4: ACL drift (proves harness proof item 7) =================
+-- === Section 4: ACL drift -- unexpected authenticated grant (proves harness
+-- proof item 7 / required ACL test 1) =====================================
 -- A single unexpected grant is enough to fail closed -- no revoke is
 -- required to reproduce this; the guard must catch an *added* grant just as
 -- readily as a missing revoke.
 -- grant execute on function public.rebuild_metric_summaries() to authenticated;
 
+-- The four sections below were added in the "second independent review"
+-- correction round (exact ACL identity guard, supabase/migrations/2026072
+-- 0223000_fix_event_card_tag_snapshot_correction.sql's "Exact ACL identity
+-- correction" comment block) -- they specifically exercise drift shapes the
+-- PRIOR guard (which only counted aclexplode() rows whose grantee differed
+-- from the owner) could not detect, because in every case below the sole
+-- entry's *grantee* is still the owner. Required ACL tests 2-5 from that
+-- round's spec; test 1 is Section 4 above.
+
+-- === Section 5: ACL drift -- unexpected PUBLIC grant (required ACL test 2)
+-- Distinct from Section 4: PUBLIC (pseudo-role, grantee oid 0) rather than a
+-- named role. Trips both the structural row-count check (2 rows, not 1) and
+-- the named has_function_privilege('public', ...) diagnostic.
+-- grant execute on function public.rebuild_metric_summaries() to public;
+
+-- === Section 6: ACL drift -- empty ACL / owner entry missing (required ACL
+-- test 3) ===================================================================
+-- Reached via plain REVOKE, not a raw catalog literal: 01-schema-and-stubs.sql
+-- already revokes execute from public/anon/authenticated, leaving exactly the
+-- owner's `{postgres=X/postgres}` entry; revoking that one remaining grant
+-- too leaves a present, non-null, zero-row ACL (`{}`) -- confirmed
+-- empirically this round that aclexplode() handles this real, DDL-reachable
+-- empty-array shape correctly (0 rows, no error) -- see the
+-- "Exact-ACL-identity drift tests" comment in run-verification.sh for the
+-- contrasting *un*reachable-via-DDL case (`'{}'::aclitem[]` as a raw catalog
+-- literal, or `ARRAY[]::aclitem[]`) that instead makes aclexplode() itself
+-- raise "ACL arrays must be one-dimensional" -- still fail-closed (it aborts
+-- before any mutation, same as every other guard rejection here), but not
+-- via this guard's own named "acl: ..." message, and not exercised by this
+-- fixture because it is not a state any GRANT/REVOKE sequence can produce.
+-- revoke all on function public.rebuild_metric_summaries() from postgres;
+
+-- === Section 7: ACL drift -- owner entry with unexpected grantability
+-- (required ACL test 4) =====================================================
+-- `WITH GRANT OPTION` is directly constructible via plain GRANT because the
+-- owner already implicitly has grant authority -- no role-switching or
+-- catalog editing needed. Confirmed empirically this round: this produces a
+-- *single* aclexplode() row (grantor=owner, grantee=owner, still merged, not
+-- a second entry) with is_grantable=true, distinct from the reviewed
+-- production value (false, i.e. `{postgres=X/postgres}` with no `*`).
+-- grant execute on function public.rebuild_metric_summaries() to postgres with grant option;
+
+-- === Section 8: ACL drift -- second entry naming a role not hardcoded by
+-- the migration (required ACL test 5) =====================================
+-- Proves the structural row-count check, not the named
+-- anon/authenticated/service_role/PUBLIC has_function_privilege() checks,
+-- is what actually gates a second entry -- `drift_other_role` is not
+-- mentioned anywhere in the migration's guard.
+-- do $$ begin
+--   if not exists (select 1 from pg_roles where rolname = 'drift_other_role') then
+--     create role drift_other_role;
+--   end if;
+-- end $$;
+-- grant execute on function public.rebuild_metric_summaries() to drift_other_role;
+
+-- The four sections below cover the search-path / other-metadata drift
+-- categories the "second independent review" round required be actually
+-- executed, not merely described: SECURITY INVOKER (Section 3 above) was
+-- already run; these four were not, before this round.
+
+-- === Section 9: search_path changed to a nonempty value ==================
+-- alter function public.rebuild_metric_summaries() set search_path to 'public';
+
+-- === Section 10: proconfig missing entirely ===============================
+-- Confirmed empirically this round: RESET (not SET to a different value)
+-- makes proconfig NULL outright, not an empty array -- a materially
+-- different drift shape from Section 9, and the guard's `v_proconfig is not
+-- null` check is what catches this one specifically.
+-- alter function public.rebuild_metric_summaries() reset search_path;
+
+-- === Section 11: extra GUC alongside the expected empty search_path ======
+-- Confirmed empirically this round: this appends a second proconfig array
+-- element (`{"search_path=\"\"",statement_timeout=5000}`), so the guard's
+-- `array_length(v_proconfig, 1) = 1` check is what catches this one --
+-- search_path itself is still exactly right.
+-- alter function public.rebuild_metric_summaries() set statement_timeout to '5000';
+
+-- === Section 12: function comment drift ===================================
+-- comment on function public.rebuild_metric_summaries() is 'drift: this function should have no comment';
+
 -- Uncomment exactly one section above (or run its statement(s) directly via
 -- `psql -c`) per disposable database. Left commented here so this file can
 -- be loaded as-is without side effects, and so `\i` against it from psql
--- (matching this harness's other files) is safe by default.
+-- (matching this harness's other files) is safe by default. All twelve
+-- sections are also wired into run-verification.sh's guard_case() calls, so
+-- `./run-verification.sh` exercises every one of them without any manual
+-- uncommenting.

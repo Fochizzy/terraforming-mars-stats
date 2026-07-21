@@ -5,7 +5,85 @@ disposable local PostgreSQL instance, which the vitest suite doesn't provision.
 Committed so the exact fixtures, stubs, and results are reviewable and
 reproducible rather than only described in prose.
 
-## This round: exact restoration + fail-closed identity guard
+## This round: exact ACL identity + all eight failure windows
+
+Supervising review of the previous round's commit (`fix(db): exact
+restoration + fail-closed identity guard for the Event-card snapshot
+migration`) classified it CORRECTION INCOMPLETE on three specific,
+narrowly-scoped points — all three closed this round, in the migration file
+and this harness:
+
+1. **The ACL guard counted non-owner grantees, not exact ACL identity.** The
+   prior guard's ACL check was `select count(*) from
+   aclexplode(coalesce(v_proacl, acldefault(...))) where grantee <>
+   v_owner_oid` — this proves "no role other than the owner can execute this
+   function," but not "the ACL is exactly the reviewed one." A function
+   whose ACL is empty-but-non-null (owner entry missing), whose sole entry's
+   grantor differs from the owner, whose sole entry's privilege_type is not
+   EXECUTE, or whose sole entry's grantability (`WITH GRANT OPTION`) differs
+   from the reviewed value all have a grantee equal to the owner and so
+   passed the old check with zero non-owner grants counted — exactly the
+   defect the supervising review named. Fixed by reading the exploded ACL
+   structurally and requiring, in order: `v_proacl` is not null; exactly one
+   `aclexplode()` row; that row's grantee is the owner; that row's grantor is
+   the owner; that row's `privilege_type` is exactly `EXECUTE`; that row's
+   `is_grantable` is exactly the reviewed value (`false`). See the
+   migration's own "Exact ACL identity correction" comment block for the
+   full rationale, and "Exact-ACL-identity drift tests" below for all 5
+   required drift proofs (4 new, 1 carried over).
+   **Empirical finding this round, worth flagging explicitly:** an "empty
+   ACL" fixture built via a raw catalog literal (`update pg_proc set proacl
+   = '{}'::aclitem[]`, or `ARRAY[]::aclitem[]`) produces a genuinely
+   zero-dimensional array that `aclexplode()` itself rejects with `ERROR:
+   ACL arrays must be one-dimensional` — still fail-closed (aborts before
+   any mutation, like every other guard rejection), but via a raw Postgres
+   error rather than this guard's own named `acl: ...` message, and **not
+   reachable via any GRANT/REVOKE sequence** — only via directly editing
+   `pg_catalog.pg_proc`. The empty-ACL drift fixture below instead reaches a
+   real, DDL-reachable empty ACL (`revoke all ... from postgres`, the sole
+   remaining grantee after the baseline's `revoke ... from public/anon/
+   authenticated`), which `aclexplode()` handles correctly (0 rows, no
+   error) — confirmed empirically against this exact cluster, not assumed.
+2. **Search-path and other metadata drift tests were described but not
+   executed.** The prior round's fixtures file (`05-guard-drift-fixtures.sql`)
+   documented a `search_path` drift alternative in prose but
+   `run-verification.sh` only ever ran the SECURITY INVOKER variant; an
+   extra-GUC case and a comment-drift case did not exist at all. All four
+   required, previously-unexecuted cases now run for real, every time
+   `run-verification.sh` runs: search_path changed to a nonempty value,
+   proconfig missing entirely (confirmed empirically this round: `RESET`
+   makes `proconfig` `NULL`, not an empty array — a different drift shape
+   from "changed to a different value," which the guard's `is not null`
+   check catches specifically), an extra GUC alongside the expected
+   `search_path=""` entry (confirmed empirically: this appends a second
+   `proconfig` array element, caught by the guard's `array_length(...) = 1`
+   check), and a function comment where none is expected.
+3. **Only one of the eight required failure windows had ever been exercised
+   against this migration.** The prior round's own README explicitly flagged
+   this gap rather than asserting undocumented coverage ("this claim could
+   not be independently confirmed... and should be reconciled by the
+   supervising reviewer"). All eight now run, every time
+   `run-verification.sh` runs — see "Eight required failure windows" below
+   for the full 8/8 table and the two distinct techniques used (instrumented
+   migration copies for windows that sit at a stable point in the migration's
+   own text; disposable stub-function swaps for windows that sit inside a
+   function the migration calls but does not define).
+
+This round's harness additions: `06-failure-window-generator.sh` (generates
+disposable, test-only instrumented copies of the *real* migration file for
+failure windows 1/2/5/8, verifying the source file's sha256 first and
+requiring each insertion anchor to occur exactly once — never modifies the
+tracked migration file, never writes inside this tracked verification
+directory), `07-failure-window-stubs.sql` (documents the stub swaps for
+failure windows 3/4/6/7, reproducible by hand or via `run-verification.sh`),
+and 8 new sections in `05-guard-drift-fixtures.sql` (the exact-ACL-identity
+and metadata drift fixtures). `run-verification.sh` now runs all of the
+above plus everything the prior round already ran, in one pass, and prints an
+explicit 8/8 failure-window table plus a hard `26/26 expected checks ran`
+gate — see that script's own top-of-file comment for the exit-nonzero-if-
+anything-is-skipped contract.
+
+## Previous round: exact restoration + fail-closed identity guard
 
 Independent review of the previous round's commit (`fix(db): bound the
 Event-card snapshot migration to one global rebuild`) passed the core
@@ -211,23 +289,33 @@ proving:
     empty (zero-byte, zero-line) on a successful run — not merely
     "semantically equivalent" (see "This round" above for the 513-vs-577-byte
     defect this replaces).
-19. **The fail-closed identity guard (Step 1.5) catches each of four
+19. **The fail-closed identity guard (Step 1.5) catches each of twelve
     independent drift categories before any mutation**, each proven with its
-    own fixture in `05-guard-drift-fixtures.sql`: a one-statement body drift,
-    an owner drift, a security-mode drift (`SECURITY INVOKER` in place of
-    `SECURITY DEFINER`), and an ACL drift (an added `authenticated` grant).
-    In every case: the migration raises a `pre-migration guard (20260720223000)
-    failed for public.rebuild_metric_summaries(): <property>: ...` exception
-    naming the specific drifted propert(y/ies), no snapshot/summary table is
-    written, no rebuild marker is inserted, no ACL is changed, and —
-    specifically distinct from correction 1's success-path restoration —
-    the *drifted* function definition is left exactly as drifted, not
-    reverted to the migration's own hardcoded expected copy. A full
-    `dump-state.sql` diff (now including the function's own full identity
-    section — owner, ACL, language, security, search_path, volatility,
-    parallel-safety, strictness, leakproofness, return type, comment,
-    `prosrc` length and md5, and `oid`) is byte-identical immediately before
-    and immediately after each guard-rejected run.
+    own fixture in `05-guard-drift-fixtures.sql` and run automatically by
+    `run-verification.sh`: a one-statement body drift, an owner drift, a
+    security-mode drift (`SECURITY INVOKER` in place of `SECURITY DEFINER`),
+    and — this round — the ACL check rebuilt to validate *exact* identity
+    (not just "no non-owner grantee"), proven against **5 distinct ACL drift
+    shapes**: an added `authenticated` grant, an added `PUBLIC` grant, a real
+    DDL-reachable empty ACL (owner entry revoked), an owner entry with
+    unexpected grantability (`WITH GRANT OPTION`), and a second entry naming
+    a role the migration does not otherwise hardcode anywhere — plus **4
+    metadata/search-path drift shapes**, all newly executed this round: search
+    path changed to a nonempty value, proconfig missing entirely, an extra GUC
+    alongside the expected `search_path=""` entry, and a function comment
+    where none is expected. In every case: the migration raises a
+    `pre-migration guard (20260720223000) failed for
+    public.rebuild_metric_summaries(): <property>: ...` exception naming the
+    specific drifted propert(y/ies), no snapshot/summary table is written, no
+    rebuild marker is inserted, no ACL is changed, and — specifically
+    distinct from correction 1's success-path restoration — the *drifted*
+    function definition is left exactly as drifted, not reverted to the
+    migration's own hardcoded expected copy. A full `dump-state.sql` diff
+    (including the function's own full identity section — owner, ACL,
+    language, security, search_path, volatility, parallel-safety,
+    strictness, leakproofness, return type, comment, `prosrc` length and md5,
+    and `oid`) is byte-identical immediately before and immediately after
+    each guard-rejected run.
 20. **The no-target case still does not inspect or replace
     `rebuild_metric_summaries()` at all**: with zero rows in every source
     table, the migration's `DO` succeeds, `pg_get_functiondef` is unchanged,
@@ -243,9 +331,72 @@ proving:
     `rebuild_metric_summaries()` is back in its real, restored,
     byte-identical-to-pre-migration body (not stuck neutralized), because
     the guard's read, the neutralize step, and the (never-reached) restore
-    step are all part of the same transaction that rolls back. See
-    "Note on 'eight failure windows'" under Limitations below for exactly
-    what this harness does and does not cover on the failure-injection axis.
+    step are all part of the same transaction that rolls back.
+22. **All eight required failure windows now roll back atomically**, each
+    proven independently — see "Eight required failure windows" below for
+    the full 8/8 table, the injection technique used for each, and what each
+    one specifically proves that the others don't (in particular: window 4
+    proves rollback undoes 3 games' worth of *real*, already-written
+    snapshot rows, not just an empty/no-op first attempt; window 5 proves
+    rollback undoes the entire per-game loop's writes even after
+    `rebuild_metric_summaries()` has already been restored to its real body;
+    window 7 proves rollback undoes a successful sibling call's write from
+    earlier in the very same statement).
+
+## Eight required failure windows
+
+Every window below is injected into a fresh, freshly-seeded database (same
+5-target-game fixture set — B, C, G, H, I — as every other case in this
+harness), and every window proves the same four things: (a) migration
+execution fails with a nonzero psql exit code; (b) all four per-game
+snapshot tables (`game_player_tag_metric_snapshots`,
+`game_player_metric_snapshots`, `game_milestone_metric_snapshots`,
+`game_award_metric_snapshots`), root `game_log_tag_summaries`, and
+`_rebuild_marker` counts are byte-identical immediately before vs.
+immediately after (via `dump-state.sql`); (c) `rebuild_metric_summaries()`'s
+own full identity — `oid`, owner, language, `SECURITY DEFINER`, search_path,
+volatility, parallel safety, strictness, leakproofness, return type, comment,
+`prosrc` length + md5 (all in that same `dump-state.sql` output) — is
+byte-identical too, so it ended the failed run in its real, restored body,
+never stuck neutralized; (d) no generated database object (a temporary
+helper, a partial rebuild, anything the *migration itself* created) survives
+— windows 3/4/6/7's own stub-swap scaffolding (a renamed function, a counter
+table) is test harness setup created *before* the migration runs, not
+something the migration creates, and is destroyed along with the whole
+disposable database at the end of that case regardless.
+
+| # | Window | Technique | What it specifically proves beyond the others |
+| --- | --- | --- | --- |
+| 1 | After target selection (Step 1), before neutralization (Step 2) | Instrumented migration copy (`06-failure-window-generator.sh`) | Failure with *zero* prior writes of any kind in this run — the guard already passed, but nothing has been touched yet |
+| 2 | Immediately after neutralization, before the per-game loop | Instrumented migration copy | Rollback undoes the neutralize `CREATE OR REPLACE FUNCTION` itself — `rebuild_metric_summaries()` ends up back in its real body, not stuck as the no-op |
+| 3 | During the first per-game refresh | Disposable stub swap (unconditional raise) | Failure on literally the first loop iteration, regardless of target-game iteration order |
+| 4 | After several per-game refreshes | Disposable stub swap (call-counted wrapper around the real stub logic, raises on the 4th of 5 calls) | Rollback undoes 3 games' worth of **real**, already-written snapshot rows (confirmed: the raised error message names call `#4`, proving 3 prior calls really ran the real logic) |
+| 5 | After restoration, before the final real rebuild | Instrumented migration copy | Rollback undoes the *entire* per-game loop's real writes even after `rebuild_metric_summaries()` has already been fully restored to its real body and re-affirmed via the defense-in-depth `REVOKE` |
+| 6 | Inside `rebuild_metric_summaries_base()` | Disposable stub swap | Failure inside the first of the two functions the restored `rebuild_metric_summaries()` delegates to, at the very end of a run where every earlier step already succeeded |
+| 7 | Inside `rebuild_additional_metric_summaries()` | Disposable stub swap (base stub left as its normal marker-inserting self) | Rollback undoes a *successful* sibling call's write (the `base` marker row) from earlier in the very same top-level statement |
+| 8 | After the final rebuild, before the top-level statement completes | Instrumented migration copy | The latest possible injection point — even the `base`/`additional` marker rows from a fully successful rebuild are rolled back |
+
+**Actual results, this round (PostgreSQL 18.4, two independently-`initdb`'d
+disposable clusters, 2026-07-21):** all 8 windows PASS on both clusters. See
+"Actual results, this round's corrections" below for the full
+`run-verification.sh` output, including the automated 8/8 table it prints.
+
+Windows 1, 2, 5, 8 run via `06-failure-window-generator.sh`, which verifies
+the *real* migration file's sha256 before generating anything (refuses to
+generate if the file has been edited since the hash below was last
+recorded) and requires each insertion anchor to occur in the file exactly
+once (refuses to generate, rather than guessing, if an anchor is missing or
+duplicated):
+
+```
+sha256(20260720223000_fix_event_card_tag_snapshot_correction.sql) =
+  2eba01204cff08c7220d1b7c2f78c02e45b1332a7f621e28c1606e9d800d48f4
+```
+
+Windows 3, 4, 6, 7 run the real, unmodified migration file against a
+database where one call-graph dependency has been swapped for a disposable
+stub — see `07-failure-window-stubs.sql` for the exact, reviewable SQL for
+each.
 
 ## Fixtures (`02-seed-fixtures.sql`)
 
@@ -387,16 +538,34 @@ psql -h 127.0.0.1 -p 55491 -U postgres -d defect_repro \
   -c "select kind, count(*) from public._rebuild_marker group by kind order by kind;"
 dropdb -h 127.0.0.1 -p 55491 -U postgres defect_repro
 
-# 7. Guard-mismatch fixtures (this round): one section per disposable
+# 7. Guard-mismatch fixtures (12 total: body/owner/security-mode/4×ACL/
+#    4×search-path-and-metadata/comment): one section per disposable
 #    database, uncommenting exactly one drift statement from
 #    05-guard-drift-fixtures.sql between steps 2 and 3 above. See that
 #    file's header for the exact statements and expected error substrings.
 
-# 8. Tear down
+# 8. Eight required failure windows (this round):
+#    a. Generate the instrumented copies for windows 1/2/5/8 (never written
+#       to this tracked directory or the tracked migration file):
+OUT_DIR=/tmp/tm-event-tag-failure-windows ./06-failure-window-generator.sh
+#    b. Windows 1, 2, 5, 8: run the generated copy from a fresh seeded
+#       database in place of the real migration file in step 3 above (e.g.
+#       `-f /tmp/tm-event-tag-failure-windows/window1.sql`) — expect ERROR
+#       containing `INJECTED_FAILURE_WINDOW_<n>`, and a dump-state.sql diff
+#       (including the function's own identity section) that is empty.
+#    c. Windows 3, 4, 6, 7: apply the corresponding stub swap from
+#       07-failure-window-stubs.sql (via `psql -c`) to a fresh seeded
+#       database, then run the REAL unmodified migration file — same
+#       expectations as (b).
+#    d. Tear down each disposable database and /tmp/tm-event-tag-failure-windows
+#       after use.
+
+# 9. Tear down
 pg_ctl -D /tmp/pg-event-tag-verify stop
 ```
 
-Or, equivalently, run every case above in one pass:
+Or, equivalently, run every case above (including all 12 guard-drift
+fixtures and all 8 failure windows) in one pass:
 
 ```sh
 PGBIN="/path/to/postgresql/18/bin" PGHOST=127.0.0.1 PGPORT=55491 PGUSER=postgres \
@@ -451,61 +620,77 @@ PGBIN="/path/to/postgresql/18/bin" PGHOST=127.0.0.1 PGPORT=55491 PGUSER=postgres
 
 ## Actual results, this round's corrections (`run-verification.sh`, PostgreSQL 18.4, 2026-07-21)
 
-All 10 automated checks below passed on a fresh disposable cluster
-(`initdb -E UTF8 --locale=C`), immediately followed by a fresh manual rerun
-against a second, independently-`initdb`'d cluster with the same result:
+All 26 automated checks below passed on a fresh disposable cluster
+(`initdb -E UTF8 --locale=C`), and again, independently, on a second,
+freshly-`initdb`'d cluster on a different port — full command output for
+both runs is reproduced in this round's supervising report; both end with
+`=== SUMMARY: 26 passed, 0 failed, 26/26 expected checks ran ===` and the
+8/8 failure-window table below.
 
-1. **Ordinary first pass**: `DO` succeeded; `pg_get_functiondef` byte-identical
-   pre/post migration (empty diff); `oid` identical pre/post.
-2. **Exactly one base + one additional rebuild** for the same 5-game target
-   set (B, C, G, H, I) as before this round.
-3. **Idempotent second pass**: full `dump-state.sql` output byte-identical to
-   the first pass.
-4. **No-target case** (every source table empty): `DO` succeeded,
-   `pg_get_functiondef` unchanged, zero `_rebuild_marker` rows — guard never
-   ran, function never inspected or replaced.
-5. **Rollback (poison game, mid-`FOREACH`)**: raised `simulated refresh
-   failure for poison game …`, nonzero exit; full state dump (now including
-   the function's own identity section) byte-identical pre/post, confirming
-   `rebuild_metric_summaries()` ended the failed run in its real, restored
-   body, not stuck neutralized.
-6. **Guard — body drift**: raised `pre-migration guard (20260720223000)
-   failed for public.rebuild_metric_summaries(): body: prosrc does not match
-   the exact reviewed definition (expected 337 bytes, found 413 bytes)`;
-   state unchanged; the drifted (413-byte) body was left exactly as drifted,
-   not reverted to the migration's hardcoded expected copy.
-7. **Guard — owner drift**: raised `... owner: expected postgres, found
-   drift_owner`; state unchanged.
-8. **Guard — security-mode drift** (`SECURITY INVOKER`): raised `...
-   security: expected SECURITY DEFINER, found SECURITY INVOKER`; state
-   unchanged.
-9. **Guard — ACL drift** (added `authenticated` grant): raised `... acl:
-   expected owner-only EXECUTE, found 1 non-owner grant(s): {postgres=X/
-   postgres,authenticated=X/postgres} | acl: unexpected EXECUTE grant to
-   authenticated` (both the aclexplode-count check and the named
-   `has_function_privilege` check fired, both named in one message); state
-   unchanged.
-10. **Pre-bounding rebuild-count defect reproduction** (unrelated to this
-    round's two corrections, re-run to confirm this round did not disturb
-    it): still six `base` + six `additional` markers for the same five-game
-    set, versus one and one under the corrected file.
+Checks 1–10 (ordinary first pass, exactly-one-rebuild, idempotent second
+pass, no-target, pre-existing rollback, body/owner/security-mode drift, the
+`authenticated`-grant ACL drift, and the pre-bounding rebuild-count defect
+reproduction) are unchanged in behavior from the previous round — see that
+round's results above. New this round:
 
-`run-verification.sh` output: `=== SUMMARY: 10 passed, 0 failed ===`.
+11. **Guard — ACL drift, PUBLIC grant**: raised `... acl: expected exactly 1
+    ACL entry (owner-only EXECUTE), found 2: {postgres=X/postgres,=X/
+    postgres} | acl: unexpected EXECUTE grant to anon | ... authenticated |
+    ... service_role | ... PUBLIC` (the structural row-count check and every
+    named-role check that applies all fire in one message — PUBLIC's
+    implicit membership means the anon/authenticated/service_role checks
+    also see it as having EXECUTE via PUBLIC).
+12. **Guard — ACL drift, empty ACL**: raised `... acl: expected exactly 1
+    ACL entry (owner-only EXECUTE), found 0: {}` — reached via
+    `revoke all ... from postgres` (the real, DDL-reachable empty-ACL path;
+    see the "This round" section above for the raw-catalog-literal variant
+    that instead makes `aclexplode()` itself error, not exercised as a
+    fixture here).
+13. **Guard — ACL drift, grantability**: raised `... acl: sole entry's
+    is_grantable expected false, found true: {postgres=X*/postgres}` — the
+    grantee is still the owner (this is exactly the drift shape the
+    *previous* round's `grantee <> owner` check could not have caught).
+14. **Guard — ACL drift, second entry naming a non-hardcoded role**: raised
+    `... acl: expected exactly 1 ACL entry (owner-only EXECUTE), found 2:
+    {postgres=X/postgres,drift_other_role=X/postgres}` — no
+    anon/authenticated/service_role/PUBLIC diagnostic fires (correctly: none
+    of those roles are involved), proving the structural row-count check,
+    not a named check, is what gates this.
+15. **Guard — search_path changed to `public`**: raised `... search_path:
+    expected exactly one config entry, search_path="" (i.e. SET search_path
+    TO ''), found {search_path=public}`.
+16. **Guard — proconfig missing entirely** (`RESET search_path`): raised
+    `... search_path: ... found NULL` — confirmed empirically this round
+    that `RESET` (unlike `SET` to a different value) makes `proconfig` `NULL`
+    outright, a materially different catalog state from check 15's.
+17. **Guard — extra GUC alongside the expected empty search_path**: raised
+    `... search_path: ... found {"search_path=\"\"",statement_timeout=5000}`
+    — `search_path` itself is exactly right; the array-length check is what
+    catches this.
+18. **Guard — function comment drift**: raised `... comment: expected no
+    comment on this function, found 'drift: this function should have no
+    comment'`.
+19–26. **Eight required failure windows**: all 8 PASS — see "Eight required
+    failure windows" above for the table and `run-verification.sh`'s own
+    printed 8/8 breakdown, reproduced here verbatim from an actual run:
+    ```
+    === 8/8 failure-window table ===
+      window 1: PASS
+      window 2: PASS
+      window 3: PASS
+      window 4: PASS
+      window 5: PASS
+      window 6: PASS
+      window 7: PASS
+      window 8: PASS
+    ```
 
-**Note on "eight failure windows"**: this harness's pre-existing (before
-this round) rollback coverage is **one** forced-failure scenario — a single
-poison game injected mid-`FOREACH`-loop (`03-rollback-test-setup.sql`),
-proving atomic rollback including function-state restoration for that one
-injection point. It is not eight distinct pre-existing failure-injection
-points. This round adds four *new*, distinct fail-closed scenarios (the
-Step 1.5 guard rejecting body/owner/security-mode/ACL drift, items 6–9
-above) that also prove atomic no-op behavior on failure, for a total of five
-distinct failure/rejection scenarios now covered by this harness, not eight.
-If "eight required failure windows" refers to something checked in a
-different review artifact this harness does not contain, that claim could
-not be independently confirmed from this repository's actual harness
-history and should be reconciled by the supervising reviewer rather than
-assumed correct.
+`run-verification.sh` output: `=== SUMMARY: 26 passed, 0 failed, 26/26
+expected checks ran ===` (both clusters). The script also hard-fails (exits
+nonzero with an explicit `HARNESS INCOMPLETE` message) if the number of
+checks that actually ran does not equal the expected 26 — for example if an
+earlier `set -e` failure had short-circuited a later section — so an
+incomplete run cannot silently present as a clean pass.
 
 ## Limitations
 
@@ -548,3 +733,31 @@ assumed correct.
   actually reviewed against, not a generic "any owner is fine" check, by
   design (an owner change is exactly one of the drift categories the guard
   must catch).
+- **The exact-ACL-identity guard's `aclexplode()` call is not itself wrapped
+  in an exception handler.** For every ACL state reachable via normal
+  GRANT/REVOKE DDL (confirmed empirically this round — see "This round"
+  above), `aclexplode()` behaves as documented and the guard produces its
+  own named `acl: ...` mismatch message. A genuinely zero-dimensional
+  `aclitem[]` value — only constructible by directly writing to
+  `pg_catalog.pg_proc.proacl` with a raw array literal or `ARRAY[]`
+  constructor, never by any sequence of GRANT/REVOKE statements — makes
+  `aclexplode()` itself raise `ERROR: ACL arrays must be one-dimensional`
+  before the guard's own comparison logic runs. This is still fail-closed
+  (the exception still aborts the migration before any mutation, exactly
+  like every other guard rejection, because it happens during the guard's
+  own read step), but it surfaces as a raw Postgres error rather than this
+  guard's own `pre-migration guard (20260720223000) failed for
+  public.rebuild_metric_summaries(): acl: ...` message. Not treated as a gap
+  requiring a fix: the guard's job is to fail closed on drift, which it
+  does here too, just with a less-branded error string, and only for a
+  catalog state normal privilege administration cannot produce.
+- The exact-ACL-identity guard's required test list (5 cases) includes
+  "grantor or grantability" for the owner-entry-with-unexpected-property
+  case; this round's fixture exercises grantability
+  (`WITH GRANT OPTION`, directly constructible via plain `GRANT`) but not
+  grantor (which would require a second role with delegated grant authority
+  and a `SET ROLE`-based grant sequence to construct via DDL, not attempted
+  this round). The guard code itself checks both grantor and grantability
+  independently (see the migration's "Exact ACL identity correction"
+  comment and Step 1.5's ACL block) — only the grantor branch lacks its own
+  live-executed drift fixture in this harness.

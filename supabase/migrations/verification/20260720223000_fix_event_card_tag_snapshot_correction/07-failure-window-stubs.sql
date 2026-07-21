@@ -1,0 +1,98 @@
+-- Disposable stub swaps for the 4 of the 8 required failure windows that
+-- inject *inside a function this migration calls but does not define*
+-- (refresh_game_metric_snapshots_internal, rebuild_metric_summaries_base,
+-- rebuild_additional_metric_summaries) rather than at a stable text position
+-- inside the migration file itself. The other 4 windows (1, 2, 5, 8) are
+-- covered by 06-failure-window-generator.sh's instrumented migration copies
+-- instead -- see that script's header for why the split.
+--
+-- Each section below is run (via `psql -c`, not `\i`, so it can be applied
+-- standalone after 01-schema-and-stubs.sql + 02-seed-fixtures.sql, before
+-- the REAL unmodified migration file runs) by run-verification.sh's
+-- failure_window_case() calls for windows 3/4/6/7. Reproduced here as
+-- reviewable, standalone SQL for a reviewer who wants to run one window by
+-- hand rather than through the orchestration script -- see README.md
+-- "Reproduction" for the manual per-window steps.
+--
+-- None of these are permanent test hooks added to the migration itself, and
+-- none are wired into any non-test code path -- they exist only in this
+-- verification directory, are applied only to a disposable per-test
+-- database, and that whole database (including these stub swaps, and window
+-- 4's counter table / renamed real implementation below) is dropped at the
+-- end of each test case. They are test *scaffolding* the harness sets up
+-- before the migration runs, not objects the migration itself creates or
+-- leaves behind -- the "no temporary helper or generated database object
+-- remains" requirement in README.md's "What every failure window must
+-- prove" is about the latter, checked by comparing dump-state.sql and the
+-- function's own pg_proc identity row before vs. after each run, not by the
+-- absence of this file's own fixtures.
+
+-- === Window 3: failure during the FIRST per-game refresh =================
+-- Unconditional -- fails on whichever game the FOREACH loop reaches first,
+-- without needing to know or control iteration order, since "the first
+-- call" is true of every call when every call raises.
+-- create or replace function public.refresh_game_metric_snapshots_internal(
+--   p_game_id uuid, p_require_editor boolean default true
+-- )
+-- returns void language plpgsql security definer set search_path to ''
+-- as $stub$
+-- begin
+--   raise exception 'INJECTED_FAILURE_WINDOW_3: failure during the first per-game refresh (game %)', p_game_id;
+-- end;
+-- $stub$;
+
+-- === Window 4: failure after SEVERAL per-game refreshes ==================
+-- Renames the real stub aside, wraps it with a call counter, and raises on
+-- the 4th call -- the fixture's 5-game target set (B, C, G, H, I) means 3
+-- games are genuinely (not just partially) refreshed for real before the
+-- 4th call raises, proving rollback undoes real, already-committed-looking
+-- per-game writes from earlier in the same loop, not just an empty/no-op
+-- first attempt.
+-- alter function public.refresh_game_metric_snapshots_internal(uuid, boolean)
+--   rename to _real_refresh_game_metric_snapshots_internal;
+-- create table public._test_refresh_call_counter (n int not null default 0);
+-- insert into public._test_refresh_call_counter default values;
+-- create or replace function public.refresh_game_metric_snapshots_internal(
+--   p_game_id uuid, p_require_editor boolean default true
+-- )
+-- returns void language plpgsql security definer set search_path to ''
+-- as $stub$
+-- begin
+--   update public._test_refresh_call_counter set n = n + 1;
+--   if (select n from public._test_refresh_call_counter) > 3 then
+--     raise exception 'INJECTED_FAILURE_WINDOW_4: failure after several per-game refreshes (game %, call #%)',
+--       p_game_id, (select n from public._test_refresh_call_counter);
+--   end if;
+--   perform public._real_refresh_game_metric_snapshots_internal(p_game_id, p_require_editor);
+-- end;
+-- $stub$;
+
+-- === Window 6: failure inside rebuild_metric_summaries_base() ============
+-- Runs only once the migration reaches its single real Step 3 rebuild call
+-- (restore + per-game loop have already succeeded), so this proves rollback
+-- undoes 5 games' worth of real, already-written snapshot rows too, not
+-- just the rebuild cascade itself.
+-- create or replace function public.rebuild_metric_summaries_base()
+-- returns void language plpgsql security definer set search_path to ''
+-- as $stub$
+-- begin
+--   raise exception 'INJECTED_FAILURE_WINDOW_6: failure inside rebuild_metric_summaries_base';
+-- end;
+-- $stub$;
+
+-- === Window 7: failure inside rebuild_additional_metric_summaries() ======
+-- rebuild_metric_summaries_base() is deliberately left as its normal
+-- 01-schema-and-stubs.sql stub (inserts a real 'base' marker row) so this
+-- window proves rollback undoes even a successful sibling call's write from
+-- earlier in the SAME statement, not only writes from before Step 3 began.
+-- create or replace function public.rebuild_additional_metric_summaries()
+-- returns void language plpgsql security definer set search_path to ''
+-- as $stub$
+-- begin
+--   raise exception 'INJECTED_FAILURE_WINDOW_7: failure inside rebuild_additional_metric_summaries';
+-- end;
+-- $stub$;
+
+-- Uncomment exactly one section above (or pass its statement(s) directly via
+-- `psql -c`, matching what run-verification.sh's failure_window_case() calls
+-- do) per disposable database.

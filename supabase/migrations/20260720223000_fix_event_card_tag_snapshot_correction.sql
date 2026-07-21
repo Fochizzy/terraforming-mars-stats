@@ -131,6 +131,42 @@
 -- *definition* still matches what this migration's execution strategy was
 -- reviewed against — that claim is now verified inside the migration's own
 -- transaction, every time it runs.
+--
+-- Exact ACL identity correction (this round, second independent review):
+-- the prior round's ACL check counted aclexplode() rows whose grantee
+-- differed from the function owner and separately spot-checked
+-- anon/authenticated/service_role/PUBLIC via has_function_privilege(). That
+-- proves "no other role can execute this function" but not "the ACL is
+-- exactly the reviewed one" — a function whose ACL is empty-but-non-null,
+-- whose owner entry is missing outright (proacl present but with zero rows,
+-- which coalesce(v_proacl, acldefault(...)) never reaches because it only
+-- substitutes on NULL, not on an empty-but-non-null array), whose sole
+-- entry's grantor is not the owner, whose sole entry's privilege_type is not
+-- EXECUTE, or whose sole entry's grantability does not match the reviewed
+-- production state, all had a grantee equal to the owner and so passed the
+-- old `grantee <> v_owner_oid` count as zero — the exact defect the
+-- supervising review flagged. Fixed below by reading the exploded ACL
+-- structurally (`aclexplode(v_proacl)`, one row per grantor/grantee/
+-- privilege/grantability tuple) rather than trusting `v_proacl`'s text
+-- rendering (aclitem array element order is not a stable, comparable
+-- contract) and requiring, in order: `v_proacl` is not null (a null proacl
+-- means unrevoked default privileges, under which PostgreSQL grants PUBLIC
+-- EXECUTE to functions); exactly one exploded row; that row's grantee is the
+-- function owner; that row's grantor is the function owner; that row's
+-- privilege_type is exactly `EXECUTE`; that row's is_grantable is exactly
+-- the reviewed value (`false` — the reviewed production ACL,
+-- `{postgres=X/postgres}`, carries no `*`/WITH GRANT OPTION marker). Any
+-- second entry fails closed by the row-count check alone, regardless of
+-- which role it names, including a role this guard does not otherwise
+-- hardcode anywhere. The previous round's named-role
+-- has_function_privilege() checks are retained immediately below the
+-- structural check, unchanged in behavior, purely as readable diagnostics —
+-- every drift shape they name was already independently fail-closed by the
+-- structural check first (a grant to any of those roles is necessarily
+-- either the sole entry's grantee failing the owner-equality check, or a
+-- second ACL entry failing the row-count check), so they never gate
+-- anything the structural check does not already gate; they exist only so a
+-- mismatch message can also name the specific role, when applicable.
 -- Named outer dollar-quote tag ($migration_body$, not the usual anonymous
 -- $$) deliberately: this block's own comments need to reference the
 -- `do $$ ... $$;` pattern and other functions' `$$`-delimited bodies in
@@ -184,7 +220,11 @@ $body$;
   v_proacl aclitem[];
   v_comment text;
   v_search_path_ok boolean;
-  v_bad_grant_count int;
+  v_acl_row_count int;
+  v_acl_grantor oid;
+  v_acl_grantee oid;
+  v_acl_privilege text;
+  v_acl_grantable boolean;
   v_mismatches text[] := '{}';
 begin
   -- Step 1: find every game whose persisted metric snapshots are stale with
@@ -435,27 +475,74 @@ begin
       );
     end if;
 
-    -- ACL: owner-only. Any grantee other than the owner -- including PUBLIC
-    -- (grantee 0), and specifically anon/authenticated/service_role if those
-    -- roles exist -- is a fail-closed condition. `coalesce(v_proacl,
-    -- acldefault('f', v_owner_oid))` handles a null proacl, which for a
-    -- function means default privileges apply -- and Postgres's function
-    -- default already grants PUBLIC execute, so an unrevoked-default
-    -- function correctly fails this check too, not just an explicitly
-    -- over-granted one. This establishes the ACL precondition the
-    -- post-restore `revoke ... from public, anon` below then re-affirms as
-    -- defense-in-depth, not the other way around.
-    select count(*) into v_bad_grant_count
-    from aclexplode(coalesce(v_proacl, acldefault('f', v_owner_oid))) a
-    where a.grantee <> v_owner_oid;
+    -- ACL: exact reviewed identity (see "Exact ACL identity correction"
+    -- above the `do $$`) -- not merely "no non-owner grantee". The reviewed
+    -- production ACL is exactly one aclexplode() row: grantor = owner,
+    -- grantee = owner, privilege_type = EXECUTE, is_grantable = false
+    -- (textually `{postgres=X/postgres}`, no `*`). Checked structurally via
+    -- aclexplode(), not via v_proacl's text rendering (aclitem array element
+    -- order is not a stable, comparable contract). This establishes the ACL
+    -- precondition the post-restore `revoke ... from public, anon` below
+    -- then re-affirms as defense-in-depth, not the other way around.
+    if v_proacl is null then
+      -- A null proacl means default privileges apply, and PostgreSQL grants
+      -- PUBLIC EXECUTE to functions by default -- fail closed rather than
+      -- substituting acldefault() and continuing, so this branch is named
+      -- explicitly in the mismatch report instead of being folded into the
+      -- row-count branch below.
+      v_mismatches := v_mismatches || 'acl: proacl is null -- unrevoked default privileges (PostgreSQL grants PUBLIC EXECUTE to functions by default)'::text;
+    else
+      select count(*) into v_acl_row_count from aclexplode(v_proacl) a;
 
-    if v_bad_grant_count > 0 then
-      v_mismatches := v_mismatches || format(
-        'acl: expected owner-only EXECUTE, found %s non-owner grant(s): %s',
-        v_bad_grant_count, coalesce(v_proacl::text, 'NULL')
-      );
+      if v_acl_row_count <> 1 then
+        v_mismatches := v_mismatches || format(
+          'acl: expected exactly 1 ACL entry (owner-only EXECUTE), found %s: %s',
+          v_acl_row_count, v_proacl::text
+        );
+      else
+        select a.grantor, a.grantee, a.privilege_type, a.is_grantable
+        into v_acl_grantor, v_acl_grantee, v_acl_privilege, v_acl_grantable
+        from aclexplode(v_proacl) a;
+
+        if v_acl_grantee is distinct from v_owner_oid then
+          v_mismatches := v_mismatches || format(
+            'acl: sole entry''s grantee is not the function owner (grantee oid %s, owner oid %s, owner %s): %s',
+            v_acl_grantee, v_owner_oid, v_owner_name, v_proacl::text
+          );
+        end if;
+
+        if v_acl_grantor is distinct from v_owner_oid then
+          v_mismatches := v_mismatches || format(
+            'acl: sole entry''s grantor is not the function owner (grantor oid %s, owner oid %s, owner %s): %s',
+            v_acl_grantor, v_owner_oid, v_owner_name, v_proacl::text
+          );
+        end if;
+
+        if v_acl_privilege is distinct from 'EXECUTE' then
+          v_mismatches := v_mismatches || format(
+            'acl: sole entry''s privilege_type expected EXECUTE, found %s: %s',
+            coalesce(v_acl_privilege, 'NULL'), v_proacl::text
+          );
+        end if;
+
+        if v_acl_grantable is distinct from false then
+          v_mismatches := v_mismatches || format(
+            'acl: sole entry''s is_grantable expected false, found %s: %s',
+            coalesce(v_acl_grantable::text, 'NULL'), v_proacl::text
+          );
+        end if;
+      end if;
     end if;
 
+    -- Named-role diagnostics only, retained unchanged from the prior round:
+    -- every case these catch is already fail-closed by the structural check
+    -- above (a grant to any of these roles is necessarily either the
+    -- not-null proacl's sole entry failing the grantee=owner check, or a
+    -- second ACL entry failing the row-count check, including a second
+    -- entry naming a role not hardcoded anywhere in this guard) -- these
+    -- exist so a mismatch message can also name the specific role, not to
+    -- independently gate anything the structural check does not already
+    -- gate.
     if to_regrole('anon') is not null and has_function_privilege('anon', v_fn_oid, 'EXECUTE') then
       v_mismatches := v_mismatches || 'acl: unexpected EXECUTE grant to anon'::text;
     end if;
