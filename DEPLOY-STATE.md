@@ -401,6 +401,56 @@ verified:**
   matching, and tile attribution against real production traffic is not yet
   independently observed by this session.
 
+## Pending release — Insights "Overall" scope (2026-07-21)
+
+Two sessions, one release. **The database half is live; the frontend half is
+not deployed yet.**
+
+| Half | Change | State |
+|---|---|---|
+| Database | `20260721193508 fold_player_card_outcome_context_into_definer` | **Applied to production 2026-07-21 19:35:08 UTC** — full evidence above under "player_card_outcomes definer fold" |
+| Frontend | `fix/live-compare-data-remove-declared-style` @ `df9d0c2cc` | Committed; `check:schema` 51/51; **not deployed**. The deploy lock is free — take it before shipping and record it here |
+
+**Why it needed both halves.** `analytics.player_card_outcomes` exceeded the 8 s
+`authenticated` `statement_timeout`, so PostgREST returned 500 (57014). Both
+Overall fan-outs collected their views with a plain `Promise.all`, so that one
+rejection discarded all 21 results and `loadInsightsDataOrDefault` substituted
+`emptyOverallAnalytics` — blanking Tag profiles, Preferred corporations,
+pts-per-board-tile, greenery share and best map even though *their* views had
+returned 200. The migration takes the view to ~300 ms (independently
+re-measured by the frontend session at 316 ms for the filtered shape);
+`2f38b1e6a` stops any future single failure from taking the scope down with it,
+and `41ace9f41` fixes the player-comparison headers that read the
+deliberately-empty Overall leaderboard.
+
+**Branch safety.** Deploy the frontend from
+`fix/live-compare-data-remove-declared-style` — **not** from
+`claude/jovial-dirac-9c0f53`, which is 375 commits behind and still calls
+`.from('group_default_expansions')` three times in
+`src/lib/db/group-settings-repo.ts` (lines 73, 159, 178): the same file and
+dropped table behind the 07-19 outage. Nothing was ever deployed from it. The
+database session moved off it onto `fix/player-card-outcomes-timeout` before
+doing any work, and that line has no such references anywhere in `src/`.
+
+**The migration is already on the deployable line.** An earlier draft of this
+entry recorded the migration file as uncommitted and needing to be carried
+across. It was in fact committed as `814e60210`, and
+`fix/live-compare-data-remove-declared-style` has since been fast-forwarded
+(0 behind, 3 ahead → `df9d0c2cc`) so it now contains all three commits: the
+migration, this ledger entry plus its verified rollback artifact
+(`supabase/migrations/verification/20260721194500_player_card_outcomes_prefold_rollback.sql`),
+and the deployment-runbook update. Copying the `.sql` alone would have dropped
+the rollback artifact — which matters here, because production's pre-fold view
+definition did not match `20260714134000` in this repository.
+
+**Record releases in the tracked file only.** That draft was written into the
+*untracked* `DEPLOY-STATE.md` at `C:\Users\izzyh\Documents\Terraforming Mars`
+(branch `move-score-profile-below-insights-lab`) — the stale copy this file
+warns about at the top. It would not have shipped, and the release branch had
+no record of either half until this entry. The tracked file at the head of the
+production branch is the only ledger; the copy at the primary checkout is not
+a place to write.
+
 ## Deployment sources — allowed and prohibited
 
 Deploy **only** from the recorded clean worktree and branch above, at a
