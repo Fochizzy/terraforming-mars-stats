@@ -122,11 +122,13 @@ $$;
 
 -- Simplified stub of refresh_game_metric_snapshots_internal: faithfully
 -- reimplements only the tag-count-relevant columns this correction actually
--- depends on (game_player_tag_metric_snapshots in full,
--- game_player_metric_snapshots.total_tag_count), using the identical
--- identity-resolution the production function uses. Does not implement
--- milestone/award/scoring-share snapshot rebuilding, which are out of scope
--- for this correction and untouched by it.
+-- depends on, using the identical identity-resolution the production
+-- function uses, AND the same delete-then-insert-for-every-game-player
+-- pattern for game_player_metric_snapshots (not a plain UPDATE) — needed so
+-- a game whose players have never been snapshotted before gets a correct
+-- fresh row created, not silently skipped. Does not implement milestone/
+-- award/scoring-share snapshot rebuilding, which are out of scope for this
+-- correction and untouched by it.
 create or replace function public.refresh_game_metric_snapshots_internal(
   p_game_id uuid,
   p_require_editor boolean default true
@@ -134,12 +136,98 @@ create or replace function public.refresh_game_metric_snapshots_internal(
 returns void
 language plpgsql
 as $$
+declare
+  v_status text;
 begin
   if p_game_id is null then
     raise exception 'game id is required';
   end if;
 
+  select status into v_status from public.games where id = p_game_id;
+
+  if v_status is null then
+    raise exception 'game % does not exist', p_game_id;
+  end if;
+
   delete from public.game_player_tag_metric_snapshots where game_id = p_game_id;
+  delete from public.game_player_metric_snapshots where game_id = p_game_id;
+
+  if v_status <> 'finalized' then
+    return;
+  end if;
+
+  with tag_summary_matches as (
+    select
+      coalesce(glts.game_player_id, resolved_player.game_player_id) as game_player_id,
+      glts.tag_code,
+      glts.tag_count,
+      glts.game_log_import_id,
+      glts.played_card_count,
+      glts.matched_card_count,
+      glts.unresolved_card_count,
+      glts.total_tag_count
+    from public.game_log_imports gli
+    join public.game_log_tag_summaries glts on glts.game_log_import_id = gli.id
+    left join lateral (
+      select gp_resolved.id as game_player_id
+      from public.game_players gp_resolved
+      join public.players p_resolved on p_resolved.id = gp_resolved.player_id
+      where gp_resolved.game_id = gli.game_id
+        and (
+          public.metric_normalized_label(p_resolved.display_name) = glts.normalized_player_name
+          or exists (
+            select 1 from public.player_import_aliases pia
+            where pia.player_id = p_resolved.id
+              and pia.source_type = 'game_log'
+              and pia.normalized_alias = glts.normalized_player_name
+          )
+        )
+      order by gp_resolved.id
+      limit 1
+    ) resolved_player on glts.game_player_id is null
+    where gli.game_id = p_game_id
+  ),
+  player_tag_rollups as (
+    select
+      import_rollups.game_player_id,
+      sum(import_rollups.played_card_count)::integer as played_card_count,
+      sum(import_rollups.matched_card_count)::integer as matched_card_count,
+      sum(import_rollups.unresolved_card_count)::integer as unresolved_card_count,
+      sum(import_rollups.total_tag_count)::integer as total_tag_count
+    from (
+      select
+        game_player_id,
+        game_log_import_id,
+        max(played_card_count) as played_card_count,
+        max(matched_card_count) as matched_card_count,
+        max(unresolved_card_count) as unresolved_card_count,
+        max(total_tag_count) as total_tag_count
+      from tag_summary_matches
+      where game_player_id is not null
+      group by game_player_id, game_log_import_id
+    ) import_rollups
+    group by import_rollups.game_player_id
+  )
+  -- Unconditional: one row per game_player of this (finalized) game,
+  -- whether or not root has any evidence for them — matches production's
+  -- target_players (games join game_players, no snapshot-existence check).
+  insert into public.game_player_metric_snapshots (
+    game_id, game_player_id, group_id, player_id, total_tag_count,
+    played_card_count, matched_played_card_count, unresolved_played_card_count
+  )
+  select
+    p_game_id,
+    gp.id,
+    p.group_id,
+    p.id,
+    coalesce(ptr.total_tag_count, 0),
+    coalesce(ptr.played_card_count, 0),
+    coalesce(ptr.matched_card_count, 0),
+    coalesce(ptr.unresolved_card_count, 0)
+  from public.game_players gp
+  join public.players p on p.id = gp.player_id
+  left join player_tag_rollups ptr on ptr.game_player_id = gp.id
+  where gp.game_id = p_game_id;
 
   with tag_summary_matches as (
     select
@@ -205,9 +293,9 @@ begin
   )
   select
     p_game_id,
-    gp.id,
-    p.group_id,
-    p.id,
+    gps.game_player_id,
+    gps.group_id,
+    gps.player_id,
     tag_counts.tag_code,
     tag_counts.tag_count,
     coalesce(player_tag_rollups.total_tag_count, 0),
@@ -215,69 +303,9 @@ begin
     coalesce(player_tag_rollups.matched_card_count, 0),
     coalesce(player_tag_rollups.unresolved_card_count, 0)
   from tag_counts
-  join public.game_players gp on gp.id = tag_counts.game_player_id
-  join public.players p on p.id = gp.player_id
-  left join player_tag_rollups on player_tag_rollups.game_player_id = tag_counts.game_player_id;
-
-  with tag_summary_matches as (
-    select
-      coalesce(glts.game_player_id, resolved_player.game_player_id) as game_player_id,
-      glts.game_log_import_id,
-      glts.played_card_count,
-      glts.matched_card_count,
-      glts.unresolved_card_count,
-      glts.total_tag_count
-    from public.game_log_imports gli
-    join public.game_log_tag_summaries glts on glts.game_log_import_id = gli.id
-    left join lateral (
-      select gp_resolved.id as game_player_id
-      from public.game_players gp_resolved
-      join public.players p_resolved on p_resolved.id = gp_resolved.player_id
-      where gp_resolved.game_id = gli.game_id
-        and (
-          public.metric_normalized_label(p_resolved.display_name) = glts.normalized_player_name
-          or exists (
-            select 1 from public.player_import_aliases pia
-            where pia.player_id = p_resolved.id
-              and pia.source_type = 'game_log'
-              and pia.normalized_alias = glts.normalized_player_name
-          )
-        )
-      order by gp_resolved.id
-      limit 1
-    ) resolved_player on glts.game_player_id is null
-    where gli.game_id = p_game_id
-  ),
-  player_tag_rollups as (
-    select
-      import_rollups.game_player_id,
-      sum(import_rollups.played_card_count)::integer as played_card_count,
-      sum(import_rollups.matched_card_count)::integer as matched_card_count,
-      sum(import_rollups.unresolved_card_count)::integer as unresolved_card_count,
-      sum(import_rollups.total_tag_count)::integer as total_tag_count
-    from (
-      select
-        game_player_id,
-        game_log_import_id,
-        max(played_card_count) as played_card_count,
-        max(matched_card_count) as matched_card_count,
-        max(unresolved_card_count) as unresolved_card_count,
-        max(total_tag_count) as total_tag_count
-      from tag_summary_matches
-      where game_player_id is not null
-      group by game_player_id, game_log_import_id
-    ) import_rollups
-    group by import_rollups.game_player_id
-  )
-  update public.game_player_metric_snapshots gps
-  set played_card_count = coalesce(ptr.played_card_count, 0),
-      matched_played_card_count = coalesce(ptr.matched_card_count, 0),
-      unresolved_played_card_count = coalesce(ptr.unresolved_card_count, 0),
-      total_tag_count = coalesce(ptr.total_tag_count, 0),
-      updated_at = now()
-  from player_tag_rollups ptr
-  where gps.game_player_id = ptr.game_player_id
-    and gps.game_id = p_game_id;
+  join public.game_player_metric_snapshots gps on gps.game_player_id = tag_counts.game_player_id
+  left join player_tag_rollups on player_tag_rollups.game_player_id = tag_counts.game_player_id
+  where gps.game_id = p_game_id;
 end;
 $$;
 
