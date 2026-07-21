@@ -29,16 +29,25 @@ export const PRODUCTION_LEDGER_ATTESTATION = {
   /** Date of the read-only attestation this snapshot reproduces. */
   attestedOn: '2026-07-21',
   /** Total ledger entries at attestation time. */
-  entryCount: 108,
-  headVersion: '20260721081355',
-  headName: 'fix_event_card_tag_snapshot_correction',
+  entryCount: 110,
+  headVersion: '20260721201734',
+  headName: 'harden_claim_rpc_privacy',
   /**
-   * The previous snapshot (2026-07-20) held 105 entries with max
-   * 20260720021300. The three entries above it are production applications
-   * made from other branches; see PRODUCTION_ONLY_ENTRY_PROVENANCE.
+   * The previous snapshot (earlier on 2026-07-21) held 108 entries with max
+   * 20260721081355. The two entries above it were both applied from the
+   * live-site lineage on 2026-07-21:
+   *
+   *   20260721193508 fold_player_card_outcome_context_into_definer
+   *     Production-only relative to this branch; see
+   *     PRODUCTION_ONLY_ENTRY_PROVENANCE.
+   *   20260721201734 harden_claim_rpc_privacy
+   *     The ledger #106 claim-RPC privacy hardening. Its file is now carried
+   *     on this branch as 20260721173000, so it is a renamed-drift target
+   *     rather than a production-only entry; see
+   *     APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME.
    */
-  previousEntryCount: 105,
-  previousHeadVersion: '20260720021300',
+  previousEntryCount: 108,
+  previousHeadVersion: '20260721081355',
 } as const;
 
 /**
@@ -79,6 +88,12 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   // Added between the 2026-07-20 and 2026-07-21 attestations, all applied
   // from other branches. See PRODUCTION_ONLY_ENTRY_PROVENANCE.
   '20260720221937', '20260721035955', '20260721081355',
+  // Added between the two 2026-07-21 attestations, both applied from the
+  // live-site lineage. 20260721193508 has no file on this branch
+  // (PRODUCTION_ONLY_ENTRY_PROVENANCE); 20260721201734 is the ledger record of
+  // the #106 hardening whose file this branch now carries as 20260721173000
+  // (APPLIED_UNDER_DIFFERENT_LEDGER_VERSION).
+  '20260721193508', '20260721201734',
 ];
 
 /**
@@ -98,6 +113,41 @@ export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION: Readonly<
   '20260719223000': '20260719203944',
   '20260719223500': '20260719204250',
   '20260719230000': '20260719205420',
+  // Ledger #106. Applied from the live-site branch
+  // fix/106-claim-rpc-privacy-remediation; the Supabase apply tool stamped the
+  // UTC apply time (20260721201734) over the filename version (20260721173000).
+  // The pairing is established by NAME — see
+  // APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME.
+  '20260721173000': '20260721201734',
+};
+
+/**
+ * The subset of APPLIED_UNDER_DIFFERENT_LEDGER_VERSION whose pairing is
+ * established by migration NAME rather than inferred from adjacency in time.
+ *
+ * Version is the wrong join key for a renamed apply: the filename version and
+ * the ledger version differ by construction, and nothing in the ledger points
+ * back at the file. The name does survive the rename — apply_migration
+ * rewrites the version but carries the name through — so `<fileVersion>_<name>.sql`
+ * on this branch and `<ledgerVersion> <name>` in the ledger identify the same
+ * application. The drift test asserts that correspondence against the real
+ * filename, so renaming or removing the file breaks the gate instead of
+ * silently orphaning the mapping.
+ */
+export interface NameKeyedRenamedApply {
+  /** Filename version of the migration file on this branch. */
+  readonly fileVersion: string;
+  /** Version the apply tool stamped in the production ledger. */
+  readonly ledgerVersion: string;
+}
+
+export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME: Readonly<
+  Record<string, NameKeyedRenamedApply>
+> = {
+  harden_claim_rpc_privacy: {
+    fileVersion: '20260721173000',
+    ledgerVersion: '20260721201734',
+  },
 };
 
 /**
@@ -175,7 +225,7 @@ export const PRODUCTION_ONLY_LEDGER_VERSIONS: readonly string[] = [
   '20260717022105', '20260717031053', '20260717032629',
   // Attested identities; see PRODUCTION_ONLY_ENTRY_PROVENANCE.
   '20260718212722', '20260718234835', '20260719132042', '20260720021300',
-  '20260720221937', '20260721035955', '20260721081355',
+  '20260720221937', '20260721035955', '20260721081355', '20260721193508',
 ];
 
 export interface ProductionOnlyProvenance {
@@ -253,7 +303,15 @@ export const PRODUCTION_ONLY_ENTRY_PROVENANCE: Readonly<
     sourceFileVersion: '20260720223000',
     sourceFileName: '20260720223000_fix_event_card_tag_snapshot_correction.sql',
     sourceRef: 'origin/fix/event-card-snapshot-migration-bounded-rebuild',
-    note: 'Applied under a renamed ledger version. Current ledger head.',
+    note: 'Applied under a renamed ledger version.',
+  },
+  '20260721193508': {
+    name: 'fold_player_card_outcome_context_into_definer',
+    sourceFileVersion: '20260721194500',
+    sourceFileName:
+      '20260721194500_fold_player_card_outcome_context_into_definer.sql',
+    sourceRef: '814e60210 (fix/live-compare-data-remove-declared-style)',
+    note: 'player_card_outcomes timeout remediation, applied from the live-site lineage; no file on this branch. Applied under a renamed ledger version, and here the ledger version precedes the filename version, so time order is not a safe pairing rule — the name is.',
   },
 };
 
@@ -382,4 +440,13 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // Narrows the disclosed match classification a deployed caller can read
   // (fine-grained match_reason/match_score → coarse exact/partial).
   '20260720120000': 'contraction', // coarsen_import_name_match_reasons
+  // Ledger #106. Rebuilds three deployed claim RPCs to disclose less and
+  // accept less: prefix/substring name matching is replaced by exact whole-name
+  // matching, a 3-character input floor and a 10-row cap are imposed, the
+  // private-first-name label fallback becomes a neutral placeholder, and
+  // group_name is returned null. Every one of those narrows a surface the
+  // deployed reader could previously rely on, and the file restores no
+  // equal-or-broader replacement, so it is a contraction even though it
+  // creates, drops and grants nothing.
+  '20260721173000': 'contraction', // harden_claim_rpc_privacy
 };

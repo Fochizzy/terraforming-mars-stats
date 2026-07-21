@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   APPLIED_UNDER_DIFFERENT_LEDGER_VERSION,
+  APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME,
   APPLIED_UNDER_UNCONFIRMED_REMOTE_VERSION,
   GATED_UNAPPLIED,
   MIGRATION_HAZARD_CLASS,
@@ -38,10 +39,14 @@ const HAZARD_CLASSES: readonly MigrationHazardClass[] = [
   'neutral',
 ];
 
+function repoMigrationFiles(): string[] {
+  return readdirSync(resolve(process.cwd(), 'supabase/migrations')).filter(
+    (file) => file.endsWith('.sql'),
+  );
+}
+
 function repoMigrationVersions(): string[] {
-  return readdirSync(resolve(process.cwd(), 'supabase/migrations'))
-    .filter((file) => file.endsWith('.sql'))
-    .map((file) => file.split('_')[0]);
+  return repoMigrationFiles().map((file) => file.split('_')[0]);
 }
 
 describe('migration-ledger map', () => {
@@ -176,6 +181,10 @@ describe('migration-ledger map', () => {
       MIGRATION_HAZARD_CLASS['20260720110000'],
       'game_log_events_owner_requires_explicit_state is a CHECK on pre-existing columns added without `not valid`: it rejects owner ids alongside a non-explicit_owner ownership_state that the deployed contract accepts, so the widened vocabularies do not make the file an expansion',
     ).toBe('contraction');
+    expect(
+      MIGRATION_HAZARD_CLASS['20260721173000'],
+      'the ledger #106 claim-RPC hardening narrows what the three RPCs disclose (exact-match only, 3-character input floor, 10-row cap, no personal-name label fallback, null group_name) and restores no equal-or-broader replacement',
+    ).toBe('contraction');
   });
 
   it('never lists a gated migration as applied', () => {
@@ -204,6 +213,32 @@ describe('migration-ledger map', () => {
         ledger.has(fileVersion),
         `${fileVersion} is mapped as renamed but its own version is ALSO in the ledger — double application hazard`,
       ).toBe(false);
+    }
+  });
+
+  it('reconciles name-keyed renamed applications against the real filename', () => {
+    // A renamed apply has no version in common with its ledger entry, so the
+    // NAME is the only surviving join key. Assert it against the filename on
+    // disk rather than against another constant, so renaming or deleting the
+    // file breaks the gate instead of orphaning the mapping.
+    const filesByVersion = new Map(
+      repoMigrationFiles().map((file) => [file.split('_')[0], file]),
+    );
+    for (const [name, record] of Object.entries(
+      APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME,
+    )) {
+      expect(
+        APPLIED_UNDER_DIFFERENT_LEDGER_VERSION[record.fileVersion],
+        `${name} is name-keyed to ledger version ${record.ledgerVersion} but the version-keyed map disagrees`,
+      ).toBe(record.ledgerVersion);
+      expect(
+        ledger.has(record.ledgerVersion),
+        `${name} claims ledger version ${record.ledgerVersion}, which is not in the captured ledger`,
+      ).toBe(true);
+      expect(
+        filesByVersion.get(record.fileVersion),
+        `${name} is mapped to file version ${record.fileVersion}, but no migration file on this branch is named ${record.fileVersion}_${name}.sql`,
+      ).toBe(`${record.fileVersion}_${name}.sql`);
     }
   });
 
