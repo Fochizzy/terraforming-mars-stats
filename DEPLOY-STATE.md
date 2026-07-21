@@ -22,8 +22,8 @@ version→commit linkage.
 | Source branch | `release/step-43-production-compatibility` (pushed to `origin`; `origin/release/step-43-production-compatibility` independently confirmed to resolve to the exact deployed SHA) |
 | Source commit | `a40d49662825474c98813aa44abb577b8830cc68` — resolved by the deploy-time stamp print, not inferred |
 | Deployed (UTC) | 2026-07-20 18:33:13.965Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **Izzy** |
-| Active clean deployment worktree | `C:\tmp\tm-step-43-production-reader` on branch `release/step-43-production-compatibility` (candidate `a40d49662`, base `14abb8d1d`) |
+| Deploy lock | **Released by Izzy 2026-07-20** (Step 4.3 verification effort abandoned/superseded); **reserved for the Workstream 2 privacy deploy, candidate `9b7a00555` only** |
+| Active clean deployment worktree | `C:\tmp\tm-ws2-privacy-deploy` on branch `fix/import-matchscore-client-privacy`, detached at candidate `9b7a00555f216f4a741e819e8795238c362584f9` (base `341d0d23a`). The prior row, `C:\tmp\tm-step-43-production-reader`, is released — see below. |
 | DB migration ledger head | `20260720021300 add_import_player_name_matching_rpc` (unchanged — no migration applied this release) |
 | Rollback worker version | `c23bfbd7-9729-4981-9f45-aee05c242d31` (previous production build, commit `59dda6c0f`; `eb4e5821`/`bf081d918` remains the deeper live-capture-v2 fallback) |
 | Verified | 2026-07-20 18:3x UTC — see "Step 4.3 code-only deploy" below for exact evidence and its gaps |
@@ -38,6 +38,21 @@ HTTP fetch — the intended steady-state verification path — was not completed
 this session** (see below); until it is, this row's commit is build-time
 correlated, not live-endpoint confirmed. Do that fetch before relying on this
 row for anything higher-stakes than routine reference.
+
+> **Gap found 2026-07-20, ~23:56 UTC (Workstream 2 preflight).** Live
+> `wrangler deployments list` shows **two further 100%-traffic releases after
+> `15fba7e9`** that were never recorded here: `1eb5e3c8-9999-4801-ad22-3234171739b2`
+> (created 2026-07-20T20:02:11.823Z) and
+> `8cc152cb-bfed-4827-852a-fee9e944bf79` (created 2026-07-20T21:50:08.793Z,
+> currently serving 100% of traffic). Cloudflare's deployment record carries no
+> commit/branch metadata for either (`Source: Unknown`, blank `Message`/`Tag`),
+> and the authenticated `/api/deploy-info` check was not available to this
+> session. The Workstream 2 requesting task asserted `8cc152cb` corresponds to
+> `341d0d23a94b5dc80e49da374a55b9690291f277` on
+> `release/b05-auth-resilience-code-only` — that branch tip does match that
+> SHA in the repo, but **no session has independently confirmed it against the
+> live artifact**. Whoever deployed `1eb5e3c8`/`8cc152cb` did not update this
+> file; please record the real source branch/commit for both once known.
 
 ### Step 4.3 code-only deploy — 2026-07-20 18:3x UTC
 
@@ -101,6 +116,16 @@ verified:**
   **functional/authenticated behavior** of the privacy reader, coarse
   matching, and tile attribution against real production traffic is not yet
   independently observed by this session.
+
+### Workstream 2 privacy deploy — lock transfer, pre-deploy — 2026-07-20 ~23:5x UTC
+
+Owner (Izzy) confirmed directly, in chat, that the Step 4.3 verification
+effort above (`/api/deploy-info` fetch, functional walkthrough) is abandoned
+or superseded, released the deploy lock, and reserved it for a bounded
+Workstream 2 deploy: candidate `9b7a00555f216f4a741e819e8795238c362584f9` on
+`fix/import-matchscore-client-privacy`, base `341d0d23a94b5dc80e49da374a55b9690291f277`.
+No migration is authorized as part of this deploy. Full deploy evidence will
+be appended here once it completes.
 
 ## Deployment sources — allowed and prohibited
 
