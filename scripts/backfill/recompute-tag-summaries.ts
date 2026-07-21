@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
+import { PLAYABLE_CARD_TYPES } from '../../src/lib/cards/card-type-vocabulary';
 import { buildGameLogTagSummaryRows } from '../../src/lib/db/game-import-repo';
-import { PLAYABLE_CARD_TYPES } from '../../src/lib/db/reference-repo';
 import {
   derivePlayerTagSummaries,
   PLAYER_TAG_CODES,

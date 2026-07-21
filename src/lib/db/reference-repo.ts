@@ -1,4 +1,10 @@
+import {
+  PLAYABLE_CARD_TYPES,
+  PROJECT_CARD_TYPES,
+} from '@/lib/cards/card-type-vocabulary';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+
+export { PLAYABLE_CARD_TYPES, PROJECT_CARD_TYPES };
 
 export type MapOption = {
   id: string;
@@ -365,25 +371,6 @@ export async function listStyles(): Promise<StyleOption[]> {
 
   return data;
 }
-
-/**
- * The project deck, as the catalog types it today.
- *
- * The upstream card sync replaced a single generic `Project` card_type with the
- * real Terraforming Mars types, leaving `Project` on a handful of legacy rows.
- * Filtering on `Project` alone therefore drops Automated, Active and Event —
- * the bulk of the deck — so both vocabularies are accepted. `Standard Project`
- * and `Standard Action` stay out: they are board actions, not cards held in
- * hand, and the log records them as their own event type.
- */
-export const PROJECT_CARD_TYPES = ['Automated', 'Active', 'Event', 'Project'];
-
-/** Everything a player can play from hand, for matching names in a game log. */
-export const PLAYABLE_CARD_TYPES = [
-  ...PROJECT_CARD_TYPES,
-  'Corporation',
-  'Prelude',
-];
 
 const CARD_PAGE_SIZE = 1000;
 
