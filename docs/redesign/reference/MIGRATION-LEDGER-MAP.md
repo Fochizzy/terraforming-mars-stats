@@ -8,10 +8,10 @@ read-only and updating both files together.
 
 ## Current snapshot
 
-Captured read-only on **2026-07-21**: **108 entries**, head
-`20260721081355 fix_event_card_tag_snapshot_correction`. The previous snapshot
-(2026-07-20) held 105 entries with head `20260720021300`; the three additions
-are recorded below. The count and head are pinned in
+Captured read-only on **2026-07-21**: **110 entries**, head
+`20260721201734 harden_claim_rpc_privacy`. The previous snapshot (earlier the
+same day) held 108 entries with head `20260721081355`; the two additions are
+recorded below. The count and head are pinned in
 `PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that disagrees fails
 rather than silently overwriting.
 
@@ -31,7 +31,10 @@ different failures:
 The ledger → repo direction is what catches a production application made from
 a *different* branch. Three such entries landed between the 2026-07-20 and
 2026-07-21 attestations and left no trace on this branch; before this direction
-existed they would have been invisible to the gate.
+existed they would have been invisible to the gate. Two more landed later on
+2026-07-21 — `20260721193508` and the ledger #106 hardening `20260721201734`.
+The #106 file is now carried on this branch, which is what moves it out of the
+production-only register and into renamed drift.
 
 Hazard class is **orthogonal** to classification. Classification answers "what
 is this migration's relationship to production history"; hazard class answers
@@ -68,10 +71,30 @@ skips them by version.
 | `20260719223000_isolate_player_personal_names_from_data_api` | `20260719203944` | isolate_player_personal_names_from_data_api |
 | `20260719223500_enable_rls_on_player_legacy_identities` | `20260719204250` | enable_rls_on_player_legacy_identities |
 | `20260719230000_security_invoker_on_import_integrity_audit` | `20260719205420` | security_invoker_on_import_integrity_audit |
+| `20260721173000_harden_claim_rpc_privacy` | `20260721201734` | harden_claim_rpc_privacy |
 
 These files must **never** be renamed to their ledger versions casually and
 must never be pushed directly: a plain `supabase db push` would re-apply
 their content as new versions.
+
+**The ledger #106 row is keyed by name, not by version.** The file was authored
+and applied on the live-site branch `fix/106-claim-rpc-privacy-remediation`
+(fix commit `9ddd0de59`, tip `48d612fc8`); `apply_migration` stamped the UTC
+apply time `20260721201734` over the filename version `20260721173000`. Nothing
+in the ledger points back at the filename, so version cannot be the join key —
+and adjacency in time is not a safe substitute either, because the *other*
+2026-07-21 addition (`20260721193508`) was stamped with a ledger version that
+*precedes* its filename version. What survives the rename is the migration
+**name**: `harden_claim_rpc_privacy` appears both in the ledger entry and in the
+filename. `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME` records that pairing
+and the drift test asserts it against the real filename on disk, so renaming or
+deleting the file fails the gate instead of orphaning the mapping.
+
+This row is why the file is carried here at all. The #106 bodies are live in
+production, but the definitions this lineage recorded for the three claim RPCs
+were still the pre-fix, vulnerable ones. A redesign deploy or `db diff` taken
+against that stale record could have reintroduced the enumeration oracle and
+silently reverted production.
 
 ### Applied under an unconfirmed `remote_only` version
 
@@ -113,24 +136,35 @@ production-only with no repo file. The gated repo file
 function rather than creating it.
 
 Every ledger version in this category is now registered explicitly in
-`PRODUCTION_ONLY_LEDGER_VERSIONS` (68 entries), which is what makes the
+`PRODUCTION_ONLY_LEDGER_VERSIONS` (69 entries), which is what makes the
 ledger → repo direction complete. Most are remote-only history whose migration
 *names* were never captured, so no name is asserted for them; the entries whose
 identity is attested carry provenance in `PRODUCTION_ONLY_ENTRY_PROVENANCE`.
 
 ### Applied from another branch (2026-07-20 → 2026-07-21)
 
-Three entries were added to the ledger after the previous snapshot. None has a
-file on this branch; each was applied from another branch under a renamed
-ledger version.
+Four entries were added to the ledger after the 2026-07-20 snapshot and still
+have no file on this branch; each was applied from another branch under a
+renamed ledger version.
 
 | Ledger version | Ledger name | Source file (other branch) | Branch |
 | --- | --- | --- | --- |
 | `20260720221937` | grant_authenticated_claim_rpc_execute | `20260720190000_grant_authenticated_claim_rpc_execute.sql` | `b11cae71b` (`fix/b05-claim-rpc-authenticated-grants`) |
 | `20260721035955` | secure_public_player_labels_service_role | `20260721013000_secure_public_player_labels_service_role.sql` | `origin/fix/public-player-label-service-role-boundary` |
 | `20260721081355` | fix_event_card_tag_snapshot_correction | `20260720223000_fix_event_card_tag_snapshot_correction.sql` | `origin/fix/event-card-snapshot-migration-bounded-rebuild` |
+| `20260721193508` | fold_player_card_outcome_context_into_definer | `20260721194500_fold_player_card_outcome_context_into_definer.sql` | `814e60210` (`fix/live-compare-data-remove-declared-style`) |
 
-Because their files are not on this branch they carry no hazard class here.
+The last row is the `player_card_outcomes` timeout remediation. Note that its
+ledger version *precedes* its filename version — the reason renamed applications
+are paired by name rather than by timestamp order.
+
+The fifth 2026-07-21 addition, `20260721201734 harden_claim_rpc_privacy`, was
+also applied from another branch but is **not** listed here: its file is now
+carried on this branch as `20260721173000`, so it is renamed drift with a
+declared hazard class rather than a production-only entry.
+
+Because the four files above are not on this branch they carry no hazard class
+here.
 Hazard class is declared per **file present on this branch**; if one of these
 files is ever brought over it must gain a declaration at that point. Until
 then the ledger → repo completeness check is the only property that applies to
@@ -167,7 +201,7 @@ the SQL alone does not record. A file with no declaration fails as
   reconciliations, comments, no-op history placeholders.
 
 Where a file mixes hazards, the strongest present wins. Current declarations:
-**13 contraction, 28 expansion, 8 neutral** (49 files).
+**14 contraction, 28 expansion, 8 neutral** (50 files).
 
 ### Contractions
 
@@ -186,6 +220,17 @@ Where a file mixes hazards, the strongest present wins. Current declarations:
 | `20260719234500_separate_event_confidence_from_review_state` | retires `'reviewed'` from the confidence vocabulary |
 | `20260720110000_extend_canonical_board_placement_contract` | mixed, so the strongest wins. It widens the action/ownership vocabularies and adds nullable columns, but `game_log_events_owner_requires_explicit_state` is a CHECK on the pre-existing `owner_player_id`/`owner_game_player_id`/`ownership_state` columns, and not `not valid`. The deployed contract accepts owner ids alongside `ownership_state = 'unknown'`; afterwards that write is rejected and the `ALTER TABLE` fails if any such row already exists. The rebuilt RPC adds rejections its predecessor lacked (owner consistency; the Mars/Moon board-layout format checks) |
 | `20260720120000_coarsen_import_name_match_reasons` | narrows the disclosed match classification a deployed caller can read |
+| `20260721173000_harden_claim_rpc_privacy` | rebuilds three deployed claim RPCs to disclose less and accept less: prefix/substring name matching becomes exact whole-name matching, a 3-character normalized-input floor and a 10-row cap are imposed, the private-first-name label fallback becomes a neutral placeholder, and `group_name` is returned null in the candidate list |
+
+`20260721173000` is the case where the *ledger* classification and the *hazard*
+classification pull in opposite directions, which is exactly why the two
+dimensions are kept orthogonal. It is already applied to production, so nothing
+about it is pending; but it is still a contraction, because a reader written
+against the pre-fix bodies — one that expected prefix matches, a populated
+`group_name`, or a personal-name label — would break against the deployed
+result. It creates, drops and grants nothing: `authenticated` keeps EXECUTE on
+all three functions (ledger `20260720221937`), and the live claim flow depends
+on that. The narrowing is entirely in what the bodies disclose and accept.
 
 Two declarations deserve their reasoning stated, because the raw SQL reads the
 other way:

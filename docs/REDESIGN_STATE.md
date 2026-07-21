@@ -22,7 +22,8 @@ read-only closure audit. Step 4.4 has not begun.**)
 
 Claude Opus 4.8 — Phase 4, Step 4.3 closure-blocker remediation (third pass,
 **PARTIAL**; WS1 **Layer A only** delivered 2026-07-21 on
-`fix/step-43-ws1-layer-a-ledger-gate`)
+`fix/step-43-ws1-layer-a-ledger-gate`, then the ledger #106 carry on
+`fix/carry-106-to-redesign`)
 
 ### Third remediation pass (2026-07-20) — PARTIAL, still BLOCKED
 
@@ -107,6 +108,60 @@ clean.
 
 Not started by this work: **Layer B** and **Layer C** of WS1, **WS2**, guest
 re-neutralization, the tile backfill, the closure audit, and Step 4.4.
+
+### Ledger #106 carried onto this lineage (2026-07-21)
+
+Branch `fix/carry-106-to-redesign`, off redesign HEAD `4160eb565`. Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-CARRY-106-CLAIM-RPC-PRIVACY-TO-REDESIGN.md`.
+One read-only production ledger read; no production write, nothing pushed,
+deployed, or applied.
+
+The #106 claim-RPC hardening is **applied to production** (ledger
+`20260721201734 harden_claim_rpc_privacy`), but its file existed only on the
+live-site branch `fix/106-claim-rpc-privacy-remediation` (fix commit
+`9ddd0de59`, tip `48d612fc8`). This lineage's record of the three claim RPCs was
+still the **pre-fix, vulnerable** definitions — so a later redesign deploy or
+`db diff` could have reproduced them and silently restored the enumeration
+oracle in production. That is what this closes.
+
+- **Migration carried verbatim.**
+  `supabase/migrations/20260721173000_harden_claim_rpc_privacy.sql`, byte-identity
+  proven by blob hash (`461e0ecbb…` on both sides), not by inspection. The SQL
+  was not altered. It is three `create or replace function` statements and
+  nothing else — no object created, dropped or renamed, no grant touched.
+- **Snapshot refreshed to a fresh read-only attestation: 110 entries**, head
+  `20260721201734 harden_claim_rpc_privacy` (was 108 / `20260721081355`). The
+  refreshed snapshot is an exact set match against that read.
+- **The two new entries classify differently, which is the point.**
+  `20260721193508 fold_player_card_outcome_context_into_definer` has no file
+  here and is registered production-only with provenance
+  (`20260721194500_…` on `814e60210`, `fix/live-compare-data-remove-declared-style`).
+  `20260721201734` is renamed drift, because its file is now carried.
+- **The drift mapping is keyed by NAME.** `apply_migration` stamped the UTC
+  apply time over the filename version and nothing in the ledger points back at
+  the file. Timestamp adjacency would also mispair: `20260721193508`'s ledger
+  version *precedes* its filename version `20260721194500`. New export
+  `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME` records the pairing and the
+  new test asserts it against the real filename on disk.
+- **Declared `contraction`, and pinned.** It creates, drops and grants nothing,
+  so the raw SQL reads like a no-op on the contract surface; it is not. Exact
+  whole-name matching replaces prefix matching, a 3-character input floor and a
+  10-row cap are imposed, the private-first-name label fallback becomes a
+  neutral placeholder, and `group_name` is nulled. Already applied *and* a
+  contraction — the case the orthogonal hazard dimension exists for.
+- **WS1 Layer A confirmed present** on redesign HEAD before any edit: explicit
+  hazard declarations plus the bidirectional completeness check. The
+  reconciliation depends on both. Declarations now 14 contraction, 28 expansion,
+  8 neutral (50 files); production-only register 69 entries.
+
+Validation at the final commit: 177 files / 971 tests pass; `npx tsc --noEmit`
+exit 0; lint at the four baseline warnings, none new; production build green;
+`bash supabase/tests/executable/run.sh` passes end to end, with the new file
+replaying last in the production-history half; `git diff --check` clean.
+
+The gated `20260718050924` reconciliation remains a **separate parked
+follow-up** and was not touched. WS2, WS1 Layer B/C, converge, and the closure
+audit have not begun.
 
 ## Status
 
@@ -917,6 +972,10 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-CARRY-106-CLAIM-RPC-PRIVACY-TO-REDESIGN.md
+  (ledger #106 carried onto this lineage; ledger snapshot reconciled to 110)
+- docs/agent-handoffs/PHASE-04-STEP-03-WS1-LAYER-A-LEDGER-GATE.md
+  (bidirectional ledger gate and hazard classification)
 - docs/agent-handoffs/PHASE-04-STEP-03B-VENUS-COLONIES-PRODUCTION-COMPLETE-HANDOFF.md
   (production migration and historical backfill verified)
 
