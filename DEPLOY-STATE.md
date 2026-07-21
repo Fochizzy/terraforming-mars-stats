@@ -22,7 +22,7 @@ version→commit linkage.
 | Source branch | `integration/venus-capture-to-increase-pattern` (pushed to `origin`; `origin/integration/venus-capture-to-increase-pattern` independently confirmed to resolve to the exact deployed SHA immediately before this deploy) |
 | Source commit | `9ab74dd4a10c737aaaed062a4047dbd66c37b1b6` — passed explicitly via `TM_STATS_SOURCE_BRANCH`/`TM_STATS_SOURCE_COMMIT` env vars before the build (the deploy worktree was a detached HEAD), not inferred |
 | Deployed (UTC) | 2026-07-21 09:47:53.078Z (`wrangler deployments list`, 100% traffic) |
-| Deploy lock | **Released — Venus deploy completed and verified below. No production session currently holds the lock.** |
+| Deploy lock | **Claimed 2026-07-21 ~16:45 UTC — corporation banner-logo release of `release/corporation-banner-logos` @ `7ffc9961ff4ba599ff0b800c4ea8ef83664ad289` (code-only, no migration) is in progress. No other production deployment, migration, repair, reparse, or backfill may begin until this row is released.** |
 | DB migration ledger head | `20260721081355 fix_event_card_tag_snapshot_correction` (unchanged by this deploy — code-only release; no migration applied or authorized) |
 | Rollback worker version | `08f9191f-7b06-4fa3-88dd-b3421d3ae89f` (immediately prior production build, 100% traffic 2026-07-21T04:21:42.798Z through this deploy; source commit `2b9a5e3a5a0d2db5c3508ed1a987d353ca44070d`) |
 | Verified | 2026-07-21 ~09:47-09:55 UTC — see "Venus capture parser correction deploy" below for exact evidence and gaps |
