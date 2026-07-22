@@ -61,40 +61,98 @@ stable
 security definer
 set search_path = ''
 as $$
-  with values_to_match as (
+  -- PRIVACY BOUNDARY. Every value read below is private identity evidence and
+  -- none of it is returned. This function yields a boolean; the gateway returns
+  -- only an outcome label, a player id, and the already-public label from
+  -- private.resolve_public_player_name. No alias text, normalized key,
+  -- players.full_name, players.username, legacy identity, match reason, or
+  -- match score crosses the gateway boundary.
+  --
+  -- EVIDENCE IS NOT GATED ON p.linked_user_id. A successful claim preserves the
+  -- existing player id and leaves that player's history attached to it
+  -- (docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md), so the
+  -- guest username, personal name, and import aliases that identified a player
+  -- before the claim still identify the same player after it. Gating these
+  -- branches on `linked_user_id is null` made the alias path unreachable for
+  -- every alias row that exists -- all of them belong to linked players --
+  -- which regressed legitimate seats to `unresolved`, made explicit user
+  -- selection return `unavailable`, and left minting a duplicate player for an
+  -- already-registered user as the only path the review UI still offered. The
+  -- gate is not a privacy control: nothing read here is disclosed, and the
+  -- retired matcher this replaces applied no such gate either.
+  --
+  -- COMPARISON IS EXACT EQUALITY on a normalized key. There is no substring,
+  -- prefix, fuzzy, or similarity comparison. Two normalizations are in use and
+  -- both are exact: normalize_guest_username collapses runs of separators to
+  -- '-', normalize_private_personal_name collapses them to ' '. Stored aliases
+  -- carry whichever form the writer of the row produced, so each candidate
+  -- value is compared against the alias in both of its normalized forms.
+  -- That widens nothing beyond the separator canonicalization each normalizer
+  -- already performs; it does not make two distinct names equal.
+  --
+  -- identity_mode IS NULL on an alias means the row predates the mode
+  -- distinction (see player_import_aliases_legacy_unique_idx). Such rows are
+  -- mode-agnostic evidence, not evidence for no mode.
+  with v as (
     select
       nullif(btrim(regexp_replace(coalesce(p_source_text, ''), '[[:space:]]+', ' ', 'g')), '') as source_exact,
       private.normalize_guest_username(p_source_text) as source_username,
       private.normalize_private_personal_name(p_source_text, null) as source_personal,
       private.normalize_guest_username(p_guest_username) as entered_username,
+      private.normalize_private_personal_name(p_guest_username, null) as entered_username_spaced,
       private.normalize_private_personal_name(p_guest_first_name, p_guest_last_name) as entered_personal,
+      private.normalize_guest_username(concat_ws(' ', p_guest_first_name, p_guest_last_name)) as entered_personal_hyphenated,
       nullif(btrim(regexp_replace(coalesce(p_guest_first_name, ''), '[[:space:]]+', ' ', 'g')), '') as entered_first,
       nullif(btrim(regexp_replace(coalesce(p_guest_last_name, ''), '[[:space:]]+', ' ', 'g')), '') as entered_last,
       nullif(btrim(regexp_replace(concat_ws(' ', p_guest_first_name, p_guest_last_name), '[[:space:]]+', ' ', 'g')), '') as entered_full
+  ),
+  evidence as (
+    select
+      p.id as player_id,
+      -- Username-class evidence, normalized with the username normalizer.
+      array_remove(array[
+        private.normalize_guest_username(up.username),
+        ppi.normalized_guest_username,
+        private.normalize_guest_username(p.username),
+        private.normalize_guest_username(pli.legacy_username)
+      ], '') as username_keys,
+      -- Personal-name-class evidence, normalized with the personal-name
+      -- normalizer. players.full_name/username and player_legacy_identities are
+      -- the pre-remediation values preserved by 20260719223000; they are the
+      -- only identity evidence some unlinked players still have.
+      array_remove(array[
+        private.normalize_private_personal_name(up.full_name, null),
+        ppi.normalized_personal_name,
+        private.normalize_private_personal_name(p.full_name, null),
+        private.normalize_private_personal_name(pli.legacy_full_name, null)
+      ], '') as personal_keys
+    from public.players p
+    left join public.user_profiles up on up.user_id = p.linked_user_id
+    left join private.player_private_identities ppi on ppi.player_id = p.id
+    left join private.player_legacy_identities pli on pli.player_id = p.id
+    where p.id = p_player_id
+      and p.group_id = p_group_id
   )
   select exists (
     select 1
-    from public.players p
-    cross join values_to_match v
-    left join public.user_profiles up on up.user_id = p.linked_user_id
-    left join private.player_private_identities ppi on ppi.player_id = p.id
-    where p.id = p_player_id
-      and p.group_id = p_group_id
-      and v.source_exact is not null
+    from evidence e
+    cross join v
+    where v.source_exact is not null
       and (
         (
           p_identity_mode = 'username'
           and v.entered_username <> ''
           and v.source_username = v.entered_username
           and (
-            private.normalize_guest_username(up.username) = v.entered_username
-            or (p.linked_user_id is null and ppi.normalized_guest_username = v.entered_username)
-            or (p.linked_user_id is null and exists (
+            v.entered_username = any (e.username_keys)
+            or exists (
               select 1 from public.player_import_aliases pia
-              where pia.player_id = p.id and pia.group_id = p_group_id
-                and pia.identity_mode = 'username'
-                and pia.normalized_alias = v.entered_username
-            ))
+              where pia.player_id = e.player_id and pia.group_id = p_group_id
+                and (pia.identity_mode is null or pia.identity_mode = 'username')
+                and pia.normalized_alias = any (
+                  array_remove(array[v.entered_username, v.entered_username_spaced], '')
+                )
+            )
           )
         )
         or (
@@ -102,30 +160,29 @@ as $$
           and v.entered_first is not null and v.entered_last is not null
           and v.source_exact in (v.entered_first, v.entered_last, v.entered_full)
           and (
-            private.normalize_private_personal_name(up.full_name, null) = v.entered_personal
-            or (p.linked_user_id is null and ppi.normalized_personal_name = v.entered_personal)
-            or (p.linked_user_id is null and exists (
+            v.entered_personal = any (e.personal_keys)
+            or exists (
               select 1 from public.player_import_aliases pia
-              where pia.player_id = p.id and pia.group_id = p_group_id
-                and pia.identity_mode = 'personal_name'
-                and pia.normalized_alias = v.entered_personal
-            ))
+              where pia.player_id = e.player_id and pia.group_id = p_group_id
+                and (pia.identity_mode is null or pia.identity_mode = 'personal_name')
+                and pia.normalized_alias = any (
+                  array_remove(array[v.entered_personal, v.entered_personal_hyphenated], '')
+                )
+            )
           )
         )
         or (
           p_identity_mode = 'existing_player'
           and (
-            private.normalize_guest_username(up.username) = v.source_username
-            or private.normalize_private_personal_name(up.full_name, null) = v.source_personal
-            or (p.linked_user_id is null and (
-              ppi.normalized_guest_username = v.source_username
-              or ppi.normalized_personal_name = v.source_personal
-              or exists (
-                select 1 from public.player_import_aliases pia
-                where pia.player_id = p.id and pia.group_id = p_group_id
-                  and pia.normalized_alias in (v.source_username, v.source_personal)
-              )
-            ))
+            v.source_username = any (e.username_keys)
+            or v.source_personal = any (e.personal_keys)
+            or exists (
+              select 1 from public.player_import_aliases pia
+              where pia.player_id = e.player_id and pia.group_id = p_group_id
+                and pia.normalized_alias = any (
+                  array_remove(array[v.source_username, v.source_personal], '')
+                )
+            )
           )
         )
       )

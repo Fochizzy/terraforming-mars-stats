@@ -2,8 +2,9 @@
 
 ## Current substep
 
-**Phase 4, Step 4.3 source-bound import identity replacement is BUILT locally
-and STOPPED at the release boundary (2026-07-21). Step 4.4 has not begun.**
+**Phase 4, Step 4.3 source-bound import identity replacement is BUILT locally,
+REMEDIATED after independent review, and STOPPED at the release boundary
+(2026-07-21). Step 4.4 has not begun.**
 
 Branch `fix/import-identity-source-bound-matching` now contains the approved
 private, service-only pre-resolution staging design; structured exact
@@ -17,6 +18,45 @@ The required COUNT-only production preflight returned
 read was catalog/definition/ACL/ledger introspection with no personal rows.
 The deployed arbitrary-name matcher oracle was confirmed unchanged. The live
 read boundary is closed.
+
+### Review blocker resolved (2026-07-21)
+
+The independent review passed the security objective and blocked on a
+legitimate-matching regression. Remediation handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-MATCHING-REGRESSION-REMEDIATION.md`.
+
+The unapplied expansion `20260722012658` was edited **in place** (no corrective
+migration stacked on an unapplied file). `private.import_identity_player_matches`
+no longer gates identity evidence on `p.linked_user_id is null`, treats
+`identity_mode IS NULL` alias rows as mode-agnostic, compares stored aliases in
+both normalized forms, and additionally reads `public.players.full_name`,
+`public.players.username`, and `private.player_legacy_identities`.
+
+One further COUNT-only production introspection pass (counts, booleans, and
+catalog facts only - no name, ID, or row content) confirmed the shape and
+corrected two assumptions: `private.player_legacy_identities` is **empty**, and
+one of the two unmatchable unlinked players is reachable only through
+`public.players.username`. It also surfaced a second defect the review had not
+named - production aliases are stored in the *space* normalization, so
+username-mode alias matching would have stayed dead on 44 of 110 rows even after
+the gate was removed.
+
+Measured BEFORE/AFTER in the disposable cluster: a linked-player alias seat moved
+from `unresolved` (and `unavailable` on explicit selection, with a **duplicate
+player minted** as the only remaining path) to resolving against the correct
+existing player with the group population unchanged. All anti-oracle uniformity
+properties were re-measured after the widening and **all still hold**; staging
+table access, gateway grants, and private-column privileges are unchanged.
+
+The line-ending defect in `source-bound-import-identity-migrations.test.ts` is
+fixed by normalizing newlines at read time, proved against genuinely
+CRLF-converted files in both directions.
+
+Four items are recorded and deliberately not fixed: failed resolution attempts
+leave no durable audit evidence; staging expiry is opportunistic with no
+scheduler; the expansion is not purely additive (a UNIQUE index on live
+`public.user_profiles` and an AFTER UPDATE trigger on live `public.games`); and
+`match-oracle-post-contraction.sql` is now unreferenced by `run.sh`.
 
 Both `20260722012658_add_source_bound_import_identity_staging.sql` (expansion)
 and `20260722012707_retire_free_form_import_name_matcher.sql` (contraction)

@@ -156,8 +156,35 @@ PSQL -q -f "$PLACEMENT_MIGRATION"
 echo "== apply gated source-bound expansion =="
 PSQL -q -f "$SOURCE_BOUND_EXPANSION"
 
-echo "== repeat-safety: apply source-bound expansion a second time =="
+# The BEFORE half reinstalls the matcher exactly as committed at e27fae282 and
+# measures the regression against production-shaped fixtures. The repeat-safety
+# apply that follows restores the shipped definition, so the AFTER half runs on
+# the same database and the same fixtures with only the matcher changed.
+echo "== linked-player matching regression: BEFORE (pinned pre-image of e27fae282) =="
+PSQL -f "$HERE/source-bound-import-identity-linked-alias-before.sql"
+
+echo "== repeat-safety: apply source-bound expansion a second time (restores the shipped matcher) =="
 PSQL -q -f "$SOURCE_BOUND_EXPANSION"
+
+echo "== linked-player matching regression: AFTER =="
+PSQL -f "$HERE/source-bound-import-identity-linked-alias-after.sql"
+
+# Widening what the matcher reads is the change that could reopen disclosure, so
+# the uniformity properties are re-measured rather than assumed. Notice and
+# warning output is part of that property and cannot be asserted from inside
+# SQL, so the whole session's output is captured and checked here.
+echo "== anti-oracle uniformity re-proof =="
+UNIFORMITY_LOG="$PGDATA-uniformity.log"
+if ! PSQL -f "$HERE/source-bound-import-identity-uniformity.sql" >"$UNIFORMITY_LOG" 2>&1; then
+  cat "$UNIFORMITY_LOG"
+  echo "FAIL uniformity: the re-proof did not complete"
+  exit 1
+fi
+cat "$UNIFORMITY_LOG"
+if grep -Eq '^(NOTICE|WARNING|INFO)' "$UNIFORMITY_LOG"; then
+  echo "FAIL uniformity: the resolver emitted notice/warning output"
+  exit 1
+fi
 
 echo "== source-bound AFTER proof (legacy matcher still callable) =="
 PSQL -q -f "$HERE/source-bound-import-identity.sql"
