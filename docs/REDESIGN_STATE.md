@@ -133,8 +133,9 @@ production fact changed. This is **not** Phase 4 work and does not change Step
 
 CLAUDE.md workflow step 8 (run the planning-pack updater after a completing
 commit) previously depended on an agent remembering to run it. A deterministic
-`PostToolUse`/`Bash` hook gated on `Bash(git commit *)` now runs the same
-existing, already-authorized updater automatically after a commit that changes a
+`PostToolUse`/`Bash` hook (gated on `Bash(git commit *)` and, per the 2026-07-22
+amendment below, also `Bash(git merge *)`) now runs the same existing,
+already-authorized updater automatically after a commit that changes a
 planning-pack source. The hook grants no new authority; it only triggers the
 updater the documented gate already requires.
 
@@ -158,6 +159,36 @@ index. `docs/redesign/CLAUDE-PROJECT-SOURCES.json` is unchanged (no catalog entr
 added or retired).
 
 Handoff: `docs/agent-handoffs/PLANNING-PACK-POST-COMMIT-SYNC-HOOK.md`.
+
+**Amended 2026-07-22 (second commit on the same branch; `e1dd0cfe` not
+rewritten).** A review of the first commit found two defects, now fixed, plus one
+hardening change:
+
+1. **Tree-identity gate.** The updater reads a fixed root (its `ROOT` in
+   `update_planning_pack.py`) — one specific worktree. The first hook ran the
+   updater and advanced the marker from whatever tree fired it, so a worktree
+   commit made the updater read a tree *without* that commit and falsely report a
+   sync. The hook now runs the updater only when the current tree IS the
+   updater's tree; otherwise it reports synchronization PENDING (naming the
+   worktree and SHA) and does not advance the marker. The updater's root is read
+   at runtime from `update_planning_pack.py` (located via `%LOCALAPPDATA%`). That
+   root is the redesign *linked* worktree `...\Terraforming Mars Redesign`, which
+   is distinct from the git *main* worktree `...\Terraforming Mars`, so comparing
+   against the main worktree would have been wrong on this machine.
+2. **Merge trigger.** `git merge` creates a commit without running `git commit`,
+   so merges never fired the hook. A second handler gated on `Bash(git merge *)`
+   was added in the same matcher group, disambiguated by `-Trigger merge` vs
+   `-Trigger commit` so hook deduplication keeps both. `git commit` and `git
+   merge` are the only triggers.
+3. **Marker-absent fail-open.** An absent or unresolvable
+   `.claude/.pack-last-sync` no longer falls back to `HEAD~1` (which undercounts
+   after a many-commit merge); the change is treated as pack-relevant and
+   synchronized.
+
+Verified by a disposable-repo harness (39 assertions / 10 scenarios) that ran the
+actual hook with a stubbed updater and no real Drive write. This amendment is
+itself made in a worktree that is not the updater's tree, so its own planning-pack
+synchronization is PENDING until the branch merges into the updater's tree.
 
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
 

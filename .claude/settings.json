@@ -13,7 +13,23 @@
               "-ExecutionPolicy",
               "Bypass",
               "-File",
-              "${CLAUDE_PROJECT_DIR}/.claude/hooks/sync-planning-pack.ps1"
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/sync-planning-pack.ps1",
+              "-Trigger",
+              "commit"
+            ]
+          },
+          {
+            "type": "command",
+            "if": "Bash(git merge *)",
+            "command": "powershell",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/sync-planning-pack.ps1",
+              "-Trigger",
+              "merge"
             ]
           }
         ]
