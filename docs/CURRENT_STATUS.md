@@ -41,12 +41,17 @@ separate gate is authorized.
   currently authorized by this status document.
 - Authoritative branch: `redesign/tm-stats-dashboard-rebuild`.
 - The compatible source-bound redesign reader is not deployed.
-- Tooling only, not merged: `fix/deploy-state-planning-pack-sync` makes the
-  planning pack read `DEPLOY-STATE` from
-  `fix/live-compare-data-remove-declared-style` instead of an untracked
-  working-tree cache. Until it is merged the desktop updater and its scheduled
-  task fail closed unless `--source-manifest` is supplied. Handoff:
+- Tooling only, **integrated**: `fix/deploy-state-planning-pack-sync` is merged
+  into `redesign/tm-stats-dashboard-rebuild` — both branches are at
+  `944bdad0d`. The planning pack reads `DEPLOY-STATE` from
+  `fix/live-compare-data-remove-declared-style` through Git instead of an
+  untracked working-tree cache, and the ordinary desktop launcher and scheduled
+  task now work with **no `--source-manifest` override**. The
+  "until it is merged … fail closed" limitation recorded here and in the handoff
+  described the pre-merge state and no longer applies. Handoff:
   `docs/agent-handoffs/DEPLOY-STATE-PLANNING-PACK-GIT-SOURCE.md`.
+- Do not merge `fix/planning-pack-deploy-state-source` (`52373ff79`). It is a
+  superseded parallel attempt at the same repair; see `docs/REDESIGN_STATE.md`.
 
 ## Next work item
 

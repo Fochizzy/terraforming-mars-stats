@@ -8,20 +8,51 @@ read-only and updating both files together.
 
 ## Current snapshot
 
-Last independently verified **2026-07-21**: **110 entries**, head
-`20260721201734 harden_claim_rpc_privacy`. The previous snapshot (earlier the
-same day) held 108 entries with head `20260721081355`; the two additions are
-recorded below. The count and head are pinned in
-`PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that disagrees fails
-rather than silently overwriting. This production snapshot must be re-read
-live before any production-sensitive action.
+Attested **2026-07-22**: **113 entries**, head
+`20260722153233 close_authenticated_guest_identity_oracle`. The count and head
+are pinned in `PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that
+disagrees fails rather than silently overwriting. This production snapshot must
+be re-read live before any production-sensitive action.
 
-**Re-attested read-only later on 2026-07-21** for the claim-RPC grant
-reconciliation: still 110 entries, still head `20260721201734`, and the snapshot
-in `PRODUCTION_LEDGER_VERSIONS` is an exact set match. No entry was added or
-removed. What changed is a *classification*, not the ledger:
-`20260720221937 grant_authenticated_claim_rpc_execute` moved from production-only
-to renamed drift, because its file is now carried here as `20260720190000`.
+> **Reconciled 2026-07-22 from repository evidence only.** This section was left
+> at the earlier 110-entry snapshot after three further entries landed. It has
+> been brought into line with `PRODUCTION_LEDGER_ATTESTATION` and
+> `PRODUCTION_LEDGER_VERSIONS` in `src/lib/db/migration-ledger-map.ts`, the
+> executable source of truth named at the top of this file. The version array
+> there was counted directly rather than taken from its declared count: **113
+> literals, 113 unique, maximum `20260722153233`** — an exact match for the
+> attested count and head, with exactly 110 entries at or below the previous
+> head `20260721201734`. **No live ledger was read for this reconciliation.**
+> Nothing in this section is fresh production evidence; it restores agreement
+> between two repository files that had diverged.
+
+The three entries added since the 110-entry snapshot. Each is carried in this
+repository under a filename version different from its apply-time ledger
+version, so all three are paired by **name** in
+`APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME`:
+
+| Ledger version | Ledger name | Repo file version |
+| --- | --- | --- |
+| `20260722132159` | add_source_bound_import_identity_staging | `20260722012658` |
+| `20260722144034` | coarsen_import_name_match_reasons | `20260720120000` |
+| `20260722153233` | close_authenticated_guest_identity_oracle | `20260722153000` |
+
+Two of those move a file **out of the gated set**: `20260722012658` and
+`20260720120000` are applied and are no longer prepared-and-unapplied.
+`GATED_UNAPPLIED` now holds five entries, and `20260722012707` is the only
+remaining half of the source-bound replacement. Applied is not closed —
+`20260722144034` was an interim mitigation that independent review found
+insufficient as a closure; see the gated table below.
+
+**Prior snapshots, retained.** The 110-entry snapshot (head
+`20260721201734 harden_claim_rpc_privacy`, independently verified 2026-07-21)
+was itself preceded by a 108-entry snapshot with head `20260721081355`; those
+two additions are recorded below. The 2026-07-21 claim-RPC grant reconciliation
+re-attested 110 entries read-only with an exact `PRODUCTION_LEDGER_VERSIONS` set
+match — no entry added or removed. What changed there was a *classification*,
+not the ledger: `20260720221937 grant_authenticated_claim_rpc_execute` moved
+from production-only to renamed drift, because its file is now carried here as
+`20260720190000`.
 
 ## What the gate enforces
 
@@ -127,6 +158,9 @@ skips them by version.
 | `20260719230000_security_invoker_on_import_integrity_audit` | `20260719205420` | security_invoker_on_import_integrity_audit |
 | `20260720190000_grant_authenticated_claim_rpc_execute` | `20260720221937` | grant_authenticated_claim_rpc_execute |
 | `20260721173000_harden_claim_rpc_privacy` | `20260721201734` | harden_claim_rpc_privacy |
+| `20260720120000_coarsen_import_name_match_reasons` | `20260722144034` | coarsen_import_name_match_reasons |
+| `20260722012658_add_source_bound_import_identity_staging` | `20260722132159` | add_source_bound_import_identity_staging |
+| `20260722153000_close_authenticated_guest_identity_oracle` | `20260722153233` | close_authenticated_guest_identity_oracle |
 
 These files must **never** be renamed to their ledger versions casually and
 must never be pushed directly: a plain `supabase db push` would re-apply
@@ -197,7 +231,7 @@ disposable harness does not need them for the redesign's objects.
 was applied from the live-site session and created the SECURITY DEFINER
 function `public.match_import_player_names`, which restored server-side
 import name matching after the personal-name Data API revokes. It is
-production-only with no repo file. The gated repo file
+production-only with no repo file. The repo file
 `20260720120000_coarsen_import_name_match_reasons` amends that deployed
 function rather than creating it.
 
@@ -206,10 +240,11 @@ fresh live read before any production-sensitive action) classify that deployed
 function as a **confirmed private-name enumeration oracle**. The live-site
 reader half is already deployed, bounds its own input, and tolerates both the
 fine-grained and coarse response vocabularies. The remaining WS2 work is the
-approved server-only replacement. 20260720120000 remains unapplied and is
-insufficient as a closure: coarsening the response hides which private field
-matched but still confirms that a caller-supplied private name belongs to a
-real identity.
+approved server-only replacement. 20260720120000 was applied on 2026-07-22 as
+ledger `20260722144034` and is still insufficient as a closure: coarsening the
+response hides which private field matched but still confirms that a
+caller-supplied private name belongs to a real identity. The oracle is
+therefore mitigated, not closed.
 
 Every ledger version in this category is now registered explicitly in
 `PRODUCTION_ONLY_LEDGER_VERSIONS` (68 entries), which is what makes the
@@ -255,9 +290,22 @@ them.
 | `20260719234500_separate_event_confidence_from_review_state` | **contraction** | confidence/review split (repeat-safe) | per-mutation protocol; pre-apply gate includes verifying no deployed writer emits the retired `'reviewed'` confidence (expand/contract) |
 | `20260720100000_add_guest_identity_alias_source_control` | expansion | guest RPC alias-recording control | per-mutation protocol; required before the redesign's roster/manual guest paths ship |
 | `20260720110000_extend_canonical_board_placement_contract` | **contraction** | full placement contract | per-mutation protocol; expand/contract order. The pre-apply gate must confirm no `game_log_events` row carries owner ids with a non-`explicit_owner` `ownership_state`: the added CHECK is not `not valid`, so one such row fails the `ALTER TABLE` |
-| `20260720120000_coarsen_import_name_match_reasons` | **contraction** | coarsens disclosed reasons/scores but leaves the private-name confirmation oracle open | **unapplied and insufficient as a closure; do not apply it as one.** The approved server-only, source-bound replacement (`20260722012658` + `20260722012707`, below) supersedes it and is now built and remediated after independent review; it is not part of that replacement proof. Any production action requires separate authorization and expand/contract |
-| `20260722012658_add_source_bound_import_identity_staging` | expansion | private short-lived parser evidence plus service-only source-bound stage/resolve/attach/discard gateways | apply only under a separately authorized production mutation; deploy and verify the compatible server reader before contraction |
 | `20260722012707_retire_free_form_import_name_matcher` | **contraction** | removes authenticated execution from the deployed arbitrary `text[]` matcher | apply only after the expansion and compatible reader are live and verified; separate explicit authorization required |
+
+This table is the five entries of `GATED_UNAPPLIED`. **Two files left it on
+2026-07-22 and are recorded above as renamed drift instead:**
+
+- `20260722012658_add_source_bound_import_identity_staging` — the expansion half
+  of the source-bound replacement, applied as `20260722132159`. Its contraction
+  half `20260722012707` is still gated, and the compatible server reader is
+  still not deployed, so the pairing rule is unchanged: reader first, then
+  contraction, under separate explicit authorization.
+- `20260720120000_coarsen_import_name_match_reasons` — applied as
+  `20260722144034`. **Applied is not closed.** It was an interim mitigation and
+  independent review found it insufficient as a closure: it coarsens the
+  disclosed reason and score but leaves the private-name confirmation oracle
+  open, and it is not part of the source-bound replacement proof. Do not cite it
+  as the closure. The closure is `20260722012707`, still gated.
 
 ## Hazard classes
 
@@ -280,7 +328,9 @@ the SQL alone does not record. A file with no declaration fails as
   reconciliations, comments, no-op history placeholders.
 
 Where a file mixes hazards, the strongest present wins. Current declarations:
-**15 contraction, 30 expansion, 8 neutral** (53 files).
+**16 contraction, 30 expansion, 8 neutral** (54 files) — counted from
+`MIGRATION_HAZARD_CLASS` and reconciled against `supabase/migrations/` on
+2026-07-22. The 54th file is `20260722153000`, whose declaration is below.
 
 ### Contractions
 
@@ -301,6 +351,7 @@ Where a file mixes hazards, the strongest present wins. Current declarations:
 | `20260720120000_coarsen_import_name_match_reasons` | narrows the disclosed match classification a deployed caller can read |
 | `20260721173000_harden_claim_rpc_privacy` | rebuilds three deployed claim RPCs to disclose less and accept less: prefix/substring name matching becomes exact whole-name matching, a 3-character normalized-input floor and a 10-row cap are imposed, the private-first-name label fallback becomes a neutral placeholder, and `group_name` is returned null in the candidate list |
 | `20260722012707_retire_free_form_import_name_matcher` | revokes authenticated/public/anon execution on the pre-existing arbitrary-name matcher; intentionally separate from the expansion |
+| `20260722153000_close_authenticated_guest_identity_oracle` | revokes `authenticated` EXECUTE on the pre-existing `public.resolve_import_guest_identity`, removing a surface that role held before the migration and restoring no replacement. Applied as ledger `20260722153233`; a contraction even though the pre-apply zero-caller sweep proved no deployed reader depends on it |
 
 `20260721173000` is the case where the *ledger* classification and the *hazard*
 classification pull in opposite directions, which is exactly why the two

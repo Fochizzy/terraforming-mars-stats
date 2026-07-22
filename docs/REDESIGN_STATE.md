@@ -62,10 +62,31 @@ deploys, migrates, or performs a production write to append the result to the
 canonical ledger on the production lineage, commit it there, and then run the
 updater or report synchronization pending.
 
-Handoff: `docs/agent-handoffs/DEPLOY-STATE-PLANNING-PACK-GIT-SOURCE.md`. Until
-that branch is merged, the shared redesign checkout still carries the retired
-manifest entry, so the desktop launcher and scheduled task fail closed unless
-`--source-manifest` is supplied.
+Handoff: `docs/agent-handoffs/DEPLOY-STATE-PLANNING-PACK-GIT-SOURCE.md`.
+
+**Integration complete (re-derived 2026-07-22).** `fix/deploy-state-planning-pack-sync`
+is merged into this branch — both tips are `944bdad0d` and `git branch --merged`
+lists it. The shared redesign checkout therefore carries the corrected manifest:
+its `deploy-state` entry is `sourceType: "git"` against
+`fix/live-compare-data-remove-declared-style`, and no entry declares the retired
+`root: "live"`. The desktop launcher and the scheduled task run the ordinary
+path with **no `--source-manifest` override**. The pre-merge "fail closed unless
+`--source-manifest` is supplied" limitation, recorded here, in
+`docs/CURRENT_STATUS.md`, and under "Known limitation" in the handoff, described
+the state before the merge and no longer applies.
+
+**`fix/planning-pack-deploy-state-source` (`52373ff79`) is SUPERSEDED — do not
+merge it.** It is a parallel attempt at the same repair, one commit off
+`11418d34a`, and it is not merged into this branch. It carries an earlier,
+incompatible planning-pack catalog schema — its `deploy-state` entry is
+`root: "git"` with a bare `ref`, whereas the integrated tooling requires
+`sourceType: "git"` with an explicit `repository`, and the current validator
+rejects any working-tree root other than `redesign` — plus an older
+`update_planning_pack.py` and a duplicate handoff under a different filename.
+Merging it would overwrite the live tooling with a manifest the installed
+updater refuses, regressing the default launcher and scheduled task back to
+fail-closed. It is retained, unmerged and undeleted; deleting it needs separate
+owner authorization.
 
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
 
@@ -1352,6 +1373,10 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/POST-INTEGRATION-CURRENT-STATE-RECONCILIATION.md
+  (documentation-only correction of four stale post-integration current-state
+  claims; ledger snapshot reconciled to 113, tooling branch recorded as merged,
+  superseded branch quarantined; no production access)
 - docs/agent-handoffs/DEPLOY-STATE-PLANNING-PACK-GIT-SOURCE.md
   (planning pack reads DEPLOY-STATE from the production-lineage Git ref;
   tooling and governance only, no production, release, or phase change)
