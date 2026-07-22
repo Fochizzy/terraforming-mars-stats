@@ -1382,6 +1382,16 @@ Update these fields whenever this file changes materially:
   audit. Do not begin Step 4.4 until that audit passes; applying the three
   gated migrations requires the per-mutation protocol and, for the
   confidence-constraint tightening, the expand/contract deployment order.
+- **2026-07-21 source-bound addendum (supersedes the preceding pending-migration
+  count):** the approved source-bound import identity replacement is repository-
+  complete and locally validated, but release-stopped. Seven migrations are
+  gated and unapplied: `20260717190000`, `20260719234500`, `20260720100000`,
+  `20260720110000`, `20260720120000`, `20260722012658`, and `20260722012707`.
+  The last two are an expansion/contraction pair and require separate production
+  authorizations with a compatible reader deploy and verification between them.
+  The superseded `20260720120000` coarsening file is not part of this replacement
+  proof and was not applied. Step 4.3 remains open; do not begin Step 4.4 or a
+  closure audit without a new explicit assignment.
 - **Step 4.2 completion commit:** recorded by post-commit verification after
   this document is committed
 - **Step 4.1 completion commit:** recorded by post-commit verification after
@@ -1415,6 +1425,25 @@ It must preserve:
 - imported provenance
 - future registration claimability
 - the separation between private match data and public display data
+
+### Source-bound import identity release contract (approved 2026-07-21)
+
+Import identity resolution is server-authoritative: the parser's original
+seat texts enter a private short-lived staging relation before resolution, and
+the matcher accepts only a staging ID, one bounded seat ordinal, and one
+structured identity classification. Clients never submit an arbitrary batch of
+names to a private matcher. Direct staging-table access is denied, including to
+`service_role`; the server role receives only EXECUTE on guarded definer
+gateways. Match results expose only outcome, stable player ID, and public label.
+
+Exact username/full-name evidence may auto-resolve when unique. A first-name-
+only or last-name-only personal relationship always requires explicit player
+selection. Reuse/creation follows lock-then-judge revalidation by stable player
+ID. Staging expires opportunistically, cascades with an abandoned/deleted draft,
+and is removed at finalization. Release remains expand/contract: apply and
+verify `20260722012658` with the compatible server reader before separately
+authorizing `20260722012707`, which retires authenticated execution of the old
+free-form matcher. Both files are currently gated and unapplied.
 
 A separately authorized registration and onboarding task owns:
 

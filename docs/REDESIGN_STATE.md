@@ -2,6 +2,33 @@
 
 ## Current substep
 
+**Phase 4, Step 4.3 source-bound import identity replacement is BUILT locally
+and STOPPED at the release boundary (2026-07-21). Step 4.4 has not begun.**
+
+Branch `fix/import-identity-source-bound-matching` now contains the approved
+private, service-only pre-resolution staging design; structured exact
+source-bound matching; lock-then-judge save-time revalidation; a preflight-
+backed normalized registered-username unique index; separate gated expansion
+and contraction migrations; and executable BEFORE/AFTER proofs. Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-SOURCE-BOUND-MATCHING-IMPLEMENTED-LOCAL.md`.
+
+The required COUNT-only production preflight returned
+`normalized_collision_group_count = 0`. The other and only other production
+read was catalog/definition/ACL/ledger introspection with no personal rows.
+The deployed arbitrary-name matcher oracle was confirmed unchanged. The live
+read boundary is closed.
+
+Both `20260722012658_add_source_bound_import_identity_staging.sql` (expansion)
+and `20260722012707_retire_free_form_import_name_matcher.sql` (contraction)
+are gated and unapplied. `20260720120000_coarsen_import_name_match_reasons.sql`
+was not edited or applied. No production write, revoke, migration application,
+deploy, push, closure audit, registration-claiming work, or Step 4.4 occurred.
+The next action requires separate owner authorization for production
+preflight/application and compatible reader deployment, followed by separate
+contraction authorization only after verification.
+
+## Historical STOP snapshot (superseded for local implementation status)
+
 **Additional mandatory STOP (2026-07-21): source-bound import identity matching
 cannot begin until the persistence-order and normalized-username prerequisites below are resolved.**
 
