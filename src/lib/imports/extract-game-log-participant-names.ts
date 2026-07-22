@@ -1,3 +1,4 @@
+import { assertImportCandidateNamesWithinBounds } from './import-candidate-name-bounds';
 import type { ParsedGameLog } from './parse-game-log';
 import { normalizePlayerAlias } from './normalize-player-alias';
 
@@ -33,6 +34,11 @@ export function extractGameLogParticipantNames(
   for (const entry of nameEntries) {
     rememberName(entry.name);
   }
+
+  // `parseGameLog` never throws, so a pasted log is an unbounded caller-supplied
+  // list of actor names heading for the identity matcher. A single game's log
+  // names at most five players.
+  assertImportCandidateNamesWithinBounds(participantNames, 'game_log');
 
   return participantNames;
 }

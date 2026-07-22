@@ -136,9 +136,11 @@ export async function resolveLogGamePlayerReferences(
     // name has to be matched server-side, where the security-definer matcher
     // still sees the private columns. Only an exact match that belongs to this
     // group's roster counts — a cross-group match is not this roster's player.
-    const serverMatches = await matchImportPlayerNamesImpl(form.groupId, [
-      displayName,
-    ]);
+    const serverMatches = await matchImportPlayerNamesImpl(
+      form.groupId,
+      [displayName],
+      'log_game_player_resolution',
+    );
     const exactRosterMatch = serverMatches.find(
       (match) => match.matchReason === 'exact' && byId.has(match.playerId),
     );

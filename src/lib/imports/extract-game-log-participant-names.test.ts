@@ -52,6 +52,38 @@ describe('extractGameLogParticipantNames', () => {
     ).toEqual(['Friday Mars', 'Second Seat', 'Third Seat']);
   });
 
+  it('accepts a full five-player log', () => {
+    expect(
+      extractGameLogParticipantNames({
+        cardPointBreakdowns: [],
+        events: Array.from({ length: 5 }, (_, index) => ({
+          actor: `Player ${index}`,
+          card: 'Earth Catapult',
+          eventType: 'card_played' as const,
+          lineNumber: index + 1,
+          rawLine: `Player ${index} played Earth Catapult`,
+        })),
+      }),
+    ).toHaveLength(5);
+  });
+
+  it('rejects a pasted log that names more players than a game can hold', () => {
+    // `parseGameLog` never throws, so the pasted log is an unbounded
+    // caller-supplied list of names heading for the identity matcher.
+    expect(() =>
+      extractGameLogParticipantNames({
+        cardPointBreakdowns: [],
+        events: Array.from({ length: 64 }, (_, index) => ({
+          actor: `Probe ${index}`,
+          card: 'Earth Catapult',
+          eventType: 'card_played' as const,
+          lineNumber: index + 1,
+          rawLine: `Probe ${index} played Earth Catapult`,
+        })),
+      }),
+    ).toThrow(/at most 5/);
+  });
+
   it('ignores blank actor names', () => {
     expect(
       extractGameLogParticipantNames({

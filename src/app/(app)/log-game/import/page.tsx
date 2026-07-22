@@ -50,6 +50,7 @@ import { buildGameLogEventWrites } from '@/lib/imports/build-game-log-event-writ
 import { buildImportReviewModel } from '@/lib/imports/build-import-review-model';
 import { derivePlayerTagSummaries } from '@/lib/imports/derive-player-tag-summaries';
 import { extractGameLogParticipantNames } from '@/lib/imports/extract-game-log-participant-names';
+import { assertImportCandidateNamesWithinBounds } from '@/lib/imports/import-candidate-name-bounds';
 import {
   parseCreateImportDraftFormData,
   type ParsedCreateImportDraftFormData,
@@ -541,6 +542,20 @@ async function parseGameResultEvidence(input: {
     );
   }
 
+  // The OCR payload is posted by the browser, so both of these lists are
+  // caller-controlled and each name in them becomes a question for the
+  // security-definer identity matcher. Bound each source at the game maximum
+  // before they are unioned; a score table or a score-details read that names
+  // more than five players did not come from one game.
+  assertImportCandidateNamesWithinBounds(
+    parsedScreenshot.playerRows.map((row) => row.playerName),
+    'screenshot_score_table',
+  );
+  assertImportCandidateNamesWithinBounds(
+    parsedScoreDetails.detectedPlayerNames,
+    'screenshot_score_details',
+  );
+
   // The evidence names the players as the game did ("Izzy"), while the
   // participants field carries roster names ("Izzy Hodnett"). Unioning the two
   // lists imports one row per spelling, and confirmation then rejects the draft
@@ -710,6 +725,7 @@ export default async function LogGameImportPage() {
           await matchImportPlayerNames(
             analyzeContext.groupId,
             screenshotEvidence.importedNames,
+            'import_analyze',
           ),
         );
 

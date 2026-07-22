@@ -563,6 +563,129 @@ describe('LogGameImportPage', () => {
     });
   });
 
+  it('analyzes a full five-player game and asks the matcher only about its players', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const gameResultScreenshot = new File(['screenshot'], 'game-result.png', {
+      type: 'image/png',
+    });
+    const playerNames = ['Friday', 'Second', 'Third', 'Fourth', 'Fifth'];
+
+    ocrMocks.readGameResultScreenshot.mockResolvedValue({
+      endgameLines: [
+        'Victory points breakdown after 12 generations',
+        ...playerNames.map((name) => `${name} 18 5 2 0 0 1 26 8`),
+      ],
+      scoreDetailsColumns: playerNames.map((name) => ({
+        textLines: [name, 'Builder Hall 1'],
+      })),
+    });
+
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: gameResultScreenshot,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: playerNames.join(', '),
+      playedOn: '2026-07-07',
+      playerCount: 5,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({ status: 'success' });
+    expect(mockState.matchImportPlayerNames).toHaveBeenCalledWith(
+      'group-1',
+      playerNames,
+      'import_analyze',
+    );
+  });
+
+  it('rejects a participants field that names more players than a game can hold', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: 'One, Two, Three, Four, Five, Six',
+      playedOn: '2026-07-07',
+      playerCount: 5,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message: expect.stringContaining('at most 5'),
+      status: 'error',
+    });
+    expect(mockState.matchImportPlayerNames).not.toHaveBeenCalled();
+  });
+
+  it('rejects a posted OCR payload that names more players than a game can hold', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const gameResultScreenshot = new File(['screenshot'], 'game-result.png', {
+      type: 'image/png',
+    });
+
+    // OCR runs in the browser and the payload is posted back, so its row count
+    // is caller-controlled rather than a property of the uploaded image.
+    ocrMocks.readGameResultScreenshot.mockResolvedValue({
+      endgameLines: [
+        'Victory points breakdown after 12 generations',
+        ...['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'].map(
+          (name) => `${name} 18 5 2 0 0 1 26 8`,
+        ),
+      ],
+      scoreDetailsColumns: [],
+    });
+
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: gameResultScreenshot,
+      exportedGameLog: EXPORTED_GAME_LOG,
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: '',
+      playedOn: '2026-07-07',
+      playerCount: 5,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message: expect.stringContaining('The uploaded game result'),
+      status: 'error',
+    });
+    expect(mockState.matchImportPlayerNames).not.toHaveBeenCalled();
+  });
+
+  it('rejects a pasted log that names more players than a game can hold', async () => {
+    const shellProps = await renderPageAndCaptureShellProps();
+    const analyzeFormData = buildCreateImportDraftFormData({
+      confirmedPlayerLinks: [],
+      endgameScreenshot: null,
+      exportedGameLog: Array.from(
+        { length: 6 },
+        (_, index) => `Probe${index} played Steel Works`,
+      ).join('\n'),
+      generationCount: 10,
+      mapId: 'tharsis',
+      participants: '',
+      playedOn: '2026-07-07',
+      playerCount: 5,
+    });
+
+    const result = await shellProps.onAnalyzeImportEvidence(analyzeFormData);
+
+    expect(result).toMatchObject({
+      message: expect.stringContaining('The exported game log'),
+      status: 'error',
+    });
+    expect(mockState.matchImportPlayerNames).not.toHaveBeenCalled();
+  });
+
   it('keeps import analysis usable when card-scoring OCR crashes unexpectedly', async () => {
     vi.doMock('@/lib/imports/card-scoring/calculate-import-card-scores', () => ({
       calculateImportCardScores: vi.fn(async () => {

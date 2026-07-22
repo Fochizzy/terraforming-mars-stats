@@ -1,3 +1,4 @@
+import { assertImportCandidateNamesWithinBounds } from './import-candidate-name-bounds';
 import { normalizePlayerAlias } from './normalize-player-alias';
 
 export function parseImportParticipants(input: string) {
@@ -21,6 +22,12 @@ export function parseImportParticipants(input: string) {
 
     seenAliases.add(normalized);
   }
+
+  // The participants textarea is free browser-supplied text, and every name in
+  // it becomes a question for the security-definer identity matcher. A game has
+  // at most five players, so a longer list is either a mistake worth surfacing
+  // or a bulk identity probe.
+  assertImportCandidateNamesWithinBounds(participants, 'participants');
 
   return participants;
 }
