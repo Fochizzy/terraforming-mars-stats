@@ -319,7 +319,7 @@ Durable project-wide additions:
 
 The full contracts are in `MASTER-RULES.md` and `DECISIONS.md`; capability
 matrices are in `DATA-CAPABILITIES.md`; immediate status, the two applied catalog
-migrations, and the gated identity/privacy migration are in
+migrations, and the applied identity/privacy migration are in
 `docs/REDESIGN_STATE.md`. No push or deploy occurred.
 
 ### Phase 4, Step 4.3B Venus Next and Colonies import outcome (2026-07-18)
@@ -410,7 +410,7 @@ cross-repository contract the redesign now implements:
 
 ### Current next approved work
 
-Phase 4, Step 4.3 is **BLOCKED pending re-audit**. The bounded F-01–F-10
+Phase 4, Step 4.3 is **BLOCKED pending the approved import-identity remediation and ordered follow-up work**. The bounded F-01–F-10
 remediation is repository-complete at commits `cfafd823`..`6e6e1859`, and its
 four gated production mutation groups (privacy hardening `20260719191911`,
 event contract `20260719192054`, objective aliases `20260719192148`, and the
@@ -434,22 +434,30 @@ fixtures reach real database assertions; the overwritten historical dry run
 is restored beside a separate production artifact with per-system,
 measured-only reconciliation metrics; and the migration↔ledger mapping is
 governed with a drift-detecting test
-(`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`). That gate is
-bidirectional as of the 2026-07-21 read-only ledger attestation (108 entries):
-every repository migration and every ledger version must resolve to exactly
-one classification, so a production application made from another branch
-cannot land unrecorded. Each migration file additionally declares an explicit
-hazard class (`contraction` / `expansion` / `neutral`), orthogonal to its
-approval status. Five migrations remain prepared and NOT applied
-(`20260717190000`, `20260719234500`, `20260720100000`, `20260720110000`,
-`20260720120000`); the redesign application is not deployed. A durable
-release gate was adopted: privilege/schema contractions follow the
-expand/contract order (deploy the reader/writer first, verify, then
-contract). Step 4.3 is closed only after a fresh independent read-only audit
-passes. Phase 3 and Phase 4 Steps 4.1-4.2 are complete. Do not begin Step
-4.4/4.5 or Phase 5. The un-applied Merger production migration/backfill
-package remains separately owner-gated. Authoritative handoff:
-`docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
+(`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`).
+That gate is bidirectional: every repository migration and every ledger
+version must resolve to exactly one classification, so a production application
+made from another branch cannot land unrecorded. Each migration file also
+declares an explicit hazard class (contraction, expansion, or neutral),
+orthogonal to approval status.
+
+WS1 Layer A, the ledger #106 carry, and the option (e) replay-safety
+reconciliation are integrated. Production facts are last independently
+verified 2026-07-21 and must be re-read live before any production-sensitive
+action: WS2's reader half is deployed, and its remaining issue is the
+confirmed live private-name enumeration oracle. Migration 20260720120000
+remains unapplied and is insufficient as a closure; it must not be applied as
+one. The durable release gate remains expand/contract.
+
+Step 4.3 stays blocked in this order: build the approved source-bound,
+server-only import-identity replacement and obtain independent review before
+any separately authorized expand/contract action; run the tile-attribution
+backfill before guest re-neutralization; perform guest re-neutralization;
+apply 20260719234500, 20260720100000, and 20260720110000 only under the
+per-mutation protocol and separate authorization; then run the fresh
+independent closure audit. Phase 3 and Phase 4 Steps 4.1-4.2 are complete.
+Step 4.4 is not started; do not begin Step 4.4/4.5 or Phase 5. The unapplied
+Merger production migration/backfill package remains separately owner-gated.
 
 ### Completed
 
@@ -1321,17 +1329,15 @@ Do not fill these gaps by assumption.
 
 ## 26. Current Action
 
-Current completed substep:
+Current active substep:
 
-```text
-Phase 4, Step 4.2 — Manual Entry Wizard and Responsive Step Navigation
-```
+Phase 4, Step 4.3 - Import, Validation, Evidence Review, and Claimable Guest
+Identity Creation (**BLOCKED**)
 
-Next, only when explicitly assigned:
+Current authorized next action:
 
-```text
-Phase 4, Step 4.3 — title and exact scope to be supplied by that assignment
-```
+Build the approved import-identity remediation, then obtain independent review.
+Do not begin Step 4.4.
 
 ### Historical Phase 2 record
 
@@ -1365,23 +1371,21 @@ Update these fields whenever this file changes materially:
 
 ## 28. Current Maintenance Header
 
-- **Last updated:** 2026-07-20
-- **Current phase:** Phase 4 — Log a Game (active)
-- **Current substep:** Step 4.3 — Import Validation, Evidence, and Claimable
-  Guest Identity (**BLOCKED pending re-audit, not closed**). The F-01–F-10
-  remediation's four production mutation groups were applied and verified
-  2026-07-19; the second closure audit returned BLOCKED, and the 2026-07-20
-  remediation pass resolved its Blocker/High findings in the repository.
-  Three migrations remain prepared and NOT applied (`20260719234500`,
-  `20260720100000`, `20260720110000`); the redesign application is not
-  deployed; live-site v2 is deployed with zero capture rows as of the
-  recorded verification; backup-table security remediation is complete.
-  Step 4.3B (Venus/Colonies import facts) remains production-verified
-  within it.
-- **Next gated substep:** A fresh independent read-only Step 4.3 closure
-  audit. Do not begin Step 4.4 until that audit passes; applying the three
-  gated migrations requires the per-mutation protocol and, for the
-  confidence-constraint tightening, the expand/contract deployment order.
+- **Last updated:** 2026-07-21
+- **Current phase:** Phase 4 - Log a Game (active)
+- **Current substep:** Step 4.3 - Import Validation, Evidence, and Claimable
+  Guest Identity (**BLOCKED, not closed**). WS1 Layer A, the ledger #106
+  carry, and option (e) are integrated. Production facts are last
+  independently verified 2026-07-21 and require a fresh live read before any
+  production-sensitive action: the WS2 reader half is deployed, but the
+  private-name enumeration oracle is confirmed live. 20260720120000 is
+  unapplied and insufficient as a closure. Step 4.3B remains
+  production-verified within this step.
+- **Next gated work:** Build and independently review the approved import-
+  identity fix before any separately authorized expand/contract action; then
+  tile attribution before guest re-neutralization; guest re-neutralization;
+  the three remaining gated migrations under the per-mutation protocol; and
+  only then the fresh closure audit. Step 4.4 is not started.
 - **Step 4.2 completion commit:** recorded by post-commit verification after
   this document is committed
 - **Step 4.1 completion commit:** recorded by post-commit verification after

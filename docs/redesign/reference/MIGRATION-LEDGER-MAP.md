@@ -8,12 +8,13 @@ read-only and updating both files together.
 
 ## Current snapshot
 
-Captured read-only on **2026-07-21**: **110 entries**, head
+Last independently verified **2026-07-21**: **110 entries**, head
 `20260721201734 harden_claim_rpc_privacy`. The previous snapshot (earlier the
 same day) held 108 entries with head `20260721081355`; the two additions are
 recorded below. The count and head are pinned in
 `PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that disagrees fails
-rather than silently overwriting.
+rather than silently overwriting. This production snapshot must be re-read
+live before any production-sensitive action.
 
 **Re-attested read-only later on 2026-07-21** for the claim-RPC grant
 reconciliation: still 110 entries, still head `20260721201734`, and the snapshot
@@ -200,6 +201,16 @@ production-only with no repo file. The gated repo file
 `20260720120000_coarsen_import_name_match_reasons` amends that deployed
 function rather than creating it.
 
+Production findings last independently verified 2026-07-21 (and requiring a
+fresh live read before any production-sensitive action) classify that deployed
+function as a **confirmed private-name enumeration oracle**. The live-site
+reader half is already deployed, bounds its own input, and tolerates both the
+fine-grained and coarse response vocabularies. The remaining WS2 work is the
+approved server-only replacement. 20260720120000 remains unapplied and is
+insufficient as a closure: coarsening the response hides which private field
+matched but still confirms that a caller-supplied private name belongs to a
+real identity.
+
 Every ledger version in this category is now registered explicitly in
 `PRODUCTION_ONLY_LEDGER_VERSIONS` (68 entries), which is what makes the
 ledger → repo direction complete. Most are remote-only history whose migration
@@ -244,7 +255,7 @@ them.
 | `20260719234500_separate_event_confidence_from_review_state` | **contraction** | confidence/review split (repeat-safe) | per-mutation protocol; pre-apply gate includes verifying no deployed writer emits the retired `'reviewed'` confidence (expand/contract) |
 | `20260720100000_add_guest_identity_alias_source_control` | expansion | guest RPC alias-recording control | per-mutation protocol; required before the redesign's roster/manual guest paths ship |
 | `20260720110000_extend_canonical_board_placement_contract` | **contraction** | full placement contract | per-mutation protocol; expand/contract order. The pre-apply gate must confirm no `game_log_events` row carries owner ids with a non-`explicit_owner` `ownership_state`: the added CHECK is not `not valid`, so one such row fails the `ALTER TABLE` |
-| `20260720120000_coarsen_import_name_match_reasons` | **contraction** | closes the private-name confirmation oracle in `match_import_player_names` | per-mutation protocol; **must ship with** the live-site reader move off `display_name`/`normalized_display_name`/`full_name`/private aliases (B-02 + H-01 as one expand/contract sequence) |
+| `20260720120000_coarsen_import_name_match_reasons` | **contraction** | coarsens disclosed reasons/scores but leaves the private-name confirmation oracle open | **unapplied and insufficient as a closure; do not apply it as one.** Build and independently review the approved server-only, source-bound replacement first; any production action then requires separate authorization and expand/contract |
 
 ## Hazard classes
 

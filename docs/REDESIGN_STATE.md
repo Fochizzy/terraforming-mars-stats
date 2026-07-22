@@ -2,30 +2,80 @@
 
 ## Current substep
 
-Phase 4, Step 4.3 — Import Validation, Evidence Review, and Claimable Guest
-Identity (**BLOCKED-pending-reaudit — the second bounded remediation pass
-(2026-07-20) resolved every Blocker and High finding of the independent
-closure audit: private normalized names are out of client payloads and guest
-public labels are neutral on every creation path (F-01/B4/H5), the canonical
-board-placement contract is complete (F-02), the confidence/review split
-migration is repeat-safe and review state persists end to end (F-03/H2),
-true original bytes are hashed and duplicate sources are detected in the
-import action (H6/H3), client and server share one map gate over identical
-exception evidence (F-05/H1), format-faithful fixtures reach real database
-assertions (F-09/H4), the overwritten historical dry run is restored beside
-a separate production artifact and the reconciliation metrics are honest
-(F-08/§16/§17), and the ledger/documentation drift is corrected and mapped
-(B3/F-10/§18). Step 4.3 remains blocked pending a fresh independent
-read-only closure audit. Step 4.4 has not begun.**)
+Phase 4, Step 4.3 - Import Validation, Evidence Review, and Claimable Guest
+Identity (**BLOCKED - the approved import-identity remediation has not been
+built or independently reviewed. The WS1 Layer A ledger gate, ledger #106
+carry, and replay-safety option (e) reconciliation are integrated. WS2's
+reader half is deployed; its remaining issue is the confirmed live
+private-name enumeration oracle and the approved replacement. Step 4.4 is
+NOT STARTED.**)
 
 ## Current owner
 
-Claude Opus 4.8 — Phase 4, Step 4.3 closure-blocker remediation (third pass,
-**PARTIAL**; WS1 **Layer A only** delivered 2026-07-21 on
-`fix/step-43-ws1-layer-a-ledger-gate`, then the ledger #106 carry on
-`fix/carry-106-to-redesign`)
+Local documentation-only state reconciliation on
+redesign/tm-stats-dashboard-rebuild. Preflight starting HEAD was
+5597817fc6790fa4831ff968629ff49c81f16705. Concurrent commit
+572c88c11779146dcef5c86bc9cf71298e47f91b landed before this task commit
+and is its immediate pre-commit parent. No production access is part of this
+reconciliation.
 
-### Third remediation pass (2026-07-20) — PARTIAL, still BLOCKED
+### Pre-remediation state reconciliation (2026-07-21)
+
+This section is the current authority for Step 4.3 status. It supersedes stale
+current-state claims below while retaining their historical record.
+
+- **Local Git/tree evidence.** WS1 Layer A is integrated by implementation
+  commit 850953cc8 (with hazard correction 2c583a7a3) and merge
+  4160eb565; the ledger #106 carry is integrated by d2679c569 and merge
+  c5021a52f; the option (e) replay-safety reconciliation is integrated by
+  7290fcf9c and merge 0d90d40c3.
+- **Ledger model.** src/lib/db/migration-ledger-map.ts records **110
+  entries**, head 20260721201734 harden_claim_rpc_privacy. The #106 file is
+  20260721173000_harden_claim_rpc_privacy.sql; it was applied in production
+  under ledger version 20260721201734, so reconcile it by migration **name**,
+  not timestamp/version adjacency.
+- **Production facts - last independently verified 2026-07-21; must be
+  re-read live before any production-sensitive action.** The #106 hardening is
+  applied. The deployed public.match_import_player_names(uuid, text[]) is a
+  confirmed live private-name enumeration oracle: it is SECURITY DEFINER,
+  authenticated-only, accepts an unbounded caller-supplied candidate array,
+  and returns field-identifying reasons with a 1:1 score. This classification
+  was established by two independent read-only sessions and is recorded here,
+  not reopened or re-adjudicated.
+- **WS2.** The reader half shipped on the live-site lineage and is deployed.
+  It already bounds its own input and tolerates both fine-grained and coarse
+  match values, so no frontend-first step is required. The remaining WS2 issue
+  is the confirmed oracle and its replacement.
+- **20260720120000.** The coarsening migration is unapplied and is
+  insufficient as a closure: it hides which private field matched but still
+  confirms that a supplied private name belongs to a real identity. It is not
+  authorized for application and must not be applied in the belief that it
+  closes the oracle.
+- **20260718050924.** The claimable-guest identity migration is not gated.
+  Its content is applied as ledger 20260718181600 under renamed drift. It
+  must never be applied to production under any protocol.
+- **Approved design.** The import identity classification, exact source-bound
+  matching with no fuzzy/prefix matching, uniform response set, server-only
+  matcher boundary, and save-time revalidation are recorded in
+  docs/redesign/DECISIONS.md under "Phase 4 Step 4.3 - Import identity
+  classification and source-bound matching." This reconciliation does not
+  duplicate or alter that decision.
+
+Remaining Step 4.3 blockers, in required order:
+
+1. Build the approved import-identity fix; obtain an independent review; then,
+   and only with separate authorization, apply it under expand/contract.
+2. Run the tile-attribution backfill **before** guest re-neutralization. Two of
+   the 114 rows resolve only through the unlinked guest's display_name.
+3. Perform guest re-neutralization.
+4. Apply the remaining gated migrations 20260719234500, 20260720100000,
+   and 20260720110000 under the per-mutation protocol and separate
+   authorization.
+5. Only then run the fresh independent closure audit.
+
+Step 4.3 remains **BLOCKED**. Step 4.4 is **NOT STARTED**.
+
+### Historical third remediation pass (2026-07-20) — PARTIAL, still BLOCKED
 
 Authoritative handoff:
 `docs/agent-handoffs/PHASE-04-STEP-03-THIRD-REMEDIATION-PARTIAL-HANDOFF.md`.
@@ -47,10 +97,11 @@ Delivered and validated (commits `594244875`, `1efd6f447`):
   dry-run validated read-only: 114 rows, 3 games, 3 imports, 0 excluded.
   **Not executed.**
 
-Not delivered: **WS1** (executable expand/contract gate — blocked on the
-absence of any runtime-verifiable deployment stamp to gate on) and **WS2**
-(live-site privacy reader move, the B-02 half of the pair). WS5 deliberately
-not executed; the owner retains the deploy lock.
+At the close of that historical branch, WS1 and WS2 had not yet landed. That
+premise is superseded: WS1 Layer A is now integrated, the former
+runtime-verifiable-stamp blocker is obsolete, and WS2's reader half is
+deployed. WS5 was deliberately not executed; the owner retained the deploy
+lock.
 
 **Ordering correction.** The tile backfill must run *before* guest
 re-neutralization. Two of the 114 rows resolve solely through the unlinked
@@ -106,8 +157,10 @@ tests pass; lint at the four baseline warnings; production build green;
 `bash supabase/tests/executable/run.sh` passes end to end; `git diff --check`
 clean.
 
-Not started by this work: **Layer B** and **Layer C** of WS1, **WS2**, guest
-re-neutralization, the tile backfill, the closure audit, and Step 4.4.
+This historical WS1 branch did not itself start Layer B/C, WS2, guest
+re-neutralization, the tile backfill, the closure audit, or Step 4.4. Current
+state is governed by the pre-remediation reconciliation above: the WS2 reader
+half subsequently deployed, while Step 4.4 remains not started.
 
 ### Ledger #106 carried onto this lineage (2026-07-21)
 
@@ -159,9 +212,10 @@ exit 0; lint at the four baseline warnings, none new; production build green;
 `bash supabase/tests/executable/run.sh` passes end to end, with the new file
 replaying last in the production-history half; `git diff --check` clean.
 
-WS2, WS1 Layer B/C, converge, and the closure audit have not begun. The
-`20260718050924` reconciliation was parked at that point and is now delivered —
-see the next section, which also corrects the "gated" label used above.
+At the close of that branch, WS2, WS1 Layer B/C, converge, and the closure
+audit had not begun. The 20260718050924 reconciliation was parked at that
+point and is now delivered; WS2's reader half subsequently deployed. See the
+next section, which also corrects the former gated label.
 
 ### Claim-RPC grant and replay safety reconciled (2026-07-21)
 
@@ -229,13 +283,15 @@ exit 0; lint at the four baseline warnings, none new; production build green;
 `bash supabase/tests/executable/run.sh` passes end to end; `git diff --check`
 clean.
 
-`20260718050924` must never be applied to production under any protocol. WS2,
-WS1 Layer B/C, converge, and the closure audit remain not begun.
+20260718050924 must never be applied to production under any protocol. At
+the close of this historical branch, WS2, WS1 Layer B/C, converge, and the
+closure audit had not begun; WS2's reader half subsequently deployed.
 
 ## Status
 
-**Phase 4 - Log a Game - Active. Step 4.3 is BLOCKED pending re-audit (not
-closed, not self-approved).** The remediation commits build on `8e11d3167`
+**Phase 4 - Log a Game - Active. Step 4.3 is BLOCKED pending the approved
+import-identity remediation and ordered follow-up work (not closed, not
+self-approved).** The remediation commits build on `8e11d3167`
 (the user's expanded master-guide docs commit on top of audit-end
 `c9473be25`); the full commit list and finding-by-finding resolution matrix
 are in the authoritative handoff. Validation at the final commit: typecheck
@@ -264,7 +320,8 @@ RPC, and the fixture-to-persistence bridge
   `20260711232834`/`20260712114538` are skipped by version. The full
   filename↔ledger mapping is `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`;
   its drift test is bidirectional and hazard-classified as of the 2026-07-21
-  attestation (108 ledger entries, head `20260721081355`).
+  attestation (110 ledger entries, head 20260721201734
+  harden_claim_rpc_privacy).
 - **Backup-table security remediation is complete** (remote ledger
   `20260718234835 lock_down_public_backup_tables`), not outstanding.
 - **No production mutation was performed by this remediation** — read-only
@@ -925,24 +982,27 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Step 4.3 remains blocked pending re-audit.** The second bounded remediation
-pass (2026-07-20) resolved every Blocker and High finding (F-01/F-02/F-03/
-F-05/F-08/F-09/F-10, B3/B4, H1–H6) plus the coupled Medium findings
-(recoverable import-run state; `objectiveConfiguration` resume default).
-Three migrations remain prepared and gated — `20260719234500`
-(repeat-safe), `20260720100000`, and `20260720110000` — all
-executable-tested (including double application) and **NOT applied to
-production**; the emitted payloads remain valid against the deployed
-pre-migration contracts. The **next action is a fresh independent read-only
-Step 4.3 closure audit** (Claude Opus 4.8 Max, per the assignment). Do not
-self-approve Step 4.3, and do not begin Step 4.4/4.5/Phase 5, push, or
-deploy without separate authorization. Reports:
-`docs/redesign/reports/phase-04-step-03-placement/`,
-`docs/redesign/reports/phase-04-step-03b/` (dry run and production now
-separate artifacts), and `docs/redesign/reports/phase-04-step-03-compat/`
-(regenerated 2026-07-20). No application push or deployment occurred in
-this session, and no production row, grant, policy, or schema object was
-changed by it.
+**Step 4.3 remains BLOCKED.** The approved next action is to build the
+source-bound, server-only import-identity fix recorded in
+docs/redesign/DECISIONS.md, then obtain independent review. Any production
+change requires a later, separate authorization under expand/contract.
+
+After that review and authorization gate, the required sequence is:
+tile-attribution backfill before guest re-neutralization; guest
+re-neutralization; migrations 20260719234500, 20260720100000, and
+20260720110000 under the per-mutation protocol; then the fresh independent
+closure audit. Two of the 114 tile-attribution rows resolve only through the
+unlinked guest's display_name, so reversing the backfill/re-neutralization
+order would destroy required evidence.
+
+Production facts are last independently verified 2026-07-21 and must be
+re-read live before any production-sensitive action. Migration 20260720120000
+remains unapplied, insufficient as an oracle closure, and unauthorized for
+application as one. Migration 20260718050924 is not gated and must never be
+applied.
+
+Do not begin Step 4.4/4.5/Phase 5, push, deploy, or apply a migration without
+separate authorization.
 
 ## Active blockers
 
@@ -1041,6 +1101,8 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-PRE-REMEDIATION-STATE-2026-07-21.md
+  (documentation-only state reconciliation before the approved remediation)
 - docs/agent-handoffs/PHASE-04-STEP-03-CARRY-106-CLAIM-RPC-PRIVACY-TO-REDESIGN.md
   (ledger #106 carried onto this lineage; ledger snapshot reconciled to 110)
 - docs/agent-handoffs/PHASE-04-STEP-03-WS1-LAYER-A-LEDGER-GATE.md
