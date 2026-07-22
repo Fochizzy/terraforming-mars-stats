@@ -2,6 +2,9 @@
 
 ## Current substep
 
+**Additional mandatory STOP (2026-07-21): source-bound import identity matching
+cannot begin until the persistence-order and normalized-username prerequisites below are resolved.**
+
 Phase 4, Step 4.3 — Import Validation, Evidence Review, and Claimable Guest
 Identity (**BLOCKED-pending-reaudit — the second bounded remediation pass
 (2026-07-20) resolved every Blocker and High finding of the independent
@@ -19,6 +22,63 @@ a separate production artifact and the reconciliation metrics are honest
 read-only closure audit. Step 4.4 has not begun.**)
 
 ## Current owner
+
+Codex - Phase 4, Step 4.3 source-bound import identity matching
+(**STOPPED before implementation** on the assignment's mandatory pre-persistence
+and normalized-uniqueness gates).
+
+### Source-bound import identity implementation - STOPPED (2026-07-21)
+
+Branch `fix/import-identity-source-bound-matching`, created from re-derived
+redesign HEAD `5597817fc6790fa4831ff968629ff49c81f16705` in isolated worktree
+`C:\Users\izzyh\Documents\Terraforming Mars Redesign\.npm-cache\tm-import-identity-worktree`.
+Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-SOURCE-BOUND-MATCHING-STOP.md`.
+
+No application, RPC, migration, or test-harness implementation was started.
+Two independent assignment-defined STOP conditions were re-derived:
+
+- **Import evidence is not persisted before identity matching.** The current
+  action calls `resolveImportPlayerIdentities` first; that operation may reuse
+  or create a guest through `resolve_import_guest_identity`. Only afterwards
+  does the action save the draft, build immutable source evidence, and insert
+  `game_log_imports.raw_log_text`. The required replacement matcher therefore
+  cannot derive its probe from a persisted import/evidence reference without a
+  newly authorized persistence-order or staging change. Existing
+  `game_log_imports` cannot simply be inserted first because `game_id` is a
+  non-null foreign key and the current draft save depends on resolved players.
+- **Registered normalized username uniqueness is not database-enforced.** A
+  fresh catalog-only production read confirmed `user_profiles.username` is
+  plain `text` with `UNIQUE (username)`, no normalization trigger, and no
+  normalized expression index. The live normalizer lowercases and collapses
+  punctuation, so distinct raw usernames may normalize identically. Guest
+  usernames are correctly protected per group by the valid unique index on
+  `(group_id, normalized_guest_username)`. Adding the missing registered-name
+  index could conflict with existing normalized collisions; the task forbids
+  the row-data read needed to exclude that possibility, triggering its second
+  explicit STOP.
+
+The deployed `public.match_import_player_names(uuid, text[])` definition and
+ACL were also re-derived catalog-only: it remains a `SECURITY DEFINER` function
+with `search_path = ''`, accepts an arbitrary caller-controlled array, compares
+exact and prefix forms against private identity values, emits fine-grained
+reason/score fields, and grants EXECUTE to `authenticated` and `service_role`
+(not `anon`). This confirms the live oracle premise; it does not authorize a
+write.
+
+Owner decision required before resuming: authorize either (1) a private/service-
+only pre-resolution evidence staging record, or (2) a two-stage draft/import
+persistence reordering with explicit partial-run recovery. Also authorize a
+privacy-safe production collision preflight or another evidence source before
+adding a globally unique normalized registered-username index. Requiring
+explicit existing-player selection without private automatic matching is a
+possible reduced-scope alternative, but it does not implement the approved
+source-bound automatic matcher.
+
+No production write, revoke, apply, deploy, or push occurred. Production access
+was two catalog-only SQL reads; no table row or personal data was read.
+
+### Prior owner / third remediation context
 
 Claude Opus 4.8 — Phase 4, Step 4.3 closure-blocker remediation (third pass,
 **PARTIAL**; WS1 **Layer A only** delivered 2026-07-21 on
