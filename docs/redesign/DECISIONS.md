@@ -1367,6 +1367,29 @@ Approved by the user's explicit context-maintenance request on 2026-07-22.
 - **State owns active handoff membership.** Future agents already updating
   project state must maintain that first handoff group as the complete active
   set. The first blank line ends the group and separates older history.
+- **Two small routing documents.** `docs/CURRENT_STATUS.md` is the concise
+  current-work router and `docs/AUTHORITATIVE_DOCUMENTS.md` distinguishes
+  instruction authority from factual evidence precedence. Current status and
+  detailed `docs/REDESIGN_STATE.md` must be reconciled in the same change.
+- **Executable evidence outranks remediation prose for factual status.** Current
+  production evidence, applied migrations, executable verification, and current
+  implementation can prove a documentation claim stale. They do not grant new
+  scope, production, migration, deployment, push, or next-step authority.
+- **Contradictions stop implementation.** Agents must report unresolved
+  contradictions before changing code and must not mark an item resolved
+  without executable verification.
+- **Repository-owned source catalog.** The updater reads
+  `docs/redesign/CLAUDE-PROJECT-SOURCES.json`; document count is derived from
+  that catalog. New durable cross-project guidance must be added there in the
+  same change. Removal/renaming requires explicit retirement and never silently
+  deletes or orphans a managed Google Doc.
+- **Enforced completion gate.** Before commit, completed redesign work runs
+  `npm.cmd run validate:claude-context -- --require-maintenance`. After commit,
+  the local authorized updater must run or the task must report synchronization
+  pending with its exact reason.
+- **Non-recursive receipt.** The final Drive result is recorded in the updater's
+  local log and the task report, not by editing a canonical source solely to copy
+  the receipt after synchronization.
 - **No authority promotion.** The generated page is a navigation and
   aggregation copy. It never replaces canonical files, changes their authority,
   or grants permission for a phase, substep, production mutation, migration,

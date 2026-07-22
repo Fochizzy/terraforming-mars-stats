@@ -48,6 +48,11 @@ updates the same Google Drive file ID. It includes the context contract, full
 current state, detected current phase, the complete active handoff group
 declared in state, and a newest-handoff freshness backstop.
 
+`docs/CURRENT_STATUS.md` provides the concise current-work route and
+`docs/AUTHORITATIVE_DOCUMENTS.md` separates instruction authority from factual
+evidence precedence. The version-controlled individual-document catalog is
+`docs/redesign/CLAUDE-PROJECT-SOURCES.json`.
+
 This generated page is not an additional authority level. It does not replace
 the sources in the authority order above and never grants scope or release
 permission. Local agents still read canonical files directly. The durable
@@ -153,6 +158,8 @@ Every substep must include:
 8. `docs/REDESIGN_STATE.md` update
 9. an agent handoff
 10. a separate commit
+11. Claude Project context validation
+12. a post-commit planning-pack sync result or an explicit pending reason
 
 ### Standard completion gate
 
@@ -164,7 +171,14 @@ A substep is complete only when:
 - no unapproved schema, dependency, environment, or production changes were made
 - documentation reflects the implemented behavior
 - the handoff identifies files changed, decisions made, tests run, remaining risks, and the next approved action
+- `docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` agree on current phase,
+  blockers, release state, migrations, and next action
+- active-handoff membership and the planning-pack source catalog are maintained
+- `npm.cmd run validate:claude-context -- --require-maintenance` passes before
+  commit
 - the worktree is clean after commit
+- the post-commit updater succeeds, or synchronization is explicitly reported
+  as pending/blocked without claiming Drive or Claude refresh success
 
 ---
 
@@ -1179,7 +1193,10 @@ Before Step 2.2 specifically, confirm:
 
 ### Claude Project context delivery
 
+- `docs/CURRENT_STATUS.md`
+- `docs/AUTHORITATIVE_DOCUMENTS.md`
 - `docs/redesign/CLAUDE-PROJECT-CONTEXT.md`
+- `docs/redesign/CLAUDE-PROJECT-SOURCES.json`
 - generated native Google Doc: `TM PROJECT MASTER CONTEXT`
 
 ### Project state
@@ -1235,11 +1252,14 @@ Do not update this file to imply approval that has not been granted.
 1. update the assigned phase file if required
 2. update `docs/redesign/DECISIONS.md` for approved durable decisions
 3. update relevant inventories or matrices
-4. update `docs/REDESIGN_STATE.md`
-5. write the substep handoff
-6. update this master plan only when project-wide context changed
-7. validate
-8. commit separately
+4. update `docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` when current
+   state changed
+5. write the substep handoff and maintain the active-handoff group
+6. update the authority index and planning-pack source catalog when routing changed
+7. update this master plan only when project-wide context changed
+8. run the documentation-maintenance validator and all task validation
+9. commit separately
+10. run the post-commit planning-pack updater or report the exact pending reason
 
 ---
 
@@ -1286,6 +1306,21 @@ Each substep handoff should include:
 
 ## Validation results
 
+## Documentation maintenance
+
+- Current status:
+- Detailed state:
+- Phase/decisions/master plan:
+- Active handoff group:
+- Authority index:
+- Planning-pack source catalog:
+- Context validator:
+
+## Post-commit synchronization
+
+- Status at commit: pending post-commit | unavailable | not required
+- Final evidence location: updater local log and task report
+
 ## Known limitations
 
 ## Deferred work
@@ -1300,6 +1335,11 @@ Each substep handoff should include:
 ```
 
 The handoff must describe what was actually completed, not the originally intended scope when they differ.
+Post-commit synchronization evidence must be reported from the updater log and
+task result. Do not modify and recommit the handoff solely to copy the final
+receipt, because that creates another source revision after synchronization.
+Never use a Drive result to claim that Claude has already refreshed or ingested
+the linked source.
 
 ---
 

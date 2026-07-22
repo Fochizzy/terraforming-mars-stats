@@ -4,11 +4,20 @@
 
 Before editing, read:
 
-1. `docs/redesign/MASTER-RULES.md`
-2. The exact phase file named in the task
+1. `docs/CURRENT_STATUS.md`
+2. `docs/AUTHORITATIVE_DOCUMENTS.md`
 3. `docs/REDESIGN_STATE.md`
-4. `docs/redesign/DECISIONS.md`
-5. The latest relevant handoff in `docs/agent-handoffs/`
+4. `docs/redesign/MASTER-RULES.md`
+5. The exact phase file named in the task
+6. `docs/redesign/DECISIONS.md`
+7. The latest relevant handoff in `docs/agent-handoffs/`
+
+Verify documentation claims against code, migrations, executable tests,
+verification harnesses, and available production evidence. Evidence precedence
+does not grant scope beyond the explicit assignment. Report contradictions
+before modifying code, treat `docs/archive/` as historical unless a current
+authority explicitly promotes it, and do not mark an item resolved without
+executable verification.
 
 Do not implement unrelated phases.
 
@@ -28,6 +37,27 @@ When updating `docs/REDESIGN_STATE.md`, keep every handoff required for the
 current work in the first contiguous bullet group under `## Latest handoff`.
 The generator embeds that entire group and fails closed on missing or malformed
 entries. Older handoffs may remain after a blank line.
+
+### Documentation and synchronization completion gate
+
+Before claiming completion:
+
+1. Update `docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` together when
+   current work or release state changed.
+2. Create or update the handoff and record canonical documents reviewed,
+   updated, and intentionally unchanged.
+3. Maintain the active handoff group and update
+   `docs/AUTHORITATIVE_DOCUMENTS.md` when authority routing changes.
+4. Add new durable cross-project guidance to
+   `docs/redesign/CLAUDE-PROJECT-SOURCES.json`.
+5. Run `npm.cmd run validate:claude-context -- --require-maintenance`.
+6. Commit the documentation with the task.
+7. After commit, run the desktop planning-pack updater when available and
+   authorized, or explicitly report the synchronization as pending.
+
+Use the updater's local log and final task report for the post-commit receipt.
+Do not edit a repository document solely to record that receipt. Verify Google
+Drive content and identity, but do not claim Claude ingestion timing.
 
 ## Project architecture
 
@@ -74,9 +104,12 @@ Run the relevant commands:
 
 Before stopping:
 
-- Update `docs/REDESIGN_STATE.md`
+- Update `docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` when applicable
 - Update `docs/redesign/DECISIONS.md` when needed
 - Create a handoff file
+- Maintain the authority index, active handoff group, and planning-pack catalog
+- Run the documentation-maintenance validator
+- Run or explicitly defer the post-commit planning-pack synchronization
 - Report files changed, tests, migrations, assumptions, and limitations
 
 ## Master Plan Review and Maintenance
@@ -115,14 +148,18 @@ When documents differ, follow the documented authority order. The current explic
 
 At the end of every completed redesign substep:
 
-1. update `docs/REDESIGN_STATE.md`
+1. update `docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` when current
+   work or release state changed
 2. create or update the required handoff
 3. update `docs/redesign/DECISIONS.md` when a durable decision was approved
 4. update relevant inventories, matrices, specifications, or phase documents when required
-5. review `docs/redesign/MASTER-PLAN.md`
-6. determine whether the completed work changed durable project-wide context
-7. update the master plan when such a change occurred
-8. include any required master-plan update in the same substep commit
+5. maintain `docs/AUTHORITATIVE_DOCUMENTS.md` and the planning-pack source catalog
+6. review `docs/redesign/MASTER-PLAN.md`
+7. determine whether the completed work changed durable project-wide context
+8. update the master plan when such a change occurred
+9. run the documentation-maintenance validator
+10. include all required documentation in the same substep commit
+11. run or explicitly defer the post-commit planning-pack synchronization
 
 ### When to update the master plan
 

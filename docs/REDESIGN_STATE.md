@@ -3,14 +3,40 @@
 ## Current substep
 
 Phase 4, Step 4.3 - Import Validation, Evidence Review, and Claimable Guest
-Identity (**BLOCKED - the approved source-bound import-identity replacement is
-BUILT locally, REMEDIATED after independent review, and STOPPED at the release
-boundary (2026-07-21); nothing from it is applied, deployed, or pushed. The
-WS1 Layer A ledger gate, ledger #106 carry, and replay-safety option (e)
-reconciliation are integrated. WS2's reader half is deployed; its remaining
-issue is the confirmed live private-name enumeration oracle, which only the
-separately authorized gated replacement pair closes. Step 4.4 is NOT
-STARTED.**)
+Identity (**BLOCKED at the release boundary. The approved source-bound
+replacement is BUILT locally and REMEDIATED. Production subsequently applied
+its expansion as ledger `20260722132159`, applied interim reason coarsening as
+`20260722144034`, and revoked authenticated execution of the separate guest
+identity resolver as `20260722153233`. The compatible redesign reader is not
+deployed, the legacy free-form matcher oracle remains open, contraction
+`20260722012707` remains gated and unapplied, and Step 4.4 is NOT STARTED.**)
+
+### Production release-boundary reconciliation (2026-07-22)
+
+The newer production apply record supersedes older statements below that both
+source-bound migrations remained unapplied:
+
+- repository migration `20260722012658` (`add_source_bound_import_identity_staging`)
+  is applied in production as ledger version `20260722132159`;
+- repository migration `20260720120000` (`coarsen_import_name_match_reasons`) is
+  applied as ledger version `20260722144034`;
+- repository migration `20260722153000`
+  (`close_authenticated_guest_identity_oracle`) is applied as ledger version
+  `20260722153233`; and
+- contraction `20260722012707` (`retire_free_form_import_name_matcher`) remains
+  gated and unapplied.
+
+Production ledger attestation is 113 entries with head `20260722153233` in
+`docs/agent-handoffs/GUEST-IDENTITY-ORACLE-REVOKE-APPLY.md`. That record also
+proves the redesign's remaining `createOrReuseGuestPlayerByPersonalName` call
+uses an authenticated user-session client and would fail after the revoke if
+this redesign lineage were deployed unchanged. The live worker does not contain
+that call, so current production behavior is not broken.
+
+No continuation is authorized by this reconciliation. A new explicit owner
+assignment must govern the reader correction/deploy and verification. The
+legacy matcher contraction requires separate authorization only after compatible
+reader verification, followed by a fresh closure audit before Step 4.4.
 
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
 
@@ -67,14 +93,15 @@ scheduler; the expansion is not purely additive (a UNIQUE index on live
 `public.user_profiles` and an AFTER UPDATE trigger on live `public.games`); and
 `match-oracle-post-contraction.sql` is now unreferenced by `run.sh`.
 
-Both `20260722012658_add_source_bound_import_identity_staging.sql` (expansion)
-and `20260722012707_retire_free_form_import_name_matcher.sql` (contraction)
-are gated and unapplied. `20260720120000_coarsen_import_name_match_reasons.sql`
-was not edited or applied. No production write, revoke, migration application,
-deploy, push, closure audit, registration-claiming work, or Step 4.4 occurred.
-The next action requires separate owner authorization for production
-preflight/application and compatible reader deployment, followed by separate
-contraction authorization only after verification.
+At the end of this remediation, both `20260722012658` (expansion) and
+`20260722012707` (contraction) were gated and unapplied, and `20260720120000`
+had not been applied. The later production release-boundary reconciliation
+above supersedes that historical state: expansion and interim coarsening are
+now applied, while contraction remains gated and unapplied. No compatible
+redesign reader deploy, push, closure audit, registration-claiming work, or Step
+4.4 occurred. The next action requires separate owner authorization for reader
+correction/deployment and verification, followed by separate contraction
+authorization and a fresh closure audit.
 
 ### Historical current-substep snapshot (superseded for local implementation status)
 
@@ -123,6 +150,19 @@ ID. It embeds the canonical context contract, this full state file, the phase
 file detected from `Current substep`, every handoff in the first contiguous
 group under `Latest handoff`, and the newest repository handoff when it is not
 already declared active.
+
+`docs/CURRENT_STATUS.md` now provides the concise current-work route and
+`docs/AUTHORITATIVE_DOCUMENTS.md` owns current source routing and evidence
+precedence. The updater reads the version-controlled
+`docs/redesign/CLAUDE-PROJECT-SOURCES.json`, derives its document count, and
+publishes both new routing documents. Root instructions, master rules, the
+master plan, and the context contract require a pre-commit maintenance
+validator plus a post-commit updater run or an explicit pending reason.
+
+This governance hardening reconciles the stale pre-apply release wording above
+against the latest production apply record. It does not authorize a reader fix,
+deployment, migration, contraction, closure audit, Step 4.4, push, or production
+operation.
 
 This is context delivery only. It does not change the current Phase 4, Step 4.3
 status, authorize Step 4.4, or grant any production, migration, deploy, or push

@@ -88,10 +88,27 @@ These must remain distinct from:
 - Future state updates must keep the first `Latest handoff` list complete for
   the active work. A blank line ends that active group; older historical
   handoffs may follow separately.
+- `docs/CURRENT_STATUS.md` is the concise current-work router and
+  `docs/REDESIGN_STATE.md` is the full detailed state. Update them together when
+  phase, blocker, release, migration, or next-action state changes.
+- `docs/AUTHORITATIVE_DOCUMENTS.md` owns current authority routing and evidence
+  precedence. Report unresolved contradictions before implementation and never
+  treat stronger evidence as permission to broaden scope.
+- The version-controlled individual-document catalog is
+  `docs/redesign/CLAUDE-PROJECT-SOURCES.json`. Add a new durable cross-project
+  guidance document there in the same change that creates or promotes it.
 - Generation must fail closed on a missing current phase, missing or malformed
   active-handoff declaration, duplicate active handoff, or missing source file.
 - Generation must be deterministic and update the same Google Doc ID only when
   source content changes.
+- Every completed redesign task must run
+  `npm.cmd run validate:claude-context -- --require-maintenance` before commit.
+- After commit, run the authorized desktop planning-pack updater when available,
+  or report the synchronization as pending with its reason. The local updater
+  log and task report are the final receipt; do not create a new source change
+  solely to record that post-commit receipt.
+- Verify Drive content and stable IDs only. Claude controls linked-source refresh
+  timing, so never claim automatic ingestion or a particular refresh time.
 
 <!-- BEGIN GUEST-IDENTITY-PRIVACY-RULES -->
 

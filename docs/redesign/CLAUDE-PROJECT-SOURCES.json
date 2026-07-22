@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "description": "Version-controlled source catalog for the TM Project Planning Pack updater.",
+  "documents": [
+    {
+      "key": "agents",
+      "title": "AGENTS",
+      "root": "redesign",
+      "path": "AGENTS.md"
+    },
+    {
+      "key": "claude",
+      "title": "CLAUDE",
+      "root": "redesign",
+      "path": "CLAUDE.md"
+    },
+    {
+      "key": "current-status",
+      "title": "CURRENT_STATUS",
+      "root": "redesign",
+      "path": "docs/CURRENT_STATUS.md"
+    },
+    {
+      "key": "authoritative-documents",
+      "title": "AUTHORITATIVE_DOCUMENTS",
+      "root": "redesign",
+      "path": "docs/AUTHORITATIVE_DOCUMENTS.md"
+    },
+    {
+      "key": "phase-04-step-03-assignment-guide",
+      "title": "PHASE-04-STEP-03-ASSIGNMENT-GUIDE",
+      "root": "redesign",
+      "path": "docs/agent-prompts/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md"
+    },
+    {
+      "key": "redesign-state",
+      "title": "REDESIGN_STATE",
+      "root": "redesign",
+      "path": "docs/REDESIGN_STATE.md"
+    },
+    {
+      "key": "master-rules",
+      "title": "MASTER-RULES",
+      "root": "redesign",
+      "path": "docs/redesign/MASTER-RULES.md"
+    },
+    {
+      "key": "master-plan",
+      "title": "MASTER-PLAN",
+      "root": "redesign",
+      "path": "docs/redesign/MASTER-PLAN.md"
+    },
+    {
+      "key": "decisions",
+      "title": "DECISIONS",
+      "root": "redesign",
+      "path": "docs/redesign/DECISIONS.md"
+    },
+    {
+      "key": "page-architecture",
+      "title": "PAGE-ARCHITECTURE",
+      "root": "redesign",
+      "path": "docs/redesign/PAGE-ARCHITECTURE.md"
+    },
+    {
+      "key": "master-guide",
+      "title": "TM-Stats-Redesign-Master-Guide",
+      "root": "redesign",
+      "path": "docs/redesign/reference/TM-Stats-Redesign-Master-Guide.docx"
+    },
+    {
+      "key": "migration-ledger-map",
+      "title": "MIGRATION-LEDGER-MAP",
+      "root": "redesign",
+      "path": "docs/redesign/reference/MIGRATION-LEDGER-MAP.md"
+    },
+    {
+      "key": "migration-matrix",
+      "title": "MIGRATION-MATRIX",
+      "root": "redesign",
+      "path": "docs/redesign/MIGRATION-MATRIX.md"
+    },
+    {
+      "key": "data-capabilities",
+      "title": "DATA-CAPABILITIES",
+      "root": "redesign",
+      "path": "docs/redesign/DATA-CAPABILITIES.md"
+    },
+    {
+      "key": "guest-player-identity-privacy",
+      "title": "GUEST-PLAYER-IDENTITY-AND-PRIVACY",
+      "root": "redesign",
+      "path": "docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md"
+    },
+    {
+      "key": "live-site-data-capture-v2",
+      "title": "LIVE-SITE-DATA-CAPTURE-V2-COMPATIBILITY",
+      "root": "redesign",
+      "path": "docs/redesign/reference/LIVE-SITE-DATA-CAPTURE-V2-COMPATIBILITY.md"
+    },
+    {
+      "key": "analytics-scope-capability-model",
+      "title": "ANALYTICS-SCOPE-CAPABILITY-MODEL",
+      "root": "redesign",
+      "path": "docs/redesign/ANALYTICS-SCOPE-CAPABILITY-MODEL.md"
+    },
+    {
+      "key": "shared-filter-url-state-contracts",
+      "title": "SHARED-FILTER-URL-STATE-CONTRACTS",
+      "root": "redesign",
+      "path": "docs/redesign/SHARED-FILTER-URL-STATE-CONTRACTS.md"
+    },
+    {
+      "key": "metric-sample-coverage-eligibility-contracts",
+      "title": "METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS",
+      "root": "redesign",
+      "path": "docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md"
+    },
+    {
+      "key": "canonical-analytics-definitions",
+      "title": "CANONICAL-ANALYTICS-DEFINITIONS",
+      "root": "redesign",
+      "path": "docs/redesign/CANONICAL-ANALYTICS-DEFINITIONS.md"
+    },
+    {
+      "key": "analytics-repository-query-contracts",
+      "title": "ANALYTICS-REPOSITORY-QUERY-CONTRACTS",
+      "root": "redesign",
+      "path": "docs/redesign/ANALYTICS-REPOSITORY-QUERY-CONTRACTS.md"
+    },
+    {
+      "key": "shared-asset-foundations",
+      "title": "SHARED-ASSET-FOUNDATIONS",
+      "root": "redesign",
+      "path": "docs/redesign/SHARED-ASSET-FOUNDATIONS.md"
+    },
+    {
+      "key": "combined-dashboard-foundation",
+      "title": "COMBINED-DASHBOARD-FOUNDATION",
+      "root": "redesign",
+      "path": "docs/redesign/COMBINED-DASHBOARD-FOUNDATION.md"
+    },
+    {
+      "key": "glossary-card-database-preservation",
+      "title": "GLOSSARY-CARD-DATABASE-PRESERVATION",
+      "root": "redesign",
+      "path": "docs/redesign/GLOSSARY-CARD-DATABASE-PRESERVATION.md"
+    },
+    {
+      "key": "deploy-state",
+      "title": "DEPLOY-STATE",
+      "root": "live",
+      "path": "DEPLOY-STATE.md"
+    }
+  ],
+  "phaseDocuments": {
+    "root": "redesign",
+    "directory": "docs/redesign/phases",
+    "first": 0,
+    "last": 20
+  },
+  "dynamicDocuments": [
+    {
+      "key": "latest-handoff",
+      "title": "LATEST-HANDOFF"
+    },
+    {
+      "key": "tm-project-master-context",
+      "title": "TM PROJECT MASTER CONTEXT"
+    }
+  ]
+}

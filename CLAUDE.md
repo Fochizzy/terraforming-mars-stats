@@ -3,6 +3,26 @@
 @docs/redesign/MASTER-RULES.md
 @docs/redesign/PAGE-ARCHITECTURE.md
 
+## Authoritative project information
+
+Before planning, implementing, or recommending the next task:
+
+1. Read `docs/CURRENT_STATUS.md`.
+2. Read `docs/AUTHORITATIVE_DOCUMENTS.md`.
+3. Read `docs/REDESIGN_STATE.md` and only the authoritative phase, decision,
+   handoff, contract, migration, and verification sources relevant to the
+   current assignment.
+4. Verify documentation claims against current code, migrations, executable
+   tests, verification harnesses, and available production evidence.
+5. Treat files under `docs/archive/` as historical unless a current
+   authoritative source explicitly promotes them.
+6. Report unresolved contradictions before changing code.
+7. Do not mark an item resolved without executable verification.
+
+Evidence precedence determines which factual implementation claim is current;
+it does not authorize work outside the explicit assignment. The full routing
+and conflict rules are in `docs/AUTHORITATIVE_DOCUMENTS.md`.
+
 ## Current task
 
 Read only the phase or substep named in the task.
@@ -30,6 +50,36 @@ Maintain the first contiguous bullet group under
 `docs/REDESIGN_STATE.md` -> `## Latest handoff` as the complete active
 handoff set. A blank line separates it from historical handoffs.
 
+## Documentation and Claude Project synchronization gate
+
+Before claiming a completed redesign task:
+
+1. Update `docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` together when
+   current phase, blocker, release, migration, or next-action state changed.
+2. Create or update the task handoff and record which canonical documents were
+   reviewed, updated, or intentionally unchanged.
+3. Maintain the complete active handoff group in `docs/REDESIGN_STATE.md`.
+4. Update `docs/AUTHORITATIVE_DOCUMENTS.md` when an authority is added, moved,
+   superseded, or archived.
+5. Add any new durable cross-project guidance document to
+   `docs/redesign/CLAUDE-PROJECT-SOURCES.json` in the same change.
+6. Run `npm.cmd run validate:claude-context -- --require-maintenance` before
+   committing.
+7. Include all required documentation in the same focused completion commit.
+8. After the commit, run
+   `%USERPROFILE%\Desktop\Refresh TM Project Planning Pack.bat` when the local
+   authorized updater is available. Otherwise report synchronization as pending
+   with the reason; do not claim Google Drive is current.
+9. Verify the updater result and Drive structure from its local summary/log.
+
+The final post-commit synchronization receipt belongs in the updater's local
+log and the task report. Do not edit a canonical document solely to record that
+receipt, because doing so would create a new unsynchronized source change.
+
+The updater can verify Google Drive content and stable file identity. Never
+claim that Claude has refreshed or ingested the linked source; Claude controls
+that timing.
+
 ## Required workflow
 
 1. Inspect the existing implementation.
@@ -38,7 +88,10 @@ handoff set. A blank line separates it from historical handoffs.
 4. Complete only the assigned substep.
 5. Run the required checks.
 6. Update state and handoff documentation.
-7. Commit the completed substep.
+7. Run the documentation-maintenance validator.
+8. Commit the completed substep.
+9. Run or explicitly defer the post-commit planning-pack synchronization and
+   report its result.
 
 ## Project rules
 
@@ -87,14 +140,19 @@ When documents differ, follow the documented authority order. The current explic
 
 At the end of every completed redesign substep:
 
-1. update `docs/REDESIGN_STATE.md`
+1. update `docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` when current
+   work or release state changed
 2. create or update the required handoff
 3. update `docs/redesign/DECISIONS.md` when a durable decision was approved
 4. update relevant inventories, matrices, specifications, or phase documents when required
-5. review `docs/redesign/MASTER-PLAN.md`
-6. determine whether the completed work changed durable project-wide context
-7. update the master plan when such a change occurred
-8. include any required master-plan update in the same substep commit
+5. maintain `docs/AUTHORITATIVE_DOCUMENTS.md` and
+   `docs/redesign/CLAUDE-PROJECT-SOURCES.json` when their routing changes
+6. review `docs/redesign/MASTER-PLAN.md`
+7. determine whether the completed work changed durable project-wide context
+8. update the master plan when such a change occurred
+9. run the documentation-maintenance validator
+10. include all required documentation in the same substep commit
+11. run or explicitly defer the post-commit planning-pack synchronization
 
 ### When to update the master plan
 
