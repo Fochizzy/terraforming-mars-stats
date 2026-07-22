@@ -57,6 +57,11 @@ from source_snapshot import (  # noqa: E402  (local module; import needs the pat
 #: from the redesign checkout.
 DEPLOY_STATE_KEY = "deploy-state"
 GIT_SOURCED_KEYS = frozenset({DEPLOY_STATE_KEY})
+
+#: Documents whose resolved file is selected dynamically rather than named by
+#: the manifest. The active-handoff entry tracks the newest handoff, so its
+#: filename legitimately rotates; its root and Drive identity are still pinned.
+ROTATING_KEYS = frozenset({"latest-handoff"})
 REQUIRED_GIT_SOURCES = {
     DEPLOY_STATE_KEY: (
         r"C:\Users\izzyh\Documents\Terraforming Mars",
@@ -567,7 +572,9 @@ def gate_source_isolation(
     )
 
     if snapshot_path is not None:
-        assert_source_isolation(snapshot_path, snapshot, GIT_SOURCED_KEYS, REQUIRED_GIT_SOURCES)
+        assert_source_isolation(
+            snapshot_path, snapshot, GIT_SOURCED_KEYS, REQUIRED_GIT_SOURCES, ROTATING_KEYS
+        )
         logging.info("Source isolation verified against %s.", snapshot_path)
     return snapshot
 

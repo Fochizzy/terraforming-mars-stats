@@ -103,9 +103,20 @@ def load_snapshot(path: Path) -> dict[str, Any]:
 
 
 def compare_snapshots(
-    before: dict[str, Any], after: dict[str, Any], allowed_changed_keys: frozenset[str]
+    before: dict[str, Any],
+    after: dict[str, Any],
+    allowed_changed_keys: frozenset[str],
+    rotating_keys: frozenset[str] = frozenset(),
 ) -> list[str]:
-    """Return every difference that is not an explicitly allowed change."""
+    """Return every difference that is not an explicitly allowed change.
+
+    ``rotating_keys`` names documents whose resolved file is selected
+    dynamically rather than fixed by the manifest - the active-handoff entry
+    tracks the newest handoff, so its filename changes whenever one is added.
+    Only ``relative_path`` is exempt for those keys; their root, title, order,
+    source type, and Drive ID are still compared, so a rotating document cannot
+    silently move to another checkout.
+    """
 
     differences: list[str] = []
     before_documents = {document["key"]: document for document in before["documents"]}
@@ -126,6 +137,10 @@ def compare_snapshots(
                 # The one entry this change is authorised to re-source. Its Drive
                 # identity must still be stable.
                 continue
+            if key in rotating_keys and field == "relative_path":
+                # Dynamically selected document; rotating to a different file is
+                # its designed behaviour, not source drift.
+                continue
             differences.append(
                 f"{key}: {field} changed from {old.get(field)!r} to {new.get(field)!r}."
             )
@@ -137,6 +152,7 @@ def assert_source_isolation(
     current: dict[str, Any],
     allowed_changed_keys: frozenset[str],
     required_git_keys: dict[str, tuple[str, str]],
+    rotating_keys: frozenset[str] = frozenset(),
 ) -> None:
     """Fail closed unless the resolved sources match the recorded snapshot.
 
@@ -145,7 +161,9 @@ def assert_source_isolation(
     to a filesystem path or drift onto another branch.
     """
 
-    differences = compare_snapshots(load_snapshot(snapshot_path), current, allowed_changed_keys)
+    differences = compare_snapshots(
+        load_snapshot(snapshot_path), current, allowed_changed_keys, rotating_keys
+    )
     if differences:
         raise SourceIsolationError(
             "The resolved planning-pack sources differ from the recorded snapshot. "

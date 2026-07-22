@@ -127,6 +127,34 @@ class SnapshotComparisonTests(unittest.TestCase):
         self.assertTrue(any("master-rules" in item and "root changed" in item for item in differences))
         self.assertTrue(any("decisions" in item and "root changed" in item for item in differences))
 
+    def test_a_rotating_document_may_change_file_but_not_root(self) -> None:
+        # The active-handoff entry tracks the newest handoff, so its filename
+        # rotating is designed behaviour rather than source drift.
+        rotated = self.after()
+        rotated["documents"][1]["relative_path"] = "a-newer-handoff.md"
+        self.assertEqual(
+            compare_snapshots(
+                self.before, rotated, frozenset({"deploy-state"}), frozenset({"decisions"})
+            ),
+            [],
+        )
+        # Rotating does not license moving to another checkout.
+        moved = self.after()
+        moved["documents"][1]["relative_path"] = "a-newer-handoff.md"
+        moved["documents"][1]["root"] = rf"C:\X\{LIVE_ROOT_NAME}\docs"
+        differences = compare_snapshots(
+            self.before, moved, frozenset({"deploy-state"}), frozenset({"decisions"})
+        )
+        self.assertEqual(len(differences), 1)
+        self.assertIn("root changed", differences[0])
+
+    def test_a_non_rotating_document_may_not_change_file(self) -> None:
+        renamed = self.after()
+        renamed["documents"][0]["relative_path"] = "somewhere-else.md"
+        differences = compare_snapshots(self.before, renamed, frozenset({"deploy-state"}))
+        self.assertEqual(len(differences), 1)
+        self.assertIn("relative_path changed", differences[0])
+
     def test_reordering_fails_isolation(self) -> None:
         reordered = self.after()
         reordered["documents"][0]["order"] = 1
