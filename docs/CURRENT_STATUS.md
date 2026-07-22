@@ -60,7 +60,12 @@ must define and authorize the release continuation. The currently evidenced
 sequence is:
 
 1. correct and verify the remaining redesign call site that still uses an
-   authenticated user-session client after the production revoke;
+   authenticated user-session client after the production revoke. Read-only
+   investigation on 2026-07-22 established this is **not** a client swap: the
+   RPC gates on `auth.uid()`, so it requires an owner-authorized overload
+   migration taking an explicit requesting-user id, sequenced against gated
+   migration `20260720100000` (which as written would re-grant `authenticated`
+   and reopen the closed oracle);
 2. deploy and verify the compatible redesign reader under explicit authority;
 3. separately authorize and apply contraction migration `20260722012707` only
    after reader verification; and
@@ -70,7 +75,7 @@ sequence is:
 
 | ID | Requirement | Current status | Blocking |
 |---|---|---|---|
-| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | Follow-up identified; not fixed or deployed | Redesign deploy |
+| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | Investigated read-only 2026-07-22: the recorded "one-line admin-client swap" is **wrong**. The RPC gates on `auth.uid()`, which is NULL under service_role, so the admin client raises the same `42501`. A correct fix needs an owner-authorized overload migration. Not fixed, not deployed. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-INVESTIGATION-STOP.md` | Redesign deploy |
 | ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | Not authorized or deployed | Legacy contraction |
 | ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live | Step 4.3 closure |
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary | Step 4.3 closure |
