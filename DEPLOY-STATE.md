@@ -57,7 +57,7 @@ worker `178229f3` @ `4dec49a42` — is now the rollback target.
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
 | Worker version | `6ef56761-3c41-4c90-b83c-19db0060c048` — **confirmed live 2026-07-22 at 100% traffic** |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `fix/live-compare-data-remove-declared-style` — **NOT PUSHED. See "Source is local-only" below; this is the single largest risk carried by this release.** |
+| Source branch | `fix/live-compare-data-remove-declared-style` — **pushed. `origin` is at `e4a99963f`, identical to local, and every deployed code-bearing commit is on it.** Verified 2026-07-22 after `git fetch origin`; see "Source is local-only — RESOLVED" below. |
 | Source commit | `d12e33ad09e976ec5779a6f0d79b621846912964` — printed by the deploy-time stamp (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`), not inferred. **`wrangler` itself records `Source: Unknown (deployment)` for every version.** Unlike every prior row in this file, this linkage does **not** rest on the stamp and this ledger alone — it was independently corroborated by a served-asset probe; see "Commit linkage evidence" below. |
 | Deployed (UTC) | 2026-07-22 19:26:59.159Z (version created 19:26:57.040Z; `wrangler deployments list`, 100% traffic) |
 | Deploy lock | **Free.** Taken by this session at 2026-07-22 ~19:2xZ for `d12e33ad0`, deploy completed, released on writing this row. Take it by editing this row. |
@@ -118,15 +118,28 @@ is **byte-identical (`cmp`) to `.open-next/assets/_next/static/css/ad151738c23c8
 in the worktree that just built `d12e33ad0`. Production is serving this exact
 artifact.
 
-**Source is local-only — the open risk.** The operator confirmed the deploy but
-did not answer the push question, and silence was not treated as approval, so
-**`origin` is still at `83dd8ce14`** and the branch is 3 commits ahead. The two
-code-bearing commits in that gap — `7e401eccc` (the entire d+3 change) and the
-merge `d12e33ad0` — **exist only on this machine.** There is no
-`fix/import-candidate-input-bounds` branch on `origin` either. If this disk is
-lost, production is running code that cannot be recovered or rolled forward
-from. **Pushing this branch is the next action anyone touching this should
-take.**
+**Source is local-only — RESOLVED 2026-07-22.** The branch has since been
+pushed. Re-derived after `git fetch origin`:
+
+| Check | Result |
+|---|---|
+| `git rev-parse fix/live-compare-data-remove-declared-style` | `e4a99963fff86302d0f9ac76d4c54eaee331c805` |
+| `git rev-parse origin/fix/live-compare-data-remove-declared-style` | `e4a99963fff86302d0f9ac76d4c54eaee331c805` — identical |
+| `git rev-list <branch> --not --remotes` | empty — nothing unpushed |
+| `7e401eccc` (the d+3 change) on origin | yes |
+| `d12e33ad0` (the deployed merge) on origin | yes, with every ancestor |
+
+The disk-loss risk this paragraph described is closed: the deployed source is
+recoverable from `origin`. This was a documentation correction only — no push
+was performed to reach this state, and nothing was deployed, migrated, or
+queried in production to verify it. Only local Git refs were read.
+
+The original text is preserved here for history: it recorded that `origin` was
+at `83dd8ce14` with the branch 3 commits ahead, and that `7e401eccc` and
+`d12e33ad0` existed only on this machine. That was true when written and is no
+longer true. One detail from it still holds — there is still no
+`fix/import-candidate-input-bounds` branch on `origin`; its commits are reachable
+through this branch instead, so nothing is at risk.
 
 **Owner smoke tests — NOT YET RUN.** Both paths call the same bounded matcher
 wrapper and both must be exercised on the live site:
