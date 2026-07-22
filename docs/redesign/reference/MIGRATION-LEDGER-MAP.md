@@ -255,7 +255,9 @@ them.
 | `20260719234500_separate_event_confidence_from_review_state` | **contraction** | confidence/review split (repeat-safe) | per-mutation protocol; pre-apply gate includes verifying no deployed writer emits the retired `'reviewed'` confidence (expand/contract) |
 | `20260720100000_add_guest_identity_alias_source_control` | expansion | guest RPC alias-recording control | per-mutation protocol; required before the redesign's roster/manual guest paths ship |
 | `20260720110000_extend_canonical_board_placement_contract` | **contraction** | full placement contract | per-mutation protocol; expand/contract order. The pre-apply gate must confirm no `game_log_events` row carries owner ids with a non-`explicit_owner` `ownership_state`: the added CHECK is not `not valid`, so one such row fails the `ALTER TABLE` |
-| `20260720120000_coarsen_import_name_match_reasons` | **contraction** | coarsens disclosed reasons/scores but leaves the private-name confirmation oracle open | **unapplied and insufficient as a closure; do not apply it as one.** Build and independently review the approved server-only, source-bound replacement first; any production action then requires separate authorization and expand/contract |
+| `20260720120000_coarsen_import_name_match_reasons` | **contraction** | coarsens disclosed reasons/scores but leaves the private-name confirmation oracle open | **unapplied and insufficient as a closure; do not apply it as one.** The approved server-only, source-bound replacement (`20260722012658` + `20260722012707`, below) supersedes it and is now built and remediated after independent review; it is not part of that replacement proof. Any production action requires separate authorization and expand/contract |
+| `20260722012658_add_source_bound_import_identity_staging` | expansion | private short-lived parser evidence plus service-only source-bound stage/resolve/attach/discard gateways | apply only under a separately authorized production mutation; deploy and verify the compatible server reader before contraction |
+| `20260722012707_retire_free_form_import_name_matcher` | **contraction** | removes authenticated execution from the deployed arbitrary `text[]` matcher | apply only after the expansion and compatible reader are live and verified; separate explicit authorization required |
 
 ## Hazard classes
 
@@ -278,7 +280,7 @@ the SQL alone does not record. A file with no declaration fails as
   reconciliations, comments, no-op history placeholders.
 
 Where a file mixes hazards, the strongest present wins. Current declarations:
-**14 contraction, 29 expansion, 8 neutral** (51 files).
+**15 contraction, 30 expansion, 8 neutral** (53 files).
 
 ### Contractions
 
@@ -298,6 +300,7 @@ Where a file mixes hazards, the strongest present wins. Current declarations:
 | `20260720110000_extend_canonical_board_placement_contract` | mixed, so the strongest wins. It widens the action/ownership vocabularies and adds nullable columns, but `game_log_events_owner_requires_explicit_state` is a CHECK on the pre-existing `owner_player_id`/`owner_game_player_id`/`ownership_state` columns, and not `not valid`. The deployed contract accepts owner ids alongside `ownership_state = 'unknown'`; afterwards that write is rejected and the `ALTER TABLE` fails if any such row already exists. The rebuilt RPC adds rejections its predecessor lacked (owner consistency; the Mars/Moon board-layout format checks) |
 | `20260720120000_coarsen_import_name_match_reasons` | narrows the disclosed match classification a deployed caller can read |
 | `20260721173000_harden_claim_rpc_privacy` | rebuilds three deployed claim RPCs to disclose less and accept less: prefix/substring name matching becomes exact whole-name matching, a 3-character normalized-input floor and a 10-row cap are imposed, the private-first-name label fallback becomes a neutral placeholder, and `group_name` is returned null in the candidate list |
+| `20260722012707_retire_free_form_import_name_matcher` | revokes authenticated/public/anon execution on the pre-existing arbitrary-name matcher; intentionally separate from the expansion |
 
 `20260721173000` is the case where the *ledger* classification and the *hazard*
 classification pull in opposite directions, which is exactly why the two

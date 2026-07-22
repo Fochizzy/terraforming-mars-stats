@@ -212,6 +212,10 @@ export const GATED_UNAPPLIED: readonly string[] = [
   // Pairs with the live-site reader move off private personal-name columns.
   // Must be applied only after a compatible reader is deployed and verified.
   '20260720120000',
+  // Owner-approved source-bound replacement, deliberately split into an
+  // expansion and a later contraction. Neither file is production-applied.
+  '20260722012658',
+  '20260722012707',
 ];
 
 /**
@@ -460,6 +464,11 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // Narrows the disclosed match classification a deployed caller can read
   // (fine-grained match_reason/match_score → coarse exact/partial).
   '20260720120000': 'contraction', // coarsen_import_name_match_reasons
+  // Private short-lived staging plus new service-only gateways. It does not
+  // remove the deployed matcher or any existing caller contract.
+  '20260722012658': 'expansion', // add_source_bound_import_identity_staging
+  // Revokes authenticated execution on the deployed free-form matcher.
+  '20260722012707': 'contraction', // retire_free_form_import_name_matcher
   // B-05. Revokes only the PUBLIC pseudo-role grant (and anon on
   // claim_player_profiles_by_name) while granting explicit EXECUTE to
   // `authenticated` on all three claim RPCs. The revoked PUBLIC grant is the

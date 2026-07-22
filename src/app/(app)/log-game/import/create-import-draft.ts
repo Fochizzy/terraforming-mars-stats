@@ -42,7 +42,12 @@ import { buildTerraformingMarsLogEvents } from '@/lib/imports/build-terraforming
 import type { getGroupSettings } from '@/lib/db/group-settings-repo';
 import type { requireCurrentGroupContext } from '@/lib/db/group-context-repo';
 import type { listImportGameReferenceCatalog } from '@/lib/db/reference-repo';
-import type { resolveImportPlayerIdentities } from '@/lib/db/import-player-identity-repo';
+import type {
+  attachImportIdentityStaging,
+  discardImportIdentityStaging,
+  resolveImportPlayerIdentities,
+  stageImportPlayerIdentityEvidence,
+} from '@/lib/db/import-player-identity-repo';
 import type { saveDraftGame } from '@/lib/db/game-draft-repo';
 import type {
   DuplicateGameLogImportMatch,
@@ -55,7 +60,9 @@ import type {
 import type { correctAndSaveOcrText } from '@/lib/db/ocr-correction-repo';
 
 export type CreateImportDraftDeps = {
+  attachImportIdentityStaging: typeof attachImportIdentityStaging;
   correctAndSaveOcrText: typeof correctAndSaveOcrText;
+  discardImportIdentityStaging: typeof discardImportIdentityStaging;
   findDuplicateGameLogImportSources: typeof findDuplicateGameLogImportSources;
   getGroupSettings: typeof getGroupSettings;
   listImportGameReferenceCatalog: typeof listImportGameReferenceCatalog;
@@ -67,6 +74,7 @@ export type CreateImportDraftDeps = {
   saveGameExpansionFacts: typeof saveGameExpansionFacts;
   saveGameLogImport: typeof saveGameLogImport;
   saveParsedGameLogEvents: typeof saveParsedGameLogEvents;
+  stageImportPlayerIdentityEvidence: typeof stageImportPlayerIdentityEvidence;
 };
 
 export type CreateImportDraftOcrOutcome = {
@@ -356,12 +364,34 @@ export async function createImportDraft(
     throw new Error('Resolve one identity for every imported player seat.');
   }
 
-  const playerResolutions = await deps.resolveImportPlayerIdentities({
+  const authoritativeSourcePlayerTexts = logParse.players.map(
+    (player) => player.originalValue,
+  );
+  const identityStagingId = await deps.stageImportPlayerIdentityEvidence({
     groupId: activeContext.groupId,
-    identities: values.playerIdentities,
     parserIdentity: TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
+    requestingUserId: activeContext.userId,
     sourceFormat: TERRAFORMING_MARS_LOG_SOURCE_FORMAT,
+    sourcePlayerTexts: authoritativeSourcePlayerTexts,
   });
+  let playerResolutions;
+  try {
+    playerResolutions = await deps.resolveImportPlayerIdentities({
+      authoritativeSourcePlayerTexts,
+      groupId: activeContext.groupId,
+      identities: values.playerIdentities,
+      parserIdentity: TERRAFORMING_MARS_LOG_PARSER_IDENTITY,
+      requestingUserId: activeContext.userId,
+      sourceFormat: TERRAFORMING_MARS_LOG_SOURCE_FORMAT,
+      stagingId: identityStagingId,
+    });
+  } catch (error) {
+    await deps.discardImportIdentityStaging({
+      requestingUserId: activeContext.userId,
+      stagingId: identityStagingId,
+    });
+    throw error;
+  }
   // A result-PDF global-parameter table that renders a Venus contribution
   // column is trusted Venus option evidence. The PDF never carries Colonies
   // option evidence, so colonies stays null; and it does not print the final
@@ -574,6 +604,17 @@ export async function createImportDraft(
     screenshotFile: values.endgameScreenshot,
     userId: activeContext.userId,
   });
+  const identityEvidenceAttached = await deps.attachImportIdentityStaging({
+    gameId: draft.gameId,
+    gameLogImportId: gameLogImport.id,
+    requestingUserId: activeContext.userId,
+    stagingId: identityStagingId,
+  });
+  if (!identityEvidenceAttached) {
+    throw new Error(
+      'The imported player evidence could not be attached to the saved draft.',
+    );
+  }
   await deps.saveParsedGameLogEvents({
     events: parsedLogEvents.events,
     gameLogImportId: gameLogImport.id,

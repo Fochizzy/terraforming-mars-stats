@@ -46,6 +46,8 @@ SPLIT_MIGRATION="$MIGRATIONS/20260719234500_separate_event_confidence_from_revie
 GUEST_ALIAS_MIGRATION="$MIGRATIONS/20260720100000_add_guest_identity_alias_source_control.sql"
 PLACEMENT_MIGRATION="$MIGRATIONS/20260720110000_extend_canonical_board_placement_contract.sql"
 COARSEN_MIGRATION="$MIGRATIONS/20260720120000_coarsen_import_name_match_reasons.sql"
+SOURCE_BOUND_EXPANSION="$MIGRATIONS/20260722012658_add_source_bound_import_identity_staging.sql"
+SOURCE_BOUND_CONTRACTION="$MIGRATIONS/20260722012707_retire_free_form_import_name_matcher.sql"
 
 # Modelled pre-image of production-only ledger entry 20260720021300, which has
 # no repo file. Installing it is what makes COARSEN_MIGRATION a REPLACE rather
@@ -86,6 +88,8 @@ for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$GUEST_ALIAS_MIGRATION" ] && continue
   [ "$f" = "$PLACEMENT_MIGRATION" ] && continue
   [ "$f" = "$COARSEN_MIGRATION" ] && continue
+  [ "$f" = "$SOURCE_BOUND_EXPANSION" ] && continue
+  [ "$f" = "$SOURCE_BOUND_CONTRACTION" ] && continue
   if [ "$f" = "$CLAIM_GRANT_MIGRATION" ]; then
     echo "   model production-only ledger entry 20260712115539 (no repo file)"
     PSQL -q -f "$CLAIM_PREIMAGE"
@@ -148,14 +152,49 @@ PSQL -q -f "$PLACEMENT_MIGRATION"
 echo "== repeat-safety: apply the placement-contract migration a second time =="
 PSQL -q -f "$PLACEMENT_MIGRATION"
 
-echo "== apply gated match-reason contraction (REPLACE of 20260720021300) =="
-PSQL -q -f "$COARSEN_MIGRATION"
+# The superseded 20260720120000 coarsening file is deliberately NOT applied.
+echo "== apply gated source-bound expansion =="
+PSQL -q -f "$SOURCE_BOUND_EXPANSION"
 
-echo "== repeat-safety: apply the contraction a second time =="
-PSQL -q -f "$COARSEN_MIGRATION"
+# The BEFORE half reinstalls the matcher exactly as committed at e27fae282 and
+# measures the regression against production-shaped fixtures. The repeat-safety
+# apply that follows restores the shipped definition, so the AFTER half runs on
+# the same database and the same fixtures with only the matcher changed.
+echo "== linked-player matching regression: BEFORE (pinned pre-image of e27fae282) =="
+PSQL -f "$HERE/source-bound-import-identity-linked-alias-before.sql"
 
-echo "== coarsened match-oracle disclosure (post-contraction) =="
-PSQL -q -f "$HERE/match-oracle-post-contraction.sql"
+echo "== repeat-safety: apply source-bound expansion a second time (restores the shipped matcher) =="
+PSQL -q -f "$SOURCE_BOUND_EXPANSION"
+
+echo "== linked-player matching regression: AFTER =="
+PSQL -f "$HERE/source-bound-import-identity-linked-alias-after.sql"
+
+# Widening what the matcher reads is the change that could reopen disclosure, so
+# the uniformity properties are re-measured rather than assumed. Notice and
+# warning output is part of that property and cannot be asserted from inside
+# SQL, so the whole session's output is captured and checked here.
+echo "== anti-oracle uniformity re-proof =="
+UNIFORMITY_LOG="$PGDATA-uniformity.log"
+if ! PSQL -f "$HERE/source-bound-import-identity-uniformity.sql" >"$UNIFORMITY_LOG" 2>&1; then
+  cat "$UNIFORMITY_LOG"
+  echo "FAIL uniformity: the re-proof did not complete"
+  exit 1
+fi
+cat "$UNIFORMITY_LOG"
+if grep -Eq '^(NOTICE|WARNING|INFO)' "$UNIFORMITY_LOG"; then
+  echo "FAIL uniformity: the resolver emitted notice/warning output"
+  exit 1
+fi
+
+echo "== source-bound AFTER proof (legacy matcher still callable) =="
+PSQL -q -f "$HERE/source-bound-import-identity.sql"
+
+echo "== apply separate gated legacy-matcher contraction =="
+PSQL -q -f "$SOURCE_BOUND_CONTRACTION"
+
+echo "== repeat-safety: apply source-bound contraction a second time =="
+PSQL -q -f "$SOURCE_BOUND_CONTRACTION"
+PSQL -q -f "$HERE/source-bound-import-identity-contraction.sql"
 
 echo "== behavioural assertions =="
 PSQL -q -f "$HERE/assertions.sql"

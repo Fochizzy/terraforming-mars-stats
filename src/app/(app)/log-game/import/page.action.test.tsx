@@ -16,7 +16,10 @@ const GAME_ID = '33333333-3333-4333-8333-333333333333';
 const IMPORT_ID = '44444444-4444-4444-8444-444444444444';
 
 const mocks = vi.hoisted(() => ({
+  attachImportIdentityStaging: vi.fn(),
   correctAndSaveOcrText: vi.fn(),
+  discardImportIdentityStaging: vi.fn(),
+  stageImportPlayerIdentityEvidence: vi.fn(),
   findDuplicateGameLogImportSources: vi.fn(),
   getCurrentGroupContext: vi.fn(),
   getGroupSettings: vi.fn(),
@@ -44,8 +47,11 @@ vi.mock('@/lib/db/reference-repo', () => ({
   listImportGameReferenceCatalog: mocks.listImportGameReferenceCatalog,
 }));
 vi.mock('@/lib/db/import-player-identity-repo', () => ({
+  attachImportIdentityStaging: mocks.attachImportIdentityStaging,
+  discardImportIdentityStaging: mocks.discardImportIdentityStaging,
   listImportPlayerIdentityCandidates: mocks.listImportPlayerIdentityCandidates,
   resolveImportPlayerIdentities: mocks.resolveImportPlayerIdentities,
+  stageImportPlayerIdentityEvidence: mocks.stageImportPlayerIdentityEvidence,
 }));
 vi.mock('@/lib/db/game-draft-repo', () => ({
   saveDraftGame: mocks.saveDraftGame,
@@ -174,6 +180,8 @@ describe('import server action canonical persistence', () => {
     });
     mocks.listImportGameReferenceCatalog.mockResolvedValue(referenceCatalog);
     mocks.listImportPlayerIdentityCandidates.mockResolvedValue([]);
+    mocks.stageImportPlayerIdentityEvidence.mockResolvedValue('staging-1');
+    mocks.attachImportIdentityStaging.mockResolvedValue(true);
     mocks.resolveImportPlayerIdentities.mockResolvedValue([
       {
         decision: 'linked',
@@ -221,6 +229,32 @@ describe('import server action canonical persistence', () => {
     });
 
     expect(result).toMatchObject({ gameId: GAME_ID, status: 'success' });
+    expect(mocks.stageImportPlayerIdentityEvidence).toHaveBeenCalledWith({
+      groupId: GROUP_ID,
+      parserIdentity: 'terraforming-mars-exported-log-v1',
+      requestingUserId: 'user-1',
+      sourceFormat: 'terraforming_mars_exported_log',
+      sourcePlayerTexts: ['FridayMars'],
+    });
+    expect(mocks.resolveImportPlayerIdentities).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authoritativeSourcePlayerTexts: ['FridayMars'],
+        requestingUserId: 'user-1',
+        stagingId: 'staging-1',
+      }),
+    );
+    expect(mocks.attachImportIdentityStaging).toHaveBeenCalledWith({
+      gameId: GAME_ID,
+      gameLogImportId: IMPORT_ID,
+      requestingUserId: 'user-1',
+      stagingId: 'staging-1',
+    });
+    expect(
+      mocks.stageImportPlayerIdentityEvidence.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocks.resolveImportPlayerIdentities.mock.invocationCallOrder[0]);
+    expect(mocks.resolveImportPlayerIdentities.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.attachImportIdentityStaging.mock.invocationCallOrder[0],
+    );
 
     // --- Source identity and parser-run identity (Workstream 5) ---
     const importPayload = mocks.saveGameLogImport.mock.calls[0][0];

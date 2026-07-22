@@ -243,9 +243,11 @@ async function runActionForFixture(input: {
   };
 
   const result = await createImportDraft(values, {
+    attachImportIdentityStaging: async () => true,
     correctAndSaveOcrText: async () => {
       throw new Error('OCR must not run for these fixtures');
     },
+    discardImportIdentityStaging: async () => undefined,
     findDuplicateGameLogImportSources: async () => ({
       deployedRpcDetected: false,
       matches: [],
@@ -266,6 +268,7 @@ async function runActionForFixture(input: {
       role: 'editor',
       userId: USER_ID,
     }),
+    stageImportPlayerIdentityEvidence: async () => 'recorded-staging',
     resolveImportPlayerIdentities: async () => playerResolutions,
     revalidatePath: () => undefined,
     saveDraftGame: async () => ({ gameId: 'recorded-draft' }),

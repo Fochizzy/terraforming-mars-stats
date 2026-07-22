@@ -3,26 +3,186 @@
 ## Current substep
 
 Phase 4, Step 4.3 - Import Validation, Evidence Review, and Claimable Guest
-Identity (**BLOCKED - the approved import-identity remediation has not been
-built or independently reviewed. The WS1 Layer A ledger gate, ledger #106
-carry, and replay-safety option (e) reconciliation are integrated. WS2's
-reader half is deployed; its remaining issue is the confirmed live
-private-name enumeration oracle and the approved replacement. Step 4.4 is
-NOT STARTED.**)
+Identity (**BLOCKED - the approved source-bound import-identity replacement is
+BUILT locally, REMEDIATED after independent review, and STOPPED at the release
+boundary (2026-07-21); nothing from it is applied, deployed, or pushed. The
+WS1 Layer A ledger gate, ledger #106 carry, and replay-safety option (e)
+reconciliation are integrated. WS2's reader half is deployed; its remaining
+issue is the confirmed live private-name enumeration oracle, which only the
+separately authorized gated replacement pair closes. Step 4.4 is NOT
+STARTED.**)
+
+### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
+
+Branch `fix/import-identity-source-bound-matching`, merged into
+`redesign/tm-stats-dashboard-rebuild`, contains the approved private,
+service-only pre-resolution staging design; structured exact source-bound
+matching; lock-then-judge save-time revalidation; a preflight-backed
+normalized registered-username unique index; separate gated expansion and
+contraction migrations; and executable BEFORE/AFTER proofs. Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-SOURCE-BOUND-MATCHING-IMPLEMENTED-LOCAL.md`.
+
+The required COUNT-only production preflight returned
+`normalized_collision_group_count = 0`. The other and only other production
+read was catalog/definition/ACL/ledger introspection with no personal rows.
+The deployed arbitrary-name matcher oracle was confirmed unchanged. The live
+read boundary is closed.
+
+#### Review blocker resolved (2026-07-21)
+
+The independent review passed the security objective and blocked on a
+legitimate-matching regression. Remediation handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-MATCHING-REGRESSION-REMEDIATION.md`.
+
+The unapplied expansion `20260722012658` was edited **in place** (no corrective
+migration stacked on an unapplied file). `private.import_identity_player_matches`
+no longer gates identity evidence on `p.linked_user_id is null`, treats
+`identity_mode IS NULL` alias rows as mode-agnostic, compares stored aliases in
+both normalized forms, and additionally reads `public.players.full_name`,
+`public.players.username`, and `private.player_legacy_identities`.
+
+One further COUNT-only production introspection pass (counts, booleans, and
+catalog facts only - no name, ID, or row content) confirmed the shape and
+corrected two assumptions: `private.player_legacy_identities` is **empty**, and
+one of the two unmatchable unlinked players is reachable only through
+`public.players.username`. It also surfaced a second defect the review had not
+named - production aliases are stored in the *space* normalization, so
+username-mode alias matching would have stayed dead on 44 of 110 rows even after
+the gate was removed.
+
+Measured BEFORE/AFTER in the disposable cluster: a linked-player alias seat moved
+from `unresolved` (and `unavailable` on explicit selection, with a **duplicate
+player minted** as the only remaining path) to resolving against the correct
+existing player with the group population unchanged. All anti-oracle uniformity
+properties were re-measured after the widening and **all still hold**; staging
+table access, gateway grants, and private-column privileges are unchanged.
+
+The line-ending defect in `source-bound-import-identity-migrations.test.ts` is
+fixed by normalizing newlines at read time, proved against genuinely
+CRLF-converted files in both directions.
+
+Four items are recorded and deliberately not fixed: failed resolution attempts
+leave no durable audit evidence; staging expiry is opportunistic with no
+scheduler; the expansion is not purely additive (a UNIQUE index on live
+`public.user_profiles` and an AFTER UPDATE trigger on live `public.games`); and
+`match-oracle-post-contraction.sql` is now unreferenced by `run.sh`.
+
+Both `20260722012658_add_source_bound_import_identity_staging.sql` (expansion)
+and `20260722012707_retire_free_form_import_name_matcher.sql` (contraction)
+are gated and unapplied. `20260720120000_coarsen_import_name_match_reasons.sql`
+was not edited or applied. No production write, revoke, migration application,
+deploy, push, closure audit, registration-claiming work, or Step 4.4 occurred.
+The next action requires separate owner authorization for production
+preflight/application and compatible reader deployment, followed by separate
+contraction authorization only after verification.
+
+### Historical current-substep snapshot (superseded for local implementation status)
+
+**Additional mandatory STOP (2026-07-21): source-bound import identity matching
+cannot begin until the persistence-order and normalized-username prerequisites below are resolved.**
+That STOP was subsequently resolved by the implementation recorded above and is
+retained here as historical record.
+
+Phase 4, Step 4.3 — Import Validation, Evidence Review, and Claimable Guest
+Identity (**BLOCKED-pending-reaudit — the second bounded remediation pass
+(2026-07-20) resolved every Blocker and High finding of the independent
+closure audit: private normalized names are out of client payloads and guest
+public labels are neutral on every creation path (F-01/B4/H5), the canonical
+board-placement contract is complete (F-02), the confidence/review split
+migration is repeat-safe and review state persists end to end (F-03/H2),
+true original bytes are hashed and duplicate sources are detected in the
+import action (H6/H3), client and server share one map gate over identical
+exception evidence (F-05/H1), format-faithful fixtures reach real database
+assertions (F-09/H4), the overwritten historical dry run is restored beside
+a separate production artifact and the reconciliation metrics are honest
+(F-08/§16/§17), and the ledger/documentation drift is corrected and mapped
+(B3/F-10/§18). Step 4.3 remains blocked pending a fresh independent
+read-only closure audit. Step 4.4 has not begun.**)
 
 ## Current owner
 
-Local documentation-only state reconciliation on
-redesign/tm-stats-dashboard-rebuild. Preflight starting HEAD was
-5597817fc6790fa4831ff968629ff49c81f16705. Concurrent commit
-572c88c11779146dcef5c86bc9cf71298e47f91b landed before this task commit
-and is its immediate pre-commit parent. No production access is part of this
-reconciliation.
+Source-bound import identity implementation (Codex) on
+`fix/import-identity-source-bound-matching`, merged into
+`redesign/tm-stats-dashboard-rebuild` and **STOPPED at the release boundary**.
+No production write, revoke, migration application, deploy, or push occurred.
+
+Immediately prior owner: local documentation-only state reconciliation on
+redesign/tm-stats-dashboard-rebuild. Its preflight starting HEAD was
+5597817fc6790fa4831ff968629ff49c81f16705, and concurrent commit
+572c88c11779146dcef5c86bc9cf71298e47f91b landed before that task commit
+and is its immediate pre-commit parent. No production access was part of that
+reconciliation; its findings are the pre-remediation state reconciliation
+below.
+
+### Historical STOP before implementation (2026-07-21)
+
+Codex - Phase 4, Step 4.3 source-bound import identity matching
+(**STOPPED before implementation** on the assignment's mandatory pre-persistence
+and normalized-uniqueness gates). Both gates were subsequently resolved by the
+implementation recorded above; this record is retained as history.
+
+Branch `fix/import-identity-source-bound-matching`, created from re-derived
+redesign HEAD `5597817fc6790fa4831ff968629ff49c81f16705` in isolated worktree
+`C:\Users\izzyh\Documents\Terraforming Mars Redesign\.npm-cache\tm-import-identity-worktree`.
+Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-SOURCE-BOUND-MATCHING-STOP.md`.
+
+No application, RPC, migration, or test-harness implementation was started.
+Two independent assignment-defined STOP conditions were re-derived:
+
+- **Import evidence is not persisted before identity matching.** The current
+  action calls `resolveImportPlayerIdentities` first; that operation may reuse
+  or create a guest through `resolve_import_guest_identity`. Only afterwards
+  does the action save the draft, build immutable source evidence, and insert
+  `game_log_imports.raw_log_text`. The required replacement matcher therefore
+  cannot derive its probe from a persisted import/evidence reference without a
+  newly authorized persistence-order or staging change. Existing
+  `game_log_imports` cannot simply be inserted first because `game_id` is a
+  non-null foreign key and the current draft save depends on resolved players.
+- **Registered normalized username uniqueness is not database-enforced.** A
+  fresh catalog-only production read confirmed `user_profiles.username` is
+  plain `text` with `UNIQUE (username)`, no normalization trigger, and no
+  normalized expression index. The live normalizer lowercases and collapses
+  punctuation, so distinct raw usernames may normalize identically. Guest
+  usernames are correctly protected per group by the valid unique index on
+  `(group_id, normalized_guest_username)`. Adding the missing registered-name
+  index could conflict with existing normalized collisions; the task forbids
+  the row-data read needed to exclude that possibility, triggering its second
+  explicit STOP.
+
+The deployed `public.match_import_player_names(uuid, text[])` definition and
+ACL were also re-derived catalog-only: it remains a `SECURITY DEFINER` function
+with `search_path = ''`, accepts an arbitrary caller-controlled array, compares
+exact and prefix forms against private identity values, emits fine-grained
+reason/score fields, and grants EXECUTE to `authenticated` and `service_role`
+(not `anon`). This confirms the live oracle premise; it does not authorize a
+write.
+
+Owner decision required before resuming: authorize either (1) a private/service-
+only pre-resolution evidence staging record, or (2) a two-stage draft/import
+persistence reordering with explicit partial-run recovery. Also authorize a
+privacy-safe production collision preflight or another evidence source before
+adding a globally unique normalized registered-username index. Requiring
+explicit existing-player selection without private automatic matching is a
+possible reduced-scope alternative, but it does not implement the approved
+source-bound automatic matcher.
+
+No production write, revoke, apply, deploy, or push occurred. Production access
+was two catalog-only SQL reads; no table row or personal data was read.
+
+### Prior owner / third remediation context
+
+Claude Opus 4.8 — Phase 4, Step 4.3 closure-blocker remediation (third pass,
+**PARTIAL**; WS1 **Layer A only** delivered 2026-07-21 on
+`fix/step-43-ws1-layer-a-ledger-gate`, then the ledger #106 carry on
+`fix/carry-106-to-redesign`)
 
 ### Pre-remediation state reconciliation (2026-07-21)
 
-This section is the current authority for Step 4.3 status. It supersedes stale
-current-state claims below while retaining their historical record.
+This section is the current authority for Step 4.3 production, ledger, and
+design facts. It supersedes stale current-state claims below while retaining
+their historical record. The local implementation status recorded above it is
+newer and governs whether the approved replacement has been built.
 
 - **Local Git/tree evidence.** WS1 Layer A is integrated by implementation
   commit 850953cc8 (with hazard correction 2c583a7a3) and merge
@@ -65,6 +225,10 @@ Remaining Step 4.3 blockers, in required order:
 
 1. Build the approved import-identity fix; obtain an independent review; then,
    and only with separate authorization, apply it under expand/contract.
+   **Status:** the fix is built locally and remediated after independent
+   review, and is stopped at the release boundary. The separate authorization,
+   the compatible reader deploy, and the expand/contract application of
+   `20260722012658` then `20260722012707` are still outstanding.
 2. Run the tile-attribution backfill **before** guest re-neutralization. Two of
    the 114 rows resolve only through the unlinked guest's display_name.
 3. Perform guest re-neutralization.
@@ -982,12 +1146,15 @@ at `c17e8b1ba`; this entry is retained as historical sequencing context.
 
 ## Next action
 
-**Step 4.3 remains BLOCKED.** The approved next action is to build the
-source-bound, server-only import-identity fix recorded in
-docs/redesign/DECISIONS.md, then obtain independent review. Any production
-change requires a later, separate authorization under expand/contract.
+**Step 4.3 remains BLOCKED.** The source-bound, server-only import-identity
+fix recorded in docs/redesign/DECISIONS.md is built locally and remediated
+after independent review, and is stopped at the release boundary. The approved
+next action is therefore the owner's separate authorization for the production
+preflight/application of `20260722012658` and the compatible reader deploy,
+with `20260722012707` authorized separately only after verification. Any
+production change requires that separate authorization under expand/contract.
 
-After that review and authorization gate, the required sequence is:
+After that authorization gate, the required sequence is:
 tile-attribution backfill before guest re-neutralization; guest
 re-neutralization; migrations 20260719234500, 20260720100000, and
 20260720110000 under the per-mutation protocol; then the fresh independent
@@ -1101,6 +1268,12 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-MATCHING-REGRESSION-REMEDIATION.md
+  (review blocker remediated in place; still stopped at the release boundary)
+- docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-SOURCE-BOUND-MATCHING-IMPLEMENTED-LOCAL.md
+  (source-bound replacement built locally; both migrations gated and unapplied)
+- docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-SOURCE-BOUND-MATCHING-STOP.md
+  (historical STOP before implementation; both gates since resolved)
 - docs/agent-handoffs/PHASE-04-STEP-03-PRE-REMEDIATION-STATE-2026-07-21.md
   (documentation-only state reconciliation before the approved remediation)
 - docs/agent-handoffs/PHASE-04-STEP-03-CARRY-106-CLAIM-RPC-PRIVACY-TO-REDESIGN.md

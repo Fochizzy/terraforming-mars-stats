@@ -16,8 +16,11 @@ import {
 } from '@/lib/db/group-context-repo';
 import { getGroupSettings } from '@/lib/db/group-settings-repo';
 import {
+  attachImportIdentityStaging,
+  discardImportIdentityStaging,
   listImportPlayerIdentityCandidates,
   resolveImportPlayerIdentities,
+  stageImportPlayerIdentityEvidence,
 } from '@/lib/db/import-player-identity-repo';
 import type { CreateImportDraftInput } from '@/lib/imports/build-import-draft';
 import { listImportGameReferenceCatalog } from '@/lib/db/reference-repo';
@@ -65,7 +68,9 @@ export default async function LogGameImportPage() {
     'use server';
 
     return createImportDraft(values, {
+      attachImportIdentityStaging,
       correctAndSaveOcrText,
+      discardImportIdentityStaging,
       findDuplicateGameLogImportSources,
       getGroupSettings,
       listImportGameReferenceCatalog,
@@ -77,6 +82,7 @@ export default async function LogGameImportPage() {
       saveGameExpansionFacts,
       saveGameLogImport,
       saveParsedGameLogEvents,
+      stageImportPlayerIdentityEvidence,
     });
   }
 
