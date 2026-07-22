@@ -125,6 +125,40 @@ updater refuses, regressing the default launcher and scheduled task back to
 fail-closed. It is retained, unmerged and undeleted; deleting it needs separate
 owner authorization.
 
+### Planning-pack post-commit synchronization is hook-enforced (2026-07-22)
+
+Local tooling and governance only. No phase, blocker, release, migration, or
+production fact changed. This is **not** Phase 4 work and does not change Step
+4.3 or Step 4.4 status.
+
+CLAUDE.md workflow step 8 (run the planning-pack updater after a completing
+commit) previously depended on an agent remembering to run it. A deterministic
+`PostToolUse`/`Bash` hook gated on `Bash(git commit *)` now runs the same
+existing, already-authorized updater automatically after a commit that changes a
+planning-pack source. The hook grants no new authority; it only triggers the
+updater the documented gate already requires.
+
+The hook (`.claude/hooks/sync-planning-pack.ps1`, registered in the committed
+`.claude/settings.json`) is inert outside the redesign repository, is a no-op
+when HEAD did not advance (failed commit, no-op turn, repeat fire), and runs the
+updater only when a pack source changed between the last recorded sync and HEAD.
+The watched source set is derived at runtime from
+`docs/redesign/CLAUDE-PROJECT-SOURCES.json` (every `documents[].path`, the
+configured phase-file range, and `docs/agent-handoffs/`) with no hard-coded
+document filenames, consistent with the recorded decision that the pack document
+count is derived rather than duplicated. A missing updater reports
+synchronization pending and never claims Drive is current; the hook always exits
+0 and adds no lock of its own. The per-worktree sync marker
+`.claude/.pack-last-sync` is git-ignored.
+
+`docs/CURRENT_STATUS.md` and `docs/AUTHORITATIVE_DOCUMENTS.md` were intentionally
+left unchanged: this change alters no phase, blocker, release, migration, or
+next-action state, and adds/moves/supersedes/archives no authority in the routing
+index. `docs/redesign/CLAUDE-PROJECT-SOURCES.json` is unchanged (no catalog entry
+added or retired).
+
+Handoff: `docs/agent-handoffs/PLANNING-PACK-POST-COMMIT-SYNC-HOOK.md`.
+
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
 
 Branch `fix/import-identity-source-bound-matching`, merged into
@@ -1426,6 +1460,10 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PLANNING-PACK-POST-COMMIT-SYNC-HOOK.md
+  (post-commit planning-pack synchronization is now enforced by a repository
+  PostToolUse/Bash hook; catalog-derived watch set; tooling and governance only,
+  no phase, blocker, release, migration, or production change)
 - docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-INVESTIGATION-STOP.md
   (ID-READER-CLIENT investigated read-only; the recorded one-line admin-client
   swap is wrong because the RPC gates on `auth.uid()`; a correct fix needs an

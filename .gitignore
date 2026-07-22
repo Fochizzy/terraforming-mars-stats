@@ -53,3 +53,6 @@ test-results/
 # python bytecode from the planning-pack scripts
 __pycache__/
 *.pyc
+
+# post-commit planning-pack sync marker (per-worktree, not tracked)
+.claude/.pack-last-sync

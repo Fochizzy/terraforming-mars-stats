@@ -1403,3 +1403,48 @@ Approved by the user's explicit context-maintenance request on 2026-07-22.
   linked Drive source, so no automatic-ingestion timing is claimed.
 
 The full contract is `docs/redesign/CLAUDE-PROJECT-CONTEXT.md`.
+
+## Project-wide - post-commit planning-pack synchronization is hook-enforced
+
+Approved 2026-07-22 as local tooling and governance. Not Phase 4 work; changes
+no phase, blocker, release, migration, or production state.
+
+- **The gate is now enforced, not just written.** CLAUDE.md workflow step 8
+  ("after the commit, run the planning-pack updater") previously relied on an
+  agent remembering to run it. A deterministic repository hook
+  (`.claude/hooks/sync-planning-pack.ps1`, registered in the committed
+  `.claude/settings.json` on `PostToolUse` / matcher `Bash` / handler `if`
+  `Bash(git commit *)`) now runs the same existing, already-authorized updater
+  automatically after a commit that changes a planning-pack source. The hook
+  triggers the documented updater; it grants no new phase, production, migration,
+  deploy, push, or next-step authority.
+- **The watch set is derived from the catalog, never duplicated.** The hook
+  decides pack-relevance at runtime from
+  `docs/redesign/CLAUDE-PROJECT-SOURCES.json`: every `documents[].path`, the
+  configured phase-file range (`phaseDocuments.directory` with two-digit
+  prefixes inside `[first,last]`), and any file under `docs/agent-handoffs/`. No
+  planning-pack document filename is hard-coded in the hook, consistent with the
+  decision above that the pack document count is derived rather than hard-coded.
+  An unreadable or unparseable catalog is treated as a pack-relevant change
+  rather than silently skipped.
+- **Safe, idempotent triggering.** The hook is inert outside the redesign
+  repository; is a no-op when HEAD did not advance (failed commit, no-op turn,
+  repeat fire); records the last-synced commit in the git-ignored per-worktree
+  marker `.claude/.pack-last-sync`; advances that marker only on a no-op or a
+  successful updater run; and leaves it unchanged when the updater fails or is
+  unavailable. A missing updater reports synchronization pending and never claims
+  Drive is current. The hook always exits 0 and adds no lock of its own, because
+  the existing updater already handles concurrent-run locking.
+- **Project scope on purpose.** The registration lives in the committed
+  `.claude/settings.json` (not `settings.local.json`) so the hook is present in
+  the isolated worktrees where this project's implementation work happens. The
+  updater reference stays `%USERPROFILE%`-relative so nothing machine-specific is
+  committed.
+- **Trigger and scope changes need authorization.** Changing the trigger from
+  commit-based to edit-based, adding a scheduled task or service, or adding or
+  retiring a `CLAUDE-PROJECT-SOURCES.json` entry all require new owner
+  authorization and are out of scope here.
+
+The written CLAUDE.md step 8 remains authoritative and correct if hooks are
+disabled; the hook is an enforcement aid, not a replacement for the instruction.
+Handoff: `docs/agent-handoffs/PLANNING-PACK-POST-COMMIT-SYNC-HOOK.md`.
