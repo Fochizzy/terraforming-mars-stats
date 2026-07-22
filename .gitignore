@@ -44,3 +44,8 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Local session noise (added 2026-07-21)
+.codex/
+test-results/
+*.zip
