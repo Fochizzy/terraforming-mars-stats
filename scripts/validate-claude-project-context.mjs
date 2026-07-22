@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
-const liveRoot = path.resolve(repositoryRoot, "..", "Terraforming Mars");
 const manifestPath = path.join(
   repositoryRoot,
   "docs",
@@ -123,20 +123,229 @@ function gitLines(args) {
   }
 }
 
+// Mirrors scripts/planning-pack/git_source.py. Both sides must agree exactly or
+// a generated artifact cannot be verified against the ref it claims.
+const GIT_SOURCE_TYPE = "git";
+const PROVENANCE_MARKER =
+  "> **Generated source provenance - updater metadata, not a production ledger entry.**";
+const BODY_SEPARATOR = "---";
+const PROVENANCE_FIELDS = [
+  "source_type",
+  "repository",
+  "ref",
+  "source_tip_commit",
+  "path",
+  "path_commit",
+  "path_commit_time",
+  "body_sha256",
+  "generated_at",
+];
+const ALLOWED_GIT_ENTRY_KEYS = new Set([
+  "key",
+  "title",
+  "sourceType",
+  "repository",
+  "ref",
+  "path",
+]);
+const GIT_SOURCED_KEYS = new Set(["deploy-state"]);
+const generatedDirectory =
+  process.env.TM_PLANNING_PACK_GENERATED_DIR ??
+  path.join(
+    process.env.LOCALAPPDATA ?? path.join(process.env.USERPROFILE ?? "", "AppData", "Local"),
+    "TMPlanningPackUpdater",
+    "generated",
+  );
+
+function normalizeNewlines(value) {
+  return value.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+}
+
+function sha256(value) {
+  return crypto.createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+// Local Git inspection only. This validator never contacts Wrangler,
+// Cloudflare, Supabase, a database, or any production endpoint.
+function gitCapture(cwd, args) {
+  try {
+    return {
+      ok: true,
+      stdout: execFileSync("git", args, {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }),
+    };
+  } catch (error) {
+    return { ok: false, message: (error.stderr || error.message || "").toString().trim() };
+  }
+}
+
+function parseGeneratedDocument(text) {
+  const lines = normalizeNewlines(text).split("\n");
+  const markerCount = lines.filter((line) => line === PROVENANCE_MARKER).length;
+  if (markerCount === 0) return { error: "the generated provenance block is absent" };
+  if (markerCount > 1) return { error: "the generated document has more than one provenance block" };
+  const separatorIndex = lines.indexOf(BODY_SEPARATOR);
+  if (separatorIndex < 0) return { error: "the generated document has no body separator" };
+  if (separatorIndex < lines.indexOf(PROVENANCE_MARKER)) {
+    return { error: "the generated body separator precedes the provenance block" };
+  }
+
+  const provenance = {};
+  for (const line of lines.slice(0, separatorIndex)) {
+    const match = line.trim().match(/^> - `([a-z0-9_]+)`: `(.*)`$/);
+    if (!match) continue;
+    if (Object.hasOwn(provenance, match[1])) {
+      return { error: `duplicate provenance field: ${match[1]}` };
+    }
+    provenance[match[1]] = match[2];
+  }
+  const missing = PROVENANCE_FIELDS.filter((field) => !Object.hasOwn(provenance, field));
+  if (missing.length > 0) {
+    return { error: `the provenance block is missing fields: ${missing.join(", ")}` };
+  }
+  let body = lines.slice(separatorIndex + 1).join("\n");
+  if (body.startsWith("\n")) body = body.slice(1);
+  return { provenance, body };
+}
+
+function checkGitSource(document, label) {
+  const entry = `${label} (${document.key})`;
+  const unexpected = Object.keys(document).filter((name) => !ALLOWED_GIT_ENTRY_KEYS.has(name));
+  check(
+    unexpected.length === 0,
+    `${entry} declares unsupported Git-source keys: ${unexpected.join(", ")}. A Git source must have no filesystem fallback.`,
+  );
+  for (const field of ["repository", "ref", "path"]) {
+    check(
+      typeof document[field] === "string" && document[field].trim().length > 0,
+      `${entry} has a missing or empty ${field}.`,
+    );
+  }
+  if (
+    typeof document.repository !== "string" ||
+    typeof document.ref !== "string" ||
+    typeof document.path !== "string"
+  ) {
+    return false;
+  }
+  const inTreePath = normalizeRelative(document.path).trim();
+  check(
+    !path.isAbsolute(inTreePath) && !inTreePath.includes(":"),
+    `${entry} path must be repository-relative, not a filesystem path: ${document.path}`,
+  );
+  check(
+    !inTreePath.startsWith("../") && !inTreePath.includes("/../") && inTreePath !== "..",
+    `${entry} path must not escape the repository: ${document.path}`,
+  );
+
+  const repository = document.repository;
+  if (!fs.existsSync(repository) || !fs.statSync(repository).isDirectory()) {
+    errors.push(`${entry} configured repository is unreadable: ${repository}`);
+    return false;
+  }
+  const tip = gitCapture(repository, ["rev-parse", "--verify", "--quiet", `${document.ref}^{commit}`]);
+  if (!tip.ok || tip.stdout.trim().length === 0) {
+    errors.push(`${entry} configured ref is unreadable: ${document.ref}. ${tip.message ?? ""}`.trim());
+    return false;
+  }
+  const tipCommit = tip.stdout.trim();
+  const history = gitCapture(repository, [
+    "log",
+    "-1",
+    "--format=%H%x00%cI",
+    document.ref,
+    "--",
+    inTreePath,
+  ]);
+  if (!history.ok || !history.stdout.includes("\0")) {
+    errors.push(`${entry} configured path has no history on ${document.ref}: ${inTreePath}`);
+    return false;
+  }
+  const [pathCommit, pathCommitTime] = history.stdout.trim().split("\0");
+  const shown = gitCapture(repository, ["show", `${document.ref}:${inTreePath}`]);
+  if (!shown.ok) {
+    errors.push(`${entry} configured path is unreadable at ${document.ref}: ${inTreePath}`);
+    return false;
+  }
+  const canonicalBody = normalizeNewlines(shown.stdout);
+
+  const artifactPath = path.join(generatedDirectory, `${document.key}.md`);
+  if (!fs.existsSync(artifactPath)) {
+    // In maintenance mode this is the pre-publication gate, so a never-generated
+    // artifact is a failure. Outside it (build/test preflights) the updater may
+    // simply not be installed on this machine.
+    check(
+      !requireMaintenance,
+      `${entry} has no generated artifact at ${artifactPath}. Run the planning-pack updater before the completion commit.`,
+    );
+    return true;
+  }
+
+  const parsed = parseGeneratedDocument(fs.readFileSync(artifactPath, "utf8"));
+  if (parsed.error) {
+    errors.push(`${entry} generated artifact is invalid: ${parsed.error}`);
+    return false;
+  }
+  const { provenance, body } = parsed;
+  const expected = {
+    source_type: GIT_SOURCE_TYPE,
+    repository,
+    ref: document.ref,
+    source_tip_commit: tipCommit,
+    path: inTreePath,
+    path_commit: pathCommit,
+    path_commit_time: pathCommitTime,
+    body_sha256: sha256(canonicalBody),
+  };
+  for (const [field, value] of Object.entries(expected)) {
+    check(
+      provenance[field] === value,
+      `${entry} generated ${field} is "${provenance[field]}" but Git resolves "${value}".`,
+    );
+  }
+  check(
+    body === canonicalBody,
+    `${entry} generated body differs from git show ${document.ref}:${inTreePath}. The published document is stale.`,
+  );
+  check(
+    sha256(body) === provenance.body_sha256,
+    `${entry} stamped body hash does not match the generated body.`,
+  );
+  const generatedAt = Date.parse(provenance.generated_at);
+  const touchedAt = Date.parse(pathCommitTime);
+  check(
+    Number.isFinite(generatedAt),
+    `${entry} generated_at is not a parseable ISO-8601 timestamp: ${provenance.generated_at}`,
+  );
+  check(
+    !Number.isFinite(generatedAt) || !Number.isFinite(touchedAt) || generatedAt >= touchedAt,
+    `${entry} generated_at ${provenance.generated_at} predates the source commit time ${pathCommitTime}.`,
+  );
+  return true;
+}
+
 const manifest = readJson(manifestPath);
 const stateText = fs.readFileSync(statePath, "utf8");
 check(
   fs.existsSync(contextContractPath) && fs.statSync(contextContractPath).isFile(),
   "The canonical Claude Project context contract is missing.",
 );
-const roots = { redesign: repositoryRoot, live: liveRoot };
+// `redesign` is the only working-tree root. There is deliberately no root that
+// reads another checkout's working tree: such a copy goes stale the moment that
+// lineage is committed to from elsewhere, which is exactly how a stale
+// DEPLOY-STATE reached the planning pack. Cross-lineage documents use a Git
+// source instead.
+const roots = { redesign: repositoryRoot };
 const keys = new Set();
 const titles = new Set();
 const catalogPaths = new Set();
 let fixedDocumentCount = 0;
 let phaseDocumentCount = 0;
 let dynamicDocumentCount = 0;
-let externalSourcesChecked = 0;
+let gitSourcesChecked = 0;
 
 if (manifest) {
   check(manifest.version === 1, "CLAUDE-PROJECT-SOURCES.json must use version 1.");
@@ -149,7 +358,6 @@ if (manifest) {
     if (!document || typeof document !== "object") continue;
     check(/^[a-z0-9][a-z0-9-]*$/.test(document.key ?? ""), `${label} has an invalid key.`);
     check(typeof document.title === "string" && document.title.trim().length > 0, `${label} must have a title.`);
-    check(Object.hasOwn(roots, document.root), `${label} has an unknown root: ${document.root}`);
     if (typeof document.key === "string") {
       check(!keys.has(document.key.toLowerCase()), `Duplicate document key: ${document.key}`);
       keys.add(document.key.toLowerCase());
@@ -158,16 +366,42 @@ if (manifest) {
       check(!titles.has(document.title.toLowerCase()), `Duplicate document title: ${document.title}`);
       titles.add(document.title.toLowerCase());
     }
+
+    const isGitSource = document.sourceType === GIT_SOURCE_TYPE;
+    check(
+      !GIT_SOURCED_KEYS.has(document.key) || isGitSource,
+      `${label} (${document.key}) must be a Git source. It is owned by another repository lineage, so a working-tree path would publish a stale copy.`,
+    );
+    if (isGitSource) {
+      if (checkGitSource(document, label)) gitSourcesChecked += 1;
+      const normalizedGitPath = `git:${document.ref}:${normalizeRelative(document.path ?? "")}`.toLowerCase();
+      check(!catalogPaths.has(normalizedGitPath), `Duplicate catalog path: ${normalizedGitPath}`);
+      catalogPaths.add(normalizedGitPath);
+      continue;
+    }
+
+    check(
+      document.sourceType === undefined || document.sourceType === "file",
+      `${label} has an unknown sourceType: ${document.sourceType}`,
+    );
+    check(
+      Object.hasOwn(roots, document.root),
+      `${label} has an unknown root: ${document.root}. Only "redesign" is a working-tree root; cross-lineage documents must declare sourceType "git".`,
+    );
     if (!Object.hasOwn(roots, document.root)) continue;
     const resolved = resolveWithin(roots[document.root], document.path, label);
     if (!resolved) continue;
     const normalizedPath = `${document.root}:${normalizeRelative(document.path)}`.toLowerCase();
     check(!catalogPaths.has(normalizedPath), `Duplicate catalog path: ${document.root}:${document.path}`);
     catalogPaths.add(normalizedPath);
-    if (document.root === "redesign" || fs.existsSync(roots[document.root])) {
-      check(fs.existsSync(resolved) && fs.statSync(resolved).isFile(), `${label} source file is missing: ${document.path}`);
-      if (document.root !== "redesign") externalSourcesChecked += 1;
-    }
+    check(fs.existsSync(resolved) && fs.statSync(resolved).isFile(), `${label} source file is missing: ${document.path}`);
+  }
+
+  for (const key of GIT_SOURCED_KEYS) {
+    check(
+      documents.some((document) => document?.key === key),
+      `Required Git-sourced document is absent from the catalog: ${key}`,
+    );
   }
 
   const phases = manifest.phaseDocuments;
@@ -281,7 +515,7 @@ console.log(
       totalPlanningPackDocuments: fixedDocumentCount + phaseDocumentCount + dynamicDocumentCount,
       currentPhase,
       activeHandoffs: activeHandoffs.length,
-      externalSourcesChecked,
+      gitSourcesChecked,
       maintenanceMode: requireMaintenance,
       changedHandoffs: changedHandoffs.length,
     },

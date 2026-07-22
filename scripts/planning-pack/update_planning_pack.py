@@ -33,10 +33,43 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 import pypandoc
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from git_source import (  # noqa: E402  (local module; import needs the path above)
+    FILESYSTEM_SOURCE_TYPE,
+    FILESYSTEM_SOURCE_TYPES,
+    GIT_SOURCE_TYPE,
+    GitSourceError,
+    GitSourceSpec,
+    parse_git_source,
+    verify_generated_document,
+    write_generated_git_source,
+)
+from source_snapshot import (  # noqa: E402  (local module; import needs the path above)
+    SourceIsolationError,
+    assert_source_isolation,
+    build_snapshot,
+    render_table,
+)
+
+#: The only document this change is authorised to re-source, and the exact Git
+#: coordinates it must resolve through. Every other entry must keep resolving
+#: from the redesign checkout.
+DEPLOY_STATE_KEY = "deploy-state"
+GIT_SOURCED_KEYS = frozenset({DEPLOY_STATE_KEY})
+REQUIRED_GIT_SOURCES = {
+    DEPLOY_STATE_KEY: (
+        r"C:\Users\izzyh\Documents\Terraforming Mars",
+        "fix/live-compare-data-remove-declared-style",
+    )
+}
+
 
 APP_DIR = Path(__file__).resolve().parent
+# The redesign checkout. This is the only working-tree root, and it is fixed:
+# no environment variable may redirect it, so a same-named file in another
+# checkout can never become a planning-pack source.
 ROOT = Path(r"C:\Users\izzyh\Documents\Terraforming Mars Redesign")
-LIVE_ROOT = Path(r"C:\Users\izzyh\Documents\Terraforming Mars")
 LOCAL_DRIVE_FOLDER = Path(r"G:\My Drive\TM Project Planning Pack")
 FOLDER_NAME = "TM Project Planning Pack"
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
@@ -55,7 +88,37 @@ LOCK_FILE = APP_DIR / "update.lock"
 LOG_DIR = APP_DIR / "logs"
 GENERATED_DIR = APP_DIR / "generated"
 MASTER_CONTEXT_SOURCE = GENERATED_DIR / "tm-project-master-context.md"
-SOURCE_MANIFEST = ROOT / "docs/redesign/CLAUDE-PROJECT-SOURCES.json"
+
+# Where the catalog JSON itself is read from. `--source-manifest` may point this
+# at a manifest committed in an isolated worktree for a single run.
+#
+# This selects the manifest FILE only. It does not re-root anything: every
+# filesystem entry still resolves against ROOT above, phase files still come
+# from ROOT, and the master-context and handoff sources still come from ROOT.
+# An overriding manifest therefore cannot redirect a document to another
+# checkout, and cannot change any non-DEPLOY-STATE source configuration.
+DEFAULT_SOURCE_MANIFEST = ROOT / "docs/redesign/CLAUDE-PROJECT-SOURCES.json"
+SOURCE_MANIFEST = DEFAULT_SOURCE_MANIFEST
+
+
+def set_source_manifest(path: Path | None) -> Path:
+    """Select the manifest file for this run. Returns the resolved path."""
+
+    global SOURCE_MANIFEST
+    if path is None:
+        SOURCE_MANIFEST = DEFAULT_SOURCE_MANIFEST
+        return SOURCE_MANIFEST
+    candidate = path.expanduser().resolve()
+    if not candidate.is_file():
+        raise RuntimeError(f"--source-manifest is not a file: {candidate}")
+    SOURCE_MANIFEST = candidate
+    logging.warning(
+        "Reading the source catalog from an overriding manifest: %s "
+        "(document roots are unaffected; filesystem sources still resolve under %s)",
+        candidate,
+        ROOT,
+    )
+    return SOURCE_MANIFEST
 
 
 @dataclass(frozen=True)
@@ -63,6 +126,10 @@ class Source:
     key: str
     title: str
     path: Path
+    #: Set when the document is resolved from Git rather than from a working
+    #: tree. ``path`` then points at the generated artifact, never at a source
+    #: checkout, and the spec is re-verified against Git before publication.
+    git_spec: GitSourceSpec | None = None
 
 
 class UpdateAlreadyRunning(RuntimeError):
@@ -312,7 +379,11 @@ def load_source_manifest() -> dict[str, Any]:
 
 
 def resolve_manifest_path(root_name: Any, relative_value: Any, label: str) -> Path:
-    roots = {"redesign": ROOT, "live": LIVE_ROOT}
+    # ``redesign`` is the only working-tree root. A document owned by another
+    # repository lineage must be declared as a Git source; there is deliberately
+    # no root that points at another checkout's working tree, because such a
+    # copy is stale whenever that lineage is committed to from elsewhere.
+    roots = {"redesign": ROOT}
     if root_name not in roots:
         raise RuntimeError(f"{label} has an unknown root: {root_name!r}")
     if not isinstance(relative_value, str) or not relative_value.strip():
@@ -338,6 +409,28 @@ def manifest_source(entry: Any, label: str) -> Source:
         raise RuntimeError(f"{label} has an invalid key: {key!r}")
     if not isinstance(title, str) or not title.strip():
         raise RuntimeError(f"{label} has an invalid title.")
+    # Source type is decided per entry. A Git source is additive: it does not
+    # change how any filesystem entry resolves, and its repository is never
+    # reused as a root for another document.
+    source_type = entry.get("sourceType", FILESYSTEM_SOURCE_TYPE)
+    if source_type == GIT_SOURCE_TYPE:
+        spec = parse_git_source(entry, label)
+        generated = write_generated_git_source(
+            spec, GENERATED_DIR, key, title, label=f"{label} ({key})"
+        )
+        return Source(key, title, generated, spec)
+    if source_type not in FILESYSTEM_SOURCE_TYPES:
+        raise RuntimeError(f"{label} has an unknown sourceType: {source_type!r}")
+
+    # A filesystem entry resolves exactly as it always has, under the fixed
+    # redesign root. Git fields are rejected here so no filesystem document can
+    # inherit another entry's repository or ref.
+    borrowed = sorted({"repository", "ref"} & set(entry))
+    if borrowed:
+        raise RuntimeError(
+            f"{label} is a filesystem source but declares Git fields: "
+            + ", ".join(borrowed)
+        )
     source_path = resolve_manifest_path(entry.get("root"), entry.get("path"), label)
     return Source(key, title, source_path)
 
@@ -427,7 +520,81 @@ def discover_sources() -> list[Source]:
         raise RuntimeError("Duplicate Google Doc titles were discovered.")
     if len({source.key for source in sources}) != len(sources):
         raise RuntimeError("Duplicate planning-pack source keys were discovered.")
+    verify_git_sources(sources)
     return sources
+
+
+def current_source_snapshot(sources: list[Source], state: dict[str, Any]) -> dict[str, Any]:
+    drive_ids = {
+        key: record.get("id")
+        for key, record in state.get("documents", {}).items()
+        if isinstance(record, dict) and record.get("id")
+    }
+    return build_snapshot(sources, drive_ids)
+
+
+def gate_source_isolation(
+    sources: list[Source], state: dict[str, Any], snapshot_path: Path | None
+) -> dict[str, Any]:
+    """Log the resolved source table, then fail closed before touching Drive."""
+
+    snapshot = current_source_snapshot(sources, state)
+    logging.info("Resolved planning-pack sources:\n%s", render_table(snapshot))
+
+    def is_within(root: Path, ancestor: Path) -> bool:
+        return root == ancestor or ancestor in root.parents
+
+    redesign_rooted = []
+    for document in snapshot["documents"]:
+        if document["source_type"] != "filesystem":
+            continue
+        root = Path(document["root"])
+        if is_within(root, ROOT):
+            redesign_rooted.append(document["key"])
+            continue
+        if is_within(root, GENERATED_DIR):
+            # The two dynamic documents the updater generates itself.
+            continue
+        raise SourceIsolationError(
+            f"{document['key']} resolves from {document['root']}, which is neither the "
+            "redesign checkout nor the updater's generated directory. Refusing to publish."
+        )
+
+    logging.info(
+        "%d documents resolve from the redesign checkout; %d from Git.",
+        len(redesign_rooted),
+        sum(1 for document in snapshot["documents"] if document["source_type"] == "git"),
+    )
+
+    if snapshot_path is not None:
+        assert_source_isolation(snapshot_path, snapshot, GIT_SOURCED_KEYS, REQUIRED_GIT_SOURCES)
+        logging.info("Source isolation verified against %s.", snapshot_path)
+    return snapshot
+
+
+def verify_git_sources(sources: list[Source]) -> int:
+    """Re-resolve every Git-sourced document and prove the artifact matches.
+
+    Called after discovery and again immediately before publication, so a stale
+    or hand-edited generated artifact stops the run rather than reaching Drive.
+    """
+
+    verified = 0
+    for source in sources:
+        if source.git_spec is None:
+            continue
+        provenance = verify_generated_document(
+            source.path, source.git_spec, label=f"Git source ({source.key})"
+        )
+        logging.info(
+            "Git source verified: %s <- %s:%s @ %s",
+            source.title,
+            provenance["ref"],
+            provenance["path"],
+            provenance["path_commit"][:9],
+        )
+        verified += 1
+    return verified
 
 
 def configure_logging(scheduled: bool) -> Path:
@@ -951,10 +1118,11 @@ def prepare_sources(sources: list[Source], output_dir: Path) -> list[dict[str, s
     return results
 
 
-def run_update(scheduled: bool) -> dict[str, Any]:
+def run_update(scheduled: bool, source_snapshot: Path | None = None) -> dict[str, Any]:
     sources = discover_sources()
     expected_keys = {source.key for source in sources}
     state = load_state()
+    gate_source_isolation(sources, state, source_snapshot)
     retired_keys = sorted(set(state["documents"]) - expected_keys)
     if retired_keys:
         raise RuntimeError(
@@ -969,6 +1137,11 @@ def run_update(scheduled: bool) -> dict[str, Any]:
     targets = about.get("importFormats", {}).get(DOCX_MIME, [])
     if GOOGLE_DOC_MIME not in targets:
         raise RuntimeError("This Google Drive account does not advertise DOCX-to-Google-Docs import support.")
+
+    # Publication gate: nothing reaches Drive unless every Git-sourced document
+    # still matches the ref it claims, re-checked here rather than trusted from
+    # discovery time.
+    verify_git_sources(sources)
 
     folder = get_or_create_folder(service, state)
     folder_id = folder["id"]
@@ -1021,6 +1194,26 @@ def main() -> int:
     parser.add_argument("--authorize-only", action="store_true", help="Complete Google sign-in without changing Drive files.")
     parser.add_argument("--prepare-only", action="store_true", help="Convert and validate locally without Google access.")
     parser.add_argument("--output-dir", type=Path, default=None, help="Destination used with --prepare-only.")
+    parser.add_argument(
+        "--source-manifest",
+        type=Path,
+        default=None,
+        help=(
+            "Read the source catalog from this manifest file instead of the default. "
+            "Selects the manifest file only; it does not re-root any document."
+        ),
+    )
+    parser.add_argument(
+        "--source-snapshot",
+        type=Path,
+        default=None,
+        help="Fail before writing to Drive unless every resolved source matches this snapshot.",
+    )
+    parser.add_argument(
+        "--print-sources",
+        action="store_true",
+        help="Print the resolved source-resolution table and exit without Google access.",
+    )
     args = parser.parse_args()
     try:
         acquire_lock()
@@ -1035,7 +1228,13 @@ def main() -> int:
 
     log_path = configure_logging(args.scheduled)
     try:
+        set_source_manifest(args.source_manifest)
         sources = discover_sources()
+        if args.print_sources:
+            snapshot = gate_source_isolation(sources, load_state(), args.source_snapshot)
+            print(render_table(snapshot))
+            print(json.dumps(snapshot, indent=2, sort_keys=True))
+            return 0
         if not REFERENCE_DOCX.exists():
             create_reference_docx()
         if args.authorize_only:
@@ -1058,7 +1257,7 @@ def main() -> int:
             logging.info("Prepared and structurally verified %d DOCX files.", len(results))
             return 0
 
-        summary = run_update(args.scheduled)
+        summary = run_update(args.scheduled, args.source_snapshot)
         logging.info(
             "Complete: %d created, %d updated, %d unchanged.",
             summary["counts"]["created"],
@@ -1075,6 +1274,49 @@ def main() -> int:
             except OSError:
                 webbrowser.open(folder_url)
         return 0
+    except SourceIsolationError as exc:
+        # A managed document resolved from somewhere other than its recorded
+        # source. Publishing now would overwrite a stable Drive ID with the
+        # wrong content, so stop before any Drive write.
+        logging.error("Source isolation check failed: %s", exc)
+        if not args.scheduled:
+            print(f"TM Planning Pack update stopped: {exc}", file=sys.stderr)
+        atomic_write_json(
+            SUMMARY_FILE,
+            {
+                "success": False,
+                "completed_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                "error": str(exc),
+                "error_kind": "source-isolation",
+                "log": str(log_path),
+            },
+        )
+        return 1
+    except GitSourceError as exc:
+        # A Git-sourced document could not be resolved or did not match its ref.
+        # There is no filesystem fallback by design: stop rather than publish a
+        # stale working-tree copy.
+        logging.error("Git-sourced document failed to resolve: %s", exc)
+        message = (
+            f"TM Planning Pack update stopped: {exc}\n"
+            "The document is sourced from Git and has no filesystem fallback. "
+            "Fix the configured repository, ref, or path in "
+            "docs/redesign/CLAUDE-PROJECT-SOURCES.json, or commit the missing "
+            "content on the configured lineage, then run the updater again."
+        )
+        if not args.scheduled:
+            print(message, file=sys.stderr)
+        atomic_write_json(
+            SUMMARY_FILE,
+            {
+                "success": False,
+                "completed_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                "error": str(exc),
+                "error_kind": "git-source",
+                "log": str(log_path),
+            },
+        )
+        return 1
     except Exception as exc:
         logging.exception("Update failed: %s", exc)
         failure = {

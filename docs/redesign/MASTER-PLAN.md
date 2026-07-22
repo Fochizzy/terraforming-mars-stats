@@ -180,6 +180,15 @@ A substep is complete only when:
 - the post-commit updater succeeds, or synchronization is explicitly reported
   as pending/blocked without claiming Drive or Claude refresh success
 
+The post-commit synchronization gate is not limited to redesign substeps. Any
+session that deploys application code, applies a migration, or performs a
+production write must append the result to the canonical `DEPLOY-STATE.md` on
+the production lineage, commit it there, and then run the planning-pack updater,
+or explicitly report synchronization pending with its reason. The planning pack
+resolves that document from the configured Git ref and fails closed; a
+working-tree cache copy is not a canonical source and must hold no production
+facts.
+
 ---
 
 ## 6. Project State

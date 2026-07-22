@@ -80,6 +80,37 @@ The updater can verify Google Drive content and stable file identity. Never
 claim that Claude has refreshed or ingested the linked source; Claude controls
 that timing.
 
+## Production-action synchronization rule
+
+Any session that deploys application code, applies a migration, or performs any
+production write must append the result to the canonical `DEPLOY-STATE.md` copy
+on the production lineage, commit that record there, and then run the
+planning-pack updater. If synchronization cannot be completed, the session must
+explicitly report synchronization pending and the reason.
+
+Updating a noncanonical working copy does not satisfy this requirement.
+
+- The canonical copy is read from the ref configured in
+  `docs/redesign/CLAUDE-PROJECT-SOURCES.json`, currently
+  `fix/live-compare-data-remove-declared-style`. Read it with
+  `git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`.
+- Filesystem cache copies of `DEPLOY-STATE.md` must contain no production
+  facts. A copy asserting a worker version, commit, ledger value, or deploy
+  date is stale by construction; replace it with a pointer stub.
+- This requirement applies regardless of whether the session is categorized as
+  redesign work. A deploy-only, migration-only, or production-write-only
+  session is still subject to it.
+- Do not claim the planning pack is current without an updater receipt.
+- Committing the ledger and publishing the planning pack are two separate
+  actions. A session must not treat "committed the ledger" and "published the
+  planning pack" as the same action.
+
+The updater resolves `DEPLOY-STATE` with `git show <ref>:<path>` and fails
+closed. There is no filesystem fallback, so an unreadable ref stops the run
+instead of publishing a stale working-tree copy. This rule does not authorize a
+deploy, migration, or production write; it governs what a session already
+authorized to perform one must do afterwards.
+
 ## Required workflow
 
 1. Inspect the existing implementation.

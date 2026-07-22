@@ -77,6 +77,40 @@ the updater must not silently delete or orphan a Google Doc.
 catalog entries. They route the external project to concise current state and
 the correct evidence/authority chain without replacing canonical detail.
 
+## Git-sourced catalog documents
+
+A catalog entry declares either a working-tree source or a Git source.
+`redesign` is the only working-tree root. A document owned by a different
+repository lineage must declare `"sourceType": "git"` with an explicit
+`repository`, `ref`, and in-tree `path`, and the updater resolves it with
+`git show <ref>:<path>`.
+
+This exists because a working-tree copy of a file owned by another lineage is
+stale whenever that lineage is committed to from elsewhere. `DEPLOY-STATE.md` is
+the case that forced it: the canonical ledger is committed on the production
+lineage, and the updater was publishing an untracked cache in the live checkout
+that no deploy session had refreshed.
+
+Git-sourced generation fails closed. A missing repository, unreadable ref,
+missing path, absent Git executable, decoding failure, or nonzero Git command
+stops the run. There is deliberately no filesystem fallback, and the updater
+must not silently select another branch.
+
+Each generated Git-sourced document begins with a provenance block naming the
+source type, repository, configured ref, resolved source-tip commit, source
+path, newest commit touching that path and its commit time, a SHA-256 of the
+canonical body, and the generation time in ISO-8601 with a timezone. A
+horizontal rule separates that block from the canonical body, which matches
+`git show <ref>:<path>` exactly after normalizing CRLF and lone CR to LF and
+nothing else.
+
+The provenance block is generated updater metadata. It is not a deploy ledger
+entry, and production facts must never be added to it. The canonical
+production-lineage file is not edited to carry this metadata.
+
+The generation timestamp is re-stamped only when the resolved provenance or body
+changes, so an unchanged Git source leaves the Google Doc unchanged.
+
 ## Stable update behavior
 
 The generated Markdown is deterministic. It carries a fingerprint of the
@@ -109,6 +143,15 @@ The post-commit result is recorded by the updater's local summary/log and the
 final task report. Do not edit a canonical source solely to record that receipt,
 because the edit would itself require another synchronization. A successful
 Drive update still does not prove when Claude refreshed the linked source.
+
+This gate is not limited to redesign work. Any session that deploys application
+code, applies a migration, or performs a production write must append the result
+to the canonical `DEPLOY-STATE.md` on the production lineage, commit that record
+there, and then run the updater, or explicitly report synchronization pending
+with the reason. Updating a noncanonical working copy does not satisfy the
+requirement, committing the ledger and publishing the planning pack are separate
+actions, and no session may claim the planning pack is current without an
+updater receipt.
 
 ## Maintenance boundary
 

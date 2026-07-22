@@ -41,6 +41,12 @@ separate gate is authorized.
   currently authorized by this status document.
 - Authoritative branch: `redesign/tm-stats-dashboard-rebuild`.
 - The compatible source-bound redesign reader is not deployed.
+- Tooling only, not merged: `fix/deploy-state-planning-pack-sync` makes the
+  planning pack read `DEPLOY-STATE` from
+  `fix/live-compare-data-remove-declared-style` instead of an untracked
+  working-tree cache. Until it is merged the desktop updater and its scheduled
+  task fail closed unless `--source-manifest` is supplied. Handoff:
+  `docs/agent-handoffs/DEPLOY-STATE-PLANNING-PACK-GIT-SOURCE.md`.
 
 ## Next work item
 
@@ -76,6 +82,10 @@ sequence is:
 - Latest remediation:
   `docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-MATCHING-REGRESSION-REMEDIATION.md`
 - Migration/ledger map: `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`
+- Deploy and production-write ledger: `DEPLOY-STATE.md` on
+  `fix/live-compare-data-remove-declared-style`, read with
+  `git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`. Every
+  filesystem copy is a factless pointer stub.
 
 ## Rules
 

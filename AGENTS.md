@@ -59,6 +59,34 @@ Use the updater's local log and final task report for the post-commit receipt.
 Do not edit a repository document solely to record that receipt. Verify Google
 Drive content and identity, but do not claim Claude ingestion timing.
 
+### Production-action synchronization rule
+
+Any session that deploys application code, applies a migration, or performs any
+production write must append the result to the canonical `DEPLOY-STATE.md` copy
+on the production lineage, commit that record there, and then run the
+planning-pack updater. If synchronization cannot be completed, the session must
+explicitly report synchronization pending and the reason.
+
+Updating a noncanonical working copy does not satisfy this requirement.
+
+- The canonical copy is read from the ref configured in
+  `docs/redesign/CLAUDE-PROJECT-SOURCES.json`, currently
+  `fix/live-compare-data-remove-declared-style`. Read it with
+  `git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`.
+- Filesystem cache copies of `DEPLOY-STATE.md` must contain no production
+  facts. A copy asserting a worker version, commit, ledger value, or deploy
+  date is stale by construction; replace it with a pointer stub.
+- This requirement applies regardless of whether the session is categorized as
+  redesign work. A deploy-only, migration-only, or production-write-only
+  session is still subject to it.
+- Do not claim the planning pack is current without an updater receipt.
+- Committing the ledger and publishing the planning pack are two separate
+  actions. Completing the first does not complete the second.
+
+The updater sources `DEPLOY-STATE` from Git and fails closed. It will not fall
+back to a working-tree file, so an unreadable ref stops the run rather than
+publishing a stale copy.
+
 ## Project architecture
 
 - Next.js App Router

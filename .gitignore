@@ -49,3 +49,7 @@ yarn-error.log*
 .codex/
 test-results/
 *.zip
+
+# python bytecode from the planning-pack scripts
+__pycache__/
+*.pyc

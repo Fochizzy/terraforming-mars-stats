@@ -1,6 +1,10 @@
 {
   "version": 1,
   "description": "Version-controlled source catalog for the TM Project Planning Pack updater.",
+  "sourceTypes": {
+    "file": "Read from the redesign working tree at the declared root and path. 'redesign' is the only root; there is no root pointing at another checkout's working tree.",
+    "git": "Read with git show <ref>:<path> from the declared repository. Fails closed with no filesystem fallback. Use this for any document owned by a different repository lineage."
+  },
   "documents": [
     {
       "key": "agents",
@@ -149,7 +153,9 @@
     {
       "key": "deploy-state",
       "title": "DEPLOY-STATE",
-      "root": "live",
+      "sourceType": "git",
+      "repository": "C:\\Users\\izzyh\\Documents\\Terraforming Mars",
+      "ref": "fix/live-compare-data-remove-declared-style",
       "path": "DEPLOY-STATE.md"
     }
   ],

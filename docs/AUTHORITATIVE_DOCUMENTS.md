@@ -53,6 +53,15 @@ does not supersede authorization or scope rules.
 | Live capture compatibility | `docs/redesign/reference/LIVE-SITE-DATA-CAPTURE-V2-COMPATIBILITY.md` | Current compatibility contract |
 | Project-wide rules | `docs/redesign/MASTER-RULES.md` | Governing rules |
 | Claude Project delivery | `docs/redesign/CLAUDE-PROJECT-CONTEXT.md` | Synchronization contract |
+| Deploy and production-write ledger | `DEPLOY-STATE.md` on `fix/live-compare-data-remove-declared-style` | Primary deploy record |
+
+Read the deploy ledger with
+`git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`. Only
+that Git object is canonical. Every filesystem copy of `DEPLOY-STATE.md`,
+including the one in this repository root and the one in the live checkout, is a
+factless pointer stub; a copy asserting a worker version, commit, ledger value,
+or deploy date is stale by construction. The planning pack resolves the ledger
+from that ref and fails closed rather than reading any working-tree file.
 
 The detailed Step 4.3 assignment guide currently exists at
 `docs/agent-prompts/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.

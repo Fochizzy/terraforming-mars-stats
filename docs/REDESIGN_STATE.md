@@ -38,6 +38,35 @@ assignment must govern the reader correction/deploy and verification. The
 legacy matcher contraction requires separate authorization only after compatible
 reader verification, followed by a fresh closure audit before Step 4.4.
 
+### Planning-pack DEPLOY-STATE source corrected (2026-07-22)
+
+Tooling and governance only. No phase, blocker, release, migration, or
+production fact changed.
+
+The planning-pack updater was publishing a stale `DEPLOY-STATE` because its
+manifest resolved that document from an **untracked** working-tree file in the
+live checkout. Untracked means no deploy session could commit to it, so it never
+tracked the canonical ledger. The manifest now declares `deploy-state` as a Git
+source read from `fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`,
+resolution fails closed with no filesystem fallback, and the published document
+carries a provenance block naming its ref and commits.
+
+Only that one catalog entry changed. The other 47 documents keep their source
+root, path, key, title, Drive ID, order, and dynamic classification, and a
+pre-publication source-isolation gate fails before any Drive write if that stops
+being true. Both filesystem copies of `DEPLOY-STATE.md` — this repository's and
+the live checkout's — are now factless pointer stubs.
+
+`AGENTS.md`, `CLAUDE.md`, and `MASTER-RULES.md` now require any session that
+deploys, migrates, or performs a production write to append the result to the
+canonical ledger on the production lineage, commit it there, and then run the
+updater or report synchronization pending.
+
+Handoff: `docs/agent-handoffs/DEPLOY-STATE-PLANNING-PACK-GIT-SOURCE.md`. Until
+that branch is merged, the shared redesign checkout still carries the retired
+manifest entry, so the desktop launcher and scheduled task fail closed unless
+`--source-manifest` is supplied.
+
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
 
 Branch `fix/import-identity-source-bound-matching`, merged into
@@ -1323,6 +1352,9 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/DEPLOY-STATE-PLANNING-PACK-GIT-SOURCE.md
+  (planning pack reads DEPLOY-STATE from the production-lineage Git ref;
+  tooling and governance only, no production, release, or phase change)
 - docs/agent-handoffs/GUEST-IDENTITY-ORACLE-REVOKE-APPLY.md
   (latest production apply record; guest resolver authenticated EXECUTE revoked)
 - docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-MATCHING-REGRESSION-REMEDIATION.md

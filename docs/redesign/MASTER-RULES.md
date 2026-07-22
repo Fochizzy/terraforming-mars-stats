@@ -97,8 +97,25 @@ These must remain distinct from:
 - The version-controlled individual-document catalog is
   `docs/redesign/CLAUDE-PROJECT-SOURCES.json`. Add a new durable cross-project
   guidance document there in the same change that creates or promotes it.
+- A catalog document owned by another repository lineage must be declared as a
+  Git source with an explicit repository, ref, and in-tree path. `redesign` is
+  the only working-tree root; no catalog entry may read another checkout's
+  working tree, because such a copy goes stale the moment that lineage is
+  committed to from elsewhere.
 - Generation must fail closed on a missing current phase, missing or malformed
   active-handoff declaration, duplicate active handoff, or missing source file.
+- Git-sourced generation must fail closed on an unreadable repository, ref, or
+  path, and must never fall back to a filesystem copy. Each generated
+  Git-sourced document carries a provenance block naming its ref, resolved tip
+  commit, newest commit touching the path, generation time, and body hash.
+  Validation rejects a missing, mismatched, or stale block, and rejects a body
+  that differs from `git show <ref>:<path>`.
+- Any session that deploys application code, applies a migration, or performs a
+  production write must append the result to the canonical `DEPLOY-STATE.md` on
+  the production lineage, commit it there, and then run the planning-pack
+  updater, or explicitly report synchronization pending with its reason. This
+  applies whether or not the session is redesign work, and committing the ledger
+  and publishing the planning pack are separate actions.
 - Generation must be deterministic and update the same Google Doc ID only when
   source content changes.
 - Every completed redesign task must run
