@@ -87,6 +87,17 @@ defer the updater yourself when the hook does not sync. See
 `docs/redesign/DECISIONS.md` -> "Project-wide - post-commit planning-pack
 synchronization is hook-enforced".
 
+An automatic updater run triggered by this hook after a commit or merge in the
+updater's tree is expected behavior, not a violation, a scope expansion, or a
+stop condition — including in a task whose assignment otherwise forbids
+publishing, because the hook only runs the same synchronization this gate already
+requires and grants no new authority. A commit or merge made outside the
+updater's tree deliberately does not publish: the hook emits a PENDING message
+naming the worktree and commit, and that PENDING message is your synchronization
+report for that commit, not a failure. The pack publishes when the work reaches
+the updater's tree. Do not disable the hook, hand-edit `.claude/.pack-last-sync`,
+or run the updater manually to work around this gate.
+
 The final post-commit synchronization receipt belongs in the updater's local
 log and the task report. Do not edit a canonical document solely to record that
 receipt, because doing so would create a new unsynchronized source change.

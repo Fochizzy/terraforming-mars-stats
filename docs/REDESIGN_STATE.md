@@ -1491,6 +1491,11 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PLANNING-PACK-SYNC-HOOK-INSTRUCTION-SET-COMPLETION.md
+  (documentation-only: the planning-pack sync hook is now fully described in
+  AGENTS.md — Claude Code-only, manual step still in force for Codex —
+  MASTER-RULES.md, and CLAUDE.md; automatic run in the updater's tree is expected
+  and a non-tree PENDING is the report; no code, hook, or production change)
 - docs/agent-handoffs/PLANNING-PACK-POST-COMMIT-SYNC-HOOK.md
   (post-commit planning-pack synchronization is now enforced by a repository
   PostToolUse/Bash hook; catalog-derived watch set; tooling and governance only,
