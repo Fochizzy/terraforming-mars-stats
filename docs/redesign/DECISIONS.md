@@ -1300,3 +1300,52 @@ authorize implementation or any production change.
 - Release gate. No production migration, deployment, or revocation. Design and
   disposable-PostgreSQL proof first, then a fresh independent read-only review
   returning PASS, then separate authorization under an expand/contract sequence.
+
+
+## Phase 4 Step 4.3 - AMENDMENT: interim service-role re-gate of the import matcher
+
+Decided by explicit owner decision on 2026-07-22. Amends, and does not replace, the
+import identity classification and source-bound matching decision recorded above.
+Defines the design; does not authorize implementation.
+
+- Adopted: a minimal service-role re-gate of public.match_import_player_names. A new
+  3-arg overload takes an explicit requesting-user id, derives both the authorization
+  gate and the candidate pool from that argument instead of auth.uid(), and is granted
+  to service_role only. Both live call sites (import analyze, manual-entry resolution)
+  move to the server-side admin client. The 2-arg overload's authenticated grant is
+  then revoked.
+
+- Deviation being accepted, explicitly. The re-gated matcher still accepts an arbitrary
+  array of candidate names and still returns an exact/partial classification with a
+  player id. That contradicts the clauses in the decision above requiring parser-derived
+  structured input and indistinguishable failure modes. It is accepted only as interim
+  risk reduction, on the same footing as the coarsening migration.
+
+- What it does. It removes direct PostgREST access to the matcher by any authenticated
+  caller, and it unblocks the contraction (retiring the authenticated grant on the
+  free-form matcher) without first designing a replacement for the manual-entry path.
+
+- What it does NOT do. It does not close the import enumeration oracle. Import candidate
+  names are browser-supplied - participants text, pasted log, and client-posted OCR are
+  all caller-controlled - so the same probe remains available through the analyze server
+  action, unrate-limited and without durable evidence. Any claim that this closes the
+  oracle would be false.
+
+- Security cost being accepted. The database will trust the application to pass a
+  truthful requesting-user id. Today auth.uid() makes an authorization bypass
+  structurally impossible; afterwards, a server-action defect that passes an
+  attacker-influenced id becomes a full bypass. This is the same trust model as the four
+  applied source-bound gateways, but newly load-bearing on a matching function.
+
+- Ordering is mandatory. Expand first (add the 3-arg overload, granted to service_role
+  only), deploy the application with both call sites on the admin client, verify in
+  production, and only then apply the contraction. The 2-arg function must remain
+  granted and working until the deploy is verified.
+
+- Source-bound matching remains the durable contract. This amendment is a stepping stone
+  and must not become permanent by default. It ships with a recorded commitment to the
+  source-bound design and a dated review of that commitment.
+
+- Independent of this amendment: revoking authenticated EXECUTE on
+  resolve_import_guest_identity is pure tightening, requires no amendment, and should
+  proceed regardless.
