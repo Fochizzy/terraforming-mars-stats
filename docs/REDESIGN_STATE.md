@@ -38,6 +38,43 @@ assignment must govern the reader correction/deploy and verification. The
 legacy matcher contraction requires separate authorization only after compatible
 reader verification, followed by a fresh closure audit before Step 4.4.
 
+### ID-READER-CLIENT investigated — the recorded fix is wrong (2026-07-22)
+
+Read-only investigation. No production access, no code change, no migration
+authored. Step 4.3 remains blocked and is **not** complete.
+
+`GUEST-IDENTITY-ORACLE-REVOKE-APPLY.md` §8 recorded that the fix is "a one-line
+client swap" to `createSupabaseAdminClient()`, "the pattern the *same file*
+already uses at lines 125, 148, 162 and 182". **That recommendation does not
+hold.** `public.resolve_import_guest_identity` opens with
+`if (select auth.uid()) is null or not public.is_group_member(p_group_id) then
+raise ... errcode = '42501'`, identically in the deployed 7-argument definition
+and in the gated 8-argument one. Under service_role `auth.uid()` is NULL, so the
+admin client raises the **same `42501`** from the function body instead of from
+the privilege check — the call breaks either way. Independently, both insert
+branches write `created_by_user_id` as `(select auth.uid())` into a `not null`
+column, so no client-only change can succeed.
+
+The four cited call sites are a different pattern, not the same one: each calls a
+function that takes an explicit `p_requesting_user_id` and enforces membership
+against that argument, granted to `service_role` only.
+`resolve_import_guest_identity` has no such parameter.
+
+Two further findings. The call site passes 8 arguments including
+`p_record_import_alias`, which exists only in gated, unapplied
+`20260720100000` — so against production it would fail `PGRST202`/`42883` before
+any `42501`. And `20260720100000` as written drops the revoked 7-argument
+function and re-grants `authenticated` on its replacement, which would **reopen
+the oracle closed by ledger `20260722153233`** if applied unchanged.
+
+A correct fix is the change shape already approved for the *matcher* in
+`docs/redesign/DECISIONS.md:1305-1351` — a new overload taking an explicit
+requesting-user id, granted `service_role` only, under expand/contract ordering —
+but no equivalent amendment exists for this function. That is a design change
+requiring new owner authorization, not a repair, and it was not started.
+
+Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-INVESTIGATION-STOP.md`.
+
 ### Planning-pack DEPLOY-STATE source corrected (2026-07-22)
 
 Tooling and governance only. No phase, blocker, release, migration, or
@@ -1373,6 +1410,10 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-INVESTIGATION-STOP.md
+  (ID-READER-CLIENT investigated read-only; the recorded one-line admin-client
+  swap is wrong because the RPC gates on `auth.uid()`; a correct fix needs an
+  owner-authorized overload migration; nothing implemented, no production access)
 - docs/agent-handoffs/POST-INTEGRATION-CURRENT-STATE-RECONCILIATION.md
   (documentation-only correction of four stale post-integration current-state
   claims; ledger snapshot reconciled to 113, tooling branch recorded as merged,
