@@ -91,6 +91,45 @@ do **not** appear in the deploy History table above.
 | When (UTC) | Ledger version | Migration | Provenance |
 |---|---|---|---|
 | 2026-07-22 13:21 | `20260722132159` | `add_source_bound_import_identity_staging` | `redesign/tm-stats-dashboard-rebuild` @ `484eec90e` |
+| 2026-07-22 14:40 | `20260722144034` | `coarsen_import_name_match_reasons` | `redesign/tm-stats-dashboard-rebuild` @ `37065ec9b` |
+
+**2026-07-22 — coarsened import name match reasons (INTERIM MITIGATION, NOT A
+CLOSURE).** Replaced the body of the live
+`public.match_import_player_names(uuid, text[])` so it discloses only a coarse
+`exact` / `partial` classification instead of the field-identifying
+`display_name_exact` / `full_name_exact` / `alias_exact` / `username_exact`
+values, and bounded candidate input to 64 names of at most 128 characters.
+**No Worker deploy, no `wrangler deploy`, no push was involved**; this was a
+database-only change.
+
+- **In plain words: the enumeration oracle is NOT closed.** Independent review
+  found this change *insufficient as a closure*. It stops a caller learning
+  *which private field* matched, but it does **not** stop a caller confirming
+  that a private name they supply belongs to a real identity — the function is
+  still `SECURITY DEFINER`, `authenticated` still holds `EXECUTE`, and a
+  matching name still returns a row. This was applied solely to reduce exposure
+  while the real fix (a compatible source-bound reader, then the contraction
+  `20260722012707`) is built.
+- **Ledger-version drift.** The repo filename is
+  `20260720120000_coarsen_import_name_match_reasons.sql`, but the tool stamps
+  apply-time UTC, so the ledger recorded **`20260722144034`**. Same precedent as
+  `20260722012658`→`20260722132159`. Reconcile by migration *name*, not version.
+- **Nothing was granted or revoked.** The ACL was verified **hash-identical**
+  before and after (sha256 `6517848c…`,
+  `postgres=X/postgres | authenticated=X/postgres | service_role=X/postgres`).
+  `SECURITY DEFINER`, `search_path=""` and STABLE all survived the replace.
+- **The return signature is unchanged** (sha256 `d8d91a90…`), which the deployed
+  reader depends on. Only the body and language changed (`sql` → `plpgsql`).
+- **Deployed-reader compatibility was gated before applying.** Live worker
+  `178229f3-bfa4-4776-826a-e344daf23d72` (source `4dec49a42`) already tolerates
+  coarse reasons: `coarsenMatchReason()` maps both `'exact'` and any `*_exact`
+  to exact, `match_score` is never consumed (0 references), and the client caps
+  requests at the same 64 / 128 bounds.
+- **Rollback pre-image captured and byte-verified** before the apply (3335
+  bytes, sha256 `2c8c9395cee6b8d127557a7cb05324f1ccef6a14fd2374ee385c091aa4da4d19`).
+  See `docs/agent-handoffs/IMPORT-ORACLE-INTERIM-MITIGATION-APPLY.md`.
+- **The contraction is still NOT applied.** `20260722012707`
+  (`retire_free_form_import_name_matcher`) requires separate authorization.
 
 **2026-07-22 — source-bound import identity staging (EXPANSION half).**
 Applied the expansion migration of the source-bound import identity
@@ -120,6 +159,20 @@ a database-only change.
   `docs/agent-handoffs/IMPORT-IDENTITY-EXPANSION-APPLY.md`.
 
 ## Open follow-ups
+
+- **This file has forked, and this copy is stale. Reconcile the two copies.**
+  The "Current production" block above names worker
+  `c23bfbd7-9729-4981-9f45-aee05c242d31` @ `59dda6c0f`, which is **six deploys
+  old** — `wrangler deployments list` shows the live version is
+  `178229f3-bfa4-4776-826a-e344daf23d72` (2026-07-21 19:49 UTC, 100%). The
+  canonical copy of this file lives on the live-site lineage (the newest
+  `docs/*` deploy-record branch), not on
+  `redesign/tm-stats-dashboard-rebuild`.
+  **Both database entries recorded in this file's "Production database changes"
+  section — `20260722132159` and `20260722144034` — are missing from the
+  canonical copy and must be carried across.** Reconciling the fork is a
+  separate task and was explicitly out of scope for the 07-22 14:40 apply; it
+  was recorded, not fixed.
 
 - **Grant `EXECUTE` on `private.normalize_guest_username` to `service_role`.**
   The new `user_profiles_normalized_username_key` functional index means index
