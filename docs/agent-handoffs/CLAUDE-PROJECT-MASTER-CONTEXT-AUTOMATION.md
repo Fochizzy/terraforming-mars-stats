@@ -14,6 +14,9 @@ delivery task. It does not change Phase 4 implementation or production state.
   handoff declaration.
 - Extended the local TM Planning Pack updater to generate the master context,
   preserve a stable Google Doc ID, and fail closed on context-source drift.
+- Hardened local updater locking so dead-process locks recover immediately,
+  genuine overlap exits cleanly, and the scheduled task runs through windowless
+  Python instead of a closable console window.
 - Updated root instructions, master rules, durable decisions, project state,
   and the project-wide master plan without changing the active substep.
 
@@ -59,10 +62,15 @@ scope boundaries, and production gates remain unchanged.
   zero other files, 45 unique titles, and exact Drive/state ID agreement.
 - All 44 pre-existing Google Doc IDs were preserved. The new master document is
   [TM PROJECT MASTER CONTEXT](https://docs.google.com/document/d/1odSGfjZC6LKJ-q5ytB5jq7G3JSd4E7AXaYsQkmX7g9s/edit).
-- The Windows Scheduled Task was re-enabled and manually triggered. It completed
-  with result 0 and a deterministic no-op result of 45 unchanged documents; its
-  next scheduled run remained 2026-07-22 14:46:24 local time, followed by the
-  existing two-hour recurrence.
+- A later scheduled run was interrupted and left a lock for dead PID 46912.
+  The installed updater now verifies lock ownership by live process, removes
+  dead locks immediately, preserves a live owner's lock, and returns a friendly
+  exit 0 instead of a traceback during genuine overlap.
+- The scheduled action now uses windowless `pythonw.exe`. A real overlap test
+  kept the scheduled lock intact while the desktop launcher returned the
+  friendly one-line message and exit 0. The hidden scheduled run then completed
+  all 45 documents unchanged, returned task result 0, released its lock, and
+  remained scheduled for 2026-07-22 16:46:24 local time.
 - `npm.cmd test`: 178 test files / 979 tests passed.
 - `npx.cmd tsc --noEmit`: passed.
 - `npm.cmd run lint`: passed with the four existing warnings only.
