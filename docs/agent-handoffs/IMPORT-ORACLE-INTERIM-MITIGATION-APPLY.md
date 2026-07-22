@@ -1,6 +1,6 @@
 # Import name-match oracle — interim mitigation applied to production
 
-**Status: APPLIED to production 2026-07-22 14:40 UTC. This is an INTERIM
+**Status: APPLIED to production 2026-07-22 14:40 UTC. Live smoke test PASSED 15:01 UTC. This is an INTERIM
 MITIGATION, NOT A CLOSURE. The enumeration oracle remains OPEN.**
 
 Database-only change. No application deploy, no `wrangler deploy`, no push.
@@ -293,19 +293,70 @@ $function$
 
 ---
 
-## 8. Owner smoke test — REQUIRED, not yet done
+## 8. Owner smoke test — DONE, PASSED (2026-07-22 ~15:01 UTC)
 
-This replaced a function the live site calls on **every import analyze**. The
-deployed reader was written to survive the coarse reasons and the bounds, and
-that was verified at the source level (§3d) — but it has **never been exercised
-against production**.
+Exercised on the live site (tm-stats.com) by the owner, **21 minutes after the
+migration landed** (applied 14:40 UTC; DB clock at verification 15:01 UTC, ledger
+head `20260722144034`, `full_name_exact` absent, 64/128 bounds live). The Analyze
+therefore ran against the **coarsened** function.
 
-Exercise an import on the live site (tm-stats.com): run **Analyze** and open the
-**review screen**, and confirm that player matching still behaves — names resolve
-to the same players as before, matched/unmatched states look right, and the
-dropdown still populates.
+Import: a real 2-player log (174 actionable log events, 2 filler lines ignored,
+20 draw-only lines kept as context), Tharsis detected from evidence, with an
+attached game-result PDF (text layer read directly, no OCR).
 
-If anything looks wrong, the rollback in §7 is staged and byte-verified.
+**Result: player matching behaves correctly.**
+
+| Check | Observed |
+|---|---|
+| Analyze completed | yes — full review screen rendered |
+| Names detected from log | both |
+| Both names resolved to roster players | yes, both `suggested` with a selected player |
+| Correct players chosen | yes — same identities as before |
+| Resolution dropdown populated | yes — 6 candidates with game counts |
+| Client console errors | none observed |
+| Private names leaked | **no** — only usernames shown; Full name fields empty |
+
+**Both matches classified `partial`** (status `suggested`, "Review suggested
+match"), which is correct: each imported name is a first-name prefix of the
+stored name, i.e. internal rank 200/175, below the 250 exact floor.
+
+**Provable equivalence — the coarse classification is unchanged from the
+fine-grained one.** The deployed reader's `coarsenMatchReason()` mapped every
+old reason ending `_exact` to `exact`; those were exactly ranks 400/350/300/250,
+and the partial reasons were exactly 200/175/150. The new SQL emits `exact` iff
+`internal_rank >= 250`. The two mappings agree on **every** rank:
+
+| Old reason | Rank | Old → coarse | New (`>= 250`) |
+|---|---|---|---|
+| `display_name_exact` | 400 | exact | exact |
+| `full_name_exact` | 350 | exact | exact |
+| `username_exact` | 300 | exact | exact |
+| `alias_exact` | 250 | exact | exact |
+| `display_name_partial` | 200 | partial | partial |
+| `full_name_partial` | 175 | partial | partial |
+| `username_partial` | 150 | partial | partial |
+
+Ordering is also unchanged (`match_score desc` → `internal_rank desc`, same
+values), so the same candidate still wins. `applyServerPlayerMatches` consumes
+only this coarse value, so the UI outcome is provably identical.
+
+**Not a regression — the "Manual roster choice" caption.** The review screen
+prints that under each matched player. It comes from
+`resolve-import-player-links.ts`, which scores candidates *client-side* from
+public labels only and returns `fallback` when it cannot match (`James` vs the
+public username it can see). That path never consumed the RPC's reason —
+`resolveImportPlayerLinks(importedNames, players, aliases)` takes no RPC input,
+and the server verdict is overlaid afterwards by `applyServerPlayerMatches`.
+The caption therefore rendered identically before this migration. It is a
+pre-existing cosmetic inconsistency (privileged suggestion, unprivileged
+explanation), not damage from the coarsening.
+
+**Residual gaps, low risk:** this log exercised only the `partial` branch and
+only 2 names, so the `exact` branch and the 64/128 bounds were not hit in
+production. The equivalence table above covers the former; the client caps
+requests at the same 64/128 so the latter cannot be reached by the UI.
+
+The rollback in §7 remains staged and byte-verified but is **not needed**.
 
 ---
 
