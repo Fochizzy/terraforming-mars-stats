@@ -226,3 +226,20 @@ definition, so the verdict holds either way.
 
 No private name, alias, personal name, or identifying value appears in this
 handoff or in any output produced by this task.
+
+## 11. Integration cross-reference (2026-07-22)
+
+This handoff was merged into `redesign/tm-stats-dashboard-rebuild` as a
+documentation-only `--no-ff` merge. In the same integration, the §6 finding was
+propagated to the one project record that contradicted it: the remaining-Step-4.3
+sequence in `docs/REDESIGN_STATE.md` listed `20260720100000` for application
+under the per-mutation protocol with no warning. That entry now records that the
+migration **must not be applied as written**, that it would restore the
+`authenticated` grant revoked as ledger `20260722153233` and reopen the closed
+guest-identity oracle, that it requires correction under separate owner
+authorization, and that `ID-READER-CLIENT` is downstream of it (§5).
+
+The drop and the re-grant were re-verified directly from
+`supabase/migrations/20260720100000_add_guest_identity_alias_source_control.sql`
+during that integration, not taken from this handoff. No migration file was
+edited, no production system was read, and no continuation was authorized.

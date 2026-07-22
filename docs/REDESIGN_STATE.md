@@ -377,6 +377,22 @@ Remaining Step 4.3 blockers, in required order:
 4. Apply the remaining gated migrations 20260719234500, 20260720100000,
    and 20260720110000 under the per-mutation protocol and separate
    authorization.
+   **`20260720100000` MUST NOT be applied as written.** Verified against the
+   migration file: it drops the 7-argument
+   `public.resolve_import_guest_identity(uuid, text, text, text, text, uuid,
+   boolean)` — precisely the function whose `authenticated` EXECUTE was revoked
+   in production as ledger `20260722153233` — and ends with
+   `grant execute on function public.resolve_import_guest_identity(uuid, text,
+   text, text, text, uuid, boolean, boolean) to authenticated;`. Applying it
+   unchanged would restore that grant and **reopen the closed guest-identity
+   confirmation oracle**. It requires correction and separate explicit owner
+   authorization before any application. Correcting the migration itself is not
+   authorized by this entry. `ID-READER-CLIENT` is **downstream** of this
+   migration: the redesign call site passes the 8-argument signature that exists
+   only in this gated file, so it cannot be repaired before this is resolved.
+   Evidence:
+   `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-INVESTIGATION-STOP.md`
+   §5–§6.
 5. Only then run the fresh independent closure audit.
 
 Step 4.3 remains **BLOCKED**. Step 4.4 is **NOT STARTED**.
