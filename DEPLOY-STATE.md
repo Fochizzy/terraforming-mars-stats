@@ -92,6 +92,64 @@ do **not** appear in the deploy History table above.
 |---|---|---|---|
 | 2026-07-22 13:21 | `20260722132159` | `add_source_bound_import_identity_staging` | `redesign/tm-stats-dashboard-rebuild` @ `484eec90e` |
 | 2026-07-22 14:40 | `20260722144034` | `coarsen_import_name_match_reasons` | `redesign/tm-stats-dashboard-rebuild` @ `37065ec9b` |
+| 2026-07-22 15:32 | `20260722153233` | `close_authenticated_guest_identity_oracle` | `redesign/tm-stats-dashboard-rebuild` @ `66694e967` |
+
+**2026-07-22 — revoked `authenticated` EXECUTE on
+`public.resolve_import_guest_identity` (CONTRACTION; closes a SECOND, distinct
+oracle).** One statement, database-only. **No Worker deploy, no `wrangler`, no
+push was involved.**
+
+- **What it closed.** `public.resolve_import_guest_identity(uuid, text, text,
+  text, text, uuid, boolean)` is `SECURITY DEFINER`. With `p_create_new = false`
+  and `p_selected_player_id = null` its three outcomes were fully
+  distinguishable to any signed-in group member, and the miss path performed no
+  write: 0 candidates → `22023`, exactly 1 → success returning `player_id` and
+  `public_name`, >1 → `P0003`. That is a confirmation oracle over
+  `private.player_private_identities.normalized_personal_name` and
+  `normalized_guest_username`, and it violated the approved requirement that the
+  failure modes be indistinguishable to the caller.
+- **This is NOT the import matcher oracle.** The free-form enumeration oracle on
+  `public.match_import_player_names` remains **OPEN** behind the interim
+  coarsening above; its contraction `20260722012707` is still unapplied. The two
+  are separate surfaces and this change closes only the guest-identity one.
+- **Zero deployed callers, independently re-derived before applying.** Live
+  worker `178229f3-bfa4-4776-826a-e344daf23d72` (source `4dec49a42`) was
+  confirmed unchanged, and its tree contains **no** reference to the function in
+  any form — all 930 tracked files swept for the RPC name, camel-case wrapper
+  spellings, and the `guest_identity` substring, with
+  `match_import_player_names` located in the same tree as a **positive control**
+  so the empty result is a proven absence, not a broken search. The live-site
+  lineage never carried the guest-identity migrations at all. No function, view,
+  materialized view or trigger in the database references it; the only edge
+  function is a disabled 410 stub.
+- **Ledger-version drift.** Repo filename
+  `20260722153000_close_authenticated_guest_identity_oracle.sql`; the ledger
+  recorded **`20260722153233`**. Reconcile by migration *name*. Ledger went
+  112 → **113**, new entry at head.
+- **ACL before → after.**
+  `{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}` →
+  `{postgres=X/postgres,service_role=X/postgres}`. `anon` and PUBLIC held no
+  EXECUTE beforehand, so nothing was revoked for them, and nothing was granted.
+  `prosecdef`, `search_path=""` and the function body (`prosrc` md5
+  `2892f3189a15f04c35641473541fc5bd`, 7504 bytes) are unchanged.
+- **Nothing else moved — proven, not assumed.** Substituting only this
+  function's pre-image ACL back into the post-apply fingerprint of all 61
+  `public` functions reproduces the pre-apply hash
+  `7a47c9c0ad55fc661826814642a52472` exactly.
+  `match_import_player_names` and `list_import_player_identity_candidates`
+  retain their ACLs verbatim.
+- **Rollback is one statement:**
+  `grant execute on function public.resolve_import_guest_identity(uuid, text, text, text, text, uuid, boolean) to authenticated;`
+- **FORWARD DEPENDENCY — blocks any redesign deploy.**
+  `src/lib/db/import-player-identity-repo.ts:88`
+  (`createOrReuseGuestPlayerByPersonalName`) calls this RPC through
+  `createSupabaseServerClient()` — the **user-session** client. After this
+  revoke that path fails with **`42501`** if the redesign lineage is ever
+  deployed as-is. It must move to `createSupabaseAdminClient()`, the pattern the
+  same file already uses at lines 125/148/162/182 and the one the applied
+  source-bound gateways follow. Not deployed today, so nothing is broken now.
+  Handle as a separate change. See
+  `docs/agent-handoffs/GUEST-IDENTITY-ORACLE-REVOKE-APPLY.md`.
 
 **2026-07-22 — coarsened import name match reasons (INTERIM MITIGATION, NOT A
 CLOSURE).** Replaced the body of the live
@@ -168,11 +226,11 @@ a database-only change.
   canonical copy of this file lives on the live-site lineage (the newest
   `docs/*` deploy-record branch), not on
   `redesign/tm-stats-dashboard-rebuild`.
-  **Both database entries recorded in this file's "Production database changes"
-  section — `20260722132159` and `20260722144034` — are missing from the
-  canonical copy and must be carried across.** Reconciling the fork is a
-  separate task and was explicitly out of scope for the 07-22 14:40 apply; it
-  was recorded, not fixed.
+  **All three database entries recorded in this file's "Production database
+  changes" section — `20260722132159`, `20260722144034` and `20260722153233` —
+  are missing from the canonical copy and must be carried across.** Reconciling
+  the fork is a separate task and was explicitly out of scope for the 07-22
+  14:40 and 15:32 applies; it was recorded, not fixed.
 
 - **Grant `EXECUTE` on `private.normalize_guest_username` to `service_role`.**
   The new `user_profiles_normalized_username_key` functional index means index

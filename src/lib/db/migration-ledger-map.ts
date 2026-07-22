@@ -27,11 +27,11 @@
 export const PRODUCTION_LEDGER_ATTESTATION = {
   project: 'tm-stats (qjtwgrjjwnqafbvkkfex)',
   /** Date of the read-only attestation this snapshot reproduces. */
-  attestedOn: '2026-07-21',
+  attestedOn: '2026-07-22',
   /** Total ledger entries at attestation time. */
-  entryCount: 110,
-  headVersion: '20260721201734',
-  headName: 'harden_claim_rpc_privacy',
+  entryCount: 113,
+  headVersion: '20260722153233',
+  headName: 'close_authenticated_guest_identity_oracle',
   /**
    * The previous snapshot (earlier on 2026-07-21) held 108 entries with max
    * 20260721081355. The two entries above it were both applied from the
@@ -97,6 +97,16 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   // the #106 hardening whose file this branch now carries as 20260721173000
   // (APPLIED_UNDER_DIFFERENT_LEDGER_VERSION).
   '20260721193508', '20260721201734',
+  // Added on 2026-07-22 from this lineage, both under apply-time renames
+  // (APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME):
+  //   20260722132159 add_source_bound_import_identity_staging (file 20260722012658)
+  //   20260722144034 coarsen_import_name_match_reasons        (file 20260720120000)
+  // Both were applied and recorded in docs/agent-handoffs/ before this map was
+  // re-attested, so they are registered here rather than left as drift.
+  '20260722132159', '20260722144034',
+  // Revoked `authenticated` EXECUTE on public.resolve_import_guest_identity,
+  // closing the private-guest-name confirmation oracle. File 20260722153000.
+  '20260722153233',
 ];
 
 /**
@@ -140,6 +150,18 @@ export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION: Readonly<
   // The pairing is established by NAME — see
   // APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME.
   '20260721173000': '20260721201734',
+  // Owner-authorized 2026-07-22 expansion half of the source-bound import
+  // identity split. The apply tool stamped the UTC apply time (20260722132159)
+  // over the filename version (20260722012658). Pairing is by NAME.
+  '20260722012658': '20260722132159',
+  // Interim mitigation of the import name-match oracle, applied 2026-07-22
+  // after its own zero-caller gate. Stamped 20260722144034 over the filename
+  // version 20260720120000. Pairing is by NAME.
+  '20260720120000': '20260722144034',
+  // Owner-confirmed 2026-07-22 revoke of `authenticated` EXECUTE on
+  // public.resolve_import_guest_identity. Stamped 20260722153233 over the
+  // filename version 20260722153000. Pairing is by NAME.
+  '20260722153000': '20260722153233',
 };
 
 /**
@@ -172,6 +194,18 @@ export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME: Readonly<
   harden_claim_rpc_privacy: {
     fileVersion: '20260721173000',
     ledgerVersion: '20260721201734',
+  },
+  add_source_bound_import_identity_staging: {
+    fileVersion: '20260722012658',
+    ledgerVersion: '20260722132159',
+  },
+  coarsen_import_name_match_reasons: {
+    fileVersion: '20260720120000',
+    ledgerVersion: '20260722144034',
+  },
+  close_authenticated_guest_identity_oracle: {
+    fileVersion: '20260722153000',
+    ledgerVersion: '20260722153233',
   },
 };
 
@@ -209,12 +243,9 @@ export const GATED_UNAPPLIED: readonly string[] = [
   '20260719234500',
   '20260720100000',
   '20260720110000',
-  // Pairs with the live-site reader move off private personal-name columns.
-  // Must be applied only after a compatible reader is deployed and verified.
-  '20260720120000',
-  // Owner-approved source-bound replacement, deliberately split into an
-  // expansion and a later contraction. Neither file is production-applied.
-  '20260722012658',
+  // The contraction half of the owner-approved source-bound replacement. Its
+  // expansion half (20260722012658) is applied; this one is not, and retiring
+  // the free-form matcher still requires the deployed reader to move first.
   '20260722012707',
 ];
 
@@ -469,6 +500,12 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   '20260722012658': 'expansion', // add_source_bound_import_identity_staging
   // Revokes authenticated execution on the deployed free-form matcher.
   '20260722012707': 'contraction', // retire_free_form_import_name_matcher
+  // Revokes `authenticated` EXECUTE on the deployed SECURITY DEFINER function
+  // public.resolve_import_guest_identity, closing a private-guest-name
+  // confirmation oracle. It removes a surface `authenticated` held before the
+  // migration and restores no replacement, so it is a contraction even though
+  // the zero-caller sweep proved no deployed reader depends on it.
+  '20260722153000': 'contraction', // close_authenticated_guest_identity_oracle
   // B-05. Revokes only the PUBLIC pseudo-role grant (and anon on
   // claim_player_profiles_by_name) while granting explicit EXECUTE to
   // `authenticated` on all three claim RPCs. The revoked PUBLIC grant is the

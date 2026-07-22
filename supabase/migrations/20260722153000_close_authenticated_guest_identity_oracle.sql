@@ -1,0 +1,61 @@
+-- CONTRACTION. Authorized and applied to production on 2026-07-22 15:32 UTC,
+-- recorded in the ledger as version 20260722153233 (the apply tool stamped the
+-- UTC apply time over this filename version 20260722153000); the pairing is by
+-- NAME, per APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME.
+--
+-- The executable SQL below is byte-identical to what was applied. Only this
+-- `--` comment header differs: the statement recorded in the ledger carries an
+-- abridged version of it. No `comment on function` was issued, so exactly one
+-- statement mutated production.
+--
+-- Closes a private-guest-name confirmation oracle on the SECURITY DEFINER
+-- function public.resolve_import_guest_identity(uuid, text, text, text, text,
+-- uuid, boolean), which `authenticated` could execute directly.
+--
+-- With p_create_new = false and p_selected_player_id = null the function's
+-- outcomes are fully distinguishable to the caller, and the miss path performs
+-- no write:
+--
+--   0 candidates  -> 22023 'Confirm creation of the new guest identity.'
+--   exactly 1     -> success, returning player_id and public_name
+--   >1            -> P0003 'Multiple guest identities match.'
+--
+-- Any signed-in member of a group could therefore probe
+-- private.player_private_identities.normalized_personal_name and
+-- normalized_guest_username for existence, one guess at a time, without
+-- mutating anything. That also violates the approved requirement that the
+-- failure modes be indistinguishable to the caller.
+--
+-- Zero-caller evidence gathered immediately before this apply:
+--   * The deployed source tree -- Cloudflare worker
+--     178229f3-bfa4-4776-826a-e344daf23d72 for `terraforming-mars-stats`,
+--     built from commit 4dec49a42 -- contains no reference to this function in
+--     any form. All 930 tracked files were swept for the RPC name, for
+--     camel-case wrapper spellings, and for the `guest_identity` substring;
+--     `match_import_player_names` was found in the same tree as a positive
+--     control, so the empty result is a real absence and not a broken sweep.
+--   * No function, view, materialized view or trigger in the database
+--     references it (pg_proc.prosrc and pg_get_viewdef swept across all
+--     non-system schemas).
+--   * The project's only edge function, temporary-asset-uploader, is a
+--     two-line disabled stub returning 410.
+-- The revoke therefore strands no deployed reader.
+--
+-- `anon` and PUBLIC held no EXECUTE beforehand -- the pre-state ACL was
+-- {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} -- so
+-- neither needs a revoke here. `postgres` and `service_role` deliberately keep
+-- EXECUTE: server-side callers must reach this function through the
+-- service-role client, the same pattern the applied source-bound gateways use.
+--
+-- This closes an oracle distinct from the import name-matcher oracle on
+-- public.match_import_player_names, which remains OPEN behind the interim
+-- coarsening (ledger 20260722144034); its retirement is the still-unapplied
+-- gated contraction 20260722012707.
+--
+-- Rollback is a single statement:
+--   grant execute on function public.resolve_import_guest_identity(
+--     uuid, text, text, text, text, uuid, boolean) to authenticated;
+
+revoke execute on function public.resolve_import_guest_identity(
+  uuid, text, text, text, text, uuid, boolean
+) from authenticated;
