@@ -46,25 +46,103 @@ version→commit linkage.
 
 ## Current production
 
-**Re-derived live on 2026-07-22 during the fork reconciliation** — `npx wrangler
-deployments list` and a read-only query against
-`supabase_migrations.schema_migrations`. The worker rows below were already
-correct in copy A and are confirmed unchanged; the ledger row and the rollback
-row were stale and have been corrected.
+**Superseded 2026-07-22 19:26Z by the import candidate-input bounds release.**
+Every row below was re-derived live during that deploy (`npx wrangler
+deployments list`, a read-only `supabase_migrations.schema_migrations` query,
+and HTTP probes against `tm-stats.com`). The previous occupant of this table —
+worker `178229f3` @ `4dec49a42` — is now the rollback target.
 
 | | |
 |---|---|
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
-| Worker version | `178229f3-bfa4-4776-826a-e344daf23d72` — **re-confirmed live 2026-07-22 at 100% traffic** |
+| Worker version | `6ef56761-3c41-4c90-b83c-19db0060c048` — **confirmed live 2026-07-22 at 100% traffic** |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `fix/live-compare-data-remove-declared-style` (pushed to `origin`; `origin/…` confirmed to resolve to `4dec49a42` before the build) |
-| Source commit | `4dec49a423013b319a2904b35eb70396b1398800` — printed by the deploy-time stamp (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`), not inferred. **`wrangler` itself records `Source: Unknown (deployment)` for every version**, so this linkage rests on the build-time stamp and this ledger, not on anything Cloudflare stores. |
-| Deployed (UTC) | 2026-07-21 19:49:51.928Z (`wrangler deployments list`, 100% traffic) — **re-confirmed 2026-07-22; still the newest deployment, nothing has shipped since** |
-| Deploy lock | **Free as far as this record shows.** The prior holder (insights focus pending-feedback session, taken 2026-07-21 21:0x UTC for commit `540f27243`) never performed its deploy — see "Pending release" below — and left the row explicitly reassignable. The 2026-07-22 reconciliation did not deploy and did not take the lock; it could not verify whether any live session holds it. Take it by editing this row. |
-| Active clean deployment worktree | `C:\tmp\tm-live-compare-data` — clean at `4dec49a42`, real `node_modules`, `.next`/`.open-next` cleared before the build |
-| DB migration ledger head | **`20260722153233 close_authenticated_guest_identity_oracle`**, **113 entries** — both re-derived live 2026-07-22. Three database-only changes have landed since this worker deployed; see "Production database changes since the current deploy" immediately below. **No application deploy accompanied any of them**, so every worker/source/traffic row above is unaffected. Gated migration `20260722012707 retire_free_form_import_name_matcher` remains **absent** from the ledger. |
-| Rollback worker version | `2ee56485-dc7b-4074-b6ce-db82061d91ae` (immediately prior production version, 100% traffic 2026-07-21T16:37:11.457Z through this deploy). **Its source commit is now known** — `7ffc9961ff4ba599ff0b800c4ea8ef83664ad289` on `release/corporation-banner-logos`, recovered from copy B during this reconciliation; see "Corporation banner-logo release" below. The earlier warning that this was an unidentified deploy is resolved. **But note the rollback is no longer schema-neutral**: three migrations have been applied since, so rolling the worker back does not roll the database back. |
-| Verified | 2026-07-21 19:5x UTC — see "Insights Overall joint release" below. **Still not authenticated-verified**; the `/api/deploy-info` gap called out there is open. |
+| Source branch | `fix/live-compare-data-remove-declared-style` — **NOT PUSHED. See "Source is local-only" below; this is the single largest risk carried by this release.** |
+| Source commit | `d12e33ad09e976ec5779a6f0d79b621846912964` — printed by the deploy-time stamp (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`), not inferred. **`wrangler` itself records `Source: Unknown (deployment)` for every version.** Unlike every prior row in this file, this linkage does **not** rest on the stamp and this ledger alone — it was independently corroborated by a served-asset probe; see "Commit linkage evidence" below. |
+| Deployed (UTC) | 2026-07-22 19:26:59.159Z (version created 19:26:57.040Z; `wrangler deployments list`, 100% traffic) |
+| Deploy lock | **Free.** Taken by this session at 2026-07-22 ~19:2xZ for `d12e33ad0`, deploy completed, released on writing this row. Take it by editing this row. |
+| Active clean deployment worktree | `C:\tmp\tm-live-compare-data` — clean at `d12e33ad0`, real `node_modules`, no orphaned `workerd`, `.open-next` absent before the build |
+| DB migration ledger head | **`20260722153233 close_authenticated_guest_identity_oracle`**, **113 entries** — re-derived live immediately before this deploy and **unchanged by it**. This release applied **no migration and no DDL, and granted and revoked nothing**. Gated migration `20260722012707 retire_free_form_import_name_matcher` remains **absent** from the ledger and unapplied. |
+| Rollback worker version | **`178229f3-bfa4-4776-826a-e344daf23d72`** — the immediately prior production version @ `4dec49a42`, 100% traffic 2026-07-21T19:49:51.928Z until this deploy. Command: `npx wrangler rollback 178229f3-bfa4-4776-826a-e344daf23d72 --name terraforming-mars-stats`. **This rollback IS schema-neutral**: no migration accompanied this release, so the database is identical either side of it. |
+| Verified | 2026-07-22 19:2xZ — new version at 100%; `/api/deploy-info` → `401 {"error":"Authentication required."}` (route served); `tm-stats.com` → `200`, `www.tm-stats.com` → `200`; served CSS byte-identical to the local artifact. **Not authenticated-verified** — the signed-in `/api/deploy-info` `sourceCommit` read remains open, and the two owner smoke tests below are **not yet run**. |
+
+## Import candidate-input bounds release — 2026-07-22 19:26Z (current)
+
+Deployed from `C:\tmp\tm-live-compare-data`, clean at `d12e33ad0`, via
+`TM_STATS_SOURCE_BRANCH=fix/live-compare-data-remove-declared-style npm run deploy`
+so the `predeploy` schema gate and the commit stamper both ran. Exit code 0.
+
+**What shipped.** `d12e33ad0` is a merge (`910a7c24d` + `7e401eccc`). The full
+range `4dec49a42..d12e33ad0` is seven commits — enumerated before deploying,
+nothing outside it:
+
+| Commit | Class | Content |
+|---|---|---|
+| `d12e33ad0` | merge | merge of `fix/import-candidate-input-bounds` |
+| `7e401eccc` | **code — the (d+3) change** | 16 files: per-channel candidate-name bound of 5 with a matcher backstop of 10; over-limit now **throws** instead of silently truncating; every matcher invocation logged with **counts and ids only** — never names, labels, or error text |
+| `910a7c24d` | docs | `DEPLOY-STATE.md` only |
+| `83dd8ce14` | docs | `DEPLOY-STATE.md` only |
+| `f84cc56ac` | docs | `DEPLOY-STATE.md` only |
+| `540f27243` | **code — insights only** | `globals.css` + `insights-dashboard.tsx`; the long-pending release recorded below finally ships with this one |
+| `c1d18f32d` | docs | `DEPLOY-STATE.md` only |
+
+`540f27243`'s 982-line diff is re-indentation: `git show -w` measures **69
+insertions / 10 deletions** — two CSS classes and a `useTransition` wrap.
+`insights-dashboard` is imported only by `insights/insights-page.tsx` and two
+test files, so it cannot reach the import path.
+
+**Validation before the gate — all passed, none bypassed.**
+
+- `npx tsc --noEmit` — clean, exit 0.
+- `npx vitest run --no-file-parallelism` — **1089 passed, 8 failed in 5 files**
+  (`group/page.test.tsx`, `auth/callback/route.test.ts`,
+  `auth/reset-pin/page.test.tsx`, `global-loss-cards-section.test.ts`,
+  `env.test.ts`). **Identical to the recorded baseline** for `540f27243` below
+  — same five files, same eight failures. Passing count rose 1051 → 1089, the
+  delta being the new (d+3) tests. **No new failure.** Not reproduced at the
+  merge base: that needs a checkout this session was not authorized to perform,
+  so it rests on the recorded baseline plus the import-graph argument above.
+- `npm run lint` — 8 warnings, 0 errors, **none in any file this range touches**.
+- `npm run build` — succeeded.
+- `npm run check:schema` — **`Schema OK: all 51 referenced tables exist`** (14
+  dynamic `.from(variable)` sites not statically checkable, as always). The
+  predeploy hook ran it a second time inside `npm run deploy`.
+
+**Commit linkage evidence — stronger than any prior row in this file.** The
+`/api/deploy-info` endpoint returned `401` unauthenticated, which proves the
+route is served but not which commit built it. The linkage was instead pinned
+without credentials: `540f27243` introduced `.tm-pending-banner` and
+`.tm-pending-content`, which existed at no earlier commit. Production serves
+`/_next/static/css/ad151738c23c83ab.css`, both classes present, and that file
+is **byte-identical (`cmp`) to `.open-next/assets/_next/static/css/ad151738c23c83ab.css`**
+in the worktree that just built `d12e33ad0`. Production is serving this exact
+artifact.
+
+**Source is local-only — the open risk.** The operator confirmed the deploy but
+did not answer the push question, and silence was not treated as approval, so
+**`origin` is still at `83dd8ce14`** and the branch is 3 commits ahead. The two
+code-bearing commits in that gap — `7e401eccc` (the entire d+3 change) and the
+merge `d12e33ad0` — **exist only on this machine.** There is no
+`fix/import-candidate-input-bounds` branch on `origin` either. If this disk is
+lost, production is running code that cannot be recovered or rolled forward
+from. **Pushing this branch is the next action anyone touching this should
+take.**
+
+**Owner smoke tests — NOT YET RUN.** Both paths call the same bounded matcher
+wrapper and both must be exercised on the live site:
+
+1. **Import path** — an import through Analyze and the review screen. Confirm
+   player matching resolves the same players, and that a normal-sized game is
+   **not rejected** by the new bounds (over-limit now throws rather than
+   truncating).
+2. **Manual-entry path** — log a game via `/log-game/review` with a typed player
+   name and confirm resolution still works. A regression here does **not** error
+   visibly; it silently creates **duplicate roster players**, so it must be
+   checked deliberately rather than assumed from the import path passing.
+
+**Scope of the import enumeration oracle.** This release **narrows** it — it
+does not close it. `20260722012707 retire_free_form_import_name_matcher`
+remains gated and unapplied.
 
 **Evidence for the `08f9191f` source commit — historical, retained.** This
 paragraph documents the **04:21Z `08f9191f` deploy**, not the `4dec49a42`
@@ -1029,7 +1107,20 @@ verified:**
   matching, and tile attribution against real production traffic is not yet
   independently observed by this session.
 
-## Pending release — insights focus pending feedback (2026-07-21) — NOT DEPLOYED
+## Insights focus pending feedback (2026-07-21) — NO LONGER PENDING, SHIPPED 2026-07-22
+
+> **Resolved.** `540f27243` shipped to production on 2026-07-22 at 19:26Z as
+> part of worker `6ef56761` @ `d12e33ad0` — it was carried along in the range
+> below the import candidate-input bounds change, not deployed on its own. See
+> "Import candidate-input bounds release" near the top of this file. The
+> section below is retained as the historical record of why it sat undeployed
+> for a day, and its test baseline is what the 2026-07-22 release compared
+> against. **The paragraph immediately following is now out of date** — it was
+> accurate when written.
+>
+> Its "never been seen rendered" caveat still stands: the spinner, banner and
+> dimmed state have now been deployed but still have not been watched on a real
+> focus change by anyone.
 
 Frontend only, no migration, no schema dependency. **Committed, pushed and
 verified; the production deploy was never run.** Production is still on
@@ -1131,6 +1222,21 @@ Do **not** deploy from:
 
 Newest and highest-consequence first. The four items added on 2026-07-22 came
 in with copies C and D during the fork reconciliation.
+
+- **PRODUCTION IS RUNNING UNPUSHED CODE.** Worker `6ef56761` was built from
+  `d12e33ad0`, and that commit plus `7e401eccc` (the whole d+3 change) exist
+  **only** in `C:\tmp\tm-live-compare-data` on the owner's machine. `origin` is
+  at `83dd8ce14`. The operator confirmed the deploy but did not approve the
+  push, so it was not performed. **Push
+  `fix/live-compare-data-remove-declared-style` to `origin`** — until then the
+  running production build is unrecoverable from the remote and cannot be
+  rolled forward by anyone else.
+
+- **THE TWO SMOKE TESTS FOR `6ef56761` HAVE NOT BEEN RUN.** The import path and
+  the manual-entry path at `/log-game/review` both call the newly bounded
+  matcher wrapper. The manual-entry regression mode is silent — duplicate
+  roster players, no error. Neither has been exercised on the live site. See
+  the release section near the top of this file.
 
 - **THE IMPORT ENUMERATION ORACLE IS STILL OPEN.** The 2026-07-22 coarsening
   (`20260722144034`) was an **interim mitigation and independent review found it
