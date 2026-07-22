@@ -24,20 +24,33 @@ version→commit linkage.
 > | **D** | `redesign/tm-stats-dashboard-rebuild` (296 lines) | `c23bfbd7` (6 stale) | the three 07-22 database changes |
 > | **E** | untracked file in the `Terraforming Mars` checkout (106 lines) | `eb4e5821`, commit **UNKNOWN** (12 stale) | nothing — it was the oldest and held no unique fact |
 >
-> **Where this file now lives.** The working copy is
-> `C:\Users\izzyh\Documents\Terraforming Mars\DEPLOY-STATE.md` — the checkout
-> the owner reads. The tracked authoritative copy is committed on
-> `fix/live-compare-data-remove-declared-style`, the production lineage, and any
-> session can read it without a checkout:
+> **Where this file now lives.** *(Corrected 2026-07-22; the superseded wording
+> is preserved at the end of this block.)* The one place to read this ledger,
+> and the one place to append to it, is the tracked copy committed on
+> `fix/live-compare-data-remove-declared-style`, the production lineage. No
+> checkout is needed:
 >
 > ```
 > git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md
 > ```
 >
-> **B, C and D have been replaced by pointer stubs** holding no production
-> facts, so they cannot go stale again. If you find any other copy of this file
-> asserting a worker version, it is stale by construction — do not act on it,
-> and replace it with a stub.
+> **Every filesystem copy is now a factless pointer stub** — B, C, D **and** the
+> untracked E at `C:\Users\izzyh\Documents\Terraforming Mars\DEPLOY-STATE.md`.
+> None holds a worker version, commit, migration version, or deploy date, so
+> none can go stale again. If you find any other copy of this file asserting a
+> production fact, it is stale by construction — do not act on it, and replace
+> it with a stub.
+>
+> *The original wording, and why it was false.* It read: "The working copy is
+> `C:\Users\izzyh\Documents\Terraforming Mars\DEPLOY-STATE.md` — the checkout
+> the owner reads. The tracked authoritative copy is committed on
+> `fix/live-compare-data-remove-declared-style` …". The first sentence was
+> already untrue when written. The same reconciliation that produced this file
+> replaced that untracked copy with a 50-line pointer stub and stopped the
+> planning-pack updater from reading it. Re-derived 2026-07-22 by reading the
+> file directly: it opens "Deploy state — moved", states it is not the ledger,
+> and contains no production fact. Sending a reader there is the exact failure
+> mode this block exists to prevent.
 >
 > **Never fork this file again.** Append to this copy, commit it on the
 > production lineage, and re-derive production facts live (`wrangler
@@ -1236,14 +1249,38 @@ Do **not** deploy from:
 Newest and highest-consequence first. The four items added on 2026-07-22 came
 in with copies C and D during the fork reconciliation.
 
-- **PRODUCTION IS RUNNING UNPUSHED CODE.** Worker `6ef56761` was built from
-  `d12e33ad0`, and that commit plus `7e401eccc` (the whole d+3 change) exist
-  **only** in `C:\tmp\tm-live-compare-data` on the owner's machine. `origin` is
-  at `83dd8ce14`. The operator confirmed the deploy but did not approve the
-  push, so it was not performed. **Push
-  `fix/live-compare-data-remove-declared-style` to `origin`** — until then the
-  running production build is unrecoverable from the remote and cannot be
-  rolled forward by anyone else.
+- **~~PRODUCTION IS RUNNING UNPUSHED CODE~~ — RESOLVED 2026-07-22.** The branch
+  is pushed and the deployed source is recoverable from `origin`. Re-derived
+  from local Git refs only; no production system was contacted:
+
+  | Check | Result |
+  |---|---|
+  | `git rev-parse fix/live-compare-data-remove-declared-style` | `c58416e4f05902787f09f5035bb4cf4a27f8b8eb` |
+  | `git rev-parse origin/fix/live-compare-data-remove-declared-style` | `c58416e4f05902787f09f5035bb4cf4a27f8b8eb` — identical |
+  | `git rev-list <branch> --not --remotes` | empty — nothing unpushed |
+  | `git rev-list --left-right --count <branch>...origin/<branch>` | `0  0` |
+  | `d12e33ad0` (the deployed merge) on origin | yes |
+  | `7e401eccc` (the d+3 change) on origin | yes |
+  | `83dd8ce14` (the tip this bullet named as origin) on origin | yes — origin has advanced past it |
+
+  This duplicated the already-resolved note in the release section above
+  ("Source is local-only — RESOLVED 2026-07-22") and contradicted the
+  **Source branch** row of the Current production table, which records the
+  branch as pushed. It was left behind when that row was corrected.
+
+  *Original text, retained as history:* "**PRODUCTION IS RUNNING UNPUSHED
+  CODE.** Worker `6ef56761` was built from `d12e33ad0`, and that commit plus
+  `7e401eccc` (the whole d+3 change) exist **only** in
+  `C:\tmp\tm-live-compare-data` on the owner's machine. `origin` is at
+  `83dd8ce14`. The operator confirmed the deploy but did not approve the push,
+  so it was not performed. **Push `fix/live-compare-data-remove-declared-style`
+  to `origin`** — until then the running production build is unrecoverable from
+  the remote and cannot be rolled forward by anyone else." That was true when
+  written. The push has since been performed; **no push was performed by the
+  documentation session that resolved this bullet.**
+
+  One detail from it still holds: the operator's approval is required for a
+  push, and none of the branches this ledger names may be pushed without it.
 
 - **THE TWO SMOKE TESTS FOR `6ef56761` HAVE NOT BEEN RUN.** The import path and
   the manual-entry path at `/log-game/review` both call the newly bounded
