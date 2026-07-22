@@ -25,12 +25,11 @@ out:
 git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md
 ```
 
-That Git object is the only canonical copy. The file at
-`C:\Users\izzyh\Documents\Terraforming Mars\DEPLOY-STATE.md` is **not** a
-synchronized mirror of it and is now a pointer stub too. It was left behind at
-the 2026-07-22 reconciliation, no deploy session refreshed it, and the planning
-pack published that stale cache until the updater was changed to read the Git
-ref directly.
+The file at
+`C:\Users\izzyh\Documents\Terraforming Mars\DEPLOY-STATE.md`
+is also a factless pointer. The authoritative factual content exists only in
+the tracked `DEPLOY-STATE.md` on
+`fix/live-compare-data-remove-declared-style` and must be read with `git show`.
 
 ## If you need to record a deploy or a migration
 
