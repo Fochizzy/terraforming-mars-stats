@@ -1242,3 +1242,86 @@ authorize implementation.
   the current-quarter ELO ladder (the live race); the year ladder is available
   as a secondary view/toggle. Exact toggle placement and the user-facing
   methodology / last-refresh copy are display details deferred to implementation.
+
+
+## Phase 4 Step 4.3 - Import identity classification and source-bound matching
+
+Decided by explicit owner decision on 2026-07-21, in response to a confirmed live
+private-name enumeration oracle in the deployed RPC
+public.match_import_player_names(uuid, text[]). Defines the design; does not
+authorize implementation or any production change.
+
+- Identity classification. Each imported player is classified as exactly one of
+  `username`, `personal_name`, or `existing_player`. `personal_name` requires BOTH
+  first and last name; `username` requires exactly one valid normalized username.
+
+- Exact relationship to the log. The parsed log's player name text is the source
+  evidence. The server must prove the submitted identity matches it exactly:
+  username mode matches the normalized log text; personal-name mode may match the
+  first name, the last name, or the combined full name. No substring, prefix,
+  fuzzy, or similarity matching. A first-only or last-only
+
+cd "C:\Users\izzyh\Documents\Terraforming Mars Redesign"
+
+if (git rev-parse -q --verify MERGE_HEAD 2>$null) { Write-Host "STOP: merge in progress." -ForegroundColor Red; return }
+if ((git branch --show-current) -ne "redesign/tm-stats-dashboard-rebuild") { Write-Host "STOP: not on redesign branch." -ForegroundColor Red; return }
+
+$entry = @'
+
+
+## Phase 4 Step 4.3 - Import identity classification and source-bound matching
+
+Decided by explicit owner decision on 2026-07-21, in response to a confirmed live
+private-name enumeration oracle in the deployed RPC
+public.match_import_player_names(uuid, text[]). Defines the design; does not
+authorize implementation or any production change.
+
+- Identity classification. Each imported player is classified as exactly one of
+  `username`, `personal_name`, or `existing_player`. `personal_name` requires BOTH
+  first and last name; `username` requires exactly one valid normalized username.
+
+- Exact relationship to the log. The parsed log's player name text is the source
+  evidence. The server must prove the submitted identity matches it exactly:
+  username mode matches the normalized log text; personal-name mode may match the
+  first name, the last name, or the combined full name. No substring, prefix,
+  fuzzy, or similarity matching. A first-only or last-only match is insufficient
+  for automatic resolution and requires explicit selection.
+
+- Candidate presentation. Existing players are shown with public or neutral labels
+  only. Permitted distinguishing information is limited to finalized games in the
+  active group, games shared with the signed-in player, and linked/unlinked status.
+  Personal names are never assumed unique; multiple matches remain ambiguous and
+  require explicit selection.
+
+- Username uniqueness. Registered usernames are globally unique after
+  normalization; guest usernames are unique within the active group after
+  normalization; personal names are indexed for matching but never unique. Whether
+  these are enforced in the database (not only in application code) requires
+  independent verification.
+
+- Server-only matcher boundary. Authenticated access to the free-form matcher is
+  retired. The replacement accepts parser-derived evidence plus structured identity
+  fields, never an arbitrary array of candidate names, and is callable server-side
+  only. It returns only a uniform outcome from `resolved`, `ambiguous`,
+  `unresolved`, `invalid_source_match`, `unavailable`, and never returns match
+  reasons, scores, normalized names, or alias texts. Failure modes must be
+  indistinguishable to the caller.
+
+- Save-time revalidation. On save the server re-parses the original log and
+  rechecks group authorization, the exact source-text match, username uniqueness,
+  candidate eligibility, and distinct player IDs, taking the row lock before
+  judging eligibility. The selected player ID and private import evidence are
+  preserved.
+
+- Migration 20260720120000_coarsen_import_name_match_reasons is INSUFFICIENT as a
+  closure. Independent review confirmed it hides which private field matched but
+  still confirms that a caller-supplied private name belongs to a real identity. It
+  must not be applied on the belief that it closes the oracle.
+
+- Registration-time claiming (identifying a prior co-player, with a verified shared
+  finalized game, and uniform responses for zero/multiple/invalid combinations) is
+  approved as design direction and is separate future work. Not authorized here.
+
+- Release gate. No production migration, deployment, or revocation. Design and
+  disposable-PostgreSQL proof first, then a fresh independent read-only review
+  returning PASS, then separate authorization under an expand/contract sequence.
