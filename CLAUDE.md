@@ -13,6 +13,23 @@ Also read:
 - `docs/redesign/DECISIONS.md`
 - The latest relevant handoff in `docs/agent-handoffs/`
 
+## Claude Project master context
+
+For the external Claude Project, read the permanent native Google Doc
+`TM PROJECT MASTER CONTEXT` first. Its contract is
+`docs/redesign/CLAUDE-PROJECT-CONTEXT.md`. The updater embeds the canonical
+current state, detected current phase, declared active handoff group, and a
+newest-handoff freshness backstop into the same stable Google Drive file ID.
+
+The generated document is an orientation copy only. It does not replace the
+canonical repository files, change their authority, or authorize another
+phase, substep, production action, deployment, push, or migration. Local Claude
+Code work must still read the canonical files listed here.
+
+Maintain the first contiguous bullet group under
+`docs/REDESIGN_STATE.md` -> `## Latest handoff` as the complete active
+handoff set. A blank line separates it from historical handoffs.
+
 ## Required workflow
 
 1. Inspect the existing implementation.

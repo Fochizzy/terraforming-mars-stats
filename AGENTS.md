@@ -12,6 +12,23 @@ Before editing, read:
 
 Do not implement unrelated phases.
 
+## Claude Project master context
+
+The external Claude Project uses one permanent native Google Doc named
+`TM PROJECT MASTER CONTEXT` as its first-read orientation page. The local
+planning-pack updater regenerates that document from the canonical repository
+sources defined in `docs/redesign/CLAUDE-PROJECT-CONTEXT.md` and updates the
+same Google Drive file ID.
+
+This generated page is navigation and aggregation only. It does not replace the
+required canonical reading above, change document authority, or authorize wider
+scope. Local agents must continue reading the repository files directly.
+
+When updating `docs/REDESIGN_STATE.md`, keep every handoff required for the
+current work in the first contiguous bullet group under `## Latest handoff`.
+The generator embeds that entire group and fails closed on missing or malformed
+entries. Older handoffs may remain after a blank line.
+
 ## Project architecture
 
 - Next.js App Router

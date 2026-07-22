@@ -70,6 +70,29 @@ These must remain distinct from:
 - Run tests before handoff.
 - Commit before switching agents.
 
+## Claude Project context delivery
+
+- The permanent native Google Doc `TM PROJECT MASTER CONTEXT` is the required
+  first-read orientation page for the external Claude Project.
+- Its canonical generation contract is
+  `docs/redesign/CLAUDE-PROJECT-CONTEXT.md`.
+- It embeds the current state, the phase detected from that state, every handoff
+  in the first contiguous list under `REDESIGN_STATE.md` -> `Latest handoff`,
+  and the newest repository handoff when needed as a freshness backstop.
+- The generated page is navigation and aggregation only. It never replaces a
+  canonical source, changes authority, or grants scope, production, migration,
+  deploy, push, or next-substep permission.
+- Local agents must read canonical files directly. External assistants must
+  follow the canonical authority order and flag any generated/canonical
+  conflict as stale generated context.
+- Future state updates must keep the first `Latest handoff` list complete for
+  the active work. A blank line ends that active group; older historical
+  handoffs may follow separately.
+- Generation must fail closed on a missing current phase, missing or malformed
+  active-handoff declaration, duplicate active handoff, or missing source file.
+- Generation must be deterministic and update the same Google Doc ID only when
+  source content changes.
+
 <!-- BEGIN GUEST-IDENTITY-PRIVACY-RULES -->
 
 ## Guest player identity and claimed-name privacy

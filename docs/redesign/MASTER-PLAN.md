@@ -39,6 +39,22 @@ When instructions conflict, use this authority order:
 
 This file is a working companion to the Word master guide. It should summarize and operationalize approved decisions without silently replacing higher-authority sources.
 
+### Claude Project orientation surface
+
+The external Claude Project uses one permanent native Google Doc named
+`TM PROJECT MASTER CONTEXT` as its first-read orientation surface. The local
+planning-pack updater generates it from canonical repository content and
+updates the same Google Drive file ID. It includes the context contract, full
+current state, detected current phase, the complete active handoff group
+declared in state, and a newest-handoff freshness backstop.
+
+This generated page is not an additional authority level. It does not replace
+the sources in the authority order above and never grants scope or release
+permission. Local agents still read canonical files directly. The durable
+generation and maintenance rules are in
+`docs/redesign/CLAUDE-PROJECT-CONTEXT.md`, `MASTER-RULES.md`, and
+`DECISIONS.md`.
+
 ### Scope rule
 
 For every task:
@@ -1161,6 +1177,11 @@ Before Step 2.2 specifically, confirm:
 - `AGENTS.md`
 - `CLAUDE.md`
 
+### Claude Project context delivery
+
+- `docs/redesign/CLAUDE-PROJECT-CONTEXT.md`
+- generated native Google Doc: `TM PROJECT MASTER CONTEXT`
+
 ### Project state
 
 - `docs/REDESIGN_STATE.md`
@@ -1379,7 +1400,7 @@ Update these fields whenever this file changes materially:
 
 ## 28. Current Maintenance Header
 
-- **Last updated:** 2026-07-21
+- **Last updated:** 2026-07-22
 - **Current phase:** Phase 4 - Log a Game (active)
 - **Current substep:** Step 4.3 - Import Validation, Evidence, and Claimable
   Guest Identity (**BLOCKED, not closed**). WS1 Layer A, the ledger #106

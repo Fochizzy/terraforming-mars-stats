@@ -114,6 +114,21 @@ and is its immediate pre-commit parent. No production access was part of that
 reconciliation; its findings are the pre-remediation state reconciliation
 below.
 
+### Claude Project master context automation (2026-07-22)
+
+The external Claude Project now has one permanent first-read orientation source:
+the native Google Doc `TM PROJECT MASTER CONTEXT`. The existing local planning-
+pack updater deterministically regenerates it and updates the same Drive file
+ID. It embeds the canonical context contract, this full state file, the phase
+file detected from `Current substep`, every handoff in the first contiguous
+group under `Latest handoff`, and the newest repository handoff when it is not
+already declared active.
+
+This is context delivery only. It does not change the current Phase 4, Step 4.3
+status, authorize Step 4.4, or grant any production, migration, deploy, or push
+permission. Canonical sources retain their documented authority. Contract:
+`docs/redesign/CLAUDE-PROJECT-CONTEXT.md`.
+
 ### Historical STOP before implementation (2026-07-21)
 
 Codex - Phase 4, Step 4.3 source-bound import identity matching
@@ -1268,6 +1283,8 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/GUEST-IDENTITY-ORACLE-REVOKE-APPLY.md
+  (latest production apply record; guest resolver authenticated EXECUTE revoked)
 - docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-MATCHING-REGRESSION-REMEDIATION.md
   (review blocker remediated in place; still stopped at the release boundary)
 - docs/agent-handoffs/PHASE-04-STEP-03-IMPORT-IDENTITY-SOURCE-BOUND-MATCHING-IMPLEMENTED-LOCAL.md
@@ -1294,6 +1311,11 @@ a linked or production database.
 - docs/agent-handoffs/CORPORATION-LOGO-ASSET-REPLACEMENT-AND-REMAPPING.md
   (separately authorized production asset task, post-2.5)
 - docs/agent-handoffs/PHASE-02-STEP-05-analytics-repository-query-contracts.md
+
+## Context-delivery handoff
+
+- docs/agent-handoffs/CLAUDE-PROJECT-MASTER-CONTEXT-AUTOMATION.md
+  (stable generated master context and Google Drive synchronization contract)
 
 ## Production Supabase mutation record
 

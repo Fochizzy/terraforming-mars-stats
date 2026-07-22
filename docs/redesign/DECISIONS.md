@@ -1349,3 +1349,34 @@ Defines the design; does not authorize implementation.
 - Independent of this amendment: revoking authenticated EXECUTE on
   resolve_import_guest_identity is pure tightening, requires no amendment, and should
   proceed regardless.
+
+
+## Project-wide - generated Claude Project master context
+
+Approved by the user's explicit context-maintenance request on 2026-07-22.
+
+- **One permanent orientation document.** The external Claude Project uses one
+  native Google Doc titled `TM PROJECT MASTER CONTEXT`. It is added once and
+  updated in place under the same Google Drive file ID by the existing local
+  planning-pack updater.
+- **Canonical inputs, not copied summaries.** Each run embeds the full context
+  contract, `docs/REDESIGN_STATE.md`, the current phase file detected from the
+  state's `Current substep`, and every handoff in the first contiguous group
+  under `Latest handoff`. The newest repository handoff is added as a freshness
+  backstop when it is outside that declared group.
+- **State owns active handoff membership.** Future agents already updating
+  project state must maintain that first handoff group as the complete active
+  set. The first blank line ends the group and separates older history.
+- **No authority promotion.** The generated page is a navigation and
+  aggregation copy. It never replaces canonical files, changes their authority,
+  or grants permission for a phase, substep, production mutation, migration,
+  deploy, push, or unrelated work. Local agents still read canonical sources.
+- **Fail closed and remain stable.** Missing, empty, malformed, duplicate, or
+  nonexistent active sources stop generation. A content fingerprint, rather
+  than a run timestamp, keeps unchanged snapshots unchanged. Source changes
+  replace the existing Google Doc content without changing its ID.
+- **External refresh boundary.** The updater guarantees the Google Drive
+  document's content and stable identity. Claude controls when it refreshes a
+  linked Drive source, so no automatic-ingestion timing is claimed.
+
+The full contract is `docs/redesign/CLAUDE-PROJECT-CONTEXT.md`.
