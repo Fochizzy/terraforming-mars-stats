@@ -72,6 +72,21 @@ Before claiming a completed redesign task:
    with the reason; do not claim Google Drive is current.
 9. Verify the updater result and Drive structure from its local summary/log.
 
+Step 8 is additionally hook-enforced. A `PostToolUse`/`Bash` hook gated on
+`Bash(git commit *)` and `Bash(git merge *)`
+(`.claude/hooks/sync-planning-pack.ps1`, registered in `.claude/settings.json`)
+runs the same updater automatically after a commit or merge that changes a
+planning-pack source, deriving that source set from
+`docs/redesign/CLAUDE-PROJECT-SOURCES.json`. It runs the updater only from the
+tree the updater actually reads (the primary redesign checkout); from any other
+worktree it reports synchronization PENDING and does not sync. The hook is an
+enforcement aid, not a replacement: it can be disabled, absent from a checkout,
+awaiting user approval, or firing from a worktree the updater does not read, so
+this written step 8 remains authoritative and you must still run or explicitly
+defer the updater yourself when the hook does not sync. See
+`docs/redesign/DECISIONS.md` -> "Project-wide - post-commit planning-pack
+synchronization is hook-enforced".
+
 The final post-commit synchronization receipt belongs in the updater's local
 log and the task report. Do not edit a canonical document solely to record that
 receipt, because doing so would create a new unsynchronized source change.

@@ -1403,3 +1403,82 @@ Approved by the user's explicit context-maintenance request on 2026-07-22.
   linked Drive source, so no automatic-ingestion timing is claimed.
 
 The full contract is `docs/redesign/CLAUDE-PROJECT-CONTEXT.md`.
+
+## Project-wide - post-commit planning-pack synchronization is hook-enforced
+
+Approved 2026-07-22 as local tooling and governance. Not Phase 4 work; changes
+no phase, blocker, release, migration, or production state.
+
+- **The gate is now enforced, not just written.** CLAUDE.md workflow step 8
+  ("after the commit, run the planning-pack updater") previously relied on an
+  agent remembering to run it. A deterministic repository hook
+  (`.claude/hooks/sync-planning-pack.ps1`, registered in the committed
+  `.claude/settings.json` on `PostToolUse` / matcher `Bash`, via handlers gated
+  on `Bash(git commit *)` and `Bash(git merge *)`) now runs the same existing,
+  already-authorized updater automatically — and only from the tree the updater
+  actually reads (see the 2026-07-22 amendment below) — after a commit or merge
+  that changes a planning-pack source. The hook triggers the documented updater;
+  it grants no new phase, production, migration, deploy, push, or next-step
+  authority.
+- **The watch set is derived from the catalog, never duplicated.** The hook
+  decides pack-relevance at runtime from
+  `docs/redesign/CLAUDE-PROJECT-SOURCES.json`: every `documents[].path`, the
+  configured phase-file range (`phaseDocuments.directory` with two-digit
+  prefixes inside `[first,last]`), and any file under `docs/agent-handoffs/`. No
+  planning-pack document filename is hard-coded in the hook, consistent with the
+  decision above that the pack document count is derived rather than hard-coded.
+  An unreadable or unparseable catalog is treated as a pack-relevant change
+  rather than silently skipped.
+- **Safe, idempotent triggering.** The hook is inert outside the redesign
+  repository; is a no-op when HEAD did not advance (failed commit, no-op turn,
+  repeat fire); records the last-synced commit in the git-ignored per-worktree
+  marker `.claude/.pack-last-sync`; advances that marker only on a no-op or a
+  successful updater run; and leaves it unchanged when the updater fails or is
+  unavailable. A missing updater reports synchronization pending and never claims
+  Drive is current. The hook always exits 0 and adds no lock of its own, because
+  the existing updater already handles concurrent-run locking.
+- **Project scope on purpose.** The registration lives in the committed
+  `.claude/settings.json` (not `settings.local.json`) so the hook is present in
+  the isolated worktrees where this project's implementation work happens. The
+  updater reference stays `%USERPROFILE%`-relative so nothing machine-specific is
+  committed.
+- **Trigger and scope changes need authorization.** Adding an edit-based trigger,
+  a scheduled task or service, or adding or retiring a
+  `CLAUDE-PROJECT-SOURCES.json` entry all require new owner authorization and are
+  out of scope here. (The 2026-07-22 amendment's `git merge` handler is within
+  the same commit-family purpose — a merge produces a commit — not a new trigger
+  class.)
+
+**Amended 2026-07-22 (same branch, second commit; the first commit was not
+rewritten).** Review of the first commit surfaced two defects, now fixed, plus
+one hardening change:
+
+- **Tree-identity gate (correctness).** The updater resolves every source under a
+  fixed root (its `ROOT` in `update_planning_pack.py`), so it only ever reads one
+  specific worktree. The first hook invoked the updater and advanced the marker
+  from whatever tree fired it; a worktree commit therefore made the updater read
+  a tree *without* that commit, report success, and record a false sync. The hook
+  now runs the updater only when the current tree IS the updater's tree, read at
+  runtime from `update_planning_pack.py` (via `%LOCALAPPDATA%`, so no
+  machine-specific path is committed to the hook). That root is a git *linked*
+  worktree, distinct from the git *main* worktree, so a main-worktree comparison
+  would have been wrong; the updater's own root is authoritative. When the current
+  tree is not that tree, the hook reports synchronization PENDING (naming the
+  worktree and SHA) and does not advance the marker — silence over false success.
+- **Merge trigger.** `git merge` creates a commit without invoking `git commit`,
+  so merges never fired the hook; after the tree-identity gate, a merge into the
+  updater's own tree is the primary event the hook catches. A second handler
+  gated on `Bash(git merge *)` was added in the same matcher group, with distinct
+  `-Trigger commit` / `-Trigger merge` args so hook deduplication (by command +
+  args) keeps both handlers.
+- **Marker-absent fail-open.** An absent or unresolvable
+  `.claude/.pack-last-sync` is now treated as pack-relevant and synchronized
+  rather than compared against `HEAD~1`, which could undercount the changed set
+  after a many-commit merge.
+
+Verified by a disposable-repo harness (39 assertions / 10 scenarios) that ran the
+actual hook against a stubbed updater with no real Drive write.
+
+The written CLAUDE.md step 8 remains authoritative and correct if hooks are
+disabled; the hook is an enforcement aid, not a replacement for the instruction.
+Handoff: `docs/agent-handoffs/PLANNING-PACK-POST-COMMIT-SYNC-HOOK.md`.
