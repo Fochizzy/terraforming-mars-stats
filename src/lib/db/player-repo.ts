@@ -95,7 +95,11 @@ async function findRosterPlayerByDisplayName(
     throw error;
   }
 
-  const matches = await matchImportPlayerNames(groupId, [displayName]);
+  const matches = await matchImportPlayerNames(
+    groupId,
+    [displayName],
+    'roster_display_name_fallback',
+  );
   const exactMatch = matches.find((match) => match.matchReason === 'exact');
 
   if (!exactMatch) {

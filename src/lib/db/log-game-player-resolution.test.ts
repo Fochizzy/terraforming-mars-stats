@@ -189,9 +189,12 @@ describe('resolveLogGamePlayerReferences', () => {
       selectedPlayerIds: ['player-guest'],
     });
 
+    // The source label is what makes a matcher invocation attributable to this
+    // call site in the audit line.
     expect(matchImportPlayerNames).toHaveBeenCalledWith(
       '11111111-1111-4111-8111-111111111111',
       ['Jenna Kass'],
+      'log_game_player_resolution',
     );
     expect(createPlayerIfMissing).not.toHaveBeenCalled();
   });

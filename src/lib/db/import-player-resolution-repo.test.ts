@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { IMPORT_MATCHER_AUDIT_EVENT } from '@/lib/observability/import-matcher-audit';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { listCurrentUserGroups } from './group-context-repo';
 import {
@@ -195,6 +196,10 @@ describe('matchImportPlayerNames', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   function mockMatcher(
     rows: Array<{
       imported_name: string;
@@ -202,6 +207,7 @@ describe('matchImportPlayerNames', () => {
       player_id: string;
       public_name: string;
     }>,
+    options: { rpcError?: unknown; userId?: string | null } = {},
   ) {
     const rpc = vi.fn(
       async (fn: string, ...rest: Array<Record<string, unknown>>) => {
@@ -210,11 +216,23 @@ describe('matchImportPlayerNames', () => {
           throw new Error(`Unexpected rpc ${fn}`);
         }
 
-        return { data: rows, error: null };
+        return options.rpcError
+          ? { data: null, error: options.rpcError }
+          : { data: rows, error: null };
       },
     );
+    const getUser = vi.fn(async () => ({
+      data: {
+        user:
+          options.userId === null
+            ? null
+            : { id: options.userId ?? 'user-analyst' },
+      },
+      error: null,
+    }));
 
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      auth: { getUser },
       from: vi.fn((table: string) => {
         throw new Error(`The Data API must not read ${table} for matching`);
       }),
@@ -222,6 +240,19 @@ describe('matchImportPlayerNames', () => {
     } as never);
 
     return { rpc };
+  }
+
+  /** The single audit line `matchImportPlayerNames` emitted, parsed. */
+  function readAuditRecords(info: ReturnType<typeof spyOnConsoleInfo>) {
+    return info.mock.calls
+      .map((call) => call[0])
+      .filter((line): line is string => typeof line === 'string')
+      .map((line) => JSON.parse(line) as Record<string, unknown>)
+      .filter((record) => record.event === IMPORT_MATCHER_AUDIT_EVENT);
+  }
+
+  function spyOnConsoleInfo() {
+    return vi.spyOn(console, 'info').mockImplementation(() => undefined);
   }
 
   it("coarsens today's fine-grained reasons so no matching axis escapes the repository", async () => {
@@ -319,27 +350,155 @@ describe('matchImportPlayerNames', () => {
     expect(match?.matchReason).toBe('partial');
   });
 
-  it('bounds the request to the coarse RPC contract: 64 names of at most 128 characters', async () => {
+  it('bounds the request to what a single game can name, and never sends the excess', async () => {
     const { rpc } = mockMatcher([]);
     const names = Array.from({ length: 80 }, (_, index) => `Player ${index}`);
-    const overlongName = 'x'.repeat(129);
 
-    await matchImportPlayerNames('group-1', [overlongName, ...names]);
+    // Previously this sliced to 64 and asked anyway. A game has at most five
+    // players and the evidence can spell each of them two ways, so eleven
+    // distinct names did not come from one game.
+    await expect(
+      matchImportPlayerNames('group-1', names),
+    ).rejects.toThrow(/at most 5/);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('accepts both spellings of a full five-player game', async () => {
+    const { rpc } = mockMatcher([]);
+    const names = [
+      ...Array.from({ length: 5 }, (_, index) => `Player ${index}`),
+      ...Array.from({ length: 5 }, (_, index) => `Player ${index} Surname`),
+    ];
+
+    await expect(matchImportPlayerNames('group-1', names)).resolves.toEqual([]);
 
     const submitted = rpc.mock.calls[0]?.[1] as
       | { p_imported_names: string[] }
       | undefined;
 
-    expect(submitted?.p_imported_names).toHaveLength(64);
-    expect(submitted?.p_imported_names).not.toContain(overlongName);
+    expect(submitted?.p_imported_names).toHaveLength(10);
   });
 
-  it('skips the request entirely when nothing sendable remains', async () => {
+  it('rejects an overlong name instead of silently dropping it', async () => {
     const { rpc } = mockMatcher([]);
 
     await expect(
       matchImportPlayerNames('group-1', ['   ', 'y'.repeat(200)]),
-    ).resolves.toEqual([]);
+    ).rejects.toThrow(/longer than 128 characters/);
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('records a successful invocation with the requester, group and counts', async () => {
+    const info = spyOnConsoleInfo();
+    mockMatcher([
+      {
+        imported_name: 'Izzy',
+        match_reason: 'exact',
+        player_id: 'player-1',
+        public_name: 'fochizzy',
+      },
+    ]);
+
+    await matchImportPlayerNames('group-7', ['Izzy', 'Jam'], 'import_analyze');
+
+    expect(readAuditRecords(info)).toEqual([
+      {
+        candidateNameCount: 2,
+        errorCode: null,
+        event: IMPORT_MATCHER_AUDIT_EVENT,
+        groupId: 'group-7',
+        matchCount: 1,
+        outcome: 'matched',
+        source: 'import_analyze',
+        userId: 'user-analyst',
+      },
+    ]);
+  });
+
+  it('never writes a candidate name or a matched label into the audit line', async () => {
+    const info = spyOnConsoleInfo();
+    mockMatcher([
+      {
+        imported_name: 'Jenna Kass',
+        match_reason: 'full_name_exact',
+        player_id: 'player-guest',
+        public_name: 'Guest 5F2A',
+      },
+    ]);
+
+    await matchImportPlayerNames(
+      'group-7',
+      ['Jenna Kass'],
+      'log_game_player_resolution',
+    );
+
+    const serialized = JSON.stringify(readAuditRecords(info));
+
+    expect(serialized).not.toContain('Jenna');
+    expect(serialized).not.toContain('Kass');
+    expect(serialized).not.toContain('Guest 5F2A');
+  });
+
+  it('records a rejected probe, so an over-limit request is not silent', async () => {
+    const info = spyOnConsoleInfo();
+    mockMatcher([]);
+    const names = Array.from({ length: 64 }, (_, index) => `Probe ${index}`);
+
+    await expect(
+      matchImportPlayerNames('group-7', names, 'import_analyze'),
+    ).rejects.toThrow();
+
+    expect(readAuditRecords(info)).toEqual([
+      {
+        candidateNameCount: 64,
+        errorCode: 'Error',
+        event: IMPORT_MATCHER_AUDIT_EVENT,
+        groupId: 'group-7',
+        matchCount: 0,
+        outcome: 'rejected',
+        source: 'import_analyze',
+        userId: 'user-analyst',
+      },
+    ]);
+    expect(JSON.stringify(readAuditRecords(info))).not.toContain('Probe');
+  });
+
+  it('records a failed invocation with the code but not the error message', async () => {
+    const info = spyOnConsoleInfo();
+    mockMatcher([], {
+      rpcError: {
+        code: '42501',
+        message: 'permission denied for function match_import_player_names',
+      },
+    });
+
+    await expect(matchImportPlayerNames('group-7', ['Izzy'])).rejects.toEqual(
+      expect.objectContaining({ code: '42501' }),
+    );
+
+    expect(readAuditRecords(info)).toEqual([
+      {
+        candidateNameCount: 1,
+        errorCode: '42501',
+        event: IMPORT_MATCHER_AUDIT_EVENT,
+        groupId: 'group-7',
+        matchCount: 0,
+        outcome: 'failed',
+        source: 'unspecified',
+        userId: 'user-analyst',
+      },
+    ]);
+  });
+
+  it('still records the invocation when the session id cannot be resolved', async () => {
+    const info = spyOnConsoleInfo();
+    mockMatcher([], { userId: null });
+
+    await matchImportPlayerNames('group-7', ['Izzy']);
+
+    expect(readAuditRecords(info)[0]).toMatchObject({
+      outcome: 'matched',
+      userId: null,
+    });
   });
 });

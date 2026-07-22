@@ -1,4 +1,13 @@
+import {
+  assertImportCandidateNamesWithinBounds,
+  collectDistinctCandidateNames,
+} from '@/lib/imports/import-candidate-name-bounds';
 import { normalizePlayerAlias } from '@/lib/imports/normalize-player-alias';
+import {
+  describeMatcherFailureCode,
+  logImportMatcherInvocation,
+  type ImportMatcherSource,
+} from '@/lib/observability/import-matcher-audit';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { listCurrentUserGroups } from './group-context-repo';
 
@@ -127,43 +136,127 @@ function coarsenMatchReason(rawReason: string): ImportNameMatchReason {
 }
 
 /**
+ * The signed-in user id, for the audit record only.
+ *
+ * Resolution failure must never change whether a legitimate import matches, so
+ * a lapsed or unreadable session degrades to a null id and the invocation is
+ * still recorded. The RPC itself remains gated by RLS on the caller's session.
+ */
+type AuditAuthCapableClient = {
+  auth?: {
+    getUser?: () => PromiseLike<{
+      data?: { user?: { id?: unknown } | null };
+    }>;
+  };
+};
+
+async function resolveAuditUserId(supabase: AuditAuthCapableClient) {
+  try {
+    const result = await supabase.auth?.getUser?.();
+    const userId = result?.data?.user?.id;
+
+    return typeof userId === 'string' ? userId : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Ask the server which roster player each imported log name refers to.
  *
  * Matching needs `players.full_name` / `username` and the saved import aliases,
  * none of which the Data API exposes any more, so it runs inside a
  * security-definer RPC. Only a player id, the public label, and a coarse
  * exact/partial classification come back.
+ *
+ * The RPC answers whether a supplied name belongs to a real identity, so the
+ * candidate list is bounded to what a single game can name (see
+ * `import-candidate-name-bounds`) and every invocation is recorded with the
+ * requesting user, the group, and counts — never the names themselves.
  */
 export async function matchImportPlayerNames(
   groupId: string,
   importedNames: string[],
+  source: ImportMatcherSource = 'unspecified',
 ): Promise<ImportNameMatch[]> {
-  const names = [
-    ...new Set(importedNames.map((name) => name.trim()).filter(Boolean)),
-  ]
+  const distinctNames = collectDistinctCandidateNames(importedNames);
+  const supabase = await createSupabaseServerClient();
+  const userId = await resolveAuditUserId(supabase);
+
+  try {
+    assertImportCandidateNamesWithinBounds(distinctNames, 'matcher');
+  } catch (error) {
+    logImportMatcherInvocation({
+      candidateNameCount: distinctNames.length,
+      errorCode: describeMatcherFailureCode(error),
+      groupId,
+      matchCount: 0,
+      outcome: 'rejected',
+      source,
+      userId,
+    });
+
+    throw error;
+  }
+
+  // The coarse matcher RPC enforces its own outer bounds (64 names of at most
+  // 128 characters). The assertion above is strictly tighter, so this only
+  // documents the contract the request still satisfies.
+  const names = distinctNames
     .filter((name) => name.length <= MAX_MATCH_CANDIDATE_LENGTH)
     .slice(0, MAX_MATCH_CANDIDATE_NAMES);
 
   if (names.length === 0) {
+    logImportMatcherInvocation({
+      candidateNameCount: 0,
+      errorCode: null,
+      groupId,
+      matchCount: 0,
+      outcome: 'matched',
+      source,
+      userId,
+    });
+
     return [];
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc('match_import_player_names', {
     p_group_id: groupId,
     p_imported_names: names,
   });
 
   if (error) {
+    logImportMatcherInvocation({
+      candidateNameCount: names.length,
+      errorCode: describeMatcherFailureCode(error),
+      groupId,
+      matchCount: 0,
+      outcome: 'failed',
+      source,
+      userId,
+    });
+
     throw error;
   }
 
-  return ((data ?? []) as RawNameMatchRow[]).map((row) => ({
+  const matches = ((data ?? []) as RawNameMatchRow[]).map((row) => ({
     importedName: row.imported_name,
     matchReason: coarsenMatchReason(row.match_reason),
     playerId: row.player_id,
     publicName: row.public_name,
   }));
+
+  logImportMatcherInvocation({
+    candidateNameCount: names.length,
+    errorCode: null,
+    groupId,
+    matchCount: matches.length,
+    outcome: 'matched',
+    source,
+    userId,
+  });
+
+  return matches;
 }
 
 export async function listImportResolutionPlayers(groupId: string) {
