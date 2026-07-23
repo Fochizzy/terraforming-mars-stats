@@ -510,6 +510,19 @@ Merger production migration/backfill package remains separately owner-gated.
 the per-mutation protocol" is SUPERSEDED — see the correction immediately
 below. `20260719234500` and `20260720110000` are unaffected, and the ordering
 and authorization requirements of this sequence are unchanged.]**
+**[SEPARATELY SUPERSEDED, 2026-07-23: the PLACEMENT of "run the
+tile-attribution backfill before guest re-neutralization; perform guest
+re-neutralization" after the authorization/deploy clause. **The
+backfill-before-re-neutralization constraint inside that clause is NOT
+superseded — it is confirmed, absolute, and irreversible if violated.** A
+read-only investigation found both operations independent of the identity
+release sequence in both directions, and found that their recorded position
+after it has never carried a stated justification in the record or in git
+history — **[PRIOR]**, load-bearing halves re-verified **[REPO]** 2026-07-23.
+**No replacement position is asserted; scheduling is an owner decision that has
+not been made, and executing either still requires its own separate
+authorization.** Re-neutralization additionally has no package of any kind. See
+`docs/CURRENT_STATUS.md` → "Also outstanding" and `GUEST-LABEL-REDIRTY`.]**
 
 **Correction (2026-07-23) — three statements above are stale. The sequence
 itself is not restructured and no gate is relaxed.** Evidence class **[REPO]**
@@ -1518,6 +1531,21 @@ Update these fields whenever this file changes materially:
   `20260720110000`, still under the per-mutation protocol and separate
   authorization. The ordering, the authorization requirements, and the
   prohibition on beginning Step 4.4 or a closure audit are unchanged.]**
+  **[SEPARATELY SUPERSEDED, 2026-07-23: the placement of "Then tile attribution
+  before guest re-neutralization; guest re-neutralization" after the
+  expand/contract authorization clause. **The tile-attribution-before-
+  re-neutralization constraint itself is NOT superseded — it is confirmed and
+  irreversible if violated**, because two of the 114 rows resolve solely through
+  the unlinked guest's `display_name`, which re-neutralization overwrites and
+  the rollback deliberately does not restore. Both operations are **independent**
+  of the identity release sequence in both directions, and their position after
+  it **has never been justified** in the record or in git history — **[PRIOR]**,
+  load-bearing halves re-verified **[REPO]** 2026-07-23. **No new position is
+  asserted here**; scheduling is an owner decision not yet made, and each
+  operation still needs its own separate authorization. Re-neutralization has
+  **no package** — no SQL, dry run, rollback, or expected row count — and its
+  durability is gated on a live-site code change recorded nowhere in this
+  sequence (`GUEST-LABEL-REDIRTY`).]**
 - **Gated and unapplied migrations (seven):** `20260717190000`,
   `20260719234500`, `20260720100000`, `20260720110000`, `20260720120000`,
   `20260722012658`, and `20260722012707`. The last two are an

@@ -339,6 +339,65 @@ found caller — and the precondition is left standing anyway.** See the
 `ID-READER-CONTRACT` blocker row below and the pending owner decision
 registered under "Pending owner decisions".
 
+### Also outstanding: the tile-attribution backfill and guest re-neutralization
+
+Added 2026-07-23 by a documentation-only correction. **This router previously
+carried neither operation and never used the word "neutralization"**, so a
+reader following it alone would not have learned that an irreversible ordering
+constraint exists between them. That omission is what this section repairs.
+**Nothing here authorizes either operation**, and no schedule is asserted.
+
+**THE ORDERING CONSTRAINT — CONFIRMED, IRREVERSIBLE IF VIOLATED.** The
+tile-attribution backfill **MUST** run **before** guest re-neutralization. Two
+of the 114 rows (game `46bde90c…`, actor "Jenna") resolve **solely** through
+that unlinked guest's `public.players.display_name`. Evidence coverage across
+the 114 rows is `display_name` first token 114/114, `player_import_aliases`
+45/114, `user_profiles.username` **0/114**, private personal first name
+**0/114** [PRIOR]. Re-neutralization overwrites exactly that column for exactly
+unlinked players, and restoring the personal labels is deliberately excluded
+from the rollback — `tile-attribution-rollback.sql` restores `player_id` /
+`game_player_id` only. Running them in the wrong order makes those two rows
+**permanently unattributable**, not merely ambiguous. The authoritative
+statements of this constraint are
+`supabase/verification/tile-attribution-dry-run.sql` (the ORDERING CONSTRAINT
+block), `supabase/verification/tile-attribution-backfill.sql` (its
+do-not-execute preconditions),
+`docs/agent-handoffs/PHASE-04-STEP-03-THIRD-REMEDIATION-PARTIAL-HANDOFF.md`
+("Load-bearing ordering constraint" and its evidence table), and
+`docs/REDESIGN_STATE.md` ("Ordering correction"). **This constraint is not
+weakened, reinterpreted, or rescheduled by anything below.**
+
+**Their position in the numbered sequence above is SUPERSEDED, and no new
+position replaces it.** A read-only investigation found the pair **independent**
+of the identity release sequence in both directions, and found that the recorded
+position placing the pair after that sequence **has never carried a stated
+justification**, in the documents or in git history. Evidence class **[PRIOR]**,
+with both load-bearing halves re-verified **[REPO]** on 2026-07-23: the backfill
+matches on `players.display_name` and on nothing else, and neither operation
+reads, writes, calls, or requires any object the identity work creates, drops,
+or re-grants. **When to schedule them is an owner decision that has not been
+made. Executing either still requires its own separate authorization.** Detail
+in `docs/REDESIGN_STATE.md` and
+`docs/agent-handoffs/PHASE-04-STEP-03-BACKFILL-NEUTRALIZATION-ORDERING-CORRECTION.md`.
+
+**What each actually requires — they are not comparable in readiness:**
+
+| | Tile-attribution backfill | Guest re-neutralization |
+|---|---|---|
+| Package | `supabase/verification/tile-attribution-{dry-run,backfill,rollback}.sql` | **NONE — no SQL file, no dry run, no rollback, and no expected row count exists anywhere in the repository** [REPO] |
+| Privilege | `service_role` or superuser | Owner approval for an irreversible write |
+| Preconditions | Recorded owner approval; a successful dry run **in the same session window**; confirmation re-neutralization has not yet run | Owner approval; the backfill must already have run |
+| Reversibility | Reversible — rollback file plus the `private.mig_backup_tile_attribution_20260720` backup table | **Irreversible** for the personal labels; restoring them is excluded by design |
+| Authorized? | **No** | **No** |
+
+**The backfill's pinned population is [UNVERIFIED] against production today.**
+Its stopping conditions assert 114 candidate rows, 114 backfill rows, 0
+excluded, 3 games and 3 imports, measured read-only on **2026-07-20**. Whether
+production still matches has not been re-checked. The package **fails closed**
+on any drift — each expectation raises `EXPECTATION DRIFT` and aborts the
+transaction — so drift is safe but blocking: it may require re-review before the
+package can run at all.
+
 ## Known blockers
 
 | ID | Requirement | Current status | Blocking |
@@ -351,6 +410,7 @@ registered under "Pending owner decisions".
 | STEP-4.4 | Explicit assignment for final review, finalization, and draft safety | Not authorized | Step 4.4 start |
 | GUEST-NAME-COLLISION-TERMINAL | A user must be able to add a roster entry whose typed first/last name matches two or more unlinked guests already in the group | **Recorded 2026-07-23, NOT fixed. Inherited, not introduced.** When two or more UNLINKED players in a group carry the same normalized personal name, `create_or_reuse_guest_identity` raises `P0003` ("Multiple guest identities match. Select one explicitly.") and there is no way to satisfy it: the sole call site `createOrReuseGuestPlayerByPersonalName` (`src/lib/db/import-player-identity-repo.ts:118`) hard-codes `p_selected_player_id: null` and accepts no selection from its callers, and neither product path — `/group/players` (`src/app/(app)/group/players/page.tsx:31`) nor the Log-a-Game manual-entry resolver (`src/lib/db/log-game-player-resolution.ts:84`) — offers a disambiguation UI. No code in `src/` handles `P0003`, so it falls through `throw error` as a raw database failure. The state is therefore **terminal**: that roster entry can never be added [REPO]. It is inherited from the deployed resolver this function is derived from and is not a regression introduced by the `ID-READER-CLIENT` work. Reachable because the personal-name index is NON-unique per group (`20260718050924:111-113`) and personal_name is the only mode either non-import path uses. **Coupled to the coverage added on 2026-07-23**: the natural fix is a disambiguation UI, which would pass an explicit `p_selected_player_id` and thereby activate the revalidation path that section 11 of `non-import-guest-identity-after.sql` guards — the clause stopping an explicitly selected CLAIMED player from being returned as `existing_unlinked_guest`. That assertion must remain in place before any such UI ships. Fixing this is a product decision needing its own assignment; see `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md`. **Classification CONTESTED as of 2026-07-23, and deliberately NOT changed here.** The phase contract's Step 4.3 scope requires that the importer be able to "select an existing unlinked guest" and "resolve an ambiguous match explicitly", and the terminal `P0003` state makes neither possible — which reads as a contract non-conformance against the "Blocking" value in this row. Whether it is one is an owner adjudication; registered as **PD-3** under "Pending owner decisions", where it interacts with **PD-2** | Nothing today; user-facing dead end |
 | DRAFT-NAME-RESIDUE | A typed personal name must not survive into a Log-a-Game draft snapshot or its hydration payload after the seat that introduced it is removed | **Recorded, NOT fixed — but INVESTIGATED and settled by EXECUTION on 2026-07-23, and the audit UNDERSTATED it.** Independent-audit FINDING-4, pre-existing and untouched by the ID-READER-CLIENT work: removing a manually added player's seat leaves records keyed by that seat's reference unpruned, so a typed first/last name persists in the stored draft and is returned on hydration. This breaches the "private names must be excluded from payloads, not merely hidden" rule in `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`. **Reachability is no longer [INFERENCE]** [PRIOR]: a probe drove the REAL save path — `logGameDraftSchema.parse` → `resolveLogGamePlayerReferences` → `saveDraftGame` → the `game_revisions` insert — against a disposable PostgreSQL 18 cluster replaying the real migration history, adapting only the Supabase transport, then read the row back with raw SQL. **The audit understated the finding on three counts, all in the direction of severity.** (1) **Reachability is PROVEN, not inferred** — the audit left severity unconfirmed for want of a failing test, captured payload, or stored draft; all three now exist. (2) **The name persists at SIX sites, not one class of record** — as the object KEY of `playerScores`, `playerSelections` and `playerStyles`, and as the VALUE of `milestoneClaims.*.winnerPlayerId`, `awardClaims.*.fundedByPlayerId` and `awardClaims.*.firstPlaceWinnerPlayerIds[]`. (3) **It SURVIVES FINALIZATION permanently** — revisions are never deleted anywhere in `src/**` or `supabase/migrations/**`, finalization only ADDS a row, the finalized revision snapshot itself carries `playerSelections`/`playerStyles` residue, and claims naming a removed reference were measured ACCEPTED by `buildFinalizedGamePayload`, which checks presence not membership. **Exposure is not the drafting user alone**: from the policies as written it is every member of the game's group, plus any linked participant once the game is finalized — and **it reaches the browser of someone who never typed the name**, measured in the `initialValues` prop of `<LogGameWizard>`, a `'use client'` component (only the last hop, Next.js wire serialization, remains [INFERENCE]). Not public; permanent per-player tables stay clean, the name lives **only** in `game_revisions.snapshot`. **A fourth correction, to the finding's wording:** its phrase "must never enter draft snapshots" tracks a **code comment about a different field**, not a contract clause — the clause actually engaged is the privacy contract's **unqualified "browser hydration data"** boundary under Data-boundary requirements; the Public-surfaces list is NOT engaged. Mechanism proven by contrast: the RETAINED seat's typed name WAS resolved to a real UUID through `create_or_reuse_guest_identity` in the same call, and only the removed reference stayed raw, because `remapRecord`'s `replacements.get(key) ?? key` holds no entry for a reference absent from `selectedPlayerIds` and `compactRecord` prunes by value emptiness only, never by key membership. **One bug, not a family** — the import draft path keys by resolved UUID and is unaffected; `sourcePlayerText` is separate and contract-sanctioned. No guard is failing: the case was never covered, and no test asserts it. Three fix options are priced in the handoff, with existing stored drafts flagged as the expensive half needing separate authorization. **Whether this blocks Step 4.3 closure is an OWNER DECISION and is NOT taken here — the Blocking value in this row is deliberately left UNCHANGED pending that adjudication**; the investigation assessed it as recordable rather than blocking while calling that assessment genuinely contestable. It lives in the wizard/draft subsystem, not the identity RPCs, and needs its own scoped assignment; it must not be fixed inside an identity task. See `docs/agent-handoffs/PHASE-04-STEP-03-DRAFT-NAME-RESIDUE-INVESTIGATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` | Nothing today |
+| GUEST-LABEL-REDIRTY | Guest re-neutralization must stay neutralized after it runs — live code must stop writing personal-name material into `public.players` | **Recorded 2026-07-23, NOT fixed and deliberately NOT scoped. Inherited, not introduced.** Re-neutralization is a **one-shot cleanup that ordinary live use re-dirties**. Three code paths on the production lineage write personal-name material directly into `public.players`, and **none of them calls an identity RPC** — swept at production source commit `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` [GIT]: (1) `createPlayerIfMissing` (`src/lib/db/player-repo.ts:141`) inserts `display_name: input.displayName, full_name: normalizeOptionalText(input.fullName), username: normalizeOptionalText(input.username)`; (2) `updatePlayerIdentity` (`src/lib/db/player-repo.ts:183`) updates `full_name` and `username`, and its own doc comment says it is "Used when an import is confirmed so the identity typed in review lands on the routed group's player"; (3) `resolveOrCreateImportGroup` (`src/lib/db/import-group-repo.ts:595`) inserts `display_name: participant.displayName` for every participant, through the **admin** client. The bypass is total, not partial: `git grep` for `create_or_reuse_guest_identity` or `resolve_import_guest_identity` across `src/` at that commit returns **zero hits** [GIT]. **NONE of the three is touched by the expand (`20260722160000`), the reader deploy (`ID-READER-DEPLOY`), the 7-argument drop (`ID-READER-CONTRACT`), or contraction `20260722012707`** [REPO] — those migrations contain no `update … players`, no grant or revoke on `players`, and no reference to the tile tables. **Consequence, stated plainly: re-neutralization will be undone by the next import that creates participants, and its durability is gated on a LIVE-SITE CODE CHANGE that appears nowhere in the recorded release sequence.** The record currently orders re-neutralization after the identity work as though that would make it stick; **it will not** — [INFERENCE] from the three writers plus the zero-hit RPC sweep, and the inference is that ordering alone cannot make a repeatedly-written column stay neutral. By contrast the identity RPC path is **clean**: `create_or_reuse_guest_identity` inserts new rows with an already-neutral `private.neutral_unlinked_player_label(...)` value (`20260722160000:296-299`) [REPO], so the fix direction is to route these three writers through it or an equivalent — **but scoping, designing, or beginning that fix is a separate assignment and was deliberately not started here**. **Secondary observation, FLAGGED not adjudicated:** `public.players.full_name` and `username` continue to be written by writers (1) and (2) after the 6 unlinked rows were preserved into `private.player_legacy_identities` on 2026-07-19, so that private preservation is a **point-in-time snapshot that ongoing writes have moved past**. Read **access** is contained by the existing column revokes (`authenticated`/`anon` cannot read `full_name` or `username`); the **accumulation** is not contained. Whether that matters is an owner question and is not answered here. See `docs/agent-handoffs/PHASE-04-STEP-03-BACKFILL-NEUTRALIZATION-ORDERING-CORRECTION.md` | Nothing today; re-neutralization durability |
 
 ## Pending owner decisions
 

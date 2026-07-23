@@ -1230,6 +1230,41 @@ Remaining Step 4.3 blockers, in required order:
 2. Run the tile-attribution backfill **before** guest re-neutralization. Two of
    the 114 rows resolve only through the unlinked guest's display_name.
 3. Perform guest re-neutralization.
+
+   **[The POSITION of items 2 and 3 in this ordered list is SUPERSEDED,
+   2026-07-23. The constraint INSIDE item 2 is NOT — it is confirmed and
+   reaffirmed below.]** A read-only investigation found the backfill and
+   re-neutralization **independent** of the identity release sequence in item 1:
+   neither operation reads, writes, calls, or requires any object the identity
+   work creates, drops, or re-grants, and nothing in that work requires either
+   of them. The position placing this pair after item 1 **has never carried a
+   stated justification** — not in this document, not in any other project
+   document, and not in git history. Evidence class **[PRIOR]** for the
+   investigation, with its two load-bearing halves re-verified **[REPO]** on
+   2026-07-23: the backfill's predicate matches on `players.display_name` and on
+   nothing else (no alias, username, or private personal-name fallback), and the
+   three release-sequence migrations (`20260722012658`, `20260722012707`,
+   `20260722160000`) contain no `update … players`, no grant or revoke on
+   `players`, and no reference to `game_log_events`.
+
+   **NO NEW POSITION REPLACES IT.** This correction does **not** assert that the
+   pair should now run first, in parallel, or at any other point. It records only
+   that the ordering is unforced and that **where to schedule it is an owner
+   decision that has not been made**. Executing either operation still requires
+   its own separate authorization, which neither has.
+
+   **UNCHANGED AND ABSOLUTE — the pair-internal constraint.** The backfill MUST
+   still run **before** re-neutralization. Two of the 114 rows resolve solely
+   through the unlinked guest's `display_name`; re-neutralization overwrites
+   exactly that column for exactly unlinked players; aliases cover 45/114 and
+   username and private personal name **0/114**; and restoring the personal
+   labels is deliberately excluded from rollback. Violating this order makes
+   those rows **permanently unattributable**. See "Ordering correction" below,
+   which is the authoritative statement in this document and is unchanged.
+   Re-neutralization additionally has **no package at all** — no SQL file, no dry
+   run, no rollback, no expected row count [REPO] — and its durability is gated
+   on a live-site code change recorded nowhere in this sequence; see
+   `GUEST-LABEL-REDIRTY` in `docs/CURRENT_STATUS.md`.
 4. Apply the remaining gated migrations 20260719234500, 20260720100000,
    and 20260720110000 under the per-mutation protocol and separate
    authorization.
@@ -2194,6 +2229,27 @@ closure audit. Two of the 114 tile-attribution rows resolve only through the
 unlinked guest's display_name, so reversing the backfill/re-neutralization
 order would destroy required evidence.
 
+**[SUPERSEDED IN ONE RESPECT, 2026-07-23 — the placement of the two operations
+"after that authorization gate", not the sequence's other contents and not the
+constraint in the final sentence, which stands and is reaffirmed.]** The
+tile-attribution backfill and guest re-neutralization are **independent** of the
+identity release sequence in both directions, and their recorded position after
+that gate **has never carried a stated justification** in the record or in git
+history. Evidence class **[PRIOR]**, load-bearing halves re-verified **[REPO]**
+2026-07-23. **No new position is asserted here**: the pair is not moved earlier,
+later, or into parallel, and **scheduling it is an owner decision that has not
+been made**. Executing either still requires its own separate authorization.
+**The final sentence above remains exact and absolute** — reversing the
+backfill/re-neutralization order destroys required evidence permanently — and
+"Ordering correction" above is this document's authoritative statement of it,
+unchanged. Two further facts belong with any scheduling of this pair:
+re-neutralization has **no package whatsoever** (no SQL file, no dry run, no
+rollback, no expected row count) **[REPO]**, and its durability is gated on a
+live-site code change that appears nowhere in this sequence — see
+`GUEST-LABEL-REDIRTY` in `docs/CURRENT_STATUS.md`. The backfill's pinned
+population of 114 rows / 3 games / 3 imports was measured 2026-07-20 and is
+**[UNVERIFIED]** against production today; the package fails closed on drift.
+
 Production facts are last independently verified 2026-07-21 and must be
 re-read live before any production-sensitive action. Migration 20260720120000
 remains unapplied, insufficient as an oracle closure, and unauthorized for
@@ -2347,6 +2403,52 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-BACKFILL-NEUTRALIZATION-ORDERING-CORRECTION.md
+  (documentation only, redesign lineage: corrects a provably false ordering
+  assertion and repairs an omission in the current-work router. **Decides
+  nothing, authorizes nothing, schedules nothing, fixes nothing**; no `src/**`,
+  `supabase/**` or `scripts/**` change, no production access of any kind, no
+  deploy, no migration applied, no backfill, grant or revoke, nothing pushed.
+  **The tile-attribution backfill and guest re-neutralization are INDEPENDENT of
+  the identity release sequence** — neither reads, writes, calls, or requires any
+  object that work creates, drops, or re-grants — and their recorded position
+  after it **never carried a stated justification**, in the documents or in git
+  history. Evidence class **[PRIOR]** for the investigation, which left no
+  committed handoff, with both load-bearing halves re-derived **[REPO]** here:
+  the backfill's predicate matches `players.display_name` and nothing else, and
+  the three release migrations contain no `update … players`, no grant or revoke
+  on `players`, and no reference to `game_log_events`. Four passages are marked
+  **SUPERSEDED** with their original text retained — two in this file
+  ("Remaining Step 4.3 blockers" items 2–3, and "Next action") and two in
+  `MASTER-PLAN.md`. **NO NEW SCHEDULE IS ASSERTED**: the pair is not moved
+  earlier, later, or into parallel; scheduling is an owner decision not yet made,
+  and executing either still requires its own separate authorization. **THE
+  PAIR-INTERNAL CONSTRAINT IS UNTOUCHED AND REAFFIRMED** — the backfill MUST run
+  before re-neutralization, because 2 of the 114 rows resolve solely through the
+  unlinked guest's `display_name` (aliases 45/114, username and private personal
+  name **0/114**), re-neutralization overwrites exactly that column, and the
+  rollback deliberately does not restore the personal labels; its four
+  authoritative statements were left **byte-unchanged and proven so** by blob
+  hash and by `-N,0` pure-insertion diff hunks. `CURRENT_STATUS.md`, which
+  previously contained **neither operation and never used the word
+  "neutralization"**, now carries both, the constraint stated prominently, their
+  real requirements, and the fact that **re-neutralization HAS NO PACKAGE — no
+  SQL file, no dry run, no rollback, no expected row count [REPO]** — plus the
+  backfill's 2026-07-20 pinned population recorded **[UNVERIFIED]** against
+  production today, fail-closed on drift. **New tracked item
+  `GUEST-LABEL-REDIRTY`**: three production-lineage code paths at
+  `865df0108f` — `createPlayerIfMissing`, `updatePlayerIdentity` and
+  `resolveOrCreateImportGroup` — write personal-name material straight into
+  `public.players`, and `git grep` for either identity RPC across `src/` returns
+  **zero hits**, so **re-neutralization will be undone by the next import that
+  creates participants and its durability is gated on a live-site code change
+  recorded nowhere in the sequence**; recorded, **not scoped and not begun**. The
+  `full_name`/`username` accumulation past the 2026-07-19
+  `private.player_legacy_identities` snapshot is **flagged, not adjudicated**.
+  Code checks (`tsc`, `vitest`, `lint`, `run.sh`, `build`) were **deliberately
+  skipped and are not claimed** — no code changed and another session was
+  building. **No blocker reclassified, no pending decision resolved,
+  `DECISIONS.md` untouched, Step 4.3 NOT marked complete**)
 - docs/agent-handoffs/PHASE-04-STEP-03-INVESTIGATION-CONSOLIDATION-2026-07-23.md
   (documentation only, redesign lineage: bounded local consolidation landing the
   two read-only investigation branches — `investigate/matcher-overload-scoping`
