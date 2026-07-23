@@ -1198,6 +1198,7 @@ def run_update(scheduled: bool, source_snapshot: Path | None = None) -> dict[str
 def main() -> int:
     parser = argparse.ArgumentParser(description="Refresh native Google Docs for the TM planning pack.")
     parser.add_argument("--scheduled", action="store_true", help="Run unattended and do not open the folder.")
+    parser.add_argument("--no-open", action="store_true", help="Do not open the Drive folder when finished, but keep console output and prompts.")
     parser.add_argument("--authorize-only", action="store_true", help="Complete Google sign-in without changing Drive files.")
     parser.add_argument("--prepare-only", action="store_true", help="Convert and validate locally without Google access.")
     parser.add_argument("--output-dir", type=Path, default=None, help="Destination used with --prepare-only.")
@@ -1271,7 +1272,7 @@ def main() -> int:
             summary["counts"]["updated"],
             summary["counts"]["unchanged"],
         )
-        if not args.scheduled:
+        if not args.scheduled and not args.no_open:
             folder_url = summary["folder_url"]
             try:
                 if LOCAL_DRIVE_FOLDER.is_dir():

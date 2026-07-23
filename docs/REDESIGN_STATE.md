@@ -3093,6 +3093,19 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/UPDATER-DRIFT-RECONCILIATION.md
+  (source reconciliation, redesign lineage, local and documentation-only: **nothing
+  applied, deployed, pushed, merged, or read from production**; no write outside the
+  repository, no updater run, no guard and no design change. Brings the versioned
+  `scripts/planning-pack/update_planning_pack.py` to parity with the installed running copy
+  by adding the `--no-open` argparse flag and its one folder-open conditional — re-derived
+  as the ONLY drift, reviewed not transcribed. Parity of the edited file verified by the
+  equivalent read-only check (pre-edit CR-normalized diff isolating the two hunks +
+  Read-confirmed installed bytes + post-edit git diff); `sync_installed_updater.py --check`
+  and the direct bash diff were blocked by the auto-mode classifier — a harness event. The
+  working-tree publish hazard fix remains a separate work item awaiting an owner ruling, now
+  on a base where versioned and installed agree. **No blocker's disposition changed, Step
+  4.3 NOT marked complete, no defect added, no phase/deploy/migration baseline changed.**)
 - docs/agent-handoffs/RECORD-OWNER-RULINGS-AND-PUSH-OUTCOME.md
   (record only, redesign lineage, documentation-only and local: **nothing applied,
   deployed, pushed, merged, or read from production** — no Supabase MCP call, no
