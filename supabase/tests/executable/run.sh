@@ -29,9 +29,14 @@
 #     pre-image and then restore the shipped matcher on the same database; PLUS
 #   * 20260720120000, which IS also applied to production (as ledger
 #     20260722144034, likewise paired by name). It is excluded from the replay
-#     and then NOT applied at all, because the modelled pre-image
-#     MATCH_PREIMAGE already installs the deployed matcher this file would
-#     coarsen.
+#     for symmetry with the deferred set, and then NOT applied at all. The
+#     ordering makes that exclusion INCONSEQUENTIAL rather than necessary:
+#     MATCH_PREIMAGE runs AFTER the replay loop and unconditionally
+#     `create or replace`s the fine-grained predecessor, so replaying this file
+#     inside the loop would be erased before any assertion observed it.
+#     MEASURED, not reasoned — see the COARSEN_MIGRATION annotation below for
+#     the measurement, its evidence class, and the coverage gap it does not
+#     close.
 #
 # So the baseline assertions in half 1 model production MINUS those two applied
 # migrations, not production exactly. That is intentional and is what the
@@ -72,10 +77,26 @@ SPLIT_MIGRATION="$MIGRATIONS/20260719234500_separate_event_confidence_from_revie
 GUEST_ALIAS_MIGRATION="$MIGRATIONS/20260720100000_add_guest_identity_alias_source_control.sql"
 PLACEMENT_MIGRATION="$MIGRATIONS/20260720110000_extend_canonical_board_placement_contract.sql"
 # APPLIED to production as ledger 20260722144034 (paired by NAME), and NOT in
-# GATED_UNAPPLIED. Deferred from the replay and then never applied at all,
-# because MATCH_PREIMAGE below already installs the deployed matcher this file
-# coarsens; applying it too would coarsen the very pre-image the contraction
-# proof measures against.
+# GATED_UNAPPLIED. Deferred from the replay for symmetry with the deferred set,
+# and then never applied at all.
+#
+# CORRECTED 2026-07-23. This comment previously said that applying it in the
+# replay "would coarsen the very pre-image the contraction proof measures
+# against". Measurement REFUTES that causal claim: MATCH_PREIMAGE below runs
+# after the replay loop and unconditionally installs the fine-grained
+# predecessor over whatever the loop left, so in the replay position this file
+# demonstrably cannot coarsen that pre-image. Probes either side of
+# MATCH_PREIMAGE read finegrained=f then finegrained=t, and full harness runs
+# with the file replayed in the loop, and applied in the deferred half, both
+# exit 0. The exclusion is therefore INCONSEQUENTIAL, not necessary.
+# Evidence [PRIOR], measured in
+# docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md §4.2.
+#
+# What the exclusion does NOT do is buy coverage. The real, open gap is that
+# match-oracle-post-contraction.sql is referenced by nothing, so the coarsened
+# match_reason/match_score and the candidate-input bound are asserted nowhere
+# (§4.3 of the same handoff). Wiring that file in, and moving this apply,
+# require their own authorization and were deliberately NOT done here.
 COARSEN_MIGRATION="$MIGRATIONS/20260720120000_coarsen_import_name_match_reasons.sql"
 # APPLIED to production as ledger 20260722132159 (paired by NAME), and NOT in
 # GATED_UNAPPLIED. Deferred from the replay so the linked-player matching

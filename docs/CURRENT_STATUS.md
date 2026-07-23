@@ -40,6 +40,15 @@ separate gate is authorized.
   defaulted) are remediated, executably proven, and **merged** into
   `redesign/tm-stats-dashboard-rebuild` on 2026-07-23. `FINDING-4` /
   `DRAFT-NAME-RESIDUE` remains open and untouched.
+- A **targeted re-audit** of that merged remediation was run on 2026-07-23 and
+  returned **FAIL** on one MEDIUM documentation defect and three LOW items. It
+  found the SQL and TypeScript remediation itself correct and complete. All four
+  findings are now addressed and the FAIL is answered; two of them were proven
+  vacuous test gaps and now carry mutation-proven assertions. The re-audit left
+  no handoff in this repository — its verdict reached the follow-up session as
+  the assignment text, and every defect was independently re-derived from code
+  before being corrected. `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md`
+  is the record.
 
 ## In progress
 
@@ -84,18 +93,22 @@ sequence is:
    explicit requesting-user id. Both are unapplied. The remediation answering the
    audit FAIL is merged into `redesign/tm-stats-dashboard-rebuild` as of
    2026-07-23;
-2. **next: a targeted re-audit of the remediated work, before the expand gate.**
-   The prior independent audit returned FAIL; its `FINDING-1` and `FINDING-2`
-   remediations have not themselves been independently audited. This re-audit is
-   not authorized by this document and needs its own explicit assignment. It must
-   account for the recorded harness coverage gap above: `run.sh` exit 0 does not
-   cover the coarsened `match_import_player_names` disclosure or its
-   candidate-input bound;
+2. **done 2026-07-23 — the targeted re-audit of the remediated work ran before
+   the expand gate and returned FAIL.** It confirmed the SQL and TypeScript
+   remediation of `FINDING-1` and `FINDING-2` correct and complete, and failed on
+   one MEDIUM documentation defect (an active handoff stating a function
+   signature that does not exist) plus three LOW items (release-sequence
+   numbering, and two branches asserted nowhere). All four are addressed; the
+   two coverage gaps now carry assertions proven to fail under the exact
+   mutations that previously left the harness at exit 0. The recorded harness
+   coverage gap above is **unchanged and still open** — `run.sh` exit 0 still
+   does not cover the coarsened `match_import_player_names` disclosure or its
+   candidate-input bound, and wiring that in was deliberately not done;
 3. apply `20260722160000` under explicit authority and the per-mutation
    protocol. Two preconditions a session executing this step must not have to
    derive from context:
 
-   **2a. Rollback SQL for the expand step.** The migration creates exactly one
+   **3a. Rollback SQL for the expand step.** The migration creates exactly one
    object, so its reversal is a single statement:
 
    ```sql
@@ -107,11 +120,11 @@ sequence is:
    Nothing else references it: it is new and additive, and the deployed
    7-argument `resolve_import_guest_identity` is left untouched. This rollback
    is valid only in the window between applying the migration and deploying the
-   moved reader (item 3 below). Once that reader is live it depends on this
+   moved reader (item 4 below). Once that reader is live it depends on this
    function, and reversal becomes a deploy rollback rather than a migration
    rollback.
 
-   **2b. Apply-time ledger bookkeeping.** The apply tool stamps the UTC apply
+   **3b. Apply-time ledger bookkeeping.** The apply tool stamps the UTC apply
    time over the filename version, so this file will almost certainly NOT land
    as ledger `20260722160000`. Five recent applies on this lineage already
    drifted that way — `20260722012658` landed as `20260722132159`,
@@ -141,12 +154,13 @@ sequence is:
 
 | ID | Requirement | Current status | Blocking |
 |---|---|---|---|
-| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22, remediated after an independent audit returned FAIL, and MERGED into `redesign/tm-stats-dashboard-rebuild` on 2026-07-23; migration still unapplied, reader still undeployed. Not independently re-audited since the remediation.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. The audit's HIGH finding — the candidate-counting and auto-selection predicates disagreed about claimed players, so a same-name collision could auto-select a claimed player and fail with `P0002` — was reproduced and fixed in the unapplied file: the predicate is now evaluated once into `v_candidate_ids` and both uses derive from it. `p_requesting_user_id` was also made required, matching the four applied gateways. Executably proven and mutation-proven on a disposable cluster. **Closed out 2026-07-23**: probe P1 was re-run against the tightened clause 8b it had never been re-run against and still fails there with `P0002` (harness exit 3), so the remediation is proven at the current file state, not merely at the state the probe was originally run against. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` | Redesign deploy |
+| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22, remediated after an independent audit returned FAIL, and MERGED into `redesign/tm-stats-dashboard-rebuild` on 2026-07-23; migration still unapplied, reader still undeployed. Re-audited 2026-07-23: the targeted re-audit found the SQL and TypeScript remediation correct and complete and returned FAIL on documentation and coverage only; all four of its findings are addressed and its FAIL is answered.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. The audit's HIGH finding — the candidate-counting and auto-selection predicates disagreed about claimed players, so a same-name collision could auto-select a claimed player and fail with `P0002` — was reproduced and fixed in the unapplied file: the predicate is now evaluated once into `v_candidate_ids` and both uses derive from it. `p_requesting_user_id` was also made required, matching the four applied gateways. Executably proven and mutation-proven on a disposable cluster. **Closed out 2026-07-23**: probe P1 was re-run against the tightened clause 8b it had never been re-run against and still fails there with `P0002` (harness exit 3), so the remediation is proven at the current file state, not merely at the state the probe was originally run against. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` | Redesign deploy |
 | ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is additive and leaves the function in place; the drop is valid only after `20260722160000` is applied, the moved reader is deployed and production-verified, and a fresh zero-caller re-sweep passes | Step 4.3 closure |
 | ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | Not authorized or deployed | Legacy contraction |
 | ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live | Step 4.3 closure |
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary. It must also account for the recorded harness coverage gap: `run.sh` exit 0 does not cover the coarsened `match_import_player_names` disclosure or its candidate-input bound. A targeted re-audit of the merged `ID-READER-CLIENT` remediation is the evidenced next step and is separately unauthorized | Step 4.3 closure |
 | STEP-4.4 | Explicit assignment for final review, finalization, and draft safety | Not authorized | Step 4.4 start |
+| GUEST-NAME-COLLISION-TERMINAL | A user must be able to add a roster entry whose typed first/last name matches two or more unlinked guests already in the group | **Recorded 2026-07-23, NOT fixed. Inherited, not introduced.** When two or more UNLINKED players in a group carry the same normalized personal name, `create_or_reuse_guest_identity` raises `P0003` ("Multiple guest identities match. Select one explicitly.") and there is no way to satisfy it: the sole call site `createOrReuseGuestPlayerByPersonalName` (`src/lib/db/import-player-identity-repo.ts:118`) hard-codes `p_selected_player_id: null` and accepts no selection from its callers, and neither product path — `/group/players` (`src/app/(app)/group/players/page.tsx:31`) nor the Log-a-Game manual-entry resolver (`src/lib/db/log-game-player-resolution.ts:84`) — offers a disambiguation UI. No code in `src/` handles `P0003`, so it falls through `throw error` as a raw database failure. The state is therefore **terminal**: that roster entry can never be added [REPO]. It is inherited from the deployed resolver this function is derived from and is not a regression introduced by the `ID-READER-CLIENT` work. Reachable because the personal-name index is NON-unique per group (`20260718050924:111-113`) and personal_name is the only mode either non-import path uses. **Coupled to the coverage added on 2026-07-23**: the natural fix is a disambiguation UI, which would pass an explicit `p_selected_player_id` and thereby activate the revalidation path that section 11 of `non-import-guest-identity-after.sql` guards — the clause stopping an explicitly selected CLAIMED player from being returned as `existing_unlinked_guest`. That assertion must remain in place before any such UI ships. Fixing this is a product decision needing its own assignment; see `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md` | Nothing today; user-facing dead end |
 | DRAFT-NAME-RESIDUE | A typed personal name must not survive into a Log-a-Game draft snapshot or its hydration payload after the seat that introduced it is removed | **Recorded, NOT fixed and NOT investigated.** Independent-audit FINDING-4, pre-existing and untouched by the ID-READER-CLIENT work: removing a manually added player's seat may leave records keyed by that seat's reference unpruned, so a typed first/last name could persist in the stored draft and be returned on hydration. This would breach the "private names must be excluded from payloads, not merely hidden" rule in `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`. **End-to-end reachability is INFERRED, not executed** — no failing test, captured payload, or stored draft was produced, so severity is unconfirmed. It lives in the wizard/draft subsystem, not the identity RPCs, and needs its own scoped assignment; it must not be fixed inside an identity task. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` | Nothing today |
 
 ## Important repository and production evidence

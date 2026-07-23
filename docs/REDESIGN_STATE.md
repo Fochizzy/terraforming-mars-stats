@@ -13,8 +13,112 @@ proven LOCALLY, and **MERGED into this branch**, but its migration is gated and
 unapplied and the reader is not deployed. The legacy free-form matcher oracle
 remains open, contraction `20260722012707` remains gated and unapplied, the
 CONTRACT drop of the 7-argument guest resolver is not authored, and Step 4.4 is
-NOT STARTED. The next step is a targeted re-audit of the remediated work before
-the expand gate; that re-audit is NOT authorized by this document.**)
+NOT STARTED. The targeted re-audit of the remediated work RAN on 2026-07-23 and
+returned **FAIL** on documentation and coverage only; its four findings are now
+addressed and the migration remains gated. Nothing beyond that is authorized by
+this document.**)
+
+### Re-audit FAIL answered: stale signature corrected, two vacuous branches now asserted (2026-07-23)
+
+Documentation, state, and executable-test changes only. No migration applied, no
+migration SQL changed, no `src/` file changed, no deploy, no push, no production
+read or write.
+
+A targeted re-audit of the merged `ID-READER-CLIENT` remediation returned
+**FAIL**. It found the SQL and TypeScript remediation itself **correct and
+complete** — every executable surface followed the signature change — and failed
+on one MEDIUM documentation defect plus three LOW items. **The re-audit left no
+handoff in this repository**; its verdict reached the follow-up session as the
+assignment text, so every defect was independently re-derived from code before
+being corrected. Evidence class for each correction below is **[REPO]**.
+
+- **FINDING A (MEDIUM) — resolved.**
+  `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md`
+  stated, in the present tense and with no supersession notice, that
+  `20260722160000` creates
+  `create_or_reuse_guest_identity(uuid, text, text, text, text, uuid, boolean, uuid)`.
+  The shipped file creates
+  `(uuid, uuid, text, text, text, text, uuid, boolean)`. That document is in the
+  active handoff group and is published to the Claude Project, so a session
+  authoring the CONTRACT drop or a rollback from it would have emitted
+  `drop function if exists` against a signature nothing ever created — succeeding
+  silently against nothing while recording the function as dropped. Corrected,
+  and given a dated supersession notice matching the one the sibling
+  design-scoping document carries. Two further stale statements in the same file
+  were corrected in place: its claim that the candidate search is a verbatim
+  transcription (only the selected-player revalidation is; the candidate
+  predicate was rebuilt as a single materialised `v_candidate_ids`), and its
+  discrepancy 3, which said the design handoff was unmerged — it was merged as
+  `8e331cffb`.
+- **FINDING B (LOW) — resolved.** In `docs/CURRENT_STATUS.md` the apply step's
+  sub-headings still read `2a`/`2b` after the sequence was renumbered, and the
+  rollback-validity sentence cross-referenced "item 3 below" from inside item 3.
+  Relabelled `3a`/`3b` and repointed to item 4. No SQL, precondition, or
+  substantive content changed; the recorded rollback statement and the ledger
+  bookkeeping were both confirmed correct.
+- **FINDING C (LOW, coverage) — resolved.** The multiple-candidate rejection was
+  asserted nowhere. Section 8 of `non-import-guest-identity-after.sql` builds a
+  two-row same-name collision, but only one row is an eligible candidate, so it
+  exercises the exactly-one path; relaxing the auto-selection threshold from
+  `= 1` to `>= 1` left the whole harness at exit 0. New section 10 asserts that
+  two eligible candidates with no explicit selection raise `P0003` and create no
+  player row. **Mutation-proven**: under that exact threshold change the harness
+  exits 3 at the new assertion, reporting that the call auto-selected the
+  lowest-ordered guest instead of rejecting.
+- **FINDING D (LOW, coverage, privacy-adjacent) — resolved.** The
+  `p.linked_user_id is null` clause in the selected-player revalidation is the
+  sole barrier stopping an explicitly supplied CLAIMED player id from being
+  returned and labelled `existing_unlinked_guest` — a registered account handed
+  back as a reusable guest. Removing it also left the harness at exit 0. New
+  section 11 asserts the refusal (`P0002`) and that it writes nothing.
+  **Mutation-proven**: with the clause removed the harness exits 3, reporting the
+  claimed player returned as `existing_unlinked_guest`. The branch is latent
+  today because neither call site passes an explicit selection; the assertion's
+  comment records why it exists anyway.
+
+Both mutation probes were reverted and the tree proven byte-identical by
+`git write-tree` (`cf186f51536cf401212693b8643d1699ec1e7dab` before, after the
+first probe, and after the second). No non-reverted change exists under
+`supabase/migrations/`.
+
+Separately, two `run.sh` comment blocks still asserted the causal claim this
+document records as **refuted by measurement** — that replaying
+`20260720120000` would coarsen the pre-image the contraction proof measures
+against. They now state what was actually measured: `MATCH_PREIMAGE` runs after
+the replay loop and installs the fine-grained predecessor over it, so the
+exclusion is inconsequential rather than necessary. Comment text only, proven by
+diffing the 156 non-comment lines to zero difference. **The underlying coverage
+decision was NOT acted on**: `match-oracle-post-contraction.sql` is still wired
+into nothing, the replayed migration set is unchanged, and the measurements were
+not re-run. That decision remains the owner's.
+
+#### Terminal multiple-match state — RECORDED, deliberately NOT fixed
+
+Tracked as blocker `GUEST-NAME-COLLISION-TERMINAL` in `docs/CURRENT_STATUS.md`.
+
+When two or more UNLINKED players in a group carry the same normalized personal
+name, `create_or_reuse_guest_identity` raises `P0003` and **nothing can satisfy
+it**. The sole call site
+(`src/lib/db/import-player-identity-repo.ts:118`) hard-codes
+`p_selected_player_id: null` and accepts no selection from its callers; neither
+`/group/players` nor the Log-a-Game manual-entry resolver offers a
+disambiguation UI; and no code in `src/` handles `P0003`, so it propagates as a
+raw database error. That roster entry can never be added [REPO]. It is
+**inherited** from the deployed resolver this function is derived from, not
+introduced by the `ID-READER-CLIENT` work, but it is a real unrecoverable
+user-facing state and was written down nowhere.
+
+**Coupling to FINDING D.** The natural fix is a disambiguation UI. Such a UI
+would pass an explicit `p_selected_player_id`, which is precisely the path
+FINDING D's new assertion guards — today that path is only reachable by a direct
+service-role call. Section 11 of `non-import-guest-identity-after.sql` must
+therefore already be in place before any disambiguation UI ships.
+
+Not fixed here: no UI was designed or built and neither call site was changed.
+That is a product decision requiring its own assignment.
+
+Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md`.
 
 ### ID-READER-CLIENT remediation integrated onto the redesign branch (2026-07-23)
 
@@ -1772,6 +1876,38 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md
+  (answers the targeted re-audit's FAIL on the merged `ID-READER-CLIENT`
+  remediation, which found the SQL and TypeScript correct and complete and failed
+  on documentation and coverage only; the re-audit left no handoff in this
+  repository, so every defect was independently re-derived from code first.
+  FINDING A: the active, Claude-Project-published
+  `PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md` stated a
+  `create_or_reuse_guest_identity` signature that does not exist — corrected to
+  `(uuid, uuid, text, text, text, text, uuid, boolean)` and given a dated
+  supersession notice, together with its stale verbatim-transcription claim and
+  its stale unmerged-design-handoff discrepancy, because a CONTRACT drop or
+  rollback authored from the old text would have dropped nothing and silently
+  recorded success. FINDING B: the release sequence's `2a`/`2b` sub-headings and
+  self-referential "item 3 below" corrected to `3a`/`3b` and item 4, with no SQL
+  or precondition touched. FINDING C and FINDING D: the multiple-candidate
+  rejection and the revalidation's unlinked-only clause were asserted nowhere and
+  now carry sections 10 and 11 of `non-import-guest-identity-after.sql`, each
+  MUTATION-PROVEN to take the harness to exit 3 under the exact mutation that
+  previously left it at exit 0 — auto-selecting on `>= 1` candidates, and
+  returning an explicitly selected CLAIMED player as `existing_unlinked_guest`.
+  Both probes reverted with `git write-tree` byte-identity proven; no
+  non-reverted change under `supabase/migrations/` and no `src/` file changed.
+  Two `run.sh` comment blocks corrected to state the measured result instead of
+  the refuted causal claim, comment-only with the 156 non-comment lines proven
+  unchanged, and the underlying coverage decision deliberately NOT acted on. The
+  terminal multiple-match state — a name colliding with two or more unlinked
+  guests can never be added, inherited rather than introduced — RECORDED as
+  blocker `GUEST-NAME-COLLISION-TERMINAL` with its FINDING-D coupling and
+  deliberately NOT fixed. Migration `20260722160000` still gated and unapplied,
+  the reader still undeployed, Step 4.3 not marked complete, no other blocker's
+  disposition changed, no migration applied, no deploy, no push, and no
+  Cloudflare or Supabase access)
 - docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-INTEGRATION.md
   (local integration: `fix/id-reader-candidate-predicate` merged `--no-ff` into
   `redesign/tm-stats-dashboard-rebuild` as `07a81c19e`, bringing `eaab06545` and
