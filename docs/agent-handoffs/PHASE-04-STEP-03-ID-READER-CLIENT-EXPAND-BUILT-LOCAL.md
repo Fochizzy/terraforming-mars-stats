@@ -194,7 +194,8 @@ log, or output. Sentinel values only.
   fabricated import provenance, server-side authorized operation). No change
   required.
 - `docs/redesign/DECISIONS.md` — reviewed, **intentionally unchanged**. Recording
-  the owner's decision is the owner's act, not this task's.
+  the owner's decision is the owner's act, not this task's. **Resolved
+  2026-07-22:** the owner has since recorded it; see section 9.
 - `docs/CURRENT_STATUS.md`, `docs/REDESIGN_STATE.md` — updated with this outcome.
 - `docs/redesign/MASTER-RULES.md`, `docs/redesign/phases/04-log-a-game.md` —
   reviewed; no change required.
@@ -266,3 +267,26 @@ intentional: the historical entries in `src/lib/db/migration-ledger-map.ts`, the
 two "no longer serves either path" corrections themselves, and the assertions in
 `src/lib/db/import-player-identity-repo.test.ts` that prove the RPC is *not*
 called.
+
+---
+
+## 9. The owner decision behind this work is now recorded (2026-07-22)
+
+Section 6 left `docs/redesign/DECISIONS.md` **intentionally unchanged**, on the
+grounds that recording the owner's decision was the owner's act and not this
+task's. That follow-up is now **resolved**.
+
+The decision is recorded in `docs/redesign/DECISIONS.md` as "Phase 4 Step 4.3 -
+Non-import guest identity creation: accepted requesting-user trust model and
+retirement of 20260720100000", placed immediately after the 2026-07-22 matcher
+amendment it references. It covers both decisions this handoff implements:
+accepting the explicit `p_requesting_user_id` trust model for the non-import
+guest path, and superseding gated `20260720100000` rather than correcting it in
+place. Until then, the implemented authorization model had no canonical
+authorization behind it, while the matcher's equivalent downgrade already did.
+
+Documentation only — no code, migration, schema, deploy, or production change,
+and no blocker changed disposition. `ID-READER-CLIENT` remains resolved locally
+only and `ID-READER-DEPLOY` remains open. The recorded entry's own "Scope
+authorized by this decision" section, not this handoff, governs what it does and
+does not authorize.

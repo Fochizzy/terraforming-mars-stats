@@ -1351,6 +1351,95 @@ Defines the design; does not authorize implementation.
   proceed regardless.
 
 
+## Phase 4 Step 4.3 - Non-import guest identity creation: accepted requesting-user trust model and retirement of 20260720100000
+
+Decision date 2026-07-22. Owner decision, recorded from the planning session.
+
+### Decision 1 - accept the explicit requesting-user trust model for the non-import guest identity path
+
+public.resolve_import_guest_identity gates on auth.uid() and populates
+created_by_user_id from it. After ledger 20260722153233 revoked authenticated
+EXECUTE, the redesign's non-import guest creation path could not call it: under
+the user-session client the privilege check fails, and under service_role
+auth.uid() is NULL so the function's own gate raises the same 42501, with a
+second independent failure on the not null created_by_user_id column. No
+client-only change can succeed.
+
+The accepted fix is a new, distinctly named, service_role-only function -
+public.create_or_reuse_guest_identity - that authorizes against an explicit
+p_requesting_user_id enforced against public.group_members, populates
+created_by_user_id from that same argument, and records no player_import_aliases
+row because no imported source exists on this path.
+
+The cost, stated plainly. Today auth.uid() makes an authorization bypass on this
+path structurally impossible: the database establishes the caller's identity and
+no application defect can forge it. Afterwards the database trusts an
+application-supplied id, so a server-side defect that passes an
+attacker-influenced value becomes a full bypass. This is the same trust model
+already accepted for the matcher in the 2026-07-22 amendment above, and the same
+model as the four applied source-bound gateways of 20260722012658.
+
+Why it is accepted anyway. No option both keeps the closed oracle closed and
+repairs the reader. The only change that preserves auth.uid() is restoring the
+authenticated grant on resolve_import_guest_identity, which would reopen the
+private-name confirmation oracle closed as ledger 20260722153233 - a strictly
+worse regression. Routing the path through the already-applied source-bound
+gateways was evaluated and rejected: they require staged parsed-log source
+evidence, enforce exact source-text binding, and write a game_log import alias
+unconditionally, so using them on a non-import path would fabricate import
+provenance that the source-bound design exists to prevent.
+
+The surface is narrower than the matcher's. This function is write-scoped and
+takes no caller-supplied candidate array, so it exposes no enumeration probe.
+The matcher amendment left one open; this does not.
+
+Mitigations that are part of the accepted decision, not incidental. The function
+is granted to service_role only, never to authenticated or anon. The
+requesting-user id is resolved server-side inside
+createOrReuseGuestPlayerByPersonalName from supabase.auth.getUser(), the same
+server-verified source getCurrentGroupContext uses, and is not exposed as a
+parameter of any TypeScript caller - so no call site can supply it and no client
+value can reach it. This deliberately diverges from the four sibling gateways,
+which thread activeContext.userId from their callers. The divergence is
+intentional and must not be normalized back to threading; doing so would
+reintroduce the injection surface this mitigation removes.
+
+A distinct function name was chosen over an overload of the existing signature.
+An appended parameter is forced to carry a default because the existing
+signature already ends in defaulted parameters, and a defaulted extra parameter
+makes old-style calls ambiguous - 42725, proven on a disposable cluster.
+
+### Decision 2 - supersede gated migration 20260720100000 rather than correct it in place
+
+20260720100000 was written to add p_record_import_alias so non-import guest
+creations record no false game_log alias evidence. That need is real and unmet,
+but the migration as written drops the 7-argument resolve_import_guest_identity
+and grants EXECUTE on its replacement to authenticated, which would reopen the
+oracle closed as ledger 20260722153233.
+
+It is retired unapplied as a documented no-op tombstone rather than corrected in
+place. Correcting it would require the same rename and signature change anyway,
+leaving a file whose name no longer describes its content; and any surviving
+form of it continues to occupy a slot in the remaining-migration sequence, where
+it invites application. The false-evidence-suppression requirement is carried
+forward structurally instead: create_or_reuse_guest_identity never writes an
+import alias, so the behaviour is a property of the function rather than a flag
+on a call.
+
+The in-place edit of unapplied 20260722012658 during the earlier matching
+remediation is not a precedent for this case. That change preserved the
+function's signature; this one does not.
+
+### Scope authorized by this decision
+
+The local build only - the new gated migration, the call-site move, and their
+proofs. Applying 20260722160000, deploying the moved reader, verifying it, and
+the subsequent contraction drop of the 7-argument function are each separately
+gated and are not authorized by this decision. An authorized production ACL read
+to settle the recorded service_role EXECUTE discrepancy is a precondition of the
+contraction step.
+
+
 ## Project-wide - generated Claude Project master context
 
 Approved by the user's explicit context-maintenance request on 2026-07-22.

@@ -94,6 +94,20 @@ corrected. No logic, migration, schema, deploy, or production change, and no
 blocker changed disposition. Handoff section 8 of
 `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md`.
 
+**The owner decision behind this work is now recorded (2026-07-22).** The two
+decisions this section implements — accepting the explicit
+`p_requesting_user_id` trust model for the non-import guest path, and
+superseding gated `20260720100000` rather than correcting it in place — are
+written into `docs/redesign/DECISIONS.md` as "Phase 4 Step 4.3 - Non-import
+guest identity creation: accepted requesting-user trust model and retirement of
+20260720100000", placed immediately after the 2026-07-22 matcher amendment it
+references. This closes the gap in which an implemented, security-relevant
+authorization model had no recorded authorization behind it; the matcher's
+equivalent downgrade was already recorded, this one was not. Documentation only
+— no code, migration, schema, deploy, or production change, and no blocker
+changed disposition. That entry's own "Scope authorized by this decision"
+section governs what it does and does not authorize.
+
 ### Production release-boundary reconciliation (2026-07-22)
 
 The newer production apply record supersedes older statements below that both
