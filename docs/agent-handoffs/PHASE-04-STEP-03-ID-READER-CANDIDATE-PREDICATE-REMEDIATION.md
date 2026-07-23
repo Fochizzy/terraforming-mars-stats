@@ -206,6 +206,13 @@ still shows the superseded argument order. It is a historical design record and
 was outside this task's permitted file set; it is superseded by this handoff and
 by the migration itself.
 
+**RESOLVED 2026-07-23** by
+`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md`: that
+file's five signature sites now carry the shipped order and it opens with a dated
+notice pointing here. "Superseded by a handoff" was not sufficient on its own —
+a future session reading the scoping document directly would still have taken the
+wrong signature from it.
+
 ---
 
 ## 4. Executable proof and mutation testing
@@ -298,6 +305,15 @@ Some `echo` labels below the banner still read "gated" for the applied pair.
 They were left alone because changing them would alter the script's stdout, and
 the correction was required to be comment-only; the header now states that it is
 authoritative over those labels.
+
+**RESOLVED 2026-07-23** by
+`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md`, which
+was not comment-only. Nothing in the repository asserts on `run.sh` stdout —
+verified across `package.json`, CI, tests, snapshots and hooks — so the labels
+now name each file's real production status and its deferral reason, and
+`20260720120000` gained the explicit label it never had. Executable logic is
+still unchanged: 116 non-comment, non-blank, **non-echo** lines before and after,
+with a zero-line diff.
 
 ---
 

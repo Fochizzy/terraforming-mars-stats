@@ -167,8 +167,31 @@ exactly `GATED_UNAPPLIED`, but two production-applied migrations are deferred
 too. That change is comment-only and proven so — all 155 executable lines are
 byte-identical.
 
+Closed out on 2026-07-23. Mutation probe P1 was re-run at the current file state,
+because it had been confirmed *before* clause 8b's error handler was tightened in
+response to probe P3 and was never re-run afterwards. It still fails, still at 8b
+(`non-import-guest-identity-after.sql:340`), still with sqlstate `P0002`, harness
+exit 3; the probe's fidelity to the pre-fix logic was itself proven by a zero-line
+diff against blob `eaab0654^`, and both files reverted to byte-identical hashes.
+The `run.sh` `echo` labels — left reading "gated" for the applied pair by the
+comment-only constraint — are now corrected, with 116 non-comment, non-blank,
+non-echo lines and a zero-line diff before and after, after verifying that nothing
+in the repository asserts on `run.sh` stdout. The scoping document
+`PHASE-04-STEP-03-GUEST-IDENTITY-OVERLOAD-DESIGN-SCOPING.md` had its five stale
+signature sites corrected to the shipped argument order and gained a dated
+authority notice.
+
+One new question is recorded and deliberately **not** acted on, for the owner:
+half 1 of the harness pins the fine-grained `match_import_player_names` that
+production has already replaced via ledger `20260722144034`, and
+`supabase/tests/executable/match-oracle-post-contraction.sql` is referenced by
+nothing, so the coarsened privacy surface is asserted nowhere. Measured, not
+inferred: including either deferred applied migration in the replay, or applying
+`20260720120000` in the deferred half, leaves the harness at exit 0.
+
 Handoff:
-`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md`.
+`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md`,
+then `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md`.
 
 ### Production release-boundary reconciliation (2026-07-22)
 
@@ -1650,6 +1673,22 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md
+  (remediation closeout for `eaab0654`, all claims re-derived rather than
+  inherited: mutation probe P1 re-proven against the TIGHTENED clause 8b it was
+  never re-run against — harness exit 3, `non-import-guest-identity-after.sql:340`,
+  sqlstate `P0002` — with the probe's fidelity to the pre-fix logic proven by a
+  zero-line diff against `eaab0654^` and byte-identical reversion; `run.sh` echo
+  labels corrected to name each deferred file's real production status after
+  confirming nothing asserts on its stdout, 116 non-echo executable lines
+  unchanged with a zero-line diff; `GUEST-IDENTITY-OVERLOAD-DESIGN-SCOPING.md`
+  corrected at all five signature sites and given a dated authority notice; the
+  replay-exclusion question answered by four measured harness runs and left
+  undecided for the owner, including that `match-oracle-post-contraction.sql` is
+  referenced by nothing so the coarsened matcher is asserted nowhere; a stale
+  "Gated repo file" phrase in `migration-ledger-map.ts:360` reported and not
+  changed; no migration applied, no production read or write, no deploy, no push,
+  and FINDING-4 / `DRAFT-NAME-RESIDUE` not opened)
 - docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md
   (ID-READER-CLIENT expand REMEDIATED after an independent audit FAIL, all in the
   still-unapplied 20260722160000: the candidate-counting and auto-selection

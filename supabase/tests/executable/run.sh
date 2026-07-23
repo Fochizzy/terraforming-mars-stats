@@ -118,7 +118,7 @@ PSQL() { "$PGBIN/psql" -h 127.0.0.1 -p "$PORT" -U postgres -v ON_ERROR_STOP=1 -d
 echo "== bootstrap Supabase-compatible roles/auth/storage =="
 PSQL -q -f "$HERE/bootstrap.sql"
 
-echo "== replay production migration history (alias deferred; all gated excluded) =="
+echo "== replay production migration history (alias deferred; all gated excluded, PLUS the two production-APPLIED files 20260722012658 and 20260720120000) =="
 for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$ALIAS_MIGRATION" ] && continue
   [ "$f" = "$MERGER_MIGRATION" ] && continue
@@ -171,8 +171,9 @@ PSQL -q -f "$HERE/non-import-guest-identity-before.sql"
 # The deferred migrations start here, in ledger-version order. Everything above
 # this line models production MINUS the two applied migrations noted in the
 # header; everything below is that deferred set — mostly prepared-and-NOT-applied
-# work, plus those two applied files. Some echo labels below still read "gated"
-# for the applied pair; the header is authoritative over those labels.
+# work, plus those two applied files. The echo labels below now name each file's
+# real production status, so a reader of the output does not have to consult this
+# header to tell a gated migration from an applied-but-deferred one.
 # ---------------------------------------------------------------------------
 
 echo "== apply gated merger offer/rule snapshot migration =="
@@ -218,8 +219,12 @@ PSQL -q -f "$PLACEMENT_MIGRATION"
 echo "== repeat-safety: apply the placement-contract migration a second time =="
 PSQL -q -f "$PLACEMENT_MIGRATION"
 
-# The superseded 20260720120000 coarsening file is deliberately NOT applied.
-echo "== apply gated source-bound expansion =="
+# 20260720120000 is NOT gated and NOT superseded: it is APPLIED to production as
+# ledger 20260722144034 (paired by NAME — src/lib/db/migration-ledger-map.ts).
+# It is deferred out of the replay above and then never applied here either.
+echo "== NOT applied here: 20260720120000 coarsen_import_name_match_reasons — APPLIED to production as ledger 20260722144034, deferred because MATCH_PREIMAGE above already installs the deployed matcher this file coarsens =="
+
+echo "== apply 20260722012658 source-bound expansion — APPLIED to production as ledger 20260722132159, deferred from the replay so the BEFORE/AFTER pair below can pin its pre-image and then restore the shipped matcher on one database =="
 PSQL -q -f "$SOURCE_BOUND_EXPANSION"
 
 # The BEFORE half reinstalls the matcher exactly as committed at e27fae282 and
