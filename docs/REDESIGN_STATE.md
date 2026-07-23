@@ -3127,6 +3127,30 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/INSTALL-PHASE-PACK-05-20.md
+  (documentation install, redesign lineage, docs-only and local: **nothing
+  applied, deployed, pushed, merged, or read from production**; no write outside
+  the repository, no `src/**`/`supabase/**`/`scripts/**` edit, no phase started.
+  Installed the sixteen expanded phase documents `05`–`20` into
+  `docs/redesign/phases/` **byte-identical to source** (sha256 verified both
+  sides) — nine pure fills into empty files (`06,07,14,15,16,17,18,19,20`) and
+  seven overwrites of non-empty files (`05,08,09,10,11,12,13`) whose hand-merged
+  source was first proven to carry the `REPO-NATIVE` provenance section and the
+  exact expected line counts (991/759/843/886/819/718/728). `07-leaderboard.md`
+  is the owner's **51534-byte Elo** version, not the 52272-byte Word original.
+  Also installed `PACK-05-20-README.md` (no-authorization rule intact) and
+  `PACK-05-20-VERIFICATION.md` **with a single install-time correction banner**
+  naming all **eight** superseded rows (`05,07,08,09,10,11,12,13`); the original
+  inventory table is untouched and that banner is the only edit. **Four
+  owner-decision conflicts were surfaced and RESOLVED NONE:** 07 Elo-replaces-
+  weighted-score wording; the 11/12/19 three-docs-two-subjects overlap;
+  possible conflicts against CANONICAL-ANALYTICS-DEFINITIONS,
+  ANALYTICS-REPOSITORY-QUERY-CONTRACTS,
+  METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS, DATA-CAPABILITIES and Phase 2's
+  undecided questions; and closure-convention divergence from `04-log-a-game.md`.
+  **The presence of these documents is not authorization to begin any phase.**
+  No blocker's disposition changed, Step 4.3 NOT marked complete, no defect
+  count changed, no phase/deploy/migration baseline changed.)
 - docs/agent-handoffs/AMEND-R4-DESIGN-B.md
   (governance / decision-record amendment, redesign lineage, documentation-only and local:
   **nothing applied, deployed, pushed, merged, or read from production**; no write outside the
