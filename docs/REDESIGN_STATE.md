@@ -22,9 +22,16 @@ addressed and the migration remains gated. Both independent audits of this work
 are now on the repository record in
 `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-INDEPENDENT-AUDIT-TRAIL.md`.
 Nothing beyond that is authorized by this document.**) The production ledger
-attestation on this lineage now reads **115 entries, head `20260723082917
-add_non_import_guest_identity_creator`**, **read live** on 2026-07-23 by the
-session that performed the expand apply.
+attestation on this lineage now reads **116 entries, head `20260723151221
+add_service_role_import_name_matcher_overload`**, **read live** on 2026-07-23 by
+the session that performed the matcher expand apply.
+
+**THE MATCHER EXPAND IS ALSO APPLIED.** Migration `20260723130000` was applied to
+production on 2026-07-23 at **15:12:21Z** as ledger `20260723151221`. **No deploy
+accompanied it and nothing in production calls the new three-argument overload.**
+`MATCHER-READER-MERGE`, `MATCHER-READER-DEPLOY`, and the production verification
+are the three remaining gates before contraction `20260722012707`, and **none of
+them is open**. Applied is not deployed and is not closed.
 
 ### Two accepted work items recorded: the expand merge, and a disputed apply report disproven (2026-07-23)
 
@@ -62,6 +69,19 @@ contraction `20260722012707`. `fix/matcher-service-role-overload-callsite` @
 the apply opens a window in which any unrelated deploy of the live lineage would
 break live import matching with `PGRST202`/`42883`. It is on **no remote**
 `[GIT]`.
+
+> **SUPERSEDED 2026-07-23 15:12:21Z — the first of those four gates is now
+> closed.** `20260723130000` is **APPLIED** as ledger `20260723151221`. The
+> paragraph above is retained as the state that was correct when written; read
+> the "Current substep" block and
+> `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md` for
+> current state. **THREE gates remain, unchanged in order and none of them open:**
+> merge the moved reader, deploy it, verify a real import returns a **non-zero**
+> match count in production — only then contraction `20260722012707`.
+> `fix/matcher-service-role-overload-callsite` @ `5894c874a` remains
+> **deliberately unmerged, local-only, and on no remote**; the hazard that kept it
+> unmerged (`PGRST202`/`42883` on an unrelated live deploy) is now retired by the
+> apply, but merging and deploying it are still separately authorized gates.
 
 #### 2. `MATCHER-APPLY-FORENSICS` — PASS. The disputed report is disproven
 
@@ -2751,6 +2771,52 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md
+  (production apply, redesign lineage: lands the `MATCHER-OVERLOAD-EXPAND-APPLY`
+  work item — verdict **PASS**. Gated migration `20260723130000` is **APPLIED to
+  production**, recorded in the live ledger as **`20260723151221
+  add_service_role_import_name_matcher_overload`**, applied **2026-07-23 at
+  15:12:21Z**. **This is the FIRST application of this migration** — the report
+  claiming a 13:20:35Z apply under `20260723132035` was disproven by forensics and
+  is disproven again here, because the pre-apply ledger this session read live
+  held **115 entries with no `20260723132035`, no entry in
+  `20260723130000`–`20260723140000`, and no matcher-overload entry**. **Exactly
+  one production mutation**; no invocation of either overload, no application row
+  or personal value read, `pg_catalog` only. **The ledger moved 115 → 116** with
+  exactly one entry added at the head and every prior entry unchanged. **The apply
+  tool stamped `20260723151221` over the filename version `20260723130000`**, so
+  the pairing is by **NAME** — the third such rename in this sequence, after
+  `20260722012658`→`20260722132159` and `20260722160000`→`20260723082917`.
+  **Transcription control:** the SQL sent was proven byte-identical to
+  `git show HEAD:<path>` **before** the call by writing the payload and `cmp`-ing
+  it — both sha256 `6d2f4768…`, 16216 bytes, 0 CR bytes — while the working-tree
+  copy hashes differently (`e71fab89…`, 16545 bytes), the CRLF trap live in this
+  checkout; `git hash-object` was deliberately not used. **Post-apply catalog
+  verification, all CHECKED:** **two** overloads exist; the **new**
+  `(uuid, uuid, text[])` is `prosecdef` true, `proconfig` `search_path=""`, ACL
+  `{postgres=X/postgres,service_role=X/postgres}` — **no `authenticated`, no
+  `anon`, no surviving PUBLIC grant**; the **existing** `(uuid, text[])` is
+  **UNCHANGED**, `md5(prosrc)` `522f8cb0a2647c57e35da0a081f90480` and
+  `length(prosrc)` `4191` **identical to the 09:40:14Z baseline**, ACL still
+  including `authenticated`. **NO DEPLOY accompanied it and nothing in production
+  calls the new overload** — the moved reader on
+  `fix/matcher-service-role-overload-callsite` (`5894c874a`) is neither merged nor
+  deployed, and the deployed Worker still calls the two-argument form as
+  `authenticated`. **Rollback recorded as unexecuted and unauthorized:**
+  `drop function public.match_import_player_names(uuid, uuid, text[]);`.
+  **THREE GATES REMAIN, then the contraction** — merge the reader, deploy, verify
+  in production, and only then `20260722012707`; **applied is not deployed and is
+  not closed**, Step 4.3 is not complete, and no blocker's disposition changed.
+  **Verification scope stated explicitly:** this session verified the OBJECT's
+  shape and ACL, **not** that the function returns matches — the non-zero
+  match-count / non-null `userId` requirement belongs to the **post-deploy gate**
+  and **remains outstanding**, and PostgREST overload resolution stays
+  **[INFERENCE]** until that gate. **Prompt-integrity note:** the brief's
+  precondition step contradicted itself — its stop clause forbade "any
+  matcher-named entry" while the same step required a ledger that necessarily
+  contains two — and the session **stopped and quoted both passages rather than
+  resolving it**; the owner corrected the clause to mean an entry naming the
+  matcher **overload**, and only then did the apply proceed)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md
   (record only, redesign lineage: lands the `MATCHER-APPLY-FORENSICS` work item —
   verdict **PASS** — which existed in **no** repository document before this

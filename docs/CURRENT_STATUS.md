@@ -18,23 +18,29 @@ production on 2026-07-23 as ledger `20260723082917`. **`ID-READER-DEPLOY` is now
 the active gate** — the moved reader is still undeployed and nothing in
 production calls the new function.
 
-**A SECOND expand now exists, built, MERGED, but NOT applied.** Under owner
-decision **PD-1** of 2026-07-23, the three-argument `match_import_player_names`
-overload was built locally as gated migration `20260723130000` and merged onto
-this branch as `2b2a3b00e` (`--no-ff`), with its reader moved on the live-site
-lineage and **deliberately left unmerged**. **Nothing was applied, deployed or
-pushed**, and its apply, deploy, production verification, and the contraction
-`20260722012707` are four separate gates, none of them opened. Do not confuse the
-two expands: they share the expand/deploy/verify/contract shape but are different
-migrations, different functions, and different evidence.
+**THE SECOND EXPAND IS NOW ALSO APPLIED.** Under owner decision **PD-1** of
+2026-07-23, the three-argument `match_import_player_names` overload was built
+locally as gated migration `20260723130000` and merged onto this branch as
+`2b2a3b00e` (`--no-ff`). **It was applied to production on 2026-07-23 at
+15:12:21Z as ledger `20260723151221`** — filename version stamped over by the
+apply tool, so the pairing is by **NAME**. The ledger moved **115 → 116** with
+exactly one entry added. **No deploy accompanied it**, its reader on the
+live-site lineage is **deliberately still unmerged**, and **nothing in production
+calls the new overload**. `MATCHER-READER-MERGE`, `MATCHER-READER-DEPLOY`, the
+production verification, and contraction `20260722012707` are **four separate
+gates, none of them opened**. Do not confuse the two expands: they share the
+expand/deploy/verify/contract shape but are different migrations, different
+functions, and different evidence.
 
-**A REPORT CLAIMING `20260723130000` WAS APPLIED IS DISPROVEN.** It claimed an
-apply at 13:20:35Z under ledger `20260723132035` and a ledger move 115→116. A
-read-only forensic investigation (verdict **PASS**) established that **none of it
-happened**: **the production ledger is 115 entries, head `20260723082917`**, and
-the two commits that report cited **never existed**. **Production is unchanged
-and correct; there is no drift to repair.** Detail, and the four open items it
-left, under "A report claiming the apply happened is DISPROVEN" below.
+**A REPORT CLAIMING AN EARLIER APPLY OF `20260723130000` IS DISPROVEN.** It
+claimed an apply at 13:20:35Z under ledger `20260723132035` and a ledger move
+115→116. A read-only forensic investigation (verdict **PASS**) established that
+**none of it happened**, and **the pre-apply ledger read live at 15:12Z confirmed
+it again**: 115 entries, head `20260723082917`, **no `20260723132035`**, no entry
+in `20260723130000`–`20260723140000`, no matcher-overload entry. The two commits
+that report cited **never existed**. **The real apply is `20260723151221`, and it
+is the FIRST application of this migration.** Detail, and the four open items the
+forensics left, under "A report claiming the apply happened is DISPROVEN" below.
 
 ## Current objective
 
@@ -66,12 +72,32 @@ expand half of that sequence is done; every remaining step is still gated.
   nothing pre-existing; the deployed 7-argument `resolve_import_guest_identity`
   is untouched. Record:
   `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
-- Production ledger attestation is now **115 entries with head `20260723082917
-  add_non_import_guest_identity_creator`**, and **these values were read live**
-  by the applying session, both before and after the apply. The pre-apply read
+- **Production applied `add_service_role_import_name_matcher_overload` as ledger
+  version `20260723151221` from repository migration `20260723130000` on
+  2026-07-23 at 15:12:21Z** — the EXPAND half of the 2026-07-22 matcher
+  amendment. **No deploy of any kind accompanied it**, and **nothing in
+  production calls the new function**. Verified read-only from `pg_catalog`
+  immediately afterwards: **two** overloads of `public.match_import_player_names`
+  exist; the new `(uuid, uuid, text[])` is `security definer` with
+  `search_path=""` and ACL `{postgres=X/postgres,service_role=X/postgres}` — no
+  `authenticated`, no `anon`, no surviving `PUBLIC` grant. **The deployed
+  two-argument `(uuid, text[])` form is UNCHANGED** — `md5(prosrc)`
+  `522f8cb0a2647c57e35da0a081f90480`, `length(prosrc)` `4191`, ACL still
+  including `authenticated`, all identical to the 09:40:14Z baseline. **Neither
+  overload was invoked**; the apply is verified from the catalog, not by calling
+  it. Record:
+  `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md`.
+- Production ledger attestation is now **116 entries with head `20260723151221
+  add_service_role_import_name_matcher_overload`**, and **these values were read
+  live** by the applying session, both before and after the apply. The pre-apply
+  read returned **115 with head `20260723082917`**, confirming the preceding
+  attestation was correct and that production had not moved in between. Exactly
+  one ledger entry was added.
+- The prior attestation was **115 entries with head `20260723082917
+  add_non_import_guest_identity_creator`**, also **read live** by the session
+  that performed the `ID-READER-CLIENT` expand apply. Its own pre-apply read
   returned 114 with head `20260723014849`, **confirming the 2026-07-23
-  transcribed reconciliation below was correct** and that production had not
-  moved in between. Exactly one ledger entry was added.
+  transcribed reconciliation below was correct**.
 - The prior attestation was **114 entries with head `20260723014849
   repair_snapshot_player_ids`**, reconciled on 2026-07-23. Production applied
   that migration ~01:48Z on 2026-07-23 as the data half of the live-site

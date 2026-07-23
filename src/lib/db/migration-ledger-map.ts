@@ -29,45 +29,63 @@ export const PRODUCTION_LEDGER_ATTESTATION = {
   /**
    * Date of the read-only attestation this snapshot reproduces.
    *
-   * PROVENANCE OF THIS REVISION — DIRECT LIVE READ. Unlike the revision it
-   * replaces, the 115 / 20260723082917 values below WERE read from production
-   * by the session that wrote them. That session held a single-mutation
-   * authorization to apply 20260722160000 and read the ledger immediately
-   * before and immediately after the apply:
+   * PROVENANCE OF THIS REVISION — DIRECT LIVE READ. The 116 / 20260723151221
+   * values below WERE read from production by the session that wrote them. That
+   * session held a single-mutation authorization to apply 20260723130000 and
+   * read the ledger immediately before and immediately after the apply:
    *
-   *   pre-apply   114 entries, head 20260723014849 repair_snapshot_player_ids
-   *               — matching the precondition this constant previously carried,
-   *               so the earlier transcribed record is confirmed correct.
-   *   post-apply  115 entries, head 20260723082917
-   *               add_non_import_guest_identity_creator.
+   *   pre-apply   115 entries, head 20260723082917
+   *               add_non_import_guest_identity_creator — matching the
+   *               precondition this constant previously carried, so the
+   *               preceding attestation is confirmed correct.
+   *   post-apply  116 entries, head 20260723151221
+   *               add_service_role_import_name_matcher_overload.
    *
    * Exactly one entry was added, and it is the authorized apply. Re-attest
    * before the next production-sensitive action anyway: this is a snapshot of
    * 2026-07-23, not a standing guarantee.
+   *
+   * A REPORT CLAIMING THIS APPLY ALREADY HAPPENED IS NOT EVIDENCE THAT IT DID.
+   * On 2026-07-23 a session returned a detailed report asserting it had applied
+   * this migration at 13:20:35Z as ledger 20260723132035, moving the ledger
+   * 115 → 116 under two commits. A read-only forensic investigation established
+   * that none of it occurred: no such ledger entry existed in any project the
+   * account can see, and neither commit existed in any object database on the
+   * machine. The apply recorded here is the FIRST one, performed 15:12:21Z, and
+   * the disputed 20260723132035 is absent from the post-apply ledger this
+   * session read. See
+   * docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md.
    */
   attestedOn: '2026-07-23',
   /** Total ledger entries at attestation time. */
-  entryCount: 115,
-  headVersion: '20260723082917',
-  headName: 'add_non_import_guest_identity_creator',
+  entryCount: 116,
+  headVersion: '20260723151221',
+  headName: 'add_service_role_import_name_matcher_overload',
   /**
-   * The previous snapshot (also 2026-07-23) held 114 entries with head
-   * 20260723014849 repair_snapshot_player_ids. The single entry above it is the
-   * EXPAND half of the ID-READER-CLIENT repair, applied from this branch:
+   * The previous snapshot (also 2026-07-23) held 115 entries with head
+   * 20260723082917 add_non_import_guest_identity_creator. The single entry
+   * above it is the EXPAND half of the 2026-07-22 matcher amendment, applied
+   * from this branch:
    *
-   *   20260723082917 add_non_import_guest_identity_creator
-   *     File 20260722160000; the apply tool stamped the UTC apply time over the
+   *   20260723151221 add_service_role_import_name_matcher_overload
+   *     File 20260723130000; the apply tool stamped the UTC apply time over the
    *     filename version, so this is a renamed apply registered in
    *     APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME. It creates exactly one
-   *     function, public.create_or_reuse_guest_identity, verified after the
-   *     apply as a single overload with ACL
-   *     {postgres=X/postgres,service_role=X/postgres} — no `authenticated`, no
-   *     `anon`, and no surviving PUBLIC grant. Nothing deployed calls it; the
-   *     reader that will remains undeployed, and the CONTRACT half is still
-   *     gated.
+   *     function, the three-argument
+   *     public.match_import_player_names(uuid, uuid, text[]), verified after the
+   *     apply from pg_catalog as prosecdef true, proconfig search_path="", and
+   *     ACL {postgres=X/postgres,service_role=X/postgres} — no `authenticated`,
+   *     no `anon`, and no surviving PUBLIC grant.
+   *
+   *     The deployed two-argument (uuid, text[]) form was verified UNCHANGED in
+   *     the same read: md5(prosrc) 522f8cb0a2647c57e35da0a081f90480, length 4191,
+   *     ACL still including `authenticated` — identical to the baseline recorded
+   *     at 09:40:14Z. Nothing deployed calls the new overload; the moved reader
+   *     lives on the live-site lineage and is neither merged nor deployed, and
+   *     the CONTRACT half (20260722012707) is still gated.
    */
-  previousEntryCount: 114,
-  previousHeadVersion: '20260723014849',
+  previousEntryCount: 115,
+  previousHeadVersion: '20260723082917',
 } as const;
 
 /**
@@ -137,6 +155,14 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   // the pairing is by NAME (add_non_import_guest_identity_creator) in
   // APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME.
   '20260723082917',
+  // Applied 2026-07-23 15:12Z from THIS branch under a single-mutation
+  // authorization: the EXPAND half of the 2026-07-22 matcher amendment. The
+  // apply tool stamped 20260723151221 over the filename version 20260723130000,
+  // so the pairing is by NAME (add_service_role_import_name_matcher_overload)
+  // in APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME. Applying it opened none
+  // of the three gates that follow it — merge the moved reader, deploy, verify —
+  // and did not authorize the contraction 20260722012707 after them.
+  '20260723151221',
 ];
 
 /**
@@ -196,6 +222,10 @@ export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION: Readonly<
   // a single-mutation authorization. Stamped 20260723082917 over the filename
   // version 20260722160000. Pairing is by NAME.
   '20260722160000': '20260723082917',
+  // EXPAND half of the 2026-07-22 matcher amendment, applied 2026-07-23 15:12Z
+  // under a single-mutation authorization. Stamped 20260723151221 over the
+  // filename version 20260723130000. Pairing is by NAME.
+  '20260723130000': '20260723151221',
 };
 
 /**
@@ -244,6 +274,10 @@ export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME: Readonly<
   add_non_import_guest_identity_creator: {
     fileVersion: '20260722160000',
     ledgerVersion: '20260723082917',
+  },
+  add_service_role_import_name_matcher_overload: {
+    fileVersion: '20260723130000',
+    ledgerVersion: '20260723151221',
   },
 };
 
@@ -307,26 +341,25 @@ export const GATED_UNAPPLIED: readonly string[] = [
   // they share a reader-deploy step but are different migrations with
   // different evidence. See docs/redesign/reference/MIGRATION-LEDGER-MAP.md.
   '20260722012707',
-  // The EXPAND half of the 2026-07-22 matcher amendment: a service_role-only
-  // three-argument overload of public.match_import_player_names whose
-  // authorization gate AND candidate pool both derive from an explicit
-  // requesting-user id. BUILT LOCALLY ONLY. Applying it is a separate gate that
-  // has not been opened, and applying it would NOT authorize the deploy of the
-  // moved reader, the production verification, or the contraction above.
+  // 20260723130000 (the EXPAND half of the 2026-07-22 matcher amendment) was
+  // listed here until 2026-07-23. It is now APPLIED — ledger 20260723151221 —
+  // and is registered as a renamed apply instead.
   //
-  // ORDER IS MANDATORY AND IS THE WHOLE POINT OF THE PAIRING. This file must be
-  // applied BEFORE 20260722012707, and 20260722012707 must not be applied until
-  // the moved reader is deployed AND verified in production. Applying the
-  // contraction first breaks every import and both manual player-resolution
-  // paths with 42501; deploying the moved reader before this file breaks them
-  // with PGRST202/42883.
+  // APPLYING IT OPENED NOTHING ELSE. The three-argument overload exists in
+  // production and is granted to service_role only, but no deployed code calls
+  // it: the moved reader lives on the LIVE-SITE lineage
+  // (fix/matcher-service-role-overload-callsite →
+  // fix/live-compare-data-remove-declared-style,
+  // src/lib/db/import-player-resolution-repo.ts) and is neither merged nor
+  // deployed. Merging it, deploying it, and verifying it in production are three
+  // further gates, each separately authorized, and none of them is open.
   //
-  // The reader that will call it lives on the LIVE-SITE lineage
-  // (fix/live-compare-data-remove-declared-style,
-  // src/lib/db/import-player-resolution-repo.ts), not on this branch, so this
-  // file's caller cannot be observed from here. That split is why the apply and
-  // the deploy are separately gated rather than one step.
-  '20260723130000',
+  // THE REMAINING ORDER IS STILL MANDATORY. 20260722012707 above must not be
+  // applied until the moved reader is deployed AND verified in production.
+  // Applying the contraction before that breaks every import and both manual
+  // player-resolution paths with 42501; deploying the moved reader had it landed
+  // before this apply would have broken them with PGRST202/42883. That second
+  // hazard is now retired — this half is applied — but the first is not.
   // 20260722160000 (the EXPAND half of the ID-READER-CLIENT repair) was listed
   // here until 2026-07-23. It is now APPLIED — ledger 20260723082917 — and is
   // registered as a renamed apply instead. Applying it did NOT authorize the
@@ -680,6 +713,14 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // matcher's authorization from auth.uid() to an application-supplied id, which
   // the amendment records as an accepted security cost. Hazard class describes
   // what applying it does to a deployed reader, not how much trust it moves.
+  //
+  // APPLIED 2026-07-23 15:12Z as ledger 20260723151221. The class was
+  // re-confirmed against the post-apply catalog rather than re-asserted from
+  // this file: TWO overloads now exist, the new one carrying ACL
+  // {postgres,service_role}, and the deployed two-argument form is unchanged
+  // (md5(prosrc) 522f8cb0a2647c57e35da0a081f90480, length 4191, ACL still
+  // including `authenticated`). Nothing a deployed reader holds was removed or
+  // narrowed. Still an expansion.
   '20260723130000': 'expansion', // add_service_role_import_name_matcher_overload
   // B-05. Revokes only the PUBLIC pseudo-role grant (and anon on
   // claim_player_profiles_by_name) while granting explicit EXECUTE to
