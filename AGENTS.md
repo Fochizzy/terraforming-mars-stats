@@ -59,6 +59,19 @@ Use the updater's local log and final task report for the post-commit receipt.
 Do not edit a repository document solely to record that receipt. Verify Google
 Drive content and identity, but do not claim Claude ingestion timing.
 
+This same updater is additionally run by a committed Claude Code hook
+(`.claude/hooks/sync-planning-pack.ps1`, registered in `.claude/settings.json`)
+after a commit or merge that changes a planning-pack source, but only from the
+tree the updater reads. That automation is **Claude Code-only**: Codex does not
+execute Claude Code hooks, so `.claude/settings.json` is inert here and the
+manual post-commit step above (step 7) remains fully in force — run the updater
+when available and authorized, or explicitly report synchronization as pending.
+When the hook does fire (a Claude Code session in the updater's tree) an
+automatic run is expected, not a violation; a commit or merge made outside that
+tree does not publish, and its pending message is the synchronization report for
+that commit. Do not disable the hook, hand-edit `.claude/.pack-last-sync`, or run
+the updater manually to bypass the gate.
+
 ### Production-action synchronization rule
 
 Any session that deploys application code, applies a migration, or performs any

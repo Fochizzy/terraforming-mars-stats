@@ -124,6 +124,21 @@ These must remain distinct from:
   or report the synchronization as pending with its reason. The local updater
   log and task report are the final receipt; do not create a new source change
   solely to record that post-commit receipt.
+- Post-commit and post-merge synchronization in the updater's tree is
+  additionally enforced by a committed Claude Code hook
+  (`.claude/hooks/sync-planning-pack.ps1`, registered in `.claude/settings.json`
+  on `PostToolUse`/`Bash` via `Bash(git commit *)` and `Bash(git merge *)`
+  handlers), which runs the same updater and derives its watch set from
+  `CLAUDE-PROJECT-SOURCES.json`. It runs only from the tree the updater reads;
+  from any other worktree it reports synchronization PENDING and does not sync.
+  This automation is Claude Code-only and does not run under other agents, so the
+  written after-commit rule above stays authoritative whether the hook is
+  disabled, unavailable, unapproved, or firing outside the updater's tree. An
+  automatic run in the updater's tree is expected, not a violation; a non-tree
+  commit's PENDING message is the synchronization report for that commit. Do not
+  disable the hook, hand-edit the sync marker, or run the updater manually to
+  bypass the gate. See `docs/redesign/DECISIONS.md` -> "Project-wide -
+  post-commit planning-pack synchronization is hook-enforced".
 - Verify Drive content and stable IDs only. Claude controls linked-source refresh
   timing, so never claim automatic ingestion or a particular refresh time.
 
