@@ -1900,3 +1900,169 @@ reset, and import group resolution on this lineage all call the admin client unc
 so an unbound key would break the primary auth route. [REPO]
 
 No production system was queried. No deploy, migration, or code change accompanied this entry.
+
+## Deployment configuration - Wrangler `vars` audit and Cloudflare account facts (2026-07-23)
+
+Recorded by a read-only repository session. That session queried no production
+system, no Cloudflare API, and no connector. The Cloudflare facts below were
+obtained earlier, in the owner's planning session, and are [PRIOR] to it.
+
+### Cloudflare connector reads, owner's session 2026-07-23 [PRIOR]
+
+- The account contains exactly two Workers: `terraforming-mars-stats`, id
+  `8f8fad723fd94ac1b82f9a0a871abd6a`; and `moonrakers-dashboard`, id
+  `8d9c61f8a2a64702b9b136901aa691ce`, an unrelated project. No environment-scoped
+  variants of the TM Worker were listed.
+- `terraforming-mars-stats` `modified_on` is `2026-07-23T01:58:52.078374Z`. The
+  "Current production" row above records the deploy of worker version
+  `11e42e8c-2837-48ed-b867-b88e4ba3f25d` at `2026-07-23T01:58:50.810Z` — roughly
+  1.3 seconds earlier. **This is independent corroboration, from Cloudflare's own
+  Worker metadata, of the recorded deployment time.** It is the first such
+  corroboration in this project's record.
+- The connector exposes Workers, KV, D1, R2 and Hyperdrive only. It has **no**
+  secret listing, **no** bindings detail, and **no** deployments or versions
+  endpoint. The worker **version** `11e42e8c-…` therefore remains [UNVERIFIED],
+  and can be settled only by
+  `npx wrangler deployments list --name terraforming-mars-stats`.
+
+### Caveat on the 2026-07-23 dashboard observation [PRIOR]
+
+Recorded against the preceding entry, unsoftened. The owner believes no change
+was made in the Variables and Secrets pane, **but this is not independently
+confirmed.** The dashboard displayed a Wrangler config-drift notice, which
+typically follows an edit, though it can appear on view.
+
+Two residual unknowns the observation does not settle:
+
+- Whether the bound key belongs to Supabase project `qjtwgrjjwnqafbvkkfex`. A
+  stale key from another project would construct the client successfully and fail
+  at call time. Settled only by a live call.
+- Whether the pane is production-scoped. **Partly addressed** by the two-Worker
+  listing above: no environment-scoped variant of `terraforming-mars-stats` was
+  returned, so no second scope was available for the pane to have been showing.
+
+### Wrangler `vars` audit, this session [REPO]
+
+The question: could a `wrangler deploy` from this repository overwrite or remove
+the dashboard-bound `SUPABASE_SERVICE_ROLE_KEY`? Cloudflare documents that
+Wrangler treats its own configuration as the source of truth for variables and
+overrides dashboard-configured ones on deploy unless `keep_vars = true`.
+
+Findings, all from tracked content at `87d1ee045`:
+
+- **Exactly one Wrangler configuration exists on this lineage: `wrangler.jsonc`
+  at the repository root.** No `wrangler.toml`, no `wrangler.json`, no
+  environment-scoped config file. `open-next.config.ts` is a bare
+  `defineCloudflareConfig()` and declares nothing.
+- **`wrangler.jsonc` declares no `vars` block at all, at any scope.** Its complete
+  key set is `$schema`, `name`, `main`, `compatibility_date`,
+  `compatibility_flags`, `assets` (`binding`, `directory`) and `observability`
+  (`enabled`). There are no environment-scoped blocks of any kind.
+- `SUPABASE_SERVICE_ROLE_KEY` — **not present** under `vars`. It has never
+  appeared in this file at any point in its history.
+- `NEXT_PUBLIC_SUPABASE_URL` — **not present** under `vars`.
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — **not present** under `vars`.
+- **`keep_vars` is set nowhere** in tracked content on this lineage: not in the
+  config, not in any script, workflow, or document. It therefore takes its
+  default of `false`.
+- **No `secrets` property, or any equivalent naming required secrets, exists in
+  the configuration.** Required secrets are enumerated in `docs/deployment.md`
+  only, as prose.
+- `git grep` over the whole tracked tree finds no `vars` declaration and no
+  `--var` flag anywhere.
+
+The current absence is a deliberate state, not an oversight:
+
+- `50869f965` (2026-07-04) **added** a `vars` block carrying
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and
+  `SUPABASE_STORAGE_BUCKET_IMPORT_EVIDENCE` — never `SUPABASE_SERVICE_ROLE_KEY`.
+- `a11876387` (2026-07-14) **removed** the entire `vars` block, and also removed
+  the `routes` entry that declared the `tm-stats.com` and `www.tm-stats.com`
+  custom domains.
+
+**Consequence: NO.** A `wrangler deploy` from this repository cannot replace the
+dashboard-bound `SUPABASE_SERVICE_ROLE_KEY` with a placeholder, because there is
+no `vars` block for a placeholder to occupy and that name has never been declared
+in this configuration. Neither should a vars-less deploy be expected to remove the
+bound secrets, on this lineage's own empirical record:
+
+- The current production deploy — worker version `11e42e8c-…` @ `865df0108`,
+  2026-07-23T01:58:50.810Z — was built from a `wrangler.jsonc` with **no** `vars`
+  block, verified directly at that commit. [GIT]
+- Every deploy since `a11876387` on 2026-07-14 has been from a vars-less config.
+- The owner's dashboard observation, taken **after** that deploy, still found
+  `SUPABASE_SERVICE_ROLE_KEY`, two `NEXT_PUBLIC_SUPABASE_*` and three `RESEND_*`
+  bound as Secrets. [PRIOR]
+- The three `RESEND_*` secrets have never appeared in any tracked configuration,
+  so they are dashboard-only bindings that have survived every deploy from this
+  config. [REPO]
+
+That chain is [INFERENCE] over [GIT] and [PRIOR]; it is not a wrangler-verified
+binding list. The read that would make it direct is
+`npx wrangler secret list --name terraforming-mars-stats`, which was not
+authorized for this session.
+
+**No deploy blocker was found on this axis. No configuration was changed.**
+
+Two collateral findings from the same audit:
+
+- The `routes` removal in `a11876387` means the `tm-stats.com` and
+  `www.tm-stats.com` custom domains are dashboard-managed and locally undeclared.
+  They have survived every deploy since. Together with the undeclared secrets,
+  that is the most likely explanation of the Wrangler config-drift notice the
+  dashboard showed — and that explanation does **not** require an edit to have
+  been made. [INFERENCE]
+- `src/lib/env.ts:26-32` carries a `bundledPublicEnv` fallback holding the real
+  production Supabase project URL and publishable key, used whenever the matching
+  `process.env` value is absent. `NEXT_PUBLIC_SUPABASE_URL` and
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are therefore **not** deploy-fragile; the
+  client resolves them with or without a Worker binding. `SUPABASE_SERVICE_ROLE_KEY`
+  has no such fallback: `getServerEnv()` reads it only from `process.env`, and
+  `createSupabaseAdminClient()` throws `SUPABASE_SERVICE_ROLE_KEY is not
+  configured.` when it is missing. That asymmetry is why the service-role binding,
+  and only it, is the deploy-critical one. [REPO]
+
+### Committed-credential search, this session [REPO]
+
+Tracked content at `87d1ee045` was searched for the three names and for
+credential-shaped literals. **No service-role key is committed anywhere on this
+lineage** — not in the current tree, and not in the history of the Wrangler
+configuration.
+
+- `.env.example` — every sensitive assignment is empty, including
+  `SUPABASE_SERVICE_ROLE_KEY` (line 15), `NEXT_PUBLIC_SUPABASE_URL` (line 2) and
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (line 3). Only storage-bucket names carry
+  values.
+- `docs/superpowers/plans/2026-07-03-cloudflare-workers-github-supabase-deploy-implementation.md`
+  lines 251, 252, 256, and
+  `docs/superpowers/plans/2026-07-03-terraforming-mars-stats-implementation.md`
+  lines 215-217 — all three assignments empty in both documents.
+- `.github/workflows/tfm-card-source-check.yml:20` references the GitHub Actions
+  secret `SUPABASE_SERVICE_ROLE_KEY` through the `secrets` context — a reference,
+  not a value.
+- `src/lib/env.test.ts:35,45,76,78` and `src/lib/supabase/admin.test.ts:20` use
+  obvious fixtures (`sb_secret_example`; a 19-character `sb_publishable_` stub).
+- The only `eyJ`-shaped literals in tracked content sit in `package-lock.json`
+  integrity hashes and the four `public/ocr/core/tesseract-core*.wasm.js` bundles.
+  None is on a line naming Supabase or a service role.
+- **One real credential-shaped value is committed, and it is public by design.**
+  `src/lib/env.ts:29-31` holds the production Supabase project URL and the
+  `sb_publishable_` publishable key. That key is served to every browser that
+  loads the app, so this is an already-public value in source, not a secret leak.
+  The identical value was also committed in `wrangler.jsonc` between `50869f965`
+  (07-04) and `a11876387` (07-14) and remains in git history. Identity was
+  confirmed by digest comparison, without either value being read or displayed.
+
+No value was reproduced during this search, no credential was removed, and no
+history was rewritten. Removal from history remains a separately authorized
+operation; for this publishable key it would serve no security purpose, since the
+value is public by construction.
+
+Validation for this entry was deliberately limited to `git diff --check` and a
+`git status --porcelain` scope check. Type-checking, tests, lint, the verification
+harness, and the build were **not** run and are **not** claimed: this entry changes
+one Markdown file on a lineage whose validator gate does not live here, and other
+sessions were using the machine.
+
+No production system was queried. No deploy, migration, or code change accompanied
+this entry.
