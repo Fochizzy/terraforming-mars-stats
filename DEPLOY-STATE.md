@@ -75,7 +75,7 @@ probes against `tm-stats.com`). The previous occupant of this table — worker
 | Deployed (UTC) | 2026-07-23 01:58:50.810Z (version created 01:58:48.881Z; `wrangler deployments list`, 100% traffic) |
 | Deploy lock | **Free.** Taken 2026-07-23 ~01:5xZ by the saved-game player-label session via commit `b7e3ad372` (pushed before the build), deploy completed, released on writing this row. Take it by editing this row. |
 | Active clean deployment worktree | `C:\tmp\tm-live-compare-data` — clean at `865df0108`, real `node_modules` (not a symlink), no orphaned `workerd`, `.next` and `.open-next` deleted before the build |
-| DB migration ledger head | **`20260723014849 repair_snapshot_player_ids`**, **114 entries** — re-derived live. That entry is **this release's own data half**, applied ~01:48Z, ahead of the frontend. It is a **data-only repair of `game_revisions.snapshot`: no DDL on any application table, no grant, no revoke**, so it is schema-neutral in both directions. Gated migration `20260722012707 retire_free_form_import_name_matcher` remains **absent** from the ledger and unapplied. |
+| DB migration ledger head | **`20260723082917 add_non_import_guest_identity_creator`**, **115 entries** — re-derived live 2026-07-23 08:29Z. **Superseded the 114-entry head this release shipped against** (`20260723014849 repair_snapshot_player_ids`, this release's own data half, applied ~01:48Z ahead of the frontend, a data-only repair of `game_revisions.snapshot` with no DDL, grant or revoke, schema-neutral in both directions). The new head is an **expansion applied with NO deploy** — see "ID-READER-CLIENT expand" below. **The worker version and source commit in this table are unaffected**: no code shipped with it, and it is additive, so this release's rollback safety is unchanged. Gated migration `20260722012707 retire_free_form_import_name_matcher` remains **absent** from the ledger and unapplied. |
 | Rollback worker version | **`6ef56761-3c41-4c90-b83c-19db0060c048`** — the immediately prior production version @ `d12e33ad0`, 100% traffic 2026-07-22T19:26:59.159Z until this deploy. Command: `npx wrangler rollback 6ef56761-3c41-4c90-b83c-19db0060c048 --name terraforming-mars-stats`. **This rollback IS safe**: the accompanying migration only rewrote snapshot ids to ones that already exist in the same group, which the prior frontend resolves the same way. |
 | Verified | 2026-07-23 01:5xZ — new version at 100%; `/api/deploy-info` → `401` (route served); `tm-stats.com` → `200`, `www.tm-stats.com` → `200`; served `_buildManifest.js` byte-identical to the local artifact under this build's own `BUILD_ID`. **Not authenticated-verified** — the signed-in `/api/deploy-info` `sourceCommit` read remains open, as does an owner smoke test of the saved-games list. |
 
@@ -363,14 +363,15 @@ could not perform it (see above) stands unchanged.
 
 ## Production database changes since the current deploy (no application deploy)
 
-Applied directly to the production database on **2026-07-22**, after worker
-`178229f3` shipped and with **no Worker/app deploy of any kind** — no
-`wrangler`, no build, no push. They therefore do **not** appear in the deploy
-History table near the end of this file, and they do not change any
-worker/source/traffic row above. Carried into this file from copy D during the
-2026-07-22 reconciliation; **every version and name below was re-derived from
-the live ledger** before being written here, and all three matched what copy D
-recorded.
+Applied directly to the production database on **2026-07-22** and **2026-07-23**,
+with **no Worker/app deploy of any kind** — no `wrangler`, no build, no push. They
+therefore do **not** appear in the deploy History table near the end of this file,
+and they do not change any worker/source/traffic row above. The 2026-07-22 rows
+were carried into this file from copy D during the 2026-07-22 reconciliation;
+**every version and name below was re-derived from the live ledger** before being
+written here, and all three matched what copy D recorded. The 2026-07-23 row was
+written by the session that applied it, from its own pre- and post-apply live
+reads.
 
 **Ledger versions do not match repo filenames.** The migration tool stamps the
 version at apply time, so the recorded version is the apply timestamp, not the
@@ -378,6 +379,7 @@ filename. **Reconcile repo to ledger by migration *name*, never by version.**
 
 | When (UTC) | Ledger version (recorded) | Repo filename version | Migration name | Kind | Provenance |
 |---|---|---|---|---|---|
+| 2026-07-23 08:29 | `20260723082917` | `20260722160000` | `add_non_import_guest_identity_creator` | **expansion** | `redesign/tm-stats-dashboard-rebuild` @ `10583af0a` |
 | 2026-07-22 15:32 | `20260722153233` | `20260722153000` | `close_authenticated_guest_identity_oracle` | **contraction** | `redesign/tm-stats-dashboard-rebuild` @ `66694e967` |
 | 2026-07-22 14:40 | `20260722144034` | `20260720120000` | `coarsen_import_name_match_reasons` | interim mitigation | `redesign/tm-stats-dashboard-rebuild` @ `37065ec9b` |
 | 2026-07-22 13:21 | `20260722132159` | `20260722012658` | `add_source_bound_import_identity_staging` | **expansion** | `redesign/tm-stats-dashboard-rebuild` @ `484eec90e` |
@@ -386,7 +388,56 @@ Provenance commits are as recorded by the applying sessions and were confirmed
 to exist in this repository; they are the redesign branch state at apply time,
 which runs one commit behind the documentation commit for each entry.
 
-**Read the three entries together.** The expansion added a source-bound matcher
+**2026-07-23 — ID-READER-CLIENT expand: added
+`public.create_or_reuse_guest_identity` (EXPANSION). NO DEPLOY OCCURRED.**
+One migration, database-only. **No Worker deploy, no `wrangler`, no build, no
+push, no Cloudflare action of any kind was involved**, and none is authorized by
+it.
+
+- **Target.** Supabase project `tm-stats` / **`qjtwgrjjwnqafbvkkfex`**, identity
+  verified before the apply.
+- **Applied (UTC).** 2026-07-23 **08:29:17Z**, the timestamp the tool stamped as
+  the ledger version.
+- **Ledger entry count: 114 before → 115 after.** Exactly one entry added. Both
+  counts were read live, immediately before and immediately after the apply. The
+  pre-apply read returned head `20260723014849 repair_snapshot_player_ids`,
+  confirming production had not moved since the saved-game player-label release.
+- **Ledger-version drift.** Repo filename `20260722160000`, ledger
+  `20260723082917`. **Reconcile by name.** This is the tenth known-source apply
+  and the ninth to drift.
+- **What it added.** Exactly one function,
+  `public.create_or_reuse_guest_identity(uuid, uuid, text, text, text, text,
+  uuid, boolean)` — a `SECURITY DEFINER`, `search_path = ''`, **non-import**
+  guest reuse-or-create for the roster "add player" and Log-a-Game manual-entry
+  paths. It authorizes on an explicit server-verified requesting-user id checked
+  against `public.group_members` (never `auth.uid()`, which is NULL under
+  `service_role`), stamps `created_by_user_id` from that id, and writes **no**
+  `public.player_import_aliases` row, because this path has no imported source.
+- **Verified ACL, read from the catalog after the apply:**
+  **`{postgres=X/postgres,service_role=X/postgres}`**. `authenticated` and `anon`
+  hold **no** `EXECUTE`, and the implicit `PUBLIC` grant that `CREATE FUNCTION`
+  leaves behind is **absent** — the file's `revoke … from public` is load-bearing
+  and worked. **Exactly one overload** of the name exists, so the `42725`
+  ambiguity hazard that motivated the distinct name did not materialise.
+- **It dropped, altered and revoked nothing pre-existing.** The deployed
+  7-argument `public.resolve_import_guest_identity` is **untouched**. That was
+  verified from the migration text, which contains six statements — one
+  `create or replace function`, three revokes and one grant scoped to the new
+  function, and one comment. The applied SQL was confirmed byte-identical to the
+  committed repository blob before it was sent.
+- **THE READER REMAINS UNDEPLOYED, AND NOTHING CALLS THIS FUNCTION.** No
+  production caller exists; the live worker's code does not reference it. This is
+  the EXPAND half only.
+- **What this did NOT authorize.** Deploying the moved reader; dropping the
+  7-argument resolver; applying contraction `20260722012707`; and the production
+  ACL read on `resolve_import_guest_identity` that is the contraction's own
+  precondition — **that read was deliberately not performed**. Each is a separate
+  gate, none of which is open.
+- **Rollback**, valid **only** while nothing calls the function and only with
+  fresh owner authorization:
+  `drop function if exists public.create_or_reuse_guest_identity(uuid, uuid, text, text, text, text, uuid, boolean);`
+
+**Read the three 2026-07-22 entries together.** The expansion added a source-bound matcher
 that has **no production caller**; the mitigation coarsened — but did **not**
 close — the import enumeration oracle; the contraction closed a *second,
 different* oracle. **One oracle is still open.** See "Open production
