@@ -8,11 +8,25 @@ read-only and updating both files together.
 
 ## Current snapshot
 
-Attested **2026-07-22**: **113 entries**, head
-`20260722153233 close_authenticated_guest_identity_oracle`. The count and head
-are pinned in `PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that
-disagrees fails rather than silently overwriting. This production snapshot must
-be re-read live before any production-sensitive action.
+Attested **2026-07-23**: **114 entries**, head
+`20260723014849 repair_snapshot_player_ids`. The count and head are pinned in
+`PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that disagrees fails
+rather than silently overwriting. This production snapshot must be re-read live
+before any production-sensitive action.
+
+> **Provenance of the 114-entry snapshot — no production system was read to
+> produce it.** The count and head are transcribed from the canonical
+> `DEPLOY-STATE.md` on the production lineage
+> (`git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`),
+> where an earlier **authorized** session recorded them from two independent
+> live reads on 2026-07-23: the "Current production" row re-derived during the
+> 01:58Z saved-game player-label deploy, and the read-only "Snapshot repair
+> verification" that followed it, which re-derived the same 114 entries and the
+> same head. The session that reconciled this drift held no production
+> authorization and made no production read, deploy, or migration application.
+> These are therefore a committed repository record **of** a live read, not a
+> live read — which is exactly why the standing rule to re-attest before any
+> production-sensitive action still applies.
 
 > **Reconciled 2026-07-22 from repository evidence only.** This section was left
 > at the earlier 110-entry snapshot after three further entries landed. It has
@@ -26,9 +40,43 @@ be re-read live before any production-sensitive action.
 > Nothing in this section is fresh production evidence; it restores agreement
 > between two repository files that had diverged.
 
-The three entries added since the 110-entry snapshot. Each is carried in this
-repository under a filename version different from its apply-time ledger
-version, so all three are paired by **name** in
+### The 114th entry — `20260723014849 repair_snapshot_player_ids`
+
+Applied to production ~01:48Z on 2026-07-23 from the live-site lineage as the
+**data half** of the saved-game player-label release, ahead of its own frontend.
+It repoints 33 stale player ids across 13 finalized games inside
+`game_revisions.snapshot`, matching each snapshot player to its `game_players`
+row on the six score fields both carry and asserting that map one-to-one,
+injective, roster-complete and non-chaining before writing anything.
+
+It is registered **production-only**, with provenance, and its file is
+**deliberately not carried** onto this branch. The reasoning is in
+"Registered production-only rather than carried" below.
+
+For one full day this entry was absent from this lineage in every form — no
+file, no ledger-map entry, no row in this document — while
+`PRODUCTION_LEDGER_ATTESTATION` still read 113 with head `20260722153233`. The
+`ledger → repo` direction of the gate is what makes such an entry a hard
+failure (`LEDGER_INCOMPLETE`) once the snapshot is refreshed, rather than
+something that can sit unnoticed. The drift blocked the expand apply of
+`20260722160000`, whose precondition is that the attested ledger matches
+production; closing it makes that precondition true and nothing else.
+
+**This entry did not drift.** Its filename version equals its ledger version, so
+it is *not* a renamed apply and appears in neither
+`APPLIED_UNDER_DIFFERENT_LEDGER_VERSION` nor the name-keyed map. That is worth
+recording rather than passing over: the eight preceding applies whose source
+file is known — `20260720221937`, `20260721035955`, `20260721081355`,
+`20260721193508`, `20260721201734`, `20260722132159`, `20260722144034` and
+`20260722153233` — every one drifted. This is the first that did not, because
+its repo copy was written after the apply and named to the ledger version
+deliberately; the file says so in its own header.
+
+### Entries added since the 110-entry snapshot
+
+The three entries added between the 110- and 113-entry snapshots. Each is
+carried in this repository under a filename version different from its
+apply-time ledger version, so all three are paired by **name** in
 `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME`:
 
 | Ledger version | Ledger name | Repo file version |
@@ -249,7 +297,7 @@ caller-supplied private name belongs to a real identity. The oracle is
 therefore mitigated, not closed.
 
 Every ledger version in this category is now registered explicitly in
-`PRODUCTION_ONLY_LEDGER_VERSIONS` (68 entries), which is what makes the
+`PRODUCTION_ONLY_LEDGER_VERSIONS` (69 entries), which is what makes the
 ledger → repo direction complete. Most are remote-only history whose migration
 *names* were never captured, so no name is asserted for them; the entries whose
 identity is attested carry provenance in `PRODUCTION_ONLY_ENTRY_PROVENANCE`.
@@ -283,6 +331,68 @@ Hazard class is declared per **file present on this branch**; if one of these
 files is ever brought over it must gain a declaration at that point. Until
 then the ledger → repo completeness check is the only property that applies to
 them.
+
+### Registered production-only rather than carried
+
+`20260723014849 repair_snapshot_player_ids` is the case that makes the choice
+between the two treatments explicit, because a source file for it **does** exist
+on the production lineage (`75f6e0794` on
+`fix/live-compare-data-remove-declared-style`, blob
+`1a1d70905bbabe450c90b6a40fc87b1527c9375e`) and it is still registered here
+rather than carried.
+
+The discriminator is not whether a file exists somewhere. It is **whether this
+lineage records a stale definition the migration corrects.** The ledger #106
+carry (`20260721173000`) was made because this branch's record of the three
+claim RPCs was the pre-fix, vulnerable bodies, so a redesign deploy or `db diff`
+taken against that record could have reproduced them and silently reverted
+production. That hazard requires the migration to *define* something.
+
+`20260723014849` defines nothing. Its only DDL is two
+`create table if not exists private.mig_*` audit artifacts — the correction map
+and the pre-image backup — and its substance is an `UPDATE` of
+`public.game_revisions.snapshot` row values. It creates, alters or drops no
+function, view, policy, constraint, column or grant. There is consequently no
+definition on this lineage that is stale, and nothing a deploy or diff could
+reproduce wrongly. The #106 condition is absent, so the #106 remedy does not
+apply.
+
+Three further points agree, and none of them are about this migration
+specifically:
+
+- **The nearest structural precedent already went this way.**
+  `20260721193508 fold_player_card_outcome_context_into_definer` is also a file
+  present on `fix/live-compare-data-remove-declared-style`, and it carries real
+  schema surface (a definer-function fold) rather than none. It was registered
+  production-only, by the same session that carried #106. Existence of the file
+  on the production lineage has never by itself been a reason to carry.
+- **Repository convention is uniform and has no counter-example.** No file in
+  `supabase/migrations/` creates a `private.mig_*` table or repairs production
+  rows — zero of 55. `DEPLOY-STATE.md` records several production data repairs
+  that did exactly that (the 2026-07-12 group collapse/split with
+  `mig_backup_game_players`, the 2026-07-20 duplicate-group consolidation with
+  `private.mig_backup_group_*`); every one is a production-only ledger entry
+  with no repo file. Carrying this one would be the first exception.
+- **Carrying it would corrupt what the harness models.**
+  `supabase/tests/executable/run.sh` replays every non-deferred file in
+  `supabase/migrations/` against a clean baseline *before* `seed.sql` loads any
+  data. A one-time repair of production rows that cannot exist at that point
+  would model nothing and would leave two empty `private.mig_*` tables in every
+  disposable cluster.
+
+**Its hazard class, derived from the SQL, would be `neutral`** — recorded here
+because a production-only entry carries no `MIGRATION_HAZARD_CLASS` declaration
+by construction, and the drift test actively rejects one for a version with no
+file on this branch. There is no `REVOKE`, no `DROP`, no tightened constraint,
+no narrowed vocabulary and no rebuilt function, so it is not a contraction. The
+two tables it adds sit in `private` — outside Data API reach since
+`20260719191911` — carry no grant and have no reader, so no contract surface is
+widened either; the additive DDL is audit bookkeeping, not a surface anything
+depends on. What remains is a data-only reconciliation, which is the `neutral`
+definition. The canonical `DEPLOY-STATE.md` characterises it independently as
+"a data-only repair of `game_revisions.snapshot`: no DDL on any application
+table, no grant, no revoke … schema-neutral in both directions" — the property
+that also makes rolling the paired frontend back safe.
 
 ### Prepared and NOT applied (gated)
 
@@ -340,7 +450,9 @@ the SQL alone does not record. A file with no declaration fails as
 Where a file mixes hazards, the strongest present wins. Current declarations:
 **16 contraction, 30 expansion, 9 neutral** (55 files) — counted from
 `MIGRATION_HAZARD_CLASS` and reconciled against `supabase/migrations/` on
-2026-07-22. The 55th file is `20260722160000`, whose declaration is below. In
+2026-07-23. The 2026-07-23 ledger reconciliation added a ledger entry but **no
+file**, so all four figures are unchanged from 2026-07-22; they were re-counted
+rather than assumed. The 55th file is `20260722160000`, whose declaration is below. In
 the same change `20260720100000` moved `expansion` → `neutral` when it was
 retired as a no-op tombstone, which is why the expansion count is unchanged at
 30 while the neutral count rose from 8 to 9.

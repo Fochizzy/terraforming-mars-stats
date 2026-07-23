@@ -18,7 +18,109 @@ returned **FAIL** on documentation and coverage only; its four findings are now
 addressed and the migration remains gated. Both independent audits of this work
 are now on the repository record in
 `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-INDEPENDENT-AUDIT-TRAIL.md`.
-Nothing beyond that is authorized by this document.**)
+Nothing beyond that is authorized by this document.**) The production ledger
+attestation on this lineage now reads **114 entries, head `20260723014849
+repair_snapshot_player_ids`**, reconciled 2026-07-23 from the committed
+production-lineage `DEPLOY-STATE.md` record; the expand apply of
+`20260722160000` therefore has its ledger precondition satisfied and remains
+gated and unauthorized.
+
+### Production ledger drift closed: `20260723014849` registered production-only (2026-07-23)
+
+Local ledger reconciliation only. **No production read and no production write
+of any kind was authorized or performed** — no Supabase MCP call, no
+`execute_sql`, no `list_migrations`, no `wrangler`, no `/api/deploy-info`. No
+migration applied, no migration file added or changed, no deploy, nothing
+pushed. One commit on `redesign/tm-stats-dashboard-rebuild`.
+
+**The drift.** Migration `20260723014849 repair_snapshot_player_ids` is applied
+in production — the data half of the live-site saved-game player-label release,
+applied ~01:48Z on 2026-07-23 ahead of its own frontend — and this lineage had
+**no record of it in any form**. All three absences were established
+separately: no file under `supabase/migrations/`, no entry in
+`src/lib/db/migration-ledger-map.ts`, and no row in
+`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`. Meanwhile
+`PRODUCTION_LEDGER_ATTESTATION` still read 113 entries with head
+`20260722153233`, against production's 114 with head `20260723014849`. This
+blocked the next gate: the expand apply of `20260722160000` has a precondition
+that the attested ledger match production, and it was false by exactly one
+migration. A worker session had already stopped on it.
+
+**Treatment: registered production-only, file deliberately NOT carried.** The
+two available treatments are the #106 carry and the production-only register,
+and the discriminator is not whether a file exists somewhere — one does, at
+`75f6e0794` on `fix/live-compare-data-remove-declared-style`, blob
+`1a1d70905bbabe450c90b6a40fc87b1527c9375e`. The discriminator is whether **this
+lineage records a stale definition the migration corrects**. The #106 carry was
+made because this branch's record of the three claim RPCs was the pre-fix,
+vulnerable bodies, so a redesign deploy or `db diff` could have reproduced them
+and silently reverted production. `20260723014849` defines nothing: its only DDL
+is two `create table if not exists private.mig_*` audit artifacts, and its
+substance is an `UPDATE` of `public.game_revisions.snapshot` row values — no
+function, view, policy, constraint, column or grant is created, altered or
+dropped. Nothing here is stale, so the #106 condition is absent and its remedy
+does not apply. Three independent points agree: the nearest structural
+precedent, `20260721193508`, is also a file on the production lineage — with
+real schema surface, unlike this one — and was registered production-only by
+the same session that carried #106; no file in `supabase/migrations/` creates a
+`private.mig_*` table or repairs production rows (zero of 55), while
+`DEPLOY-STATE.md` records several production repairs that did exactly that, all
+of them production-only entries with no repo file; and carrying it would inject
+a one-time production data repair into the harness's clean-baseline schema
+replay, where the rows it repairs cannot exist. Evidence class **[REPO]** for
+the convention, **[PROJECT-DOC]** for the production facts.
+
+**Hazard: `neutral`, derived from the SQL.** No `REVOKE`, no `DROP`, no
+tightened constraint, no narrowed vocabulary, no rebuilt function, so not a
+contraction; the two added tables sit in `private` (outside Data API reach since
+`20260719191911`), carry no grant and have no reader, so no contract surface is
+widened either. What remains is a data-only reconciliation. It is **recorded in
+prose only** — a production-only entry carries no `MIGRATION_HAZARD_CLASS`
+declaration, and the drift test actively rejects one for a version with no file
+on this branch. The canonical `DEPLOY-STATE.md` characterises it independently
+as "a data-only repair of `game_revisions.snapshot`: no DDL on any application
+table, no grant, no revoke … schema-neutral in both directions".
+
+**No version drift, stated explicitly.** Its filename version equals its ledger
+version, so it is neither a renamed apply nor a name-keyed pairing. That is
+recorded rather than passed over because the eight preceding known-source
+applies — `20260720221937`, `20260721035955`, `20260721081355`, `20260721193508`,
+`20260721201734`, `20260722132159`, `20260722144034`, `20260722153233` — every
+one drifted. This is the first that did not.
+
+**Attestation provenance, stated honestly.** `PRODUCTION_LEDGER_ATTESTATION` is
+a constant whose name asserts a production attestation, and **this session made
+no production read**. The 114 / `20260723014849` values are transcribed from the
+canonical `DEPLOY-STATE.md` on the production lineage, where an earlier
+**authorized** session recorded them from two independent live reads on
+2026-07-23: the "Current production" row re-derived during the 01:58Z deploy,
+and the read-only "Snapshot repair verification" that followed it, which
+re-derived the same count and head. That provenance is written into the
+constant's own comment, the reference document, and `docs/CURRENT_STATUS.md`.
+They are a committed repository record **of** a live read, not a live read.
+Evidence class **[PROJECT-DOC]**.
+
+**Harness.** `run.sh` passes end to end, unchanged and untouched. Because no
+file was added, the clean-baseline replay is byte-for-byte the same set of 55
+migrations it was before; the reconciliation cannot have affected it, which is
+the confirmation the production-only treatment carries. Had the file been
+carried, it would have replayed against an empty `game_revisions` and been a
+no-op — but a meaningless one, creating two empty audit tables in every
+disposable cluster.
+
+**Not changed.** Step 4.3 is **not** marked complete. No other blocker's
+disposition moved. `20260722160000` is still gated and unapplied; its ledger
+precondition is now true and the apply itself still requires a new explicit
+authorization.
+
+**Discrepancy carried forward, not fixed here.** The **code half** of that same
+release — `c7d6c203a`, the `listSavedGames` labelling fix in
+`src/lib/db/game-draft-repo.ts` — is **not** an ancestor of this branch
+(`git merge-base --is-ancestor` exit 1). This lineage still labels finalized
+saved games from `game_revisions.snapshot`. Production's data is already
+repaired so nothing is visibly broken today, but the durability fix the
+live-site lineage shipped is absent here. Out of scope for this assignment and
+recorded for the owner. Evidence class **[GIT]**.
 
 ### Re-audit FAIL answered: stale signature corrected, two vacuous branches now asserted (2026-07-23)
 
@@ -1878,6 +1980,26 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-LEDGER-DRIFT-20260723014849-RECONCILED.md
+  (closes the production ledger drift that blocked the next gate: migration
+  `20260723014849 repair_snapshot_player_ids` was applied in production on
+  2026-07-23 and this lineage had no record of it in any form — no file, no
+  ledger-map entry, no documentation row — while the attestation still read 113
+  with head `20260722153233` against production's 114. Registered
+  **production-only** with provenance and **deliberately not carried**: it
+  defines no database object, so no stale definition exists here for a redesign
+  deploy or `db diff` to reproduce, which is the condition the ledger #106 carry
+  existed to fix. Hazard derived from the SQL as `neutral` and recorded in prose
+  only, because a production-only entry carries no `MIGRATION_HAZARD_CLASS`
+  declaration. Filename version equals ledger version — no apply-time rename,
+  breaking a run of eight. **No production read or write was authorized or
+  performed**; the attested values are transcribed from the committed canonical
+  `DEPLOY-STATE.md` record of an earlier authorized session's two live reads,
+  and that provenance is recorded everywhere the values appear. The bidirectional
+  drift gate passes and `run.sh` is unaffected because no file was added. The
+  expand apply of `20260722160000` now has its ledger precondition satisfied and
+  remains gated and unauthorized; Step 4.3 is not marked complete and no other
+  blocker's disposition changed)
 - docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-INDEPENDENT-AUDIT-TRAIL.md
   (the repository record of the two independent audits of the
   `ID-READER-CLIENT` work — their targets, verdicts, findings, cleared

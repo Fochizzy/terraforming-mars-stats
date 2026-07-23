@@ -32,8 +32,27 @@ separate gate is authorized.
 - Production revoked `authenticated` execution of
   `resolve_import_guest_identity` as ledger version `20260722153233`; the
   post-apply ACL and one-target-only change were independently verified.
-- Production ledger attestation is 113 entries with head `20260722153233` in
-  the latest apply record.
+- Production ledger attestation is **114 entries with head `20260723014849
+  repair_snapshot_player_ids`**, reconciled on 2026-07-23. Production applied
+  that migration ~01:48Z on 2026-07-23 as the data half of the live-site
+  saved-game player-label release, and for one day this lineage held **no
+  record of it in any form** — no file, no ledger-map entry, no documentation
+  row — while the attestation still read 113 with head `20260722153233`. The
+  drift is closed: `20260723014849` is registered **production-only** with
+  provenance, deliberately without carrying its file, because it defines no
+  database object and so leaves no stale definition here for a redesign deploy
+  or `db diff` to reproduce. That is the condition the ledger #106 carry existed
+  to fix, and it is absent. Derived hazard would be `neutral`; a production-only
+  entry carries no declaration. **The attested values were not read from
+  production by the reconciling session** — they are transcribed from the
+  canonical `DEPLOY-STATE.md` on the production lineage, where an authorized
+  session recorded two independent live reads on 2026-07-23. Re-attest live
+  before any production-sensitive action.
+- **The expand apply of `20260722160000` now has its ledger precondition
+  satisfied.** That precondition required the attested ledger to match
+  production, and it was false by exactly one migration; a worker session
+  stopped on it. Making it true is all this reconciliation did. The apply itself
+  remains **gated and unauthorized** and requires a new explicit assignment.
 - The independent audit's **FAIL** on the `ID-READER-CLIENT` expand work is
   answered. `FINDING-1` (the divergent candidate-counting and auto-selection
   predicates) and `FINDING-2` (`p_requesting_user_id` declared last and

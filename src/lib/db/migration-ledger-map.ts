@@ -1,7 +1,7 @@
 // Repository-migrations ↔ production-ledger map (audit §18).
 //
 // The production ledger (project qjtwgrjjwnqafbvkkfex) is captured READ-ONLY
-// via the management API; the current snapshot is the 2026-07-21 attestation
+// via the management API; the current snapshot is the 2026-07-23 attestation
 // recorded in PRODUCTION_LEDGER_ATTESTATION. Human-readable companion:
 // docs/redesign/reference/MIGRATION-LEDGER-MAP.md.
 //
@@ -26,28 +26,47 @@
  */
 export const PRODUCTION_LEDGER_ATTESTATION = {
   project: 'tm-stats (qjtwgrjjwnqafbvkkfex)',
-  /** Date of the read-only attestation this snapshot reproduces. */
-  attestedOn: '2026-07-22',
-  /** Total ledger entries at attestation time. */
-  entryCount: 113,
-  headVersion: '20260722153233',
-  headName: 'close_authenticated_guest_identity_oracle',
   /**
-   * The previous snapshot (earlier on 2026-07-21) held 108 entries with max
-   * 20260721081355. The two entries above it were both applied from the
-   * live-site lineage on 2026-07-21:
+   * Date of the read-only attestation this snapshot reproduces.
    *
-   *   20260721193508 fold_player_card_outcome_context_into_definer
-   *     Production-only relative to this branch; see
-   *     PRODUCTION_ONLY_ENTRY_PROVENANCE.
-   *   20260721201734 harden_claim_rpc_privacy
-   *     The ledger #106 claim-RPC privacy hardening. Its file is now carried
-   *     on this branch as 20260721173000, so it is a renamed-drift target
-   *     rather than a production-only entry; see
-   *     APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME.
+   * PROVENANCE OF THIS REVISION — read before trusting the name of this
+   * constant. The 114 / 20260723014849 values below were NOT read from
+   * production by the session that wrote them. They are transcribed from the
+   * canonical DEPLOY-STATE ledger on the production lineage
+   * (`git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`),
+   * where an earlier authorized session recorded them from two independent
+   * live reads on 2026-07-23: the "Current production" row re-derived during
+   * the 01:58Z saved-game player-label deploy, and the read-only "Snapshot
+   * repair verification" that followed it, which re-derived the same 114
+   * entries and the same head. The session that updated this constant held no
+   * production authorization and performed no production read of any kind.
+   * Treat these values as a committed repository record OF a live read, not as
+   * a live read — re-attest against the ledger before any production-sensitive
+   * action, exactly as the surrounding rules already require.
    */
-  previousEntryCount: 108,
-  previousHeadVersion: '20260721081355',
+  attestedOn: '2026-07-23',
+  /** Total ledger entries at attestation time. */
+  entryCount: 114,
+  headVersion: '20260723014849',
+  headName: 'repair_snapshot_player_ids',
+  /**
+   * The previous snapshot (2026-07-22) held 113 entries with head
+   * 20260722153233 close_authenticated_guest_identity_oracle. The single entry
+   * above it was applied from the live-site lineage on 2026-07-23:
+   *
+   *   20260723014849 repair_snapshot_player_ids
+   *     The data half of the saved-game player-label release, applied ~01:48Z
+   *     ahead of its own frontend. Production-only relative to this branch:
+   *     it defines no database object, so this lineage records no stale
+   *     definition of anything it touches and there is nothing for a redesign
+   *     deploy or `db diff` to reproduce wrongly. That absent condition is
+   *     precisely what the ledger #106 carry existed to fix, so the file is
+   *     deliberately NOT carried here; see PRODUCTION_ONLY_ENTRY_PROVENANCE.
+   *     Its filename version equals its ledger version — no apply-time rename,
+   *     unlike the eight preceding known-source applies.
+   */
+  previousEntryCount: 113,
+  previousHeadVersion: '20260722153233',
 } as const;
 
 /**
@@ -107,6 +126,10 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   // Revoked `authenticated` EXECUTE on public.resolve_import_guest_identity,
   // closing the private-guest-name confirmation oracle. File 20260722153000.
   '20260722153233',
+  // Applied 2026-07-23 ~01:48Z from the live-site lineage as the data half of
+  // the saved-game player-label release. No file on this branch by decision,
+  // not by oversight — see PRODUCTION_ONLY_ENTRY_PROVENANCE.
+  '20260723014849',
 ];
 
 /**
@@ -300,7 +323,7 @@ export const PRODUCTION_ONLY_LEDGER_VERSIONS: readonly string[] = [
   // 20260720221937 was registered here until its file (20260720190000) was
   // carried onto this branch; it is now a renamed-drift target instead.
   '20260718212722', '20260718234835', '20260719132042', '20260720021300',
-  '20260721035955', '20260721081355', '20260721193508',
+  '20260721035955', '20260721081355', '20260721193508', '20260723014849',
 ];
 
 export interface ProductionOnlyProvenance {
@@ -380,6 +403,48 @@ export const PRODUCTION_ONLY_ENTRY_PROVENANCE: Readonly<
       '20260721194500_fold_player_card_outcome_context_into_definer.sql',
     sourceRef: '814e60210 (fix/live-compare-data-remove-declared-style)',
     note: 'player_card_outcomes timeout remediation, applied from the live-site lineage; no file on this branch. Applied under a renamed ledger version, and here the ledger version precedes the filename version, so time order is not a safe pairing rule — the name is.',
+  },
+  // Data half of the 2026-07-23 saved-game player-label release. A source file
+  // DOES exist on the production lineage, and it is still registered here
+  // rather than carried. Both halves of that decision are deliberate:
+  //
+  // WHY NOT CARRIED. The ledger #106 carry (20260721173000) exists because this
+  // lineage's record of the three claim RPCs was the pre-fix, vulnerable
+  // definitions, so a redesign deploy or `db diff` could have reproduced them
+  // and silently reverted production. That hazard needs the migration to DEFINE
+  // something. This one defines nothing: its only DDL is two
+  // `create table if not exists private.mig_*` audit artifacts, and the
+  // substance is an UPDATE of `public.game_revisions.snapshot` row values. No
+  // function, view, policy, constraint, column or grant is created, altered or
+  // dropped, so no definition on this lineage is stale and nothing can be
+  // reproduced wrongly. The closer precedent is 20260721193508 above — also a
+  // file present on fix/live-compare-data-remove-declared-style, also
+  // registered production-only rather than carried. Repository convention
+  // agrees: no file in supabase/migrations/ creates a `private.mig_*` table or
+  // repairs production rows, while DEPLOY-STATE records several such repairs
+  // (the 2026-07-12 group collapse/split, the 2026-07-20 duplicate-group
+  // consolidation) that are production-only ledger entries with no repo file.
+  // Carrying it would also inject a production data repair into the harness's
+  // clean-baseline schema replay, where the rows it repairs cannot exist.
+  //
+  // HAZARD, derived from the SQL and recorded here because a production-only
+  // entry carries no MIGRATION_HAZARD_CLASS declaration by construction: it
+  // would be `neutral`. There is no REVOKE, no DROP, no tightened constraint,
+  // no narrowed vocabulary and no rebuilt function, so it is not a contraction;
+  // and the two tables it adds live in `private` (out of Data API reach since
+  // 20260719191911), carry no grant and have no reader, so no contract surface
+  // is widened either. It is a data-only reconciliation — the `neutral`
+  // definition exactly. The canonical DEPLOY-STATE record independently
+  // characterises it as "a data-only repair of game_revisions.snapshot: no DDL
+  // on any application table, no grant, no revoke … schema-neutral in both
+  // directions", which is what makes its own rollback safe.
+  '20260723014849': {
+    name: 'repair_snapshot_player_ids',
+    sourceFileVersion: '20260723014849',
+    sourceFileName: '20260723014849_repair_snapshot_player_ids.sql',
+    sourceRef:
+      '75f6e0794 (fix/live-compare-data-remove-declared-style), blob 1a1d70905bbabe450c90b6a40fc87b1527c9375e',
+    note: 'Repoints 33 stale player ids across 13 finalized games inside game_revisions.snapshot, applied ~01:48Z ahead of its own frontend. Unlike every other entry in this register, its filename version EQUALS its ledger version — no apply-time rename, breaking a run of eight consecutive known-source applies that all drifted. Deliberately not carried onto this branch: it defines no database object, so there is no stale definition here for a redesign deploy or `db diff` to reproduce, which is the condition the ledger #106 carry existed to fix.',
   },
 };
 
