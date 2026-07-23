@@ -75,7 +75,7 @@ probes against `tm-stats.com`). The previous occupant of this table — worker
 | Deployed (UTC) | 2026-07-23 01:58:50.810Z (version created 01:58:48.881Z; `wrangler deployments list`, 100% traffic) |
 | Deploy lock | **Free.** Taken 2026-07-23 ~01:5xZ by the saved-game player-label session via commit `b7e3ad372` (pushed before the build), deploy completed, released on writing this row. Take it by editing this row. |
 | Active clean deployment worktree | `C:\tmp\tm-live-compare-data` — clean at `865df0108`, real `node_modules` (not a symlink), no orphaned `workerd`, `.next` and `.open-next` deleted before the build |
-| DB migration ledger head | **`20260723082917 add_non_import_guest_identity_creator`**, **115 entries** — re-derived live 2026-07-23 08:29Z. **Superseded the 114-entry head this release shipped against** (`20260723014849 repair_snapshot_player_ids`, this release's own data half, applied ~01:48Z ahead of the frontend, a data-only repair of `game_revisions.snapshot` with no DDL, grant or revoke, schema-neutral in both directions). The new head is an **expansion applied with NO deploy** — see "ID-READER-CLIENT expand" below. **The worker version and source commit in this table are unaffected**: no code shipped with it, and it is additive, so this release's rollback safety is unchanged. Gated migration `20260722012707 retire_free_form_import_name_matcher` remains **absent** from the ledger and unapplied. |
+| DB migration ledger head | **`20260723151221 add_service_role_import_name_matcher_overload`**, **116 entries** — re-derived live 2026-07-23 15:12Z, before and after the apply. **Superseded the 115-entry head `20260723082917 add_non_import_guest_identity_creator`** (itself an expansion applied with no deploy 08:29Z), which in turn superseded the 114-entry head this release shipped against (`20260723014849 repair_snapshot_player_ids`, this release's own data half, applied ~01:48Z ahead of the frontend, a data-only repair of `game_revisions.snapshot` with no DDL, grant or revoke, schema-neutral in both directions). The new head is an **expansion applied with NO deploy** — see "Matcher service-role overload expand" below. **The worker version and source commit in this table are unaffected**: no code shipped with it, it is purely additive, and **nothing deployed calls the function it creates**, so this release's rollback safety is unchanged. The deployed two-argument `match_import_player_names(uuid, text[])` the live Worker actually calls was verified **UNCHANGED** by the same session. Gated migration `20260722012707 retire_free_form_import_name_matcher` remains **absent** from the ledger and unapplied. |
 | Rollback worker version | **`6ef56761-3c41-4c90-b83c-19db0060c048`** — the immediately prior production version @ `d12e33ad0`, 100% traffic 2026-07-22T19:26:59.159Z until this deploy. Command: `npx wrangler rollback 6ef56761-3c41-4c90-b83c-19db0060c048 --name terraforming-mars-stats`. **This rollback IS safe**: the accompanying migration only rewrote snapshot ids to ones that already exist in the same group, which the prior frontend resolves the same way. |
 | Verified | 2026-07-23 01:5xZ — new version at 100%; `/api/deploy-info` → `401` (route served); `tm-stats.com` → `200`, `www.tm-stats.com` → `200`; served `_buildManifest.js` byte-identical to the local artifact under this build's own `BUILD_ID`. **Not authenticated-verified** — the signed-in `/api/deploy-info` `sourceCommit` read remains open, as does an owner smoke test of the saved-games list. |
 
@@ -379,6 +379,7 @@ filename. **Reconcile repo to ledger by migration *name*, never by version.**
 
 | When (UTC) | Ledger version (recorded) | Repo filename version | Migration name | Kind | Provenance |
 |---|---|---|---|---|---|
+| 2026-07-23 15:12 | `20260723151221` | `20260723130000` | `add_service_role_import_name_matcher_overload` | **expansion** | `redesign/tm-stats-dashboard-rebuild` @ `d63e6b0d7` |
 | 2026-07-23 08:29 | `20260723082917` | `20260722160000` | `add_non_import_guest_identity_creator` | **expansion** | `redesign/tm-stats-dashboard-rebuild` @ `10583af0a` |
 | 2026-07-22 15:32 | `20260722153233` | `20260722153000` | `close_authenticated_guest_identity_oracle` | **contraction** | `redesign/tm-stats-dashboard-rebuild` @ `66694e967` |
 | 2026-07-22 14:40 | `20260722144034` | `20260720120000` | `coarsen_import_name_match_reasons` | interim mitigation | `redesign/tm-stats-dashboard-rebuild` @ `37065ec9b` |
@@ -387,6 +388,68 @@ filename. **Reconcile repo to ledger by migration *name*, never by version.**
 Provenance commits are as recorded by the applying sessions and were confirmed
 to exist in this repository; they are the redesign branch state at apply time,
 which runs one commit behind the documentation commit for each entry.
+
+### Matcher service-role overload expand — 2026-07-23 15:12:21Z. NO DEPLOY
+
+**Applied:** repo filename version `20260723130000`, recorded in the live ledger
+as **`20260723151221 add_service_role_import_name_matcher_overload`**. The apply
+tool stamped the UTC apply time over the filename version, as it has for every
+recent apply — **reconcile by NAME, never by version**.
+
+**Ledger moved 115 → 116**, exactly one entry added at the head, every prior
+entry unchanged. Both counts were **read live** by the applying session,
+immediately before and immediately after the apply.
+
+**NO DEPLOY OF ANY KIND ACCOMPANIED THIS.** No `wrangler`, no build, no push, no
+`/api/deploy-info` call, no Cloudflare action. The worker version, source commit,
+source branch, traffic, and rollback rows in "Current production" are
+**unaffected and were not edited**.
+
+**NOTHING DEPLOYED CALLS THE NEW FUNCTION.** It creates one object — the
+three-argument `public.match_import_player_names(uuid, uuid, text[])`, granted to
+**`service_role` only**. The reader that will call it lives on
+`fix/matcher-service-role-overload-callsite` @ `5894c874a` and is **neither
+merged into this lineage nor deployed**. The live Worker at `865df0108` continues
+to call the **two-argument** `match_import_player_names(uuid, text[])` as the
+`authenticated` role, through `createSupabaseServerClient()`.
+
+**ACL verified from `pg_catalog` after the apply, no invocation:**
+
+| | New `(uuid, uuid, text[])` | Existing `(uuid, text[])` |
+|---|---|---|
+| `prosecdef` | `true` | `true` |
+| `proconfig` | `search_path=""` | `search_path=""` |
+| `proacl` | `{postgres=X/postgres,service_role=X/postgres}` | `{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}` |
+| `md5(prosrc)` | `4c91b87f9f88848e840a7fa60d848f21` | `522f8cb0a2647c57e35da0a081f90480` |
+| `length(prosrc)` | 5657 | 4191 |
+
+The new overload carries **no `authenticated`, no `anon`, and no surviving
+`PUBLIC` grant**. **The deployed two-argument form is UNCHANGED** — its
+`md5(prosrc)` and `length(prosrc)` are identical to the baseline recorded by the
+authorized read-only catalog session at 09:40:14Z that same day, and its ACL
+still includes `authenticated`. **This release's rollback safety is therefore
+unchanged**: rolling the Worker back to `6ef56761` still finds the exact function
+it calls, untouched.
+
+**Neither overload was invoked.** Verification was from the catalog only —
+invoking the matcher reads player data and may write an audit row. No application
+table row and no personal name was read.
+
+**What this did NOT authorize:** merging the moved reader, deploying it, the
+production verification, or contraction `20260722012707`. Four gates, three still
+ahead of the contraction, **none of them open**. The post-deploy verification
+requirement — a real import returning a **non-zero** match count and a non-null
+`userId` — is **outstanding** and is not discharged by this apply.
+
+**Rollback, recorded but NOT executed and NOT authorized:**
+`drop function public.match_import_player_names(uuid, uuid, text[]);` — it must
+not be run once the moved reader is deployed, because that reader calls exactly
+this signature.
+
+**This was the FIRST application of this migration.** A report claiming an apply
+at 13:20:35Z under ledger `20260723132035` was disproven by forensics, and the
+pre-apply ledger read at 15:12Z confirmed it again: no such entry, and no entry
+anywhere in `20260723130000`–`20260723140000`.
 
 **2026-07-23 — READ-ONLY catalog read of the guest-identity surface. NO
 MUTATION, NO DEPLOY, NO ROW READ.** An authorized read-only session issued
