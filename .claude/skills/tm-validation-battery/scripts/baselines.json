@@ -1,8 +1,12 @@
 {
   "$comment": "Recorded validation baselines. Single source for these numbers; SKILL.md points here rather than repeating them. Re-measure only from a clean tree at a known commit, and update measuredAtCommit in the same edit.",
-  "measuredAtCommit": "d63e6b0d781b7c1d14be611b2f4b7dc05c53c66e",
+  "measuredAtCommit": "58578dd91f808e635e65f8001e87aa9f7ea60bd5",
   "measuredOn": "2026-07-23",
-  "measuredInTree": "primary redesign checkout, clean, at measuredAtCommit",
+  "measuredInTree": "primary redesign checkout at measuredAtCommit. Two documentation files were dirty from a concurrent session; nothing under src/, supabase/ or scripts/ was, so the code-facing checks measured this commit's source.",
+  "previousMeasurement": {
+    "commit": "d63e6b0d781b7c1d14be611b2f4b7dc05c53c66e",
+    "note": "First measurement. Every value below was identical at both commits, so the re-measure confirmed no drift rather than replacing numbers."
+  },
   "checks": {
     "harness": {
       "command": "PGBIN=\"/c/Program Files/PostgreSQL/18/bin\" bash supabase/tests/executable/run.sh",

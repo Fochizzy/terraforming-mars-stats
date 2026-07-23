@@ -107,8 +107,21 @@ foreach ($name in $Order) {
     switch ($name) {
 
         'harness' {
-            if (-not (Get-Command bash -ErrorAction SilentlyContinue)) {
-                Add-Result $name 'SKIPPED' 'bash not available; the harness was NOT run' ''
+            # Git Bash is often absent from the PowerShell host's PATH even when
+            # it is installed, which silently skipped this check. Fall back to the
+            # usual install locations before giving up.
+            $bash = (Get-Command bash -ErrorAction SilentlyContinue)
+            if (-not $bash) {
+                foreach ($candidate in @(
+                    (Join-Path $env:ProgramFiles 'Git\bin\bash.exe'),
+                    (Join-Path ${env:ProgramFiles(x86)} 'Git\bin\bash.exe'),
+                    (Join-Path $env:LOCALAPPDATA 'Programs\Git\bin\bash.exe')
+                )) {
+                    if ($candidate -and (Test-Path -LiteralPath $candidate)) { $bash = $candidate; break }
+                }
+            }
+            if (-not $bash) {
+                Add-Result $name 'SKIPPED' 'bash not found on PATH or in the usual Git install locations; the harness was NOT run' ''
                 break
             }
             $pgProbe = $PgBin -replace '^/([a-zA-Z])/', '$1:/'
@@ -116,8 +129,9 @@ foreach ($name in $Order) {
                 Add-Result $name 'SKIPPED' ("PostgreSQL binaries not found at $PgBin; the harness was NOT run") ''
                 break
             }
+            if ($bash -is [string]) { $bashExe = $bash } else { $bashExe = $bash.Source }
             Write-Host 'Running executable PostgreSQL harness...'
-            $r = Invoke-Check $name ('set "PGBIN=' + $PgBin + '" & bash supabase/tests/executable/run.sh')
+            $r = Invoke-Check $name ('set "PGBIN=' + $PgBin + '" & "' + $bashExe + '" supabase/tests/executable/run.sh')
             $marker = $Baselines.checks.harness.terminalMarker
             if ($r.ExitCode -eq $Baselines.checks.harness.exitCode -and $r.Output -match [regex]::Escape($marker)) {
                 Add-Result $name 'PASS' ('exit 0; "' + $marker + '"') $r.Log

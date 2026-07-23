@@ -544,3 +544,93 @@ No skill file was edited. No production system was accessed by this task at any
 point. The concurrent session's work is **its own**; it is named here only because
 it moved the tree these measurements were taken in, and is neither reviewed nor
 endorsed by this handoff.
+
+---
+
+# Amendment 4 — merged, and the baselines re-measured at the merge commit
+
+The owner authorized the merge. `chore/agent-skills-tier-1` (four commits) landed
+in `redesign/tm-stats-dashboard-rebuild` as `--no-ff` merge commit
+**`58578dd91f808e635e65f8001e87aa9f7ea60bd5`** [GIT]. The ten skills are live
+under `.claude/skills/`.
+
+## Conflict resolution
+
+One conflict: `docs/REDESIGN_STATE.md` at the head of `## Latest handoff`, where
+this branch and the concurrent production-apply commit `f8c2c8e1d` each inserted
+an entry. **Both retained**, production record first, group complete and
+contiguous. Two statements in the merged text were corrected in the same
+resolution because the merge made them false: the skills entry asserted "33 path
+and 59 heading pointers" (superseded by the audit's 34 / 73) and "branch
+unmerged", and the tooling subsection asserted "**Unmerged**; merging it requires
+separate owner authorization". The latter is struck and superseded rather than
+deleted.
+
+## Re-measure at the merge commit — no drift
+
+The correction in Amendment 3 said these baselines were pinned to an ancestor and
+were owed a re-measure. Done, at `58578dd91…`:
+
+| Check | Exit | Result at the merge commit | vs. baseline |
+|---|---|---|---|
+| Executable PostgreSQL harness | 0 | `ALL EXECUTABLE MIGRATION TESTS PASSED` | unchanged |
+| `npm.cmd run test` | 0 | 178 files / 982 tests | unchanged |
+| `npx tsc --noEmit` | 0 | no diagnostics | unchanged |
+| `npm.cmd run lint` | 0 | exactly the same 4 warnings | unchanged |
+| `npm.cmd run build` | 0 | succeeded | unchanged |
+| `validate:claude-context` | 0 | passes | unchanged |
+| `validate:claude-context -- --require-maintenance` | 1 | see below | not a baseline value |
+
+**Every value is identical**, so `scripts/baselines.json` keeps its numbers and
+only moves `measuredAtCommit` to the merge commit, with the prior commit retained
+under `previousMeasurement` so the re-measure is auditable rather than a silent
+overwrite.
+
+**Measurement conditions, stated because they qualify the result:** the checkout
+carried two *documentation* files dirty from a concurrent session
+(`docs/REDESIGN_STATE.md`, `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`).
+Nothing under `src/`, `supabase/`, or `scripts/` was dirty — checked before and
+after — so the code-facing checks measured this commit's source. This is stated
+rather than glossed, which is the failure Amendment 3 recorded.
+
+**The `--require-maintenance` exit 1 is not this work's failure.** Its message is
+"Maintenance mode requires a handoff file to be created or updated", and the
+pending change it was judging was the *other session's* two uncommitted document
+edits, which do not yet include a handoff. The gate is correctly describing their
+in-progress work.
+
+## One defect found by using the runner, and fixed
+
+The full run reported `harness SKIPPED — bash not available`. Git Bash is
+installed but is not on the PowerShell host's `PATH`, so `Get-Command bash`
+failed. The runner behaved correctly — it reported the check unrun rather than
+passed, which is the whole point of the skill — but it meant the battery was
+quietly validating less than it appeared to. The probe now falls back to the usual
+Git install locations and invokes the resolved executable by full path. Verified:
+the harness now runs and passes through the runner from PowerShell.
+
+## What this commit deliberately does not touch
+
+`docs/REDESIGN_STATE.md` is **not** edited here. The concurrent session has
+uncommitted changes in it, and staging that file would commit their in-flight
+work. The merge commit already carries this task's state-document content; this
+follow-up records the measurement in `baselines.json` and in this handoff instead.
+
+**Small follow-up owed:** once the concurrent session's edits land, a one-paragraph
+note in the skills tooling subsection recording the merge commit and the no-drift
+re-measure would close the pointer left there. It is not urgent and is not done
+here, because doing it now would mean committing someone else's work.
+
+## Planning-pack synchronization — no longer pending
+
+The merge was made in the updater's tree, and `.claude/.pack-last-sync` now reads
+`58578dd91f808e635e65f8001e87aa9f7ea60bd5`, equal to HEAD [GIT]. The marker is
+written by the hook, not by the updater, so **the hook fired and ran the updater
+for this merge**. The PENDING status carried by the three worktree commits is
+resolved: the pack published when the work reached the updater's tree, exactly as
+the documented path describes. Verify the Drive result in the updater's local log.
+
+## Still unauthorized
+
+Cataloguing the skills, creating or registering any index, and mirroring them into
+`AGENTS.md`.
