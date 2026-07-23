@@ -3127,6 +3127,27 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-CLOSURE-CRITERION-ESTABLISHED.md
+  (read-only investigation establishing the Step 4.3 closure criterion, redesign
+  lineage, docs-only and local: **nothing applied, deployed, pushed, merged, or
+  read from production**; no write outside the repository, no
+  `src/**`/`supabase/**`/`scripts/**` edit, no phase advance. Read
+  `04-log-a-game.md` in full and swept `CURRENT_STATUS.md`, `REDESIGN_STATE.md`,
+  `DECISIONS.md`, `MASTER-RULES.md`, and the handoffs. **Finding:** the phase
+  contract states exactly one Step 4.3 closure criterion — "Step 4.3 is closed
+  only after a fresh independent read-only audit passes" (`04-log-a-game.md:476`;
+  also `:429-431`) — and names no deployment, migration, or contraction as a
+  condition of closure; `DECISIONS.md:977` and `REDESIGN_STATE.md:2376`/`:2503`
+  agree. Higher-ranked state files (`AUTHORITATIVE_DOCUMENTS.md:11-18` ranks them
+  above the phase file) add `ID-READER-CONTRACT`/`ID-LEGACY-ORACLE`/`STEP-4.3-AUDIT`
+  as "Blocking: Step 4.3 closure"; **PD-2 records that conflict UNRESOLVED** and the
+  audit's scope as depending on it. The phase document is **SILENT** on
+  ID-READER-DEPLOY, the matcher deploy/verification, MATCHER-WIRE-CONTRACT, the
+  harness coverage gap, and MATCHER-MANUAL-ENTRY-REPLACEMENT as pre-audit gates.
+  **Discrepancy:** no canonical owner ruling on PD-2 exists at HEAD — the four
+  rulings in `f1f836ab7` are R-1..R-4, none of them PD-2. **Nothing decided,
+  resolved, reclassified, or recommended; no criterion changed; the
+  `04-log-a-game.md` mojibake reported not fixed; audit not commissioned.**)
 - docs/agent-handoffs/INSTALL-PHASE-PACK-05-20.md
   (documentation install, redesign lineage, docs-only and local: **nothing
   applied, deployed, pushed, merged, or read from production**; no write outside
