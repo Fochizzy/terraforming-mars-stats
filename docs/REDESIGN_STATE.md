@@ -15,8 +15,10 @@ remains open, contraction `20260722012707` remains gated and unapplied, the
 CONTRACT drop of the 7-argument guest resolver is not authored, and Step 4.4 is
 NOT STARTED. The targeted re-audit of the remediated work RAN on 2026-07-23 and
 returned **FAIL** on documentation and coverage only; its four findings are now
-addressed and the migration remains gated. Nothing beyond that is authorized by
-this document.**)
+addressed and the migration remains gated. Both independent audits of this work
+are now on the repository record in
+`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-INDEPENDENT-AUDIT-TRAIL.md`.
+Nothing beyond that is authorized by this document.**)
 
 ### Re-audit FAIL answered: stale signature corrected, two vacuous branches now asserted (2026-07-23)
 
@@ -1876,6 +1878,17 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-INDEPENDENT-AUDIT-TRAIL.md
+  (the repository record of the two independent audits of the
+  `ID-READER-CLIENT` work — their targets, verdicts, findings, cleared
+  properties, and stated limits. Both audits were read-only and forbidden from
+  writing to the repository they audited, so neither report was ever committed;
+  this document closes that gap so the closure audit can see what was audited
+  and what was found. Evidence class **[PRIOR]** throughout: it records the
+  audits, it does not re-prove them and does not reproduce their evidence.
+  Recorded, not acted on — no finding's disposition changed, migration
+  `20260722160000` is still gated and unapplied, the reader is still undeployed,
+  and Step 4.3 is not marked complete)
 - docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md
   (answers the targeted re-audit's FAIL on the merged `ID-READER-CLIENT`
   remediation, which found the SQL and TypeScript correct and complete and failed

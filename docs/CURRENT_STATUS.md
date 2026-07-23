@@ -49,6 +49,15 @@ separate gate is authorized.
   the assignment text, and every defect was independently re-derived from code
   before being corrected. `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md`
   is the record.
+- **Both independent audits are now on the repository record.** Both were
+  read-only and forbidden from writing to the repository they audited, so
+  neither report was ever committed and their findings survived only indirectly
+  through the remediation handoffs.
+  `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-INDEPENDENT-AUDIT-TRAIL.md`
+  records each audit's target, verdict, findings, cleared properties, and stated
+  limits, so the closure audit can establish what was independently audited and
+  what was cleared. Evidence class **[PRIOR]** — it records the audits rather
+  than re-proving them, and changes no finding's disposition.
 
 ## In progress
 
