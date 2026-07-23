@@ -147,9 +147,102 @@ byte-identical to `.open-next/assets/…` in the worktree that just built
 `865df0108`. Production is serving this exact artifact, independently of the
 deploy-time stamp.
 
-**Still open.** The authenticated `/api/deploy-info` `sourceCommit` read, and an
-owner smoke test that the saved-games list now shows names on the 13 repaired
-games.
+**Still open — RESOLVED 2026-07-23.** The original text read: *"The
+authenticated `/api/deploy-info` `sourceCommit` read, and an owner smoke test
+that the saved-games list now shows names on the 13 repaired games."* Both were
+performed 2026-07-23, read-only, and both passed. The snapshot repair itself was
+verified separately — see below.
+
+- **Authenticated `/api/deploy-info` — PASS.** Read through the owner's
+  signed-in browser session at `tm-stats.com`. Returned `sourceCommit
+  865df0108f2f7b9df000ad3aeb8fcd394e6242a5`, `sourceBranch
+  fix/live-compare-data-remove-declared-style`, `environment production`,
+  `buildTimestamp 2026-07-23T01:57:57.744Z` — the commit matches the "Current
+  production" row exactly. The endpoint exposes **no** worker version, so
+  `11e42e8c-…` stays corroborated only by `wrangler deployments list` and the
+  `_buildManifest.js` probe recorded above.
+- **Saved-games list smoke test — PASS.** 39 finished games read across all
+  eight group filters. Zero raw uuids, zero `"Unknown player"`, zero blank or
+  placeholder labels; every card's label count equalled its own `player_count`,
+  and every label set fell within its group's roster. `Guest XXXXXXXX` labels
+  are the intended `private.neutral_unlinked_player_label` output, not an id
+  leak. Limits: two groups sit at the page's `limit: 12`, so older games in
+  those two were not shown; there are no in-progress games in any group, so the
+  draft path — the one list surface that still labels from the snapshot — could
+  not be exercised; and **which cards were the 13 repaired games was not
+  cross-referenced**.
+- **The structural gap this exposed.** The smoke test could not see the data
+  repair at all: `listSavedGames` now labels a finalized game from
+  `game_players`, so the list would look identical whether or not the snapshot
+  rewrite was correct. That gap is what the verification below closes.
+
+### Snapshot repair verification — read-only — 2026-07-23
+
+Project `tm-stats` (`qjtwgrjjwnqafbvkkfex`), identity verified before querying.
+**SELECT statements only — no INSERT, UPDATE, DELETE, DDL, GRANT, REVOKE, or
+migration. Nothing was corrected, restored, or remediated.** No personal name
+was read: the queries touched only `public.games`, `public.game_revisions`,
+`public.game_players`, the two `private.mig_*_20260722` tables and the ledger,
+every answer is an aggregate count, and no name, alias, or identifying column
+was selected. No detail row was read, because no aggregate came back unexpected.
+
+**The residual risk this settles.** The migration asserted its map one-to-one,
+injective, roster-complete and non-chaining before writing. The open question
+was never whether each id names somebody — that is asserted — but whether the
+match was ever *ambiguous*, because a swap between two players carrying
+identical score vectors would satisfy every one of those assertions.
+
+**Ledger, re-derived live:** 114 entries, head `20260723014849
+repair_snapshot_player_ids` — unchanged, and matching the "Current production"
+row above.
+
+| Check | Result | Expected |
+|---|---|---|
+| Repaired games / roster rows | 13 / 33 | 13 / 33 |
+| **Games with two identical score vectors** | **0** | 0 |
+| **Colliding score-vector pairs** | **0** | 0 |
+| Roster rows with any null score field | 0 | 0 |
+| Non-participant ids in `playerScores`, across all 16 revisions | 0 | 0 |
+| Non-participant entries in `selectedPlayerIds` | 0 | 0 |
+| Non-participant keys in `playerSelections` / `playerStyles` | 0 / 0 | 0 |
+| `REMAPPED:` sentinels surviving | 0 | 0 |
+| Games whose snapshot player set ≠ `game_players` roster | 0 | 0 |
+| Map targets that are not participants of the same game | 0 | 0 |
+| Map targets claimed by two sources within one game | 0 | 0 |
+| Map rows with `candidate_count <> 1` | 0 | 0 |
+| Map rows chaining (a target that is also a source) | 0 | 0 |
+| **Independent re-derivation disagreeing with the applied map** | **0 of 33** | 0 |
+| Map / backup scale | 13 games, 33 rows, 16 revisions | matches this file |
+
+**The decisive result.** No repaired game contains two players whose six-field
+score vector is identical, and no such pair collides anywhere in the set. The
+match was therefore unambiguous at every one of the 33 sites it was applied: the
+swap failure mode is not merely unobserved but **unreachable**, and the
+migration's own assertions are sufficient. Consistently, all 33 map rows carry
+`candidate_count = 1`, so the migration's `min()` tiebreak never chose between
+alternatives.
+
+**Independent re-derivation.** The mapping was re-derived from
+`private.mig_backup_snapshot_player_ids_20260722` — the retained pre-repair
+documents, confirmed genuinely pre-image because they still carry the 10 stale
+ids that no longer appear in any player-id field of live `game_revisions` — by
+re-applying the six-field match against `game_players` without reading the
+applied map. It reproduced all 33 rows: identical key set, **zero**
+disagreements on the target, and zero rows matching other than exactly one
+participant.
+
+**What this does not establish.** The repair keys identity off the score vector
+already stored beside each snapshot player, so it faithfully preserves whatever
+score-to-player association the snapshot held at save time. A snapshot whose
+scores were mis-attributed *before* 2026-07-20 would carry that forward
+undetected. That is outside the repair's remit and is not evidence of a defect
+in it. Separately, the migration's post-write assertion inspected only revisions
+whose `playerScores` is a JSON object; one of the 16 revisions has none and was
+skipped by that assertion. It was covered here by the `selectedPlayerIds`,
+`playerSelections` and `playerStyles` passes above, and is clean.
+
+**Verdict: the repair is verified.** No remediation is required and none was
+attempted. The backup and remap tables are retained.
 
 ## Import candidate-input bounds release — 2026-07-22 19:26Z (superseded)
 
