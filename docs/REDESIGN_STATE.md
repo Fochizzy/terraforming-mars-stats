@@ -1439,6 +1439,18 @@ skill text is what changes.
 After the audit, 34 path pointers and 73 heading pointers resolve across the ten
 skills. No skill gained a permission, and every change made one narrower.
 
+**Corrected 2026-07-23 (fourth commit; no skill file changed).** The base branch
+moved while this work was in progress, so two statements are corrected in the
+handoff. The second increment's code-facing checks were recorded as running
+against source byte-identical to this branch; the checkout they ran in was
+afterwards found to carry a concurrent session's uncommitted change under `src/`,
+and the timing relative to the run cannot be established, so that claim is struck
+and retained rather than defended. The measured results were unchanged from
+baseline either way. And the baselines remain pinned to `d63e6b0d7`, which is now
+an **ancestor** of the branch tip with a `src/` file changed since: they are not
+automatically valid there, and a re-measure from a clean tree at the then-current
+commit is owed before this branch merges.
+
 Handoff: `docs/agent-handoffs/AGENT-SKILLS-TIER-1.md`.
 
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)

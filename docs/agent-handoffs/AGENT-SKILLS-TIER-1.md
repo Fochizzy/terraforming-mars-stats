@@ -338,9 +338,15 @@ under `src/`, `supabase/`, or `scripts/` was touched**, verified with
 ESLint, Vitest, or the build changed.
 
 The code-facing checks were therefore run from the **primary checkout at
-`d63e6b0d7`** — byte-identical source to this branch — via the runner this task
-added. `--require-maintenance` was run in the **task worktree**, because it
+`d63e6b0d7`** ~~— byte-identical source to this branch —~~ via the runner this
+task added. `--require-maintenance` was run in the **task worktree**, because it
 inspects the working tree and only means anything there.
+
+> **Correction, recorded in Amendment 3 below.** The struck phrase does not hold.
+> That checkout was later found to carry another session's uncommitted change to
+> `src/lib/db/migration-ledger-map.ts`, so this run did **not** measure source
+> byte-identical to this branch. Its results still matched the recorded baseline
+> exactly. Text retained rather than rewritten.
 
 | Check | Where | Exit | Result |
 |---|---|---|---|
@@ -477,3 +483,64 @@ handoff. No input read by `tsc`, ESLint, Vitest, or the build changed.
 
 **PENDING**, same as the earlier commits and for the same reason: made outside the
 updater's tree. Marker untouched, hook not disabled, updater not run manually.
+
+---
+
+# Amendment 3 — correction: a validation claim and the baseline's standing
+
+Recorded on the same day, on discovering that the base branch had moved while this
+work was in progress. **Nothing about the skills changed in this amendment**; it
+corrects the record.
+
+## What happened
+
+A concurrent session was working in the **primary redesign checkout** — the same
+tree these baselines were measured in. It has since committed
+`f8c2c8e1d1866eddbfb110206e17aa5bcb77f443` [GIT], advancing
+`redesign/tm-stats-dashboard-rebuild` from `d63e6b0d781b7c1d14be611b2f4b7dc05c53c66e`
+and changing, among documents, **`src/lib/db/migration-ledger-map.ts`**.
+
+## Correction 1 — the "byte-identical source" claim does not hold
+
+Amendment 1 recorded that the second increment's code-facing checks ran against
+source byte-identical to this branch. When that tree was inspected shortly
+afterwards it carried an uncommitted modification to
+`src/lib/db/migration-ledger-map.ts`. The precise moment that edit appeared,
+relative to the run, **cannot be established from the evidence available here**, so
+the claim cannot be sustained and is struck above rather than defended.
+
+What does still hold, and is separately checked: that run returned **178 files /
+982 tests**, **no `tsc` diagnostics**, and **exactly the four baseline lint
+warnings** — identical to the recorded baseline. So no drift was observed either
+way. The claim was stronger than the evidence, which is the defect being recorded.
+
+## Correction 2 — the baselines' commit is now an ancestor, not the tip
+
+`scripts/baselines.json` is pinned to `d63e6b0d7…`, which is now **behind** the
+base branch, and a file under `src/` has changed since. The pin is doing exactly
+its job — the numbers say which commit they describe — but the consequence must be
+stated: **they are not automatically valid for the current branch tip.**
+
+Before this branch merges, re-measure from a clean tree at the then-current commit
+and update `measuredAtCommit` in the same edit. Do not carry these numbers forward
+as though they were measured there.
+
+## Correction 3 — evidence about the hook, from another session's commit
+
+Earlier reporting from this task recorded that a worktree commit produced **no**
+hook output at all, and offered two explanations it could not distinguish. One data
+point now narrows it: `.claude/.pack-last-sync` in the updater's tree has advanced
+to `f8c2c8e1d…`, exactly that session's new HEAD [GIT]. The marker is written by
+the hook, not by the updater, so **the hook is live and did fire and run the
+updater for a commit made in its own tree**.
+
+That does not by itself prove which path a worktree commit takes, and no claim is
+made here that it does. It removes "the hook is not active in this environment"
+as an explanation. The gap remains open and still wants a hook-level test.
+
+## Scope
+
+No skill file was edited. No production system was accessed by this task at any
+point. The concurrent session's work is **its own**; it is named here only because
+it moved the tree these measurements were taken in, and is neither reviewed nor
+endorsed by this handoff.
