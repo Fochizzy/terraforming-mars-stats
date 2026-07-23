@@ -37,11 +37,25 @@
 #     MEASURED, not reasoned — see the COARSEN_MIGRATION annotation below for
 #     the measurement, its evidence class, and the coverage gap it does not
 #     close.
+#   * 20260722160000, which IS applied to production as of 2026-07-23 (ledger
+#     20260723082917, paired by NAME). It left GATED_UNAPPLIED on that date. It
+#     is held back for the SAME reason as 20260722012658: the ID-READER-CLIENT
+#     BEFORE proof must run against the pre-expand image, and the AFTER proof
+#     must then measure the expand on the SAME database. Replaying it in the
+#     loop would satisfy the BEFORE proof's precondition with the very function
+#     whose absence that proof measures, so the pair would prove nothing.
 #
-# So the baseline assertions in half 1 model production MINUS those two applied
-# migrations, not production exactly. That is intentional and is what the
-# BEFORE/AFTER pairs depend on; it is recorded here so the divergence is not
+# So the baseline assertions in half 1 model production MINUS those THREE
+# applied migrations, not production exactly. That is intentional and is what
+# the BEFORE/AFTER pairs depend on; it is recorded here so the divergence is not
 # mistaken for a replay gap.
+#
+# CONSEQUENCE, stated so it is not rediscovered as a defect: half 1 is no longer
+# "the state production is in today" for the guest-identity surface. Since
+# 2026-07-23 it is the state production was in immediately BEFORE the expand.
+# The BEFORE proof's own header still says "today"; correcting that file was
+# outside the authorized edit set of the task that applied the migration and is
+# recorded as an open documentation discrepancy in the ID-READER-EXPAND handoff.
 #
 # Then the behavioural assertions, the fixture-to-persistence bridge,
 # idempotency, and a rollback check. Exit status is non-zero on any failure.
@@ -106,6 +120,14 @@ SOURCE_BOUND_EXPANSION="$MIGRATIONS/20260722012658_add_source_bound_import_ident
 SOURCE_BOUND_CONTRACTION="$MIGRATIONS/20260722012707_retire_free_form_import_name_matcher.sql"
 # EXPAND half of the ID-READER-CLIENT repair: creates the service_role-only
 # public.create_or_reuse_guest_identity. Replaces what 20260720100000 was for.
+#
+# APPLIED to production 2026-07-23 as ledger 20260723082917 (paired by NAME —
+# src/lib/db/migration-ledger-map.ts), and therefore NO LONGER in
+# GATED_UNAPPLIED. It stays deferred from the replay above for the same reason
+# SOURCE_BOUND_EXPANSION does, not because it is unapplied: the BEFORE proof
+# needs the pre-expand image and the AFTER proof needs the post-expand one, on
+# one database. Applying it to production did NOT authorize the reader deploy or
+# the CONTRACT drop of the deployed 7-argument resolver; both remain gated.
 NON_IMPORT_GUEST_MIGRATION="$MIGRATIONS/20260722160000_add_non_import_guest_identity_creator.sql"
 
 # Modelled pre-image of production-only ledger entry 20260720021300, which has
@@ -139,7 +161,7 @@ PSQL() { "$PGBIN/psql" -h 127.0.0.1 -p "$PORT" -U postgres -v ON_ERROR_STOP=1 -d
 echo "== bootstrap Supabase-compatible roles/auth/storage =="
 PSQL -q -f "$HERE/bootstrap.sql"
 
-echo "== replay production migration history (alias deferred; all gated excluded, PLUS the two production-APPLIED files 20260722012658 and 20260720120000) =="
+echo "== replay production migration history (alias deferred; all gated excluded, PLUS the three production-APPLIED files 20260722012658, 20260720120000 and 20260722160000) =="
 for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$ALIAS_MIGRATION" ] && continue
   [ "$f" = "$MERGER_MIGRATION" ] && continue
@@ -184,17 +206,20 @@ echo "== deployed match-oracle disclosure (pre-contraction baseline) =="
 PSQL -q -f "$HERE/match-oracle-pre-contraction.sql"
 
 # ID-READER-CLIENT: reproduce the reader break against production history only.
-# Must stay above the gated line — it asserts the state production is in today.
-echo "== ID-READER-CLIENT: BEFORE (reader broken on post-revoke production state) =="
+# Must stay above the deferred line — it asserts the pre-expand state, which
+# production held until 2026-07-23 and which the AFTER proof below measures the
+# departure from. It is a claim about production's state BEFORE ledger
+# 20260723082917, no longer about production's state today.
+echo "== ID-READER-CLIENT: BEFORE (reader broken on post-revoke, pre-expand production state) =="
 PSQL -q -f "$HERE/non-import-guest-identity-before.sql"
 
 # ---------------------------------------------------------------------------
 # The deferred migrations start here, in ledger-version order. Everything above
-# this line models production MINUS the two applied migrations noted in the
+# this line models production MINUS the three applied migrations noted in the
 # header; everything below is that deferred set — mostly prepared-and-NOT-applied
-# work, plus those two applied files. The echo labels below now name each file's
-# real production status, so a reader of the output does not have to consult this
-# header to tell a gated migration from an applied-but-deferred one.
+# work, plus those three applied files. The echo labels below now name each
+# file's real production status, so a reader of the output does not have to
+# consult this header to tell a gated migration from an applied-but-deferred one.
 # ---------------------------------------------------------------------------
 
 echo "== apply gated merger offer/rule snapshot migration =="
@@ -288,7 +313,7 @@ echo "== repeat-safety: apply source-bound contraction a second time =="
 PSQL -q -f "$SOURCE_BOUND_CONTRACTION"
 PSQL -q -f "$HERE/source-bound-import-identity-contraction.sql"
 
-echo "== apply gated non-import guest-identity creator (ID-READER-CLIENT expand) =="
+echo "== apply 20260722160000 non-import guest-identity creator (ID-READER-CLIENT expand) — APPLIED to production as ledger 20260723082917, deferred from the replay so the BEFORE/AFTER pair spans the expand on one database =="
 PSQL -q -f "$NON_IMPORT_GUEST_MIGRATION"
 
 echo "== repeat-safety: apply the non-import guest creator a second time =="

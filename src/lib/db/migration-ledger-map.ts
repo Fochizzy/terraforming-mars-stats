@@ -29,44 +29,45 @@ export const PRODUCTION_LEDGER_ATTESTATION = {
   /**
    * Date of the read-only attestation this snapshot reproduces.
    *
-   * PROVENANCE OF THIS REVISION — read before trusting the name of this
-   * constant. The 114 / 20260723014849 values below were NOT read from
-   * production by the session that wrote them. They are transcribed from the
-   * canonical DEPLOY-STATE ledger on the production lineage
-   * (`git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`),
-   * where an earlier authorized session recorded them from two independent
-   * live reads on 2026-07-23: the "Current production" row re-derived during
-   * the 01:58Z saved-game player-label deploy, and the read-only "Snapshot
-   * repair verification" that followed it, which re-derived the same 114
-   * entries and the same head. The session that updated this constant held no
-   * production authorization and performed no production read of any kind.
-   * Treat these values as a committed repository record OF a live read, not as
-   * a live read — re-attest against the ledger before any production-sensitive
-   * action, exactly as the surrounding rules already require.
+   * PROVENANCE OF THIS REVISION — DIRECT LIVE READ. Unlike the revision it
+   * replaces, the 115 / 20260723082917 values below WERE read from production
+   * by the session that wrote them. That session held a single-mutation
+   * authorization to apply 20260722160000 and read the ledger immediately
+   * before and immediately after the apply:
+   *
+   *   pre-apply   114 entries, head 20260723014849 repair_snapshot_player_ids
+   *               — matching the precondition this constant previously carried,
+   *               so the earlier transcribed record is confirmed correct.
+   *   post-apply  115 entries, head 20260723082917
+   *               add_non_import_guest_identity_creator.
+   *
+   * Exactly one entry was added, and it is the authorized apply. Re-attest
+   * before the next production-sensitive action anyway: this is a snapshot of
+   * 2026-07-23, not a standing guarantee.
    */
   attestedOn: '2026-07-23',
   /** Total ledger entries at attestation time. */
-  entryCount: 114,
-  headVersion: '20260723014849',
-  headName: 'repair_snapshot_player_ids',
+  entryCount: 115,
+  headVersion: '20260723082917',
+  headName: 'add_non_import_guest_identity_creator',
   /**
-   * The previous snapshot (2026-07-22) held 113 entries with head
-   * 20260722153233 close_authenticated_guest_identity_oracle. The single entry
-   * above it was applied from the live-site lineage on 2026-07-23:
+   * The previous snapshot (also 2026-07-23) held 114 entries with head
+   * 20260723014849 repair_snapshot_player_ids. The single entry above it is the
+   * EXPAND half of the ID-READER-CLIENT repair, applied from this branch:
    *
-   *   20260723014849 repair_snapshot_player_ids
-   *     The data half of the saved-game player-label release, applied ~01:48Z
-   *     ahead of its own frontend. Production-only relative to this branch:
-   *     it defines no database object, so this lineage records no stale
-   *     definition of anything it touches and there is nothing for a redesign
-   *     deploy or `db diff` to reproduce wrongly. That absent condition is
-   *     precisely what the ledger #106 carry existed to fix, so the file is
-   *     deliberately NOT carried here; see PRODUCTION_ONLY_ENTRY_PROVENANCE.
-   *     Its filename version equals its ledger version — no apply-time rename,
-   *     unlike the eight preceding known-source applies.
+   *   20260723082917 add_non_import_guest_identity_creator
+   *     File 20260722160000; the apply tool stamped the UTC apply time over the
+   *     filename version, so this is a renamed apply registered in
+   *     APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME. It creates exactly one
+   *     function, public.create_or_reuse_guest_identity, verified after the
+   *     apply as a single overload with ACL
+   *     {postgres=X/postgres,service_role=X/postgres} — no `authenticated`, no
+   *     `anon`, and no surviving PUBLIC grant. Nothing deployed calls it; the
+   *     reader that will remains undeployed, and the CONTRACT half is still
+   *     gated.
    */
-  previousEntryCount: 113,
-  previousHeadVersion: '20260722153233',
+  previousEntryCount: 114,
+  previousHeadVersion: '20260723014849',
 } as const;
 
 /**
@@ -130,6 +131,12 @@ export const PRODUCTION_LEDGER_VERSIONS: readonly string[] = [
   // the saved-game player-label release. No file on this branch by decision,
   // not by oversight — see PRODUCTION_ONLY_ENTRY_PROVENANCE.
   '20260723014849',
+  // Applied 2026-07-23 08:29Z from THIS branch under a single-mutation
+  // authorization: the EXPAND half of the ID-READER-CLIENT repair. The apply
+  // tool stamped 20260723082917 over the filename version 20260722160000, so
+  // the pairing is by NAME (add_non_import_guest_identity_creator) in
+  // APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME.
+  '20260723082917',
 ];
 
 /**
@@ -185,6 +192,10 @@ export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION: Readonly<
   // public.resolve_import_guest_identity. Stamped 20260722153233 over the
   // filename version 20260722153000. Pairing is by NAME.
   '20260722153000': '20260722153233',
+  // EXPAND half of the ID-READER-CLIENT repair, applied 2026-07-23 08:29Z under
+  // a single-mutation authorization. Stamped 20260723082917 over the filename
+  // version 20260722160000. Pairing is by NAME.
+  '20260722160000': '20260723082917',
 };
 
 /**
@@ -229,6 +240,10 @@ export const APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME: Readonly<
   close_authenticated_guest_identity_oracle: {
     fileVersion: '20260722153000',
     ledgerVersion: '20260722153233',
+  },
+  add_non_import_guest_identity_creator: {
+    fileVersion: '20260722160000',
+    ledgerVersion: '20260723082917',
   },
 };
 
@@ -277,12 +292,12 @@ export const GATED_UNAPPLIED: readonly string[] = [
   // expansion half (20260722012658) is applied; this one is not, and retiring
   // the free-form matcher still requires the deployed reader to move first.
   '20260722012707',
-  // EXPAND half of the ID-READER-CLIENT repair: creates the service_role-only
-  // public.create_or_reuse_guest_identity. Additive — it does not drop the
-  // deployed 7-argument resolve_import_guest_identity. That drop is a separate
-  // CONTRACT migration, authorized only after this one is applied and the
-  // moved reader is deployed and verified.
-  '20260722160000',
+  // 20260722160000 (the EXPAND half of the ID-READER-CLIENT repair) was listed
+  // here until 2026-07-23. It is now APPLIED — ledger 20260723082917 — and is
+  // registered as a renamed apply instead. Applying it did NOT authorize the
+  // rest of the sequence: the moved reader is still undeployed, and the CONTRACT
+  // drop of the deployed 7-argument resolve_import_guest_identity remains a
+  // separate gate that has not been opened.
 ];
 
 /**
@@ -599,6 +614,11 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // load-bearing `from public` revoke that removes CREATE FUNCTION's implicit
   // PUBLIC grant — so they strand nothing. Safe to apply ahead of the code that
   // uses it, which is exactly the expand/contract order this repair requires.
+  //
+  // APPLIED 2026-07-23 as ledger 20260723082917. The class was re-confirmed
+  // against the SQL that actually landed and against the post-apply catalog:
+  // one new function, one overload, ACL {postgres,service_role}, and the
+  // deployed resolver untouched. Still an expansion.
   '20260722160000': 'expansion', // add_non_import_guest_identity_creator
   // B-05. Revokes only the PUBLIC pseudo-role grant (and anon on
   // claim_player_profiles_by_name) while granting explicit EXECUTE to

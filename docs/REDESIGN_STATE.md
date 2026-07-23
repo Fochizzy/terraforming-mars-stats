@@ -9,8 +9,11 @@ its expansion as ledger `20260722132159`, applied interim reason coarsening as
 `20260722144034`, and revoked authenticated execution of the separate guest
 identity resolver as `20260722153233`. The `ID-READER-CLIENT` repair is now
 BUILT, REMEDIATED after an independent audit returned FAIL, executably
-proven LOCALLY, and **MERGED into this branch**, but its migration is gated and
-unapplied and the reader is not deployed. The legacy free-form matcher oracle
+proven LOCALLY, and **MERGED into this branch**. **Its migration
+`20260722160000` was APPLIED to production on 2026-07-23 as ledger
+`20260723082917` — the EXPAND step — but the reader is STILL NOT DEPLOYED and
+nothing in production calls the function it added. `ID-READER-DEPLOY` is now the
+active gate.** The legacy free-form matcher oracle
 remains open, contraction `20260722012707` remains gated and unapplied, the
 CONTRACT drop of the 7-argument guest resolver is not authored, and Step 4.4 is
 NOT STARTED. The targeted re-audit of the remediated work RAN on 2026-07-23 and
@@ -19,11 +22,58 @@ addressed and the migration remains gated. Both independent audits of this work
 are now on the repository record in
 `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-INDEPENDENT-AUDIT-TRAIL.md`.
 Nothing beyond that is authorized by this document.**) The production ledger
-attestation on this lineage now reads **114 entries, head `20260723014849
-repair_snapshot_player_ids`**, reconciled 2026-07-23 from the committed
-production-lineage `DEPLOY-STATE.md` record; the expand apply of
-`20260722160000` therefore has its ledger precondition satisfied and remains
-gated and unauthorized.
+attestation on this lineage now reads **115 entries, head `20260723082917
+add_non_import_guest_identity_creator`**, **read live** on 2026-07-23 by the
+session that performed the expand apply.
+
+### EXPAND applied: `20260722160000` → ledger `20260723082917` (2026-07-23)
+
+The first schema-affecting production write of the redesign effort, performed
+under a single-mutation authorization. **Exactly one production mutation was
+issued.**
+
+- **Target** Supabase `tm-stats` / `qjtwgrjjwnqafbvkkfex`, identity verified
+  before applying. **Applied** 2026-07-23 08:29:17Z.
+- **Ledger** 114 entries before (head `20260723014849 repair_snapshot_player_ids`)
+  → **115** after (head `20260723082917 add_non_import_guest_identity_creator`).
+  Both read live, either side of the apply. Exactly one entry added. The
+  pre-apply read **confirmed the 2026-07-23 transcribed reconciliation was
+  exactly correct**, closing the question that reconciliation left open.
+- **Version drift, as predicted.** Filename `20260722160000`, ledger
+  `20260723082917`. Registered by NAME in
+  `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME`; `GATED_UNAPPLIED` now holds
+  **five** entries.
+- **What landed.** Six statements: one `create or replace function`, three
+  revokes and one grant scoped to that same new function, and one comment. It
+  drops nothing, alters nothing pre-existing, and revokes nothing any other
+  object holds. The SQL sent was confirmed byte-identical to the committed
+  repository blob first.
+- **Post-apply verification.** Exactly **one** overload of
+  `public.create_or_reuse_guest_identity` exists; ACL is
+  `{postgres=X/postgres,service_role=X/postgres}` — `authenticated` and `anon`
+  hold no EXECUTE and no `PUBLIC` grant survived. `prosecdef` true,
+  `search_path` empty.
+- **Hazard class re-confirmed `expansion`** against the SQL that actually landed
+  and the post-apply catalog.
+- **What was deliberately NOT read.** `public.resolve_import_guest_identity` —
+  its ACL, definition and every other property. That read is the CONTRACT step's
+  precondition, a separate gate, and was outside this session's authorization.
+  **It remains outstanding.** No production table row and no personal data was
+  read.
+- **No deploy occurred.** No `wrangler`, no build, no `/api/deploy-info`, no
+  Cloudflare action. The reader remains undeployed and the contraction stays
+  gated. Applying this authorized none of them.
+- **Rollback**, valid only while nothing calls the function, and only with fresh
+  owner authorization: `drop function if exists
+  public.create_or_reuse_guest_identity(uuid, uuid, text, text, text, text,
+  uuid, boolean);`
+- **Harness treatment corrected.** `20260722160000` moved from gated to applied,
+  so `supabase/tests/executable/run.sh` no longer describes it as gated. Its
+  mechanical treatment is **unchanged and still correct**: it stays deferred from
+  the production-history replay, exactly as the two other production-APPLIED
+  deferred files are, so the `ID-READER-CLIENT` BEFORE/AFTER pair can span the
+  expand on one database. Only the annotations changed. Harness passes end to
+  end.
 
 ### Production ledger drift closed: `20260723014849` registered production-only (2026-07-23)
 
@@ -1975,11 +2025,47 @@ IDs remain unchanged.
 One unapplied Phase 2 migration is prepared:
 `20260717190000_add_merger_offer_rule_snapshots.sql`. Its verification SQL,
 group-scoped dry run, idempotent historical policy backfill, and rollback are
-reviewable locally. No migration, schema query, or data backfill was applied to
-a linked or production database.
+reviewable locally.
+
+**The EXPAND half of the `ID-READER-CLIENT` repair is applied.** On 2026-07-23
+at 08:29:17Z, `supabase/migrations/20260722160000_add_non_import_guest_identity_creator.sql`
+was applied to `tm-stats`/`qjtwgrjjwnqafbvkkfex` and recorded in the live ledger
+as `20260723082917 add_non_import_guest_identity_creator` — a renamed apply,
+reconciled by NAME. It creates exactly one function,
+`public.create_or_reuse_guest_identity(uuid, uuid, text, text, text, text, uuid,
+boolean)`, a `service_role`-only non-import guest reuse-or-create authorized on
+an explicit server-verified requesting-user id, writing no
+`player_import_aliases` row. Verified after the apply: one overload, ACL
+`{postgres=X/postgres,service_role=X/postgres}`, no `authenticated`/`anon`/
+`PUBLIC` execute. It dropped, altered and revoked nothing pre-existing; the
+deployed 7-argument `resolve_import_guest_identity` is untouched. Ledger 114 →
+115. **No deploy accompanied it and nothing in production calls the function.**
+Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md
+  (**the EXPAND step is applied**: migration `20260722160000` was applied to
+  production `qjtwgrjjwnqafbvkkfex` on 2026-07-23 at 08:29:17Z under a
+  single-mutation authorization and landed as ledger `20260723082917
+  add_non_import_guest_identity_creator` — a renamed apply, reconciled by NAME.
+  Ledger 114 → 115, both counts read live either side of the apply; the
+  pre-apply read returned head `20260723014849` and so **confirmed the earlier
+  transcribed reconciliation exactly correct**. Exactly one entry was added and
+  exactly one production mutation was issued. The SQL sent was verified
+  byte-identical to the committed blob first. Post-apply: **exactly one
+  overload** of `public.create_or_reuse_guest_identity`, ACL
+  `{postgres=X/postgres,service_role=X/postgres}` — no `authenticated`, no
+  `anon`, no surviving `PUBLIC` grant. It dropped, altered and revoked nothing
+  pre-existing; the deployed 7-argument `resolve_import_guest_identity` is
+  untouched and **was deliberately not read**, that read being the CONTRACT
+  step's own precondition and still outstanding. **No deploy of any kind
+  occurred and nothing in production calls the new function.** Ledger map,
+  ledger-map document, and `run.sh` annotations reconciled; the harness's
+  mechanical treatment was already correct and was left alone, and the harness
+  passes end to end with all guest-identity proof sections. `ID-READER-DEPLOY`
+  is now the active gate; the contraction stays gated; **Step 4.3 is NOT marked
+  complete and no other blocker's disposition changed**)
 - docs/agent-handoffs/PHASE-04-STEP-03-LEDGER-DRIFT-20260723014849-RECONCILED.md
   (closes the production ledger drift that blocked the next gate: migration
   `20260723014849 repair_snapshot_player_ids` was applied in production on
@@ -2183,6 +2269,18 @@ The corporation-logo task applied production Storage uploads and
 These are not represented by Git; their verified results and rollback are in the
 handoff and `docs/redesign/assets/corporation-logos/`. No Phase 2 migration, view,
 RPC, schema, Storage, or other Supabase state was applied or changed.
+
+**2026-07-23 — EXPAND apply, one mutation.** Migration `20260722160000` was
+applied to `qjtwgrjjwnqafbvkkfex` under a single-mutation authorization and
+recorded as ledger `20260723082917 add_non_import_guest_identity_creator`
+(renamed apply; reconcile by name). Ledger 114 → 115. It added exactly one
+function and changed nothing pre-existing; post-apply verification found one
+overload and a `service_role`-only ACL. **No deploy, no push, and no second
+production statement.** The production ACL read on
+`resolve_import_guest_identity` — the CONTRACT step's precondition — was
+explicitly out of scope and was not performed. Recorded on the canonical
+`DEPLOY-STATE.md` at `5fe94f1f` on
+`fix/live-compare-data-remove-declared-style`.
 
 <!-- BEGIN POST-STEP-4-2-IDENTITY-CLARIFICATION -->
 

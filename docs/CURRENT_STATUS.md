@@ -13,13 +13,18 @@ Phase 4, Step 4.3 - Import Validation, Evidence Review, and Claimable Guest
 Identity. The step remains **blocked at its release boundary**. Step 4.4 has not
 started.
 
+**The EXPAND step is applied.** Migration `20260722160000` was applied to
+production on 2026-07-23 as ledger `20260723082917`. **`ID-READER-DEPLOY` is now
+the active gate** — the moved reader is still undeployed and nothing in
+production calls the new function.
+
 ## Current objective
 
 Preserve the source-bound import-identity design and close the remaining
-release sequence safely: make the redesign reader compatible with the current
-production grants, deploy and verify that compatible reader only under a new
-explicit assignment, and apply the legacy-matcher contraction only after its
-separate gate is authorized.
+release sequence safely: deploy and verify the compatible reader only under a
+new explicit assignment, then drop the deployed 7-argument resolver, and apply
+the legacy-matcher contraction only after its separate gate is authorized. The
+expand half of that sequence is done; every remaining step is still gated.
 
 ## Completed and executably verified
 
@@ -32,7 +37,24 @@ separate gate is authorized.
 - Production revoked `authenticated` execution of
   `resolve_import_guest_identity` as ledger version `20260722153233`; the
   post-apply ACL and one-target-only change were independently verified.
-- Production ledger attestation is **114 entries with head `20260723014849
+- **Production applied `add_non_import_guest_identity_creator` as ledger version
+  `20260723082917` from repository migration `20260722160000` on 2026-07-23 at
+  08:29:17Z** — the EXPAND half of the `ID-READER-CLIENT` repair, and the first
+  schema-affecting production write of the redesign effort. **No deploy of any
+  kind accompanied it.** Verified read-only immediately afterwards: exactly one
+  overload of `public.create_or_reuse_guest_identity` exists, and its ACL is
+  `{postgres=X/postgres,service_role=X/postgres}` — no `authenticated`, no
+  `anon`, and no surviving `PUBLIC` grant. It dropped, altered and revoked
+  nothing pre-existing; the deployed 7-argument `resolve_import_guest_identity`
+  is untouched. Record:
+  `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
+- Production ledger attestation is now **115 entries with head `20260723082917
+  add_non_import_guest_identity_creator`**, and **these values were read live**
+  by the applying session, both before and after the apply. The pre-apply read
+  returned 114 with head `20260723014849`, **confirming the 2026-07-23
+  transcribed reconciliation below was correct** and that production had not
+  moved in between. Exactly one ledger entry was added.
+- The prior attestation was **114 entries with head `20260723014849
   repair_snapshot_player_ids`**, reconciled on 2026-07-23. Production applied
   that migration ~01:48Z on 2026-07-23 as the data half of the live-site
   saved-game player-label release, and for one day this lineage held **no
@@ -48,11 +70,11 @@ separate gate is authorized.
   canonical `DEPLOY-STATE.md` on the production lineage, where an authorized
   session recorded two independent live reads on 2026-07-23. Re-attest live
   before any production-sensitive action.
-- **The expand apply of `20260722160000` now has its ledger precondition
-  satisfied.** That precondition required the attested ledger to match
+- **The expand apply of `20260722160000` had its ledger precondition satisfied
+  by that reconciliation, and the apply has since been authorized and performed**
+  (see the entry above). The precondition required the attested ledger to match
   production, and it was false by exactly one migration; a worker session
-  stopped on it. Making it true is all this reconciliation did. The apply itself
-  remains **gated and unauthorized** and requires a new explicit assignment.
+  stopped on it. The live pre-apply read then confirmed the reconciliation exact.
 - The independent audit's **FAIL** on the `ID-READER-CLIENT` expand work is
   answered. `FINDING-1` (the divergent candidate-counting and auto-selection
   predicates) and `FINDING-2` (`p_requesting_user_id` declared last and
@@ -83,9 +105,18 @@ separate gate is authorized.
 - No product implementation, migration, deployment, or production operation is
   currently authorized by this status document.
 - Authoritative branch: `redesign/tm-stats-dashboard-rebuild`.
-- The compatible source-bound redesign reader is not deployed.
-- Migration `20260722160000` remains **gated and unapplied**; merging the
-  remediation changed neither fact.
+- The compatible source-bound redesign reader is **not deployed**. This is now
+  the active gate, `ID-READER-DEPLOY`, and it requires a new explicit
+  assignment.
+- Migration `20260722160000` is **APPLIED** (ledger `20260723082917`,
+  2026-07-23). Applying it authorized nothing further: it did not authorize the
+  reader deploy, the `ID-READER-CONTRACT` drop, or contraction `20260722012707`.
+  Nothing in production calls the function it added.
+- **The production ACL read on `resolve_import_guest_identity` is outstanding.**
+  It is the stated precondition of the CONTRACT step and was deliberately **not**
+  performed by the expand session, which held no authorization for it.
+- `GATED_UNAPPLIED` now holds **five** entries; `20260722160000` left it on
+  2026-07-23 and is recorded as renamed drift instead.
 - **Known harness coverage gap, open and deliberately not fixed.**
   `supabase/tests/executable/match-oracle-post-contraction.sql` is referenced by
   nothing, so the coarsened `match_import_player_names` disclosure and its
@@ -132,9 +163,14 @@ sequence is:
    coverage gap above is **unchanged and still open** — `run.sh` exit 0 still
    does not cover the coarsened `match_import_player_names` disclosure or its
    candidate-input bound, and wiring that in was deliberately not done;
-3. apply `20260722160000` under explicit authority and the per-mutation
-   protocol. Two preconditions a session executing this step must not have to
-   derive from context:
+3. **DONE 2026-07-23 — `20260722160000` was applied** under explicit
+   single-mutation authority and the per-mutation protocol, landing as ledger
+   `20260723082917`. Pre-apply ledger 114 / `20260723014849`, post-apply 115.
+   Exactly one entry added, exactly one overload created, ACL verified
+   `{postgres,service_role}` only. The apply-time bookkeeping in 3b below was
+   completed in the same session. **No deploy occurred**, and no second
+   production statement was issued. The two notes below are retained because
+   they remain live operational facts, not because the step is outstanding:
 
    **3a. Rollback SQL for the expand step.** The migration creates exactly one
    object, so its reversal is a single statement:
@@ -152,28 +188,29 @@ sequence is:
    function, and reversal becomes a deploy rollback rather than a migration
    rollback.
 
-   **3b. Apply-time ledger bookkeeping.** The apply tool stamps the UTC apply
-   time over the filename version, so this file will almost certainly NOT land
-   as ledger `20260722160000`. Five recent applies on this lineage already
-   drifted that way — `20260722012658` landed as `20260722132159`,
-   `20260720120000` as `20260722144034`. Version is the wrong join key for a
-   renamed apply; the pairing is by NAME. Immediately after the apply, in the
-   same session:
+   **3b. Apply-time ledger bookkeeping — COMPLETED 2026-07-23.** The apply tool
+   stamped the UTC apply time over the filename version, exactly as predicted:
+   the file landed as ledger `20260723082917`, **not** `20260722160000`. Version
+   is the wrong join key for a renamed apply; the pairing is by NAME. All of the
+   following were done in the applying session:
 
-   - read the ledger version the apply actually produced;
-   - register the pairing under the key
+   - read the ledger version the apply actually produced — `20260723082917`;
+   - registered the pairing under the key
      `add_non_import_guest_identity_creator` in
-     `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME`, and add the
-     file-to-ledger entry to `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION`, both in
+     `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME`, and the file-to-ledger
+     entry in `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION`, both in
      `src/lib/db/migration-ledger-map.ts`;
-   - remove `20260722160000` from `GATED_UNAPPLIED` in the same file;
-   - re-attest the production ledger (entry count and head) and record the
-     result on the canonical `DEPLOY-STATE.md`;
-   - run `npx.cmd vitest run src/lib/db/migration-ledger-map.test.ts`.
-4. deploy and production-verify the moved redesign reader under explicit
-   authority;
+   - removed `20260722160000` from `GATED_UNAPPLIED` in the same file;
+   - re-attested the production ledger live (115 entries, head
+     `20260723082917`) and recorded it on the canonical `DEPLOY-STATE.md`;
+   - ran `npx.cmd vitest run src/lib/db/migration-ledger-map.test.ts` — passing.
+4. **ACTIVE GATE — `ID-READER-DEPLOY`.** Deploy and production-verify the moved
+   redesign reader under explicit authority. Not authorized; not started;
+   **applying the expand did not authorize it**;
 5. only then author and apply the CONTRACT drop of the deployed 7-argument
-   `resolve_import_guest_identity`, after a fresh zero-caller re-sweep;
+   `resolve_import_guest_identity`, after a fresh zero-caller re-sweep. **Its
+   precondition — a production ACL read on that resolver — is outstanding and
+   was deliberately not performed by the expand session**;
 6. separately authorize and apply contraction migration `20260722012707` only
    after reader verification; and
 7. run a fresh closure audit before any Step 4.4 assignment.
@@ -182,9 +219,9 @@ sequence is:
 
 | ID | Requirement | Current status | Blocking |
 |---|---|---|---|
-| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22, remediated after an independent audit returned FAIL, and MERGED into `redesign/tm-stats-dashboard-rebuild` on 2026-07-23; migration still unapplied, reader still undeployed. Re-audited 2026-07-23: the targeted re-audit found the SQL and TypeScript remediation correct and complete and returned FAIL on documentation and coverage only; all four of its findings are addressed and its FAIL is answered.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. The audit's HIGH finding — the candidate-counting and auto-selection predicates disagreed about claimed players, so a same-name collision could auto-select a claimed player and fail with `P0002` — was reproduced and fixed in the unapplied file: the predicate is now evaluated once into `v_candidate_ids` and both uses derive from it. `p_requesting_user_id` was also made required, matching the four applied gateways. Executably proven and mutation-proven on a disposable cluster. **Closed out 2026-07-23**: probe P1 was re-run against the tightened clause 8b it had never been re-run against and still fails there with `P0002` (harness exit 3), so the remediation is proven at the current file state, not merely at the state the probe was originally run against. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` | Redesign deploy |
-| ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is additive and leaves the function in place; the drop is valid only after `20260722160000` is applied, the moved reader is deployed and production-verified, and a fresh zero-caller re-sweep passes | Step 4.3 closure |
-| ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | Not authorized or deployed | Legacy contraction |
+| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22, remediated after an independent audit returned FAIL, and MERGED into `redesign/tm-stats-dashboard-rebuild` on 2026-07-23; **migration APPLIED 2026-07-23 as ledger `20260723082917`, reader still undeployed**. Re-audited 2026-07-23: the targeted re-audit found the SQL and TypeScript remediation correct and complete and returned FAIL on documentation and coverage only; all four of its findings are addressed and its FAIL is answered.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. The audit's HIGH finding — the candidate-counting and auto-selection predicates disagreed about claimed players, so a same-name collision could auto-select a claimed player and fail with `P0002` — was reproduced and fixed in the unapplied file: the predicate is now evaluated once into `v_candidate_ids` and both uses derive from it. `p_requesting_user_id` was also made required, matching the four applied gateways. Executably proven and mutation-proven on a disposable cluster. **Closed out 2026-07-23**: probe P1 was re-run against the tightened clause 8b it had never been re-run against and still fails there with `P0002` (harness exit 3), so the remediation is proven at the current file state, not merely at the state the probe was originally run against. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` | Redesign deploy |
+| ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is applied (ledger `20260723082917`) and is additive, so the function is still in place. The drop is valid only after the moved reader is deployed and production-verified and a fresh zero-caller re-sweep passes. **Its stated precondition — a production ACL read on `resolve_import_guest_identity` — is OUTSTANDING**: the expand session was explicitly forbidden from making that read and did not make it | Step 4.3 closure |
+| ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | **ACTIVE GATE as of 2026-07-23.** Not authorized or deployed. The database side is now ready — `create_or_reuse_guest_identity` exists and is `service_role`-only — but nothing in production calls it, and applying the expand granted no deploy authority | Legacy contraction |
 | ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live | Step 4.3 closure |
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary. It must also account for the recorded harness coverage gap: `run.sh` exit 0 does not cover the coarsened `match_import_player_names` disclosure or its candidate-input bound. A targeted re-audit of the merged `ID-READER-CLIENT` remediation is the evidenced next step and is separately unauthorized | Step 4.3 closure |
 | STEP-4.4 | Explicit assignment for final review, finalization, and draft safety | Not authorized | Step 4.4 start |

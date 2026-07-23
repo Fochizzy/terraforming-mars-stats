@@ -8,25 +8,30 @@ read-only and updating both files together.
 
 ## Current snapshot
 
-Attested **2026-07-23**: **114 entries**, head
-`20260723014849 repair_snapshot_player_ids`. The count and head are pinned in
-`PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that disagrees fails
-rather than silently overwriting. This production snapshot must be re-read live
-before any production-sensitive action.
+Attested **2026-07-23**: **115 entries**, head
+`20260723082917 add_non_import_guest_identity_creator`. The count and head are
+pinned in `PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that disagrees
+fails rather than silently overwriting. This production snapshot must be re-read
+live before any production-sensitive action.
 
-> **Provenance of the 114-entry snapshot — no production system was read to
-> produce it.** The count and head are transcribed from the canonical
-> `DEPLOY-STATE.md` on the production lineage
-> (`git show fix/live-compare-data-remove-declared-style:DEPLOY-STATE.md`),
-> where an earlier **authorized** session recorded them from two independent
-> live reads on 2026-07-23: the "Current production" row re-derived during the
-> 01:58Z saved-game player-label deploy, and the read-only "Snapshot repair
-> verification" that followed it, which re-derived the same 114 entries and the
-> same head. The session that reconciled this drift held no production
-> authorization and made no production read, deploy, or migration application.
-> These are therefore a committed repository record **of** a live read, not a
-> live read — which is exactly why the standing rule to re-attest before any
-> production-sensitive action still applies.
+> **Provenance of the 115-entry snapshot — this one WAS read live.** Unlike the
+> 114-entry snapshot it replaces, both the count and the head were read directly
+> from the production ledger by the session that recorded them. That session
+> held a single-mutation authorization to apply `20260722160000` and read the
+> ledger immediately before and immediately after the apply:
+>
+> | Read | Entries | Head |
+> | --- | --- | --- |
+> | pre-apply | 114 | `20260723014849 repair_snapshot_player_ids` |
+> | post-apply | 115 | `20260723082917 add_non_import_guest_identity_creator` |
+>
+> The pre-apply read **confirms the previous transcribed snapshot was correct**:
+> the 114/`20260723014849` values reconciled from `DEPLOY-STATE.md` on
+> 2026-07-23 matched production exactly. Exactly one entry was added, and it is
+> the authorized apply — no unaccounted entry landed in between.
+>
+> This is still a snapshot of a moment, not a standing guarantee. Re-attest live
+> before the next production-sensitive action.
 
 > **Reconciled 2026-07-22 from repository evidence only.** This section was left
 > at the earlier 110-entry snapshot after three further entries landed. It has
@@ -39,6 +44,35 @@ before any production-sensitive action.
 > head `20260721201734`. **No live ledger was read for this reconciliation.**
 > Nothing in this section is fresh production evidence; it restores agreement
 > between two repository files that had diverged.
+
+### The 115th entry — `20260723082917 add_non_import_guest_identity_creator`
+
+Applied to production 08:29Z on 2026-07-23 **from this branch**, under a
+single-mutation authorization, as the **EXPAND** half of the `ID-READER-CLIENT`
+repair. Repo file `20260722160000`; the apply tool stamped the UTC apply time
+over the filename version, so it is a renamed apply paired by **name**.
+
+It **drifted**, unlike the entry below it. That makes the 114th entry the only
+non-drifting apply among the ten whose source file is known.
+
+Verified read-only immediately after the apply:
+
+- `public.create_or_reuse_guest_identity` exists in `public`, with **exactly one
+  overload** — the eight-argument signature the file declares. The distinct-name
+  design that avoids the `42725` ambiguity hazard therefore held.
+- ACL is `{postgres=X/postgres,service_role=X/postgres}`. `authenticated` and
+  `anon` hold no `EXECUTE`, and the implicit `PUBLIC` grant that
+  `CREATE FUNCTION` would otherwise leave is **absent** — the load-bearing
+  `revoke … from public` in the file did its job.
+- `prosecdef` is true and `search_path` is `""`, as declared.
+
+**Applying it authorized nothing further.** Nothing deployed calls the new
+function; the moved reader is **still undeployed**, and the CONTRACT drop of the
+deployed 7-argument `resolve_import_guest_identity` remains a separate gate whose
+own precondition — a production ACL read on that resolver — has **not** been
+performed. The rollback, valid only while nothing calls the function, is a single
+`drop function if exists public.create_or_reuse_guest_identity(uuid, uuid, text,
+text, text, text, uuid, boolean);` and requires fresh owner authorization.
 
 ### The 114th entry — `20260723014849 repair_snapshot_player_ids`
 
@@ -61,6 +95,11 @@ failure (`LEDGER_INCOMPLETE`) once the snapshot is refreshed, rather than
 something that can sit unnoticed. The drift blocked the expand apply of
 `20260722160000`, whose precondition is that the attested ledger matches
 production; closing it makes that precondition true and nothing else.
+
+That reconciliation was subsequently **confirmed against production**: the
+pre-apply live read on 2026-07-23 returned exactly 114 entries with this entry
+as head, matching the transcribed record it had produced. The expand apply then
+proceeded and is recorded above as the 115th entry.
 
 **This entry did not drift.** Its filename version equals its ledger version, so
 it is *not* a renamed apply and appears in neither
@@ -87,9 +126,10 @@ apply-time ledger version, so all three are paired by **name** in
 
 Two of those move a file **out of the gated set**: `20260722012658` and
 `20260720120000` are applied and are no longer prepared-and-unapplied. One file
-later **joined** the gated set: `20260722160000`, the EXPAND half of the
-`ID-READER-CLIENT` repair.
-`GATED_UNAPPLIED` now holds six entries, and `20260722012707` is the only
+later **joined** the gated set on 2026-07-22 — `20260722160000`, the EXPAND half
+of the `ID-READER-CLIENT` repair — and then **left it again on 2026-07-23** when
+it was applied as `20260723082917`; it is recorded above as renamed drift.
+`GATED_UNAPPLIED` now holds **five** entries, and `20260722012707` is the only
 remaining half of the source-bound replacement. Applied is not closed —
 `20260722144034` was an interim mitigation that independent review found
 insufficient as a closure; see the gated table below.
@@ -211,6 +251,7 @@ skips them by version.
 | `20260720120000_coarsen_import_name_match_reasons` | `20260722144034` | coarsen_import_name_match_reasons |
 | `20260722012658_add_source_bound_import_identity_staging` | `20260722132159` | add_source_bound_import_identity_staging |
 | `20260722153000_close_authenticated_guest_identity_oracle` | `20260722153233` | close_authenticated_guest_identity_oracle |
+| `20260722160000_add_non_import_guest_identity_creator` | `20260723082917` | add_non_import_guest_identity_creator |
 
 These files must **never** be renamed to their ledger versions casually and
 must never be pushed directly: a plain `supabase db push` would re-apply
@@ -403,10 +444,10 @@ that also makes rolling the paired frontend back safe.
 | `20260720100000_add_guest_identity_alias_source_control` | neutral | **RETIRED / SUPERSEDED — no-op tombstone.** The file is kept at its original version as an auditable record and now contains no executable statement | none applicable. Applying it is impossible-by-content rather than merely gated; it is not in the production ledger and never will be. Its still-needed capability moved to `20260722160000`, which also does **not** re-grant `authenticated` |
 | `20260720110000_extend_canonical_board_placement_contract` | **contraction** | full placement contract | per-mutation protocol; expand/contract order. The pre-apply gate must confirm no `game_log_events` row carries owner ids with a non-`explicit_owner` `ownership_state`: the added CHECK is not `not valid`, so one such row fails the `ALTER TABLE` |
 | `20260722012707_retire_free_form_import_name_matcher` | **contraction** | removes authenticated execution from the deployed arbitrary `text[]` matcher | apply only after the expansion and compatible reader are live and verified; separate explicit authorization required |
-| `20260722160000_add_non_import_guest_identity_creator` | expansion | creates the `service_role`-only `public.create_or_reuse_guest_identity` for the two NON-import guest paths, authorized on an explicit requesting-user id and writing no `player_import_aliases` row | per-mutation protocol; separate explicit authorization required. Additive — it does **not** drop the deployed 7-argument `resolve_import_guest_identity`. That drop is a later CONTRACT migration, authorized only after this file is applied and the moved reader is deployed and verified |
 
-This table is the six entries of `GATED_UNAPPLIED`. **Two files left it on
-2026-07-22 and are recorded above as renamed drift instead:**
+This table is the **five** entries of `GATED_UNAPPLIED`. **Three files have left
+it and are recorded above as renamed drift instead — two on 2026-07-22 and one
+on 2026-07-23:**
 
 - `20260722012658_add_source_bound_import_identity_staging` — the expansion half
   of the source-bound replacement, applied as `20260722132159`. Its contraction
@@ -419,13 +460,18 @@ This table is the six entries of `GATED_UNAPPLIED`. **Two files left it on
   disclosed reason and score but leaves the private-name confirmation oracle
   open, and it is not part of the source-bound replacement proof. Do not cite it
   as the closure. The closure is `20260722012707`, still gated.
+- `20260722160000_add_non_import_guest_identity_creator` — the EXPAND half of the
+  `ID-READER-CLIENT` repair. It **joined** the gated set on 2026-07-22 and
+  **left** it on 2026-07-23, applied as `20260723082917` under a single-mutation
+  authorization. **Applied is not deployed and not closed.** Nothing calls the
+  new function yet: the moved reader is still undeployed, and the CONTRACT drop
+  of the deployed 7-argument `resolve_import_guest_identity` is still gated, with
+  its own precondition — a production ACL read on that resolver — outstanding.
 
-One file **joined** the set on 2026-07-22:
-`20260722160000_add_non_import_guest_identity_creator`, the EXPAND half of the
-`ID-READER-CLIENT` repair. In the same change `20260720100000` stopped being an
-applicable expansion: it stays listed in `GATED_UNAPPLIED`, but only as a
-retired no-op tombstone kept for audit, and its declared hazard class moved
-`expansion` → `neutral`.
+When `20260722160000` joined the set on 2026-07-22, `20260720100000` stopped
+being an applicable expansion in the same change: it stays listed in
+`GATED_UNAPPLIED`, but only as a retired no-op tombstone kept for audit, and its
+declared hazard class moved `expansion` → `neutral`.
 
 ## Hazard classes
 
@@ -450,10 +496,15 @@ the SQL alone does not record. A file with no declaration fails as
 Where a file mixes hazards, the strongest present wins. Current declarations:
 **16 contraction, 30 expansion, 9 neutral** (55 files) — counted from
 `MIGRATION_HAZARD_CLASS` and reconciled against `supabase/migrations/` on
-2026-07-23. The 2026-07-23 ledger reconciliation added a ledger entry but **no
-file**, so all four figures are unchanged from 2026-07-22; they were re-counted
-rather than assumed. The 55th file is `20260722160000`, whose declaration is below. In
-the same change `20260720100000` moved `expansion` → `neutral` when it was
+2026-07-23, re-counted rather than assumed.
+
+Both 2026-07-23 changes added a ledger entry but **no file**: the morning ledger
+reconciliation carried no file by decision, and the `20260722160000` expand apply
+used a file that was already on this branch. All four figures are therefore
+unchanged from 2026-07-22. The 55th file is `20260722160000`, whose declaration is
+below; **applying it did not change its hazard class**, which was re-confirmed as
+`expansion` against the SQL that actually landed and against the post-apply
+catalog. On 2026-07-22 `20260720100000` moved `expansion` → `neutral` when it was
 retired as a no-op tombstone, which is why the expansion count is unchanged at
 30 while the neutral count rose from 8 to 9.
 
@@ -507,7 +558,10 @@ the other way:
   stranded. It creates one new `service_role`-only function, drops no object,
   narrows no pre-existing grant, tightens no constraint, and leaves the deployed
   7-argument `resolve_import_guest_identity` exactly as it is. Declared
-  `expansion`.
+  `expansion`, and **confirmed against production** after the 2026-07-23 apply:
+  the post-apply catalog read returned one overload and the ACL
+  `{postgres=X/postgres,service_role=X/postgres}` — no `authenticated`, no
+  `anon`, no surviving `PUBLIC` grant.
 - `20260704034500`, `20260704071832` and `20260704123000` drop policies and
   recreate them under equal-or-broader definitions (`owners …` → `members …`,
   `editors …` → `members …`). Declared `expansion`.
