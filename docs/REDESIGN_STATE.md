@@ -1491,6 +1491,15 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/TAG-ICON-INVENTORY-RECONCILIATION-2026-07-22.md
+  (documentation-only: all 21 `tm-tag-icons` objects re-measured individually and
+  verified over their public URLs; ASSET-INVENTORY.md corrected to 21 objects /
+  313,154 bytes at 128×128, with the 2026-07-17 1254×1254 statements retained as
+  history; the downscale is dated to a 2026-07-18T06:59Z batch and traced to
+  commit `d747c8720`, which records it in code only; `tm-corporation-logos` and
+  `tm-score-icons` newly reported stale and deliberately unreconciled; the six
+  unmapped tag objects reported, not decided; no Storage, code, schema,
+  migration, deploy, or phase change)
 - docs/agent-handoffs/SPACE-TAG-ICON-REPLACEMENT-2026-07-22.md
   (owner-authorized single-object production Storage replacement of
   `tm-tag-icons/space.webp`; applied at the live 128×128 lossless WebP

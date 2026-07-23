@@ -99,7 +99,17 @@ lookup.
 | `tm-import-evidence` | no | 29 | 58,487,738 | screenshot evidence | private; retrieval path not implemented | yes | scoped insert/select/delete |
 | `tm-map-images` | yes | 21 | 2,689,434 | 10 PNG, 11 WebP | PNG one year; WebP one hour | no | none for authenticated users |
 | `tm-score-icons` | yes | 21 | 12,842,804 | PNG | standard no-cache; axis/legacy one hour | no | none for authenticated users |
-| `tm-tag-icons` | yes | 21 | 14,910,938 | WebP | all one hour | no | none for authenticated users |
+| `tm-tag-icons` | yes | 21 | 313,154 | WebP | all one hour | no | none for authenticated users |
+
+> **Correction — 2026-07-22 (measurement-only audit).** The `tm-tag-icons` byte
+> total above was `14,910,938` as measured on the 2026-07-16 audit date and
+> restated on 2026-07-17. Every one of the 21 objects was re-downloaded and
+> re-measured on 2026-07-22; the live total is **313,154 bytes**. The change is a
+> production Storage re-encode on 2026-07-18, not an error in the original
+> audit. See "Tag graphics" below for the full measured record. The
+> `tm-corporation-logos` and `tm-score-icons` rows are **also known to diverge**
+> from their live totals and were deliberately left unchanged by this
+> correction; see "Related unreconciled bucket rows" below.
 
 The public buckets serve objects through deterministic Supabase public URLs.
 Public reads do not require an authenticated Storage policy. No public-asset
@@ -122,6 +132,32 @@ The application does not create signed URLs for reading evidence.
 Only the corporation and score buckets have an explicit 5 MB file limit and
 `image/png` MIME restriction. Card, map, tag, and import bucket constraints must
 be verified and intentionally codified before future upload tooling is added.
+
+### Related unreconciled bucket rows
+
+Commit `d747c8720` states that **three** asset families were replaced in Supabase
+on 2026-07-18, not one. While reconciling the `tm-tag-icons` row on 2026-07-22, a
+read-only listing check was run against the other two families named by that
+commit. Both diverge from the table above:
+
+| Bucket | Documented objects | Live objects | Documented bytes | Live bytes (listing) | `updated_at` distribution |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `tm-corporation-logos` | 116 | 389 | 153,624,713 | 180,640,350 | 116 on 2026-07-16, 112 on 2026-07-17, 161 on 2026-07-21 |
+| `tm-score-icons` | 21 | 21 | 12,842,804 | 12,114,777 | 1 on 2026-07-16, 20 on 2026-07-18 |
+
+These figures are **listing metadata aggregates only**. No object in either
+bucket was downloaded, measured, hashed, or otherwise verified, so no dimension,
+format, or per-object claim about them is made or corrected here — in particular
+the 800×800 corporation figure and the 1254-by-1254 score-icon figure recorded
+elsewhere in this document remain **unverified against the live buckets**. The
+`tm-score-icons` 2026-07-18 group of 20 is consistent with the same batch that
+re-encoded the tag icons; the `tm-corporation-logos` 2026-07-21 group of 161 is a
+later, separate event that this check did not identify.
+
+Both rows were deliberately left unchanged: correcting them requires the same
+per-object measurement discipline applied to `tm-tag-icons`, which is outside the
+authorization for this reconciliation. Treat both as known-stale pending their
+own assignment.
 
 ### URL and authorization boundary
 
@@ -205,6 +241,11 @@ contract.
 
 **Classification: Available with incomplete coverage**
 
+The two dated blocks immediately below are the **historical** 2026-07-17 record.
+They were accurate when written and are retained unchanged. Their geometry and
+byte statements were superseded by the 2026-07-18 re-encode recorded in the
+third block, which is the current state.
+
 > **Update — 2026-07-17 (separately authorized production asset task).** The 19
 > supplied tag concepts replaced their existing root objects in place. Supplied
 > PNGs were converted to lossless WebP at source dimensions; `galatic.png`
@@ -217,9 +258,44 @@ contract.
 > `space.webp`. All four are lossless 1254-by-1254 WebP with alpha; their
 > post-upload SHA-256, `image/webp`, and `max-age=3600` metadata were verified.
 > No other tag object changed in this follow-up.
+>
+> **Correction — 2026-07-22 (measurement-only audit; no Storage object
+> changed).** All 21 objects were listed, downloaded, and measured individually —
+> no value below is extrapolated from a sample. The bucket is **21 objects /
+> 313,154 bytes**, and **every object is 128×128** WebP with a real alpha
+> channel (all 21 non-opaque), `image/webp`, and `max-age=3600`. Compression
+> mode was not measured and is not claimed.
+> Object bytes range from 9,446 (`science.webp`) to 22,980 (`earth.webp`). There
+> are no duplicate-content objects. All 21 were re-fetched over their anonymous
+> public URLs and returned HTTP 200, `image/webp`,
+> `public, max-age=3600`, and bytes matching the object SHA-256.
+>
+> The downscale was a **production Storage re-encode on 2026-07-18**, evidenced
+> by object `updated_at`: 18 tag objects were rewritten inside a 2.1-second
+> window (`2026-07-18T06:59:26.808Z`–`2026-07-18T06:59:28.930Z`). It is recorded
+> in the repository only in code, not in any handoff or inventory: commit
+> `d747c8720` ("feat: serve refreshed Supabase game assets", authored
+> `2026-07-18T07:21:22Z`, 22 minutes after the batch) added
+> `src/lib/assets/supabase-game-assets.ts` with
+> `GAME_ASSET_CACHE_NONCE = '20260718-v2'` and the comment "The three asset
+> families were replaced in Supabase on 2026-07-18." That commit is the
+> authoritative repository evidence for the event; it does not state dimensions
+> or bytes, which is why this inventory went stale rather than being updated.
+>
+> The remaining three objects were not part of that batch. `earth.webp` and
+> `science.webp` have been unwritten since `2026-07-14T02:35Z` — they were
+> already 128×128 at the 2026-07-16 audit date and were the bucket's only small
+> objects then, which is consistent with the 2026-07-17 record that they were
+> never supplied or changed. `space.webp` carries `2026-07-23T01:14:21.263Z`
+> from the separately authorized single-object replacement recorded in
+> `docs/agent-handoffs/SPACE-TAG-ICON-REPLACEMENT-2026-07-22.md`, which applied
+> at the current 128×128 convention; its pre-change object was also 128×128, so
+> it was almost certainly in the 2026-07-18 batch, but that timestamp has been
+> overwritten and the repository does not prove it.
 
 - Example entities: Plant, Space, Wild, Clone, and Crime tags.
-- Source and location: public `tm-tag-icons`; 21 WebP objects, 14,910,938 bytes.
+- Source and location: public `tm-tag-icons`; 21 WebP objects, 313,154 bytes
+  (measured 2026-07-22; was 14,910,938 bytes before the 2026-07-18 re-encode).
 - Local directory: none found on the required branch or in the inspected local
   asset folders.
 - Database reference: `cards.gameplay_tags`; no asset-path column.
@@ -235,15 +311,29 @@ contract.
 - Coverage: exact objects exist for 15 of 17 database values. `clone` and `crime`
   are missing. Six extra concepts are not currently emitted by the database:
   `galactic`, `infrastructure`, `mercury`, `radiation`, `tourism`, and
-  `wild_planet`.
+  `wild_planet`. Coverage is unchanged by the 2026-07-18 re-encode and the
+  2026-07-22 replacement — both changed bytes only, never object identity.
+- Resolver agreement (verified 2026-07-22): `tagIconPathByCode` in
+  `src/lib/assets/asset-resolver.ts` maps exactly those 15 codes and classifies
+  `clone`/`crime` as `source-unavailable`, so code and bucket agree. The same six
+  extra objects listed above remain unmapped by the resolver. Whether they should
+  be mapped or are intentionally unused is **still open** and is tracked as
+  blocking question 2; this audit did not decide it, and no icon should be mapped
+  to a database tag value on filename resemblance alone.
 - Access and URL method: anonymous public URL; no authenticated mutation policy.
 - Current helper/display/consumer: none tracked. `/cards` exposes tag metadata and
   current analytics/Insights surfaces use tag text rather than tag images.
-- Format and dimensions: WebP. The replaced set contains eighteen 1254-by-1254
-  images and one 732-by-732 image (`venus.webp`); all are square. Dimensions for
-  the untouched `earth.webp` and `science.webp` remain unaudited. The follow-up
-  Jovian, Microbe, Plant, and Space objects preserve alpha. Future containers
-  should supply explicit dimensions or aspect ratio.
+- Format and dimensions: WebP. **All 21 live objects are 128-by-128 and square**,
+  each measured individually on 2026-07-22, and each carries a real alpha channel
+  (no object is opaque). Bytes range from 9,446 to 22,980. This supersedes the
+  2026-07-17 record — accurate when written — that the replaced set was eighteen
+  1254-by-1254 images plus one 732-by-732 image (`venus.webp`); the 2026-07-18
+  re-encode brought all of those to 128-by-128. The then-unaudited `earth.webp`
+  and `science.webp` are now measured: both are 128-by-128 and, being unwritten
+  since 2026-07-14, were already at that size throughout. Future containers
+  should still supply explicit dimensions or aspect ratio rather than assume
+  128-by-128, because the bucket convention has now changed twice without a
+  captured contract.
 - Dark theme: requires visual review against dark cards; no contrast contract.
 - Accessibility: decorative when next to the tag label (`alt=""`); informative
   only when the icon replaces visible text.
