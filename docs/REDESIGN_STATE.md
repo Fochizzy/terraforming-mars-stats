@@ -75,6 +75,40 @@ corrected:
 **no blocker's disposition changed**, no skill was audited, catalogued, indexed or
 edited, and **applied is still not deployed and not closed**.
 
+### AMEND-R4-DESIGN-B — R-4 amended: Design B authorized, the clean-tree guard withdrawn, delivery is owner-only (2026-07-23)
+
+Governance / decision-record amendment only. **No production access of any kind occurred** —
+no Supabase MCP call, no `execute_sql`, no `list_migrations`, no `wrangler`, no
+`/api/deploy-info`, no direct database connection. **No migration applied, no deploy, nothing
+pushed, nothing merged, no branch or worktree created**, and `src/**`, `supabase/**` and
+`scripts/**` were not edited. One commit on `redesign/tm-stats-dashboard-rebuild`, in the
+updater's primary tree.
+
+**DECISIONS R-4 now carries a dated AMENDMENT (A-1…A-4).** The original authorization text is
+retained verbatim under a pointer banner; no other DECISIONS entry was touched. What the
+amendment records: **A-1** the authorized hazard fix is now **Design B** — every planning-pack
+source resolves its content from the **committed tree** via `git show <ref>:<path>` (the same
+mechanism `deploy-state` already uses), with the two dynamic documents generated from committed
+content, so working-tree state cannot reach Drive by construction; the fail-closed clean-tree
+guard (**Design A**) is **withdrawn and is not to be built**, because it would require a second
+pack-source enumeration kept in step with `discover_sources()` — the coupled-enumeration defect
+class this project has recorded four times. **A-2** R-4's "autorun path" premise is factually
+wrong — **no autorun exists** [SYSTEM]. **A-3** the two R-4 overrides survive; only the
+mechanism changes. **A-4** repo→installed delivery is **owner-only** and non-atomic.
+
+**The queued next meta-work item is superseded, not the guard build.** The
+`RECORD-OWNER-RULINGS-AND-PUSH-OUTCOME` subsection below states "the updater clean-tree guard
+(R-4) is the queued next meta-work item"; that dated line is retained, and this subsection
+supersedes it: the queued next work item is now **building Design B** (a separate,
+not-yet-started work item that will cite the amended R-4 as its authorization), after which
+**the owner** must deliver it repo→installed via `sync_installed_updater.py --apply`. Building
+the fix, creating an autorun, and any write outside the repository (including delivery) each
+require fresh owner authorization.
+
+**Nothing else moved.** Step 4.3 is **not** marked complete, Step 4.4 is not begun, **no
+blocker's disposition changed**, no phase, deploy, or migration baseline changed, and no defect
+was added or count changed.
+
 ### RECORD-OWNER-RULINGS-AND-PUSH-OUTCOME — four rulings recorded; PUSH-TWO-LINEAGES and FORENSICS-HANDOFF-SCOPE-CORRECTION closed (2026-07-23)
 
 Documentation and record only. **No production access of any kind occurred** — no Supabase
@@ -3093,6 +3127,26 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/AMEND-R4-DESIGN-B.md
+  (governance / decision-record amendment, redesign lineage, documentation-only and local:
+  **nothing applied, deployed, pushed, merged, or read from production**; no write outside the
+  repository, no updater run, no `--apply`, and no guard, design, or hazard fix built.
+  Amends DECISIONS **R-4** with a dated AMENDMENT (A-1…A-4): **A-1** the authorized fix is now
+  **Design B** — every planning-pack source resolves from the **committed tree** via
+  `git show <ref>:<path>` (the `deploy-state` mechanism) with the two dynamic docs generated
+  from committed content, so working-tree state cannot reach Drive by construction; the
+  fail-closed clean-tree guard (**Design A**) is **withdrawn and not to be built**, because it
+  would need a second pack-source enumeration kept in step with `discover_sources()` — the
+  coupled-enumeration defect class recorded four times (items 5/9/13/15 in the planning-layer
+  defects register). **A-2** R-4's "autorun path" premise is factually wrong — **no autorun
+  exists** [SYSTEM] (210 tasks, no Run/RunOnce, one unrelated Startup shortcut) — and Design B
+  satisfies the ".bat and autorun path" requirement by construction. **A-3** the two R-4
+  overrides (defect-10 "no fix … none recommended", and lifting the "updater clean-tree
+  investigation" excluded-work line) SURVIVE; only the mechanism changes. **A-4** repo→installed
+  **delivery is owner-only** (`sync_installed_updater.py --apply`, no backup, non-atomic).
+  Original R-4 text retained verbatim; no other DECISIONS entry touched. **No blocker's
+  disposition changed, Step 4.3 NOT marked complete, no defect added or count changed, no
+  phase/deploy/migration baseline changed.**)
 - docs/agent-handoffs/UPDATER-INVESTIGATION-CLOSEOUT.md
   (investigation record + parity closeout + figure correction, redesign lineage, read-only
   except the repo edits: **nothing applied, deployed, pushed, merged, or read from

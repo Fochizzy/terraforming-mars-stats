@@ -1805,6 +1805,12 @@ content.)
 
 ## Project-wide - updater clean-tree guard authorized (owner exception overriding two standing positions)
 
+> **AMENDED 2026-07-23 — see the dated AMENDMENT at the end of this entry.** Two premises of
+> the authorization below were superseded the same day: the fail-closed clean-tree guard
+> (Design A) it authorizes is **withdrawn in favour of Design B**, and its "autorun path"
+> clause rests on an autorun that **does not exist**. The override of the two standing
+> positions below SURVIVES the amendment. The original authorization text is retained verbatim.
+
 Decided by the owner on 2026-07-23. This entry records the AUTHORIZATION only. It does not
 build the guard — that is a separate, not-yet-started work item — and it authorizes no
 deploy, migration, production write, or push.
@@ -1828,3 +1834,55 @@ deploy, migration, production write, or push.
 - **Out of scope for the recording work item, and still to be done under this
   authorization:** building the guard, editing the `.bat`, or otherwise touching the
   updater or its hook.
+
+### AMENDMENT 2026-07-23 — Design B supersedes the guard; the autorun premise was wrong
+
+Decided by the owner on 2026-07-23 (work item `AMEND-R4-DESIGN-B`). This amends, and does
+not replace, the authorization above; the original text is retained verbatim. It builds
+nothing and authorizes no deploy, migration, production write, or push. The implementation
+is a separate work item that will cite this amendment as its authorization. Two findings
+changed the original decision: `UPDATER-INVESTIGATION-CLOSEOUT` established that no autorun
+exists, and the owner has now ruled for Design B, which is not a guard.
+
+- **A-1 — Design B supersedes the guard.** The authorized fix is now **Design B**: every
+  planning-pack document source resolves its content from the **committed tree** rather than
+  from the working tree, using the same `git show <ref>:<path>` mechanism that `deploy-state`
+  already uses, and the two generated (dynamic) documents — `tm-project-master-context` and
+  `latest-handoff` — are produced from committed content. Working-tree state then cannot reach
+  Google Drive **by construction**. The fail-closed clean-tree guard (**Design A**) that the
+  original text above authorizes is **NOT authorized and is not to be built.** The reason: a
+  source-scoped guard must maintain a **second enumeration** of which paths are pack sources,
+  kept in step with `discover_sources()` in `scripts/planning-pack/update_planning_pack.py` —
+  one fact asserted in two places, the coupled-enumeration / single-source-of-truth defect
+  class this project has already recorded **four times** (items 5, 9, 13, and 15 in
+  `docs/agent-handoffs/PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md`, "the same defect
+  four times over"). Design B removes the hazard class instead of guarding against it. Both
+  designs are characterized in `docs/agent-handoffs/UPDATER-INVESTIGATION-CLOSEOUT.md` →
+  CANDIDATE DESIGNS.
+- **A-2 — the autorun premise was wrong.** The original text wires the fix into the Desktop
+  `.bat` "and the autorun path." **No autorun exists** — `Get-ScheduledTask` (210 tasks)
+  carries no updater action, there is no HKCU/HKLM Run or RunOnce entry, and Startup holds one
+  unrelated shortcut ("Send to OneNote.lnk"); the `--scheduled` first-arg handling in the
+  installed `run-updater.bat` is a **latent, uninstalled** design path (evidence class
+  **[SYSTEM]**, `UPDATER-INVESTIGATION-CLOSEOUT.md` → Q3 and DISCREPANCY). Under Design B the
+  "wired into the `.bat` and the autorun path" requirement is satisfied **by construction**,
+  because the fix lives in the updater itself, which every invocation path (hook → Desktop
+  `.bat` → `run-updater.bat` → `update_planning_pack.py`) executes. Whether to create a
+  scheduled autorun is now an **independent** question and is **NOT authorized here**.
+- **A-3 — what remains in force from the original R-4.** Two overrides survive this amendment
+  unchanged: (1) the override of the recorded **"no fix is applied, and none is recommended as
+  decided"** position on the working-tree publish hazard (defect 10), and (2) the lifting of
+  the **"updater clean-tree investigation"** line in the excluded-work list. The authorization
+  to *fix the hazard* stands; only the *mechanism* changes, from Design A to Design B. The
+  dated historical records of both standing positions remain in place per the dated-history
+  classification standard above, not rewritten.
+- **A-4 — delivery is an owner action.** A committed fix does **not** run until it reaches
+  `%LOCALAPPDATA%\TMPlanningPackUpdater` via `sync_installed_updater.py --apply`; an agent
+  session cannot perform that step (it requires both Python execution and a `%LOCALAPPDATA%`
+  write). Delivery is the **owner's** step. `--apply` **makes no backup** and is **non-atomic**
+  (per-file `copyfile`, no lock, no rollback), so the installed directory should be copied
+  before it is run (`UPDATER-INVESTIGATION-CLOSEOUT.md` → T2 DELIVERY).
+- **Out of scope for this amendment, and still to be done under this authorization:** building
+  Design B, and — as a separate owner step — delivering it repo→installed. Building the fix,
+  creating an autorun, and any write outside the repository (including delivery) each require
+  their own owner authorization.
