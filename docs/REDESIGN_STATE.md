@@ -26,6 +26,92 @@ attestation on this lineage now reads **115 entries, head `20260723082917
 add_non_import_guest_identity_creator`**, **read live** on 2026-07-23 by the
 session that performed the expand apply.
 
+### Matcher service-role overload BUILT LOCALLY, gated (2026-07-23) — PD-1 decided
+
+Owner decision **PD-1** of 2026-07-23: **build** the three-argument
+`match_import_player_names` overload the 2026-07-22 amendment adopted, rather
+than accept a full redesign deploy as the price of unblocking contraction
+`20260722012707`. The owner accepted explicitly that this is **a lesser
+destination reached sooner** — the manual-entry replacement remains owed, and
+the contraction **re-gates rather than closes**.
+
+**Built locally. Nothing was applied, deployed, pushed, or read from
+production.** No Supabase MCP call, no `execute_sql`, no `list_migrations`, no
+wrangler, no `/api/deploy-info`, no production logs, no direct database
+connection. Every statement about the currently deployed function, ACL, or
+Worker configuration in this section is **[PRIOR]** or **[UNVERIFIED]**.
+
+**The artefact SPANS BOTH LINEAGES, and that is a property of the repository
+rather than a choice.** The migration ledger (`src/lib/db/migration-ledger-map.ts`),
+the executable harness (`supabase/tests/executable/`), the state documents, the
+handoff convention and the `validate:claude-context` gate exist **only** on this
+redesign lineage; the matcher's three call sites and the single wrapper they
+funnel through exist **only** on the live-site lineage
+`fix/live-compare-data-remove-declared-style`, which carries none of that
+infrastructure and no matcher migration at all [GIT]. Neither lineage can hold
+both halves. Two task branches were therefore used, one commit each:
+
+| Half | Lineage | Branch | Contents |
+|---|---|---|---|
+| Migration | `redesign/tm-stats-dashboard-rebuild` | `fix/matcher-service-role-overload-expand` | `20260723130000_add_service_role_import_name_matcher_overload.sql`, ledger registration, executable proof, this record |
+| Reader | `fix/live-compare-data-remove-declared-style` | `fix/matcher-service-role-overload-callsite` | `src/lib/db/import-player-resolution-repo.ts`, its audit helper's contract comment, and tests |
+
+**What the migration does.** It creates ONE new signature,
+`public.match_import_player_names(p_group_id uuid, p_requesting_user_id uuid,
+p_imported_names text[])` — `security definer`, `search_path = ''`, granted to
+`service_role` only with the default `PUBLIC` grant revoked. **It names the
+deployed `(uuid, text[])` signature in no statement at all**, so that function's
+body, comment and ACL are untouched, proven byte-identical across the apply.
+Registered in `GATED_UNAPPLIED` and classified `expansion`, derived from the SQL
+and justified in the ledger map.
+
+**Both identity predicates were converted, and there are exactly two.** The gate
+`public.is_group_member(p_group_id)` — whose `auth.uid()` dependency is invisible
+at the call site — and the candidate pool's
+`where gm.user_id = (select auth.uid())` both now read `p_requesting_user_id`.
+Nothing else in the body reads caller identity.
+
+**Three constraints re-derived by execution, not inherited.**
+
+- `p_requesting_user_id` carries **no default**, verified in both directions on a
+  disposable PostgreSQL 18 cluster: without one, positional and named
+  two-argument calls both still resolve unambiguously; with `default null` both
+  raise `42725`. **New finding, not in the scoping:** placing the parameter in
+  **position two**, matching the four applied gateways of `20260722012658`, makes
+  the defaulted form fail at CREATE with `42P13` rather than applying and
+  breaking live calls — the single most likely mistake becomes
+  impossible-by-construction, not merely forbidden.
+- A **null requesting user is rejected in SQL** with `22023`. Unguarded it
+  returns zero rows and no error.
+- The caller uses a **fail-closed** resolver, not the audit-purposed one, and
+  that resolver's now-false "the RPC remains gated by RLS on the caller's
+  session" comment is corrected: after the move there is no session on the RPC.
+
+**Every assertion is mutation-proven** — eleven mutations (eight SQL, three
+TypeScript), each broken, each observed to fail its own assertion, each reverted
+with `git write-tree` proving byte-identity. Detail:
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-BUILT-LOCAL.md`.
+
+**Four gates remain, in this order and no other, each separately authorized:**
+apply `20260723130000`; deploy the moved reader; verify in production that a real
+import returns a **non-zero** match count; only then apply `20260722012707`.
+Deploying the reader before the migration lands breaks import analyze and both
+manual player-resolution paths with `PGRST202`/`42883` — loud, confined to those
+paths, and reversible by redeploying the previous Worker version, but a real
+outage that **only sequencing prevents**.
+
+**`SUPABASE_SERVICE_ROLE_KEY`'s binding on the live Worker remains
+[UNVERIFIED]** and was deliberately not investigated: it is a precondition of the
+DEPLOY, not of the build.
+
+**Nothing else changed.** Step 4.3 is not complete, `DECISIONS.md` was not
+edited, no other pending decision was resolved, and no blocker's `Blocking` value
+was changed. Two tracked items were added to `docs/CURRENT_STATUS.md`:
+`MATCHER-MANUAL-ENTRY-REPLACEMENT` (owed, with a dated review by 2026-08-23) and
+the **re-gated-never-closed** language rule on `ID-LEGACY-ORACLE`, which is
+backed executably by
+`supabase/tests/executable/matcher-service-role-overload-post-contraction.sql`.
+
 ### EXPAND applied: `20260722160000` → ledger `20260723082917` (2026-07-23)
 
 The first schema-affecting production write of the redesign effort, performed
@@ -2527,6 +2613,41 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   are not claimed**; the six pre-existing `deploy-state` provenance errors were
   measured at the base commit on a clean tree and are planning-pack staleness,
   not a regression)
+- docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-BUILT-LOCAL.md
+  (LOCAL BUILD, gated, spanning both lineages: the EXPAND half of the 2026-07-22
+  matcher amendment, built under owner decision **PD-1** of 2026-07-23. New
+  gated migration `20260723130000_add_service_role_import_name_matcher_overload`
+  adds the `service_role`-only three-argument
+  `match_import_player_names(uuid, uuid, text[])`, deriving **both** the
+  authorization gate and the candidate pool from an explicit server-verified
+  requesting-user id; the moved reader is committed separately on the live-site
+  lineage as `fix/matcher-service-role-overload-callsite` @ `5894c874a`, because
+  the migration ledger, executable harness, state documents and validator exist
+  only on the redesign lineage while the matcher's three call sites exist only on
+  the live-site one. **NOTHING was applied, deployed, pushed, or read from
+  production** — no Supabase MCP call, no `execute_sql`, no `list_migrations`, no
+  wrangler, no `/api/deploy-info`. Constraint 1 was re-derived on a disposable
+  PostgreSQL 18 cluster in **both** directions — no default resolves
+  unambiguously for positional and named two-argument calls, `default null`
+  raises `42725` for both — plus a new finding the scoping did not record:
+  **position two makes the defaulted form fail at CREATE with `42P13`**, so the
+  likeliest mistake is impossible-by-construction. Both identity predicates were
+  located, quoted and converted (the `is_group_member` gate and the
+  `auth.uid()` candidate pool), and proven by search to be **exactly two**. A
+  null requesting user raises `22023` rather than returning zero rows; the caller
+  uses a **fail-closed** resolver replacing the audit-purposed one, whose
+  now-false RLS comment is corrected. **Eleven mutations — eight SQL, three
+  TypeScript — each broke a specific assertion and each reverted byte-identically
+  by `git write-tree`**, including the silent gate/pool variant. The two-argument
+  function, its grants and every existing migration are untouched, proven by an
+  ACL/body-hash/comment snapshot across the apply. **The apply, the deploy, the
+  production verification and contraction `20260722012707` are four separate
+  gates, none opened**; `SUPABASE_SERVICE_ROLE_KEY`'s binding on the live Worker
+  stays **[UNVERIFIED]** as a DEPLOY precondition. Two tracked items added:
+  `MATCHER-MANUAL-ENTRY-REPLACEMENT` (owed, dated review 2026-08-23) and the
+  **re-gated-never-closed** rule, backed executably. Step 4.3 NOT complete,
+  `DECISIONS.md` untouched, PD-2/PD-3 and every blocker's `Blocking` value
+  unchanged.)
 - docs/agent-handoffs/PHASE-04-STEP-03-BACKFILL-NEUTRALIZATION-ORDERING-CORRECTION.md
   (documentation only, redesign lineage: corrects a provably false ordering
   assertion and repairs an omission in the current-work router. **Decides

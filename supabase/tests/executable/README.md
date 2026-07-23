@@ -75,8 +75,40 @@ with `auth.uid()`, a minimal `storage` schema, `pgcrypto`), then:
      write; for an authorized editor it rejects duplicate event identities,
      an unrelated player UUID, and the overloaded confidence `reviewed`, and
      persists the split `confidence_level`/`review_state` values end to end.
-5. **Idempotency** — re-applying the alias migration leaves exactly 7 aliases.
-6. **Rollback** — deleting the seven deterministic alias ids removes only them
+5. **Matcher service-role overload** (`20260723130000`, GATED / UNAPPLIED) —
+   applied twice for repeat-safety BETWEEN the source-bound AFTER proof and the
+   legacy-matcher contraction, which is the mandatory expand-then-contract
+   order. `matcher-service-role-overload-before.sql` pins the deployed
+   two-argument function's body hash, ACL, comment, volatility, security
+   attributes and settings, and installs `Matchprobe*` fixtures plus a second
+   group with its own member. `matcher-service-role-overload.sql` then asserts:
+   - the expand added **exactly one** object and both signatures still resolve;
+   - the two-argument function is byte-identical and still granted to
+     `authenticated` — the expand must not pre-empt the gated contraction;
+   - the new overload's ACL is `service_role` only, with no surviving `PUBLIC`
+     entry and no `authenticated`/`anon`;
+   - `p_requesting_user_id` carries **no default**;
+   - two-argument calls still resolve unambiguously, positionally and by name;
+   - a truthful member id returns a **non-zero, exactly enumerated** match set
+     with `auth.uid()` NULL — the count is asserted, not the absence of an
+     error, because the failure this catches is silent;
+   - a NULL requesting user raises `22023` rather than returning zero rows;
+   - a non-member raises `42501`; a member of another group raises `42501` here
+     and still matches in their own group;
+   - **the gate and the candidate pool agree** — the two functions select the
+     same non-empty `(imported_name, player_id, is_linked)` set, and poisoning
+     `auth.uid()` with an unrelated user changes nothing.
+
+   `matcher-service-role-overload-post-contraction.sql` runs after the
+   contraction and pins that it **re-gates rather than closes**: the overload
+   survives and still matches, and the two-argument function still exists.
+
+   Every assertion above is mutation-proven; see
+   `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-BUILT-LOCAL.md`.
+   Probe names must avoid `sentinel`, which `assertions.sql` K3/K4/K6/K8 use as
+   their own leak detector over `public.players`.
+6. **Idempotency** — re-applying the alias migration leaves exactly 7 aliases.
+7. **Rollback** — deleting the seven deterministic alias ids removes only them
    and leaves unrelated aliases untouched.
 
 The test database sets `check_function_bodies = off`, mirroring how the

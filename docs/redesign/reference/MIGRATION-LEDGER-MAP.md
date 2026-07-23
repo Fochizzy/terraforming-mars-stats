@@ -129,10 +129,13 @@ Two of those move a file **out of the gated set**: `20260722012658` and
 later **joined** the gated set on 2026-07-22 — `20260722160000`, the EXPAND half
 of the `ID-READER-CLIENT` repair — and then **left it again on 2026-07-23** when
 it was applied as `20260723082917`; it is recorded above as renamed drift.
-`GATED_UNAPPLIED` now holds **five** entries, and `20260722012707` is the only
-remaining half of the source-bound replacement. Applied is not closed —
-`20260722144034` was an interim mitigation that independent review found
-insufficient as a closure; see the gated table below.
+A second file **joined** the gated set on 2026-07-23: `20260723130000`, the
+EXPAND half of the matcher service-role re-gate, built locally under owner
+decision PD-1 and applied nowhere. `GATED_UNAPPLIED` therefore now holds **six**
+entries, and `20260722012707` is still the only remaining half of the
+source-bound replacement. Applied is not closed — `20260722144034` was an interim
+mitigation that independent review found insufficient as a closure; see the gated
+table below.
 
 **Prior snapshots, retained.** The 110-entry snapshot (head
 `20260721201734 harden_claim_rpc_privacy`, independently verified 2026-07-21)
@@ -443,11 +446,12 @@ that also makes rolling the paired frontend back safe.
 | `20260719234500_separate_event_confidence_from_review_state` | **contraction** | confidence/review split (repeat-safe) | per-mutation protocol; pre-apply gate includes verifying no deployed writer emits the retired `'reviewed'` confidence (expand/contract) |
 | `20260720100000_add_guest_identity_alias_source_control` | neutral | **RETIRED / SUPERSEDED — no-op tombstone.** The file is kept at its original version as an auditable record and now contains no executable statement | none applicable. Applying it is impossible-by-content rather than merely gated; it is not in the production ledger and never will be. Its still-needed capability moved to `20260722160000`, which also does **not** re-grant `authenticated` |
 | `20260720110000_extend_canonical_board_placement_contract` | **contraction** | full placement contract | per-mutation protocol; expand/contract order. The pre-apply gate must confirm no `game_log_events` row carries owner ids with a non-`explicit_owner` `ownership_state`: the added CHECK is not `not valid`, so one such row fails the `ALTER TABLE` |
-| `20260722012707_retire_free_form_import_name_matcher` | **contraction** | removes authenticated execution from the deployed arbitrary `text[]` matcher | apply only after the expansion and compatible reader are live and verified; separate explicit authorization required |
+| `20260722012707_retire_free_form_import_name_matcher` | **contraction** | removes authenticated execution from the deployed arbitrary `text[]` matcher | apply only after the expansion and compatible reader are live and verified; separate explicit authorization required. **RE-GATES, DOES NOT CLOSE**: it revokes from `public`/`anon`/`authenticated` only, drops nothing, and leaves `service_role`'s `EXECUTE` intact, so the two-argument function survives as a live callable object and free-form matching continues under `service_role`. Every post-contraction status line must say "re-gated", never "closed" — asserted executably by `supabase/tests/executable/matcher-service-role-overload-post-contraction.sql` |
+| `20260723130000_add_service_role_import_name_matcher_overload` | expansion | EXPAND half of the 2026-07-22 matcher amendment: adds the `service_role`-only three-argument `match_import_player_names(uuid, uuid, text[])`, whose authorization gate **and** candidate pool both derive from an explicit requesting-user id instead of `auth.uid()`. Built locally 2026-07-23 under owner decision PD-1. It names the deployed `(uuid, text[])` signature in no statement, so that function is untouched | apply BEFORE `20260722012707` **and before** deploying the moved reader; separate explicit authorization required. Its reader lives on the **live-site** lineage (branch `fix/matcher-service-role-overload-callsite`), so this file's caller is not observable from this branch — which is precisely why the apply and the deploy are separate gates. Deploying that reader first breaks import analyze and both manual player-resolution paths with `PGRST202`/`42883` |
 
-This table is the **five** entries of `GATED_UNAPPLIED`. **Three files have left
-it and are recorded above as renamed drift instead — two on 2026-07-22 and one
-on 2026-07-23:**
+This table is now the **six** entries of `GATED_UNAPPLIED` — `20260723130000`
+joined the set on 2026-07-23. **Three files have left it and are recorded above
+as renamed drift instead — two on 2026-07-22 and one on 2026-07-23:**
 
 - `20260722012658_add_source_bound_import_identity_staging` — the expansion half
   of the source-bound replacement, applied as `20260722132159`. Its contraction
@@ -584,17 +588,25 @@ the SQL alone does not record. A file with no declaration fails as
   reconciliations, comments, no-op history placeholders.
 
 Where a file mixes hazards, the strongest present wins. Current declarations:
-**16 contraction, 30 expansion, 9 neutral** (55 files) — counted from
+**16 contraction, 31 expansion, 9 neutral** (56 files) — counted from
 `MIGRATION_HAZARD_CLASS` and reconciled against `supabase/migrations/` on
 2026-07-23, re-counted rather than assumed.
 
-Both 2026-07-23 changes added a ledger entry but **no file**: the morning ledger
-reconciliation carried no file by decision, and the `20260722160000` expand apply
-used a file that was already on this branch. All four figures are therefore
-unchanged from 2026-07-22. The 55th file is `20260722160000`, whose declaration is
-below; **applying it did not change its hazard class**, which was re-confirmed as
-`expansion` against the SQL that actually landed and against the post-apply
-catalog. On 2026-07-22 `20260720100000` moved `expansion` → `neutral` when it was
+The 56th file is `20260723130000_add_service_role_import_name_matcher_overload`,
+added on 2026-07-23 and declared `expansion`: it creates one new signature and
+names the deployed `(uuid, text[])` matcher in no statement, so it removes and
+narrows nothing a deployed reader holds. Read `expansion` strictly as "what
+applying it does to a deployed reader" — it is **not** a statement about how much
+trust the file moves, and this one downgrades the matcher's authorization from
+`auth.uid()` to an application-supplied id, which the amendment records as an
+accepted security cost.
+
+The two earlier 2026-07-23 changes each added a ledger entry but **no file**: the
+morning ledger reconciliation carried no file by decision, and the
+`20260722160000` expand apply used a file that was already on this branch. The
+55th file is `20260722160000`, whose declaration is below; **applying it did not
+change its hazard class**, which was re-confirmed as `expansion` against the SQL
+that actually landed and against the post-apply catalog. On 2026-07-22 `20260720100000` moved `expansion` → `neutral` when it was
 retired as a no-op tombstone, which is why the expansion count is unchanged at
 30 while the neutral count rose from 8 to 9.
 
