@@ -1877,3 +1877,26 @@ nothing structural prevented it either. Until `main` is the shared base, run
 `git grep group_default_expansions -- src` on any branch before deploying it;
 a hit means the branch predates `20260718041532 remove_game_expansion_tracking`
 and will reproduce the 07-19 outage.
+
+## Deployment configuration - SUPABASE_SERVICE_ROLE_KEY binding confirmed (2026-07-23)
+
+Owner-performed observation, name-only. The Cloudflare Worker `terraforming-mars-stats`,
+Settings > Variables and Secrets, lists `SUPABASE_SERVICE_ROLE_KEY` as a bound Secret,
+alongside two `NEXT_PUBLIC_SUPABASE_*` secrets and three `RESEND_*` secrets. No secret value
+was read or displayed; the pane shows values encrypted.
+
+This closes the [UNVERIFIED] precondition recorded against the service-role matcher overload
+build: createSupabaseAdminClient() will not throw for a missing key on this Worker.
+
+Two residual unknowns, NOT settled by this observation:
+- Whether the bound key belongs to Supabase project qjtwgrjjwnqafbvkkfex. A stale key from a
+  different project would construct the client successfully and fail at call time. Settled only
+  by a live call - i.e. by the deploy's own verification.
+- Whether this pane shows a production-scoped binding, if the Worker uses environment-scoped
+  bindings.
+
+Corroborating, from the repository rather than from this observation: username sign-in, PIN
+reset, and import group resolution on this lineage all call the admin client unconditionally,
+so an unbound key would break the primary auth route. [REPO]
+
+No production system was queried. No deploy, migration, or code change accompanied this entry.
