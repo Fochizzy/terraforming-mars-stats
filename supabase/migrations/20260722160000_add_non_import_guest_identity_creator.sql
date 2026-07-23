@@ -39,6 +39,16 @@
 --      this function is service_role ONLY (below) and why the caller resolves
 --      the id from the server session, never from client input.
 --
+--      The argument is REQUIRED and positional, exactly like the four applied
+--      gateways in 20260722012658, which each declare `p_requesting_user_id
+--      uuid` with no default immediately after their scope argument. An earlier
+--      unapplied revision of this file appended it as a defaulted TRAILING
+--      parameter; omitting it then produced a runtime authorization failure
+--      instead of a signature error. Requiring it makes an omission
+--      unresolvable at call time (42883, surfaced by PostgREST as PGRST202)
+--      rather than something the body has to catch. Both TypeScript call sites
+--      pass parameters by name, so the position is not a caller constraint.
+--
 --   2. ATTRIBUTION. `created_by_user_id` is populated from
 --      `p_requesting_user_id` instead of `(select auth.uid())`. The column is
 --      `not null references auth.users(id)`
@@ -52,9 +62,29 @@
 --      not exist. Future import matching still works, because the candidate
 --      search already unions private.player_private_identities.
 --
--- The candidate search and the selected-player revalidation are transcribed
--- VERBATIM from 20260720100000 (its lines 87-163). They read evidence and
--- create none, so they introduce no provenance.
+-- The selected-player revalidation is transcribed VERBATIM from 20260720100000
+-- (its lines 137-163). It reads evidence and creates none, so it introduces no
+-- provenance.
+--
+-- The CANDIDATE SEARCH is deliberately NOT a verbatim transcription. The body it
+-- came from asked "how many candidates?" and "which candidate?" as two separate
+-- queries, and the two predicates had drifted apart: the count excluded players
+-- with a non-null linked_user_id, the auto-selection did not. Measured on a
+-- disposable cluster, a group holding an unlinked guest AND an already-claimed
+-- player carrying the same normalized personal name yielded count = 1 but a
+-- selection set of 2, and `limit 1` returned the CLAIMED player — which the
+-- revalidation immediately below then rejected with P0002, so reuse of a
+-- perfectly valid guest failed. normalized_personal_name is indexed
+-- NON-uniquely (20260718050924:111-113), so that state is reachable, and
+-- personal_name is the only mode either non-import call site uses.
+--
+-- The repair is structural, not a copied filter: the predicate now exists ONCE,
+-- is materialised ONCE into v_candidate_ids, and BOTH the count and the
+-- auto-selection are derived from that one array. There is no second query left
+-- to disagree with the first. This is the same shape as the applied sibling
+-- public.resolve_staged_import_player_identity (20260722012658), which likewise
+-- aggregates its candidates into a uuid[] and takes its count from
+-- cardinality(). Do not re-split it into two queries.
 --
 -- A DISTINCT NAME, NOT AN OVERLOAD. The existing signature ends in five
 -- defaulted parameters, so PostgreSQL forces an appended parameter to have a
@@ -69,16 +99,26 @@
 --
 -- Repeat-safe: `create or replace` plus unconditional revokes/grants, so
 -- re-running converges to the same state.
+--
+-- SIGNATURE CHANGED while still unapplied. An earlier revision of this same
+-- file declared (uuid, text, text, text, text, uuid, boolean, uuid), with the
+-- requesting user last and defaulted. That ordering was never applied to
+-- production and exists in no durable environment, so no DROP of it is carried
+-- here — adding one would falsify this file's `expansion` classification (see
+-- src/lib/db/migration-ledger-map.ts), which the expand/contract release gate
+-- depends on. A local cluster that applied the earlier revision must be rebuilt
+-- rather than migrated; the executable harness builds a fresh cluster on every
+-- run, so it is unaffected.
 
 create or replace function public.create_or_reuse_guest_identity(
   p_group_id uuid,
+  p_requesting_user_id uuid,
   p_identity_mode text,
   p_guest_username text default null,
   p_guest_first_name text default null,
   p_guest_last_name text default null,
   p_selected_player_id uuid default null,
-  p_create_new boolean default false,
-  p_requesting_user_id uuid default null
+  p_create_new boolean default false
 )
 returns table (
   player_id uuid,
@@ -95,6 +135,7 @@ declare
   v_first_name text;
   v_last_name text;
   v_normalized_value text;
+  v_candidate_ids uuid[] := '{}'::uuid[];
   v_candidate_count integer := 0;
   v_player_id uuid;
   v_display_name text;
@@ -102,6 +143,13 @@ begin
   -- AUTH: gate on the explicit server-verified requesting-user id, never
   -- auth.uid(). Same failure message and SQLSTATE as the resolver this
   -- replaces, so the caller's error surface is unchanged.
+  --
+  -- The `is null` disjunct is a redundant, deliberately explicit guard, NOT the
+  -- protection itself: `gm.user_id = null` is NULL, so the membership test alone
+  -- already yields no rows and fails closed on a null id. It is kept because a
+  -- reader should not have to derive three-valued-logic behaviour to see that a
+  -- null requesting user is rejected. Do not mistake it for the load-bearing
+  -- check, and do not remove the membership test on the strength of it.
   if p_requesting_user_id is null or not exists (
     select 1
     from public.group_members gm
@@ -135,8 +183,22 @@ begin
     )
   );
 
-  select count(*)::integer
-  into v_candidate_count
+  -- CANDIDATE SET — ONE predicate, evaluated ONCE.
+  --
+  -- Everything downstream reads v_candidate_ids. The count is cardinality() of
+  -- it and the auto-selection is element [1] of it, so "how many candidates?"
+  -- and "which candidate?" cannot answer differently: there is no second query
+  -- to drift from this one. See the header for the divergence this replaces.
+  --
+  -- Only UNLINKED players are candidates. A claimed player keeps its private
+  -- identity row after the claim, and that row must never make the claimed
+  -- player reusable as a guest — the claim already bound that history to a
+  -- registered account.
+  --
+  -- The ordering makes the aggregate deterministic. It is not what makes the
+  -- selection safe: element [1] is read only when there is exactly one element.
+  select coalesce(array_agg(candidate.player_id order by candidate.player_id), '{}'::uuid[])
+  into v_candidate_ids
   from (
     select ppi.player_id
     from private.player_private_identities ppi
@@ -156,30 +218,12 @@ begin
       and p.linked_user_id is null
       and pia.normalized_alias = v_normalized_value
       and (pia.identity_mode = p_identity_mode or pia.identity_mode is null)
-  ) candidates;
+  ) candidate;
+
+  v_candidate_count := cardinality(v_candidate_ids);
 
   if p_selected_player_id is null and v_candidate_count = 1 then
-    select candidate.player_id
-    into p_selected_player_id
-    from (
-      select ppi.player_id
-      from private.player_private_identities ppi
-      where ppi.group_id = p_group_id
-        and (
-          (p_identity_mode = 'username' and ppi.normalized_guest_username = v_normalized_value)
-          or
-          (p_identity_mode = 'personal_name' and ppi.normalized_personal_name = v_normalized_value)
-        )
-      union
-      select pia.player_id
-      from public.player_import_aliases pia
-      join public.players p on p.id = pia.player_id
-      where pia.group_id = p_group_id
-        and p.linked_user_id is null
-        and pia.normalized_alias = v_normalized_value
-        and (pia.identity_mode = p_identity_mode or pia.identity_mode is null)
-    ) candidate
-    limit 1;
+    p_selected_player_id := v_candidate_ids[1];
   end if;
 
   if p_selected_player_id is not null then
@@ -279,19 +323,19 @@ end;
 $$;
 
 revoke execute on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) from public;
 revoke execute on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) from anon;
 revoke execute on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) from authenticated;
 grant execute on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) to service_role;
 
 comment on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) is
   'Service-only NON-import guest reuse-or-create. Authorizes on an explicit server-verified p_requesting_user_id against group_members, stamps created_by_user_id from it, and records NO player_import_aliases row because this path has no imported source.';

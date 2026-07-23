@@ -23,7 +23,7 @@
 --    FUNCTION's implicit PUBLIC grant.
 do $$
 declare
-  fn oid := 'public.create_or_reuse_guest_identity(uuid,text,text,text,text,uuid,boolean,uuid)'::regprocedure;
+  fn oid := 'public.create_or_reuse_guest_identity(uuid,uuid,text,text,text,text,uuid,boolean)'::regprocedure;
   result_columns text;
 begin
   if has_function_privilege('authenticated', fn, 'execute') then
@@ -76,13 +76,13 @@ begin
   set local role service_role;
   select * into r from public.create_or_reuse_guest_identity(
     '22222222-2222-4222-8222-222222222222'::uuid,
+    '99999999-9999-4999-8999-999999999999'::uuid,  -- real auth user, NOT a member
     'personal_name',
     null::text,
     'Outsider',
     'Fixture',
     null::uuid,
-    true,
-    '99999999-9999-4999-8999-999999999999'::uuid  -- real auth user, NOT a member
+    true
   );
   reset role;
   raise exception 'ID-READER AUTHZ FAIL: a non-member created a guest identity';
@@ -109,13 +109,13 @@ begin
   set local role service_role;
   select * into r from public.create_or_reuse_guest_identity(
     '22222222-2222-4222-8222-222222222222'::uuid,
+    null::uuid,
     'personal_name',
     null::text,
     'Nullcaller',
     'Fixture',
     null::uuid,
-    true,
-    null::uuid
+    true
   );
   reset role;
   raise exception 'ID-READER AUTHZ FAIL: a null requesting id was accepted';
@@ -136,13 +136,13 @@ begin
   set local role service_role;
   select * into r from public.create_or_reuse_guest_identity(
     '22222222-2222-4222-8222-222222222222'::uuid,
+    '11111111-1111-4111-8111-111111111111'::uuid,  -- seeded group member
     'personal_name',
     null::text,
     'Nonimport',
     'Fixture',
     null::uuid,
-    true,
-    '11111111-1111-4111-8111-111111111111'::uuid  -- seeded group member
+    true
   );
   reset role;
 
@@ -178,13 +178,13 @@ begin
   set local role service_role;
   select * into r2 from public.create_or_reuse_guest_identity(
     '22222222-2222-4222-8222-222222222222'::uuid,
+    '11111111-1111-4111-8111-111111111111'::uuid,
     'personal_name',
     null::text,
     'Nonimport',
     'Fixture',
     null::uuid,
-    true,
-    '11111111-1111-4111-8111-111111111111'::uuid
+    true
   );
   reset role;
 
@@ -215,6 +215,220 @@ begin
     and ppi.guest_first_name = 'Nonimport';
   if v_total <> 0 then
     raise exception 'ID-READER AFTER FAIL: non-import guest carries % import alias row(s)', v_total;
+  end if;
+end $$;
+
+-- 8. CANDIDATE-PREDICATE COLLISION (regression proof for the audit's FINDING-1).
+--
+-- The state: ONE group holding an unlinked guest AND an already-claimed player
+-- whose RETAINED private identity row carries the SAME normalized personal
+-- name. This is reachable because normalized_personal_name is indexed
+-- NON-uniquely (20260718050924:111-113) — unlike normalized_guest_username,
+-- which is unique per group — and personal_name is the only mode either
+-- non-import call site uses.
+--
+-- Before the fix the function asked "how many candidates?" and "which
+-- candidate?" with two different predicates: the count excluded players with a
+-- non-null linked_user_id, the auto-selection did not. Measured on a disposable
+-- cluster in exactly this state, the count was 1 while the selection set was 2,
+-- `limit 1` returned the CLAIMED player, and the revalidation then rejected it
+-- with P0002 — so reuse of a legitimate guest failed outright.
+--
+-- Runs inside an explicit transaction and ROLLS BACK, so it leaves no residue
+-- for assertions.sql or the fixture bridge that follow.
+--
+-- Sentinel names only.
+begin;
+
+-- The already-claimed player. linked_user_id is NOT NULL; it reuses the seeded
+-- non-member auth user purely as a real FK target.
+insert into public.players (id, group_id, linked_user_id, display_name)
+values (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  '22222222-2222-4222-8222-222222222222',
+  '99999999-9999-4999-8999-999999999999',
+  'Registered Account'
+);
+
+-- The unlinked guest that MUST be the one reused.
+insert into public.players (id, group_id, linked_user_id, display_name)
+values (
+  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  '22222222-2222-4222-8222-222222222222',
+  null,
+  'Guest DDDDDDDD'
+);
+
+insert into private.player_private_identities (
+  player_id, group_id, identity_mode, guest_first_name, guest_last_name,
+  normalized_personal_name, created_by_user_id
+) values
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+   '22222222-2222-4222-8222-222222222222', 'personal_name',
+   'Zzcollide', 'Zzfixture',
+   private.normalize_private_personal_name('Zzcollide', 'Zzfixture'),
+   '11111111-1111-4111-8111-111111111111'),
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+   '22222222-2222-4222-8222-222222222222', 'personal_name',
+   'Zzcollide', 'Zzfixture',
+   private.normalize_private_personal_name('Zzcollide', 'Zzfixture'),
+   '11111111-1111-4111-8111-111111111111');
+
+-- 8a. The collision state really exists, so a pass below is not vacuous.
+do $$
+declare v_unlinked integer; v_claimed integer;
+begin
+  select
+    count(*) filter (where p.linked_user_id is null),
+    count(*) filter (where p.linked_user_id is not null)
+  into v_unlinked, v_claimed
+  from private.player_private_identities ppi
+  join public.players p on p.id = ppi.player_id
+  where ppi.group_id = '22222222-2222-4222-8222-222222222222'
+    and ppi.normalized_personal_name =
+        private.normalize_private_personal_name('Zzcollide', 'Zzfixture');
+  if v_unlinked <> 1 or v_claimed <> 1 then
+    raise exception
+      'ID-READER COLLISION FAIL: fixture is not the collision state (unlinked %, claimed %)',
+      v_unlinked, v_claimed;
+  end if;
+end $$;
+
+-- 8b. THE PROOF. The single candidate is the unlinked guest, so the function
+--     must reuse it. A claimed player must never be auto-selected, and the call
+--     must not fail.
+do $$
+declare r record;
+begin
+  begin
+    set local role service_role;
+    select * into r from public.create_or_reuse_guest_identity(
+      '22222222-2222-4222-8222-222222222222'::uuid,
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      'personal_name',
+      null::text,
+      'Zzcollide',
+      'Zzfixture',
+      null::uuid,
+      true
+    );
+    reset role;
+  exception when others then
+    -- P0002 specifically means a claimed same-name player was auto-selected and
+    -- then rejected by the revalidation below — i.e. the counting and selection
+    -- predicates have diverged again. Any other sqlstate is a different defect
+    -- and is reported as itself rather than attributed to that divergence.
+    raise exception
+      'ID-READER COLLISION FAIL: the call errored with sqlstate % (%)%',
+      SQLSTATE, SQLERRM,
+      case when SQLSTATE = 'P0002'
+        then ' -- this is the candidate-predicate divergence: the count and the auto-selection no longer agree.'
+        else '' end;
+  end;
+
+  if r.player_id is distinct from 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid then
+    raise exception
+      'ID-READER COLLISION FAIL: auto-selection returned % instead of the unlinked guest', r.player_id;
+  end if;
+  if r.resolution_state <> 'existing_unlinked_guest' then
+    raise exception
+      'ID-READER COLLISION FAIL: state %, expected existing_unlinked_guest', r.resolution_state;
+  end if;
+  if r.public_name !~ '^Guest [A-F0-9]{8}$' then
+    raise exception 'ID-READER COLLISION FAIL: reuse returned a non-neutral label';
+  end if;
+end $$;
+
+-- 8c. No duplicate guest was created, and the claimed player was neither
+--     relinked nor mutated.
+do $$
+declare v_unlinked integer; v_linked_user uuid;
+begin
+  select count(*) into v_unlinked
+  from private.player_private_identities ppi
+  join public.players p on p.id = ppi.player_id
+  where ppi.group_id = '22222222-2222-4222-8222-222222222222'
+    and p.linked_user_id is null
+    and ppi.normalized_personal_name =
+        private.normalize_private_personal_name('Zzcollide', 'Zzfixture');
+  if v_unlinked <> 1 then
+    raise exception
+      'ID-READER COLLISION FAIL: % unlinked guests carry this name; reuse must not create a duplicate',
+      v_unlinked;
+  end if;
+
+  select p.linked_user_id into v_linked_user
+  from public.players p where p.id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  if v_linked_user is distinct from '99999999-9999-4999-8999-999999999999'::uuid then
+    raise exception 'ID-READER COLLISION FAIL: the claimed player was relinked or unlinked';
+  end if;
+end $$;
+
+-- 8d. Still no import evidence on this non-import path.
+--
+-- REDUNDANCY GUARD, not an independent proof. Mutation probe P4 (a reuse branch
+-- that writes a player_import_aliases row) is caught by section 7's alias
+-- assertion above, which runs first on the same code path, so this clause was
+-- never reached. It is kept because the collision fixture is the one case where
+-- a candidate is auto-selected out of a set containing a CLAIMED player, and a
+-- future change could plausibly special-case that path; it must not be mistaken
+-- for the load-bearing no-import-evidence check, which is section 7's.
+do $$
+declare v_aliases integer;
+begin
+  select count(*) into v_aliases
+  from public.player_import_aliases
+  where player_id in (
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  );
+  if v_aliases <> 0 then
+    raise exception 'ID-READER COLLISION FAIL: % import alias row(s) written', v_aliases;
+  end if;
+end $$;
+
+rollback;
+
+-- 9. SIGNATURE SHAPE (regression proof for the audit's FINDING-2).
+--
+-- p_requesting_user_id is REQUIRED, matching the four applied gateways of
+-- 20260722012658. Omitting it must be unresolvable at call time — a signature
+-- error (42883, surfaced by PostgREST as PGRST202) — rather than a call that
+-- resolves and then fails authorization inside the body at runtime.
+--
+-- EXECUTE forces resolution at run time rather than at DO-block compile time.
+do $$
+begin
+  execute $q$
+    select * from public.create_or_reuse_guest_identity(
+      p_group_id => '22222222-2222-4222-8222-222222222222'::uuid,
+      p_identity_mode => 'personal_name',
+      p_guest_first_name => 'Zzomitted',
+      p_guest_last_name => 'Zzfixture',
+      p_create_new => true
+    )
+  $q$;
+  raise exception
+    'ID-READER SIGNATURE FAIL: a call omitting p_requesting_user_id resolved; the argument is not required';
+exception
+  when undefined_function then
+    null; -- 42883, as intended
+end $$;
+
+-- 9b. The required-argument form still resolves, so 9 is not passing because
+--     the function is simply missing.
+do $$
+begin
+  if to_regprocedure(
+    'public.create_or_reuse_guest_identity(uuid,uuid,text,text,text,text,uuid,boolean)'
+  ) is null then
+    raise exception 'ID-READER SIGNATURE FAIL: the required-argument signature does not exist';
+  end if;
+  if to_regprocedure(
+    'public.create_or_reuse_guest_identity(uuid,text,text,text,text,uuid,boolean,uuid)'
+  ) is not null then
+    raise exception
+      'ID-READER SIGNATURE FAIL: the superseded trailing-defaulted signature is present; named calls would be ambiguous (42725)';
   end if;
 end $$;
 
