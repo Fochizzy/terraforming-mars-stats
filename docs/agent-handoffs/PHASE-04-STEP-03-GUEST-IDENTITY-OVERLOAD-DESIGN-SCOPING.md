@@ -1,5 +1,32 @@
 # Phase 4, Step 4.3 — Guest-identity reader repair: read-only design scoping
 
+> **SUPERSEDED IN PART — superseded by commit `eaab0654` (2026-07-22); this
+> notice added 2026-07-23. Not the current authority for this subsystem.**
+>
+> The current authority for `public.create_or_reuse_guest_identity` is
+> `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md`
+> together with the shipped file
+> `supabase/migrations/20260722160000_add_non_import_guest_identity_creator.sql`.
+> Read those before relying on anything below.
+>
+> **The signature changed after this document was written.**
+> `p_requesting_user_id` is now **required and positioned second**, matching the
+> four applied gateways of `20260722012658`; it is no longer a trailing defaulted
+> parameter. The shipped signature is:
+>
+> ```
+> public.create_or_reuse_guest_identity(uuid, uuid, text, text, text, text, uuid, boolean)
+> ```
+>
+> The proposed SQL in §3a and its revoke/grant block below have been corrected
+> in place to that order, so this file cannot hand a future reader the wrong
+> signature. The surrounding *design reasoning* is left as written, because it
+> is the record of how the decision was reached — but where it and the shipped
+> migration differ, the migration and the remediation handoff win.
+>
+> Everything else in this document remains a read-only design record. It still
+> decides nothing and authorizes nothing.
+
 **Outcome: a priced design proposal. Nothing was implemented, no migration was
 authored under `supabase/migrations/**`, no application code changed, no
 production system was read or written.**
@@ -211,15 +238,19 @@ from the same argument; **no** import alias is ever recorded; the grant is
 -- requesting-user id; records NO import alias; service_role only.
 -- Body derived from 20260720100000 minus the alias inserts, with the auth swap.
 
+-- ARGUMENT ORDER CORRECTED 2026-07-23 to the shipped signature. As originally
+-- proposed, p_requesting_user_id was LAST and defaulted; it is now REQUIRED and
+-- SECOND, so omitting it is a signature error (42883 / PGRST202) rather than a
+-- runtime authorization failure. See the notice at the top of this file.
 create function public.create_or_reuse_guest_identity(
   p_group_id uuid,
+  p_requesting_user_id uuid,
   p_identity_mode text,
   p_guest_username text default null,
   p_guest_first_name text default null,
   p_guest_last_name text default null,
   p_selected_player_id uuid default null,
-  p_create_new boolean default false,
-  p_requesting_user_id uuid default null
+  p_create_new boolean default false
 )
 returns table (
   player_id uuid,
@@ -345,16 +376,16 @@ end;
 $$;
 
 revoke execute on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) from public;
 revoke execute on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) from anon;
 revoke execute on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) from authenticated;                              -- defensive; never granted
 grant execute on function public.create_or_reuse_guest_identity(
-  uuid, text, text, text, text, uuid, boolean, uuid
+  uuid, uuid, text, text, text, text, uuid, boolean
 ) to service_role;
 ```
 

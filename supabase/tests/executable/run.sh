@@ -13,10 +13,30 @@
 #      (pre-split-compat.sql, match-oracle-pre-contraction.sql) are claims about
 #      the state production is in today, so no gated migration may be applied
 #      before them.
-#   2. GATED WORK. Applies every migration in GATED_UNAPPLIED, in ledger-version
-#      order, each twice for repeat-safety, then asserts the behaviour they add
-#      — including that the match-reason contraction is a true REPLACE of its
+#   2. DEFERRED WORK. Applies the deferred migrations in ledger-version order,
+#      each twice for repeat-safety, then asserts the behaviour they add —
+#      including that the match-reason contraction is a true REPLACE of its
 #      deployed predecessor.
+#
+# "Deferred" is NOT the same set as GATED_UNAPPLIED. The second half is what the
+# replay above defers, and that set is deliberately wider:
+#
+#   * every migration in GATED_UNAPPLIED (none of which is applied to
+#     production); PLUS
+#   * 20260722012658, which IS applied to production (as ledger 20260722132159,
+#     paired by NAME — see src/lib/db/migration-ledger-map.ts). It is held back
+#     so the linked-player matching BEFORE/AFTER pair below can pin its
+#     pre-image and then restore the shipped matcher on the same database; PLUS
+#   * 20260720120000, which IS also applied to production (as ledger
+#     20260722144034, likewise paired by name). It is excluded from the replay
+#     and then NOT applied at all, because the modelled pre-image
+#     MATCH_PREIMAGE already installs the deployed matcher this file would
+#     coarsen.
+#
+# So the baseline assertions in half 1 model production MINUS those two applied
+# migrations, not production exactly. That is intentional and is what the
+# BEFORE/AFTER pairs depend on; it is recorded here so the divergence is not
+# mistaken for a replay gap.
 #
 # Then the behavioural assertions, the fixture-to-persistence bridge,
 # idempotency, and a rollback check. Exit status is non-zero on any failure.
@@ -37,10 +57,13 @@ REPO="$(cd "$HERE/../../.." && pwd)"
 MIGRATIONS="$REPO/supabase/migrations"
 ALIAS_MIGRATION="$MIGRATIONS/20260718212342_add_objective_catalog_aliases.sql"
 
-# Every migration in GATED_UNAPPLIED (src/lib/db/migration-ledger-map.ts). None
-# of these is applied to production, so none of them may appear in the replay
-# that models production history — otherwise the "state production is in today"
-# baseline below asserts against a database production does not have.
+# The migrations the production-history replay below DEFERS. Most are
+# GATED_UNAPPLIED (src/lib/db/migration-ledger-map.ts) and are excluded because
+# they are not applied to production: including one would make the "state
+# production is in today" baseline assert against a database production does not
+# have. Two of them — SOURCE_BOUND_EXPANSION and COARSEN_MIGRATION — ARE applied
+# to production and are deferred for a different reason, marked individually
+# below. See the header for the full accounting.
 MERGER_MIGRATION="$MIGRATIONS/20260717190000_add_merger_offer_rule_snapshots.sql"
 SPLIT_MIGRATION="$MIGRATIONS/20260719234500_separate_event_confidence_from_review_state.sql"
 # RETIRED / SUPERSEDED tombstone — now a no-op with no executable statement.
@@ -48,7 +71,16 @@ SPLIT_MIGRATION="$MIGRATIONS/20260719234500_separate_event_confidence_from_revie
 # twice below, which is what proves it is genuinely inert.
 GUEST_ALIAS_MIGRATION="$MIGRATIONS/20260720100000_add_guest_identity_alias_source_control.sql"
 PLACEMENT_MIGRATION="$MIGRATIONS/20260720110000_extend_canonical_board_placement_contract.sql"
+# APPLIED to production as ledger 20260722144034 (paired by NAME), and NOT in
+# GATED_UNAPPLIED. Deferred from the replay and then never applied at all,
+# because MATCH_PREIMAGE below already installs the deployed matcher this file
+# coarsens; applying it too would coarsen the very pre-image the contraction
+# proof measures against.
 COARSEN_MIGRATION="$MIGRATIONS/20260720120000_coarsen_import_name_match_reasons.sql"
+# APPLIED to production as ledger 20260722132159 (paired by NAME), and NOT in
+# GATED_UNAPPLIED. Deferred from the replay so the linked-player matching
+# BEFORE/AFTER pair can install its pinned pre-image first and then restore the
+# shipped matcher via the repeat-safety apply, on one database.
 SOURCE_BOUND_EXPANSION="$MIGRATIONS/20260722012658_add_source_bound_import_identity_staging.sql"
 SOURCE_BOUND_CONTRACTION="$MIGRATIONS/20260722012707_retire_free_form_import_name_matcher.sql"
 # EXPAND half of the ID-READER-CLIENT repair: creates the service_role-only
@@ -86,7 +118,7 @@ PSQL() { "$PGBIN/psql" -h 127.0.0.1 -p "$PORT" -U postgres -v ON_ERROR_STOP=1 -d
 echo "== bootstrap Supabase-compatible roles/auth/storage =="
 PSQL -q -f "$HERE/bootstrap.sql"
 
-echo "== replay production migration history (alias deferred; all gated excluded) =="
+echo "== replay production migration history (alias deferred; all gated excluded, PLUS the two production-APPLIED files 20260722012658 and 20260720120000) =="
 for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$ALIAS_MIGRATION" ] && continue
   [ "$f" = "$MERGER_MIGRATION" ] && continue
@@ -136,8 +168,12 @@ echo "== ID-READER-CLIENT: BEFORE (reader broken on post-revoke production state
 PSQL -q -f "$HERE/non-import-guest-identity-before.sql"
 
 # ---------------------------------------------------------------------------
-# Gated migrations start here, in ledger-version order. Everything above this
-# line models production; everything below is prepared-and-NOT-applied work.
+# The deferred migrations start here, in ledger-version order. Everything above
+# this line models production MINUS the two applied migrations noted in the
+# header; everything below is that deferred set — mostly prepared-and-NOT-applied
+# work, plus those two applied files. The echo labels below now name each file's
+# real production status, so a reader of the output does not have to consult this
+# header to tell a gated migration from an applied-but-deferred one.
 # ---------------------------------------------------------------------------
 
 echo "== apply gated merger offer/rule snapshot migration =="
@@ -183,8 +219,12 @@ PSQL -q -f "$PLACEMENT_MIGRATION"
 echo "== repeat-safety: apply the placement-contract migration a second time =="
 PSQL -q -f "$PLACEMENT_MIGRATION"
 
-# The superseded 20260720120000 coarsening file is deliberately NOT applied.
-echo "== apply gated source-bound expansion =="
+# 20260720120000 is NOT gated and NOT superseded: it is APPLIED to production as
+# ledger 20260722144034 (paired by NAME — src/lib/db/migration-ledger-map.ts).
+# It is deferred out of the replay above and then never applied here either.
+echo "== NOT applied here: 20260720120000 coarsen_import_name_match_reasons — APPLIED to production as ledger 20260722144034, deferred because MATCH_PREIMAGE above already installs the deployed matcher this file coarsens =="
+
+echo "== apply 20260722012658 source-bound expansion — APPLIED to production as ledger 20260722132159, deferred from the replay so the BEFORE/AFTER pair below can pin its pre-image and then restore the shipped matcher on one database =="
 PSQL -q -f "$SOURCE_BOUND_EXPANSION"
 
 # The BEFORE half reinstalls the matcher exactly as committed at e27fae282 and

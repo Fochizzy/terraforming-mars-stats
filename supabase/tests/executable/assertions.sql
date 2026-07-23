@@ -238,9 +238,9 @@ begin
   select r.player_id, r.public_name, r.resolution_state
   into v_id, v_public, v_state
   from public.create_or_reuse_guest_identity(
-    '22222222-2222-4222-8222-222222222222'::uuid, 'personal_name',
-    null, 'Zzsentinelfirst', 'Zzsentinellast', null, true,
-    '11111111-1111-4111-8111-111111111111'::uuid
+    '22222222-2222-4222-8222-222222222222'::uuid,
+    '11111111-1111-4111-8111-111111111111'::uuid, 'personal_name',
+    null, 'Zzsentinelfirst', 'Zzsentinellast', null, true
   ) r;
   reset role;
   if v_id is null then
@@ -334,9 +334,9 @@ begin
   set local role service_role;
   select r.player_id, r.resolution_state into v_id, v_state
   from public.create_or_reuse_guest_identity(
-    '22222222-2222-4222-8222-222222222222'::uuid, 'personal_name',
-    null, '  zzSENTINELfirst ', ' zzsentinelLAST  ', null, true,
-    '11111111-1111-4111-8111-111111111111'::uuid
+    '22222222-2222-4222-8222-222222222222'::uuid,
+    '11111111-1111-4111-8111-111111111111'::uuid, 'personal_name',
+    null, '  zzSENTINELfirst ', ' zzsentinelLAST  ', null, true
   ) r;
   reset role;
   if v_id is distinct from v_expected then

@@ -8,8 +8,9 @@ replacement is BUILT locally and REMEDIATED. Production subsequently applied
 its expansion as ledger `20260722132159`, applied interim reason coarsening as
 `20260722144034`, and revoked authenticated execution of the separate guest
 identity resolver as `20260722153233`. The `ID-READER-CLIENT` repair is now
-BUILT and executably proven LOCALLY, but its migration is gated and unapplied and
-the reader is not deployed. The legacy free-form matcher oracle remains open,
+BUILT, REMEDIATED after an independent audit returned FAIL, and executably
+proven LOCALLY, but its migration is gated and unapplied and the reader is not
+deployed. The legacy free-form matcher oracle remains open,
 contraction `20260722012707` remains gated and unapplied, the CONTRACT drop of
 the 7-argument guest resolver is not authored, and Step 4.4 is NOT STARTED.**)
 
@@ -107,6 +108,90 @@ equivalent downgrade was already recorded, this one was not. Documentation only
 — no code, migration, schema, deploy, or production change, and no blocker
 changed disposition. That entry's own "Scope authorized by this decision"
 section governs what it does and does not authorize.
+
+### ID-READER-CLIENT expand REMEDIATED after an independent audit FAIL (2026-07-22)
+
+Local remediation only. No production read or write, no deploy, no push, no
+merge, no migration applied. Step 4.3 remains blocked and is **not** complete,
+and no other blocker changed disposition.
+
+An independent read-only audit of the expand work above returned **FAIL** on one
+HIGH and two LOW findings. Because `20260722160000` is gated and unapplied and
+`public.create_or_reuse_guest_identity` exists in no environment, all of it was
+corrected **in place in the unapplied file** — the established convention on
+this lineage — rather than stacked as a corrective migration. No applied
+migration and no deployed function was touched.
+
+- **FINDING-1 (HIGH) — resolved.** The candidate-counting query and the
+  auto-selection query eleven lines below it applied different predicates: the
+  count excluded players with a non-null `linked_user_id`, the selection did
+  not. Independently reproduced on a disposable cluster before any fix: in a
+  group holding one unlinked guest and one already-claimed player carrying the
+  same normalized personal name, the counting query returned **1** row while the
+  selection query returned **2**, `limit 1` returned the **claimed** player, and
+  the call failed `P0002` ("The selected guest identity is unavailable or no
+  longer matches") — so reuse of a legitimate guest failed outright. The state
+  is reachable because `normalized_personal_name` is indexed NON-uniquely, and
+  `personal_name` is the only mode either non-import call site uses. Fixed
+  structurally, not by copying the filter: the predicate is now evaluated once
+  into `v_candidate_ids`, the count is `cardinality()` of that array, and the
+  auto-selection is element `[1]` of the same array, so the two cannot disagree.
+  This matches the applied sibling `resolve_staged_import_player_identity`.
+- **FINDING-2 (LOW) — resolved.** `p_requesting_user_id` was declared last and
+  defaulted, diverging from the four applied gateways of `20260722012658`, which
+  all declare it required. It is now required and positioned second, so omitting
+  it is a signature error (`42883` / `PGRST202`) instead of a runtime
+  authorization failure. Both call sites pass parameters by name, so the
+  reordering is caller-transparent and no TypeScript change was required. The
+  explicit `is null` guard in the body is retained but now labelled in-file as a
+  redundant guard, since the membership test already fails closed on a null id.
+- **FINDING-3 (LOW) — resolved.** The release sequence in
+  `docs/CURRENT_STATUS.md` omitted the expand step's rollback SQL and the
+  apply-time ledger bookkeeping. Both are now recorded as steps 2a and 2b.
+- **FINDING-4 — RECORDED, NOT FIXED.** A pre-existing draft-snapshot personal
+  name residue, untouched by this work and in a different subsystem. Tracked as
+  blocker `DRAFT-NAME-RESIDUE`; its end-to-end reachability is inferred rather
+  than executed. It was deliberately not investigated and needs its own scoped
+  assignment.
+
+A new collision proof was added to
+`supabase/tests/executable/non-import-guest-identity-after.sql` and every added
+assertion was mutation-tested. Reintroducing the divergence fails the new proof
+with the exact `P0002`; a duplicate-creating defect and a resurrected
+trailing-defaulted overload each fail their own assertion; each probe was
+reverted to a byte-identical file. One added clause (the collision fixture's
+no-import-alias check) proved to be subsumed by an existing assertion and is
+labelled in-file as a redundancy guard rather than presented as independent
+proof. The `run.sh` header was also corrected: it claimed the deferred half was
+exactly `GATED_UNAPPLIED`, but two production-applied migrations are deferred
+too. That change is comment-only and proven so — all 155 executable lines are
+byte-identical.
+
+Closed out on 2026-07-23. Mutation probe P1 was re-run at the current file state,
+because it had been confirmed *before* clause 8b's error handler was tightened in
+response to probe P3 and was never re-run afterwards. It still fails, still at 8b
+(`non-import-guest-identity-after.sql:340`), still with sqlstate `P0002`, harness
+exit 3; the probe's fidelity to the pre-fix logic was itself proven by a zero-line
+diff against blob `eaab0654^`, and both files reverted to byte-identical hashes.
+The `run.sh` `echo` labels — left reading "gated" for the applied pair by the
+comment-only constraint — are now corrected, with 116 non-comment, non-blank,
+non-echo lines and a zero-line diff before and after, after verifying that nothing
+in the repository asserts on `run.sh` stdout. The scoping document
+`PHASE-04-STEP-03-GUEST-IDENTITY-OVERLOAD-DESIGN-SCOPING.md` had its five stale
+signature sites corrected to the shipped argument order and gained a dated
+authority notice.
+
+One new question is recorded and deliberately **not** acted on, for the owner:
+half 1 of the harness pins the fine-grained `match_import_player_names` that
+production has already replaced via ledger `20260722144034`, and
+`supabase/tests/executable/match-oracle-post-contraction.sql` is referenced by
+nothing, so the coarsened privacy surface is asserted nowhere. Measured, not
+inferred: including either deferred applied migration in the replay, or applying
+`20260720120000` in the deferred half, leaves the harness at exit 0.
+
+Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md`,
+then `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md`.
 
 ### Production release-boundary reconciliation (2026-07-22)
 
@@ -1588,6 +1673,34 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md
+  (remediation closeout for `eaab0654`, all claims re-derived rather than
+  inherited: mutation probe P1 re-proven against the TIGHTENED clause 8b it was
+  never re-run against — harness exit 3, `non-import-guest-identity-after.sql:340`,
+  sqlstate `P0002` — with the probe's fidelity to the pre-fix logic proven by a
+  zero-line diff against `eaab0654^` and byte-identical reversion; `run.sh` echo
+  labels corrected to name each deferred file's real production status after
+  confirming nothing asserts on its stdout, 116 non-echo executable lines
+  unchanged with a zero-line diff; `GUEST-IDENTITY-OVERLOAD-DESIGN-SCOPING.md`
+  corrected at all five signature sites and given a dated authority notice; the
+  replay-exclusion question answered by four measured harness runs and left
+  undecided for the owner, including that `match-oracle-post-contraction.sql` is
+  referenced by nothing so the coarsened matcher is asserted nowhere; a stale
+  "Gated repo file" phrase in `migration-ledger-map.ts:360` reported and not
+  changed; no migration applied, no production read or write, no deploy, no push,
+  and FINDING-4 / `DRAFT-NAME-RESIDUE` not opened)
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md
+  (ID-READER-CLIENT expand REMEDIATED after an independent audit FAIL, all in the
+  still-unapplied 20260722160000: the candidate-counting and auto-selection
+  predicates disagreed about claimed players — reproduced as count 1 vs selection
+  2, `limit 1` returning the claimed player, call failing P0002 — and are now a
+  single materialised `v_candidate_ids`; `p_requesting_user_id` made required and
+  repositioned to match the four applied gateways; a mutation-proven collision
+  proof and an omitted-argument proof added; release-sequence rollback SQL and
+  apply-time ledger bookkeeping recorded; `run.sh` header corrected comment-only;
+  audit FINDING-4 recorded as blocker DRAFT-NAME-RESIDUE and deliberately NOT
+  fixed; no applied migration, no deployed function, no migration applied, no
+  deploy, no push, and no blocker disposition changed)
 - docs/agent-handoffs/TAG-ICON-INVENTORY-RECONCILIATION-2026-07-22.md
   (documentation-only: all 21 `tm-tag-icons` objects re-measured individually and
   verified over their public URLs; ASSET-INVENTORY.md corrected to 21 objects /

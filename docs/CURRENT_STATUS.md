@@ -64,7 +64,43 @@ sequence is:
    `20260722160000` adds a service_role-only replacement authorized on an
    explicit requesting-user id. Both are unapplied;
 2. apply `20260722160000` under explicit authority and the per-mutation
-   protocol;
+   protocol. Two preconditions a session executing this step must not have to
+   derive from context:
+
+   **2a. Rollback SQL for the expand step.** The migration creates exactly one
+   object, so its reversal is a single statement:
+
+   ```sql
+   drop function if exists public.create_or_reuse_guest_identity(
+     uuid, uuid, text, text, text, text, uuid, boolean
+   );
+   ```
+
+   Nothing else references it: it is new and additive, and the deployed
+   7-argument `resolve_import_guest_identity` is left untouched. This rollback
+   is valid only in the window between applying the migration and deploying the
+   moved reader (item 3 below). Once that reader is live it depends on this
+   function, and reversal becomes a deploy rollback rather than a migration
+   rollback.
+
+   **2b. Apply-time ledger bookkeeping.** The apply tool stamps the UTC apply
+   time over the filename version, so this file will almost certainly NOT land
+   as ledger `20260722160000`. Five recent applies on this lineage already
+   drifted that way — `20260722012658` landed as `20260722132159`,
+   `20260720120000` as `20260722144034`. Version is the wrong join key for a
+   renamed apply; the pairing is by NAME. Immediately after the apply, in the
+   same session:
+
+   - read the ledger version the apply actually produced;
+   - register the pairing under the key
+     `add_non_import_guest_identity_creator` in
+     `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME`, and add the
+     file-to-ledger entry to `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION`, both in
+     `src/lib/db/migration-ledger-map.ts`;
+   - remove `20260722160000` from `GATED_UNAPPLIED` in the same file;
+   - re-attest the production ledger (entry count and head) and record the
+     result on the canonical `DEPLOY-STATE.md`;
+   - run `npx.cmd vitest run src/lib/db/migration-ledger-map.test.ts`.
 3. deploy and production-verify the moved redesign reader under explicit
    authority;
 4. only then author and apply the CONTRACT drop of the deployed 7-argument
@@ -77,12 +113,13 @@ sequence is:
 
 | ID | Requirement | Current status | Blocking |
 |---|---|---|---|
-| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22; migration unapplied, reader undeployed.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. Executably proven on a disposable cluster. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md` | Redesign deploy |
+| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22, then remediated after an independent audit returned FAIL; migration still unapplied, reader still undeployed.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. The audit's HIGH finding — the candidate-counting and auto-selection predicates disagreed about claimed players, so a same-name collision could auto-select a claimed player and fail with `P0002` — was reproduced and fixed in the unapplied file: the predicate is now evaluated once into `v_candidate_ids` and both uses derive from it. `p_requesting_user_id` was also made required, matching the four applied gateways. Executably proven and mutation-proven on a disposable cluster. **Closed out 2026-07-23**: probe P1 was re-run against the tightened clause 8b it had never been re-run against and still fails there with `P0002` (harness exit 3), so the remediation is proven at the current file state, not merely at the state the probe was originally run against. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` | Redesign deploy |
 | ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is additive and leaves the function in place; the drop is valid only after `20260722160000` is applied, the moved reader is deployed and production-verified, and a fresh zero-caller re-sweep passes | Step 4.3 closure |
 | ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | Not authorized or deployed | Legacy contraction |
 | ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live | Step 4.3 closure |
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary | Step 4.3 closure |
 | STEP-4.4 | Explicit assignment for final review, finalization, and draft safety | Not authorized | Step 4.4 start |
+| DRAFT-NAME-RESIDUE | A typed personal name must not survive into a Log-a-Game draft snapshot or its hydration payload after the seat that introduced it is removed | **Recorded, NOT fixed and NOT investigated.** Independent-audit FINDING-4, pre-existing and untouched by the ID-READER-CLIENT work: removing a manually added player's seat may leave records keyed by that seat's reference unpruned, so a typed first/last name could persist in the stored draft and be returned on hydration. This would breach the "private names must be excluded from payloads, not merely hidden" rule in `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`. **End-to-end reachability is INFERRED, not executed** — no failing test, captured payload, or stored draft was produced, so severity is unconfirmed. It lives in the wizard/draft subsystem, not the identity RPCs, and needs its own scoped assignment; it must not be fixed inside an identity task. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` | Nothing today |
 
 ## Important repository and production evidence
 
