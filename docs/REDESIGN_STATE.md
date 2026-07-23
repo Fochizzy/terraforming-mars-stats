@@ -1491,6 +1491,13 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/SPACE-TAG-ICON-REPLACEMENT-2026-07-22.md
+  (owner-authorized single-object production Storage replacement of
+  `tm-tag-icons/space.webp`; applied at the live 128×128 lossless WebP
+  convention, verified by hash, public URL, alpha, and render; pre-change object
+  retained for rollback; no code, schema, migration, deploy, or phase change;
+  `ASSET-INVENTORY.md` reported stale for this bucket and deliberately
+  unreconciled)
 - docs/agent-handoffs/PLANNING-PACK-SYNC-HOOK-INSTRUCTION-SET-COMPLETION.md
   (documentation-only: the planning-pack sync hook is now fully described in
   AGENTS.md — Claude Code-only, manual step still in force for Codex —
