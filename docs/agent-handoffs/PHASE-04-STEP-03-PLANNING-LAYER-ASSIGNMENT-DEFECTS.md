@@ -10,9 +10,10 @@ by the work recorded here or by this record.**
 
 ## What this document is, and what it is not
 
-This records **twelve defects in how the planning layer writes assignments**, plus
-**one open question for the owner**. They accumulated across the guest-identity
-and matcher work items of 2026-07-22 and 2026-07-23.
+This records **sixteen defects in how the planning layer writes assignments**,
+plus **one open question for the owner**. They accumulated across the
+guest-identity and matcher work items of 2026-07-22 and 2026-07-23, the last four
+in the two-part brief of the correction that closed the thirteenth.
 
 Three things it is deliberately not:
 
@@ -26,8 +27,9 @@ Three things it is deliberately not:
 
 The reason to write it down is narrow and practical: **none of this was written
 down anywhere**, so each defect stayed available to be committed again, and several
-already were. Items 5 and 9 are the same defect one work item apart; item 8 is its
-class's second instance; item 12 is its class's second instance.
+already were. Items 5, 9, 13 and 15 are the same defect four times over; item 8 is
+its class's second instance; item 12 is its class's second instance; item 14 is
+item 1's.
 
 Evidence class **`[PRIOR]`** throughout except where marked. The defects are
 recorded from the reports and briefs of the sequence; this document does not
@@ -35,7 +37,7 @@ re-derive the underlying work.
 
 ---
 
-## The twelve defects
+## The sixteen defects
 
 ### 1. Amended-prompt reconciliation
 
@@ -244,6 +246,106 @@ is in flight**.
 **Check to apply.** Confirm **no other work item is active in the target tree**
 before issuing, and **re-derive the pin immediately before delivery**.
 
+### 13. Under-specified file list, third instance — a file authorized for one item only
+
+**Added 2026-07-23** by the correction that closed it.
+
+The remediation of 2026-07-23 that corrected the matcher apply's record was
+authorized over
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md` **for one named
+item only**, and its sweep for claims falsified by the apply was scoped to **three
+other files**. The forensics handoff's own **Scope** section was therefore never
+reached.
+
+It went on asserting, in the present tense, that production was **"unchanged and
+correct at 115 entries"** with head `20260723082917`, that `20260723130000`
+**"remains GATED and UNAPPLIED"**, and that **four** gates remained — all three
+falsified by the 15:12:21Z apply **that the very same commit was recording**. The
+commit that brought the record to the applied state left the record's own forensic
+source contradicting it, roughly forty lines below an edit it did make in that
+file.
+
+**Same class as items 5 and 9, and the third instance in three consecutive work
+items** (item 15 is a fourth, in the brief that closed this one)**.** Item 5 named
+the `.ts` and not the `.md`. Item 9 scoped a rule's correction and omitted the
+document the rule originates in. This one put the file **on** the authorized list
+and still left most of it out of scope. The general form: **a file can be named in
+the authorization and still be under-specified within itself.**
+
+**Checks to apply — two, because item 5's check would not have caught this.**
+
+1. When a brief authorizes a file **for a named item**, say explicitly whether the
+   **rest of that file** is in scope. "Authorized for item 4b" and "authorized"
+   are different permissions and must not be written the same way.
+2. Item 5's enumeration — *every document that asserts the now-stale fact* — must
+   also be run **inside** each authorized file. A file-level list cannot surface
+   this defect, because the file is already on it. The unit of enumeration is the
+   **claim**, not the filename.
+
+**A note on how it was found.** Not by review of the remediation, which read as
+complete and internally consistent. It surfaced only when a later reader followed
+the record's own cross-reference from the corrected documents back to the
+forensics source and found the two disagreeing.
+
+### 14. A brief self-contradictory between its forbidden list and its own gate
+
+**Added 2026-07-23** by the amendment that resolved it.
+
+The brief that assigned this scope correction **forbade editing
+`docs/REDESIGN_STATE.md`** and, in the same brief, **mandated
+`validate:claude-context --require-maintenance`** as the pre-commit gate. That
+validator requires, unconditionally in maintenance mode, that
+`docs/REDESIGN_STATE.md` appear in the change set
+(`scripts/validate-claude-project-context.mjs:489`) **`[REPO]`**. The gate could
+not pass without editing the file the same brief forbade editing.
+
+The executing session **stopped at the red gate**, made no commit, and did not
+edit the forbidden file; the amendment then authorized it narrowly.
+
+**Same shape as item 1** — a brief two of whose provisions cannot both be
+satisfied — one work item later, and again caught by item 1's mitigation: stop and
+report rather than resolve.
+
+**Check to apply.** Before issuing, **run each mandated gate against the forbidden
+list.** A gate that requires a write to a forbidden path is a contradiction the
+worker cannot resolve without violating one half of the brief.
+
+### 15. Coupled-document failure, a FOURTH time — the closing brief committing the defect it closed
+
+**Added 2026-07-23** by the amendment that resolved it.
+
+The same brief authorized changing the **defect count in the defects file** but
+not in `docs/REDESIGN_STATE.md`, **which carries the same count**, and its
+forbidden list then barred the second file. Executed as written, it would have
+moved the defects file to a new count while `REDESIGN_STATE` still asserted the
+old one — **manufacturing the very two-file disagreement this work item exists to
+close, in the brief closing it.** (The count is in fact a coupled fact across at
+least three files: the defects file, `REDESIGN_STATE`, and `CURRENT_STATUS`.)
+
+**This is the fourth instance of the class of items 5, 9 and 13**, and the
+sharpest of them: the other three under-specified a file list while the subject
+was some other correction; this one under-specified it while the work item's
+entire subject **was** coupled-document consistency.
+
+**Check to apply.** Item 5's enumeration — every document asserting the now-stale
+fact — must be run **before the authorization is written**, so that the
+authorized-file set and the stale-fact set are the same set. When they differ, the
+brief is internally guaranteed to leave a disagreement.
+
+### 16. A file-count miscount carried between brief parts
+
+**Added 2026-07-23** by the amendment that corrected it.
+
+The brief's authorization-routing section referred to **"the four files in
+section 5"** when that section named **three**. The miscount carried forward from
+the assigning conversation. Its operative effect was nil — the routing rule is
+independent of the count — but in a work item about under-specified file lists, a
+brief that miscounts its own file list is worth the record.
+
+**Check to apply.** A cross-reference to another section's list should **name the
+list, not a count of it.** "The files named in §5" cannot fall out of sync with
+§5; "the four files in §5" can, and did.
+
 ---
 
 ## Open question for the owner — recorded, not resolved
@@ -298,3 +400,76 @@ handoff.
   assignment.
 - Every blocker row and every `Blocking` value. **Step 4.3 is not marked
   complete**, no precondition was relaxed, and Step 4.4 was not begun.
+
+### Addendum — 2026-07-23, the correction that added items 13–16 and bannered the forensics Scope section
+
+Delivered as a two-part brief: an initial assignment (truncated in transit and
+correctly stopped on — item 7's class again), a full resend, and an amendment. The
+resend closed the falsified Scope claims and recorded item 13; the amendment
+authorized `docs/REDESIGN_STATE.md` narrowly and recorded items 14–16 — the three
+defects in that same brief, surfaced when the resend's own gate contradiction and
+file-list gaps forced two BLOCKED stops. Both stops were accepted as correct.
+
+Documentation-only and local. **No production access of any kind**, no migration,
+no deploy, no merge, no push, no branch or worktree created, and `src/**`,
+`supabase/**` and `scripts/**` untouched. The apply of 15:12:21Z is unaffected and
+remains accepted; this corrects its record only.
+
+**Reviewed:** `CLAUDE.md`, `docs/redesign/MASTER-RULES.md`,
+`docs/CURRENT_STATUS.md`, `docs/REDESIGN_STATE.md` (active handoff group),
+`src/lib/db/migration-ledger-map.ts` (read only — the `[REPO]` basis for 116 /
+`20260723151221` and for `GATED_UNAPPLIED` holding five),
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`,
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md`,
+`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`,
+`docs/agent-handoffs/PHASE-04-STEP-03-GUEST-IDENTITY-PRODUCTION-CATALOG-READ.md`,
+`docs/agent-handoffs/SAVED-GAME-LABEL-RECORD-CORRECTION-2026-07-23.md`.
+
+**Updated in the same change:**
+
+- `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md` — three claims
+  in its Scope section bannered, originals retained verbatim.
+- This handoff — items 13–16 recorded, the count carried to sixteen, this
+  addendum.
+- `docs/REDESIGN_STATE.md` — **narrowly, under the amendment**: the defect count in
+  the active-handoff-group entry for this work item (`twelve` → `sixteen`, its
+  enumeration marked "the first twelve", the outcome clause added). **Nothing else
+  in that file** — no status line, phase, blocker, deploy or migration baseline, or
+  other handoff group was touched.
+
+**Intentionally unchanged, and each verified rather than assumed:**
+
+- The **gap 1e** material in every file. Out of scope by instruction, and no
+  conclusion of it is altered, narrowed, reopened, or referenced as authority.
+- `src/lib/db/migration-ledger-map.ts` — **already correct** at 116 /
+  `20260723151221`; it is this correction's evidence, not its target.
+- `docs/agent-handoffs/PHASE-04-STEP-03-GUEST-IDENTITY-PRODUCTION-CATALOG-READ.md`,
+  `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`, and both
+  sites in `PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md` — classified
+  **correct dated history**, not falsified. They record the pre-apply ledger, or
+  the *guest-identity* apply's own correct post-apply state at 08:29:17Z.
+- `docs/agent-handoffs/SAVED-GAME-LABEL-RECORD-CORRECTION-2026-07-23.md` —
+  examined and classified **correct dated history**. Its "attestation at 115
+  entries" sits under an explicitly past-tense framing recording what a
+  verification act read at the time, structurally identical to the sites above.
+  Bannering it would misrepresent a dated record as a live claim.
+- `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` — already brought to the
+  applied state by the 2026-07-23 remediation; nothing stale remained.
+- **The two remaining "twelve" defect-count mentions are CORRECT DATED HISTORY and
+  deliberately left** — `docs/REDESIGN_STATE.md` line 68 and `docs/CURRENT_STATUS.md`
+  line 61. Both sit under a heading scoping them to *what the 85d13bb4 remediation
+  did*, and that remediation recorded **twelve**. Raising either to sixteen would
+  falsely attribute defects 13–16 — added afterward, by the resend and this
+  amendment — to that commit. They are exempt from the count propagation for the
+  same reason the "115 entries" sites are exempt from bannering: a dated record of
+  a past act is not a stale live claim. `CURRENT_STATUS.md` is additionally outside
+  the amendment's authorized file set, so even a live-claim reading would route to
+  new owner authorization rather than an edit here; it needs neither.
+- `docs/redesign/DECISIONS.md` — no durable decision was approved. The checks in
+  items 13–16 are recorded observations, not adopted policy; adopting them is the
+  owner's call, exactly as for items 4, 5, 6, 8 and 12.
+- `docs/redesign/MASTER-PLAN.md`, `docs/AUTHORITATIVE_DOCUMENTS.md`,
+  `docs/redesign/CLAUDE-PROJECT-SOURCES.json` — no project direction, authority
+  routing, or catalog entry changed.
+- `.claude/skills/**` — still **not audited, catalogued, indexed, or edited**.
+  Item 11 stands open.

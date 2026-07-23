@@ -3059,12 +3059,12 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   (record only, redesign lineage, documentation-only and local: **nothing applied,
   deployed, pushed, merged, or read from production** — no Supabase MCP call, no
   `wrangler`, no `/api/deploy-info`, and `src/**`, `supabase/**` and `scripts/**`
-  were not edited. Records **twelve defects in ASSIGNING BRIEFS** across the
+  were not edited. Records **sixteen defects in ASSIGNING BRIEFS** across the
   guest-identity and matcher work items, **plus one open question**. They are
   defects in how the planning layer writes assignments, **not** in any worker's
   conduct — in every case a worker caught the defect and stopped, reported, or
-  applied the stricter reading — and no session is named or graded. The twelve:
-  amended-prompt reconciliation; fingerprint versus ingestion; an unsatisfiable
+  applied the stricter reading — and no session is named or graded. The first
+  twelve: amended-prompt reconciliation; fingerprint versus ingestion; an unsatisfiable
   path prohibition in a linked-worktree repository; an unsatisfiable hard stop (a
   115-entry ledger required while "any matcher-named entry" was a stop, though that
   ledger necessarily holds `20260720021300` and `20260722144034`); an
@@ -3088,7 +3088,15 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   resolved:** `docs/redesign/DOCUMENT-OWNERSHIP-MAP.md` does not exist — no file, no
   history, no ref — yet an audit brief instructed a session to run a coverage layer
   against it; whether it was planned and never built or the requirement is stale is
-  the owner's ruling. **No blocker's disposition changed, Step 4.3 NOT marked
+  the owner's ruling. **Extended 2026-07-23 to sixteen** by the
+  FORENSICS-HANDOFF-SCOPE-CORRECTION work item, which bannered three claims in
+  `PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`'s Scope section that the 15:12:21Z
+  matcher apply falsified — production **116 / `20260723151221`**, `20260723130000`
+  **applied**, **three** gates not four — and recorded defects 13–16: a third
+  under-specified-file-list instance, plus the three defects in that work item's own
+  two-part brief (a self-contradictory gate versus its own forbidden list, the
+  coupled-document class a **fourth** time after 5/9/13, and a file-count miscount).
+  **No blocker's disposition changed, Step 4.3 NOT marked
   complete, Step 4.4 not begun, no skill audited, catalogued, indexed or edited**)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md
   (production apply, redesign lineage: lands the `MATCHER-OVERLOAD-EXPAND-APPLY`

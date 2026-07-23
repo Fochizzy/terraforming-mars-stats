@@ -293,10 +293,64 @@ even when the worker is confident which reading is stricter.
 - **Production is unchanged and correct at 115 entries**, head `20260723082917`.
 - **There is no drift to repair.**
 
+> **SUPERSEDED 2026-07-23 15:12:21Z as to the third bullet only; the bullet list
+> above is retained verbatim as written.**
+>
+> **The claim falsified:** "Production is unchanged and correct at 115 entries,
+> head `20260723082917`." Falsified as to the **entry count and head**. The first,
+> second and fourth bullets are unaffected and remain correct.
+>
+> **The falsifying event.** Gated migration `20260723130000` was applied to
+> production on **2026-07-23 at 15:12:21Z**, landing as ledger
+> **`20260723151221 add_service_role_import_name_matcher_overload`**. The apply
+> tool stamped the UTC apply time over the filename version, so the two are paired
+> by **NAME**, never by version. The ledger moved **115 → 116** with exactly one
+> entry added `[PRIOR]`.
+>
+> **The current fact:** production stands at **116 entries**, head
+> **`20260723151221`**. Its repository counterpart is
+> `src/lib/db/migration-ledger-map.ts:61` — `entryCount: 116`, `headVersion:
+> '20260723151221'` **`[REPO]`**, and that is the evidence this correction rests
+> on. **No production read was made by this correction and none was authorized**;
+> the apply figures are `[PRIOR]`, recorded from the applying session rather than
+> re-derived here.
+>
+> **The investigation's findings are unaffected, and this is not a retraction of
+> any of them.** The bullet was **true when written**, and the applying session's
+> own **pre-apply** read at 15:12Z confirmed it independently a third time — 115
+> entries, head `20260723082917`, no `20260723132035`, no entry in the disputed
+> window, no matcher-overload entry. The disputed 13:20:35Z report stays
+> **disproven**, the real apply is the **first** application of this migration, and
+> the verdict stays **PASS**. What moved is the state described, not the finding.
+
 `20260723130000` remains **GATED and UNAPPLIED**. Nothing in this record
 authorizes applying it, deploying the callsite half, merging
 `fix/matcher-service-role-overload-callsite`, or opening any of the four gates in
 the remaining sequence.
+
+> **SUPERSEDED 2026-07-23 15:12:21Z as to two claims; the paragraph above is
+> retained verbatim as written.**
+>
+> **Claim 1 falsified — "`20260723130000` remains GATED and UNAPPLIED".** It is
+> **APPLIED**: production, 2026-07-23 15:12:21Z, ledger `20260723151221`
+> `[PRIOR]`. It is therefore **no longer** a member of `GATED_UNAPPLIED`, which
+> now holds **five** — `20260717190000`, `20260719234500`, `20260720100000`,
+> `20260720110000` and `20260722012707`
+> (`src/lib/db/migration-ledger-map.ts:313`) **`[REPO]`**.
+>
+> **Claim 2 falsified — "any of the four gates in the remaining sequence".** The
+> correct count is **three**. The first of the original four, *apply
+> `20260723130000`*, is **closed**. The remaining three, in this order and no
+> other: **(1)** merge and deploy the moved reader; **(2)** verify in production
+> that a real import returns a **non-zero** match count and a non-null `userId`;
+> **(3)** only then apply contraction `20260722012707`.
+>
+> **Unchanged, and the paragraph's actual point survives intact:** nothing in this
+> record authorizes any of the three, and each still requires its own explicit
+> owner authorization. `fix/matcher-service-role-overload-callsite` @ `5894c874a`
+> is still deliberately unmerged and on no remote, **applied is not deployed and
+> not closed**, nothing in production calls the new overload, and Step 4.3 is
+> **not** complete.
 
 ---
 
