@@ -7,9 +7,56 @@ Identity (**BLOCKED at the release boundary. The approved source-bound
 replacement is BUILT locally and REMEDIATED. Production subsequently applied
 its expansion as ledger `20260722132159`, applied interim reason coarsening as
 `20260722144034`, and revoked authenticated execution of the separate guest
-identity resolver as `20260722153233`. The compatible redesign reader is not
-deployed, the legacy free-form matcher oracle remains open, contraction
-`20260722012707` remains gated and unapplied, and Step 4.4 is NOT STARTED.**)
+identity resolver as `20260722153233`. The `ID-READER-CLIENT` repair is now
+BUILT and executably proven LOCALLY, but its migration is gated and unapplied and
+the reader is not deployed. The legacy free-form matcher oracle remains open,
+contraction `20260722012707` remains gated and unapplied, the CONTRACT drop of
+the 7-argument guest resolver is not authored, and Step 4.4 is NOT STARTED.**)
+
+### ID-READER-CLIENT repaired locally — EXPAND built, undeployed (2026-07-22)
+
+Local implementation only. No production read or write, no deploy, no push, no
+merge. Step 4.3 remains blocked and is **not** complete.
+
+Implements the owner-approved design (Option 1) under the 2026-07-22 decision
+accepting the explicit `p_requesting_user_id` trust model for this non-import
+reader and superseding gated migration `20260720100000`.
+
+- Gated migration `20260720100000` is **RETIRED as a no-op tombstone**. The file
+  is kept at its original version as an auditable record but now contains no
+  executable statement, so the `grant execute … to authenticated` that would
+  have reopened the oracle closed by ledger `20260722153233` can never be
+  applied. It stays classified `GATED_UNAPPLIED`; its declared hazard class
+  moves `expansion` → `neutral`.
+- New gated migration `20260722160000_add_non_import_guest_identity_creator.sql`
+  creates `public.create_or_reuse_guest_identity`, granted to `service_role`
+  ONLY. It authorizes on an explicit server-verified `p_requesting_user_id`
+  against `group_members`, stamps `created_by_user_id` from that same id, and
+  records **no** `player_import_aliases` row on any branch. A distinct name
+  rather than an overload, avoiding the `42725` ambiguity the design proved.
+- It is **additive**: the deployed 7-argument
+  `public.resolve_import_guest_identity` is left in place. Dropping it is the
+  separate CONTRACT phase and was not authored.
+- Both non-import paths — the `/group/players` roster add and the Log-a-Game
+  manual-entry resolver — now reach the new function through the admin client,
+  with the requesting user resolved from the server session
+  (`supabase.auth.getUser()`) inside `createOrReuseGuestPlayerByPersonalName`.
+  No client-supplied identity is accepted anywhere on this path.
+
+Executably proven on a disposable PostgreSQL cluster (`run.sh` exit 0): the
+BEFORE failure is reproduced against production history only; a group member
+succeeds; a non-member requesting id is rejected with `42501` and writes
+nothing; no import alias row is written on either the create or the reuse
+branch; and `created_by_user_id` equals the passed id. The non-member and
+no-alias assertions were mutation-tested and both correctly fail when the
+property is violated.
+
+**Still requires separate owner authorization:** applying `20260722160000`,
+deploying the moved reader, verifying it in production, and only then authoring
+and applying the CONTRACT drop of the 7-argument function. No other blocker
+changed disposition.
+
+Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md`.
 
 ### Production release-boundary reconciliation (2026-07-22)
 
@@ -1507,6 +1554,13 @@ a linked or production database.
   retained for rollback; no code, schema, migration, deploy, or phase change;
   `ASSET-INVENTORY.md` reported stale for this bucket and deliberately
   unreconciled)
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md
+  (ID-READER-CLIENT repaired LOCALLY: 20260720100000 retired as a no-op
+  tombstone; new gated 20260722160000 adds the service_role-only
+  create_or_reuse_guest_identity gated on an explicit requesting-user id and
+  writing no import alias; both non-import call paths moved to the admin client;
+  proven on a disposable cluster; nothing applied, deployed, pushed, or merged;
+  the CONTRACT drop and the deploy remain separately gated)
 - docs/agent-handoffs/PHASE-04-STEP-03-GUEST-IDENTITY-OVERLOAD-DESIGN-SCOPING.md
   (read-only design scoping for ID-READER-CLIENT + gated 20260720100000: the
   applied source-bound gateways cannot serve the non-import guest path without

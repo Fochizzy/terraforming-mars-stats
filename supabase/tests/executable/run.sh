@@ -43,11 +43,17 @@ ALIAS_MIGRATION="$MIGRATIONS/20260718212342_add_objective_catalog_aliases.sql"
 # baseline below asserts against a database production does not have.
 MERGER_MIGRATION="$MIGRATIONS/20260717190000_add_merger_offer_rule_snapshots.sql"
 SPLIT_MIGRATION="$MIGRATIONS/20260719234500_separate_event_confidence_from_review_state.sql"
+# RETIRED / SUPERSEDED tombstone — now a no-op with no executable statement.
+# It is still excluded from the production-history replay and still applied
+# twice below, which is what proves it is genuinely inert.
 GUEST_ALIAS_MIGRATION="$MIGRATIONS/20260720100000_add_guest_identity_alias_source_control.sql"
 PLACEMENT_MIGRATION="$MIGRATIONS/20260720110000_extend_canonical_board_placement_contract.sql"
 COARSEN_MIGRATION="$MIGRATIONS/20260720120000_coarsen_import_name_match_reasons.sql"
 SOURCE_BOUND_EXPANSION="$MIGRATIONS/20260722012658_add_source_bound_import_identity_staging.sql"
 SOURCE_BOUND_CONTRACTION="$MIGRATIONS/20260722012707_retire_free_form_import_name_matcher.sql"
+# EXPAND half of the ID-READER-CLIENT repair: creates the service_role-only
+# public.create_or_reuse_guest_identity. Replaces what 20260720100000 was for.
+NON_IMPORT_GUEST_MIGRATION="$MIGRATIONS/20260722160000_add_non_import_guest_identity_creator.sql"
 
 # Modelled pre-image of production-only ledger entry 20260720021300, which has
 # no repo file. Installing it is what makes COARSEN_MIGRATION a REPLACE rather
@@ -90,6 +96,7 @@ for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$COARSEN_MIGRATION" ] && continue
   [ "$f" = "$SOURCE_BOUND_EXPANSION" ] && continue
   [ "$f" = "$SOURCE_BOUND_CONTRACTION" ] && continue
+  [ "$f" = "$NON_IMPORT_GUEST_MIGRATION" ] && continue
   if [ "$f" = "$CLAIM_GRANT_MIGRATION" ]; then
     echo "   model production-only ledger entry 20260712115539 (no repo file)"
     PSQL -q -f "$CLAIM_PREIMAGE"
@@ -123,6 +130,11 @@ PSQL -q -f "$HERE/pre-split-compat.sql"
 echo "== deployed match-oracle disclosure (pre-contraction baseline) =="
 PSQL -q -f "$HERE/match-oracle-pre-contraction.sql"
 
+# ID-READER-CLIENT: reproduce the reader break against production history only.
+# Must stay above the gated line — it asserts the state production is in today.
+echo "== ID-READER-CLIENT: BEFORE (reader broken on post-revoke production state) =="
+PSQL -q -f "$HERE/non-import-guest-identity-before.sql"
+
 # ---------------------------------------------------------------------------
 # Gated migrations start here, in ledger-version order. Everything above this
 # line models production; everything below is prepared-and-NOT-applied work.
@@ -140,11 +152,30 @@ PSQL -q -f "$SPLIT_MIGRATION"
 echo "== repeat-safety: apply the split migration a second time =="
 PSQL -q -f "$SPLIT_MIGRATION"
 
-echo "== apply gated guest-identity alias source-control migration =="
+# 20260720100000 is a RETIRED tombstone. Applying it twice must change nothing
+# at all — in particular it must not recreate an 8-argument overload and must not
+# restore `authenticated` EXECUTE on the deployed resolver. The BEFORE proof
+# above already pinned that ACL; the tombstone assertion below re-checks it after
+# the applies, so a resurrected body would fail here.
+echo "== apply retired guest-alias tombstone (must be a no-op) =="
 PSQL -q -f "$GUEST_ALIAS_MIGRATION"
 
-echo "== repeat-safety: apply the guest-alias migration a second time =="
+echo "== repeat-safety: apply the retired tombstone a second time =="
 PSQL -q -f "$GUEST_ALIAS_MIGRATION"
+
+echo "== assert the retired tombstone changed nothing =="
+PSQL -q -c "do \$\$
+begin
+  if to_regprocedure('public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean,boolean)') is not null then
+    raise exception 'TOMBSTONE FAIL: the retired migration recreated the 8-argument overload';
+  end if;
+  if to_regprocedure('public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean)') is null then
+    raise exception 'TOMBSTONE FAIL: the deployed 7-argument resolver was dropped';
+  end if;
+  if has_function_privilege('authenticated', 'public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean)'::regprocedure, 'execute') then
+    raise exception 'TOMBSTONE FAIL: authenticated EXECUTE was restored';
+  end if;
+end \$\$;"
 
 echo "== apply canonical board-placement contract migration =="
 PSQL -q -f "$PLACEMENT_MIGRATION"
@@ -195,6 +226,15 @@ PSQL -q -f "$SOURCE_BOUND_CONTRACTION"
 echo "== repeat-safety: apply source-bound contraction a second time =="
 PSQL -q -f "$SOURCE_BOUND_CONTRACTION"
 PSQL -q -f "$HERE/source-bound-import-identity-contraction.sql"
+
+echo "== apply gated non-import guest-identity creator (ID-READER-CLIENT expand) =="
+PSQL -q -f "$NON_IMPORT_GUEST_MIGRATION"
+
+echo "== repeat-safety: apply the non-import guest creator a second time =="
+PSQL -q -f "$NON_IMPORT_GUEST_MIGRATION"
+
+echo "== ID-READER-CLIENT: AFTER (service_role only, authz held, no import alias) =="
+PSQL -q -f "$HERE/non-import-guest-identity-after.sql"
 
 echo "== behavioural assertions =="
 PSQL -q -f "$HERE/assertions.sql"
