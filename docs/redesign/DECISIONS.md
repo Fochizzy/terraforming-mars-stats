@@ -1475,8 +1475,8 @@ to protect a reader that cannot exist short of the launch.
 This drop is not closing an oracle. Authenticated EXECUTE on the seven-argument
 resolver was revoked in production on 2026-07-22 as ledger 20260722153233, and
 an authorized catalog read on 2026-07-23 confirmed the ACL is now postgres and
-service_role only as of the authorized catalog read of 2026-07-23 09:40:14Z;
-this is a prior record and is re-derived live by precondition 1 before any drop.
+service_role only, as of 09:40:14Z. That is a prior record, and precondition 1
+re-derives it live before any drop.
 No client role can reach the function today. The security objective was met by
 the revoke; this drop completes the expand and contract pattern and removes a
 dead object. It should not be described, in any status line or summary, as

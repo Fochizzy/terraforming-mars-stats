@@ -415,8 +415,30 @@ end $$;
 --
 --      Three probes, all required:
 --
---      (a)  the deployed TWO-argument function, called as `authenticated` with a
---           real session — the reference selection.
+--      (a)  the TWO-argument function AS INSTALLED IN THIS HARNESS, called as
+--           `authenticated` with a real session — the reference selection.
+--
+--           CORRECTED 2026-07-23. This was previously described as "the
+--           deployed TWO-argument function". It is NOT the deployed body.
+--           `run.sh` deliberately never applies 20260720120000 (it is excluded
+--           from the replay loop and explicitly not applied afterwards), so the
+--           two-argument signature standing here is the modelled fine-grained
+--           pre-image of production-only ledger 20260720021300 — it emits
+--           `display_name_exact` and rank 400, where the deployed coarsened
+--           body emits `exact` and 2.
+--
+--           WHAT THE REFERENCE DOES CARRY, so this probe is not weakened:
+--           all seven ranking predicates and their rank values
+--           (400/350/300/250/200/175/150) are identical in the two bodies, and
+--           the coarsening only relabels output — it retains `internal_rank`
+--           for ordering and never emits it. The set this probe compares,
+--           (imported_name, player_id, is_linked), is therefore selected
+--           identically by both, so PLAYER-SELECTION equivalence transfers to
+--           the deployed body.
+--
+--           WHAT IT DOES NOT CARRY: the coarse disclosure labels and the
+--           candidate-input bound. Neither is proven by this file; both remain
+--           the recorded harness coverage gap.
 --      (b)  EQUIVALENCE. The three-argument overload, called with auth.uid()
 --           NULL and the same user passed explicitly, must select the SAME
 --           (imported_name, player_id, is_linked) set — and that set must be
@@ -444,7 +466,10 @@ declare
     'Matchprobedelta'
   ];
 begin
-  -- (a) the deployed two-argument function, as a real signed-in caller
+  -- (a) the two-argument function as installed here — the fine-grained
+  --     pre-image of ledger 20260720021300, NOT the coarsened deployed body;
+  --     see the section header for what that reference does and does not
+  --     carry. Called as a real signed-in caller.
   perform pg_catalog.set_config(
     'request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
   set local role authenticated;
@@ -474,6 +499,10 @@ begin
     p_imported_names => v_probe
   ) m;
 
+  -- "the two-argument reference" below is the two-argument SIGNATURE as
+  -- installed here (the ledger-20260720021300 pre-image), not the deployed
+  -- coarsened body. The assertion text is left byte-unchanged deliberately:
+  -- correcting a description must not alter an executable line.
   if v_two is null or pg_catalog.cardinality(v_two) = 0 then
     raise exception 'FAIL 3e: the two-argument reference selected nothing, so equivalence would be vacuous';
   end if;

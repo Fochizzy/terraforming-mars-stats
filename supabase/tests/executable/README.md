@@ -78,8 +78,8 @@ with `auth.uid()`, a minimal `storage` schema, `pgcrypto`), then:
 5. **Matcher service-role overload** (`20260723130000`, GATED / UNAPPLIED) —
    applied twice for repeat-safety BETWEEN the source-bound AFTER proof and the
    legacy-matcher contraction, which is the mandatory expand-then-contract
-   order. `matcher-service-role-overload-before.sql` pins the deployed
-   two-argument function's body hash, ACL, comment, volatility, security
+   order. `matcher-service-role-overload-before.sql` pins the two-argument
+   function's body hash, ACL, comment, volatility, security
    attributes and settings, and installs `Matchprobe*` fixtures plus a second
    group with its own member. `matcher-service-role-overload.sql` then asserts:
    - the expand added **exactly one** object and both signatures still resolve;
@@ -98,6 +98,23 @@ with `auth.uid()`, a minimal `storage` schema, `pgcrypto`), then:
    - **the gate and the candidate pool agree** — the two functions select the
      same non-empty `(imported_name, player_id, is_linked)` set, and poisoning
      `auth.uid()` with an unrelated user changes nothing.
+
+   **What the two-argument reference in that last assertion actually is
+   (corrected 2026-07-23).** It is NOT the deployed body. This harness
+   deliberately never applies `20260720120000` — it is excluded from the replay
+   loop and then explicitly not applied afterwards — so the two-argument
+   signature standing throughout section 5 is the modelled fine-grained
+   pre-image of production-only ledger `20260720021300`, which emits
+   `display_name_exact` and rank 400 where the deployed coarsened body emits
+   `exact` and 2. **What the reference does carry:** all seven ranking
+   predicates and their rank values (400/350/300/250/200/175/150) are identical
+   in the two bodies, and the coarsening only relabels output, retaining
+   `internal_rank` for ordering and never emitting it — so the
+   `(imported_name, player_id, is_linked)` set is selected identically and
+   **player-selection equivalence transfers to the deployed body**. **What it
+   does not carry:** the coarse disclosure labels and the candidate-input
+   bound, neither of which is proven here; both remain the recorded harness
+   coverage gap under `STEP-4.3-AUDIT`.
 
    `matcher-service-role-overload-post-contraction.sql` runs after the
    contraction and pins that it **re-gates rather than closes**: the overload

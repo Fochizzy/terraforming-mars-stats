@@ -2573,6 +2573,59 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-MERGE-AND-RECORD-CORRECTIONS.md
+  (merge + documentation, redesign lineage: completes the merge a prior session
+  correctly stopped on, resolves its two conflicts under an explicitly
+  authorized row-level rule, and corrects four record defects. **Applies
+  nothing, deploys nothing, pushes nothing, and reads nothing from production**
+  — no Supabase MCP call, no `execute_sql`, no `list_migrations`, no `wrangler`,
+  no `/api/deploy-info`; `supabase/migrations/**`, `src/**` and `scripts/**`
+  were not edited. `fix/matcher-service-role-overload-expand` @ `bb5370ab4` —
+  **re-derived and confirmed to be the exact commit the independent audit
+  examined and passed** — is merged `--no-ff` as `2b2a3b00e` with both parents
+  intact, from pre-merge HEAD `0053101ad` over merge base `92d4f6917`.
+  **Migration `20260723130000` remains GATED and UNAPPLIED**; the production
+  ledger is untouched at 115 / `20260723082917` **[PRIOR]**. **The callsite half
+  `5894c874a` is deliberately NOT merged** — merging it before the apply opens a
+  window in which any unrelated deploy of the live lineage breaks live import
+  matching with `PGRST202`/`42883`. **THE AUTHORIZED RULE WAS VERIFIED BEFORE
+  IT WAS USED**, by byte-comparing every row of the `Known blockers` table
+  against the merge base on both sides: `ID-READER-CONTRACT` and
+  `ID-READER-DEPLOY` were modified by the TARGET only, `ID-LEGACY-ORACLE` and
+  the new `MATCHER-MANUAL-ENTRY-REPLACEMENT` by the SOURCE only, five rows by
+  neither, and `GUEST-LABEL-REDIRTY` — which the prior analysis had not named —
+  added by the TARGET outside the conflict region. **NO row was modified by both
+  sides**, so the semantic-conflict stop was never reached; all 10 merged rows
+  are **byte-identical** to the side the rule assigns, with no duplicate, no
+  omission and valid table structure. The `Latest handoff` resolution is
+  **purely additive** — 30 base entries plus two target and one source, newest
+  first by commit timestamp, nothing dropped or reworded and **no blank line
+  introduced**. **The audit's four findings are dispositioned:** FINDING-1
+  (MEDIUM) corrected at three sites **comment and prose only**, proven by a
+  classified diff showing 33 comment lines and **0 executable lines** changed
+  and by an **identical md5 of the comment-stripped file** — the reference is
+  the fine-grained pre-image of ledger `20260720021300`, not the deployed
+  coarsened body, and **both halves of the bound are stated** (the seven ranking
+  predicates and rank values are identical so player-selection equivalence
+  transfers; the coarse disclosure labels and candidate-input bound are **not**
+  carried); FINDING-2 (LOW) filled with verified facts and an explicit **"no
+  build result was recorded, none is claimed"**; the two record corrections
+  applied — `MIGRATION-LEDGER-MAP.md`'s superseded reader-deploy precondition
+  marked superseded with the original retained, and the `DECISIONS.md` ACL
+  clause corrected in a **two-line diff and nothing else in that file**; and
+  FINDING-4 **recorded as tracked item `MATCHER-WIRE-CONTRACT`, NOT fixed** —
+  the wire contract is asserted on both lineages and compared by neither, so a
+  rename leaves both suites green and fails with `PGRST203`, though the three
+  parameter names were re-derived this session and **match today**. Two
+  operational measurements recorded for the downstream sessions: the pre-deploy
+  schema gate collects **tables only and probes no functions**, so **only
+  sequencing** stops the reader deploying ahead of the migration; and production
+  verification must confirm a **NON-ZERO match count and a non-null `userId`**,
+  because a zero-match import is indistinguishable from the silent failure mode.
+  **PostgREST overload resolution stays [INFERENCE] and unexecuted**, failing
+  loudly and reversibly as `PGRST203`, settling at the **deploy** gate and not
+  at the apply. **Step 4.3 NOT marked complete, no blocker's `Blocking` value
+  changed, no pending decision resolved, PD-1/PD-2/PD-3 untouched**)
 - docs/agent-handoffs/PHASE-04-STEP-03-SEVEN-ARGUMENT-DROP-PRECONDITION-REPLACEMENT.md
   (documentation only, redesign lineage: records the owner decision that
   **SUPERSEDES the reader-deploy precondition on the `ID-READER-CONTRACT` drop**

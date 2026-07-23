@@ -558,6 +558,38 @@ found" is not "the drop is safe", and the four gaps above are exactly where a
 caller would hide. Changing, narrowing, or removing the reader-deploy
 precondition on this drop is an **owner decision** and has not been made.
 
+**SUPERSEDED 2026-07-23 as to the reader-deploy precondition; the paragraph
+immediately above is retained verbatim as history.** That owner decision **has
+since been made**. The reader-deploy precondition on the seven-argument drop is
+**replaced**, and the drop's preconditions are now **three**:
+
+1. **Re-derive the signature LIVE** from the production catalog before any drop
+   statement is written — `drop function if exists` against a signature that
+   does not exist succeeds silently against nothing.
+2. **Re-run the catalog sweep** for database-internal callers — function
+   bodies, view definitions, triggers and dependency records across all
+   non-system schemas — with a positive control, because the existing sweep is
+   dated 2026-07-23 and production can move.
+3. **Verify the deployed edge functions**, the area the catalog sweep
+   explicitly does not cover and for which this repository holds only a prior
+   record rather than an observation.
+
+Decision text, which is authoritative over this summary:
+`docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 - The seven-argument resolver
+drop: replacing the reader-deploy precondition". Blocker state:
+`docs/CURRENT_STATUS.md` → `ID-READER-CONTRACT`.
+
+**What is NOT superseded**, and stays in force exactly as written above: the
+first clause — "no caller was found" is still not "the drop is safe". That is
+precisely why two of the four uncovered gaps became preconditions 2 and 3
+rather than being dismissed. **`ID-READER-DEPLOY` is not dissolved, removed, or
+marked complete**: the moved redesign reader is still undeployed, still needs to
+ship, and still gates contraction `20260722012707`. Only its *reach* changed —
+it is no longer a precondition of this drop.
+
+**No other precondition in this file is changed by this note**, and the drop
+itself remains unauthorized.
+
 **Preconditions that are real regardless of how that decision goes**, and that
 remain outstanding:
 

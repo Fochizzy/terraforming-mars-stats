@@ -353,8 +353,8 @@ Notes worth keeping:
 
 **3e in detail.** Three probes, all required:
 
-1. the deployed two-argument function called as `authenticated` with a real
-   session — the reference selection;
+1. the two-argument function **as installed in the harness** called as
+   `authenticated` with a real session — the reference selection;
 2. the overload called with `auth.uid()` NULL and the same user passed
    explicitly — must select the **same non-empty**
    `(imported_name, player_id, is_linked)` set. Emptiness is failed *first*,
@@ -368,6 +368,40 @@ Notes worth keeping:
 
 This also serves as the **drift guard for the duplicated body**: the two
 functions must keep selecting the same players.
+
+**CORRECTION 2026-07-23 (independent-audit FINDING-1, MEDIUM).** Probe 1 above
+was originally written as "the **deployed** two-argument function". That was
+wrong, and the original wording is retained in this sentence as history. The
+harness **deliberately never applies `20260720120000`** — `run.sh` excludes it
+from the replay loop and then states explicitly that it is not applied
+afterwards — so the two-argument signature the probe calls is the **modelled
+fine-grained pre-image of production-only ledger `20260720021300`**, which
+emits `display_name_exact` and rank **400**, where the deployed coarsened body
+emits `exact` and **2** [REPO].
+
+**State both halves of the bound, or the correction overcorrects.**
+
+- **What the reference DOES carry.** All seven ranking predicates and their
+  rank values (`400/350/300/250/200/175/150`) are identical in the pre-image and
+  in the coarsened body, and the coarsening **only relabels output** — it
+  retains `internal_rank` for the `distinct on … order by` and never emits it.
+  The tuple this probe compares, `(imported_name, player_id, is_linked)`, is
+  therefore selected identically by both bodies, so **player-selection
+  equivalence transfers to the deployed body**. The drift guard and the
+  gate/pool agreement assertion are **not weakened** by the correction.
+- **What the reference does NOT carry.** The **coarse disclosure labels** and
+  the **candidate-input bound**. Neither is exercised anywhere in this file, and
+  `run.sh` exit 0 does not prove either — that is the same harness coverage gap
+  already recorded under `STEP-4.3-AUDIT` in `docs/CURRENT_STATUS.md`.
+
+Corrected at three sites, **comment and prose only**, with no executable line
+changed: the section-3e header and the inline probe-(a) comment in
+`supabase/tests/executable/matcher-service-role-overload.sql`, the section-5
+entry in `supabase/tests/executable/README.md`, and this handoff. The
+`raise exception` message inside section 3e still reads "the two-argument
+reference"; it was left **byte-unchanged deliberately**, because it is an
+executable line and because the phrase is accurate on its own terms — the probe
+does call the two-argument signature.
 
 **3h.** Fixtures use invented `Matchprobe*` tokens, invented UUIDs, and
 `@example.invalid` addresses. No personal name, real username, or alias text
@@ -403,12 +437,41 @@ Real exit codes, run directly.
 | `npx vitest run --no-file-parallelism` | redesign | exit **0** — 178 files, **982 passed** |
 | `npx vitest run --no-file-parallelism` | live | exit **1** — 195 files, **1094 passed / 8 failed**. **The same 8 tests in the same 5 files fail at the untouched base `0d866559f`**, measured by stashing the change and re-running exactly those files (`8 failed | 14 passed`), then restoring and proving the tree byte-identical. **Pre-existing, not introduced.** They are `group/page.test.tsx`, `auth/callback/route.test.ts` (×4), `auth/reset-pin/page.test.tsx`, `global-loss-cards-section.test.ts`, `lib/env.test.ts` — none matcher-related; the `env` one is the known missing-`.env.local`-in-a-worktree effect |
 | `npm run lint` | both | exit **0**, baseline warnings only, none in a touched file |
-| `npm run build` | both | see the build note below |
+| `npm run build` | both | **NO RESULT — not run, not claimed.** See the build note below, supplied 2026-07-23 |
 | `supabase/tests/executable/run.sh` | redesign | exit **0** |
 | `git diff --check` | both | clean |
 
 The executable harness is the load-bearing check and it is the one the mutation
 probes drive.
+
+**The build note (supplied 2026-07-23, independent-audit FINDING-2, LOW).** The
+`npm run build` row pointed at "the build note below" and **no such note existed
+anywhere in this document** — the phrase occurred exactly once, in the reference
+itself [REPO]. The reference is now filled, and it is filled with what is
+verifiable rather than with a result: **no `npm run build` result was recorded
+by the build session, none is recoverable from this document, and none is
+claimed here.** The merge session that supplied this note did not run the build
+either, and says so.
+
+What *is* verifiable, and is why the missing result is not treated as a gap
+worth closing retrospectively:
+
+- `.env.local` is gitignored (`.gitignore:39`), untracked, and **absent from
+  both worktrees the build ran in** (`C:/tmp/tm-matcher-overload-expand` and
+  `C:/tmp/tm-matcher-overload-callsite`), while it is present in the primary
+  redesign tree [REPO]. A `next build` in either worktree therefore fails on
+  invalid `NEXT_PUBLIC_SUPABASE_*` values before it can say anything about this
+  change — a known environment effect, not a route regression.
+- `prebuild` is `node scripts/apply-lineup-effects-polish.mjs && node
+  scripts/validate-claude-project-context.mjs`, so `npm run build` transitively
+  re-runs the documentation validator that the table already records separately
+  at exit 0 [REPO].
+
+The change this handoff covers is one gated SQL migration, three executable
+harness files, `migration-ledger-map.ts`, and documentation. `tsc`, `vitest`,
+`lint` and `run.sh` all cover it and all passed. **Treat the build as unrun and
+unclaimed**; a session working in the primary tree may run it, and should record
+the real result rather than back-fill this row.
 
 ---
 
