@@ -112,9 +112,20 @@ expand half of that sequence is done; every remaining step is still gated.
   2026-07-23). Applying it authorized nothing further: it did not authorize the
   reader deploy, the `ID-READER-CONTRACT` drop, or contraction `20260722012707`.
   Nothing in production calls the function it added.
-- **The production ACL read on `resolve_import_guest_identity` is outstanding.**
-  It is the stated precondition of the CONTRACT step and was deliberately **not**
-  performed by the expand session, which held no authorization for it.
+- **The production ACL read on `resolve_import_guest_identity` is SATISFIED as
+  of 2026-07-23 09:40:14Z.** It was the stated precondition of the CONTRACT step
+  and was deliberately **not** performed by the expand session, which held no
+  authorization for it; a separately authorized read-only session has since made
+  it. **Evidence class [PRIOR]** — see "The production catalog read" below for
+  the full result, the exact signature the drop must name, the four areas the
+  caller sweep does not cover, and the requirement to **re-derive the signature
+  live** before authoring any drop statement. **The reader-deploy precondition
+  (`ID-READER-DEPLOY`) is NOT relaxed by this and remains in force.**
+- **The fresh production-side catalog sweep for database-internal callers is
+  also SATISFIED as of that same read**, and found **none**. It does **not**
+  cover Edge Functions as deployed, consumers outside the database, whether the
+  swept commit is what production serves, or runtime-constructed dynamic SQL. A
+  further sweep is required if production changes before the drop is authored.
 - `GATED_UNAPPLIED` now holds **five** entries; `20260722160000` left it on
   2026-07-23 and is recorded as renamed drift instead.
 - **Known harness coverage gap, open and deliberately not fixed.**
@@ -139,6 +150,69 @@ expand half of that sequence is done; every remaining step is still gated.
   `docs/agent-handoffs/DEPLOY-STATE-PLANNING-PACK-GIT-SOURCE.md`.
 - Do not merge `fix/planning-pack-deploy-state-source` (`52373ff79`). It is a
   superseded parallel attempt at the same repair; see `docs/REDESIGN_STATE.md`.
+
+### The production catalog read (2026-07-23 09:40:14Z) — evidence class [PRIOR]
+
+An authorized read-only session issued `SELECT`s only against
+`qjtwgrjjwnqafbvkkfex` (PostgreSQL 17.6; ledger 115 entries, head
+`20260723082917`). It read **no application table and no personal name**,
+performed **no Cloudflare action**, and mutated nothing. **These values are
+recorded from that session's report by a later documentation-only session that
+made no production read of its own** — they are a committed record of a live
+read, not a live read. Full record: the canonical `DEPLOY-STATE.md` entry
+"READ-ONLY catalog read of the guest-identity surface", `docs/REDESIGN_STATE.md`,
+and `docs/agent-handoffs/PHASE-04-STEP-03-GUEST-IDENTITY-PRODUCTION-CATALOG-READ.md`.
+
+**The exact signature the CONTRACT drop must name — and it must be re-derived
+live before use:**
+
+```
+public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean)
+```
+
+Named arguments `p_group_id uuid, p_identity_mode text, p_guest_username text,
+p_guest_first_name text, p_guest_last_name text, p_selected_player_id uuid,
+p_create_new boolean`. **Exactly one overload**, in `public` and no other schema;
+OID `21767`; owner `postgres`; `prosecdef` true; `proconfig` `{search_path=""}`;
+`md5(prosrc)` `2892f3189a15f04c35641473541fc5bd`, length `7504`; returns
+`TABLE(player_id uuid, public_name text, resolution_state text,
+normalized_imported_value text)`; member of no extension. Production matches
+what both creating migrations declare, character for character (**[REPO]**,
+re-verified `20260718050924` and `20260718212339`), so production was never
+ambiguous and the recorded signature hazard is a **documentation** defect only.
+
+**A signature recorded from a report is not a signature read from the catalog.**
+`drop function if exists` against a wrong signature **succeeds silently against
+nothing**: the function survives while the session records it as dropped. The
+drop session must re-derive the signature from the live catalog before writing
+any drop statement. This requirement is not discharged by the values above.
+
+**ACL — the `service_role` discrepancy is RESOLVED.** `proacl` is
+`{postgres=X/postgres,service_role=X/postgres}`; `service_role` **holds**
+EXECUTE, confirmed both by the raw ACL and by `has_function_privilege` across 11
+roles, which resolves `PUBLIC` and inheritance. `authenticated`, `anon`,
+`PUBLIC` and `authenticator` hold **none**. The applied revoke migration's header
+was **correct**; the creating migrations' grant lists were the incomplete
+picture. A **project-level default grant** rather than a migration statement is
+the likely origin — **[INFERENCE], and it stays [INFERENCE]**, because
+`pg_default_acl` was **not** queried.
+
+**Database-internal callers — none found.** Zero hits across 172 function
+bodies, 41 views, 0 materialized views, 13 user triggers in 12 non-system
+schemas, and zero `pg_depend` rows on OID `21767`. Positive controls returned
+hits on the same query shapes; no function uses a SQL-standard body, and the
+resolver belongs to no extension, so the `prosrc` sweep has no blind spot.
+**Not covered, all four open:** Edge Functions as deployed; consumers outside
+the database, including application source on any lineage; whether the commit
+production serves matches any swept tree; and runtime-constructed dynamic SQL.
+**This is not authorization to drop, and `ID-READER-DEPLOY` still stands.**
+
+**The expand is verified applied from the catalog**, independently of the
+applying session: one overload of
+`public.create_or_reuse_guest_identity(uuid,uuid,text,text,text,text,uuid,boolean)`,
+`prosecdef` true, `proconfig` `{search_path=""}`, `proacl`
+`{postgres=X/postgres,service_role=X/postgres}`, no `authenticated`/`anon`/
+`PUBLIC`, `md5(prosrc)` `99906055c863c4bebad13c21648a3058`, length `7897`.
 
 ## Next work item
 
@@ -209,8 +283,14 @@ sequence is:
    **applying the expand did not authorize it**;
 5. only then author and apply the CONTRACT drop of the deployed 7-argument
    `resolve_import_guest_identity`, after a fresh zero-caller re-sweep. **Its
-   precondition — a production ACL read on that resolver — is outstanding and
-   was deliberately not performed by the expand session**;
+   ACL-read precondition is now SATISFIED** — an authorized read-only session
+   made it on 2026-07-23 at 09:40:14Z, and the production-side catalog sweep for
+   database-internal callers was made at the same time and found none; both are
+   recorded above under "The production catalog read", evidence class
+   **[PRIOR]**. **Step 4 is unchanged and still gates this step**: satisfying the
+   ACL read and the sweep does not relax `ID-READER-DEPLOY`, and the sweep's four
+   uncovered areas remain open. **The signature must be re-derived live from the
+   catalog before any drop statement is written**;
 6. separately authorize and apply contraction migration `20260722012707` only
    after reader verification; and
 7. run a fresh closure audit before any Step 4.4 assignment.
@@ -254,7 +334,7 @@ registered under "Pending owner decisions".
 | ID | Requirement | Current status | Blocking |
 |---|---|---|---|
 | ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22, remediated after an independent audit returned FAIL, and MERGED into `redesign/tm-stats-dashboard-rebuild` on 2026-07-23; **migration APPLIED 2026-07-23 as ledger `20260723082917`, reader still undeployed**. Re-audited 2026-07-23: the targeted re-audit found the SQL and TypeScript remediation correct and complete and returned FAIL on documentation and coverage only; all four of its findings are addressed and its FAIL is answered.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. The audit's HIGH finding — the candidate-counting and auto-selection predicates disagreed about claimed players, so a same-name collision could auto-select a claimed player and fail with `P0002` — was reproduced and fixed in the unapplied file: the predicate is now evaluated once into `v_candidate_ids` and both uses derive from it. `p_requesting_user_id` was also made required, matching the four applied gateways. Executably proven and mutation-proven on a disposable cluster. **Closed out 2026-07-23**: probe P1 was re-run against the tightened clause 8b it had never been re-run against and still fails there with `P0002` (harness exit 3), so the remediation is proven at the current file state, not merely at the state the probe was originally run against. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` | Redesign deploy |
-| ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is applied (ledger `20260723082917`) and is additive, so the function is still in place. The drop is valid only after the moved reader is deployed and production-verified and a fresh zero-caller re-sweep passes. **Its stated precondition — a production ACL read on `resolve_import_guest_identity` — is OUTSTANDING**: the expand session was explicitly forbidden from making that read and did not make it. **Finding recorded 2026-07-23, disposition UNCHANGED: no reader on any lineage was found that calls this function.** Swept at production source commit `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` (zero `src/` occurrences; the only hits are `DEPLOY-STATE.md` prose), at rollback target `d12e33ad0` (zero `src/` occurrences), and at `redesign/…` `44eed2e21` (comments, the ledger map, and a test asserting the RPC is **not** called). Positive control on the same commit finds `.rpc(` in fourteen `src/` files and finds `match_import_player_names`, so the absence is real, not a broken search [GIT]. **The sweep does NOT cover** database-internal callers since the expand landed, edge functions as deployed, consumers outside this repository, or whether the swept commit is what production actually serves (that commit is **[PRIOR]** from the canonical ledger; the authenticated `/api/deploy-info` confirmation is itself recorded there as outstanding). **"No caller was found" is not "the drop is safe": the reader-deploy precondition is NOT relaxed and remains in force.** Changing it is an owner decision and has not been made — see "Pending owner decisions". Two preconditions are real regardless of that decision: the authorized production ACL and signature read above, and a fresh production-side catalog sweep for database-internal callers. Detail: `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` | Step 4.3 closure |
+| ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is applied (ledger `20260723082917`) and is additive, so the function is still in place. The drop is valid only after the moved reader is deployed and production-verified and a fresh zero-caller re-sweep passes. **Its stated precondition — a production ACL read on `resolve_import_guest_identity` — is SATISFIED as of 2026-07-23 09:40:14Z**, by a separately authorized read-only session; the expand session was explicitly forbidden from making that read and did not make it. Result, evidence class **[PRIOR]**, recorded above under "The production catalog read" and on the canonical `DEPLOY-STATE.md`: exactly one overload, `public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean)`, OID `21767`, `prosecdef` true, `search_path=""`, `md5(prosrc)` `2892f3189a15f04c35641473541fc5bd`; `proacl` `{postgres=X/postgres,service_role=X/postgres}`, so **`service_role` holds EXECUTE and `authenticated`/`anon`/`PUBLIC` do not** — the `service_role` discrepancy is **RESOLVED** and the applied revoke migration's header was correct. **The signature must still be RE-DERIVED LIVE before any drop statement is authored**: a signature taken from a report is not one read from the catalog, and `drop function if exists` against a wrong signature succeeds silently against nothing. **Finding recorded 2026-07-23, disposition UNCHANGED: no reader on any lineage was found that calls this function.** Swept at production source commit `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` (zero `src/` occurrences; the only hits are `DEPLOY-STATE.md` prose), at rollback target `d12e33ad0` (zero `src/` occurrences), and at `redesign/…` `44eed2e21` (comments, the ledger map, and a test asserting the RPC is **not** called). Positive control on the same commit finds `.rpc(` in fourteen `src/` files and finds `match_import_player_names`, so the absence is real, not a broken search [GIT]. **The sweep does NOT cover** database-internal callers since the expand landed, edge functions as deployed, consumers outside this repository, or whether the swept commit is what production actually serves (that commit is **[PRIOR]** from the canonical ledger; the authenticated `/api/deploy-info` confirmation is itself recorded there as outstanding). **"No caller was found" is not "the drop is safe": the reader-deploy precondition is NOT relaxed and remains in force.** Changing it is an owner decision and has not been made — see "Pending owner decisions". Two preconditions were real regardless of that decision — the authorized production ACL and signature read, and a fresh production-side catalog sweep for database-internal callers — and **both were satisfied on 2026-07-23 at 09:40:14Z [PRIOR]**. The production-side sweep found **no** database-internal caller: zero hits across 172 function bodies, 41 views, 0 materialized views and 13 user triggers in 12 non-system schemas, and zero `pg_depend` rows on OID `21767`, with positive controls returning hits on the same query shapes and two blindness checks clean (no SQL-standard function body anywhere, and the resolver in no extension). **It does not cover** Edge Functions as deployed, consumers outside the database, whether the commit production serves matches any swept tree, or runtime-constructed dynamic SQL — and a further sweep is required if production changes before the drop is authored. **Satisfying these two preconditions is not authorization to drop, and does not relax `ID-READER-DEPLOY`, which still stands.** Detail: `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` | Step 4.3 closure |
 | ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | **ACTIVE GATE as of 2026-07-23.** Not authorized or deployed. The database side is now ready — `create_or_reuse_guest_identity` exists and is `service_role`-only — but nothing in production calls it, and applying the expand granted no deploy authority | Legacy contraction |
 | ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live | Step 4.3 closure |
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary. It must also account for the recorded harness coverage gap: `run.sh` exit 0 does not cover the coarsened `match_import_player_names` disclosure or its candidate-input bound. A targeted re-audit of the merged `ID-READER-CLIENT` remediation is the evidenced next step and is separately unauthorized | Step 4.3 closure |
@@ -290,8 +370,25 @@ checked — declares the 2-argument `(p_group_id uuid, p_imported_names text[])`
 signature, in `20260720120000` only. No migration anywhere in the repository
 creates a 3-argument overload.
 
+**Established [PRIOR], added 2026-07-23.** It does not exist **in production
+either** — previously an open unknown, since the repository sweep could only
+speak for the repository. The authorized read-only catalog read of 2026-07-23
+09:40:14Z found **exactly one** overload of the name,
+`public.match_import_player_names(uuid,text[])`: `prosecdef` true, `proconfig`
+`{search_path=""}`, `proacl`
+`{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}` — so
+**`authenticated` CAN still execute it** — `md5(prosrc)`
+`522f8cb0a2647c57e35da0a081f90480`, length `4191`. The three-argument
+`service_role`-only overload the decision adopted exists **neither in the
+repository nor in production**, and the matcher enumeration oracle therefore
+remains **OPEN** behind the interim coarsening `20260722144034`, exactly as
+already recorded. **This changes no disposition**: `ID-LEGACY-ORACLE` is
+unchanged and contraction `20260722012707` remains gated and unapplied.
+
 **Not established.** Why it does not exist. Two possibilities were examined and
-could **not** be distinguished from the repository record:
+could **not** be distinguished from the repository record — **and the production
+read above does not distinguish them either**, because an absent object is
+equally consistent with both:
 
 1. the amendment was **superseded** by later work without any record being
    written; or
