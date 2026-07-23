@@ -80,7 +80,10 @@ expand half of that sequence is done; every remaining step is still gated.
   predicates) and `FINDING-2` (`p_requesting_user_id` declared last and
   defaulted) are remediated, executably proven, and **merged** into
   `redesign/tm-stats-dashboard-rebuild` on 2026-07-23. `FINDING-4` /
-  `DRAFT-NAME-RESIDUE` remains open and untouched.
+  `DRAFT-NAME-RESIDUE` remains **open and unfixed**, but is no longer
+  uninvestigated: a read-only investigation of 2026-07-23 settled its
+  reachability **by execution** and found the audit had understated it on three
+  counts. See the blocker table.
 - A **targeted re-audit** of that merged remediation was run on 2026-07-23 and
   returned **FAIL** on one MEDIUM documentation defect and three LOW items. It
   found the SQL and TypeScript remediation itself correct and complete. All four
@@ -98,7 +101,14 @@ expand half of that sequence is done; every remaining step is still gated.
   records each audit's target, verdict, findings, cleared properties, and stated
   limits, so the closure audit can establish what was independently audited and
   what was cleared. Evidence class **[PRIOR]** — it records the audits rather
-  than re-proving them, and changes no finding's disposition.
+  than re-proving them, and changes no finding's disposition. **That trail is a
+  historical record of what each audit found, and is deliberately NOT
+  rewritten.** Where later evidence has overtaken it, the correction belongs in
+  the current record instead: the 2026-07-23 execution superseded `FINDING-4`'s
+  characterisation on three counts — reachability, scope and lifetime — and
+  traced its "must never enter draft snapshots" phrasing to a code comment about
+  a different field rather than to a contract clause. That correction is recorded
+  against `DRAFT-NAME-RESIDUE` in the blocker table below.
 
 ## In progress
 
@@ -340,7 +350,7 @@ registered under "Pending owner decisions".
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary. It must also account for the recorded harness coverage gap: `run.sh` exit 0 does not cover the coarsened `match_import_player_names` disclosure or its candidate-input bound. A targeted re-audit of the merged `ID-READER-CLIENT` remediation is the evidenced next step and is separately unauthorized | Step 4.3 closure |
 | STEP-4.4 | Explicit assignment for final review, finalization, and draft safety | Not authorized | Step 4.4 start |
 | GUEST-NAME-COLLISION-TERMINAL | A user must be able to add a roster entry whose typed first/last name matches two or more unlinked guests already in the group | **Recorded 2026-07-23, NOT fixed. Inherited, not introduced.** When two or more UNLINKED players in a group carry the same normalized personal name, `create_or_reuse_guest_identity` raises `P0003` ("Multiple guest identities match. Select one explicitly.") and there is no way to satisfy it: the sole call site `createOrReuseGuestPlayerByPersonalName` (`src/lib/db/import-player-identity-repo.ts:118`) hard-codes `p_selected_player_id: null` and accepts no selection from its callers, and neither product path — `/group/players` (`src/app/(app)/group/players/page.tsx:31`) nor the Log-a-Game manual-entry resolver (`src/lib/db/log-game-player-resolution.ts:84`) — offers a disambiguation UI. No code in `src/` handles `P0003`, so it falls through `throw error` as a raw database failure. The state is therefore **terminal**: that roster entry can never be added [REPO]. It is inherited from the deployed resolver this function is derived from and is not a regression introduced by the `ID-READER-CLIENT` work. Reachable because the personal-name index is NON-unique per group (`20260718050924:111-113`) and personal_name is the only mode either non-import path uses. **Coupled to the coverage added on 2026-07-23**: the natural fix is a disambiguation UI, which would pass an explicit `p_selected_player_id` and thereby activate the revalidation path that section 11 of `non-import-guest-identity-after.sql` guards — the clause stopping an explicitly selected CLAIMED player from being returned as `existing_unlinked_guest`. That assertion must remain in place before any such UI ships. Fixing this is a product decision needing its own assignment; see `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md`. **Classification CONTESTED as of 2026-07-23, and deliberately NOT changed here.** The phase contract's Step 4.3 scope requires that the importer be able to "select an existing unlinked guest" and "resolve an ambiguous match explicitly", and the terminal `P0003` state makes neither possible — which reads as a contract non-conformance against the "Blocking" value in this row. Whether it is one is an owner adjudication; registered as **PD-3** under "Pending owner decisions", where it interacts with **PD-2** | Nothing today; user-facing dead end |
-| DRAFT-NAME-RESIDUE | A typed personal name must not survive into a Log-a-Game draft snapshot or its hydration payload after the seat that introduced it is removed | **Recorded, NOT fixed and NOT investigated.** Independent-audit FINDING-4, pre-existing and untouched by the ID-READER-CLIENT work: removing a manually added player's seat may leave records keyed by that seat's reference unpruned, so a typed first/last name could persist in the stored draft and be returned on hydration. This would breach the "private names must be excluded from payloads, not merely hidden" rule in `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`. **End-to-end reachability is INFERRED, not executed** — no failing test, captured payload, or stored draft was produced, so severity is unconfirmed. It lives in the wizard/draft subsystem, not the identity RPCs, and needs its own scoped assignment; it must not be fixed inside an identity task. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` | Nothing today |
+| DRAFT-NAME-RESIDUE | A typed personal name must not survive into a Log-a-Game draft snapshot or its hydration payload after the seat that introduced it is removed | **Recorded, NOT fixed — but INVESTIGATED and settled by EXECUTION on 2026-07-23, and the audit UNDERSTATED it.** Independent-audit FINDING-4, pre-existing and untouched by the ID-READER-CLIENT work: removing a manually added player's seat leaves records keyed by that seat's reference unpruned, so a typed first/last name persists in the stored draft and is returned on hydration. This breaches the "private names must be excluded from payloads, not merely hidden" rule in `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`. **Reachability is no longer [INFERENCE]** [PRIOR]: a probe drove the REAL save path — `logGameDraftSchema.parse` → `resolveLogGamePlayerReferences` → `saveDraftGame` → the `game_revisions` insert — against a disposable PostgreSQL 18 cluster replaying the real migration history, adapting only the Supabase transport, then read the row back with raw SQL. **The audit understated the finding on three counts, all in the direction of severity.** (1) **Reachability is PROVEN, not inferred** — the audit left severity unconfirmed for want of a failing test, captured payload, or stored draft; all three now exist. (2) **The name persists at SIX sites, not one class of record** — as the object KEY of `playerScores`, `playerSelections` and `playerStyles`, and as the VALUE of `milestoneClaims.*.winnerPlayerId`, `awardClaims.*.fundedByPlayerId` and `awardClaims.*.firstPlaceWinnerPlayerIds[]`. (3) **It SURVIVES FINALIZATION permanently** — revisions are never deleted anywhere in `src/**` or `supabase/migrations/**`, finalization only ADDS a row, the finalized revision snapshot itself carries `playerSelections`/`playerStyles` residue, and claims naming a removed reference were measured ACCEPTED by `buildFinalizedGamePayload`, which checks presence not membership. **Exposure is not the drafting user alone**: from the policies as written it is every member of the game's group, plus any linked participant once the game is finalized — and **it reaches the browser of someone who never typed the name**, measured in the `initialValues` prop of `<LogGameWizard>`, a `'use client'` component (only the last hop, Next.js wire serialization, remains [INFERENCE]). Not public; permanent per-player tables stay clean, the name lives **only** in `game_revisions.snapshot`. **A fourth correction, to the finding's wording:** its phrase "must never enter draft snapshots" tracks a **code comment about a different field**, not a contract clause — the clause actually engaged is the privacy contract's **unqualified "browser hydration data"** boundary under Data-boundary requirements; the Public-surfaces list is NOT engaged. Mechanism proven by contrast: the RETAINED seat's typed name WAS resolved to a real UUID through `create_or_reuse_guest_identity` in the same call, and only the removed reference stayed raw, because `remapRecord`'s `replacements.get(key) ?? key` holds no entry for a reference absent from `selectedPlayerIds` and `compactRecord` prunes by value emptiness only, never by key membership. **One bug, not a family** — the import draft path keys by resolved UUID and is unaffected; `sourcePlayerText` is separate and contract-sanctioned. No guard is failing: the case was never covered, and no test asserts it. Three fix options are priced in the handoff, with existing stored drafts flagged as the expensive half needing separate authorization. **Whether this blocks Step 4.3 closure is an OWNER DECISION and is NOT taken here — the Blocking value in this row is deliberately left UNCHANGED pending that adjudication**; the investigation assessed it as recordable rather than blocking while calling that assessment genuinely contestable. It lives in the wizard/draft subsystem, not the identity RPCs, and needs its own scoped assignment; it must not be fixed inside an identity task. See `docs/agent-handoffs/PHASE-04-STEP-03-DRAFT-NAME-RESIDUE-INVESTIGATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` | Nothing today |
 
 ## Pending owner decisions
 
@@ -385,6 +395,50 @@ remains **OPEN** behind the interim coarsening `20260722144034`, exactly as
 already recorded. **This changes no disposition**: `ID-LEGACY-ORACLE` is
 unchanged and contraction `20260722012707` remains gated and unapplied.
 
+**Established [PRIOR], added 2026-07-23 by read-only design scoping.** A separate
+session priced the amendment on a disposable PostgreSQL 18.4 cluster and answered
+the buildability question **without building anything** — no `supabase/**`,
+`src/**` or `scripts/**` file was created or changed on any lineage, and no
+production read occurred
+(`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-DESIGN-SCOPING.md`).
+Five findings bear on this decision:
+
+1. **The overload SHAPE survives the ambiguity lesson.** The `42725` failure that
+   forced `resolve_import_guest_identity`'s redesign does **not** transfer here,
+   because the matcher's base signature `(uuid, text[])` carries **no defaults**,
+   so an appended third parameter is not forced to default. Proven on the
+   cluster, together with a control that reproduced the guest-identity failure.
+2. **Binding constraint the amendment does not state: the third parameter must
+   carry NO default.** `default null` reproduces `42725` on **every existing
+   two-argument call at expand time**. The amendment's text is silent on this.
+3. **HIGH — a null requesting-user id fails SILENTLY.** An unguarded pool returns
+   **zero rows and no error**, and the helper an implementer would naturally
+   reuse returns `null` on failure **by design**, so every import would show all
+   players unmatched with a clean log. Both a SQL null rejection and a
+   fail-closed resolver are required, and **verification must confirm NON-ZERO
+   matches, not merely the absence of an error.**
+4. **There are THREE call sites, not the two the amendment names.** All three
+   funnel through one wrapper, `matchImportPlayerNames`, which already builds its
+   own client and already resolves the user id from `auth.getUser()` — so the
+   change is one function in one file, with no threading introduced. The third
+   site, `roster_display_name_fallback` in `player-repo.ts`, is dormant only
+   because the `normalized_display_name` grant survives.
+5. **The contraction RE-GATES rather than closes.** `20260722012707`'s body
+   revokes `EXECUTE` from `public`/`anon`/`authenticated` **only**, so
+   `service_role` keeps its grant and the two-argument function survives as a
+   live callable object; the enumeration probe also remains reachable through the
+   analyze server action. The contraction is an ACL change, not a removal, and
+   dropping the two-argument function is separate and unauthorized. **Any
+   post-contraction status line must say "re-gated", never "closed."**
+
+**Precondition outside this repository, evidence class [UNVERIFIED].** Whether
+`SUPABASE_SERVICE_ROLE_KEY` is bound on the live Worker is **unverified, and the
+repository cannot settle it**. It is a precondition of any overload build,
+because an unbound secret makes the admin client throw
+`SUPABASE_SERVICE_ROLE_KEY is not configured.` on every affected request. It is
+checkable only against the deployment (for example the Worker's Variables and
+Secrets pane), which no session so far has been authorized to read.
+
 **Not established.** Why it does not exist. Two possibilities were examined and
 could **not** be distinguished from the repository record — **and the production
 read above does not distinguish them either**, because an absent object is
@@ -401,7 +455,10 @@ found either. **This is an inference boundary, not a conclusion.**
 **Decision required of the owner.** Whether to build the overload, retire the
 amendment, or leave it dormant. **`docs/redesign/DECISIONS.md` was deliberately
 not edited**: recording an implementation-status question about a decision is
-not the same as amending the decision, and amending it is the owner's act.
+not the same as amending the decision, and amending it is the owner's act. The
+2026-07-23 scoping prices the options and states the constraints; it **resolves
+none of them**, authorizes neither the overload nor `20260722012707`, and left
+`DECISIONS.md` untouched as well.
 
 ### PD-2 — May Step 4.3 close with `ID-LEGACY-ORACLE` still open?
 

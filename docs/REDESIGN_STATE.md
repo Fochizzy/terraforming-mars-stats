@@ -2347,6 +2347,37 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-INVESTIGATION-CONSOLIDATION-2026-07-23.md
+  (documentation only, redesign lineage: bounded local consolidation landing the
+  two read-only investigation branches — `investigate/matcher-overload-scoping`
+  (`9d742aef0`) and `investigate/draft-name-residue` (`29e166003`) — as two
+  `--no-ff` merges, then recording their outcomes where the blockers and pending
+  decisions live. **Decides nothing, builds nothing, fixes nothing**; no
+  `src/**`, `supabase/**` or `scripts/**` change, no production access of any
+  kind, no deploy, no migration applied, no backfill, grant or revoke. The single
+  merge conflict was confined to this `Latest handoff` group and resolved
+  **purely additively** — both sides kept in full, newest first, nothing dropped
+  or reworded, no blank line introduced — and proven line-multiset identical to
+  the conflicted file minus its three markers. `CURRENT_STATUS.md` updated in
+  three places, all evidence class **[PRIOR]**: the `DRAFT-NAME-RESIDUE` blocker
+  row now records that reachability is **PROVEN by execution**, that the name
+  persists at **SIX sites**, that it **SURVIVES FINALIZATION permanently**, and
+  that exposure is every group member plus any linked participant of a finalized
+  game — reaching the browser of someone who never typed it — with the audit's
+  three understatements and its misattributed "must never enter draft snapshots"
+  phrase (a code comment about a different field, not a contract clause; the
+  clause actually engaged is the privacy contract's unqualified "browser
+  hydration data" boundary) recorded **without rewriting the independent audit
+  trail**; and **PD-1** now carries the five scoping findings — the overload
+  shape survives the ambiguity lesson, the third parameter must carry **no
+  default**, the HIGH silent-failure finding on a null requesting-user id,
+  **three** call sites and not two, and that the contraction **RE-GATES rather
+  than closes** because `service_role` keeps EXECUTE. `SUPABASE_SERVICE_ROLE_KEY`'s
+  binding on the live Worker is recorded as **[UNVERIFIED]** and a precondition
+  of any overload build. **`DECISIONS.md` untouched, no blocker's `Blocking`
+  value changed, nothing reclassified, PD-1/PD-2/PD-3 and the
+  `DRAFT-NAME-RESIDUE` closure question all left unresolved, and Step 4.3 NOT
+  marked complete**)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-DESIGN-SCOPING.md
   (read-only design scoping, redesign lineage: prices the 2026-07-22 AMENDMENT's
   interim service-role re-gate of `public.match_import_player_names` so the owner
