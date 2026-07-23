@@ -1317,6 +1317,58 @@ actual hook with a stubbed updater and no real Drive write. This amendment is
 itself made in a worktree that is not the updater's tree, so its own planning-pack
 synchronization is PENDING until the branch merges into the updater's tree.
 
+### Agent skills encoding existing governance procedure (2026-07-23)
+
+Local tooling and governance only. No phase, blocker, release, migration, or
+production fact changed. This is **not** Phase 4 or Phase 5 work, and it does not
+change Step 4.3 or Step 4.4 status. No production access of any kind occurred.
+
+Branch `chore/agent-skills-tier-1`, created from
+`redesign/tm-stats-dashboard-rebuild` at base commit `d63e6b0d7` in the isolated
+worktree `C:\tmp\tm-agent-skills-tier-1`. **Unmerged**; merging it requires
+separate owner authorization.
+
+Seven Claude Code skills were added under `.claude/skills/`:
+`tm-evidence-and-report`, `tm-validation-battery`, `tm-task-preflight`,
+`tm-handoff-writer`, `tm-planning-pack-sync`, `tm-no-fabrication`, and
+`tm-canonical-first`. Each holds **procedure and pointers only** and states that
+it authorizes nothing. None restates contract text: where a requirement is
+canonical, the skill cites the document and heading instead of copying it, so a
+skill cannot become a competing source of truth. Every path and heading pointer
+was verified mechanically (30 path pointers, 35 heading pointers, all resolving).
+
+`tm-validation-battery` additionally carries an executable
+(`scripts/run-battery.ps1`) and the baselines it compares against
+(`scripts/baselines.json`), measured **in this task** from a clean primary
+checkout at `d63e6b0d7`: the executable PostgreSQL harness, `npm run test`
+(178 files / 982 tests), `npx tsc --noEmit` (0 diagnostics), `npm run lint`
+(0 errors, the exact 4 pre-existing warnings recorded individually),
+`npm run build`, and `validate:claude-context`. A control run against a
+deliberately perturbed baseline failed as it should, so the comparison
+discriminates rather than passing vacuously.
+
+`validate:claude-context -- --require-maintenance` is recorded as a **completion
+gate, not a state check**: it compares the working tree against `HEAD`, so on a
+clean tree it fails by design. That is not a broken baseline, and the runner
+skips it on a clean tree with that reason stated rather than reporting a
+meaningless failure.
+
+`docs/CURRENT_STATUS.md` and `docs/AUTHORITATIVE_DOCUMENTS.md` were intentionally
+left unchanged, assessed independently against their own maintenance rules: no
+phase, blocker, release, migration, or next-action state changed, and no
+authority was added, moved, superseded, or archived — a skill is not an authority
+and each defers to the documents it cites. `docs/redesign/DECISIONS.md` is
+unchanged because no durable decision was approved here.
+`docs/redesign/MASTER-PLAN.md` is unchanged because no project-wide goal,
+governance rule, phase structure, milestone, architecture, contract, or gate
+changed. `docs/redesign/CLAUDE-PROJECT-SOURCES.json`, `CLAUDE.md`, and
+`AGENTS.md` are unchanged and were outside the authorized edit set.
+
+Cataloguing the skills, creating any index for them, and mirroring them into
+`AGENTS.md` all remain **unauthorized** and are open owner decisions.
+
+Handoff: `docs/agent-handoffs/AGENT-SKILLS-TIER-1.md`.
+
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
 
 Branch `fix/import-identity-source-bound-matching`, merged into
@@ -2751,6 +2803,17 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/AGENT-SKILLS-TIER-1.md
+  (local tooling and governance only: seven Claude Code skills under
+  `.claude/skills/` encoding existing governance procedure — evidence classes and
+  report sections, the validation battery with baselines measured in that task at
+  `d63e6b0d7`, task preflight, handoff writing, planning-pack synchronization,
+  the missing/zero/unsupported distinction, and canonical-first lookup. Procedure
+  and pointers only; no contract text restated; every pointer verified to resolve.
+  Each skill states it authorizes nothing. **No phase, blocker, release,
+  migration, or production change; no production access; branch
+  `chore/agent-skills-tier-1` unmerged.** Cataloguing, indexing, and the
+  `AGENTS.md` mirror remain unauthorized owner decisions)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md
   (record only, redesign lineage: lands the `MATCHER-APPLY-FORENSICS` work item —
   verdict **PASS** — which existed in **no** repository document before this
