@@ -198,9 +198,46 @@ log, or output. Sentinel values only.
 - `docs/CURRENT_STATUS.md`, `docs/REDESIGN_STATE.md` — updated with this outcome.
 - `docs/redesign/MASTER-RULES.md`, `docs/redesign/phases/04-log-a-game.md` —
   reviewed; no change required.
-- `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` — **needs a follow-up
-  update** (see the task report): it still describes `20260720100000` as an
-  applicable expansion and does not list `20260722160000`. It is the
+- `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` — **needed a follow-up
+  update** (see the task report): it still described `20260720100000` as an
+  applicable expansion and did not list `20260722160000`. It is the
   human-readable companion to `migration-ledger-map.ts`; the executable drift
   gate reads only the `.ts`, which is current. Editing it was outside this
-  task's permitted file set.
+  task's permitted file set. **Resolved by the integration task below.**
+
+---
+
+## 7. Follow-up corrections applied at integration (2026-07-23)
+
+This branch was merged into `redesign/tm-stats-dashboard-rebuild` as `4b9523b8`
+(after `design/guest-identity-overload-scoping` as `8e331cff`). The integration
+task carried a permitted file set that this task did not, and used it to correct
+the three records this work left stale. Documentation and comment text only — no
+logic, migration, schema, deploy, or production change, and no blocker changed
+disposition.
+
+- `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` — reconciled to
+  `src/lib/db/migration-ledger-map.ts` at the merged HEAD, citing the executable
+  file as the evidence. `20260720100000` is now recorded as a RETIRED no-op
+  tombstone with hazard class `neutral` (still listed in `GATED_UNAPPLIED` for
+  audit), `20260722160000` is registered gated/unapplied with hazard class
+  `expansion`, the gated table is six entries, and the hazard totals read
+  16 contraction / 30 expansion / 9 neutral over 55 files. No ledger count,
+  ledger head, or production attestation was changed or invented.
+- `src/lib/db/player-repo.ts` — the read-only-repository comment claimed **every**
+  guest-creation path goes through `resolve_import_guest_identity`. Corrected to
+  name the two RPCs that actually serve them: imports through
+  `resolve_staged_import_player_identity`, the two NON-import paths through the
+  `service_role`-only `create_or_reuse_guest_identity`.
+- `src/lib/player-identity/guest-identity.ts` — the `importedPlayerResolutionSchema`
+  comment placed server-side matching "entirely inside the
+  `resolve_import_guest_identity` RPC". Corrected the same way. Note this comment
+  was **already** stale before this branch: the source-bound replacement
+  (repository `20260722012658`, applied as ledger `20260722132159`) had already
+  moved import-side matching to `resolve_staged_import_player_identity`. This
+  branch made it stale in the second direction as well.
+
+Still outstanding after those corrections:
+`src/lib/player-identity/guest-identity.test.ts:14` carries the same superseded
+`resolve_import_guest_identity` claim and was outside the integration task's
+permitted file set.

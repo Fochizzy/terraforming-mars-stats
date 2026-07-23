@@ -77,7 +77,10 @@ export type ImportPlayerIdentityDraftInput = z.input<
 // username/personal-name matching key) is private matching data under
 // docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md and must never
 // enter draft snapshots, hydration payloads, or any client DTO. Server-side
-// matching happens entirely inside the resolve_import_guest_identity RPC.
+// matching happens entirely inside the server-side resolution RPCs:
+// resolve_staged_import_player_identity for imports, and the service_role-only
+// create_or_reuse_guest_identity for the two NON-import guest paths.
+// resolve_import_guest_identity no longer serves either path.
 // Because zod strips unknown keys, parsing a legacy snapshot that still
 // contains the retired key removes it before any client sees the value.
 export const importedPlayerResolutionSchema = z.object({

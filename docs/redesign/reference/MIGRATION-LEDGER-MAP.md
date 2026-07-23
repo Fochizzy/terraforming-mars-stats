@@ -38,8 +38,10 @@ version, so all three are paired by **name** in
 | `20260722153233` | close_authenticated_guest_identity_oracle | `20260722153000` |
 
 Two of those move a file **out of the gated set**: `20260722012658` and
-`20260720120000` are applied and are no longer prepared-and-unapplied.
-`GATED_UNAPPLIED` now holds five entries, and `20260722012707` is the only
+`20260720120000` are applied and are no longer prepared-and-unapplied. One file
+later **joined** the gated set: `20260722160000`, the EXPAND half of the
+`ID-READER-CLIENT` repair.
+`GATED_UNAPPLIED` now holds six entries, and `20260722012707` is the only
 remaining half of the source-bound replacement. Applied is not closed —
 `20260722144034` was an interim mitigation that independent review found
 insufficient as a closure; see the gated table below.
@@ -288,11 +290,12 @@ them.
 | --- | --- | --- | --- |
 | `20260717190000_add_merger_offer_rule_snapshots` | expansion | Phase 2 Merger package | owner-approved group UUID + dry run + explicit authorization |
 | `20260719234500_separate_event_confidence_from_review_state` | **contraction** | confidence/review split (repeat-safe) | per-mutation protocol; pre-apply gate includes verifying no deployed writer emits the retired `'reviewed'` confidence (expand/contract) |
-| `20260720100000_add_guest_identity_alias_source_control` | expansion | guest RPC alias-recording control | per-mutation protocol; required before the redesign's roster/manual guest paths ship |
+| `20260720100000_add_guest_identity_alias_source_control` | neutral | **RETIRED / SUPERSEDED — no-op tombstone.** The file is kept at its original version as an auditable record and now contains no executable statement | none applicable. Applying it is impossible-by-content rather than merely gated; it is not in the production ledger and never will be. Its still-needed capability moved to `20260722160000`, which also does **not** re-grant `authenticated` |
 | `20260720110000_extend_canonical_board_placement_contract` | **contraction** | full placement contract | per-mutation protocol; expand/contract order. The pre-apply gate must confirm no `game_log_events` row carries owner ids with a non-`explicit_owner` `ownership_state`: the added CHECK is not `not valid`, so one such row fails the `ALTER TABLE` |
 | `20260722012707_retire_free_form_import_name_matcher` | **contraction** | removes authenticated execution from the deployed arbitrary `text[]` matcher | apply only after the expansion and compatible reader are live and verified; separate explicit authorization required |
+| `20260722160000_add_non_import_guest_identity_creator` | expansion | creates the `service_role`-only `public.create_or_reuse_guest_identity` for the two NON-import guest paths, authorized on an explicit requesting-user id and writing no `player_import_aliases` row | per-mutation protocol; separate explicit authorization required. Additive — it does **not** drop the deployed 7-argument `resolve_import_guest_identity`. That drop is a later CONTRACT migration, authorized only after this file is applied and the moved reader is deployed and verified |
 
-This table is the five entries of `GATED_UNAPPLIED`. **Two files left it on
+This table is the six entries of `GATED_UNAPPLIED`. **Two files left it on
 2026-07-22 and are recorded above as renamed drift instead:**
 
 - `20260722012658_add_source_bound_import_identity_staging` — the expansion half
@@ -306,6 +309,13 @@ This table is the five entries of `GATED_UNAPPLIED`. **Two files left it on
   disclosed reason and score but leaves the private-name confirmation oracle
   open, and it is not part of the source-bound replacement proof. Do not cite it
   as the closure. The closure is `20260722012707`, still gated.
+
+One file **joined** the set on 2026-07-22:
+`20260722160000_add_non_import_guest_identity_creator`, the EXPAND half of the
+`ID-READER-CLIENT` repair. In the same change `20260720100000` stopped being an
+applicable expansion: it stays listed in `GATED_UNAPPLIED`, but only as a
+retired no-op tombstone kept for audit, and its declared hazard class moved
+`expansion` → `neutral`.
 
 ## Hazard classes
 
@@ -328,9 +338,12 @@ the SQL alone does not record. A file with no declaration fails as
   reconciliations, comments, no-op history placeholders.
 
 Where a file mixes hazards, the strongest present wins. Current declarations:
-**16 contraction, 30 expansion, 8 neutral** (54 files) — counted from
+**16 contraction, 30 expansion, 9 neutral** (55 files) — counted from
 `MIGRATION_HAZARD_CLASS` and reconciled against `supabase/migrations/` on
-2026-07-22. The 54th file is `20260722153000`, whose declaration is below.
+2026-07-22. The 55th file is `20260722160000`, whose declaration is below. In
+the same change `20260720100000` moved `expansion` → `neutral` when it was
+retired as a no-op tombstone, which is why the expansion count is unchanged at
+30 while the neutral count rose from 8 to 9.
 
 ### Contractions
 
@@ -375,10 +388,14 @@ the other way:
   `auth.uid() is null` gate already rejected anonymous callers, so nothing is
   stranded: every real signed-in caller gains access rather than losing it.
   Declared `expansion`.
-- `20260720100000_add_guest_identity_alias_source_control` **drops** the
-  deployed 7-argument `resolve_import_guest_identity` signature, but creates an
-  8-argument superset whose new parameter defaults to the previous behaviour,
-  so every previously valid call still resolves. Declared `expansion`.
+- `20260722160000_add_non_import_guest_identity_creator` contains `REVOKE`
+  statements and is still an `expansion`. Every revoke targets the function the
+  same file creates — including the load-bearing `from public` revoke that
+  removes `CREATE FUNCTION`'s implicit `PUBLIC` grant — so nothing deployed is
+  stranded. It creates one new `service_role`-only function, drops no object,
+  narrows no pre-existing grant, tightens no constraint, and leaves the deployed
+  7-argument `resolve_import_guest_identity` exactly as it is. Declared
+  `expansion`.
 - `20260704034500`, `20260704071832` and `20260704123000` drop policies and
   recreate them under equal-or-broader definitions (`owners …` → `members …`,
   `editors …` → `members …`). Declared `expansion`.
@@ -392,6 +409,7 @@ the other way:
 | `20260708013631_fix_replace_game_log_events_conflict_target` | one function body; no contract surface change |
 | `20260708143547`, `20260708143922`, `20260708150649`, `20260708162535` `_remote_history_placeholder` | no-ops |
 | `20260718212342_add_objective_catalog_aliases` | inserts only |
+| `20260720100000_add_guest_identity_alias_source_control` | retired no-op tombstone; contains no executable statement, so applying it changes no contract surface at all. Its previous body was **not** neutral: it dropped the deployed 7-argument `resolve_import_guest_identity` and re-granted `authenticated` EXECUTE on the replacement, which would have reopened the private-guest-name confirmation oracle production closed as ledger `20260722153233`, and it still gated on `auth.uid()` so it did not repair `ID-READER-CLIENT` either. The capability moved to `20260722160000` |
 
 ## Deployment rules
 

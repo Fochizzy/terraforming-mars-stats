@@ -58,6 +58,30 @@ changed disposition.
 
 Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md`.
 
+**Integrated 2026-07-23, with three stale records corrected.** The design branch
+merged as `8e331cff` and this implementation as `4b9523b8`, both `--no-ff`. A
+separate correction commit then reconciled the three records the two source
+tasks left stale only because they sat outside those tasks' permitted file sets.
+Documentation and comment text only — no logic, migration, schema, deploy, or
+production change, and no blocker changed disposition.
+
+- `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` reconciled to
+  `src/lib/db/migration-ledger-map.ts` at the merged HEAD: `20260720100000`
+  recorded as a RETIRED no-op tombstone with hazard class `neutral` (still
+  listed in `GATED_UNAPPLIED` for audit, never applicable), `20260722160000`
+  registered gated/unapplied with hazard class `expansion`, the gated table now
+  six entries, hazard totals 16 contraction / 30 expansion / 9 neutral over 55
+  files. No ledger count, ledger head, or production attestation was changed.
+- `src/lib/db/player-repo.ts` and `src/lib/player-identity/guest-identity.ts`
+  carried comments routing **every** guest-creation path through
+  `resolve_import_guest_identity`. That RPC now serves no live path: imports
+  resolve through `resolve_staged_import_player_identity` and the two NON-import
+  paths through the `service_role`-only `create_or_reuse_guest_identity`. The
+  `guest-identity.ts` comment was already stale before this branch, because the
+  applied source-bound replacement had already moved import-side matching.
+  `src/lib/player-identity/guest-identity.test.ts` still carries the same
+  superseded claim and was outside the correction task's permitted file set.
+
 ### Production release-boundary reconciliation (2026-07-22)
 
 The newer production apply record supersedes older statements below that both
