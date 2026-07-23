@@ -33,6 +33,11 @@ type GameRevisionRow = {
   snapshot: unknown;
 };
 
+type GamePlayerRosterRow = {
+  game_id: string;
+  player_id: string;
+};
+
 type LegacyImportEvidenceRow = {
   screenshot_object_path: string | null;
 };
@@ -40,6 +45,17 @@ type LegacyImportEvidenceRow = {
 type ScreenshotImportEvidenceRow = {
   storage_object_path: string | null;
 };
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Shown in place of a roster entry that is an id we could not resolve to a
+ * player. A raw id is never a name: rendering one leaks a uuid into the UI,
+ * which is exactly what happened to games whose snapshot ids were orphaned by a
+ * later roster merge.
+ */
+export const UNKNOWN_SAVED_GAME_PLAYER_LABEL = 'Unknown player';
 
 function extractSelectedPlayerIds(snapshot: unknown) {
   if (
@@ -54,6 +70,50 @@ function extractSelectedPlayerIds(snapshot: unknown) {
   }
 
   return [];
+}
+
+/**
+ * The roster to label a saved game by.
+ *
+ * A finalized game carries its authoritative roster in `game_players`. The
+ * revision snapshot is a frozen artifact: its ids go stale the moment roster
+ * rows are merged away underneath it — an import's guest placeholders being
+ * replaced by the real players, say — and a stale id resolves to nothing.
+ * So prefer the live roster, keeping the snapshot's ordering wherever the two
+ * still agree so healthy games list exactly as before.
+ *
+ * A draft has no `game_players` rows yet, and its snapshot may legitimately
+ * hold typed names for players who do not exist yet, so it keeps the snapshot.
+ */
+function resolveRosterEntries(
+  snapshotEntries: string[],
+  gamePlayerIds: string[],
+) {
+  if (gamePlayerIds.length === 0) {
+    return snapshotEntries;
+  }
+
+  const liveRoster = new Set(gamePlayerIds);
+  const ordered = snapshotEntries.filter((entry) => liveRoster.has(entry));
+  const listed = new Set(ordered);
+
+  return [...ordered, ...gamePlayerIds.filter((id) => !listed.has(id))];
+}
+
+/**
+ * Label one roster entry. Entries are usually `players.id`, but a draft
+ * snapshot can also hold a name typed before the player row existed, which is
+ * still shown by first name only.
+ */
+function labelRosterEntry(entry: string, labelByPlayerId: Map<string, string>) {
+  const resolved = labelByPlayerId.get(entry);
+  if (resolved) {
+    return resolved;
+  }
+
+  return UUID_PATTERN.test(entry)
+    ? UNKNOWN_SAVED_GAME_PLAYER_LABEL
+    : personLabel({ displayName: entry });
 }
 
 export type SavedGameFormResult = {
@@ -362,16 +422,14 @@ export async function listSavedGames(payload: {
     throw revisionsError;
   }
 
-  const playersQuery = supabase
-    .from('players')
-    .select('id');
-  const { data: players, error: playersError } =
-    groupIds.length === 1
-      ? await playersQuery.eq('group_id', groupIds[0])
-      : await playersQuery.in('group_id', groupIds);
+  const { data: gamePlayers, error: gamePlayersError } = await supabase
+    .from('game_players')
+    .select('game_id, player_id')
+    .in('game_id', gameIds)
+    .order('placement', { ascending: true, nullsFirst: false });
 
-  if (playersError) {
-    throw playersError;
+  if (gamePlayersError) {
+    throw gamePlayersError;
   }
 
   const latestRevisionByGameId = new Map<string, GameRevisionRow>();
@@ -382,9 +440,40 @@ export async function listSavedGames(payload: {
     }
   }
 
+  const gamePlayerIdsByGameId = new Map<string, string[]>();
+
+  for (const gamePlayer of ((gamePlayers ?? []) as GamePlayerRosterRow[])) {
+    if (!gamePlayer.player_id) {
+      continue;
+    }
+
+    const roster = gamePlayerIdsByGameId.get(gamePlayer.game_id) ?? [];
+    roster.push(gamePlayer.player_id);
+    gamePlayerIdsByGameId.set(gamePlayer.game_id, roster);
+  }
+
+  const rosterEntriesByGameId = new Map(
+    savedGames.map((game) => {
+      const revision = latestRevisionByGameId.get(game.id);
+
+      return [
+        game.id,
+        resolveRosterEntries(
+          revision ? extractSelectedPlayerIds(revision.snapshot) : [],
+          gamePlayerIdsByGameId.get(game.id) ?? [],
+        ),
+      ] as const;
+    }),
+  );
+
+  // Label from the roster itself rather than the group's player list: a roster
+  // can name a player the group scope would miss, and `get_public_player_names`
+  // already refuses ids the caller may not read.
   const playerLabelById = await fetchPublicPlayerLabels(
     supabase,
-    ((players ?? []) as Array<{ id: string }>).map((player) => player.id),
+    [...rosterEntriesByGameId.values()]
+      .flat()
+      .filter((entry) => UUID_PATTERN.test(entry)),
   );
   const playerNameById = new Map(
     [...playerLabelById].map(([playerId, label]) => [
@@ -393,25 +482,17 @@ export async function listSavedGames(payload: {
     ]),
   );
 
-  return savedGames.map((game) => {
-    const revision = latestRevisionByGameId.get(game.id);
-    const selectedPlayerIds = revision
-      ? extractSelectedPlayerIds(revision.snapshot)
-      : [];
-
-    return {
-      gameId: game.id,
-      groupId: game.group_id,
-      playerCount: game.player_count,
-      playerNames: selectedPlayerIds.map(
-        (playerId) =>
-          playerNameById.get(playerId) ?? personLabel({ displayName: playerId }),
-      ),
-      playedOn: game.played_on,
-      status: game.status,
-      updatedAt: game.updated_at,
-    };
-  });
+  return savedGames.map((game) => ({
+    gameId: game.id,
+    groupId: game.group_id,
+    playerCount: game.player_count,
+    playerNames: (rosterEntriesByGameId.get(game.id) ?? []).map((entry) =>
+      labelRosterEntry(entry, playerNameById),
+    ),
+    playedOn: game.played_on,
+    status: game.status,
+    updatedAt: game.updated_at,
+  }));
 }
 
 function normalizeEvidencePaths(paths: Array<string | null | undefined>) {
