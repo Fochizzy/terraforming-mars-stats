@@ -172,8 +172,12 @@ are recorded separately rather than merged into one entry.
 DECIDED.**
 
 **The mechanism.** The planning-pack updater reads **twenty-four of its
-twenty-five** catalogued documents **from the filesystem**, and one
-(`DEPLOY-STATE`) **from Git** via `git show`. The post-commit hook fires on **any**
+twenty-five** *catalogued* documents **from the filesystem**, and one
+(`DEPLOY-STATE`) **from Git** via `git show`. That catalogued split understates the
+working-tree surface: of the **48** documents the pack publishes, **~47 derive from
+the working tree** — the twenty-four filesystem-catalogued documents plus the
+twenty-one phase files and the two generated documents (`latest-handoff`,
+`master-context`) — and only `DEPLOY-STATE` is Git-isolated. The post-commit hook fires on **any**
 commit or merge in the redesign primary. Consequently, when a commit fires the hook
 while another session has **uncommitted** edits in that tree, those uncommitted
 mid-flight edits are published to Google Drive.
@@ -194,8 +198,10 @@ carries content that **never existed in history**.
 
 **This is the same defect class already fixed once.** `DEPLOY-STATE` was converted
 to a Git source precisely because a filesystem read was publishing a file no
-session could commit to. The structural weakness still exists for the other
-twenty-four sources; **it rarely bites only because the tree is usually clean.**
+session could commit to. The structural weakness still exists for **every
+working-tree-derived document — roughly forty-seven of the forty-eight, not merely
+the twenty-four catalogued filesystem sources**; **it rarely bites only because the
+tree is usually clean.**
 
 **It strengthens the one-writer-at-a-time rule for a reason the project has not
 previously recorded:** that rule protects **publish integrity**, not merely merge

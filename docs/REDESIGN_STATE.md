@@ -3093,6 +3093,24 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/UPDATER-INVESTIGATION-CLOSEOUT.md
+  (investigation record + parity closeout + figure correction, redesign lineage, read-only
+  except the repo edits: **nothing applied, deployed, pushed, merged, or read from
+  production**; no write outside the repository, no updater run, no `--apply`, no guard and
+  no design built. Makes the `UPDATER-GUARD-INVESTIGATION` findings canonical — Q1–Q7, the
+  two candidate hazard-fix designs (A source-scoped fail-closed guard; B
+  read-from-committed-tree), and the working-tree publish hazard whose surface is **~47 of
+  48** documents, not "24 of 25". **T1:** all five `SYNCED_FILES` now MATCHED (normalized
+  sha256) — the versioned↔installed parity gap is closed. **T2:** repo→installed delivery is
+  `sync_installed_updater.py --apply` only (idempotent, no backup, non-atomic, no
+  auto-delivery); a hazard fix does NOT take effect until the **owner** delivers it — an
+  agent session cannot, because `--apply` needs Python execution plus a `%LOCALAPPDATA%`
+  write, both classifier-blocked and forbidden here. **T4:** corrected the understated "24 of
+  25" sites in this document and in `PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md`
+  §10, left the two correct manifest-array sites alone. **DISCREPANCY:** DECISIONS R‑4's
+  "autorun path" premise is wrong — no autorun exists — recorded, R‑4 left unamended. **No
+  blocker's disposition changed, Step 4.3 NOT marked complete, no defect count changed, no
+  phase/deploy/migration baseline changed.**)
 - docs/agent-handoffs/UPDATER-DRIFT-RECONCILIATION.md
   (source reconciliation, redesign lineage, local and documentation-only: **nothing
   applied, deployed, pushed, merged, or read from production**; no write outside the
@@ -3145,9 +3163,13 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   staleness from concurrent work**, where a pinned HEAD moved between authoring and
   delivery **twice** and the pin is what made the staleness visible. **Defect 10 is
   recorded as an OPEN HAZARD with NO fix applied and none recommended as decided**:
-  the updater reads 24 of 25 catalogued documents from the **filesystem** and one
-  (`DEPLOY-STATE`) from **Git**, so a hook firing while another session holds
-  uncommitted edits publishes content that exists in **no commit** — it happened at
+  the updater reads 24 of the 25 **catalogued** documents from the **filesystem**
+  and one (`DEPLOY-STATE`) from **Git** — the catalogued split, however, understates
+  the working-tree hazard surface: of the **48** pack documents, **~47 derive from the
+  working tree** (the 24 filesystem-catalogued docs plus the 21 phase files and the two
+  generated documents), only `DEPLOY-STATE` being Git-isolated — so a hook firing while
+  another session holds uncommitted edits publishes content that exists in **no commit**
+  — it happened at
   least **twice** here, was found **independently by two sessions**, and is the same
   class already fixed once for `DEPLOY-STATE`. Verified: the 24+1 split, that the
   tree was dirty with two modified canonical documents, that the hook fired and ran
