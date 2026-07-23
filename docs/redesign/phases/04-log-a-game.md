@@ -362,6 +362,18 @@ Step 4.3 must not:
 - expose private personal-name claim data publicly
 - create or apply a migration without explicit authorization
 
+> **SUPERSEDED IN PLACE for Step 4.3 by owner ruling R-8 (2026-07-23) — the
+> prohibition above is retained, not deleted or reworded.** The first item under
+> "Step 4.3 must not:" — **"implement registration-time claiming"** — is
+> **overridden for Step 4.3** by owner ruling **R-8**: the owner places the
+> vouching / claim flow **inside Step 4.3**. **This is a deliberate OVERRIDE**,
+> recorded here beside the prohibition it overrides so the two are read together;
+> the prohibition remains on the record as the pre-override position. Ruling text
+> and reasoning: `docs/redesign/DECISIONS.md` → "owner rulings R-5–R-11" → **R-8**.
+> The claim flow itself is the peer-vouching model recorded as **D-22/D-28–D-33**
+> in `docs/redesign/DECISIONS.md`. (The recording assignment cited line 356, the
+> blank line above the bullet; the prohibition text is at line 357.)
+
 ## Claimed-player privacy requirement
 
 A future successful claim must preserve the same player ID while causing public

@@ -33,6 +33,25 @@ accompanied it and nothing in production calls the new three-argument overload.*
 are the three remaining gates before contraction `20260722012707`, and **none of
 them is open**. Applied is not deployed and is not closed.
 
+**2026-07-23 — the replacement identity design and owner rulings R-5–R-11 are now
+RECORDED (documentation only).** Work item `RECORD-IDENTITY-DESIGN-AND-RULINGS`
+(step 4.33) wrote an owner design conversation and its rulings into the canonical
+record: the identity/account/vouching model (**D-1–D-33**), its two consequences
+(**C-1, C-2**) and four open questions (**Q-1–Q-4**, recorded OPEN and unanswered)
+into `docs/redesign/DECISIONS.md`; and the PD-1/PD-2/PD-3 dispositions, the
+six-item count, and three finding **dissolutions** into `docs/CURRENT_STATUS.md`.
+**Ruling R-6 (an OVERRIDE of the authority ranking) sets Step 4.3 to close on the
+fresh independent read-only audit alone**, and re-registers `ID-LEGACY-ORACLE` and
+`MATCHER-MANUAL-ENTRY-REPLACEMENT` as **Phase 5 entry gates**; **ruling R-8 (an
+OVERRIDE) places the vouching/claim flow inside Step 4.3** against the phase
+contract's `:357` prohibition, which is superseded in place, not deleted; **ruling
+R-9** queues a skills audit between Phase 4 and Phase 5. **Nothing was built,
+decided beyond recording, applied, deployed, pushed, or read from production**, no
+open question was answered, and
+`docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` — the contract the
+design affects — was deliberately **not** edited. See the
+`RECORD-IDENTITY-DESIGN-AND-RULINGS` handoff in the `Latest handoff` group.
+
 **THE APPLY'S RECORD IS REMEDIATED (2026-07-23), and the apply itself is
 unaffected.** Documentation-only and local: **no production access, no migration,
 no deploy, no merge, nothing pushed**, and `src/**`, `supabase/**` and
@@ -2945,6 +2964,19 @@ preflight/application of `20260722012658` and the compatible reader deploy,
 with `20260722012707` authorized separately only after verification. Any
 production change requires that separate authorization under expand/contract.
 
+**2026-07-23 — recording update (`RECORD-IDENTITY-DESIGN-AND-RULINGS`, step 4.33),
+documentation only.** The replacement identity design (D-1–D-33) and rulings
+R-5–R-11 are now recorded in `docs/redesign/DECISIONS.md`. **Ruling R-6 (an
+OVERRIDE) sets Step 4.3 to close on the fresh independent read-only audit alone**,
+with `ID-LEGACY-ORACLE` and `MATCHER-MANUAL-ENTRY-REPLACEMENT` re-registered as
+Phase 5 entry gates and a skills audit (R-9) queued between Phase 4 and Phase 5.
+**The next actions are unchanged in kind and each remains separately
+unauthorized:** the four repository reads Q-1–Q-4 are queued at step 4.38 and are
+**not answered here**; building the identity model, amending
+`docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`, and any deploy,
+migration, or production step are separate future assignments. Recording this
+design **authorizes none of them.**
+
 After that authorization gate, the required sequence is:
 tile-attribution backfill before guest re-neutralization; guest
 re-neutralization; migrations 20260719234500, 20260720100000, and
@@ -3127,6 +3159,30 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-RECORD-IDENTITY-DESIGN-AND-RULINGS.md
+  (documentation-only recording of an owner design conversation, redesign lineage
+  and local: **nothing applied, deployed, pushed, merged, or read from
+  production**; no write outside the repository, no
+  `src/**`/`supabase/**`/`scripts/**` edit, no phase started, and **no open
+  question answered**. Recorded owner rulings **R-5–R-11** and the replacement
+  player-identity/account/vouching **decision record D-1–D-33**, its consequences
+  **C-1/C-2** and open questions **Q-1–Q-4** into `docs/redesign/DECISIONS.md`; the
+  PD-1/PD-2/PD-3 dispositions, the six-item count, and three finding
+  **dissolutions** into `docs/CURRENT_STATUS.md`; the current-substep and
+  next-action notes and this registration into `docs/REDESIGN_STATE.md`; a pointer
+  beside the `:357` "implement registration-time claiming" prohibition in
+  `docs/redesign/phases/04-log-a-game.md` recording that **R-8 overrides it for
+  Step 4.3** (prohibition retained, superseded in place); the Phase 5 **entry
+  gates** from **R-6** into `docs/redesign/phases/05-games-detail-and-replay.md`;
+  and D-24's profile screen as an **additive** section in
+  `docs/redesign/phases/06-my-profile.md`. **R-6 and R-8 are each recorded as a
+  deliberate OVERRIDE**, naming what it overrides and why.
+  `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` — the contract the
+  design affects — was **deliberately NOT edited**; amending it is a separate owner
+  act. No blocker's `Blocking` value was changed except the three dissolution
+  annotations (R-11), which retain each row's disposition. **This record decides,
+  builds, resolves, and authorizes nothing.** Handoff:
+  `docs/agent-handoffs/PHASE-04-STEP-03-RECORD-IDENTITY-DESIGN-AND-RULINGS.md`.)
 - docs/agent-handoffs/UPDATER-DESIGN-B-COMMITTED-TREE-SOURCES-BUILT-LOCAL.md
   (Design B for the planning-pack updater: every document source's content now
   resolves from the pinned redesign commit via `git show <ref>:<path>` instead of

@@ -80,6 +80,26 @@ Phase 4 creates or reuses claimable unlinked guests but deliberately does not cl
 
 - Preserve authorization, account recovery, confirmation return paths, group membership, and recent-game links.
 
+## Additive scope — 2026-07-23 identity design decision (D-24)
+
+Recorded additively by `RECORD-IDENTITY-DESIGN-AND-RULINGS` (step 4.33). This section is **added, not a restructuring** of this document, which was installed 2026-07-23 from the Word pack. Under the replacement identity model (`docs/redesign/DECISIONS.md` → "replacement player-identity, account, and vouching model (D-1–D-33)"), **decision D-24 gives Phase 6 a profile screen** with three account controls:
+
+- **reset PIN**
+
+- **change associated email**
+
+- **delete account**
+
+Constraints carried from the same decision record, recorded here for context (not as new scope beyond D-24):
+
+- **PIN re-entry (D-27)** is required for the destructive operations — **account deletion** and **email change** — over and above an active session.
+
+- **Account deletion detaches the email and preserves the row (D-20):** the profile and all its historical game references survive; the row is not deleted. On deletion the profile receives a **random pseudonym (D-21)** disclosed to the user, and **reclaim is gated by vouching (D-22)** — the pseudonym identifies the row but is not a credential — with **username re-selection on reclaim (D-26)**.
+
+- **Login and lockout context (D-16–D-18):** an email is required to register; login is by username or email plus a 6-digit PIN; lockout is five attempts then exponential backoff, per account.
+
+This is a **decision record** affecting Phase 6 scope; it **authorizes no implementation**. The governing contract `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` is unchanged and remains authoritative. Consequence **C-2** (recorded in `docs/redesign/DECISIONS.md`) notes that D-19's gating reaches **Phases 9 and 11**, which are **not** edited on that basis.
+
 ## Required tests
 
 - Exact username candidate, exact private-name candidate, multiple candidates, partial suggestion, no candidate, decline all, and continue without claim.

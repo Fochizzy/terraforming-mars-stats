@@ -42,6 +42,16 @@ Replay analyzes one game, while Global, Group, and Individual Insights analyze m
 
 - The pre-v2/post-v2 compatibility adapter or views and parser-version selection rules are documented.
 
+## Phase 5 entry gates (recorded 2026-07-23 — owner ruling R-6)
+
+Registered by `RECORD-IDENTITY-DESIGN-AND-RULINGS` (step 4.33). Owner ruling **R-6** sets Step 4.3 to close on its fresh independent read-only audit **alone** — a deliberate **OVERRIDE** of the authority ranking (see `docs/redesign/DECISIONS.md` → "owner rulings R-5–R-11" → R-6) — and **re-registers the following two items as gates on PHASE 5 ENTRY** rather than on Step 4.3 closure. Phase 5 must not begin until each is satisfied under its own separate authorization:
+
+- **`ID-LEGACY-ORACLE`** — retire authenticated execution of `match_import_player_names` (contraction `20260722012707`), which remains gated and unapplied; its release sequence (deploy the moved reader, verify a non-zero production match, then contract) is unchanged by this re-registration.
+
+- **`MATCHER-MANUAL-ENTRY-REPLACEMENT`** — the source-bound (or otherwise structured) replacement for the manual-entry player-matching paths, so free-form arbitrary-candidate matching stops being the permanent answer. Confirmed the sixth tracked open item by ruling **R-10**. Open question **Q-3** (recorded OPEN in `docs/redesign/DECISIONS.md`, a repository read queued at step 4.38, **not answered here**) asks whether group-scoped structured search (D-8/D-9) satisfies this gate — if it does, this entry gate comes off the board.
+
+These gates are tracked in `docs/CURRENT_STATUS.md` → "Known blockers"; this section records only their **re-registration** as Phase 5 entry conditions. A skills audit (ruling **R-9**) is also queued between Phase 4 and Phase 5. This section authorizes no work and starts no phase.
+
 ## Inspect before editing
 
 - Current Saved Games page

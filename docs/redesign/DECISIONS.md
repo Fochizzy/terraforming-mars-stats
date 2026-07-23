@@ -1886,3 +1886,289 @@ exists, and the owner has now ruled for Design B, which is not a guard.
   Design B, and — as a separate owner step — delivering it repo→installed. Building the fix,
   creating an autorun, and any write outside the repository (including delivery) each require
   their own owner authorization.
+
+## Phase 4 Step 4.3 — owner rulings R-5–R-11 on the pending decisions and finding dispositions, 2026-07-23
+
+Recorded 2026-07-23 by the documentation-only work item
+`RECORD-IDENTITY-DESIGN-AND-RULINGS` (step 4.33). These rulings come from an owner
+design conversation of 2026-07-23; this entry **writes them down**. It continues the
+`R-` ruling series whose latest prior member is R-4 (the updater clean-tree guard,
+above). **This record decides nothing, builds nothing, and resolves none of the four
+open questions Q-1–Q-4 below.** Two of these rulings — **R-6** and **R-8** — are
+deliberate **OVERRIDES** of higher-authority records; each says so in its own text,
+names what it overrides, and states why, so a reader who later finds the contradiction
+finds the explanation with it. Evidence class for the rulings is **[OWNER-DECISION]**
+(the owner's stated decision, as this file records owner decisions elsewhere); the
+repository and git facts cited inside them are tagged **[REPO]**/**[GIT]**/**[PROJECT-DOC]**.
+
+### R-5 — PD-1 disposition is AMENDED, not retired in place
+
+The PD-1 disposition — `docs/CURRENT_STATUS.md` → "Pending owner decisions" →
+"PD-1 … DECIDED 2026-07-23 — BUILD IT", together with this file's
+§"Phase 4 Step 4.3 - AMENDMENT: interim service-role re-gate of the import matcher" —
+is **amended, not retired**. The interim `service_role` re-gate (the three-argument
+`match_import_player_names` overload built under PD-1, gated migration
+`20260723130000`, applied to production as ledger `20260723151221`) **is not the
+permanent answer**; the **source-bound replacement is still to be built**, tracked as
+the `MATCHER-MANUAL-ENTRY-REPLACEMENT` blocker (see R-10).
+
+The **five recorded PD-1 scoping findings remain binding** (their full statements are
+at `docs/CURRENT_STATUS.md` → PD-1, findings 1–5). Restated, with the four the owner
+emphasized: (1) the overload shape survives the ambiguity lesson; (2) **the third
+parameter carries no default** (`default null` reproduces `42725` on every existing
+two-argument call at expand time); (3) **verification must confirm NON-ZERO matches,
+not merely the absence of an error** (a null requesting-user id fails silently — zero
+rows, no error); (4) **there are three call sites, not two**; and (5) **the contraction
+RE-GATES rather than closes**, so no status line may say "closed". None of these is
+weakened by this amendment.
+
+### R-6 — PD-2 disposition: Step 4.3 CLOSES ON THE INDEPENDENT AUDIT ALONE — **OVERRIDE**
+
+**Ruling.** Step 4.3 closes on the fresh independent read-only audit **alone** — the
+single closure criterion the phase contract states:
+`docs/redesign/phases/04-log-a-game.md:476` **[REPO]**, "Step 4.3 is closed only after
+a fresh independent read-only audit passes." No deployment, migration, or contraction
+is a condition of Step 4.3 closure.
+
+**THIS IS A DELIBERATE OVERRIDE — recorded as an override, not as a reading of the
+contract.** `docs/AUTHORITATIVE_DOCUMENTS.md:11-18` **[PROJECT-DOC]** ranks
+`docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` (authority rank 2) **ABOVE**
+`docs/redesign/phases/04-log-a-game.md` (rank 3). The added closure blockers —
+**`ID-READER-CONTRACT`, `ID-LEGACY-ORACLE`, and `STEP-4.3-AUDIT`** — live in those
+higher-ranked files and carry "Blocking: Step 4.3 closure". **On authority alone the
+rank-2 state files would win, and the phase contract would not.** PD-2 recorded exactly
+this as unresolved because "nothing in the record says whether that addition was
+intended to amend the contract or merely to sequence the work". This ruling **overrides
+the authority ranking on this one point**: the owner rules the audit is the intended
+closure gate and the extra blockers were work-sequencing, not closure conditions.
+`STEP-4.3-AUDIT` — the fresh independent audit — is the surviving criterion, being the
+same thing the phase contract names; the override removes `ID-READER-CONTRACT` and
+`ID-LEGACY-ORACLE` as Step 4.3 *closure* gates.
+
+**Re-registration.** `ID-LEGACY-ORACLE` and `MATCHER-MANUAL-ENTRY-REPLACEMENT` are
+**re-registered as gates on PHASE 5 ENTRY** (recorded in
+`docs/redesign/phases/05-games-detail-and-replay.md`). They are not dissolved; they
+stop gating Step 4.3 closure and start gating Phase 5 entry. `ID-READER-DEPLOY`,
+`ID-READER-CONTRACT`, and contraction `20260722012707` keep their own separate release
+gates and are unaffected as release items; they simply no longer block Step 4.3 closure.
+
+### R-7 — PD-3 disposition: MOOT rather than answered
+
+PD-3 asked whether `GUEST-NAME-COLLISION-TERMINAL` is a Step 4.3 contract
+non-conformance. Under the replacement identity model (D-1–D-33 below), **it is moot
+rather than answered.** Unique usernames (D-1, D-15/D-16) plus group-scoped
+search-and-select (D-8/D-9) make an ambiguous match a **selectable list** rather than a
+terminal `P0003` state, so the phase contract's requirement — "resolve an ambiguous
+match explicitly" (`04-log-a-game.md:341`) — is **satisfiable by construction**.
+**Residual, recorded:** two profiles a caller cannot tell apart is now a **UI problem**
+(a selectable list must surface enough to distinguish entries), **not a database error.**
+This interacts with R-11's dissolution of `GUEST-NAME-COLLISION-TERMINAL`.
+
+### R-8 — the vouching / claim flow is placed INSIDE Step 4.3 — **OVERRIDE**
+
+**Ruling.** The owner places the claim (peer-vouching) flow **inside Step 4.3**.
+
+**THIS IS A DELIBERATE OVERRIDE, and both the override and the prohibition it overrides
+are recorded explicitly.** `docs/redesign/phases/04-log-a-game.md:357` **[REPO]** lists
+**"implement registration-time claiming"** under **"Step 4.3 must not:"** (`:355`).
+Step 4.3 as written **defers** claiming. The owner places the claim flow inside 4.3
+**regardless of that prohibition.** The prohibition is **not deleted or reworded**; it
+is superseded **in place**, with a pointer recorded beside it in the phase file noting
+this override. (The prohibition text sits at `:357`; the assignment cited `:356`, which
+is the blank line above it — the same prohibition.)
+
+### R-9 — a skills audit runs between Phase 4 and Phase 5
+
+A **skills audit** is to be run **between Phase 4 and Phase 5**. Recorded as a tracked
+step in the phase transition; it is not scheduled, scoped, or authorized to begin here.
+
+### R-10 — `MATCHER-MANUAL-ENTRY-REPLACEMENT` is the sixth tracked open item
+
+`MATCHER-MANUAL-ENTRY-REPLACEMENT` is confirmed as a **sixth** tracked open item,
+**alongside the five previously listed PD-1 findings** (R-5). The count of tracked open
+items under PD-1's scope is therefore **six**, not five. This is recorded against PD-1
+in `docs/CURRENT_STATUS.md` and against the `MATCHER-MANUAL-ENTRY-REPLACEMENT` blocker
+row.
+
+### R-11 — three findings are DISSOLVED, not fixed
+
+`DRAFT-NAME-RESIDUE`, `GUEST-NAME-COLLISION-TERMINAL`, and **most of**
+`GUEST-LABEL-REDIRTY` are **REMOVED AS PROBLEMS by the identity model** (D-1–D-33),
+**rather than remediated.** This is recorded as a **distinction**: dissolution is a
+**stronger claim than a fix** and must not read as one — the problem ceases to exist
+under the model, rather than being patched while its shape remains.
+
+- **`DRAFT-NAME-RESIDUE` — dissolved.** No real name is stored on a seat (D-1) and
+  aliases never leave the server (D-13), so there is **no personal name that could
+  survive** into a draft snapshot or hydration payload. D-13 records that this is
+  "`DRAFT-NAME-RESIDUE`'s exact shape."
+- **`GUEST-NAME-COLLISION-TERMINAL` — dissolved.** Unique usernames plus group-scoped
+  search-and-select (D-8/D-9, R-7) turn an ambiguous match into a selectable list, so
+  the terminal `P0003` state cannot arise.
+- **`GUEST-LABEL-REDIRTY` — most of it dissolved.** Under the model no personal-name
+  material is stored in `public.players`, so there is nothing for ordinary use to
+  "re-dirty". **Its three writers still change**, however:
+  `createPlayerIfMissing` (`src/lib/db/player-repo.ts`), `updatePlayerIdentity`
+  (`src/lib/db/player-repo.ts`), and `resolveOrCreateImportGroup`
+  (`src/lib/db/import-group-repo.ts`) still need to stop writing personal-name material.
+
+**These dissolutions are prospective on the identity model being built.** D-1–D-33 is a
+decision record, not an implementation. Recording the dissolution **fixes nothing
+today** and **authorizes no build.** The three blocker rows keep their present
+dispositions; each is annotated in `docs/CURRENT_STATUS.md` with its dissolution note.
+
+## Phase 4 Step 4.3 — replacement player-identity, account, and vouching model (decision record: D-1–D-33), 2026-07-23
+
+Recorded 2026-07-23 by `RECORD-IDENTITY-DESIGN-AND-RULINGS` (step 4.33), from an owner
+design conversation of the same date. **This is a DECISION RECORD, not a finding
+disposition.** It changes a **governing contract**: the authoritative cross-phase
+contract `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`. That contract
+is **deliberately NOT edited here** — amending it to reflect this model is a **separate
+owner act.** This record states direction and **authorizes no code, schema, migration,
+RPC, test, deploy, or production write.** Evidence class **[OWNER-DECISION]** throughout.
+
+The design supersedes, in direction, the earlier §"2026-07-17 — Guest identity, account
+claim, and public-name privacy" decision above; that entry is retained as history and is
+**not rewritten**. Where this model and the privacy contract interact, the privacy
+contract remains authoritative for semantic meaning until the owner amends it.
+
+### Identity and display
+
+- **D-1** — No real names are stored or displayed. Registration takes a **distinct
+  username**.
+- **D-2** — **ONLY USERNAMES ARE EVER DISPLAYED.** Aliases never render, anywhere.
+- **D-3** — A profile **MAY** carry an optional alias. The system must work fully for
+  profiles that have none.
+- **D-4** — Aliases are **matchable but never displayed.**
+- **D-5** — Aliases live **on the profile**, not on group membership.
+- **D-6** — Unregistered profiles **may** carry aliases. An alias may be set at
+  registration and changed later on the profile portal.
+- **D-7** — Aliases are deliberately **non-unique within a group** — two profiles may
+  both alias "James".
+
+### Search and selection
+
+- **D-8** — Search matches a **username substring OR an alias**, and returns a
+  **selectable list** rather than resolving to one result.
+- **D-9** — Search is **scoped to the group** the game is being logged in. This also
+  **closes the recorded cross-group disclosure** in the deployed matcher, whose
+  candidate pool spans every group the caller belongs to.
+- **D-10** — Minimum query length: **3 characters.**
+- **D-11** — Results are ordered by the **number of games the caller has played with
+  each profile.** Zero-co-play profiles sort **last**; ties break by most recent shared
+  game, then username.
+- **D-12** — The co-play count is **not displayed.** The ordering conveys it.
+- **D-13** — Aliases **NEVER leave the server**, except as the reason a profile appeared
+  in a result set. Not in payloads, hydration, autocomplete responses, logs, or
+  telemetry. **This is `DRAFT-NAME-RESIDUE`'s exact shape** — a search key leaks more
+  easily than a display field because nobody thinks of it as rendered.
+- **D-14** — An empty result offers **browsing the group** or **creating a new
+  profile.** Never a dead end.
+
+### Accounts and credentials
+
+- **D-15** — **Registered and unregistered profiles are the same entity.** The only
+  differences are an attached email and the ability to log in. Claiming attaches an
+  email to an existing row; it transfers nothing, and **no history moves.**
+- **D-16** — **An email is required to register.** There is no username-and-PIN-only
+  account, so every account that can log in has a recovery path.
+- **D-17** — Login is by **username OR email**, plus a **6-digit PIN.**
+- **D-18** — **Lockout: five attempts, then exponential backoff, PER ACCOUNT** (not per
+  IP). Six digits is adequate with this and inadequate without it.
+- **D-19** — The PIN gates: **account deletion, email change, viewing another member's
+  profile, and comparing yourself with other players.**
+
+### Deletion
+
+- **D-20** — **Account deletion DETACHES THE EMAIL.** The row survives with its history
+  intact. Deleting the row is **not** the behaviour — it would remove a participant from
+  every game they played, the exact failure behind the 2026-07-20 incident that left
+  thirteen finalized games naming deleted rows (design rationale, [OWNER-DECISION]).
+- **D-21** — On deletion the profile is assigned a **random pseudonym**, disclosed to
+  the user at the moment of deletion, which they may use to reclaim the profile later.
+- **D-22** — **Reclaim is gated by vouching.** The pseudonym **identifies** the row; it
+  is **not a credential.** A participant approves the attach, using the **same claim
+  flow built for guests.** There is therefore exactly **one path** by which an email ever
+  attaches to a profile row — **first claim and reclaim are the same operation** — one
+  place to get the authorization right and one place to audit. The pseudonym's
+  visibility on historical games is harmless under this design; it was a hazard only
+  while it doubled as a reclaim token.
+- **D-23** — A deleted profile's **former username is released** and may be registered by
+  someone else. Historical games continue to display the pseudonym, so **no record is
+  retroactively reattributed.**
+
+### Scope
+
+- **D-24** — **Phase 6 gains a profile screen: reset PIN, change associated email,
+  delete account.** (Recorded additively in
+  `docs/redesign/phases/06-my-profile.md`.)
+- **D-25** — **Transition scope is four registered users and one guest.**
+- **D-26** — **Reclaim includes username selection.** The reclaiming user generates a
+  **new** username, subject to the same eligibility rules as registration — unique, valid
+  format, and not colliding with the reserved pseudonym namespace. The former username is
+  **not** restored even if still free. On successful reclaim the pseudonym is released; it
+  was a placeholder, not an identity.
+- **D-27** — **PIN re-entry is required** for the destructive operations in D-19 —
+  account deletion and email change. An active session alone does not suffice. An
+  unattended logged-in session is the difference between someone reading another member's
+  stats and someone deleting their account.
+
+### Vouch request lifecycle
+
+- **D-28** — A vouch request is sent to **every participant** in the profile's games.
+  **Any one** of them may approve; **no single named approver** exists.
+- **D-29** — After **one week** without approval the request **escalates to the group
+  owner**, who may approve unilaterally.
+- **D-30** — After **two weeks** the request **expires.** Nothing is lost — the profile
+  and its games are untouched; only the attach did not happen.
+- **D-31** — An expired request **may be re-raised.**
+- **D-32** — While a request is pending the person **continues to play** under the
+  unregistered profile. Each new game adds participants, and therefore adds potential
+  approvers, so a retry after expiry has a **larger pool** than the original request did.
+- **D-33** — **NO AUTO-APPROVAL ANYWHERE.** Neither approval on timeout nor an objection
+  window is permitted: **silence must never mean yes.** An objection window has the
+  identical defect and merely looks safer.
+
+### Build constraints that follow from the decisions (not separately ruled)
+
+- **From D-32:** the participant set must be evaluated **at approval time, not frozen
+  when the request is raised.** Snapshotting it at request time makes D-32 accomplish
+  nothing.
+- **From D-21/D-26:** pseudonyms occupy the **same uniqueness namespace as usernames**,
+  so generation must check for collision against **both**; and the pseudonym format
+  should be **reserved** so a user cannot register a username that impersonates one.
+- **Scale note (from D-25):** at the transition scope — four registered users and one
+  guest — D-28 and D-29 resolve to the same person; owner escalation is the only rule
+  that needs revisiting if the project grows past a single group.
+
+### Consequences recorded explicitly (neither was chosen deliberately)
+
+- **C-1 — D-8/D-9 and D-17 interact.** Group-scoped search lets every group member
+  **enumerate the usernames** of everyone in their groups, and D-17 makes a username
+  **half a credential.** The remaining secret is six digits. **D-18 is what makes that
+  acceptable**; without it, the whole point of ledger `20260722153233` — that becoming
+  authenticated should not be cheap — is undermined. (`20260722153233` is the applied
+  revoke of `authenticated` EXECUTE on `resolve_import_guest_identity`, [PROJECT-DOC].)
+- **C-2 — D-19 reaches beyond Phase 6.** Gating "comparing yourself with other players"
+  puts **Phase 11** behind login; "viewing another member's profile" does the same for
+  **Phase 9.** Both phase documents were installed 2026-07-23 and **neither states an
+  authentication requirement.** This consequence is **recorded, not acted on**:
+  `docs/redesign/phases/09-*.md` and `docs/redesign/phases/11-*.md` are **NOT edited** on
+  the strength of it.
+
+### Open questions — recorded as OPEN, none resolved here (repository reads, queued at step 4.38)
+
+All four are **repository reads**; **no owner decision is outstanding** on any of them,
+and **none is answered or recommended here.**
+
+- **Q-1** — Does Supabase Auth support a 6-digit PIN credential, or does D-17 require
+  custom authentication or mapping the PIN onto a password field?
+- **Q-2** — Are `public.user_profiles` and `public.players` already the same entity under
+  D-15, or does D-15 require unifying them? This determines whether the build is one work
+  item or five.
+- **Q-3** — Does group-scoped structured search (D-8/D-9) satisfy
+  `MATCHER-MANUAL-ENTRY-REPLACEMENT`? Candidates would come from the group rather than
+  from the browser. If so, a Phase 5 entry gate comes off the board.
+- **Q-4** — Does the single guest row in D-25 carry import evidence — aliases,
+  `player_import_aliases`, private identity records? Migrating a guest with import
+  provenance is a different operation from one without.
