@@ -10,6 +10,7 @@ Run with any Python 3.11+ interpreter:
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -23,9 +24,15 @@ from git_source import (
     GitSourceError,
     GitSourceSpec,
     body_digest,
+    committed_path_commit_time,
+    list_committed_blobs,
+    materialize_committed_file,
     parse_generated_document,
     parse_git_source,
+    read_committed_blob,
+    read_committed_text,
     resolve_git_source,
+    resolve_ref_to_commit,
     verify_generated_document,
     write_generated_git_source,
 )
@@ -369,6 +376,181 @@ class GitSourceTestCase(unittest.TestCase):
         with self.assertRaises(GitSourceError) as raised:
             parse_generated_document(without_hash)
         self.assertIn("body_sha256", str(raised.exception))
+
+
+class CommittedTreeReadTestCase(unittest.TestCase):
+    """Committed-tree reads for same-lineage sources (Design B).
+
+    These primitives are what let the updater source every document from a
+    pinned commit rather than the working tree. Each test builds a throwaway
+    repository, commits known content, then dirties the working tree, and proves
+    the committed content is what is read.
+    """
+
+    def setUp(self) -> None:
+        self._temporary = tempfile.TemporaryDirectory(prefix="tm_committed_read_")
+        self.addCleanup(self._temporary.cleanup)
+        base = Path(self._temporary.name)
+        self.repository = base / "repo"
+        self.staging = base / "staging"
+        self.repository.mkdir()
+        self.staging.mkdir()
+
+        git(self.repository, "init", "--quiet", "--initial-branch=main")
+        git(self.repository, "config", "user.email", "test@example.invalid")
+        git(self.repository, "config", "user.name", "Committed Read Test")
+        git(self.repository, "config", "commit.gpgsign", "false")
+        git(self.repository, "config", "core.autocrlf", "false")
+
+        (self.repository / "docs").mkdir()
+        self.commit("docs/alpha.md", "# Alpha\n\nCommitted alpha body.\n", "add alpha")
+        self.commit("docs/beta.md", "# Beta\n\nCommitted beta body.\n", "add beta")
+
+    def commit(self, rel: str, body: str, message: str, when: str | None = None) -> None:
+        path = self.repository / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body, encoding="utf-8", newline="\n")
+        git(self.repository, "add", rel)
+        env = None
+        if when is not None:
+            env = {**os.environ, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}
+        subprocess.run(
+            ["git", "-C", str(self.repository), "commit", "--quiet", "-m", message],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+    def head(self) -> str:
+        return git(self.repository, "rev-parse", "HEAD").strip()
+
+    def spec(self, rel: str, ref: str | None = None) -> GitSourceSpec:
+        return GitSourceSpec(self.repository, ref or self.head(), rel)
+
+    # -- ref pinning -------------------------------------------------------
+
+    def test_resolve_ref_to_commit_returns_a_concrete_sha(self) -> None:
+        sha = resolve_ref_to_commit(self.repository, "HEAD")
+        self.assertEqual(sha, self.head())
+        self.assertEqual(len(sha), 40)
+
+    def test_resolve_ref_to_commit_fails_closed_on_a_bad_ref(self) -> None:
+        with self.assertRaises(GitSourceError):
+            resolve_ref_to_commit(self.repository, "refs/heads/nope")
+
+    # -- the section 4 property, at the read boundary ---------------------
+
+    def test_read_ignores_an_uncommitted_working_tree_edit(self) -> None:
+        sha = self.head()
+        (self.repository / "docs" / "alpha.md").write_text(
+            "# Alpha\n\nDIRTY uncommitted edit that must not publish.\n",
+            encoding="utf-8",
+        )
+        body = read_committed_text(self.spec("docs/alpha.md", sha))
+        self.assertEqual(body, "# Alpha\n\nCommitted alpha body.\n")
+        self.assertNotIn("DIRTY", body)
+
+    def test_materialize_writes_committed_content_not_the_dirty_tree(self) -> None:
+        sha = self.head()
+        (self.repository / "docs" / "alpha.md").write_text(
+            "DIRTY\n", encoding="utf-8"
+        )
+        destination = self.staging / "docs" / "alpha.md"
+        materialize_committed_file(self.spec("docs/alpha.md", sha), destination)
+        self.assertEqual(
+            destination.read_text(encoding="utf-8"),
+            "# Alpha\n\nCommitted alpha body.\n",
+        )
+
+    def test_read_uses_the_pinned_sha_not_a_later_commit(self) -> None:
+        pinned = self.head()
+        self.commit("docs/alpha.md", "# Alpha\n\nA later committed body.\n", "amend alpha")
+        body = read_committed_text(self.spec("docs/alpha.md", pinned))
+        self.assertEqual(body, "# Alpha\n\nCommitted alpha body.\n")
+
+    def test_read_fails_closed_on_a_path_absent_from_the_commit(self) -> None:
+        with self.assertRaises(GitSourceError):
+            read_committed_text(self.spec("docs/does-not-exist.md"))
+
+    def test_read_normalizes_crlf(self) -> None:
+        (self.repository / "docs" / "crlf.md").write_bytes(b"# CRLF\r\n\r\nbody\r\n")
+        git(self.repository, "add", "docs/crlf.md")
+        self.commit_only("windows endings")
+        self.assertEqual(
+            read_committed_text(self.spec("docs/crlf.md")), "# CRLF\n\nbody\n"
+        )
+
+    def commit_only(self, message: str) -> None:
+        git(self.repository, "commit", "--quiet", "-m", message)
+
+    # -- binary sources ----------------------------------------------------
+
+    def test_binary_blob_is_read_and_materialized_verbatim(self) -> None:
+        payload = b"PK\x03\x04\x00\x01\x02binary\xff\xfe"
+        (self.repository / "asset.bin").write_bytes(payload)
+        git(self.repository, "add", "asset.bin")
+        self.commit_only("add a binary asset")
+        spec = self.spec("asset.bin")
+        self.assertEqual(read_committed_blob(spec), payload)
+        destination = self.staging / "asset.bin"
+        materialize_committed_file(spec, destination, binary=True)
+        self.assertEqual(destination.read_bytes(), payload)
+
+    def test_text_read_of_a_binary_blob_fails(self) -> None:
+        (self.repository / "asset.bin").write_bytes(b"\xff\xfe\x00not utf8")
+        git(self.repository, "add", "asset.bin")
+        self.commit_only("add a non-utf8 asset")
+        with self.assertRaises(GitSourceError):
+            read_committed_text(self.spec("asset.bin"))
+
+    def test_materialize_does_not_write_when_resolution_fails(self) -> None:
+        destination = self.staging / "docs" / "missing.md"
+        with self.assertRaises(GitSourceError):
+            materialize_committed_file(self.spec("docs/missing.md"), destination)
+        self.assertFalse(destination.exists())
+
+    # -- directory enumeration from the commit ----------------------------
+
+    def test_list_committed_blobs_enumerates_the_commit_not_the_disk(self) -> None:
+        sha = self.head()
+        # A file present on disk but not committed must not be listed.
+        (self.repository / "docs" / "uncommitted.md").write_text("nope\n", encoding="utf-8")
+        names = list_committed_blobs(self.repository, sha, "docs")
+        self.assertIn("docs/alpha.md", names)
+        self.assertIn("docs/beta.md", names)
+        self.assertNotIn("docs/uncommitted.md", names)
+
+    def test_list_committed_blobs_includes_a_committed_file_deleted_from_disk(self) -> None:
+        (self.repository / "docs" / "alpha.md").unlink()
+        names = list_committed_blobs(self.repository, self.head(), "docs")
+        self.assertIn("docs/alpha.md", names)
+
+    def test_list_committed_blobs_excludes_subtrees(self) -> None:
+        self.commit("docs/sub/child.md", "child\n", "add a nested file")
+        names = list_committed_blobs(self.repository, self.head(), "docs")
+        self.assertIn("docs/alpha.md", names)
+        self.assertNotIn("docs/sub", names)
+        self.assertNotIn("docs/sub/child.md", names)
+
+    def test_list_committed_blobs_of_a_missing_dir_is_empty(self) -> None:
+        self.assertEqual(
+            list_committed_blobs(self.repository, self.head(), "nowhere"), []
+        )
+
+    # -- commit-time selection (newest-handoff support) -------------------
+
+    def test_commit_time_reflects_the_newest_touching_commit(self) -> None:
+        self.commit("docs/old.md", "old\n", "old handoff", when="2020-01-01T00:00:00")
+        self.commit("docs/new.md", "new\n", "new handoff", when="2020-06-01T00:00:00")
+        sha = self.head()
+        old_time = committed_path_commit_time(self.repository, sha, "docs/old.md")
+        new_time = committed_path_commit_time(self.repository, sha, "docs/new.md")
+        self.assertLess(old_time, new_time)
+
+    def test_commit_time_fails_closed_on_an_absent_path(self) -> None:
+        with self.assertRaises(GitSourceError):
+            committed_path_commit_time(self.repository, self.head(), "docs/absent.md")
 
 
 if __name__ == "__main__":

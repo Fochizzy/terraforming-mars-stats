@@ -41,7 +41,12 @@ from git_source import (  # noqa: E402  (local module; import needs the path abo
     GIT_SOURCE_TYPE,
     GitSourceError,
     GitSourceSpec,
+    committed_path_commit_time,
+    list_committed_blobs,
+    materialize_committed_file,
     parse_git_source,
+    read_committed_text,
+    resolve_ref_to_commit,
     verify_generated_document,
     write_generated_git_source,
 )
@@ -93,6 +98,16 @@ LOCK_FILE = APP_DIR / "update.lock"
 LOG_DIR = APP_DIR / "logs"
 GENERATED_DIR = APP_DIR / "generated"
 MASTER_CONTEXT_SOURCE = GENERATED_DIR / "tm-project-master-context.md"
+
+# Design B (DECISIONS R-4, amended 2026-07-23 -> A-1). Every same-lineage
+# document is read from a single pinned commit of the redesign checkout, using
+# the same ``git show <ref>:<path>`` mechanism ``deploy-state`` already uses,
+# materialized under this staging directory, and consumed from here. Content
+# present in the working tree but not in the pinned commit therefore cannot reach
+# the publish payload by construction. The redesign lineage is pinned once per
+# run from this ref; ``deploy-state`` keeps its own production-lineage ref.
+COMMITTED_DIR = GENERATED_DIR / "committed"
+REDESIGN_REF = "HEAD"
 
 # Where the catalog JSON itself is read from. `--source-manifest` may point this
 # at a manifest committed in an isolated worktree for a single run.
@@ -146,13 +161,87 @@ def read_markdown(path: Path) -> str:
 
 
 def repo_relative(path: Path) -> str:
-    try:
-        return path.resolve().relative_to(ROOT.resolve()).as_posix()
-    except ValueError as exc:
-        raise RuntimeError(f"Master-context source is outside the redesign repository: {path}") from exc
+    resolved = path.resolve()
+    for base in (COMMITTED_DIR.resolve(), ROOT.resolve()):
+        try:
+            return resolved.relative_to(base).as_posix()
+        except ValueError:
+            continue
+    raise RuntimeError(f"Master-context source is outside the redesign repository: {path}")
 
 
-def current_phase_path(state_text: str) -> Path:
+def pin_redesign_commit() -> str:
+    """Resolve the redesign checkout HEAD to one commit for the whole run.
+
+    Called once by ``discover_sources``; every same-lineage read below uses the
+    returned SHA, so a publish is a consistent snapshot of a single commit.
+    """
+
+    return resolve_ref_to_commit(ROOT, REDESIGN_REF, label="Redesign source")
+
+
+def committed_source_path(repo_rel: str) -> Path:
+    """The updater-owned staging path a materialized same-lineage source lives at."""
+
+    return (COMMITTED_DIR / repo_rel).resolve()
+
+
+def materialize_redesign_source(pinned_sha: str, repo_rel: str, label: str) -> Path:
+    """Materialize ``<pinned_sha>:<repo_rel>`` from the redesign checkout.
+
+    ``.md`` sources are read as text; anything else (the ``.docx`` master guide)
+    is read verbatim as bytes. Fails closed with no filesystem fallback.
+    """
+
+    binary = Path(repo_rel).suffix.casefold() != ".md"
+    spec = GitSourceSpec(ROOT, pinned_sha, repo_rel)
+    return materialize_committed_file(
+        spec, committed_source_path(repo_rel), label=label, binary=binary
+    )
+
+
+PHASE_DIR_REL = "docs/redesign/phases"
+HANDOFF_DIR_REL = "docs/agent-handoffs"
+
+
+def single_phase_match(committed_names: list[str], phase_number: int) -> str:
+    """Return the one committed ``<NN>-*.md`` name for ``phase_number``. Fails closed.
+
+    ``committed_names`` are repository-relative blob paths from ``git ls-tree`` of
+    the phase directory at the pinned commit, so an uncommitted phase file is
+    never a candidate and a committed one absent from disk still is.
+    """
+
+    prefix = f"{phase_number:02d}-"
+    matches = sorted(
+        name
+        for name in committed_names
+        if Path(name).name.startswith(prefix) and name.casefold().endswith(".md")
+    )
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"Expected exactly one committed phase {phase_number:02d} Markdown file; "
+            f"found {len(matches)}."
+        )
+    return matches[0]
+
+
+def committed_phase_file(
+    pinned_sha: str, phase_dir_rel: str, phase_number: int
+) -> Path:
+    """Materialize the single committed ``<NN>-*.md`` phase file. Fails closed."""
+
+    committed_names = list_committed_blobs(
+        ROOT, pinned_sha, phase_dir_rel, label="Phase source"
+    )
+    return materialize_redesign_source(
+        pinned_sha,
+        single_phase_match(committed_names, phase_number),
+        f"phase-{phase_number:02d}",
+    )
+
+
+def current_phase_path(state_text: str, pinned_sha: str) -> Path:
     section = re.search(
         r"(?ms)^## Current substep\s*$\n(.*?)(?=^##\s|\Z)", state_text
     )
@@ -161,32 +250,21 @@ def current_phase_path(state_text: str) -> Path:
     phase_match = re.search(r"\bPhase\s+(\d+)\s*,\s*Step\b", section.group(1))
     if not phase_match:
         raise RuntimeError("Could not determine the current phase from REDESIGN_STATE.md.")
-    phase_number = int(phase_match.group(1))
-    matches = sorted((ROOT / "docs/redesign/phases").glob(f"{phase_number:02d}-*.md"))
-    if len(matches) != 1:
-        raise RuntimeError(
-            f"Expected exactly one current phase {phase_number:02d} Markdown file; "
-            f"found {len(matches)}."
-        )
-    return matches[0]
+    return committed_phase_file(pinned_sha, PHASE_DIR_REL, int(phase_match.group(1)))
 
 
-def resolve_handoff_path(relative_path: str) -> Path:
+def resolve_handoff_path(relative_path: str, pinned_sha: str) -> Path:
     normalized = relative_path.replace("\\", "/")
     if not normalized.startswith("docs/agent-handoffs/"):
         raise RuntimeError(f"Active handoff is outside docs/agent-handoffs: {relative_path}")
-    candidate = (ROOT / Path(*normalized.split("/"))).resolve()
-    handoff_root = (ROOT / "docs/agent-handoffs").resolve()
-    try:
-        candidate.relative_to(handoff_root)
-    except ValueError as exc:
-        raise RuntimeError(f"Active handoff escapes docs/agent-handoffs: {relative_path}") from exc
-    if not candidate.is_file():
-        raise RuntimeError(f"Active handoff does not exist: {relative_path}")
-    return candidate
+    if ".." in normalized.split("/"):
+        raise RuntimeError(f"Active handoff escapes docs/agent-handoffs: {relative_path}")
+    # Fails closed if the handoff is not committed at the pinned commit, so a
+    # declared handoff that exists only in the working tree stops the run.
+    return materialize_redesign_source(pinned_sha, normalized, "active-handoff")
 
 
-def active_handoff_paths(state_text: str) -> list[Path]:
+def active_handoff_paths(state_text: str, pinned_sha: str) -> list[Path]:
     lines = state_text.splitlines()
     try:
         start = next(
@@ -216,7 +294,7 @@ def active_handoff_paths(state_text: str) -> list[Path]:
                     )
                 continue
             list_started = True
-            paths.append(resolve_handoff_path(match.group(1)))
+            paths.append(resolve_handoff_path(match.group(1), pinned_sha))
         elif list_started:
             # Wrapped handoff descriptions belong to the current list item.
             continue
@@ -228,11 +306,24 @@ def active_handoff_paths(state_text: str) -> list[Path]:
     return paths
 
 
-def newest_handoff_path() -> Path:
-    handoffs = list((ROOT / "docs/agent-handoffs").glob("*.md"))
-    if not handoffs:
-        raise RuntimeError("No Markdown handoffs exist in docs/agent-handoffs.")
-    return max(handoffs, key=lambda path: (path.stat().st_mtime_ns, path.name.casefold()))
+def newest_handoff_path(pinned_sha: str) -> Path:
+    names = [
+        name
+        for name in list_committed_blobs(
+            ROOT, pinned_sha, HANDOFF_DIR_REL, label="Handoff source"
+        )
+        if name.casefold().endswith(".md")
+    ]
+    if not names:
+        raise RuntimeError(f"No Markdown handoff is committed under {HANDOFF_DIR_REL}.")
+    newest = max(
+        names,
+        key=lambda name: (
+            committed_path_commit_time(ROOT, pinned_sha, name, label="Handoff source"),
+            Path(name).name.casefold(),
+        ),
+    )
+    return materialize_redesign_source(pinned_sha, newest, "latest-handoff")
 
 
 def demote_markdown_headings(markdown: str, levels: int = 2) -> str:
@@ -257,19 +348,27 @@ def demote_markdown_headings(markdown: str, levels: int = 2) -> str:
     return "\n".join(output).rstrip() + "\n"
 
 
-def master_context_sources() -> tuple[list[Path], Path, list[Path], Path]:
-    guide = ROOT / "docs/redesign/CLAUDE-PROJECT-CONTEXT.md"
-    current_status = ROOT / "docs/CURRENT_STATUS.md"
-    authority_index = ROOT / "docs/AUTHORITATIVE_DOCUMENTS.md"
-    state = ROOT / "docs/REDESIGN_STATE.md"
-    required = (guide, current_status, authority_index, state)
-    missing = [str(path) for path in required if not path.is_file()]
-    if missing:
-        raise RuntimeError("Missing master-context source files:\n" + "\n".join(missing))
+def master_context_sources(
+    pinned_sha: str,
+) -> tuple[list[Path], Path, list[Path], Path]:
+    # Every input is materialized from the pinned commit; a required input that
+    # is not committed fails closed inside materialization rather than falling
+    # back to the working tree.
+    label = "master-context-input"
+    guide = materialize_redesign_source(
+        pinned_sha, "docs/redesign/CLAUDE-PROJECT-CONTEXT.md", label
+    )
+    current_status = materialize_redesign_source(
+        pinned_sha, "docs/CURRENT_STATUS.md", label
+    )
+    authority_index = materialize_redesign_source(
+        pinned_sha, "docs/AUTHORITATIVE_DOCUMENTS.md", label
+    )
+    state = materialize_redesign_source(pinned_sha, "docs/REDESIGN_STATE.md", label)
     state_text = read_markdown(state)
-    phase = current_phase_path(state_text)
-    active_handoffs = active_handoff_paths(state_text)
-    newest = newest_handoff_path()
+    phase = current_phase_path(state_text, pinned_sha)
+    active_handoffs = active_handoff_paths(state_text, pinned_sha)
+    newest = newest_handoff_path(pinned_sha)
     handoffs = list(active_handoffs)
     if newest.resolve() not in {path.resolve() for path in handoffs}:
         handoffs.append(newest)
@@ -277,8 +376,8 @@ def master_context_sources() -> tuple[list[Path], Path, list[Path], Path]:
     return ordered, phase, active_handoffs, newest
 
 
-def build_master_context_source() -> Path:
-    ordered, phase, active_handoffs, newest = master_context_sources()
+def build_master_context_source(pinned_sha: str) -> Path:
+    ordered, phase, active_handoffs, newest = master_context_sources(pinned_sha)
     digest = hashlib.sha256()
     for path in ordered:
         relative = repo_relative(path)
@@ -405,7 +504,20 @@ def resolve_manifest_path(root_name: Any, relative_value: Any, label: str) -> Pa
     return candidate
 
 
-def manifest_source(entry: Any, label: str) -> Source:
+def manifest_repo_relative(root_name: Any, relative_value: Any, label: str) -> str:
+    """Validate a manifest ``root``/``path`` and return its POSIX repo-relative form.
+
+    Validation is identical to the pre-Design-B path resolution (the call below
+    raises on an unknown root, an absolute path, or an escape). Only what is
+    returned changes: the repository-relative path that is then read from the
+    pinned commit, rather than a working-tree path read directly.
+    """
+
+    resolve_manifest_path(root_name, relative_value, label)
+    return Path(relative_value).as_posix()
+
+
+def manifest_source(entry: Any, label: str, pinned_sha: str) -> Source:
     if not isinstance(entry, dict):
         raise RuntimeError(f"{label} must be an object.")
     key = entry.get("key")
@@ -414,9 +526,9 @@ def manifest_source(entry: Any, label: str) -> Source:
         raise RuntimeError(f"{label} has an invalid key: {key!r}")
     if not isinstance(title, str) or not title.strip():
         raise RuntimeError(f"{label} has an invalid title.")
-    # Source type is decided per entry. A Git source is additive: it does not
-    # change how any filesystem entry resolves, and its repository is never
-    # reused as a root for another document.
+    # Source type is decided per entry. The cross-lineage Git source
+    # (``deploy-state``) keeps its provenance wrapper and its own ref; Design B
+    # does not change it.
     source_type = entry.get("sourceType", FILESYSTEM_SOURCE_TYPE)
     if source_type == GIT_SOURCE_TYPE:
         spec = parse_git_source(entry, label)
@@ -427,16 +539,19 @@ def manifest_source(entry: Any, label: str) -> Source:
     if source_type not in FILESYSTEM_SOURCE_TYPES:
         raise RuntimeError(f"{label} has an unknown sourceType: {source_type!r}")
 
-    # A filesystem entry resolves exactly as it always has, under the fixed
-    # redesign root. Git fields are rejected here so no filesystem document can
-    # inherit another entry's repository or ref.
+    # A filesystem entry is validated exactly as it always has been, under the
+    # fixed redesign root. Git fields are rejected here so no filesystem document
+    # can inherit another entry's repository or ref. Under Design B its bytes are
+    # read from the pinned redesign commit instead of the working tree; the
+    # catalog entry itself is unchanged and it is not a Git-provenance source.
     borrowed = sorted({"repository", "ref"} & set(entry))
     if borrowed:
         raise RuntimeError(
             f"{label} is a filesystem source but declares Git fields: "
             + ", ".join(borrowed)
         )
-    source_path = resolve_manifest_path(entry.get("root"), entry.get("path"), label)
+    repo_rel = manifest_repo_relative(entry.get("root"), entry.get("path"), label)
+    source_path = materialize_redesign_source(pinned_sha, repo_rel, f"{label} ({key})")
     return Source(key, title, source_path)
 
 
@@ -464,10 +579,10 @@ def dynamic_source_definitions() -> dict[str, tuple[str, str]]:
     return dynamic
 
 
-def fixed_sources() -> list[Source]:
+def fixed_sources(pinned_sha: str) -> list[Source]:
     manifest = load_source_manifest()
     sources = [
-        manifest_source(entry, f"documents[{index}]")
+        manifest_source(entry, f"documents[{index}]", pinned_sha)
         for index, entry in enumerate(manifest["documents"])
     ]
     phases = manifest["phaseDocuments"]
@@ -477,38 +592,40 @@ def fixed_sources() -> list[Source]:
         raise RuntimeError("phaseDocuments.first must be an integer.")
     if isinstance(last, bool) or not isinstance(last, int) or first > last:
         raise RuntimeError("phaseDocuments.last must be an integer not less than first.")
-    phase_dir = resolve_manifest_path(
+    phase_dir_rel = manifest_repo_relative(
         phases.get("root"), phases.get("directory"), "phaseDocuments"
     )
-    if not phase_dir.is_dir():
-        raise RuntimeError(f"Phase directory is missing: {phase_dir}")
+    # Enumerate the phase set from the pinned commit, not the working directory,
+    # and materialize each committed phase file. A missing phase directory yields
+    # no committed names, so single_phase_match fails closed.
+    committed_names = list_committed_blobs(
+        ROOT, pinned_sha, phase_dir_rel, label="Phase source"
+    )
     for number in range(first, last + 1):
-        matches = sorted(phase_dir.glob(f"{number:02d}-*.md"))
-        if len(matches) != 1:
-            raise RuntimeError(
-                f"Expected exactly one phase {number:02d} Markdown file; found {len(matches)}."
-            )
-        sources.append(Source(f"phase-{number:02d}", matches[0].stem, matches[0]))
+        rel = single_phase_match(committed_names, number)
+        materialized = materialize_redesign_source(
+            pinned_sha, rel, f"phase-{number:02d}"
+        )
+        sources.append(Source(f"phase-{number:02d}", Path(rel).stem, materialized))
     return sources
 
 
-def expected_source_count() -> int:
-    return len(fixed_sources()) + len(dynamic_source_definitions())
+def expected_source_count(pinned_sha: str) -> int:
+    return len(fixed_sources(pinned_sha)) + len(dynamic_source_definitions())
 
 
 def discover_sources() -> list[Source]:
-    master_context_path = build_master_context_source()
-    sources = fixed_sources()
+    # Pin the redesign lineage to a single commit for the whole run (Design B,
+    # C-1). Every same-lineage read below uses this SHA; deploy-state keeps its
+    # own production-lineage ref.
+    pinned_sha = pin_redesign_commit()
+    logging.info("Pinned redesign sources at commit %s.", pinned_sha[:12])
+    master_context_path = build_master_context_source(pinned_sha)
+    sources = fixed_sources(pinned_sha)
     dynamic = dynamic_source_definitions()
-    handoff_dir = ROOT / "docs/agent-handoffs"
-    handoffs = sorted(
-        handoff_dir.glob("*.md"), key=lambda p: p.stat().st_mtime_ns, reverse=True
-    )
-    if not handoffs:
-        raise RuntimeError(f"No Markdown handoff found in {handoff_dir}")
     latest_key, latest_title = dynamic["latest-handoff"]
     master_key, master_title = dynamic["tm-project-master-context"]
-    sources.append(Source(latest_key, latest_title, handoffs[0]))
+    sources.append(Source(latest_key, latest_title, newest_handoff_path(pinned_sha)))
     sources.append(
         Source(master_key, master_title, master_context_path)
     )
@@ -516,7 +633,7 @@ def discover_sources() -> list[Source]:
     missing = [str(source.path) for source in sources if not source.path.is_file()]
     if missing:
         raise RuntimeError("Missing required source files:\n" + "\n".join(missing))
-    expected = expected_source_count()
+    expected = expected_source_count(pinned_sha)
     if len(sources) != expected:
         raise RuntimeError(
             f"Expected {expected} sources from the manifest; discovered {len(sources)}"

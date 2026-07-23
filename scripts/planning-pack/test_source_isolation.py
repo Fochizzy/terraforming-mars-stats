@@ -1,13 +1,17 @@
 """Source-isolation regression tests for the planning-pack updater.
 
-The planning pack reads 45 documents from the redesign checkout and exactly one
-- DEPLOY-STATE - from the production lineage via Git. Several documents exist
-under both checkouts with the same name, so a change that re-rooted an entry
-would publish the wrong content under a stable Drive ID.
+Under Design B (DECISIONS R-4, amended 2026-07-23) every same-lineage document
+is read from the pinned redesign commit and materialized under the updater's
+staging directory; the one cross-lineage document, DEPLOY-STATE, is read from
+the production lineage via Git with a provenance wrapper. An uncommitted
+working-tree edit to any source therefore cannot reach the publish payload.
 
-These tests prove that adding the Git source type changed the resolution of
-exactly one entry and nothing else. Everything runs against temporary
-directories; no real machine path is required.
+The SnapshotComparisonTests exercise the pre-publication comparison logic
+unchanged. The ManifestDispatchTests prove that a filesystem entry now reads
+committed content (not the working tree), that raw materialization adds no
+provenance while the cross-lineage document does, and that a --source-manifest
+override still resolves content from the pinned commit. Everything runs against
+temporary directories; no real machine path is required.
 
 The manifest-dispatch cases import ``update_planning_pack``, which needs the
 updater's third-party dependencies. Run them with the installed updater
@@ -21,6 +25,7 @@ Cases that only exercise ``source_snapshot`` run under any Python 3.11+.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -218,23 +223,44 @@ class SnapshotComparisonTests(unittest.TestCase):
 
 @unittest.skipIf(updater is None, f"updater dependencies unavailable: {globals().get('UPDATER_IMPORT_ERROR')}")
 class ManifestDispatchTests(unittest.TestCase):
-    """Per-entry dispatch: adding a Git source changes no filesystem entry."""
+    """Per-entry dispatch under Design B.
+
+    Every filesystem entry now reads its content from the pinned redesign
+    commit, materialized under the updater's staging directory, so an
+    uncommitted working-tree edit cannot reach the publish payload. The
+    cross-lineage ``deploy-state`` Git source is unchanged: it keeps its own ref
+    and its provenance wrapper. The redesign checkout is therefore a real
+    repository here, with a committed body and a deliberately dirtied tree.
+    """
 
     def setUp(self) -> None:
         self._temporary = tempfile.TemporaryDirectory(prefix="tm_source_isolation_")
         self.addCleanup(self._temporary.cleanup)
         base = Path(self._temporary.name)
 
-        # Two checkouts holding same-named documents, exactly like the machine.
         self.redesign = base / REDESIGN_ROOT_NAME
         self.live = base / LIVE_ROOT_NAME
         self.generated = base / "generated"
+        self.committed = self.generated / "committed"
         (self.redesign / "docs").mkdir(parents=True)
         (self.live / "docs").mkdir(parents=True)
         self.generated.mkdir()
-        (self.redesign / "docs" / SHARED_NAME).write_text(REDESIGN_TEXT, encoding="utf-8")
-        (self.live / "docs" / SHARED_NAME).write_text(STALE_REDESIGN_TEXT, encoding="utf-8")
 
+        # The redesign checkout is a real repository: filesystem sources read
+        # from its committed tree, not its working tree.
+        git(self.redesign.parent, "init", "--quiet", str(self.redesign))
+        git(self.redesign, "config", "user.email", "test@example.invalid")
+        git(self.redesign, "config", "user.name", "Isolation Test")
+        git(self.redesign, "config", "core.autocrlf", "false")
+        (self.redesign / "docs" / SHARED_NAME).write_text(REDESIGN_TEXT, encoding="utf-8")
+        git(self.redesign, "add", "-A")
+        git(self.redesign, "commit", "--quiet", "-m", "committed master rules")
+        self.pinned_sha = git(self.redesign, "rev-parse", "HEAD").strip()
+        # The working tree now disagrees with the pinned commit. This uncommitted
+        # 'OLD copy' must never reach a published document.
+        (self.redesign / "docs" / SHARED_NAME).write_text(STALE_REDESIGN_TEXT, encoding="utf-8")
+
+        # The production lineage that owns DEPLOY-STATE, exactly as before.
         git(self.live.parent, "init", "--quiet", str(self.live))
         git(self.live, "config", "user.email", "test@example.invalid")
         git(self.live, "config", "user.name", "Isolation Test")
@@ -243,11 +269,13 @@ class ManifestDispatchTests(unittest.TestCase):
         git(self.live, "add", "-A")
         git(self.live, "commit", "--quiet", "-m", "canonical ledger")
         git(self.live, "branch", "--quiet", CANONICAL_REF)
-        # The working tree now disagrees with the canonical ref, as it did in
-        # the real checkout.
         (self.live / "DEPLOY-STATE.md").write_text(STALE_BODY, encoding="utf-8")
 
-        for name, value in (("ROOT", self.redesign), ("GENERATED_DIR", self.generated)):
+        for name, value in (
+            ("ROOT", self.redesign),
+            ("GENERATED_DIR", self.generated),
+            ("COMMITTED_DIR", self.committed),
+        ):
             original = getattr(updater, name)
             setattr(updater, name, value)
             self.addCleanup(setattr, updater, name, original)
@@ -270,40 +298,50 @@ class ManifestDispatchTests(unittest.TestCase):
             "path": "DEPLOY-STATE.md",
         }
 
-    def test_filesystem_source_still_reads_from_the_redesign_root(self) -> None:
-        source = updater.manifest_source(self.filesystem_entry(), "documents[0]")
-        self.assertEqual(source.path, (self.redesign / "docs" / SHARED_NAME).resolve())
+    def fs_source(self) -> object:
+        return updater.manifest_source(
+            self.filesystem_entry(), "documents[0]", self.pinned_sha
+        )
+
+    def test_filesystem_source_reads_committed_content(self) -> None:
+        source = self.fs_source()
         self.assertEqual(source.path.read_text(encoding="utf-8"), REDESIGN_TEXT)
         self.assertIsNone(source.git_spec)
+        # Materialized under the updater staging directory, never a checkout.
+        self.assertIn(self.committed.resolve(), source.path.resolve().parents)
+        self.assertNotIn((self.redesign / "docs").resolve(), source.path.resolve().parents)
 
-    def test_a_same_named_file_under_the_live_checkout_is_ignored(self) -> None:
-        source = updater.manifest_source(self.filesystem_entry(), "documents[0]")
-        text = source.path.read_text(encoding="utf-8")
+    def test_section_4_uncommitted_edit_does_not_reach_the_payload(self) -> None:
+        # Precondition: the working tree really is dirty with the 'OLD copy'.
+        self.assertEqual(
+            (self.redesign / "docs" / SHARED_NAME).read_text(encoding="utf-8"),
+            STALE_REDESIGN_TEXT,
+        )
+        # Assert on the payload content, not the absence of an error.
+        text = self.fs_source().path.read_text(encoding="utf-8")
+        self.assertEqual(text, REDESIGN_TEXT)
         self.assertNotIn("OLD copy", text)
-        # Compare by path ancestry, not substring: the live root's name is a
-        # prefix of the redesign root's name on the real machine too, so a
-        # substring check here would pass for the wrong reason.
-        self.assertIn(self.redesign.resolve(), source.path.parents)
-        self.assertNotIn(self.live.resolve(), source.path.parents)
 
     def test_adding_the_git_entry_does_not_alter_a_filesystem_entry(self) -> None:
-        before = updater.manifest_source(self.filesystem_entry(), "documents[0]")
-        updater.manifest_source(self.git_entry(), "documents[1]")
-        after = updater.manifest_source(self.filesystem_entry(), "documents[0]")
+        before = self.fs_source()
+        updater.manifest_source(self.git_entry(), "documents[1]", self.pinned_sha)
+        after = self.fs_source()
         self.assertEqual(before, after)
         self.assertEqual(after.path.read_text(encoding="utf-8"), REDESIGN_TEXT)
 
     def test_only_deploy_state_carries_git_provenance(self) -> None:
-        filesystem = updater.manifest_source(self.filesystem_entry(), "documents[0]")
-        git_source = updater.manifest_source(self.git_entry(), "documents[1]")
+        filesystem = self.fs_source()
+        git_source = updater.manifest_source(self.git_entry(), "documents[1]", self.pinned_sha)
         self.assertIsNone(filesystem.git_spec)
         self.assertIsNotNone(git_source.git_spec)
+        # Same-lineage content is materialized raw, so it is byte-identical to
+        # the canonical file; only the cross-lineage document is wrapped.
         self.assertNotIn("Generated source provenance", filesystem.path.read_text(encoding="utf-8"))
         self.assertIn("Generated source provenance", git_source.path.read_text(encoding="utf-8"))
 
     def test_no_other_document_inherits_the_deploy_state_ref(self) -> None:
-        updater.manifest_source(self.git_entry(), "documents[1]")
-        filesystem = updater.manifest_source(self.filesystem_entry(), "documents[0]")
+        updater.manifest_source(self.git_entry(), "documents[1]", self.pinned_sha)
+        filesystem = self.fs_source()
         text = filesystem.path.read_text(encoding="utf-8")
         self.assertNotIn(CANONICAL_REF, text)
         self.assertNotIn(CANONICAL_REF, str(filesystem.path))
@@ -312,25 +350,25 @@ class ManifestDispatchTests(unittest.TestCase):
         # A filesystem entry cannot borrow the DEPLOY-STATE repository.
         entry = self.filesystem_entry() | {"repository": str(self.live), "ref": CANONICAL_REF}
         with self.assertRaises(RuntimeError) as raised:
-            updater.manifest_source(entry, "documents[0]")
+            updater.manifest_source(entry, "documents[0]", self.pinned_sha)
         self.assertIn("declares Git fields", str(raised.exception))
 
     def test_the_retired_live_root_is_rejected(self) -> None:
         entry = {"key": "deploy-state", "title": "DEPLOY-STATE", "root": "live", "path": "DEPLOY-STATE.md"}
         with self.assertRaises(RuntimeError) as raised:
-            updater.manifest_source(entry, "documents[0]")
+            updater.manifest_source(entry, "documents[0]", self.pinned_sha)
         self.assertIn("unknown root", str(raised.exception))
 
     def test_git_source_reads_the_ref_not_the_working_tree(self) -> None:
-        source = updater.manifest_source(self.git_entry(), "documents[1]")
+        source = updater.manifest_source(self.git_entry(), "documents[1]", self.pinned_sha)
         text = source.path.read_text(encoding="utf-8")
         self.assertIn("canonical-from-git", text)
         self.assertNotIn("stale-working-tree-copy", text)
 
     def test_manifest_override_selects_the_file_only(self) -> None:
-        # A manifest committed in an isolated worktree may be selected for a
-        # run, but relative paths must still resolve under ROOT, never against
-        # the overriding manifest's own directory.
+        # A manifest committed in an isolated worktree may be selected for a run
+        # (C-7), but a filesystem entry's content still comes from ROOT's pinned
+        # commit, never a decoy beside the override and never the working tree.
         elsewhere = Path(self._temporary.name) / "isolated-worktree"
         (elsewhere / "docs").mkdir(parents=True)
         (elsewhere / "docs" / SHARED_NAME).write_text(
@@ -343,10 +381,12 @@ class ManifestDispatchTests(unittest.TestCase):
         self.addCleanup(setattr, updater, "SOURCE_MANIFEST", original)
         self.assertEqual(updater.set_source_manifest(manifest), manifest.resolve())
 
-        source = updater.manifest_source(self.filesystem_entry(), "documents[0]")
-        self.assertEqual(source.path, (self.redesign / "docs" / SHARED_NAME).resolve())
-        self.assertEqual(source.path.read_text(encoding="utf-8"), REDESIGN_TEXT)
-        self.assertNotIn(elsewhere.resolve(), source.path.parents)
+        source = self.fs_source()
+        text = source.path.read_text(encoding="utf-8")
+        self.assertEqual(text, REDESIGN_TEXT)
+        self.assertNotIn("DECOY", text)
+        self.assertIn(self.committed.resolve(), source.path.resolve().parents)
+        self.assertNotIn(elsewhere.resolve(), source.path.resolve().parents)
 
     def test_manifest_override_defaults_back_to_the_fixed_path(self) -> None:
         original = updater.SOURCE_MANIFEST
@@ -365,17 +405,141 @@ class ManifestDispatchTests(unittest.TestCase):
 
     def test_snapshot_records_one_git_and_one_filesystem_source(self) -> None:
         sources = [
-            updater.manifest_source(self.filesystem_entry(), "documents[0]"),
-            updater.manifest_source(self.git_entry(), "documents[1]"),
+            self.fs_source(),
+            updater.manifest_source(self.git_entry(), "documents[1]", self.pinned_sha),
         ]
         snapshot = build_snapshot(sources, {"master-rules": "id-a", "deploy-state": "id-b"})
         by_key = {document["key"]: document for document in snapshot["documents"]}
         self.assertEqual(by_key["master-rules"]["source_type"], "filesystem")
-        self.assertEqual(by_key["master-rules"]["root"], str(self.redesign / "docs"))
+        # The materialized source roots under the updater staging directory.
+        self.assertEqual(
+            Path(by_key["master-rules"]["root"]), (self.committed / "docs").resolve()
+        )
         self.assertIsNone(by_key["master-rules"]["ref"])
         self.assertEqual(by_key["deploy-state"]["source_type"], "git")
         self.assertEqual(by_key["deploy-state"]["ref"], CANONICAL_REF)
         self.assertEqual([document["order"] for document in snapshot["documents"]], [0, 1])
+
+
+@unittest.skipIf(updater is None, f"updater dependencies unavailable: {globals().get('UPDATER_IMPORT_ERROR')}")
+class PinnedDiscoveryEndToEndTests(unittest.TestCase):
+    """The whole discovery pipeline over a pinned commit, with a dirty tree.
+
+    This exercises the real ``discover_sources`` - pin, materialize documents and
+    phases, select the newest handoff, generate the master context - against a
+    throwaway repository whose working tree has been edited but not committed. It
+    asserts on the resolved payload content, which is the section 4 property end
+    to end, not merely that no error was raised.
+    """
+
+    MANIFEST = {
+        "version": 1,
+        "documents": [
+            {"key": "alpha", "title": "ALPHA", "root": "redesign", "path": "docs/ALPHA.md"}
+        ],
+        "phaseDocuments": {
+            "root": "redesign",
+            "directory": "docs/redesign/phases",
+            "first": 0,
+            "last": 0,
+        },
+        "dynamicDocuments": [
+            {"key": "latest-handoff", "title": "LATEST-HANDOFF"},
+            {"key": "tm-project-master-context", "title": "TM PROJECT MASTER CONTEXT"},
+        ],
+    }
+
+    STATE = (
+        "# Redesign state\n\n"
+        "## Current substep\n\n"
+        "Phase 0, Step 1 - end-to-end fixture.\n\n"
+        "## Latest handoff\n\n"
+        "- docs/agent-handoffs/H1.md\n"
+    )
+
+    def setUp(self) -> None:
+        self._temporary = tempfile.TemporaryDirectory(prefix="tm_discover_e2e_")
+        self.addCleanup(self._temporary.cleanup)
+        base = Path(self._temporary.name)
+        self.root = base / "redesign"
+        self.generated = base / "generated"
+        self.committed = self.generated / "committed"
+
+        committed_files = {
+            "docs/ALPHA.md": "# Alpha\n\nCommitted alpha body.\n",
+            "docs/redesign/phases/00-intro.md": "# Phase 0\n\nCommitted phase body.\n",
+            "docs/redesign/CLAUDE-PROJECT-CONTEXT.md": "# Context\n\nRead order.\n",
+            "docs/CURRENT_STATUS.md": "# Current status\n\nCommitted status marker.\n",
+            "docs/AUTHORITATIVE_DOCUMENTS.md": "# Authority\n\nRouting.\n",
+            "docs/REDESIGN_STATE.md": self.STATE,
+            "docs/agent-handoffs/H1.md": "# Handoff 1\n\nCommitted handoff.\n",
+        }
+        for rel, text in committed_files.items():
+            path = self.root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        git(self.root.parent, "init", "--quiet", str(self.root))
+        git(self.root, "config", "user.email", "test@example.invalid")
+        git(self.root, "config", "user.name", "Discovery Test")
+        git(self.root, "config", "core.autocrlf", "false")
+        git(self.root, "add", "-A")
+        git(self.root, "commit", "--quiet", "-m", "committed fixture")
+        self.pinned = git(self.root, "rev-parse", "HEAD").strip()
+
+        # Dirty a document AND a master-context input in the working tree. Neither
+        # edit is committed, so neither may appear in the resolved payload.
+        (self.root / "docs" / "ALPHA.md").write_text(
+            "# Alpha\n\nDIRTY document edit.\n", encoding="utf-8"
+        )
+        (self.root / "docs" / "CURRENT_STATUS.md").write_text(
+            "# Current status\n\nDIRTY status marker.\n", encoding="utf-8"
+        )
+
+        self.manifest = base / "CLAUDE-PROJECT-SOURCES.json"
+        self.manifest.write_text(json.dumps(self.MANIFEST), encoding="utf-8")
+
+        for name, value in (
+            ("ROOT", self.root),
+            ("GENERATED_DIR", self.generated),
+            ("COMMITTED_DIR", self.committed),
+            ("MASTER_CONTEXT_SOURCE", self.generated / "tm-project-master-context.md"),
+            ("SOURCE_MANIFEST", self.manifest),
+        ):
+            original = getattr(updater, name)
+            setattr(updater, name, value)
+            self.addCleanup(setattr, updater, name, original)
+
+    def test_discovery_resolves_committed_content_over_a_dirty_tree(self) -> None:
+        sources = updater.discover_sources()
+        by_key = {source.key: source for source in sources}
+        self.assertEqual(
+            set(by_key),
+            {"alpha", "phase-00", "latest-handoff", "tm-project-master-context"},
+        )
+
+        # The dirtied document resolves to committed content, not the working tree.
+        alpha = by_key["alpha"].path.read_text(encoding="utf-8")
+        self.assertEqual(alpha, "# Alpha\n\nCommitted alpha body.\n")
+        self.assertNotIn("DIRTY", alpha)
+
+        # The generated master context drew its inputs from the commit too: the
+        # committed status marker is embedded, the dirty one is not.
+        master = by_key["tm-project-master-context"].path.read_text(encoding="utf-8")
+        self.assertIn("Committed status marker", master)
+        self.assertNotIn("DIRTY status marker", master)
+
+    def test_phase_enumeration_ignores_an_uncommitted_phase_file(self) -> None:
+        # A well-named phase file that exists on disk but is not committed must
+        # not be discovered, and must not create a duplicate for its number.
+        (self.root / "docs" / "redesign" / "phases" / "00-uncommitted.md").write_text(
+            "# Phase 0\n\nUncommitted duplicate.\n", encoding="utf-8"
+        )
+        sources = updater.discover_sources()
+        phase = next(s for s in sources if s.key == "phase-00")
+        self.assertEqual(
+            phase.path.read_text(encoding="utf-8"), "# Phase 0\n\nCommitted phase body.\n"
+        )
+        self.assertNotIn("Uncommitted", phase.path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

@@ -455,3 +455,154 @@ def verify_generated_document(
             f"the source commit time {resolution.path_commit_time}."
         )
     return provenance
+
+
+# ---------------------------------------------------------------------------
+# Committed-tree reads for same-lineage sources (Design B).
+#
+# ``resolve_git_source`` / ``write_generated_git_source`` above wrap a
+# cross-lineage document (``deploy-state``) in a provenance block. The functions
+# below read a same-lineage document's exact committed bytes with the same
+# ``git show <ref>:<path>`` mechanism but WITHOUT a provenance wrapper, so the
+# published content is byte-identical to the canonical file. They exist so the
+# updater can source every document from a pinned commit rather than the working
+# tree, which is what makes an uncommitted working-tree edit unable to reach the
+# publish payload by construction. Every failure mode remains fatal: there is no
+# filesystem fallback here either.
+# ---------------------------------------------------------------------------
+
+
+def resolve_ref_to_commit(
+    repository: Path, ref: str, label: str = "Committed source"
+) -> str:
+    """Resolve ``ref`` to a concrete commit SHA once. Fails closed.
+
+    The updater calls this a single time per run and reads every same-lineage
+    source at the returned SHA, so a publish is a consistent snapshot of one
+    commit even if new commits land while the run is in progress.
+    """
+
+    spec = GitSourceSpec(repository, ref, "-")
+    sha = _decode(
+        _run_git(spec, ["rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"], label),
+        label,
+        "the resolved ref",
+    ).strip()
+    if not sha:
+        raise GitSourceError(f"{label}: ref does not resolve to a commit: {ref}")
+    return sha
+
+
+def read_committed_blob(spec: GitSourceSpec, label: str = "Committed source") -> bytes:
+    """Return the exact bytes of ``<ref>:<path>``. Fails closed.
+
+    Used for binary sources (for example the ``.docx`` master guide) where a
+    text decode would be wrong. A path that resolves to a tree or is absent
+    stops the run rather than falling back to the filesystem.
+    """
+
+    object_type = _decode(
+        _run_git(spec, ["cat-file", "-t", f"{spec.ref}:{spec.path}"], label),
+        label,
+        "the resolved object type",
+    ).strip()
+    if object_type != "blob":
+        raise GitSourceError(
+            f"{label}: {spec.ref}:{spec.path} is a {object_type or 'missing object'}, "
+            "not a file."
+        )
+    return _run_git(spec, ["show", f"{spec.ref}:{spec.path}"], label)
+
+
+def read_committed_text(spec: GitSourceSpec, label: str = "Committed source") -> str:
+    """Return ``<ref>:<path>`` as text with CRLF and lone CR normalized to LF.
+
+    Newline normalization is the only transformation, mirroring
+    ``resolve_git_source`` so the committed bytes are treated identically whether
+    a document is same-lineage or cross-lineage.
+    """
+
+    return normalize_newlines(
+        _decode(read_committed_blob(spec, label), label, "the source body")
+    )
+
+
+def materialize_committed_file(
+    spec: GitSourceSpec,
+    destination: Path,
+    label: str = "Committed source",
+    binary: bool = False,
+) -> Path:
+    """Write ``<ref>:<path>`` to ``destination`` atomically. Fails closed.
+
+    ``destination`` is an updater-owned staging path, never a source checkout.
+    Text is stored as UTF-8 with LF newlines so an unchanged source produces a
+    byte-stable artifact across runs; binary content is stored verbatim. If Git
+    cannot resolve the source, nothing is written and no previous artifact is
+    overwritten.
+    """
+
+    data = read_committed_blob(spec, label) if binary else read_committed_text(
+        spec, label
+    ).encode("utf-8")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    temporary.write_bytes(data)
+    os.replace(temporary, destination)
+    return destination
+
+
+def committed_path_commit_time(
+    repository: Path, sha: str, repo_rel: str, label: str = "Committed source"
+) -> int:
+    """Return the committer UNIX time of the newest commit touching ``repo_rel``.
+
+    ``latest-handoff`` selects the newest handoff over the pinned commit rather
+    than by working-tree mtime; an mtime is meaningless once content is read from
+    Git. A path with no touching commit is fatal.
+    """
+
+    spec = GitSourceSpec(repository, sha, repo_rel)
+    raw = _decode(
+        _run_git(spec, ["log", "-1", "--format=%ct", sha, "--", repo_rel], label),
+        label,
+        "the file history",
+    ).strip()
+    if not raw:
+        raise GitSourceError(f"{label}: no commit touches {repo_rel} at {sha}.")
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise GitSourceError(
+            f"{label}: unusable commit time for {repo_rel}: {raw!r}"
+        ) from exc
+
+
+def list_committed_blobs(
+    repository: Path, sha: str, repo_rel_dir: str, label: str = "Committed source"
+) -> list[str]:
+    """List repository-relative blob paths directly under ``repo_rel_dir`` at ``sha``.
+
+    Enumerates from the pinned commit with ``git ls-tree`` rather than a working
+    directory scan, so a file present on disk but not committed is not listed,
+    and a file committed but absent from disk still is. Only blobs are returned;
+    subtrees are ignored. A missing directory yields an empty list, which the
+    caller turns into a fail-closed error when it expected entries.
+    """
+
+    normalized = repo_rel_dir.replace("\\", "/").strip("/")
+    spec = GitSourceSpec(repository, sha, normalized or "-")
+    raw = _run_git(spec, ["ls-tree", "-z", sha, f"{normalized}/"], label).decode(
+        "utf-8", errors="surrogateescape"
+    )
+    entries: list[str] = []
+    for record in raw.split("\0"):
+        if not record.strip():
+            continue
+        meta, tab, path = record.partition("\t")
+        if not tab:
+            continue
+        fields = meta.split()
+        if len(fields) >= 2 and fields[1] == "blob":
+            entries.append(path)
+    return entries

@@ -3127,6 +3127,26 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/UPDATER-DESIGN-B-COMMITTED-TREE-SOURCES-BUILT-LOCAL.md
+  (Design B for the planning-pack updater: every document source's content now
+  resolves from the pinned redesign commit via `git show <ref>:<path>` instead of
+  the working tree, so an uncommitted working-tree edit cannot reach Google Drive
+  by construction. **BUILT LOCALLY and executably proven; NOT delivered.**
+  Redesign lineage, `scripts/planning-pack/**` and its tests only: **no deploy,
+  migration, production read or write, push, merge, delivery `--apply`, autorun,
+  `.bat`/hook edit, or catalog / Drive / 48-document-set change**. Authorization:
+  `docs/redesign/DECISIONS.md` -> R-4 AMENDMENT 2026-07-23 -> A-1. Filesystem
+  entries stay filesystem (the lighter refinement); only `deploy-state` is a
+  Git-provenance source. Pin once (C-1), per-lineage refs (C-2), phase files via
+  `git ls-tree` (C-3), newest handoff over the commit (C-4), master context from
+  committed inputs (C-5), missing paths fail closed (C-6), `--source-manifest`
+  preserved (C-7). Tests: `test_git_source.py` 45, `test_source_isolation.py` 24,
+  `test-validate-claude-project-context.mjs` 20/0; an integration proof on the
+  real 48-document catalog at `a301ce20a` confirmed committed content, not the
+  working tree, with only `deploy-state` carrying a `git_spec`. **Next action: the
+  owner delivers the built fix repo->installed via `sync_installed_updater.py
+  --apply` (R-4 A-4); an agent session cannot.** Handoff:
+  `docs/agent-handoffs/UPDATER-DESIGN-B-COMMITTED-TREE-SOURCES-BUILT-LOCAL.md`.)
 - docs/agent-handoffs/PHASE-04-STEP-03-CLOSURE-CRITERION-ESTABLISHED.md
   (read-only investigation establishing the Step 4.3 closure criterion, redesign
   lineage, docs-only and local: **nothing applied, deployed, pushed, merged, or
