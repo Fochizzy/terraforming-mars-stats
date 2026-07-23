@@ -59,27 +59,99 @@ version→commit linkage.
 
 ## Current production
 
-**Superseded 2026-07-22 19:26Z by the import candidate-input bounds release.**
-Every row below was re-derived live during that deploy (`npx wrangler
-deployments list`, a read-only `supabase_migrations.schema_migrations` query,
-and HTTP probes against `tm-stats.com`). The previous occupant of this table —
-worker `178229f3` @ `4dec49a42` — is now the rollback target.
+**Superseded 2026-07-23 01:58Z by the saved-game player-label release.** Every
+row below was re-derived live during that deploy (`npx wrangler deployments
+list`, a read-only `supabase_migrations.schema_migrations` query, and HTTP
+probes against `tm-stats.com`). The previous occupant of this table — worker
+`6ef56761` @ `d12e33ad0` — is now the rollback target.
 
 | | |
 |---|---|
 | Environment | production — Cloudflare Worker `terraforming-mars-stats`, serving `tm-stats.com` / `www.tm-stats.com` |
-| Worker version | `6ef56761-3c41-4c90-b83c-19db0060c048` — **confirmed live 2026-07-22 at 100% traffic** |
+| Worker version | `11e42e8c-2837-48ed-b867-b88e4ba3f25d` — **confirmed live 2026-07-23 at 100% traffic** |
 | Source repository | `github.com/Fochizzy/terraforming-mars-stats` |
-| Source branch | `fix/live-compare-data-remove-declared-style` — **pushed. `origin` is at `e4a99963f`, identical to local, and every deployed code-bearing commit is on it.** Verified 2026-07-22 after `git fetch origin`; see "Source is local-only — RESOLVED" below. |
-| Source commit | `d12e33ad09e976ec5779a6f0d79b621846912964` — printed by the deploy-time stamp (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`), not inferred. **`wrangler` itself records `Source: Unknown (deployment)` for every version.** Unlike every prior row in this file, this linkage does **not** rest on the stamp and this ledger alone — it was independently corroborated by a served-asset probe; see "Commit linkage evidence" below. |
-| Deployed (UTC) | 2026-07-22 19:26:59.159Z (version created 19:26:57.040Z; `wrangler deployments list`, 100% traffic) |
-| Deploy lock | **TAKEN 2026-07-23 ~01:5xZ** by the saved-game player-label session, for the merge of `fix/saved-game-label-orphan-snapshot-ids` into this branch. Frontend only — the data half (ledger `20260723014849`) is already applied and is schema-neutral. Release by editing this row when the deploy is recorded. |
-| Active clean deployment worktree | `C:\tmp\tm-live-compare-data` — clean at `d12e33ad0`, real `node_modules`, no orphaned `workerd`, `.open-next` absent before the build |
-| DB migration ledger head | **`20260722153233 close_authenticated_guest_identity_oracle`**, **113 entries** — re-derived live immediately before this deploy and **unchanged by it**. This release applied **no migration and no DDL, and granted and revoked nothing**. Gated migration `20260722012707 retire_free_form_import_name_matcher` remains **absent** from the ledger and unapplied. |
-| Rollback worker version | **`178229f3-bfa4-4776-826a-e344daf23d72`** — the immediately prior production version @ `4dec49a42`, 100% traffic 2026-07-21T19:49:51.928Z until this deploy. Command: `npx wrangler rollback 178229f3-bfa4-4776-826a-e344daf23d72 --name terraforming-mars-stats`. **This rollback IS schema-neutral**: no migration accompanied this release, so the database is identical either side of it. |
-| Verified | 2026-07-22 19:2xZ — new version at 100%; `/api/deploy-info` → `401 {"error":"Authentication required."}` (route served); `tm-stats.com` → `200`, `www.tm-stats.com` → `200`; served CSS byte-identical to the local artifact. **Not authenticated-verified** — the signed-in `/api/deploy-info` `sourceCommit` read remains open, and the two owner smoke tests below are **not yet run**. |
+| Source branch | `fix/live-compare-data-remove-declared-style` — **pushed before the build. `origin` confirmed at `865df0108` (`git rev-parse origin/…`), identical to local.** |
+| Source commit | `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` — printed by the deploy-time stamp (branch passed explicitly via `TM_STATS_SOURCE_BRANCH`), not inferred. **`wrangler` itself records `Source: Unknown (deployment)` for every version.** Independently corroborated by a served-asset probe; see "Commit linkage evidence" below. |
+| Deployed (UTC) | 2026-07-23 01:58:50.810Z (version created 01:58:48.881Z; `wrangler deployments list`, 100% traffic) |
+| Deploy lock | **Free.** Taken 2026-07-23 ~01:5xZ by the saved-game player-label session via commit `b7e3ad372` (pushed before the build), deploy completed, released on writing this row. Take it by editing this row. |
+| Active clean deployment worktree | `C:\tmp\tm-live-compare-data` — clean at `865df0108`, real `node_modules` (not a symlink), no orphaned `workerd`, `.next` and `.open-next` deleted before the build |
+| DB migration ledger head | **`20260723014849 repair_snapshot_player_ids`**, **114 entries** — re-derived live. That entry is **this release's own data half**, applied ~01:48Z, ahead of the frontend. It is a **data-only repair of `game_revisions.snapshot`: no DDL on any application table, no grant, no revoke**, so it is schema-neutral in both directions. Gated migration `20260722012707 retire_free_form_import_name_matcher` remains **absent** from the ledger and unapplied. |
+| Rollback worker version | **`6ef56761-3c41-4c90-b83c-19db0060c048`** — the immediately prior production version @ `d12e33ad0`, 100% traffic 2026-07-22T19:26:59.159Z until this deploy. Command: `npx wrangler rollback 6ef56761-3c41-4c90-b83c-19db0060c048 --name terraforming-mars-stats`. **This rollback IS safe**: the accompanying migration only rewrote snapshot ids to ones that already exist in the same group, which the prior frontend resolves the same way. |
+| Verified | 2026-07-23 01:5xZ — new version at 100%; `/api/deploy-info` → `401` (route served); `tm-stats.com` → `200`, `www.tm-stats.com` → `200`; served `_buildManifest.js` byte-identical to the local artifact under this build's own `BUILD_ID`. **Not authenticated-verified** — the signed-in `/api/deploy-info` `sourceCommit` read remains open, as does an owner smoke test of the saved-games list. |
 
-## Import candidate-input bounds release — 2026-07-22 19:26Z (current)
+## Saved-game player-label release — 2026-07-23 01:58Z (current)
+
+Deployed from `C:\tmp\tm-live-compare-data`, clean at `865df0108`, via
+`TM_STATS_SOURCE_BRANCH=fix/live-compare-data-remove-declared-style npm run deploy`
+so the `predeploy` schema gate and the commit stamper both ran. Exit code 0.
+
+**What shipped.** `865df0108` is the merge of
+`fix/saved-game-label-orphan-snapshot-ids`. The full range
+`a15de759b..865df0108` is four commits, enumerated before deploying:
+
+| Commit | Class | Content |
+|---|---|---|
+| `865df0108` | merge | merge of `fix/saved-game-label-orphan-snapshot-ids` |
+| `b7e3ad372` | docs | `DEPLOY-STATE.md` only — the deploy-lock claim |
+| `75f6e0794` | **migration** | `supabase/migrations/20260723014849_repair_snapshot_player_ids.sql` — the repo copy of the data half, already applied |
+| `c7d6c203a` | **code** | `src/lib/db/game-draft-repo.ts` + its test — `listSavedGames` labelling |
+
+**The bug.** The saved-games list labelled each game from
+`game_revisions.snapshot`, which is frozen at save time. The 2026-07-20 group
+collapse/split and the guest cleanup that same day rewrote `game_players` and
+left thirteen finalized games' snapshots naming superseded player rows. Two
+named rows the cleanup had deleted outright, so nothing resolved them and the
+fallback — `personLabel({ displayName: id })` — returned the whole uuid,
+because `firstNameOf` splits on whitespace and a uuid has none. The list
+rendered raw uuids where player names belong.
+
+**Code half (`c7d6c203a`).** A finalized game is now labelled from
+`game_players`, its authoritative roster, keeping the snapshot's order wherever
+the two agree so healthy games list unchanged; drafts have no `game_players`
+rows yet and keep the snapshot. An unresolved uuid-shaped entry renders
+"Unknown player" rather than itself, while a name typed into a draft before its
+player row existed is still shown by first name. Labels resolve from the roster
+ids rather than a group-scoped `players` read, so a participant outside that
+scope resolves too — `get_public_player_names` still gates every id on
+`can_read_player` / `is_group_member`, so nothing new is exposed.
+
+**Data half (ledger `20260723014849`, applied ~01:48Z, before the frontend).**
+Each snapshot player was matched to its `game_players` row on the six score
+fields both carry; the map was asserted one-to-one, injective and
+roster-complete before any write, and the whole migration was rehearsed as
+`begin … rollback` against the live schema first. 33 ids across 13 games; all
+33 targets belong to their game's own group, which is why the *prior* frontend
+already resolved them — the code half is the durability fix, not the visible
+one. Originals are in `private.mig_backup_snapshot_player_ids_20260722` (16
+revisions) and the map in `private.mig_snapshot_player_remap_20260722`.
+Post-migration re-derivation: 0 games still naming a non-participant, 0
+sentinels left behind. Scores, placements and analytics read `game_players` and
+did not move.
+
+**Pre-deploy gates.**
+
+- `npx tsc --noEmit` — clean.
+- `npm run check:schema` — "Schema OK: all 51 referenced tables exist" (14
+  dynamic `.from(variable)` sites not statically checkable, as always). The
+  `predeploy` hook ran it a second time inside `npm run deploy`.
+- `npm run lint` — warnings only, **none in either file this range touches**.
+- `npx vitest run` — **1090 passed, 8 failed**. The 8 (`auth/callback`,
+  `auth/reset-pin`, `lib/env`, `group/page`, `global-loss-cards-section`) were
+  confirmed to fail **identically** in this worktree at the untouched base
+  `a15de759b` before the merge. `game-draft-repo.test.ts` is 17/17.
+
+**Commit linkage evidence.** This build's Next.js `BUILD_ID` is
+`lR5mkZ6YoPLbQQn6uv2XY`, generated by this build alone. Production serves
+`/_next/static/lR5mkZ6YoPLbQQn6uv2XY/_buildManifest.js` at `200`, 1812 bytes,
+byte-identical to `.open-next/assets/…` in the worktree that just built
+`865df0108`. Production is serving this exact artifact, independently of the
+deploy-time stamp.
+
+**Still open.** The authenticated `/api/deploy-info` `sourceCommit` read, and an
+owner smoke test that the saved-games list now shows names on the 13 repaired
+games.
+
+## Import candidate-input bounds release — 2026-07-22 19:26Z (superseded)
 
 Deployed from `C:\tmp\tm-live-compare-data`, clean at `d12e33ad0`, via
 `TM_STATS_SOURCE_BRANCH=fix/live-compare-data-remove-declared-style npm run deploy`
