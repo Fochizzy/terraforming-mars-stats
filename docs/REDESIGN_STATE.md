@@ -75,6 +75,44 @@ corrected:
 **no blocker's disposition changed**, no skill was audited, catalogued, indexed or
 edited, and **applied is still not deployed and not closed**.
 
+### RECORD-OWNER-RULINGS-AND-PUSH-OUTCOME — four rulings recorded; PUSH-TWO-LINEAGES and FORENSICS-HANDOFF-SCOPE-CORRECTION closed (2026-07-23)
+
+Documentation and record only. **No production access of any kind occurred** — no Supabase
+MCP call, no `execute_sql`, no `list_migrations`, no `apply_migration`, no `wrangler`, no
+`/api/deploy-info`, no direct database connection. **No migration applied, no deploy,
+nothing pushed, nothing merged, and no branch or worktree created**, and `src/**`,
+`supabase/**` and `scripts/**` were not edited. One commit on
+`redesign/tm-stats-dashboard-rebuild`, in the updater's primary tree.
+
+**Four owner rulings of 2026-07-23 are now recorded in `docs/redesign/DECISIONS.md`**,
+having existed only in a chat thread before this commit: **R-1** release publication scope
+(two lineages authorized; the matcher callsite branch a standing exclusion), **R-2** the
+`FORENSICS-HANDOFF-SCOPE-CORRECTION` file-list amendment (Amendment 1), **R-3** the
+dated-history classification standard, and **R-4** the authorization to build the updater
+clean-tree guard (naming the two standing positions it overrides).
+
+**`PUSH-TWO-LINEAGES` — COMPLETE.** `redesign/tm-stats-dashboard-rebuild` was published,
+carrying nine commits `d63e6b0d7..505e49ece`, by a worker session; the branch is now level
+with `origin` **[GIT]**. `fix/live-compare-data-remove-declared-style` was published,
+carrying one commit `1b4c2350d..2926a1bcc`, **by the owner directly** — the worker
+session's second push was denied by the Claude Code auto-mode classifier, a **harness
+event, not a gate failure**, with all preconditions verified clean beforehand. `2926a1bcc`
+is present on `origin/fix/live-compare-data-remove-declared-style` **[GIT]**.
+
+**`FORENSICS-HANDOFF-SCOPE-CORRECTION` — ACCEPTED at `505e49ece`.** That commit
+("docs(step-43): correct the forensics handoff Scope section and record defects 13-16")
+bannered three claims in the matcher-apply forensics handoff's Scope section that the
+15:12:21Z matcher apply falsified and recorded defects 13–16; it is the base of this work
+item and the current branch head **[GIT]**.
+
+**Both are closed; the updater clean-tree guard (R-4) is the queued next meta-work item.**
+Recording the authorization does not build it — that is a separate, not-yet-started work
+item, and this record does not begin it.
+
+**Nothing else moved.** Step 4.3 is **not** marked complete, Step 4.4 is not begun, **no
+blocker's disposition changed**, no phase, deploy, or migration baseline changed, no defect
+was added, and no defect count changed.
+
 ### Two accepted work items recorded: the expand merge, and a disputed apply report disproven (2026-07-23)
 
 Documentation and record only. **No production access of any kind occurred** —
@@ -3055,6 +3093,24 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/RECORD-OWNER-RULINGS-AND-PUSH-OUTCOME.md
+  (record only, redesign lineage, documentation-only and local: **nothing applied,
+  deployed, pushed, merged, or read from production** — no Supabase MCP call, no
+  `execute_sql`, no `list_migrations`, no `wrangler`, no `/api/deploy-info`, and `src/**`,
+  `supabase/**` and `scripts/**` were not edited. Writes four owner rulings of 2026-07-23
+  into `docs/redesign/DECISIONS.md` — **R-1** release publication scope (two lineages
+  authorized; `fix/matcher-service-role-overload-callsite` a standing exclusion), **R-2**
+  the `FORENSICS-HANDOFF-SCOPE-CORRECTION` file-list amendment, **R-3** the dated-history
+  classification standard, **R-4** the updater clean-tree guard authorization naming the
+  two standing positions it overrides — and records in this document that
+  `PUSH-TWO-LINEAGES` is **COMPLETE** (redesign `d63e6b0d7..505e49ece`, nine commits, by a
+  worker; `fix/live-compare-data-remove-declared-style` `1b4c2350d..2926a1bcc`, one commit,
+  by the owner after the worker's second push was denied by the Claude Code auto-mode
+  classifier — a harness event, not a gate failure) and
+  `FORENSICS-HANDOFF-SCOPE-CORRECTION` is **ACCEPTED at `505e49ece`**. The updater
+  clean-tree guard is authorized but **NOT built** — a separate work item. **No blocker's
+  disposition changed, Step 4.3 NOT marked complete, Step 4.4 not begun, no defect added,
+  and no phase, deploy, or migration baseline changed.**)
 - docs/agent-handoffs/PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md
   (record only, redesign lineage, documentation-only and local: **nothing applied,
   deployed, pushed, merged, or read from production** — no Supabase MCP call, no

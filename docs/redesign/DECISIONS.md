@@ -1532,6 +1532,46 @@ undeployed and will eventually need to ship. What changes is that it is no
 longer a precondition of the seven-argument drop.
 
 
+## Phase 4 Step 4.3 - Release publication scope: two lineages published, the matcher callsite branch held back as a standing exclusion
+
+Decided by explicit owner ruling on 2026-07-23. Release-scope governance only. It
+authorizes no further push, merge, deploy, migration, or production write, and changes
+no phase, blocker, or production state.
+
+- **Two lineages are authorized for publication:**
+  `redesign/tm-stats-dashboard-rebuild` and
+  `fix/live-compare-data-remove-declared-style`. Both were published under this scope;
+  the execution record (nine commits `d63e6b0d7..505e49ece` on redesign, one commit
+  `1b4c2350d..2926a1bcc` on `fix/live-compare`) is in `docs/REDESIGN_STATE.md`.
+- **`fix/matcher-service-role-overload-callsite` is DELIBERATELY UNPUBLISHED — not
+  merely unpushed.** It carries the moved matcher reader on the live-site lineage, and
+  three matcher gates still depend on it (merge the moved reader, deploy it, and verify a
+  real production import returns a non-zero match count). Publishing the branch invites a
+  merge that no gate has cleared, reopening the window in which any unrelated live-lineage
+  deploy would break import matching with `PGRST202`/`42883`.
+- **This exclusion is STANDING, not incidental.** Reversing it — publishing or merging
+  that branch — requires fresh explicit owner authorization. It does not become
+  publishable by default now that the expand migration has been applied: applied is not
+  deployed, and none of the three dependent gates is open.
+
+
+## Phase 4 Step 4.3 - FORENSICS-HANDOFF-SCOPE-CORRECTION file-list amendment (Amendment 1): REDESIGN_STATE.md added; the validator waiver refused
+
+Decided by explicit owner ruling on 2026-07-23. Amends the authorized file list of the
+`FORENSICS-HANDOFF-SCOPE-CORRECTION` work item; governance only, with no code,
+production, or scope change.
+
+- **`docs/REDESIGN_STATE.md` was added to that work item's authorized file list**
+  (Amendment 1), so the work item could correct the state document alongside the
+  forensics handoff and the defect register.
+- **The alternative was REFUSED.** The alternative considered — waiving
+  `npm.cmd run validate:claude-context -- --require-maintenance` for a
+  documentation-only change — was refused because it waives a CLAUDE.md pre-commit gate
+  and would have left `docs/REDESIGN_STATE.md` asserting a ledger/gate count that the
+  same work item had just falsified. Widening the authorized file set, rather than
+  waiving the gate, keeps the gate intact and the state document truthful.
+
+
 ## Project-wide - generated Claude Project master context
 
 Approved by the user's explicit context-maintenance request on 2026-07-22.
@@ -1725,3 +1765,66 @@ This entry defines the reporting requirement. It is referenced — not restated 
 from the reporting-requirement sections of `docs/redesign/MASTER-RULES.md`,
 `AGENTS.md`, and `CLAUDE.md`, which remain pointers to this text. This entry is
 authoritative over every summary of it.
+
+
+## Project-wide - dated-history classification standard for FALSIFIED-versus-CORRECT-DATED-HISTORY calls
+
+Decided by the owner on 2026-07-23. Governance and documentation-classification only. It
+changes no phase, blocker, release, migration, or production state and authorizes no work.
+
+### The standard
+
+A fact site whose heading — or immediately surrounding text — scopes it to a specific past
+event STAYS at the value that was correct for that event. Raising it to the current value
+would falsely attribute later work to the earlier event, which is a fabrication of the
+record even when every individual number is real.
+
+- A present-tense claim that a later event has since falsified is bannered **SUPERSEDED**
+  with its original text retained. That is a FALSIFIED call.
+- A value that a heading or date pins to a past event is **CORRECT DATED HISTORY** and is
+  left unchanged.
+
+The two are distinguished by scope, not by whether the number still matches production.
+
+### The three worked examples (applied 2026-07-23)
+
+- **The "115 entries" sites in the matcher-apply forensics handoff**
+  (`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`). They record the
+  pre-apply ledger the forensics session read live; production later moved to 116, but the
+  sites are scoped to that read and stay at 115.
+- **`docs/REDESIGN_STATE.md` line 68** — its dated defect-count record ("twelve
+  planning-layer assignment defects"). The forensics work item later extended the total to
+  sixteen, but line 68 is scoped to the earlier remediation event and stays at twelve.
+- **`docs/CURRENT_STATUS.md` line 61** — the same dated defect-count record, left unchanged
+  for the same reason.
+
+These are the reference cases for future FALSIFIED-versus-CORRECT-DATED-HISTORY calls.
+(Line numbers are as of this recording and may drift; the sites are identified by their
+content.)
+
+
+## Project-wide - updater clean-tree guard authorized (owner exception overriding two standing positions)
+
+Decided by the owner on 2026-07-23. This entry records the AUTHORIZATION only. It does not
+build the guard — that is a separate, not-yet-started work item — and it authorizes no
+deploy, migration, production write, or push.
+
+- **The authorization.** The owner authorizes building a fail-closed clean-tree guard for
+  the planning-pack updater, wired into
+  `C:\Users\izzyh\Desktop\Refresh TM Project Planning Pack.bat` and the autorun path, so
+  the updater refuses to publish while the tree it reads holds uncommitted changes.
+- **This owner exception OVERRIDES two standing positions, both named here:**
+  1. the recorded **"no fix is applied, and none is recommended as decided"** position on
+     the working-tree publish hazard — defect 10 in
+     `docs/agent-handoffs/PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md`, also
+     stated in `docs/REDESIGN_STATE.md` and `docs/CURRENT_STATUS.md`; and
+  2. the **"updater clean-tree investigation"** line in the excluded-work list — the open
+     read-only investigation of "whether the updater has a clean-tree guard", recorded in
+     the same defects handoff and in `docs/REDESIGN_STATE.md`.
+- Both positions previously declined to fix, or even to recommend fixing, the hazard. This
+  authorization supersedes that stance for the guard specifically. Their dated historical
+  records are left in place per the dated-history classification standard above, not
+  rewritten.
+- **Out of scope for the recording work item, and still to be done under this
+  authorization:** building the guard, editing the `.bat`, or otherwise touching the
+  updater or its hook.
