@@ -60,6 +60,40 @@ issued.**
   precondition, a separate gate, and was outside this session's authorization.
   **It remains outstanding.** No production table row and no personal data was
   read.
+
+### Finding (2026-07-23): the 7-argument drop's reader dependency has no found caller
+
+Recorded as a **finding**. **No disposition changed, and the precondition is
+left standing.** The record states that the CONTRACT drop of the deployed
+7-argument `resolve_import_guest_identity` is valid only after the moved reader
+is deployed and production-verified. A read-only sweep found no reader on any
+lineage that calls that function.
+
+- **Swept [GIT]:** production source commit
+  `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` (the commit named in the canonical
+  `DEPLOY-STATE.md`) — zero `src/` occurrences, the only hits being
+  `DEPLOY-STATE.md` prose; rollback target `d12e33ad0` — zero `src/`
+  occurrences; and this branch at `44eed2e21` — comments, the ledger map, and a
+  test asserting the RPC is **not** called.
+- **Positive control:** the same command on the same commit finds `.rpc(` in
+  fourteen `src/` files and finds `match_import_player_names`, so the absence is
+  real rather than a broken search.
+- **NOT covered, all four open:** database-internal callers since the expand
+  landed; edge functions as deployed; consumers outside this repository; and
+  whether the swept commit is what production actually serves — that commit is
+  **[PRIOR]** from the canonical ledger, whose own authenticated
+  `/api/deploy-info` `sourceCommit` confirmation is recorded there as
+  outstanding.
+- **The precondition is NOT relaxed.** "No caller was found" is not "the drop is
+  safe", and the four gaps above are exactly where a caller would hide.
+  Relaxing or removing the reader-deploy precondition on a production drop is an
+  **owner decision** and has not been made.
+- **Real regardless of that decision, and still outstanding:** the authorized
+  production ACL and signature read on the resolver, and a fresh production-side
+  catalog sweep for database-internal callers.
+
+Detail, including the two-gate distinction this dependency is often confused
+with: `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`.
 - **No deploy occurred.** No `wrangler`, no build, no `/api/deploy-info`, no
   Cloudflare action. The reader remains undeployed and the contraction stays
   gated. Applying this authorized none of them.
@@ -1030,6 +1064,12 @@ Remaining Step 4.3 blockers, in required order:
    review, and is stopped at the release boundary. The separate authorization,
    the compatible reader deploy, and the expand/contract application of
    `20260722012658` then `20260722012707` are still outstanding.
+   **[The last clause is SUPERSEDED in part, 2026-07-23: `20260722012658` is
+   APPLIED — ledger `20260722132159`, 2026-07-22, a renamed apply reconciled
+   by NAME. The compatible reader deploy and the application of
+   `20260722012707` are still outstanding and still require separate explicit
+   authorization; that gate is unchanged. Evidence class **[REPO]** for the
+   ledger map, **[PRIOR]** for production.]**
 2. Run the tile-attribution backfill **before** guest re-neutralization. Two of
    the 114 rows resolve only through the unlinked guest's display_name.
 3. Perform guest re-neutralization.
@@ -1052,6 +1092,24 @@ Remaining Step 4.3 blockers, in required order:
    Evidence:
    `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-INVESTIGATION-STOP.md`
    §5–§6.
+
+   **[Item 4 is SUPERSEDED with respect to `20260720100000`, 2026-07-23.]**
+   That migration is now a **RETIRED no-op tombstone**: the file is retained
+   at its original version as an auditable record and contains no executable
+   statement, so applying it is impossible by content rather than merely
+   gated, and it will never appear in the production ledger. Everything the
+   item says about the *previous* body — that it dropped the deployed
+   7-argument resolver and re-granted `authenticated` EXECUTE, reopening the
+   oracle closed as ledger `20260722153233` — is the reason it was retired and
+   is retained as the record of that hazard. Its still-needed capability moved
+   to `20260722160000`, which does **not** re-grant `authenticated` and which
+   was itself applied on 2026-07-23 as ledger `20260723082917`.
+   `ID-READER-CLIENT` is therefore **no longer downstream of this migration**;
+   its current disposition is in `docs/CURRENT_STATUS.md` and is not changed
+   here. The applicable remaining migrations in this item are
+   `20260719234500` and `20260720110000`, still under the per-mutation
+   protocol and separate authorization — that requirement is unchanged.
+   Evidence class **[REPO]**.
 5. Only then run the fresh independent closure audit.
 
 Step 4.3 remains **BLOCKED**. Step 4.4 is **NOT STARTED**.
@@ -1985,6 +2043,39 @@ remains unapplied, insufficient as an oracle closure, and unauthorized for
 application as one. Migration 20260718050924 is not gated and must never be
 applied.
 
+**Correction (2026-07-23) — three statements in this "Next action" are stale.
+The sequence is not restructured, no step is removed, and no gate is
+relaxed.** Evidence class **[REPO]** for the ledger map and migration files,
+**[PRIOR]** for what production holds, which is read from the canonical
+`DEPLOY-STATE.md` on `fix/live-compare-data-remove-declared-style` and was not
+observed here.
+
+- **`20260722012658` is APPLIED**, not awaiting preflight/application:
+  production applied it on 2026-07-22 as ledger `20260722132159`, a renamed
+  apply reconciled by NAME. **What remains outstanding is the rest of the
+  first paragraph and is unchanged**: the compatible reader deploy is not
+  authorized and has not happened, and `20260722012707` still requires its own
+  separate authorization only after reader verification.
+- **`20260720100000` is a retired no-op tombstone** with no executable
+  statement. It cannot be applied and will never enter the ledger. The
+  applicable pair in that sentence is `20260719234500` and `20260720110000`,
+  still under the per-mutation protocol and separate authorization. The
+  backfill-before-re-neutralization ordering and its stated reason are
+  unaffected.
+- **`20260720120000` is APPLIED** — ledger `20260722144034`, 2026-07-22 — so
+  "remains unapplied" is false. **The rest of that sentence stands and is the
+  load-bearing part**: it is insufficient as an oracle closure and must not be
+  cited as one. Applied is not closed.
+- Unchanged and reaffirmed: migration `20260718050924` is not gated and must
+  never be applied; production facts must be re-read live before any
+  production-sensitive action; and nothing here authorizes a migration,
+  deploy, push, production read, or Step 4.4.
+
+The current authoritative migration disposition is
+`docs/redesign/reference/MIGRATION-LEDGER-MAP.md` together with
+`src/lib/db/migration-ledger-map.ts`, and the concise current router is
+`docs/CURRENT_STATUS.md`.
+
 Do not begin Step 4.4/4.5/Phase 5, push, deploy, or apply a migration without
 separate authorization.
 
@@ -2099,6 +2190,41 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PROJECT-RECORD-RECONCILIATION-2026-07-23.md
+  (documentation and comment text only: reconciles the governing documents
+  against the repository after a read-only investigation found them stale in
+  ten places. **Nine stale facts corrected, superseded text marked not
+  deleted, every figure re-derived**: `20260722012658` and `20260720120000`
+  are APPLIED (ledgers `20260722132159` / `20260722144034`), not gated;
+  `GATED_UNAPPLIED` holds **five** entries, not seven, of which only **four**
+  are applicable because `20260720100000` is a retired no-op tombstone that
+  can never be applied. **The tenth is recorded, not corrected**: "deploy and
+  verify the compatible reader" has named TWO distinct gates — the
+  guest-identity pair, whose contraction is the drop of the 7-argument
+  `resolve_import_guest_identity`, and the matcher pair, whose contraction is
+  `20260722012707`. The matcher contraction is **evidenced** as genuinely
+  deploy-gated: at production source commit `865df0108`,
+  `import-player-resolution-repo.ts:223` calls `match_import_player_names`
+  through the cookie-based SSR client, so it executes as `authenticated`, and
+  that migration revokes exactly that grant. The 7-argument drop's reader
+  dependency, by contrast, has **no found caller** on any lineage — production
+  `865df0108`, rollback `d12e33ad0`, or this branch — verified with a positive
+  control; **the sweep's four uncovered areas are recorded and the precondition
+  was left STANDING and NOT relaxed**, because "no caller was found" is not
+  "the drop is safe". **Three owner decisions registered and unresolved** in
+  `docs/CURRENT_STATUS.md` → "Pending owner decisions": the unbuilt 3-argument
+  matcher overload adopted 2026-07-22 (superseded-without-record vs
+  adopted-and-unbuilt could not be distinguished); whether Step 4.3 may close
+  with `ID-LEGACY-ORACLE` open; and whether `GUEST-NAME-COLLISION-TERMINAL` is
+  a contract non-conformance — **recorded as CONTESTED and NOT reclassified**.
+  Observations for the owner, not implemented: `MASTER-RULES.md` carries no
+  expand/contract rule though the sequence relies on one, and the phase
+  contract does not specify the reader-deploy step at all. Every inference is
+  labelled as an inference. **Step 4.3 NOT marked complete, no blocker's
+  disposition changed, no precondition relaxed, no sequence restructured,
+  `DECISIONS.md`/`MASTER-RULES.md`/`AUTHORITATIVE_DOCUMENTS.md` untouched, no
+  executable `src/` line changed, no migration applied, no deploy, no push,
+  and no production read or write**)
 - docs/agent-handoffs/SAVED-GAME-LABEL-RECORD-CORRECTION-2026-07-23.md
   (documentation and comment text only: corrects a **false statement** in this
   document — that this lineage "still labels finalized saved games from

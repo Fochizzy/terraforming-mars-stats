@@ -291,6 +291,21 @@ export const GATED_UNAPPLIED: readonly string[] = [
   // The contraction half of the owner-approved source-bound replacement. Its
   // expansion half (20260722012658) is applied; this one is not, and retiring
   // the free-form matcher still requires the deployed reader to move first.
+  //
+  // That reader-first requirement is EVIDENCED, not merely procedural. At the
+  // production source commit named in the canonical DEPLOY-STATE
+  // (865df0108f2f7b9df000ad3aeb8fcd394e6242a5),
+  // src/lib/db/import-player-resolution-repo.ts:223 calls
+  // supabase.rpc('match_import_player_names', ...) through
+  // createSupabaseServerClient(), which src/lib/supabase/server.ts builds from
+  // @supabase/ssr with the publishable key and the request cookies — a
+  // user-session client. A signed-in caller therefore executes it as the
+  // `authenticated` role, and this migration revokes exactly that grant.
+  // Applying it against the current deployment would break live import name
+  // matching. Do not confuse this gate with the guest-identity pair's
+  // contraction (the drop of the 7-argument resolve_import_guest_identity);
+  // they share a reader-deploy step but are different migrations with
+  // different evidence. See docs/redesign/reference/MIGRATION-LEDGER-MAP.md.
   '20260722012707',
   // 20260722160000 (the EXPAND half of the ID-READER-CLIENT repair) was listed
   // here until 2026-07-23. It is now APPLIED — ledger 20260723082917 — and is

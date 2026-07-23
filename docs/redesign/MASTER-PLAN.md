@@ -492,6 +492,9 @@ The approved source-bound, server-only import-identity replacement is now
 repository-complete, locally validated, and remediated after independent
 review, and is stopped at the release boundary; its expansion
 `20260722012658` and contraction `20260722012707` are gated and unapplied.
+**[The clause "its expansion `20260722012658` … [is] gated and unapplied" is
+SUPERSEDED and false — see the correction immediately below. The contraction
+half of that sentence stands.]**
 
 Step 4.3 stays blocked in this order: obtain the owner's separate
 authorization for the source-bound replacement's production preflight,
@@ -503,6 +506,41 @@ per-mutation protocol and separate authorization; then run the fresh
 independent closure audit. Phase 3 and Phase 4 Steps 4.1-4.2 are complete.
 Step 4.4 is not started; do not begin Step 4.4/4.5 or Phase 5. The unapplied
 Merger production migration/backfill package remains separately owner-gated.
+**[The clause listing `20260720100000` among the migrations to "apply … under
+the per-mutation protocol" is SUPERSEDED — see the correction immediately
+below. `20260719234500` and `20260720110000` are unaffected, and the ordering
+and authorization requirements of this sequence are unchanged.]**
+
+**Correction (2026-07-23) — three statements above are stale. The sequence
+itself is not restructured and no gate is relaxed.** Evidence class **[REPO]**
+for the repository facts and **[PRIOR]** for what production currently holds,
+which is read from the canonical `DEPLOY-STATE.md` on
+`fix/live-compare-data-remove-declared-style` and was not observed by this
+correction.
+
+1. **`20260722012658` is APPLIED, not gated.** Production applied it on
+   2026-07-22 as ledger version `20260722132159`
+   (`add_source_bound_import_identity_staging`), a renamed apply reconciled by
+   NAME. It is registered in
+   `APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME` in
+   `src/lib/db/migration-ledger-map.ts` and is **not** in `GATED_UNAPPLIED`.
+   Its contraction half `20260722012707` **is** still gated and unapplied, and
+   that half of the original sentence stands unchanged.
+2. **`20260720120000` is also APPLIED** — ledger `20260722144034`,
+   2026-07-22 — which the paragraph above this one still describes as
+   "unapplied". Applied is **not** closed: it was an interim mitigation and
+   independent review found it insufficient as a closure. The prohibition on
+   citing it as the oracle closure is unchanged and still in force.
+3. **`20260720100000` is a RETIRED no-op tombstone and can never be applied.**
+   The file is retained at its original version as an auditable record and now
+   contains no executable statement, so applying it is impossible by content
+   rather than merely gated. Its still-needed capability moved to
+   `20260722160000`, which was itself applied on 2026-07-23 as ledger
+   `20260723082917`. It remains listed in `GATED_UNAPPLIED` for audit only.
+
+Full current mapping: `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` and
+`docs/CURRENT_STATUS.md`. Neither this correction nor anything it states
+authorizes a migration, deploy, production read, or the next substep.
 
 ### Completed
 
@@ -1460,6 +1498,10 @@ Update these fields whenever this file changes materially:
   unapplied and insufficient as a closure. The approved source-bound import
   identity replacement is repository-complete and locally validated, and is
   release-stopped. Step 4.3B remains production-verified within this step.
+  **[SUPERSEDED in one clause, 2026-07-23: `20260720120000` is APPLIED —
+  ledger `20260722144034`, 2026-07-22. "Insufficient as a closure" is
+  unchanged and still correct; applied is not closed. Everything else in this
+  bullet stands.]**
 - **Next gated work:** the approved import-identity replacement is built and
   remediated after independent review, and is stopped at the release
   boundary; no production preflight/application, reader deploy, or
@@ -1470,6 +1512,12 @@ Update these fields whenever this file changes materially:
   per-mutation protocol; and only then the fresh closure audit. Step 4.4 is
   not started; do not begin Step 4.4 or a closure audit without a new
   explicit assignment.
+  **[SUPERSEDED in one clause, 2026-07-23: `20260720100000` is a retired
+  no-op tombstone with no executable statement and is not applicable for
+  application. The applicable remaining pair is `20260719234500` and
+  `20260720110000`, still under the per-mutation protocol and separate
+  authorization. The ordering, the authorization requirements, and the
+  prohibition on beginning Step 4.4 or a closure audit are unchanged.]**
 - **Gated and unapplied migrations (seven):** `20260717190000`,
   `20260719234500`, `20260720100000`, `20260720110000`, `20260720120000`,
   `20260722012658`, and `20260722012707`. The last two are an
@@ -1477,6 +1525,29 @@ Update these fields whenever this file changes materially:
   with a compatible reader deploy and verification between them. The
   superseded `20260720120000` coarsening file is not part of the
   source-bound replacement proof and was not applied.
+  **[This whole bullet is SUPERSEDED — the count and two of the members are
+  wrong. Corrected below; retained because it is the record of what this
+  header asserted.]**
+- **Gated and unapplied migrations (five) — corrected 2026-07-23.**
+  Re-derived from `GATED_UNAPPLIED` in `src/lib/db/migration-ledger-map.ts`,
+  which holds exactly five entries: `20260717190000`, `20260719234500`,
+  `20260720100000`, `20260720110000`, and `20260722012707`. Evidence class
+  **[REPO]**.
+  - `20260722012658` and `20260720120000` **left** the gated set on
+    2026-07-22: both are applied to production, as ledger versions
+    `20260722132159` and `20260722144034` respectively, under apply-time
+    renames reconciled by NAME. `20260722160000` joined the set on 2026-07-22
+    and left it on 2026-07-23, applied as ledger `20260723082917`.
+  - Of the five that remain, only **four** are applicable.
+    `20260720100000` is a retired no-op tombstone containing no executable
+    statement; it is listed for audit only and will never appear in the
+    production ledger. Applying `20260720120000` is likewise no longer
+    possible-as-gated — it is already applied, and applied is not closed.
+  - `20260722012707` remains the contraction half of the source-bound
+    replacement. Its gate — deploy and verify the compatible reader first,
+    under separate explicit authorization — is unchanged by any of the
+    applies above. Evidence class **[PRIOR]** for the production state, which
+    is read from the canonical `DEPLOY-STATE.md` and was not observed here.
 - **Step 4.2 completion commit:** recorded by post-commit verification after
   this document is committed
 - **Step 4.1 completion commit:** recorded by post-commit verification after
@@ -1529,6 +1600,14 @@ and is removed at finalization. Release remains expand/contract: apply and
 verify `20260722012658` with the compatible server reader before separately
 authorizing `20260722012707`, which retires authenticated execution of the old
 free-form matcher. Both files are currently gated and unapplied.
+**[The final sentence is SUPERSEDED and half false: `20260722012658` is
+APPLIED (ledger `20260722132159`, 2026-07-22). `20260722012707` is still gated
+and unapplied, and the expand/contract release order stated above it is
+unchanged — the reader deploy and separate authorization are still required
+before the contraction. Correction 2026-07-23; evidence class **[REPO]** for
+the ledger map, **[PRIOR]** for production. See the fuller correction in
+"Current status" above and
+`docs/redesign/reference/MIGRATION-LEDGER-MAP.md`.]**
 
 A separately authorized registration and onboarding task owns:
 

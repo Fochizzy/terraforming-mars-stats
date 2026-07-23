@@ -461,6 +461,18 @@ verification; the redesign application is not deployed; migrations
 applied; backup-table security remediation is complete; no production
 mutation occurred in the remediation. See
 `docs/agent-handoffs/PHASE-04-STEP-03-import-validation-evidence-and-claimable-guest-identity.md`.
+
+**[Status observation correction, 2026-07-23 — this corrects only the
+observed state recorded in the preceding paragraph. No scope item,
+obligation, prohibition, or closure criterion in this document is changed.]**
+`20260720100000` is no longer "prepared": it is a **RETIRED no-op tombstone**
+retained at its original version as an auditable record, containing no
+executable statement, so it cannot be applied and will never enter the
+production ledger. `20260719234500` and `20260720110000` are unchanged —
+still prepared and still not applied. The redesign application is still not
+deployed. Evidence class **[REPO]**. Current disposition:
+`docs/redesign/reference/MIGRATION-LEDGER-MAP.md` and
+`docs/CURRENT_STATUS.md`.
 Step 4.3 is closed only after a fresh independent read-only audit passes. Do not
 begin Step 4.4; it requires an explicit assignment. Step 4.4 consumes the
 canonical capture model through `readCanonicalGameCapture` rather than

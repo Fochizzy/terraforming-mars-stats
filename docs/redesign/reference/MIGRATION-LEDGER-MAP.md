@@ -473,6 +473,96 @@ being an applicable expansion in the same change: it stays listed in
 `GATED_UNAPPLIED`, but only as a retired no-op tombstone kept for audit, and its
 declared hazard class moved `expansion` → `neutral`.
 
+### "Deploy and verify the compatible reader" names TWO different gates
+
+Recorded 2026-07-23. The project record uses one phrase — deploy and verify the
+compatible reader, then contract — for two **distinct** expand/contract pairs
+with different contractions, different readers, and different evidence. They are
+not interchangeable, and satisfying one does not satisfy the other. Nothing
+below restructures either sequence or changes what either step requires.
+
+| | **Guest-identity pair** | **Matcher pair** |
+| --- | --- | --- |
+| Expand | `20260722160000` → ledger `20260723082917`, applied 2026-07-23. Adds `public.create_or_reuse_guest_identity`, `service_role` only | `20260722012658` → ledger `20260722132159`, applied 2026-07-22. Adds source-bound staging and service-only gateways |
+| Reader to deploy | the moved non-import guest-creation call sites (`createOrReuseGuestPlayerByPersonalName` and its two product paths), on the admin client | the source-bound, server-only import-identity reader |
+| Contract | **the DROP of the deployed 7-argument `resolve_import_guest_identity`** — not authored, not authorized. Tracked as `ID-READER-CONTRACT` | **migration `20260722012707`** `retire_free_form_import_name_matcher`. Tracked as `ID-LEGACY-ORACLE` |
+| Blocker for the reader step | `ID-READER-DEPLOY` | `ID-READER-DEPLOY` |
+
+Both contractions are gated. What differs is the **evidence** behind each gate,
+and only one of the two currently has a demonstrated deployed dependency.
+
+**The matcher contraction IS genuinely deploy-gated — evidenced.** Evidence
+class **[GIT]**/**[REPO]**, swept at production source commit
+`865df0108f2f7b9df000ad3aeb8fcd394e6242a5` (the commit named in the canonical
+`DEPLOY-STATE.md` "Current production" table):
+
+- `src/lib/db/import-player-resolution-repo.ts:223` on that commit calls
+  `await supabase.rpc('match_import_player_names', { p_group_id, p_imported_names })`.
+- The `supabase` handle in that function is
+  `const supabase = await createSupabaseServerClient();`, and
+  `src/lib/supabase/server.ts:5` builds it with `createServerClient` from
+  `@supabase/ssr` using `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` plus the request
+  cookie store — a **user-session client**. A signed-in caller therefore
+  executes the RPC as the **`authenticated`** database role.
+- `20260722012707` line 6 is
+  `revoke execute on function public.match_import_player_names(uuid, text[]) from authenticated;`
+  — exactly the grant that call site depends on.
+
+Applying `20260722012707` against the currently deployed frontend would
+therefore break live import name matching. The reader-first order for this pair
+is not merely procedural; it is required by evidence.
+
+### The 7-argument drop's reader dependency is currently unsupported by any found caller
+
+Recorded 2026-07-23 as a **finding**, not as a change of disposition. The record
+states that the CONTRACT drop of the deployed 7-argument
+`resolve_import_guest_identity` is valid only after the moved reader is deployed
+and production-verified. A read-only sweep found **no reader on any lineage that
+calls that function**.
+
+**What was swept.** Evidence class **[GIT]**:
+
+- Production source commit `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` — zero
+  occurrences of `resolve_import_guest_identity` anywhere under `src/`. The only
+  hits in that tree are in `DEPLOY-STATE.md` prose.
+- Rollback target `d12e33ad0` — zero occurrences under `src/`.
+- `redesign/tm-stats-dashboard-rebuild` @ `44eed2e21` — occurrences are
+  comments, `src/lib/db/migration-ledger-map.ts`, and a test that asserts the
+  RPC is **not** called
+  (`import-player-identity-repo.test.ts:157`, `expect(rpc).not.toHaveBeenCalledWith('resolve_import_guest_identity', …)`).
+
+**Positive control.** On the same commit and with the same command, the sweep
+does find `.rpc(` in fourteen `src/` files and finds
+`match_import_player_names` at `import-player-resolution-repo.ts:223`, so the
+empty result is a real absence and not a broken search.
+
+**What the sweep does NOT cover.** All four are open:
+
+1. **Database-internal callers** — other functions, triggers, views, policies or
+   defaults inside the production database that invoke the resolver. Nothing in
+   the repository can answer this; it needs a production-side catalog sweep.
+2. **Edge functions as deployed**, which are not necessarily reproduced by any
+   commit in this repository.
+3. **Consumers outside this repository** entirely.
+4. **Whether the swept commit is what production actually serves.** The commit
+   is taken from the canonical ledger — evidence class **[PRIOR]** — and the
+   authenticated `/api/deploy-info` confirmation of `sourceCommit` is recorded
+   there as still outstanding.
+
+**The precondition stands and is NOT relaxed by this finding.** "No caller was
+found" is not "the drop is safe", and the four gaps above are exactly where a
+caller would hide. Changing, narrowing, or removing the reader-deploy
+precondition on this drop is an **owner decision** and has not been made.
+
+**Preconditions that are real regardless of how that decision goes**, and that
+remain outstanding:
+
+- the **authorized production ACL and signature read** on
+  `resolve_import_guest_identity` — deliberately not performed by the expand
+  session, which held no authorization for it; and
+- a **fresh production-side catalog sweep for database-internal callers**,
+  which no repository-only sweep can substitute for.
+
 ## Hazard classes
 
 Every migration **file** on this branch declares one hazard class in

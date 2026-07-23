@@ -215,18 +215,144 @@ sequence is:
    after reader verification; and
 7. run a fresh closure audit before any Step 4.4 assignment.
 
+### Note (2026-07-23): steps 4–6 span TWO distinct expand/contract pairs
+
+Recorded as a clarification. The sequence above is **not** restructured,
+renumbered, or relaxed. "Deploy and verify the compatible reader" has been used
+across this project's records for two different gates:
+
+- **the guest-identity pair** — expand `20260722160000` (applied, ledger
+  `20260723082917`), whose contraction is step 5, the **drop of the deployed
+  7-argument `resolve_import_guest_identity`**; and
+- **the matcher pair** — expand `20260722012658` (applied, ledger
+  `20260722132159`), whose contraction is step 6, **migration
+  `20260722012707`**.
+
+They share step 4's reader-deploy gate but have different contractions and
+different supporting evidence. Satisfying one does not satisfy the other. The
+full comparison, with evidence, is in
+`docs/redesign/reference/MIGRATION-LEDGER-MAP.md` →
+"'Deploy and verify the compatible reader' names TWO different gates".
+
+**Step 6 is genuinely deploy-gated, and this is evidenced [GIT]/[REPO].** At
+production source commit `865df0108f2f7b9df000ad3aeb8fcd394e6242a5`,
+`src/lib/db/import-player-resolution-repo.ts:223` calls
+`supabase.rpc('match_import_player_names', …)` through
+`createSupabaseServerClient()`, which `src/lib/supabase/server.ts:5` builds from
+`@supabase/ssr` with the publishable key and the request cookies — a
+user-session client, so a signed-in caller executes as **`authenticated`**.
+Migration `20260722012707` revokes exactly that grant. Applying it against the
+current deployment would break live import matching.
+
+**Step 5's reader dependency is, by contrast, currently unsupported by any
+found caller — and the precondition is left standing anyway.** See the
+`ID-READER-CONTRACT` blocker row below and the pending owner decision
+registered under "Pending owner decisions".
+
 ## Known blockers
 
 | ID | Requirement | Current status | Blocking |
 |---|---|---|---|
 | ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22, remediated after an independent audit returned FAIL, and MERGED into `redesign/tm-stats-dashboard-rebuild` on 2026-07-23; **migration APPLIED 2026-07-23 as ledger `20260723082917`, reader still undeployed**. Re-audited 2026-07-23: the targeted re-audit found the SQL and TypeScript remediation correct and complete and returned FAIL on documentation and coverage only; all four of its findings are addressed and its FAIL is answered.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. The audit's HIGH finding — the candidate-counting and auto-selection predicates disagreed about claimed players, so a same-name collision could auto-select a claimed player and fail with `P0002` — was reproduced and fixed in the unapplied file: the predicate is now evaluated once into `v_candidate_ids` and both uses derive from it. `p_requesting_user_id` was also made required, matching the four applied gateways. Executably proven and mutation-proven on a disposable cluster. **Closed out 2026-07-23**: probe P1 was re-run against the tightened clause 8b it had never been re-run against and still fails there with `P0002` (harness exit 3), so the remediation is proven at the current file state, not merely at the state the probe was originally run against. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` | Redesign deploy |
-| ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is applied (ledger `20260723082917`) and is additive, so the function is still in place. The drop is valid only after the moved reader is deployed and production-verified and a fresh zero-caller re-sweep passes. **Its stated precondition — a production ACL read on `resolve_import_guest_identity` — is OUTSTANDING**: the expand session was explicitly forbidden from making that read and did not make it | Step 4.3 closure |
+| ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is applied (ledger `20260723082917`) and is additive, so the function is still in place. The drop is valid only after the moved reader is deployed and production-verified and a fresh zero-caller re-sweep passes. **Its stated precondition — a production ACL read on `resolve_import_guest_identity` — is OUTSTANDING**: the expand session was explicitly forbidden from making that read and did not make it. **Finding recorded 2026-07-23, disposition UNCHANGED: no reader on any lineage was found that calls this function.** Swept at production source commit `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` (zero `src/` occurrences; the only hits are `DEPLOY-STATE.md` prose), at rollback target `d12e33ad0` (zero `src/` occurrences), and at `redesign/…` `44eed2e21` (comments, the ledger map, and a test asserting the RPC is **not** called). Positive control on the same commit finds `.rpc(` in fourteen `src/` files and finds `match_import_player_names`, so the absence is real, not a broken search [GIT]. **The sweep does NOT cover** database-internal callers since the expand landed, edge functions as deployed, consumers outside this repository, or whether the swept commit is what production actually serves (that commit is **[PRIOR]** from the canonical ledger; the authenticated `/api/deploy-info` confirmation is itself recorded there as outstanding). **"No caller was found" is not "the drop is safe": the reader-deploy precondition is NOT relaxed and remains in force.** Changing it is an owner decision and has not been made — see "Pending owner decisions". Two preconditions are real regardless of that decision: the authorized production ACL and signature read above, and a fresh production-side catalog sweep for database-internal callers. Detail: `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` | Step 4.3 closure |
 | ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | **ACTIVE GATE as of 2026-07-23.** Not authorized or deployed. The database side is now ready — `create_or_reuse_guest_identity` exists and is `service_role`-only — but nothing in production calls it, and applying the expand granted no deploy authority | Legacy contraction |
 | ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live | Step 4.3 closure |
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary. It must also account for the recorded harness coverage gap: `run.sh` exit 0 does not cover the coarsened `match_import_player_names` disclosure or its candidate-input bound. A targeted re-audit of the merged `ID-READER-CLIENT` remediation is the evidenced next step and is separately unauthorized | Step 4.3 closure |
 | STEP-4.4 | Explicit assignment for final review, finalization, and draft safety | Not authorized | Step 4.4 start |
-| GUEST-NAME-COLLISION-TERMINAL | A user must be able to add a roster entry whose typed first/last name matches two or more unlinked guests already in the group | **Recorded 2026-07-23, NOT fixed. Inherited, not introduced.** When two or more UNLINKED players in a group carry the same normalized personal name, `create_or_reuse_guest_identity` raises `P0003` ("Multiple guest identities match. Select one explicitly.") and there is no way to satisfy it: the sole call site `createOrReuseGuestPlayerByPersonalName` (`src/lib/db/import-player-identity-repo.ts:118`) hard-codes `p_selected_player_id: null` and accepts no selection from its callers, and neither product path — `/group/players` (`src/app/(app)/group/players/page.tsx:31`) nor the Log-a-Game manual-entry resolver (`src/lib/db/log-game-player-resolution.ts:84`) — offers a disambiguation UI. No code in `src/` handles `P0003`, so it falls through `throw error` as a raw database failure. The state is therefore **terminal**: that roster entry can never be added [REPO]. It is inherited from the deployed resolver this function is derived from and is not a regression introduced by the `ID-READER-CLIENT` work. Reachable because the personal-name index is NON-unique per group (`20260718050924:111-113`) and personal_name is the only mode either non-import path uses. **Coupled to the coverage added on 2026-07-23**: the natural fix is a disambiguation UI, which would pass an explicit `p_selected_player_id` and thereby activate the revalidation path that section 11 of `non-import-guest-identity-after.sql` guards — the clause stopping an explicitly selected CLAIMED player from being returned as `existing_unlinked_guest`. That assertion must remain in place before any such UI ships. Fixing this is a product decision needing its own assignment; see `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md` | Nothing today; user-facing dead end |
+| GUEST-NAME-COLLISION-TERMINAL | A user must be able to add a roster entry whose typed first/last name matches two or more unlinked guests already in the group | **Recorded 2026-07-23, NOT fixed. Inherited, not introduced.** When two or more UNLINKED players in a group carry the same normalized personal name, `create_or_reuse_guest_identity` raises `P0003` ("Multiple guest identities match. Select one explicitly.") and there is no way to satisfy it: the sole call site `createOrReuseGuestPlayerByPersonalName` (`src/lib/db/import-player-identity-repo.ts:118`) hard-codes `p_selected_player_id: null` and accepts no selection from its callers, and neither product path — `/group/players` (`src/app/(app)/group/players/page.tsx:31`) nor the Log-a-Game manual-entry resolver (`src/lib/db/log-game-player-resolution.ts:84`) — offers a disambiguation UI. No code in `src/` handles `P0003`, so it falls through `throw error` as a raw database failure. The state is therefore **terminal**: that roster entry can never be added [REPO]. It is inherited from the deployed resolver this function is derived from and is not a regression introduced by the `ID-READER-CLIENT` work. Reachable because the personal-name index is NON-unique per group (`20260718050924:111-113`) and personal_name is the only mode either non-import path uses. **Coupled to the coverage added on 2026-07-23**: the natural fix is a disambiguation UI, which would pass an explicit `p_selected_player_id` and thereby activate the revalidation path that section 11 of `non-import-guest-identity-after.sql` guards — the clause stopping an explicitly selected CLAIMED player from being returned as `existing_unlinked_guest`. That assertion must remain in place before any such UI ships. Fixing this is a product decision needing its own assignment; see `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-COVERAGE-AND-SIGNATURE-RECORDS.md`. **Classification CONTESTED as of 2026-07-23, and deliberately NOT changed here.** The phase contract's Step 4.3 scope requires that the importer be able to "select an existing unlinked guest" and "resolve an ambiguous match explicitly", and the terminal `P0003` state makes neither possible — which reads as a contract non-conformance against the "Blocking" value in this row. Whether it is one is an owner adjudication; registered as **PD-3** under "Pending owner decisions", where it interacts with **PD-2** | Nothing today; user-facing dead end |
 | DRAFT-NAME-RESIDUE | A typed personal name must not survive into a Log-a-Game draft snapshot or its hydration payload after the seat that introduced it is removed | **Recorded, NOT fixed and NOT investigated.** Independent-audit FINDING-4, pre-existing and untouched by the ID-READER-CLIENT work: removing a manually added player's seat may leave records keyed by that seat's reference unpruned, so a typed first/last name could persist in the stored draft and be returned on hydration. This would breach the "private names must be excluded from payloads, not merely hidden" rule in `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`. **End-to-end reachability is INFERRED, not executed** — no failing test, captured payload, or stored draft was produced, so severity is unconfirmed. It lives in the wizard/draft subsystem, not the identity RPCs, and needs its own scoped assignment; it must not be fixed inside an identity task. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` | Nothing today |
+
+## Pending owner decisions
+
+Registered 2026-07-23 by a documentation-only reconciliation. Each is stated
+neutrally: what is established, what is not, and who must decide. **None is
+resolved here, none is recommended, and none authorizes work.** They are
+decisions, not blockers, and no blocker's disposition was changed to record
+them.
+
+### PD-1 — Build the three-argument `match_import_player_names` overload, or not?
+
+**Established [PROJECT-DOC].** `docs/redesign/DECISIONS.md` §"Phase 4 Step 4.3 -
+AMENDMENT: interim service-role re-gate of the import matcher" records an
+explicit owner decision of 2026-07-22 adopting a 3-argument overload that takes
+an explicit requesting-user id, derives both the authorization gate and the
+candidate pool from it instead of `auth.uid()`, and is granted to `service_role`
+only; both live call sites move to the server-side admin client, after which the
+2-argument overload's `authenticated` grant is revoked. Its stated purpose is to
+unblock the contraction "without first designing a replacement for the
+manual-entry path". That same entry states it "Defines the design; does not
+authorize implementation."
+
+**Established [REPO].** No such overload exists. Every
+`create or replace function public.match_import_player_names(` in
+`supabase/migrations/` — on this branch and on every other local and remote ref
+checked — declares the 2-argument `(p_group_id uuid, p_imported_names text[])`
+signature, in `20260720120000` only. No migration anywhere in the repository
+creates a 3-argument overload.
+
+**Not established.** Why it does not exist. Two possibilities were examined and
+could **not** be distinguished from the repository record:
+
+1. the amendment was **superseded** by later work without any record being
+   written; or
+2. it was **adopted and simply never built**.
+
+The decision text's own "does not authorize implementation" clause is
+consistent with (2), but it is not proof of it, and no evidence for (1) was
+found either. **This is an inference boundary, not a conclusion.**
+
+**Decision required of the owner.** Whether to build the overload, retire the
+amendment, or leave it dormant. **`docs/redesign/DECISIONS.md` was deliberately
+not edited**: recording an implementation-status question about a decision is
+not the same as amending the decision, and amending it is the owner's act.
+
+### PD-2 — May Step 4.3 close with `ID-LEGACY-ORACLE` still open?
+
+**Established [PROJECT-DOC].** The phase contract
+`docs/redesign/phases/04-log-a-game.md` states exactly one closure criterion for
+this step — "Step 4.3 is closed only after a fresh independent read-only audit
+passes" — and mentions no deployment, no migration, and no contraction as a
+condition of closure.
+
+**Established [PROJECT-DOC].** The state files list `ID-LEGACY-ORACLE` (retire
+authenticated execution of `match_import_player_names` via `20260722012707`) in
+the "Blocking: Step 4.3 closure" column of the blocker table above, and
+`docs/REDESIGN_STATE.md` carries the same ordering.
+
+**Established [PROJECT-DOC].** `docs/AUTHORITATIVE_DOCUMENTS.md` ranks
+`docs/CURRENT_STATUS.md` and `docs/REDESIGN_STATE.md` **above** the assigned
+phase file (positions 2 and 3 of its authority order). The phase contract
+therefore does **not** simply win this conflict on authority grounds.
+
+**Not established.** Which reading governs. The documents genuinely do not
+resolve it: the higher-ranked documents add a closure condition the phase
+contract does not state, and nothing in the record says whether that addition
+was intended to amend the contract or merely to sequence the work.
+
+**Decision required of the owner**, before any closure audit is commissioned —
+because the audit's scope depends on the answer.
+
+### PD-3 — Is `GUEST-NAME-COLLISION-TERMINAL` a Step 4.3 contract non-conformance?
+
+**Established [PROJECT-DOC].** The phase contract's "Step 4.3 guest identity
+scope" requires that Step 4.3 allow the importer to "select an existing unlinked
+guest" and to "resolve an ambiguous match explicitly".
+
+**Established [REPO], as already recorded in the blocker row.** In the terminal
+`P0003` state, neither is possible: the sole call site hard-codes
+`p_selected_player_id: null` and accepts no selection, neither product path
+offers a disambiguation UI, and no code in `src/` handles `P0003`.
+
+**The tension.** Those two facts read together suggest a contract
+non-conformance, while the blocker is currently classified as blocking
+**"Nothing today; user-facing dead end"**.
+
+**Recorded as CONTESTED. The blocker is NOT reclassified here**, and its
+disposition, its "Blocking" value, and its recorded coupling to the
+`non-import-guest-identity-after.sql` §11 assertion are all unchanged.
+Reclassification would change what gates Step 4.3 closure, which is
+**the owner's adjudication**, taken together with PD-2 — the two interact,
+because both turn on what Step 4.3 must satisfy before it may close.
 
 ## Important repository and production evidence
 
