@@ -388,6 +388,114 @@ Provenance commits are as recorded by the applying sessions and were confirmed
 to exist in this repository; they are the redesign branch state at apply time,
 which runs one commit behind the documentation commit for each entry.
 
+**2026-07-23 — READ-ONLY catalog read of the guest-identity surface. NO
+MUTATION, NO DEPLOY, NO ROW READ.** An authorized read-only session issued
+`SELECT`s only against the production catalog at **09:40:14Z** on 2026-07-23,
+project `tm-stats` / **`qjtwgrjjwnqafbvkkfex`**, PostgreSQL **17.6**. It is
+recorded here because it settles two preconditions this ledger carries, not
+because anything changed. **Nothing was created, altered, granted, revoked or
+dropped.** No application table and no personal name was read. **No Cloudflare
+action of any kind** was performed, and no `wrangler`, build, push or deploy was
+involved. The migration ledger stood at **115 entries, head `20260723082917
+add_non_import_guest_identity_creator`** at read time, so the change table above
+is unaffected and still holds exactly four rows.
+
+**Provenance — read this before acting on any value below. Evidence class
+[PRIOR], not [LIVE].** These values were read by that session and are written
+here by a later documentation-only session working from its report; that later
+session made **no production read of its own**. This is a committed record of a
+live read, not a live read by the recording session — the same class as the
+ledger attestation transcribed onto the redesign lineage on 2026-07-23.
+**Consequence, and it is load-bearing: a session authoring the
+`ID-READER-CONTRACT` drop must RE-DERIVE the resolver's signature live from the
+catalog before writing any drop statement.** A signature copied from a report is
+not a signature read from the catalog, and `drop function if exists` against a
+signature that does not exist **succeeds silently against nothing** while the
+function survives and the session records it as dropped. That is the exact
+failure mode the ID-READER re-audit's FINDING A described against a stale
+document, and nothing below is a substitute for the live read.
+
+- **A. The resolver — exactly ONE overload, in `public`, in no other schema.**
+  Signature
+  `public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean)`;
+  named arguments `p_group_id uuid, p_identity_mode text, p_guest_username text,
+  p_guest_first_name text, p_guest_last_name text, p_selected_player_id uuid,
+  p_create_new boolean`. OID **21767**; owner `postgres`; `prosecdef` **true**;
+  `proconfig` `{search_path=""}`; `md5(prosrc)`
+  **`2892f3189a15f04c35641473541fc5bd`**, `length(prosrc)` **7504**. Returns
+  `TABLE(player_id uuid, public_name text, resolution_state text,
+  normalized_imported_value text)`. Member of **no extension**. The `prosrc`
+  hash and length are byte-identical to the ones this file already recorded
+  after the 2026-07-22 revoke, so the body has not moved since.
+  **Production matches what both creating migrations declare, character for
+  character** (`20260718050924` and `20260718212339`, both re-read in the
+  repository by the recording session — evidence class **[REPO]** for that
+  half). Production was therefore **never ambiguous** about this function's
+  identity: the recorded signature hazard is a **documentation** defect only.
+- **B. The `service_role` EXECUTE discrepancy — RESOLVED. `service_role` HOLDS
+  EXECUTE.** `proacl` is **`{postgres=X/postgres,service_role=X/postgres}`**.
+  Confirmed **two independent ways**: the raw `proacl` above, and
+  `has_function_privilege` evaluated across **11 roles**, which resolves `PUBLIC`
+  membership and role inheritance that a raw ACL read alone does not.
+  `authenticated` **NO**, `anon` **NO**, `PUBLIC` **NO**, `authenticator`
+  **NO**; `postgres` and `supabase_admin` yes. **The applied revoke migration's
+  header was CORRECT**; it is the creating migrations' grant lists that are an
+  incomplete picture of production. **[INFERENCE], and it must not be upgraded:**
+  the reading session marked a project-level default grant — rather than any
+  migration statement — as the likely origin, having **NOT** queried
+  `pg_default_acl`. That remains an inference, not a finding, and settling it
+  would need a further authorized read.
+- **C. Database-internal callers — NONE FOUND.** Zero hits across **172**
+  function bodies, **41** views, **0** materialized views and **13** user
+  triggers, in all **12** non-system schemas; and **zero** `pg_depend` rows
+  referencing OID 21767. **Positive controls returned hits on the same query
+  shapes**, so the empty results are meaningful rather than a broken sweep. Two
+  blindness checks were clean: **no** function in the database uses a
+  SQL-standard body, so the `prosrc` text sweep has no gap; and the resolver
+  belongs to **no** extension. **What this sweep does NOT cover — record it
+  alongside the result, all four still open:** (1) Edge Functions as deployed;
+  (2) any consumer outside the database, including application source on any
+  lineage; (3) whether the commit production actually serves matches any tree
+  that was swept; and (4) runtime-constructed dynamic SQL that never stores the
+  function name literally. **"No caller was found" is still not "the drop is
+  safe."**
+- **D. The expand — VERIFIED as applied, from the catalog.** Exactly one
+  overload of
+  `public.create_or_reuse_guest_identity(uuid,uuid,text,text,text,text,uuid,boolean)`;
+  `prosecdef` **true**; `proconfig` `{search_path=""}`; `proacl`
+  **`{postgres=X/postgres,service_role=X/postgres}`**; `authenticated` **NO**,
+  `anon` **NO**, **no surviving `PUBLIC` grant**; `md5(prosrc)`
+  **`99906055c863c4bebad13c21648a3058`**, `length` **7897**. This matches the
+  ACL the expand session recorded post-apply in the entry below, independently
+  re-derived by a different session. The eight-argument signature is the one the
+  shipped migration creates, confirming the re-audit's FINDING A was a stale
+  **document**, not a production ambiguity.
+- **E. The matcher — the adopted design is UNBUILT, now confirmed in
+  production.** One overload only,
+  `public.match_import_player_names(uuid,text[])`; `prosecdef` **true**;
+  `proconfig` `{search_path=""}`; `proacl`
+  **`{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}`** —
+  **`authenticated` CAN execute it**; `md5(prosrc)`
+  **`522f8cb0a2647c57e35da0a081f90480`**, `length` **4191**. The
+  **three-argument `service_role`-only overload** that the 2026-07-22 owner
+  decision adopted exists **NEITHER in the repository NOR in production** — the
+  repository half re-verified by the recording session (**[REPO]**: every
+  `create or replace function public.match_import_player_names(` in
+  `supabase/migrations/` declares the two-argument form, in `20260720120000`
+  only). **The matcher enumeration oracle therefore remains OPEN** behind the
+  interim coarsening `20260722144034`, exactly as this file already records, and
+  contraction `20260722012707` remains unapplied. **This resolves no decision**:
+  whether to build the overload, retire the amendment, or leave it dormant is
+  the owner's, registered as PD-1 on the redesign lineage.
+
+**What this read did NOT authorize.** Nothing. It grants no authority to author
+or apply the `ID-READER-CONTRACT` drop, to apply contraction `20260722012707`,
+to deploy the moved reader, to build the three-argument matcher overload, or to
+resolve any pending decision. **The `ID-READER-DEPLOY` reader-deploy
+precondition on the drop is NOT relaxed and remains in force**; changing it is an
+owner decision and has not been made. A further production-side sweep would be
+required if production changes before the drop is authored.
+
 **2026-07-23 — ID-READER-CLIENT expand: added
 `public.create_or_reuse_guest_identity` (EXPANSION). NO DEPLOY OCCURRED.**
 One migration, database-only. **No Worker deploy, no `wrangler`, no build, no
@@ -1517,6 +1625,44 @@ Do **not** deploy from:
 
 Newest and highest-consequence first. The four items added on 2026-07-22 came
 in with copies C and D during the fork reconciliation.
+
+- **~~THE `service_role` EXECUTE DISCREPANCY ON THE DEPLOYED 7-ARGUMENT
+  RESOLVER~~ — RESOLVED 2026-07-23. `service_role` HOLDS EXECUTE.** Settled by
+  the authorized read-only catalog read of 2026-07-23 09:40:14Z recorded above:
+  `proacl` on
+  `public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean)`
+  is `{postgres=X/postgres,service_role=X/postgres}`, corroborated by
+  `has_function_privilege` across 11 roles, which also resolves `PUBLIC` and
+  inheritance. `authenticated`, `anon`, `PUBLIC` and `authenticator` hold none.
+  **The applied revoke migration `20260722153000`'s header was correct**; the
+  creating migrations' grant lists were the incomplete picture. Their only
+  EXECUTE grants on this function — `20260718050924:540` and
+  `20260718212339:296` — name `authenticated` alone, and no migration anywhere
+  in `supabase/migrations/` grants it to `service_role` [REPO]. The likely origin
+  is a **project-level default grant** rather than a migration statement, which
+  is **[INFERENCE] and stays [INFERENCE]**: `pg_default_acl` was **not** queried,
+  so the mechanism is not established and this label must not be upgraded on the
+  strength of the ACL answer alone.
+
+  Evidence class **[PRIOR]** — the values were read by that session and are
+  recorded here from its report; the recording session made no production read.
+  **This settles the ACL question only.** The signature must still be re-derived
+  live before any drop statement is authored, and the reader-deploy precondition
+  on the drop is untouched.
+
+  *Original text, retained as history.* The discrepancy was recorded as
+  outstanding on the redesign lineage in
+  `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-INDEPENDENT-AUDIT-TRAIL.md`:
+  "Neither audit was authorized to read production. Every statement either made
+  about a currently deployed definition, ACL, or row is [PRIOR] or [UNVERIFIED].
+  In particular, the recorded discrepancy over whether service_role holds EXECUTE
+  on the deployed seven-argument resolver remains unsettled and requires an
+  authorized production ACL read, which the recorded decision makes a
+  precondition of the contraction step." That was true when written. **That
+  document was deliberately not edited** by the session recording this
+  resolution — it is a record of what two read-only audits could reach, and
+  amending an audit trail is not the same as answering the question it left
+  open. Read it together with this bullet.
 
 - **~~PRODUCTION IS RUNNING UNPUSHED CODE~~ — RESOLVED 2026-07-22.** The branch
   is pushed and the deployed source is recoverable from `origin`. Re-derived
