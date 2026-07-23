@@ -1,5 +1,17 @@
--- AFTER proof for blocker ID-READER-CLIENT, once gated migration
+-- AFTER proof for blocker ID-READER-CLIENT, once migration
 -- 20260722160000 has been applied (twice, for repeat-safety).
+--
+-- STALE HEADER CORRECTED 2026-07-23. This block previously called
+-- 20260722160000 a "gated migration". It is no longer gated: it was applied to
+-- production on 2026-07-23 as ledger 20260723082917
+-- (add_non_import_guest_identity_creator), the EXPAND half of this repair, and
+-- is registered by NAME in APPLIED_UNDER_DIFFERENT_LEDGER_VERSION_BY_NAME in
+-- src/lib/db/migration-ledger-map.ts. What remains gated is the CONTRACT drop
+-- of the 7-argument public.resolve_import_guest_identity, which is not
+-- authored. This file's own behaviour is unchanged — the harness still applies
+-- the migration itself, twice, against a disposable cluster, and this file
+-- still proves the same seven properties below.
+-- Comment text only; no assertion in this file changed.
 --
 -- Proves, in order:
 --   1. GRANT MODEL      — service_role only; authenticated/anon (and therefore

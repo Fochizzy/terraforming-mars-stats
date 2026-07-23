@@ -167,10 +167,65 @@ authorization.
 release — `c7d6c203a`, the `listSavedGames` labelling fix in
 `src/lib/db/game-draft-repo.ts` — is **not** an ancestor of this branch
 (`git merge-base --is-ancestor` exit 1). This lineage still labels finalized
-saved games from `game_revisions.snapshot`. Production's data is already
+saved games from `game_revisions.snapshot`. **[That sentence is SUPERSEDED and
+false — see the correction immediately below. It was an inference from the
+ancestry fact, never checked against the code. The ancestry half stands.]**
+Production's data is already
 repaired so nothing is visibly broken today, but the durability fix the
 live-site lineage shipped is absent here. Out of scope for this assignment and
 recorded for the owner. Evidence class **[GIT]**.
+
+**Correction (2026-07-23): this lineage does not label saved games at all.**
+The ancestry half above is confirmed and retained — `c7d6c203a` is **not** an
+ancestor of this branch (`git merge-base --is-ancestor` exit 1); it reaches
+only `fix/live-compare-data-remove-declared-style` and
+`fix/saved-game-label-orphan-snapshot-ids`. The behavioural half was wrong.
+`src/features/games/saved-games-page.tsx` — the shared implementation behind
+both `/games` and `/saved-games` — selects
+`id, played_on, status, player_count, generation_count, updated_at` from
+`games`, and renders a date, a Draft/Finalized badge, a
+`{player_count} players | {generation_count} generations` line, and
+`Open draft` / `Saved result`. It reads no roster, no snapshot and no player
+name, and it displays no player name. The labelling machinery the fix repairs
+is absent from this lineage entirely: `listSavedGames`, `getSavedGameForm`,
+`reopenSavedGame`, `SavedGameListItem`, `UNKNOWN_SAVED_GAME_PLAYER_LABEL`,
+`labelRosterEntry`, `saved-games-picker.tsx`, and the whole
+`src/lib/people/person-label` module are zero-hit on this branch and present on
+the production lineage. `git log -S listSavedGames` returns nothing on this
+branch at any commit: the two lineages diverged at `2e3f5f7cf` (2026-07-04),
+before that machinery was built. The defect `c7d6c203a` fixes therefore cannot
+be reproduced here, because the surface that carried it does not exist here.
+This is **not** a claim that this lineage is immune to the hazard — only that
+the named surface does not exist. Evidence class **[REPO]** for the code,
+**[GIT]** for the ancestry and the divergence point.
+
+**How the false sentence was produced, recorded so it is not repeated.** The
+authoring session established a true ancestry fact with `git`, then inferred a
+behavioural claim from it — that a lineage lacking the fix must still exhibit
+the behaviour the fix corrects — and wrote the fact and the inference into this
+document as a single sentence, unlabelled. The inference was never checked
+against the code. **Ancestry is not behaviour**: a lineage can lack a fix
+because it never had the defect. Classed **[INFERENCE]** here, which is what it
+was when written.
+
+**One related observation, not a blocker and no disposition changed.** A sweep
+for surfaces on this lineage that could render a raw uuid as a player name
+found exactly one: `getPlayerName` in
+`src/features/analytics/group-dashboard.tsx` falls back to the `playerId`
+itself when a player has no matching leaderboard row
+(`…?.playerName ?? playerId`). It is called once, for the Persisted Efficiency
+"Top Player" tile on Group Insights. That is a different surface, a different
+data path, and not the defect `c7d6c203a` fixes, but it is the same class of
+hazard. Whether the fallback is reachable in live data was **not** tested — no
+production read was authorized. Recorded as an observation only; no blocker was
+opened and no blocker's disposition moved. Evidence class **[REPO]**.
+
+**The forward constraint from `c7d6c203a` is recorded in the phase that owns
+the surface**, `docs/redesign/phases/05-games-detail-and-replay.md`, because
+`/games/[gameId]` and `/games/[gameId]/replay` are deferred to Phase 5 by
+`docs/redesign/phases/03-navigation-and-routes.md` and Phase 5 is not started.
+It is a design constraint on unbuilt work, not an open defect, so it is not
+filed as a blocker.
 
 ### Re-audit FAIL answered: stale signature corrected, two vacuous branches now asserted (2026-07-23)
 
@@ -2044,6 +2099,41 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/SAVED-GAME-LABEL-RECORD-CORRECTION-2026-07-23.md
+  (documentation and comment text only: corrects a **false statement** in this
+  document — that this lineage "still labels finalized saved games from
+  `game_revisions.snapshot`" — which was an **inference from ancestry never
+  checked against the code** and had already premised a full session of work.
+  The ancestry half stands (`c7d6c203a` is not an ancestor, exit 1); the
+  behavioural half is refuted: `saved-games-page.tsx` selects only
+  `id, played_on, status, player_count, generation_count, updated_at` and
+  renders no player name, and `listSavedGames`, `person-label`, `personLabel`,
+  `firstNameOf`, `labelRosterEntry`, `SavedGameListItem`,
+  `UNKNOWN_SAVED_GAME_PLAYER_LABEL` and `saved-games-picker.tsx` are all
+  zero-hit here and present on the production lineage — `git log -S` shows the
+  machinery was **never** on this branch, the lineages having diverged at
+  `2e3f5f7cf` before it was built. The superseded sentence is **marked, not
+  deleted**, and the mechanism recorded. The genuine forward constraint — label
+  a finalized game from the `game_players` roster not the frozen snapshot,
+  preserve snapshot order only where both agree, never render an unresolved
+  uuid-shaped entry as itself — is recorded in
+  `docs/redesign/phases/05-games-detail-and-replay.md`, the phase that owns
+  `/games/[gameId]`, with `c7d6c203a` and the canonical `DEPLOY-STATE.md`
+  saved-game player-label release section as evidence, and an explicit note that
+  merging the production lineage brings the fix so this is **not** a missing
+  merge. **Not filed as a blocker** — it governs unbuilt work — and no blocker
+  row for it existed to reclassify. One latent uuid fallback found elsewhere and
+  recorded as an observation only: `getPlayerName` in
+  `src/features/analytics/group-dashboard.tsx` returns `playerId` when a player
+  has no leaderboard row, reachability untested. Both stale
+  `non-import-guest-identity-{before,after}.sql` headers corrected comment-only
+  — "the state production is in today" → the PRE-EXPAND state, and
+  `20260722160000` no longer described as gated since it applied as ledger
+  `20260723082917` — with the 79 and 542 non-comment lines proven byte-identical.
+  Recommends to the owner, without implementing it, a convention of labelling
+  inferences as inferences in this document. **Step 4.3 NOT marked complete, no
+  blocker's disposition changed, no `src/` or migration file touched, no
+  migration applied, no deploy, no push, and no production read or write**)
 - docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md
   (**the EXPAND step is applied**: migration `20260722160000` was applied to
   production `qjtwgrjjwnqafbvkkfex` on 2026-07-23 at 08:29:17Z under a

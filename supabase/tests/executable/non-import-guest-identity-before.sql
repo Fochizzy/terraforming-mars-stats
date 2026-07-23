@@ -1,9 +1,20 @@
 -- BEFORE proof for blocker ID-READER-CLIENT.
 --
 -- Runs against PRODUCTION HISTORY ONLY — nothing gated has been applied above
--- this line. It measures the state production is in today: the deployed
+-- this line. It measures the PRE-EXPAND state: the deployed
 -- 7-argument public.resolve_import_guest_identity, with `authenticated`
 -- EXECUTE revoked (repo file 20260722153000, ledger 20260722153233).
+--
+-- STALE HEADER CORRECTED 2026-07-23. This block previously said it measures
+-- "the state production is in today". That framing is no longer true:
+-- 20260722160000 was applied to production on 2026-07-23 as ledger
+-- 20260723082917 (add_non_import_guest_identity_creator), so production now
+-- also holds public.create_or_reuse_guest_identity — the object the AFTER file
+-- proves. What this file measures is the state production was in BEFORE that
+-- apply, which is what a BEFORE proof should measure. The objects described
+-- above are otherwise unchanged: the 7-argument resolver IS still deployed with
+-- `authenticated` EXECUTE revoked, because the CONTRACT drop is not authored.
+-- Comment text only; no assertion in this file changed.
 --
 -- It reproduces the failure three independent ways, which together are why the
 -- repair is a new function and not a client swap:
