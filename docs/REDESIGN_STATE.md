@@ -1491,6 +1491,14 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-GUEST-IDENTITY-OVERLOAD-DESIGN-SCOPING.md
+  (read-only design scoping for ID-READER-CLIENT + gated 20260720100000: the
+  applied source-bound gateways cannot serve the non-import guest path without
+  fabricating import evidence; recommends SUPERSEDING 20260720100000 and adding
+  one new service_role-only function authorized by an explicit requesting-user
+  id under expand/contract; a disposable-cluster experiment shows an overload
+  causes 42725 ambiguity, so a distinct name is preferred; PROPOSED SQL only —
+  nothing implemented, no migration authored, no production access)
 - docs/agent-handoffs/PLANNING-PACK-SYNC-HOOK-INSTRUCTION-SET-COMPLETION.md
   (documentation-only: the planning-pack sync hook is now fully described in
   AGENTS.md — Claude Code-only, manual step still in force for Codex —
