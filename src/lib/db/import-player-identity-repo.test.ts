@@ -29,24 +29,33 @@ const defaultRoster = [
   { is_linked: false, player_id: guestPlayerId, public_name: 'Guest 22224222' },
 ];
 
-function mockServer(options?: { resolveRows?: unknown[] }) {
+function mockServer(options?: { user?: { id: string } | null }) {
   const rpc = vi.fn((fnName: string) => {
     if (fnName === 'list_import_player_identity_candidates') {
       return Promise.resolve({ data: defaultRoster, error: null });
-    }
-    if (fnName === 'resolve_import_guest_identity') {
-      return Promise.resolve({ data: options?.resolveRows ?? [], error: null });
     }
     return Promise.resolve({ data: null, error: new Error(`Unexpected rpc ${fnName}`) });
   });
   const from = vi.fn((table: string) => {
     throw new Error(`Unexpected direct table read: ${table}`);
   });
-  vi.mocked(createSupabaseServerClient).mockResolvedValue({ from, rpc } as never);
-  return { from, rpc };
+  // The session client's only job on the non-import guest path is to establish
+  // the server-verified caller. The RPC itself runs on the admin client.
+  const getUser = vi.fn(() =>
+    Promise.resolve({
+      data: { user: options && 'user' in options ? options.user : { id: userId } },
+      error: null,
+    }),
+  );
+  vi.mocked(createSupabaseServerClient).mockResolvedValue({
+    auth: { getUser },
+    from,
+    rpc,
+  } as never);
+  return { from, getUser, rpc };
 }
 
-function mockAdmin(rows: unknown[] = []) {
+function mockAdmin(rows: unknown[] = [], guestRows: unknown[] = []) {
   const rpc = vi.fn((fnName: string) => {
     if (fnName === 'stage_import_player_identity_evidence') {
       return Promise.resolve({ data: stagingId, error: null });
@@ -60,11 +69,20 @@ function mockAdmin(rows: unknown[] = []) {
     if (fnName === 'resolve_staged_import_player_identity') {
       return Promise.resolve({ data: rows, error: null });
     }
+    if (fnName === 'create_or_reuse_guest_identity') {
+      return Promise.resolve({ data: guestRows, error: null });
+    }
     return Promise.resolve({ data: null, error: new Error(`Unexpected rpc ${fnName}`) });
   });
   vi.mocked(createSupabaseAdminClient).mockReturnValue({ rpc } as never);
   return rpc;
 }
+
+const newGuestRow = {
+  player_id: newGuestPlayerId,
+  public_name: 'Guest 33334333',
+  resolution_state: 'newly_created_unlinked_guest',
+};
 
 const baseResolveInput = {
   authoritativeSourcePlayerTexts: ['Server parsed seat'],
@@ -183,15 +201,77 @@ describe('import player identity repository', () => {
     });
   });
 
-  it('keeps non-import roster guest creation off import alias evidence', async () => {
-    const { rpc } = mockServer({ resolveRows: [{
-      player_id: newGuestPlayerId,
-      public_name: 'Guest 33334333',
-      resolution_state: 'newly_created_unlinked_guest',
-    }] });
+  it('creates non-import guests through the service-role gateway, not the session client', async () => {
+    // Production revoked `authenticated` EXECUTE on the old resolver, so this
+    // path must run on the admin client. The session client is used only to
+    // establish the caller.
+    const { rpc: sessionRpc } = mockServer();
+    const adminRpc = mockAdmin([], [newGuestRow]);
+
+    const result = await createOrReuseGuestPlayerByPersonalName({
+      firstName: 'First',
+      groupId,
+      lastName: 'Last',
+    });
+
+    expect(result).toEqual({
+      id: newGuestPlayerId,
+      publicName: 'Guest 33334333',
+      resolutionState: 'newly_created_unlinked_guest',
+    });
+    expect(adminRpc).toHaveBeenCalledWith('create_or_reuse_guest_identity', {
+      p_create_new: true,
+      p_group_id: groupId,
+      p_guest_first_name: 'First',
+      p_guest_last_name: 'Last',
+      p_guest_username: null,
+      p_identity_mode: 'personal_name',
+      p_requesting_user_id: userId,
+      p_selected_player_id: null,
+    });
+    expect(sessionRpc).not.toHaveBeenCalled();
+  });
+
+  it('never calls the retired resolver or passes an import-alias flag', async () => {
+    mockServer();
+    const adminRpc = mockAdmin([], [newGuestRow]);
     await createOrReuseGuestPlayerByPersonalName({ firstName: 'First', groupId, lastName: 'Last' });
-    expect(rpc).toHaveBeenCalledWith('resolve_import_guest_identity', expect.objectContaining({
-      p_record_import_alias: false,
-    }));
+
+    // The non-import path must record no import evidence. The replacement
+    // function has no alias parameter at all, so the guarantee is structural.
+    const calls = adminRpc.mock.calls as unknown as Array<
+      [string, Record<string, unknown>]
+    >;
+    const [, payload] = calls[0];
+    expect(payload).not.toHaveProperty('p_record_import_alias');
+    expect(adminRpc).not.toHaveBeenCalledWith(
+      'resolve_import_guest_identity',
+      expect.anything(),
+    );
+  });
+
+  it('derives the requesting user server-side and refuses without a verified session', async () => {
+    // The database now trusts p_requesting_user_id for both authorization and
+    // created_by attribution, so it must never be defaulted, guessed, or taken
+    // from a caller argument. No session -> no RPC call at all.
+    mockServer({ user: null });
+    const adminRpc = mockAdmin([], [newGuestRow]);
+
+    await expect(
+      createOrReuseGuestPlayerByPersonalName({ firstName: 'First', groupId, lastName: 'Last' }),
+    ).rejects.toThrow('The guest identity could not be created.');
+    expect(adminRpc).not.toHaveBeenCalled();
+  });
+
+  it('names the gated migration when the new function is absent', async () => {
+    mockServer();
+    const rpc = vi.fn(() =>
+      Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'not found' } }),
+    );
+    vi.mocked(createSupabaseAdminClient).mockReturnValue({ rpc } as never);
+
+    await expect(
+      createOrReuseGuestPlayerByPersonalName({ firstName: 'First', groupId, lastName: 'Last' }),
+    ).rejects.toThrow('20260722160000_add_non_import_guest_identity_creator');
   });
 });

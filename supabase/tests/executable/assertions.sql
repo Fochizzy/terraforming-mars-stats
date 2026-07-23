@@ -213,11 +213,18 @@ begin
 end $$;
 
 -- K) Guest personal-name privacy lifecycle (F-01 / H5, WS1). A member creates
--- a first-and-last-name guest through the guarded RPC with alias recording
--- off (the roster / manual-entry path). The sentinel personal name must land
--- ONLY in private storage; the public row gets a neutral label; the private
--- normalized value still drives server-side reuse matching; and the alias
--- default remains unchanged for import callers.
+-- a first-and-last-name guest on the NON-import roster / manual-entry path.
+-- The sentinel personal name must land ONLY in private storage; the public row
+-- gets a neutral label; the private normalized value still drives server-side
+-- reuse matching; and the legacy import path's alias recording is unchanged.
+--
+-- The creation now runs through public.create_or_reuse_guest_identity
+-- (20260722160000) as `service_role`, passing an explicit requesting-user id.
+-- It previously ran through an 8-argument resolve_import_guest_identity
+-- overload as `authenticated`; that overload came from 20260720100000, which is
+-- now a retired no-op tombstone because it re-granted `authenticated` EXECUTE
+-- and would have reopened the oracle production closed as ledger 20260722153233.
+-- The privacy properties asserted below are unchanged — only the door changed.
 create temporary table if not exists k_state (
   key text primary key,
   player_id uuid
@@ -227,13 +234,13 @@ create temporary table if not exists k_state (
 do $$
 declare v_id uuid; v_public text; v_state text;
 begin
-  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
-  set local role authenticated;
+  set local role service_role;
   select r.player_id, r.public_name, r.resolution_state
   into v_id, v_public, v_state
-  from public.resolve_import_guest_identity(
-    '22222222-2222-4222-8222-222222222222', 'personal_name',
-    null, 'Zzsentinelfirst', 'Zzsentinellast', null, true, false
+  from public.create_or_reuse_guest_identity(
+    '22222222-2222-4222-8222-222222222222'::uuid, 'personal_name',
+    null, 'Zzsentinelfirst', 'Zzsentinellast', null, true,
+    '11111111-1111-4111-8111-111111111111'::uuid
   ) r;
   reset role;
   if v_id is null then
@@ -324,12 +331,12 @@ do $$
 declare v_id uuid; v_state text; v_expected uuid;
 begin
   select player_id into v_expected from k_state where key = 'guest';
-  perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
-  set local role authenticated;
+  set local role service_role;
   select r.player_id, r.resolution_state into v_id, v_state
-  from public.resolve_import_guest_identity(
-    '22222222-2222-4222-8222-222222222222', 'personal_name',
-    null, '  zzSENTINELfirst ', ' zzsentinelLAST  ', null, true, false
+  from public.create_or_reuse_guest_identity(
+    '22222222-2222-4222-8222-222222222222'::uuid, 'personal_name',
+    null, '  zzSENTINELfirst ', ' zzsentinelLAST  ', null, true,
+    '11111111-1111-4111-8111-111111111111'::uuid
   ) r;
   reset role;
   if v_id is distinct from v_expected then
@@ -377,19 +384,25 @@ begin
   end if;
 end $$;
 
--- K9: the import path's alias recording is unchanged — omitting the new
--- parameter records the game_log alias exactly as before.
+-- K9: ADDITIVITY. The legacy import resolver still behaves exactly as deployed
+-- — it still records the game_log alias — proving the new non-import function
+-- neither replaced nor altered it. (Dropping it is the separate CONTRACT phase.)
+--
+-- Called with the JWT claim set but WITHOUT switching role, i.e. as the owner.
+-- Production revoked `authenticated` EXECUTE on this function (ledger
+-- 20260722153233) and 20260718212339 never granted `service_role`, so no
+-- Supabase role can reach it; the claim is still required because the function's
+-- own gate reads auth.uid(). This exercises the deployed BODY, which is what the
+-- assertion is about, without depending on an ACL the revoke deliberately removed.
 do $$
 declare v_id uuid; n int;
 begin
   perform set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
-  set local role authenticated;
   select r.player_id into v_id
   from public.resolve_import_guest_identity(
     '22222222-2222-4222-8222-222222222222', 'username',
     'import-guest-k9', null, null, null, true
   ) r;
-  reset role;
   select count(*) into n
   from public.player_import_aliases
   where player_id = v_id

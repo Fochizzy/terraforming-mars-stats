@@ -59,23 +59,26 @@ No next product action is automatically authorized. A new explicit assignment
 must define and authorize the release continuation. The currently evidenced
 sequence is:
 
-1. correct and verify the remaining redesign call site that still uses an
-   authenticated user-session client after the production revoke. Read-only
-   investigation on 2026-07-22 established this is **not** a client swap: the
-   RPC gates on `auth.uid()`, so it requires an owner-authorized overload
-   migration taking an explicit requesting-user id, sequenced against gated
-   migration `20260720100000` (which as written would re-grant `authenticated`
-   and reopen the closed oracle);
-2. deploy and verify the compatible redesign reader under explicit authority;
-3. separately authorize and apply contraction migration `20260722012707` only
+1. **done locally, not applied** — the remaining redesign call site is corrected.
+   Gated `20260720100000` is retired as a no-op tombstone and new gated
+   `20260722160000` adds a service_role-only replacement authorized on an
+   explicit requesting-user id. Both are unapplied;
+2. apply `20260722160000` under explicit authority and the per-mutation
+   protocol;
+3. deploy and production-verify the moved redesign reader under explicit
+   authority;
+4. only then author and apply the CONTRACT drop of the deployed 7-argument
+   `resolve_import_guest_identity`, after a fresh zero-caller re-sweep;
+5. separately authorize and apply contraction migration `20260722012707` only
    after reader verification; and
-4. run a fresh closure audit before any Step 4.4 assignment.
+6. run a fresh closure audit before any Step 4.4 assignment.
 
 ## Known blockers
 
 | ID | Requirement | Current status | Blocking |
 |---|---|---|---|
-| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | Investigated read-only 2026-07-22: the recorded "one-line admin-client swap" is **wrong**. The RPC gates on `auth.uid()`, which is NULL under service_role, so the admin client raises the same `42501`. A correct fix needs an owner-authorized overload migration. Not fixed, not deployed. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-INVESTIGATION-STOP.md` | Redesign deploy |
+| ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22; migration unapplied, reader undeployed.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. Executably proven on a disposable cluster. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md` | Redesign deploy |
+| ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is additive and leaves the function in place; the drop is valid only after `20260722160000` is applied, the moved reader is deployed and production-verified, and a fresh zero-caller re-sweep passes | Step 4.3 closure |
 | ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | Not authorized or deployed | Legacy contraction |
 | ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live | Step 4.3 closure |
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary | Step 4.3 closure |

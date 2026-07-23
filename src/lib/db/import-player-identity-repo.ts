@@ -72,8 +72,21 @@ export async function listImportPlayerIdentityCandidates(
 }
 
 /**
- * Non-import guest creation remains on its established guarded RPC. It must
- * not record an import alias because no imported source exists on this path.
+ * Non-import guest creation. It must not record an import alias because no
+ * imported source exists on this path, so it runs on
+ * `public.create_or_reuse_guest_identity`, which never writes one.
+ *
+ * That function is granted to `service_role` only — production revoked
+ * `authenticated` EXECUTE on the older resolver (ledger 20260722153233) to
+ * close a private-guest-name confirmation oracle — so the RPC goes through the
+ * admin client. Because `auth.uid()` is NULL under service_role, the function
+ * takes the requesting user explicitly and gates on it.
+ *
+ * The requesting user id is resolved HERE, from the server session, rather than
+ * accepted as an argument. That is deliberate: the database now trusts this id
+ * for both authorization and `created_by_user_id` attribution, so there must be
+ * exactly one place it can come from and no way for a caller to supply one.
+ * `getUser()` validates the token server-side; a client value is never used.
  */
 export async function createOrReuseGuestPlayerByPersonalName(input: {
   firstName: string;
@@ -84,22 +97,31 @@ export async function createOrReuseGuestPlayerByPersonalName(input: {
   publicName: string;
   resolutionState: 'existing_unlinked_guest' | 'newly_created_unlinked_guest';
 }> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc('resolve_import_guest_identity', {
+  const sessionClient = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await sessionClient.auth.getUser();
+
+  if (userError) throw userError;
+  if (!user) throw new Error('The guest identity could not be created.');
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.rpc('create_or_reuse_guest_identity', {
     p_create_new: true,
     p_group_id: input.groupId,
     p_guest_first_name: input.firstName,
     p_guest_last_name: input.lastName,
     p_guest_username: null,
     p_identity_mode: 'personal_name',
-    p_record_import_alias: false,
+    p_requesting_user_id: user.id,
     p_selected_player_id: null,
   });
 
   if (error) {
     if (error.code === 'PGRST202' || error.code === '42883') {
       throw new Error(
-        'Guest creation outside imports requires migration 20260720100000_add_guest_identity_alias_source_control.',
+        'Guest creation outside imports requires migration 20260722160000_add_non_import_guest_identity_creator.',
       );
     }
     throw error;

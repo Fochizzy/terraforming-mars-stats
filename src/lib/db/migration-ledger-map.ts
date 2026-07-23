@@ -241,12 +241,25 @@ export const RECONSTRUCTED_REMOTE_ONLY: readonly string[] = [
 export const GATED_UNAPPLIED: readonly string[] = [
   '20260717190000',
   '20260719234500',
+  // RETIRED / SUPERSEDED — the file is now a documented no-op tombstone with no
+  // executable statement, so applying it is impossible-by-content rather than
+  // merely gated. It stays listed (and stays a repo file at its original
+  // version) as an auditable record: it is not in the production ledger and
+  // never will be. Its still-needed capability moved to 20260722160000, which
+  // also repairs the auth break it did not, and does NOT re-grant
+  // `authenticated`. Do not restore its previous body.
   '20260720100000',
   '20260720110000',
   // The contraction half of the owner-approved source-bound replacement. Its
   // expansion half (20260722012658) is applied; this one is not, and retiring
   // the free-form matcher still requires the deployed reader to move first.
   '20260722012707',
+  // EXPAND half of the ID-READER-CLIENT repair: creates the service_role-only
+  // public.create_or_reuse_guest_identity. Additive — it does not drop the
+  // deployed 7-argument resolve_import_guest_identity. That drop is a separate
+  // CONTRACT migration, authorized only after this one is applied and the
+  // moved reader is deployed and verified.
+  '20260722160000',
 ];
 
 /**
@@ -477,10 +490,16 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // Retires 'reviewed' from the confidence vocabulary; its pre-apply gate
   // already requires proving no deployed writer still emits it.
   '20260719234500': 'contraction', // separate_event_confidence_from_review_state
-  // Drops the deployed 7-argument signature but creates an 8-argument
-  // superset whose new parameter defaults to the previous behavior, so every
-  // previously valid call still resolves.
-  '20260720100000': 'expansion', // add_guest_identity_alias_source_control
+  // RETIRED / SUPERSEDED tombstone: the file now contains no executable
+  // statement, so applying it changes no contract surface at all.
+  //
+  // Its previous body was NOT the harmless expansion this entry once described.
+  // It dropped the deployed 7-argument signature and re-granted `authenticated`
+  // EXECUTE on the replacement, which would have reopened the private-guest-name
+  // confirmation oracle that production closed as ledger 20260722153233 — and it
+  // still gated on auth.uid(), so it did not repair ID-READER-CLIENT either. The
+  // capability moved to 20260722160000; see that file and the tombstone header.
+  '20260720100000': 'neutral', // add_guest_identity_alias_source_control (retired)
   // Mixed hazard, so the strongest present wins. It widens the placement
   // action and ownership vocabularies and adds nullable columns, but it also
   // adds game_log_events_owner_requires_explicit_state — a CHECK on the
@@ -506,6 +525,16 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // migration and restores no replacement, so it is a contraction even though
   // the zero-caller sweep proved no deployed reader depends on it.
   '20260722153000': 'contraction', // close_authenticated_guest_identity_oracle
+  // Creates one new service_role-only function
+  // (public.create_or_reuse_guest_identity) and touches nothing else. It drops
+  // no object, narrows no existing grant, and tightens no constraint; the
+  // deployed 7-argument resolve_import_guest_identity is left exactly as it is,
+  // so no deployed reader or writer loses a surface it had. The revokes it
+  // contains are on the function it creates in the same file — including the
+  // load-bearing `from public` revoke that removes CREATE FUNCTION's implicit
+  // PUBLIC grant — so they strand nothing. Safe to apply ahead of the code that
+  // uses it, which is exactly the expand/contract order this repair requires.
+  '20260722160000': 'expansion', // add_non_import_guest_identity_creator
   // B-05. Revokes only the PUBLIC pseudo-role grant (and anon on
   // claim_player_profiles_by_name) while granting explicit EXECUTE to
   // `authenticated` on all three claim RPCs. The revoked PUBLIC grant is the
