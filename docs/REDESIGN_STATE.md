@@ -8,11 +8,54 @@ replacement is BUILT locally and REMEDIATED. Production subsequently applied
 its expansion as ledger `20260722132159`, applied interim reason coarsening as
 `20260722144034`, and revoked authenticated execution of the separate guest
 identity resolver as `20260722153233`. The `ID-READER-CLIENT` repair is now
-BUILT, REMEDIATED after an independent audit returned FAIL, and executably
-proven LOCALLY, but its migration is gated and unapplied and the reader is not
-deployed. The legacy free-form matcher oracle remains open,
-contraction `20260722012707` remains gated and unapplied, the CONTRACT drop of
-the 7-argument guest resolver is not authored, and Step 4.4 is NOT STARTED.**)
+BUILT, REMEDIATED after an independent audit returned FAIL, executably
+proven LOCALLY, and **MERGED into this branch**, but its migration is gated and
+unapplied and the reader is not deployed. The legacy free-form matcher oracle
+remains open, contraction `20260722012707` remains gated and unapplied, the
+CONTRACT drop of the 7-argument guest resolver is not authored, and Step 4.4 is
+NOT STARTED. The next step is a targeted re-audit of the remediated work before
+the expand gate; that re-audit is NOT authorized by this document.**)
+
+### ID-READER-CLIENT remediation integrated onto the redesign branch (2026-07-23)
+
+Local integration only. No migration applied, no deploy, no production read or
+write.
+
+The independent audit that returned **FAIL** on the `ID-READER-CLIENT` expand
+work is **answered**: `FINDING-1` (the candidate-counting and auto-selection
+predicates disagreed about claimed players) and `FINDING-2` (`p_requesting_user_id`
+declared last and defaulted, diverging from the four applied gateways) are
+remediated, executably proven, and merged into
+`redesign/tm-stats-dashboard-rebuild`. Every session reading canonical state was
+previously told the expand work was unremediated, because the remediation sat on
+an unmerged branch; that is no longer the case.
+
+- Merged `--no-ff` from `fix/id-reader-candidate-predicate`, bringing
+  `eaab06545` (the FINDING-1/FINDING-2 remediation) and `949d16009` (its
+  closeout, which re-proved mutation probe P1 against the tightened clause 8b).
+- Unchanged by this integration, and still requiring separate owner
+  authorization: migration `20260722160000` remains **gated and unapplied**, and
+  the moved redesign reader remains **undeployed**. `ID-READER-CONTRACT`,
+  `ID-READER-DEPLOY`, `ID-LEGACY-ORACLE`, `DRAFT-NAME-RESIDUE`, and `STEP-4.4`
+  are untouched; no blocker changed disposition beyond `ID-READER-CLIENT`
+  becoming merged rather than branch-local.
+- Step 4.3 is **not** complete and is not marked complete.
+- `FINDING-4` / `DRAFT-NAME-RESIDUE` was not opened.
+
+Two items previously rediscovered each session are now recorded durably: the
+harness coverage gap on the coarsened matcher (below, evidence class
+**[PRIOR]**), and the stale "Gated repo file" label in
+`src/lib/db/migration-ledger-map.ts:360`, which was investigated and found to be
+a **structured field**, not a comment — the `note` property of the exported
+`PRODUCTION_ONLY_ENTRY_PROVENANCE` record, whose containing map the drift test
+imports and iterates. It was therefore left **unchanged and reported BLOCKED**;
+correcting it is a change to exported module data and needs its own
+authorization.
+
+**Next step: a targeted re-audit of the remediated work, before the expand gate.**
+It is not authorized here.
+
+Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-INTEGRATION.md`.
 
 ### ID-READER-CLIENT repaired locally — EXPAND built, undeployed (2026-07-22)
 
@@ -181,13 +224,63 @@ in the repository asserts on `run.sh` stdout. The scoping document
 signature sites corrected to the shipped argument order and gained a dated
 authority notice.
 
-One new question is recorded and deliberately **not** acted on, for the owner:
-half 1 of the harness pins the fine-grained `match_import_player_names` that
-production has already replaced via ledger `20260722144034`, and
-`supabase/tests/executable/match-oracle-post-contraction.sql` is referenced by
-nothing, so the coarsened privacy surface is asserted nowhere. Measured, not
-inferred: including either deferred applied migration in the replay, or applying
-`20260720120000` in the deferred half, leaves the harness at exit 0.
+#### Harness coverage gap on the coarsened matcher — OPEN, deliberately not fixed
+
+Evidence class **[PRIOR]**: measured in the closeout session
+(`PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` §4) across four full
+harness runs on disposable clusters. It is **not** re-verified by the
+integration that merged that work, and the experiments must not be re-run
+casually — re-measuring is its own scoped assignment.
+
+**What was refuted.** The recorded reason for excluding repository migration
+`20260720120000` (`coarsen_import_name_match_reasons`) from the harness's
+production-history replay was that applying it "would coarsen the very pre-image
+the contraction proof measures against". Measurement refutes that causal claim.
+Replaying it *does* coarsen the matcher, and then `MATCH_PREIMAGE` — which runs
+**after** the replay loop — unconditionally `create or replace`s the fine-grained
+predecessor straight back over it, so the coarsening is erased before any
+assertion observes it. Probe output either side of the pre-image:
+`finegrained=f` before, `finegrained=t` after. Four single-variable runs each
+exited 0: replaying `20260722012658` in the history loop; replaying
+`20260720120000` in the history loop; the same run instrumented with the
+matcher-body probes; and applying `20260720120000` in the deferred half at its
+ledger position, twice, for repeat-safety. The exclusion is therefore
+**inconsequential rather than necessary**.
+
+**What the real coverage consequence is.** The gap is not the exclusion. It is
+that `supabase/tests/executable/match-oracle-post-contraction.sql` is referenced
+by nothing — it appears in no `.sh`, `.ts`, `.json`, or `.yml` in the repository,
+and `run.sh` wires up only its `pre-contraction` sibling. Consequently:
+
+- half 1 pins the matcher's **fine-grained** disclosure as "the state production
+  is in today", but production replaced that matcher with the coarsened one as
+  ledger `20260722144034`, so the baseline models a predecessor;
+- the coarsened behaviour is asserted **nowhere**. The only post-deferred-half
+  assertion touching `match_import_player_names` is in
+  `source-bound-import-identity-contraction.sql`, and it checks the **ACL only**
+  — that `authenticated` cannot execute it and `service_role` can — not the
+  disclosure and not the input bounds;
+- therefore a regression that **re-widened the disclosed `match_reason` /
+  `match_score`, or removed the candidate-input bound, would pass this harness
+  clean**. That is a privacy surface — the name-confirmation oracle the
+  coarsening exists to close.
+
+Applying the migration would not on its own close the gap: with it applied and
+nothing asserting the coarsening, the harness still exits 0.
+
+**Status: OPEN and deliberately not fixed here.**
+`match-oracle-post-contraction.sql` was **not** wired into `run.sh` and the set of
+migrations the harness replays was **not** changed. That disposition is the
+owner's and requires its own authorization, which must also decide whether
+`20260720120000` is applied in the deferred half immediately before those
+assertions.
+
+**Relevance to closure.** The fresh independent closure audit
+(`STEP-4.3-AUDIT`) must account for this gap explicitly: a green
+`run.sh` is **not** evidence that the coarsened matcher surface production
+actually runs is protected against regression, and the audit must not treat
+harness exit 0 as covering the disclosure or the input bound on
+`match_import_player_names`.
 
 Handoff:
 `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md`,
@@ -425,7 +518,13 @@ Four items are recorded and deliberately not fixed: failed resolution attempts
 leave no durable audit evidence; staging expiry is opportunistic with no
 scheduler; the expansion is not purely additive (a UNIQUE index on live
 `public.user_profiles` and an AFTER UPDATE trigger on live `public.games`); and
-`match-oracle-post-contraction.sql` is now unreferenced by `run.sh`.
+`match-oracle-post-contraction.sql` is now unreferenced by `run.sh`. That last
+item is no longer adequately described by this one line — see
+"Harness coverage gap on the coarsened matcher" above, which records the
+measured **[PRIOR]** version: the recorded exclusion reason for
+`20260720120000` was refuted, and the real consequence is that a regression
+re-widening the disclosed `match_reason` / `match_score` or removing the
+candidate-input bound would pass the harness clean.
 
 At the end of this remediation, both `20260722012658` (expansion) and
 `20260722012707` (contraction) were gated and unapplied, and `20260720120000`
@@ -1673,6 +1772,26 @@ a linked or production database.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-INTEGRATION.md
+  (local integration: `fix/id-reader-candidate-predicate` merged `--no-ff` into
+  `redesign/tm-stats-dashboard-rebuild` as `07a81c19e`, bringing `eaab06545` and
+  `949d16009`, so the audit FAIL on the `ID-READER-CLIENT` expand work is
+  answered in canonical state instead of sitting on an unmerged branch; the
+  harness coverage gap on the coarsened matcher recorded durably with evidence
+  class **[PRIOR]** — the recorded `20260720120000` replay-exclusion reason
+  refuted, and the real consequence being that `match-oracle-post-contraction.sql`
+  is referenced by nothing so a regression re-widening the disclosed
+  `match_reason` / `match_score` or removing the candidate-input bound would pass
+  the harness clean — and deliberately NOT fixed; the stale "Gated repo file"
+  label at `migration-ledger-map.ts:360` determined to be a **structured** `note`
+  field of the exported `PRODUCTION_ONLY_ENTRY_PROVENANCE` record rather than a
+  comment, so reported BLOCKED and left unchanged; migration `20260722160000`
+  still gated and unapplied and the reader still undeployed; Step 4.3 NOT marked
+  complete and no other blocker's disposition changed; the owner authorized
+  exactly one fast-forward push of this branch to origin and the planning-pack
+  publication that follows this commit — the push result and the updater receipt
+  are recorded in the handoff, not here; no migration applied, no deploy, and no
+  Cloudflare or Supabase access)
 - docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md
   (remediation closeout for `eaab0654`, all claims re-derived rather than
   inherited: mutation probe P1 re-proven against the TIGHTENED clause 8b it was
