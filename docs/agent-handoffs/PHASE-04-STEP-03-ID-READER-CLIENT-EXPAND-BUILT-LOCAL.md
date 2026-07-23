@@ -1,5 +1,46 @@
 # Phase 4, Step 4.3 — ID-READER-CLIENT: EXPAND built and proven LOCALLY
 
+> **SUPERSEDED IN PART — superseded by commit `eaab0654` (2026-07-22); this
+> notice added 2026-07-23. Not the current authority for this subsystem.**
+>
+> The current authority for `public.create_or_reuse_guest_identity` is
+> `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md`
+> together with the shipped file
+> `supabase/migrations/20260722160000_add_non_import_guest_identity_creator.sql`.
+> Read those before relying on anything below.
+>
+> **The signature changed after this document was written.**
+> `p_requesting_user_id` is now **required and positioned second**, matching the
+> four applied gateways of `20260722012658`; it is no longer a trailing defaulted
+> parameter. The shipped signature is:
+>
+> ```
+> public.create_or_reuse_guest_identity(uuid, uuid, text, text, text, text, uuid, boolean)
+> ```
+>
+> **The candidate search is no longer a verbatim transcription.** §1b as
+> originally written said the candidate search *and* the selected-player
+> revalidation were both transcribed verbatim from `20260720100000`. That now
+> holds for the revalidation only: `eaab0654` rebuilt the candidate predicate as
+> a single materialised `v_candidate_ids` after the audit found the counting and
+> auto-selection predicates disagreed about claimed players.
+>
+> §1b has been corrected in place on both points, so this file cannot hand a
+> future reader a signature that does not exist. That correction is load-bearing:
+> a rollback or CONTRACT drop authored from the superseded text would emit
+> `drop function if exists` against a signature nothing ever created, succeed
+> silently, and leave the function in place while the session recorded it as
+> dropped.
+>
+> The surrounding record of what that session did — sections 2 through 6, and
+> the dated follow-ups in sections 7 through 9 — is left as written, except where
+> a statement in it has since become factually false; those carry their own dated
+> resolution in place. Where this document and the shipped migration differ, the
+> migration and the remediation handoff win.
+>
+> Everything else here remains a local-implementation record. It authorizes
+> nothing.
+
 **Outcome: the owner-approved repair is implemented and executably proven on a
 disposable PostgreSQL cluster. Nothing was deployed, applied, pushed, or merged.
 No production system was read or written. Step 4.3 is NOT complete.**
@@ -40,13 +81,27 @@ moves `expansion` → **`neutral`**, because a no-op changes no contract surface
 
 ### 1b. New migration — `20260722160000_add_non_import_guest_identity_creator.sql`
 
-Creates `public.create_or_reuse_guest_identity(uuid, text, text, text, text,
-uuid, boolean, uuid)`: `security definer`, `set search_path = ''`, authorization
+Creates `public.create_or_reuse_guest_identity(uuid, uuid, text, text, text,
+text, uuid, boolean)`: `security definer`, `set search_path = ''`, authorization
 gated on an explicit `p_requesting_user_id` checked against
 `public.group_members`, `created_by_user_id` populated from that same argument,
-and **no `public.player_import_aliases` insert on any branch**. The candidate
-search and selected-player revalidation are transcribed verbatim from
-`20260720100000` lines 87-163 [REPO].
+and **no `public.player_import_aliases` insert on any branch**.
+
+**Corrected 2026-07-23** (see the notice at the top of this file). Two claims in
+this paragraph were superseded by `eaab0654` and are shown above as shipped, not
+as originally written:
+
+- the **argument order**. As first written this paragraph recorded
+  `(uuid, text, text, text, text, uuid, boolean, uuid)`, with
+  `p_requesting_user_id` trailing and defaulted. That ordering was never applied
+  anywhere; `p_requesting_user_id` is required and second;
+- the **candidate search**. As first written this paragraph said the candidate
+  search and the selected-player revalidation were both transcribed verbatim
+  from `20260720100000` lines 87-163. Only the **selected-player revalidation**
+  is a verbatim transcription (of its lines 137-163). The candidate search is
+  deliberately **not** one: it is evaluated once into `v_candidate_ids`, from
+  which both the count and the auto-selection derive, because the two predicates
+  it was transcribed from had drifted apart [REPO].
 
 Grants: `service_role` only. `authenticated` is never granted; `public`, `anon`
 and `authenticated` are explicitly revoked (the `public` revoke is load-bearing,
@@ -168,6 +223,12 @@ log, or output. Sentinel values only.
    `design/guest-identity-overload-scoping` (`8478badb1`) and is not merged into
    `redesign/tm-stats-dashboard-rebuild` [GIT]. It was read via
    `git show`. Merging that design branch was not authorized here.
+
+   **Resolved 2026-07-23.** No longer true: `design/guest-identity-overload-scoping`
+   was merged into `redesign/tm-stats-dashboard-rebuild` as `8e331cffb`, so the
+   design handoff is on the base branch and readable in the working tree [GIT].
+   It has since been superseded in part and carries its own dated authority
+   notice.
 
 ---
 

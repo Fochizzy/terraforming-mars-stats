@@ -432,4 +432,312 @@ begin
   end if;
 end $$;
 
+-- 10. MULTIPLE-CANDIDATE REJECTION.
+--
+-- The function auto-selects a candidate only when there is EXACTLY ONE. With
+-- two or more eligible candidates and no explicit selection it must raise P0003
+-- and write nothing.
+--
+-- WHY THIS EXISTS. Nothing else in this harness reached that branch. Section 8
+-- also builds a two-row same-name collision, but only ONE of its rows is an
+-- eligible candidate — the other is claimed, and claimed players are excluded
+-- from the candidate set — so section 8 exercises the exactly-one path.
+-- Relaxing the auto-selection threshold from `= 1` to `>= 1` therefore left the
+-- entire harness at exit 0: the multiple-match rejection was asserted nowhere,
+-- and a regression that silently auto-selected the lowest-ordered of several
+-- same-name guests would have passed clean.
+--
+-- Runs inside an explicit transaction and ROLLS BACK, so it leaves no residue
+-- for assertions.sql or the fixture bridge that follow.
+--
+-- Sentinel names only.
+begin;
+
+-- Two UNLINKED players carrying the same normalized personal name. Reachable
+-- for the same reason section 8's fixture is: the personal-name index is
+-- NON-unique per group (20260718050924:111-113).
+insert into public.players (id, group_id, linked_user_id, display_name)
+values
+  ('e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1',
+   '22222222-2222-4222-8222-222222222222', null, 'Guest E1E1E1E1'),
+  ('e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2',
+   '22222222-2222-4222-8222-222222222222', null, 'Guest E2E2E2E2');
+
+insert into private.player_private_identities (
+  player_id, group_id, identity_mode, guest_first_name, guest_last_name,
+  normalized_personal_name, created_by_user_id
+) values
+  ('e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1',
+   '22222222-2222-4222-8222-222222222222', 'personal_name',
+   'Zzmulti', 'Zzfixture',
+   private.normalize_private_personal_name('Zzmulti', 'Zzfixture'),
+   '11111111-1111-4111-8111-111111111111'),
+  ('e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2',
+   '22222222-2222-4222-8222-222222222222', 'personal_name',
+   'Zzmulti', 'Zzfixture',
+   private.normalize_private_personal_name('Zzmulti', 'Zzfixture'),
+   '11111111-1111-4111-8111-111111111111');
+
+-- 10a. The fixture really is a multi-candidate state — BOTH rows unlinked, so
+--      both are eligible. Without this, a pass below could come from the
+--      candidate set having collapsed to one for some unrelated reason.
+do $$
+declare v_unlinked integer; v_claimed integer;
+begin
+  select
+    count(*) filter (where p.linked_user_id is null),
+    count(*) filter (where p.linked_user_id is not null)
+  into v_unlinked, v_claimed
+  from private.player_private_identities ppi
+  join public.players p on p.id = ppi.player_id
+  where ppi.group_id = '22222222-2222-4222-8222-222222222222'
+    and ppi.normalized_personal_name =
+        private.normalize_private_personal_name('Zzmulti', 'Zzfixture');
+  if v_unlinked <> 2 or v_claimed <> 0 then
+    raise exception
+      'ID-READER MULTI FAIL: fixture is not the multi-candidate state (unlinked %, claimed %)',
+      v_unlinked, v_claimed;
+  end if;
+end $$;
+
+-- 10b. THE PROOF. No explicit selection, two eligible candidates: the call must
+--      be REJECTED with P0003, and must create no player row.
+--
+--      p_create_new is true on purpose, so a pass cannot come from the
+--      confirm-creation guard (22023) firing first and masking the branch.
+do $$
+declare
+  r record;
+  v_outcome text;
+  v_players_before integer;
+  v_players_after integer;
+begin
+  select count(*) into v_players_before
+  from public.players
+  where group_id = '22222222-2222-4222-8222-222222222222';
+
+  begin
+    set local role service_role;
+    select * into r from public.create_or_reuse_guest_identity(
+      '22222222-2222-4222-8222-222222222222'::uuid,
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      'personal_name',
+      null::text,
+      'Zzmulti',
+      'Zzfixture',
+      null::uuid,
+      true
+    );
+    reset role;
+    v_outcome := format('resolved to %s with state %s',
+                        r.player_id, r.resolution_state);
+  exception
+    when sqlstate 'P0003' then
+      v_outcome := 'rejected';
+    when others then
+      -- Any other sqlstate is a different defect and is reported as itself
+      -- rather than counted as the rejection this section asserts.
+      v_outcome := format('raised sqlstate %s (%s)', SQLSTATE, SQLERRM);
+  end;
+
+  if v_outcome <> 'rejected' then
+    raise exception
+      'ID-READER MULTI FAIL: two eligible candidates and no explicit selection must raise P0003; instead the call %',
+      v_outcome;
+  end if;
+
+  select count(*) into v_players_after
+  from public.players
+  where group_id = '22222222-2222-4222-8222-222222222222';
+  if v_players_after <> v_players_before then
+    raise exception
+      'ID-READER MULTI FAIL: the rejected call created % player row(s)',
+      v_players_after - v_players_before;
+  end if;
+end $$;
+
+-- 10c. The rejected call added no identity row and no import evidence either.
+do $$
+declare v_identities integer; v_aliases integer;
+begin
+  select count(*) into v_identities
+  from private.player_private_identities ppi
+  join public.players p on p.id = ppi.player_id
+  where ppi.group_id = '22222222-2222-4222-8222-222222222222'
+    and p.linked_user_id is null
+    and ppi.normalized_personal_name =
+        private.normalize_private_personal_name('Zzmulti', 'Zzfixture');
+  if v_identities <> 2 then
+    raise exception
+      'ID-READER MULTI FAIL: % unlinked identities carry this name after the rejected call (expected the 2 fixtures)',
+      v_identities;
+  end if;
+
+  select count(*) into v_aliases
+  from public.player_import_aliases
+  where player_id in (
+    'e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1',
+    'e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2'
+  );
+  if v_aliases <> 0 then
+    raise exception 'ID-READER MULTI FAIL: % import alias row(s) written', v_aliases;
+  end if;
+end $$;
+
+rollback;
+
+-- 11. AN EXPLICITLY SELECTED CLAIMED PLAYER IS REFUSED.
+--
+-- The selected-player revalidation requires `p.linked_user_id is null`. That one
+-- clause is the sole barrier stopping an explicitly supplied CLAIMED player id
+-- from being returned by this function and labelled `existing_unlinked_guest` —
+-- a registered account handed back as a reusable guest. Removing it left the
+-- whole harness at exit 0.
+--
+-- LATENT TODAY, DELIBERATELY ASSERTED ANYWAY. Neither non-import call site
+-- passes an explicit selection: `/group/players` and the Log-a-Game manual-entry
+-- resolver both send p_selected_player_id => null, so today this branch is only
+-- reachable by a direct service-role call. It is asserted because the natural
+-- fix for the terminal multiple-match state that section 10 covers is a
+-- disambiguation UI, and such a UI would pass an explicit selection — turning
+-- this dormant path into a live one. The assertion must already be in place
+-- when that happens.
+--
+-- Rolls back, like section 8 and section 10. Sentinel names only.
+begin;
+
+-- A CLAIMED player whose private identity row was retained through the claim.
+-- It reuses the seeded non-member auth user purely as a real FK target.
+insert into public.players (id, group_id, linked_user_id, display_name)
+values (
+  'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1',
+  '22222222-2222-4222-8222-222222222222',
+  '99999999-9999-4999-8999-999999999999',
+  'Registered Account F1'
+);
+
+insert into private.player_private_identities (
+  player_id, group_id, identity_mode, guest_first_name, guest_last_name,
+  normalized_personal_name, created_by_user_id
+) values (
+  'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1',
+  '22222222-2222-4222-8222-222222222222', 'personal_name',
+  'Zzclaimed', 'Zzfixture',
+  private.normalize_private_personal_name('Zzclaimed', 'Zzfixture'),
+  '11111111-1111-4111-8111-111111111111'
+);
+
+-- 11a. Every revalidation conjunct EXCEPT the unlinked-only clause is satisfied:
+--      the player exists, is in the queried group, and its retained identity row
+--      carries exactly the queried normalized name. So the refusal below can
+--      only come from that clause — the assertion is not passing because the
+--      fixture failed some other test.
+do $$
+declare v_ok boolean;
+begin
+  select exists (
+    select 1
+    from public.players p
+    join private.player_private_identities ppi on ppi.player_id = p.id
+    where p.id = 'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1'
+      and p.group_id = '22222222-2222-4222-8222-222222222222'
+      and p.linked_user_id is not null
+      and ppi.normalized_personal_name =
+          private.normalize_private_personal_name('Zzclaimed', 'Zzfixture')
+  ) into v_ok;
+  if not v_ok then
+    raise exception
+      'ID-READER CLAIMED-SELECT FAIL: fixture is not a claimed player with a matching retained identity row';
+  end if;
+end $$;
+
+-- 11b. THE PROOF. Explicitly selecting that claimed player must be REFUSED with
+--      P0002, and must write nothing.
+do $$
+declare
+  r record;
+  v_outcome text;
+  v_players_before integer;
+  v_players_after integer;
+  v_identities_before integer;
+  v_identities_after integer;
+begin
+  select count(*) into v_players_before
+  from public.players
+  where group_id = '22222222-2222-4222-8222-222222222222';
+  select count(*) into v_identities_before
+  from private.player_private_identities
+  where group_id = '22222222-2222-4222-8222-222222222222';
+
+  begin
+    set local role service_role;
+    select * into r from public.create_or_reuse_guest_identity(
+      '22222222-2222-4222-8222-222222222222'::uuid,
+      '11111111-1111-4111-8111-111111111111'::uuid,
+      'personal_name',
+      null::text,
+      'Zzclaimed',
+      'Zzfixture',
+      'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1'::uuid,  -- the claimed player
+      true
+    );
+    reset role;
+    v_outcome := format('returned %s with state %s',
+                        r.player_id, r.resolution_state);
+  exception
+    when sqlstate 'P0002' then
+      v_outcome := 'refused';
+    when others then
+      v_outcome := format('raised sqlstate %s (%s)', SQLSTATE, SQLERRM);
+  end;
+
+  if v_outcome <> 'refused' then
+    raise exception
+      'ID-READER CLAIMED-SELECT FAIL: an explicitly selected CLAIMED player must be refused with P0002; instead the call % — a registered account was handed back as a reusable guest',
+      v_outcome;
+  end if;
+
+  select count(*) into v_players_after
+  from public.players
+  where group_id = '22222222-2222-4222-8222-222222222222';
+  select count(*) into v_identities_after
+  from private.player_private_identities
+  where group_id = '22222222-2222-4222-8222-222222222222';
+
+  if v_players_after <> v_players_before then
+    raise exception
+      'ID-READER CLAIMED-SELECT FAIL: the refused call created % player row(s)',
+      v_players_after - v_players_before;
+  end if;
+  if v_identities_after <> v_identities_before then
+    raise exception
+      'ID-READER CLAIMED-SELECT FAIL: the refused call wrote % private identity row(s)',
+      v_identities_after - v_identities_before;
+  end if;
+end $$;
+
+-- 11c. The claimed player itself was neither relinked nor stripped, and no
+--      import evidence was invented for it.
+do $$
+declare v_linked_user uuid; v_aliases integer;
+begin
+  select p.linked_user_id into v_linked_user
+  from public.players p
+  where p.id = 'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1';
+  if v_linked_user is distinct from '99999999-9999-4999-8999-999999999999'::uuid then
+    raise exception
+      'ID-READER CLAIMED-SELECT FAIL: the claimed player was relinked or unlinked';
+  end if;
+
+  select count(*) into v_aliases
+  from public.player_import_aliases
+  where player_id = 'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1';
+  if v_aliases <> 0 then
+    raise exception
+      'ID-READER CLAIMED-SELECT FAIL: % import alias row(s) written', v_aliases;
+  end if;
+end $$;
+
+rollback;
+
 select 'ID_READER_CLIENT_AFTER_PROVEN' as result;
