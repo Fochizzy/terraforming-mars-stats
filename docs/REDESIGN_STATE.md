@@ -67,6 +67,66 @@ issued.**
   outstanding** — see "The production catalog read" below. Everything else in
   this bullet stands unchanged.
 
+### OWNER DECISION (2026-07-23): the reader-deploy precondition on the 7-argument drop is SUPERSEDED and replaced by three
+
+Documentation only. **Nothing is authorized, applied, dropped, deployed, or
+pushed by this record**, and no blocker's `Blocking` value changed. No
+production access of any kind occurred in the session that recorded it.
+
+The owner decided that the recorded precondition on `ID-READER-CONTRACT` — that
+the drop of the deployed 7-argument `public.resolve_import_guest_identity` is
+valid only after the moved reader is deployed and production-verified — is
+**SUPERSEDED**. The full decision text, which is authoritative over this
+summary, is `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 - The
+seven-argument resolver drop: replacing the reader-deploy precondition".
+
+**The three preconditions that replace it**, each binding on the session that
+authors the drop:
+
+1. **RE-DERIVE THE SIGNATURE LIVE** from the production catalog before writing
+   any drop statement. A signature recorded from a report is not a signature
+   read from the catalog, and `drop function if exists` against a signature that
+   does not exist succeeds silently against nothing.
+2. **RE-RUN THE CATALOG SWEEP** for database-internal callers — function bodies,
+   view definitions, triggers and dependency records across all non-system
+   schemas — with a positive control so an empty result is meaningful. The
+   existing sweep was taken on 2026-07-23 and production can move.
+3. **VERIFY THE DEPLOYED EDGE FUNCTIONS.** The repository records the project's
+   only edge function as a disabled stub (`20260722153000:40-41`, **[REPO]**),
+   but that is a prior record rather than an observation, and edge functions are
+   one of the four areas the catalog sweep explicitly does not cover.
+
+**Residual risk accepted by the decision:** consumers outside the database, and
+dynamic SQL that never stores the name literally. Recovery is straightforward if
+that is wrong — the function body is preserved in migration `20260718212339`
+(**[REPO]**) and can be recreated.
+
+**TRACKED CONSEQUENCE OF THE DROP, inherited by the session that performs it.**
+Dropping the function in production makes this repository's record of it
+permanently stale: two migrations on the redesign lineage create it
+(`20260718050924`, `20260718212339`) and the executable harness asserts that it
+**exists** — `supabase/tests/executable/run.sh:254` fails when
+`to_regprocedure('public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean)')`
+is null, and `non-import-guest-identity-after.sql:71,77` names the same
+signature (**[REPO]**). This is the same class of repository-versus-production
+divergence the carry convention exists to prevent, arriving from the opposite
+direction. **It must be handled as part of the drop's own work, not discovered
+afterwards.** Handling it is separately unauthorized and was not begun.
+
+**What the decision does NOT do.** It does not close an oracle — authenticated
+EXECUTE was already revoked as ledger `20260722153233` and the ACL is
+`{postgres,service_role}` only **as of the authorized catalog read of 2026-07-23
+09:40:14Z**, a **[PRIOR]** record that precondition 1 re-derives live before any
+drop — so no status line may describe the drop as closing or mitigating an
+exposure. It does not authorize the drop. It
+does not touch contraction `20260722012707`, which remains genuinely
+deploy-gated. And it does **not** dissolve `ID-READER-DEPLOY`: the redesign
+reader remains undeployed and will eventually need to ship — it is simply no
+longer a precondition of the 7-argument drop.
+
+Handoff:
+`docs/agent-handoffs/PHASE-04-STEP-03-SEVEN-ARGUMENT-DROP-PRECONDITION-REPLACEMENT.md`.
+
 ### Finding (2026-07-23): the 7-argument drop's reader dependency has no found caller
 
 Recorded as a **finding**. **No disposition changed, and the precondition is
@@ -74,6 +134,13 @@ left standing.** The record states that the CONTRACT drop of the deployed
 7-argument `resolve_import_guest_identity` is valid only after the moved reader
 is deployed and production-verified. A read-only sweep found no reader on any
 lineage that calls that function.
+
+**SUPERSEDED 2026-07-23 as to the reader-deploy precondition only, and retained
+as the record of what this sweep found.** The owner decision above replaced that
+precondition with the three listed there. The finding's evidence, its four
+uncovered areas, and its refusal to treat "no caller was found" as "the drop is
+safe" all stand unchanged — two of those uncovered areas are now precondition 2
+and precondition 3.
 
 - **Swept [GIT]:** production source commit
   `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` (the commit named in the canonical
@@ -94,6 +161,12 @@ lineage that calls that function.
   safe", and the four gaps above are exactly where a caller would hide.
   Relaxing or removing the reader-deploy precondition on a production drop is an
   **owner decision** and has not been made.
+  **SUPERSEDED 2026-07-23 — that owner decision HAS since been made**, and the
+  original text is retained as the record of what this sweep concluded at the
+  time. The reader-deploy precondition is replaced by the three preconditions in
+  the owner-decision section above. The first sentence still stands on its own
+  terms: "no caller was found" is still not "the drop is safe", which is exactly
+  why two of the four gaps became preconditions rather than being dismissed.
 - **Real regardless of that decision, and SATISFIED 2026-07-23 09:40:14Z
   [PRIOR]:** the authorized production ACL and signature read on the resolver,
   and a fresh production-side catalog sweep for database-internal callers. Both
@@ -103,6 +176,12 @@ lineage that calls that function.
   precondition stays in force, the signature must be **re-derived live** before
   any drop statement is authored, and a further sweep is required if production
   changes before the drop. See "The production catalog read" below.
+  **SUPERSEDED 2026-07-23 as to "the reader-deploy precondition stays in force",
+  and retained otherwise unchanged.** That precondition is replaced by the three
+  in the owner-decision section above. Every other clause here is not merely
+  retained but reinforced: the four uncovered areas still stay open, the
+  live signature re-derivation is now **precondition 1**, and the further sweep
+  if production changes is now **precondition 2**.
 
 Detail, including the two-gate distinction this dependency is often confused
 with: `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`.
@@ -228,6 +307,11 @@ bodies, **41** views, **0** materialized views and **13** user triggers, in all
   precondition is **NOT** relaxed, no blocker is reclassified, and a further
   production-side sweep is required if production changes before the drop is
   authored.
+  **SUPERSEDED 2026-07-23 as to the reader-deploy precondition only**, by the
+  owner decision recorded above; the original text is retained. The other two
+  clauses are unchanged and still binding — no blocker is reclassified, and the
+  further production-side sweep is now **precondition 2** of the drop rather
+  than a caveat on this sweep.
 
 **D. The expand — VERIFIED as applied, from the catalog, by a different session
 than the one that applied it.** Exactly one overload of
@@ -2403,6 +2487,46 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-SEVEN-ARGUMENT-DROP-PRECONDITION-REPLACEMENT.md
+  (documentation only, redesign lineage: records the owner decision that
+  **SUPERSEDES the reader-deploy precondition on the `ID-READER-CONTRACT` drop**
+  of the deployed 7-argument `public.resolve_import_guest_identity` and replaces
+  it with **three** — re-derive the signature live from the production catalog,
+  re-run the database-internal caller sweep with a positive control, and verify
+  the deployed edge functions. **Authorizes nothing**: not the drop, not the
+  production session that would discharge those preconditions, not a deploy,
+  migration or push. **No production access of any kind occurred** — no Supabase
+  MCP call, no `execute_sql`, no `wrangler`, no `/api/deploy-info` — and no
+  `src/**`, `supabase/**` or `scripts/**` file was touched. The decision text is
+  recorded **verbatim** in `docs/redesign/DECISIONS.md`, placed after the
+  2026-07-22 non-import guest identity entry, and is authoritative over every
+  summary of it. **Every load-bearing premise was checked against this
+  repository first and all reproduced**, including the ACL
+  `{postgres=X/postgres,service_role=X/postgres}` **[PRIOR]** as of the
+  authorized catalog read of 2026-07-23 09:40:14Z, which precondition 1
+  re-derives live before any drop. **`ID-READER-DEPLOY` is NOT dissolved,
+  removed, or marked complete** — the redesign reader is still undeployed, still
+  needs to ship, and still gates contraction `20260722012707`, which remains
+  genuinely deploy-gated because the deployed application calls
+  `match_import_player_names` through a user-session client; only its reach
+  changed. **No blocker's `Blocking` value changed, no other precondition was
+  relaxed, and no other pending decision was resolved** — `PD-1`, `PD-2` and
+  `PD-3` are untouched and remain open. **The drop closes NO oracle** — the
+  revoke as ledger `20260722153233` already did that — so no status line may
+  describe it as closing or mitigating an exposure. **New tracked consequence,
+  inherited by the drop session:** dropping the function makes this repository's
+  record permanently stale, because two migrations create it and the executable
+  harness asserts it **EXISTS** (`run.sh:254`,
+  `non-import-guest-identity-after.sql:71,77`) **[REPO]**; it must be handled as
+  part of the drop's own work, not discovered afterwards, and handling it is
+  separately unauthorized. **Known gap left open deliberately:**
+  `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` still asserts the superseded
+  precondition and was outside this task's permitted edit set, so that
+  correction is outstanding and is flagged in the `ID-READER-CONTRACT` row.
+  `tsc`, `vitest`, `lint`, `run.sh` and `build` were **deliberately skipped and
+  are not claimed**; the six pre-existing `deploy-state` provenance errors were
+  measured at the base commit on a clean tree and are planning-pack staleness,
+  not a regression)
 - docs/agent-handoffs/PHASE-04-STEP-03-BACKFILL-NEUTRALIZATION-ORDERING-CORRECTION.md
   (documentation only, redesign lineage: corrects a provably false ordering
   assertion and repairs an omission in the current-work router. **Decides

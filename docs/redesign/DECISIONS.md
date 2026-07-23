@@ -1440,6 +1440,98 @@ to settle the recorded service_role EXECUTE discrepancy is a precondition of the
 contraction step.
 
 
+## Phase 4 Step 4.3 - The seven-argument resolver drop: replacing the reader-deploy precondition
+
+Decision date 2026-07-23. Owner decision, recorded from the planning session.
+
+### What was decided
+
+The recorded precondition on ID-READER-CONTRACT - that the drop of the
+seven-argument public.resolve_import_guest_identity is valid only after the
+moved reader is deployed and production-verified - is SUPERSEDED. It is
+replaced by three preconditions that the evidence supports.
+
+### Why the reader-deploy precondition is being replaced
+
+Expand and contract exists to stop a deployed reader losing something it still
+needs. Two independent read-only investigations, each using a positive control,
+established that no reader on any lineage calls this function: not the deployed
+application at its current source commit, not the rollback target, not the
+redesign lineage, and not any object inside the database. An authorized
+production catalog read confirmed zero references across every function body,
+view, trigger and dependency record in all non-system schemas.
+
+The moved reader that the precondition names exists only on the redesign
+lineage. The live lineage has no caller of this function to move - it creates
+guests by direct insert. Satisfying the precondition as written therefore
+requires deploying the redesign application to production: a lineage cutover of
+several hundred commits that ships Phase 4 of a twenty-phase rebuild, onto a
+branch missing live-site fixes, whose deployability is itself unverified. That
+is a launch decision, not a step in Step 4.3, and it is being asked for in order
+to protect a reader that cannot exist short of the launch.
+
+### What this decision does not claim
+
+This drop is not closing an oracle. Authenticated EXECUTE on the seven-argument
+resolver was revoked in production on 2026-07-22 as ledger 20260722153233, and
+an authorized catalog read on 2026-07-23 confirmed the ACL is now postgres and
+service_role only as of the authorized catalog read of 2026-07-23 09:40:14Z;
+this is a prior record and is re-derived live by precondition 1 before any drop.
+No client role can reach the function today. The security objective was met by
+the revoke; this drop completes the expand and contract pattern and removes a
+dead object. It should not be described, in any status line or summary, as
+closing or mitigating an exposure.
+
+### The three preconditions that replace it
+
+1. The session authoring the drop must RE-DERIVE THE SIGNATURE LIVE from the
+   production catalog before writing any drop statement. A signature recorded
+   from a report is not a signature read from the catalog, and drop function if
+   exists against a signature that does not exist succeeds silently - reporting
+   success, changing nothing, while the session records the function as dropped.
+
+2. That same session must RE-RUN THE CATALOG SWEEP for database-internal
+   callers - function bodies, view definitions, triggers, and dependency
+   records across all non-system schemas, with a positive control so that an
+   empty result is meaningful. The existing sweep was taken on 2026-07-23 and
+   production can move.
+
+3. The session must VERIFY THE DEPLOYED EDGE FUNCTIONS. The repository records
+   the project's only edge function as a disabled stub, but that is a prior
+   record rather than an observation, and edge functions are one of the areas
+   the catalog sweep explicitly does not cover.
+
+### Residual risk accepted
+
+The sweep cannot cover consumers outside the database - external clients,
+scripts, ad-hoc sessions - or dynamic SQL that never stores the function name
+literally. That residual is accepted. Recovery is straightforward if it is
+wrong: the function body is preserved in migration 20260718212339 and can be
+recreated.
+
+### A cost this decision incurs, to be handled rather than absorbed
+
+Dropping the function in production makes the repository's record of it
+permanently stale. Two migrations on the redesign lineage create it, and the
+executable harness asserts that it exists. This is the same class of
+repository-versus-production divergence that the carry convention exists to
+prevent, arriving from the opposite direction. It must be handled as part of
+the drop's own work, not discovered afterwards.
+
+### What this decision does not change
+
+Contraction 20260722012707 remains genuinely deploy-gated. The deployed
+application calls public.match_import_player_names through a user-session
+client, so it executes as authenticated, and that migration revokes exactly
+that grant. Applying it against the current deployment would break live import
+matching. That gate is real and is unblocked by the service-role matcher
+overload, not by this decision.
+
+ID-READER-DEPLOY is not dissolved by this decision. The redesign reader remains
+undeployed and will eventually need to ship. What changes is that it is no
+longer a precondition of the seven-argument drop.
+
+
 ## Project-wide - generated Claude Project master context
 
 Approved by the user's explicit context-maintenance request on 2026-07-22.
