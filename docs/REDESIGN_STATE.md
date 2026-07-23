@@ -33,6 +33,48 @@ accompanied it and nothing in production calls the new three-argument overload.*
 are the three remaining gates before contraction `20260722012707`, and **none of
 them is open**. Applied is not deployed and is not closed.
 
+**THE APPLY'S RECORD IS REMEDIATED (2026-07-23), and the apply itself is
+unaffected.** Documentation-only and local: **no production access, no migration,
+no deploy, no merge, nothing pushed**, and `src/**`, `supabase/**` and
+`scripts/**` were not edited. An independent audit returned FAIL **on the record**,
+not on the apply, and further defects were found on review. What the remediation
+corrected:
+
+- `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` was brought to the applied
+  state in eight superseded-and-retained edits. It had been left asserting 115 /
+  `20260723082917` with `20260723130000` gated, because the applying session's
+  brief named only `src/lib/db/migration-ledger-map.ts` and then forbade editing
+  anything else. The two files now agree on entry count, head version and name, the
+  applied status of `20260723130000`, `GATED_UNAPPLIED` membership, and the
+  renamed-drift mapping count (**16** on both sides).
+- Present-tense claims falsified by the matcher apply — production at 115, head
+  `20260723082917`, `20260723130000` gated or unapplied — carry **SUPERSEDED**
+  banners here and in `docs/CURRENT_STATUS.md`, originals retained. Claims falsified
+  by the **earlier** guest-identity apply (`20260722160000` described as gated and
+  unapplied) are bannered with **08:29:17Z**, not 15:12:21Z. Dated and scoped
+  historical references were deliberately **left unbannered**.
+- **Gap 1e is reclassified NARROWED, NOT CLOSED.** Its pre-registered rule — that it
+  would close "as a side effect of the eventual authorized apply's own catalog
+  verification" — is **withdrawn as unsound** at all four sites, and neutralized at
+  its origin in `PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`. A **post**-apply
+  catalog read cannot distinguish an overload this apply created from one
+  `create or replace` silently replaced: neither case is reported and both leave two
+  overloads. A **pre**-apply read would have settled it; none was required or
+  performed. What still stands — the pre-apply ledger read, that `apply_migration`
+  always writes a ledger row, and a forensic sweep finding no such commit or session
+  — makes a ledger-bypassing path **unlikely but not excluded by catalog evidence**.
+  The defective rule **originated in an assigning brief**, not in the forensics
+  session's reasoning.
+- **Twelve planning-layer assignment defects and one open question** are recorded in
+  `docs/agent-handoffs/PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md`. They
+  are defects in how assignments are written, not in any worker's conduct, and no
+  session is named or graded. **Defect 10, the working-tree publish hazard, is
+  recorded as an OPEN HAZARD with no fix applied and none recommended as decided.**
+
+**Nothing else moved.** Step 4.3 is **not** marked complete, Step 4.4 is not begun,
+**no blocker's disposition changed**, no skill was audited, catalogued, indexed or
+edited, and **applied is still not deployed and not closed**.
+
 ### Two accepted work items recorded: the expand merge, and a disputed apply report disproven (2026-07-23)
 
 Documentation and record only. **No production access of any kind occurred** —
@@ -129,6 +171,17 @@ worktrees share — and is **not** a re-derivation of the 13-ODB sweep.
 repair.** Full record:
 `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`.
 
+> **SUPERSEDED 2026-07-23 15:12:21Z as to the count; the sentence above is
+> retained as the state that was correct when written.** The production ledger now
+> holds **116** entries, head
+> `20260723151221 add_service_role_import_name_matcher_overload`, moved there by
+> the **authorized** apply of `20260723130000` at 15:12:21Z — not by the disputed
+> 13:20:35Z report, which stays disproven. **The forensic conclusion itself is
+> unchanged:** no unaccounted or unauthorized entry ever landed, and there is still
+> no drift to repair. Only the count and head moved, and they moved for a recorded
+> reason. See
+> `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md`.
+
 #### A prior observation corrected: "no dangling commits" was FALSE
 
 There are **88**, plus **145** in `lost-found/commit/`. **Cause identified:**
@@ -151,6 +204,27 @@ and nothing signals that the interesting rows were cut.
    close it was withheld, and **the owner has DECLINED to authorize it
    separately**; it closes as a side effect of the eventual authorized apply's own
    catalog verification. **Open until then.**
+
+   > **SUPERSEDED 2026-07-23 as to the auto-close rule only; the item above is
+   > retained as written.** The clause "it closes as a side effect of the eventual
+   > authorized apply's own catalog verification" is **withdrawn as unsound**, and
+   > gap 1e is recorded as **NARROWED, NOT CLOSED**. The apply has since occurred
+   > (15:12:21Z), so leaving the rule in place would have deemed the gap closed
+   > **without anyone deciding it**. **Why the rule does not work:** a POST-apply
+   > catalog read cannot distinguish "no overload existed and this apply created
+   > one" from "an overload already existed and `create or replace` silently
+   > replaced it". `create or replace` reports neither case, and **both yield two
+   > overloads afterwards** — which is exactly what the post-apply read observed. A
+   > PRE-apply catalog read would have settled it definitively; none was required
+   > or performed. **What does still stand, and is why the gap is narrowed rather
+   > than merely open:** the pre-apply ledger read found no matcher entry;
+   > `apply_migration` always writes a ledger row; and the forensic sweep found no
+   > commit and no session that made such a call. A ledger-bypassing path is
+   > therefore **unlikely — but it is not excluded by catalog evidence.** The
+   > defective auto-close rule **originated in an assigning brief, not in the
+   > forensics session's own reasoning**; see
+   > `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`, where the
+   > rule is neutralized at its origin.
 3. **The project has NO local MCP invocation audit trail.** The only trace of any
    MCP tool call is inside session transcripts; **if a transcript is absent there
    is no local record that any call it made ever happened.** This is a
@@ -619,6 +693,23 @@ were read on 2026-07-23 at 09:40:14Z, **before** the build and merge, so they
 remain an accurate record of production and were never a claim about the
 repository after that date.
 
+> **SUPERSEDED 2026-07-23 15:12:21Z as to the production half; the paragraph
+> above is retained as the state that was correct when written.** That paragraph
+> **self-certifies** — it says the production half is "unchanged and still
+> current" — and that self-certification is what is now false, so read it as a
+> record of 2026-07-23 before 15:12:21Z and not as a standing claim.
+> `20260723130000` is **no longer ABSENT FROM PRODUCTION** and is **no longer
+> GATED and UNAPPLIED**: it was applied at **15:12:21Z** as ledger
+> `20260723151221 add_service_role_import_name_matcher_overload`, and the
+> production ledger stands at **116** entries with that head, not 115 /
+> `20260723082917`. **What is unchanged:** the `[PRIOR]` 09:40:14Z catalog values
+> above remain an accurate record of the two-argument function, whose `md5(prosrc)`
+> `522f8cb0a2647c57e35da0a081f90480` and `length` `4191` the post-apply read
+> confirmed identical; the disproven 13:20:35Z report stays disproven; and
+> **applied is not deployed and not closed** — three gates remain before
+> contraction `20260722012707`. See
+> `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md`.
+
 - **The matcher oracle remains OPEN** behind the interim coarsening
   `20260722144034`, exactly as already recorded, and contraction
   `20260722012707` remains gated and unapplied. `ID-LEGACY-ORACLE` is unchanged.
@@ -721,6 +812,19 @@ disposable cluster.
 disposition moved. `20260722160000` is still gated and unapplied; its ledger
 precondition is now true and the apply itself still requires a new explicit
 authorization.
+
+> **SUPERSEDED 2026-07-23 08:29:17Z as to `20260722160000`'s gate status only;
+> the paragraph above is retained as the state that was correct when written.**
+> That migration is **no longer gated and unapplied**. It was applied to
+> production at **08:29:17Z on 2026-07-23** under a single-mutation
+> authorization, recorded in the ledger as
+> `20260723082917 add_non_import_guest_identity_creator` — a renamed apply paired
+> by name. The rest of the paragraph is **unchanged and still current**: Step 4.3
+> is still not complete, no blocker's disposition moved, and **applied is not
+> deployed and not closed** — the moved reader is still undeployed and the
+> CONTRACT drop of the deployed 7-argument `resolve_import_guest_identity`
+> remains a separate gate. Note the falsifying event here is the **guest-identity
+> apply at 08:29:17Z**, not the matcher apply at 15:12:21Z.
 
 **Discrepancy carried forward, not fixed here.** The **code half** of that same
 release — `c7d6c203a`, the `listSavedGames` labelling fix in
@@ -914,6 +1018,17 @@ an unmerged branch; that is no longer the case.
 - Step 4.3 is **not** complete and is not marked complete.
 - `FINDING-4` / `DRAFT-NAME-RESIDUE` was not opened.
 
+> **SUPERSEDED 2026-07-23 08:29:17Z as to `20260722160000`'s gate status only;
+> the bullets above are retained as the state that was correct when written.**
+> That migration is **no longer gated and unapplied** — it was applied at
+> **08:29:17Z on 2026-07-23** as ledger
+> `20260723082917 add_non_import_guest_identity_creator`. Everything else in
+> those bullets is **unchanged and still current**: the moved redesign reader is
+> still **undeployed**, Step 4.3 is still not complete, and no blocker changed
+> disposition. **Applied is not deployed and not closed.** The falsifying event
+> is the **guest-identity apply at 08:29:17Z**, not the matcher apply at
+> 15:12:21Z.
+
 Two items previously rediscovered each session are now recorded durably: the
 harness coverage gap on the coarsened matcher (below, evidence class
 **[PRIOR]**), and the stale "Gated repo file" label in
@@ -1036,6 +1151,22 @@ HIGH and two LOW findings. Because `20260722160000` is gated and unapplied and
 corrected **in place in the unapplied file** — the established convention on
 this lineage — rather than stacked as a corrective migration. No applied
 migration and no deployed function was touched.
+
+> **SUPERSEDED 2026-07-23 08:29:17Z as to the two present-tense premises; the
+> paragraph above is retained as the state that was correct when written.**
+> `20260722160000` is **no longer gated and unapplied** and
+> `public.create_or_reuse_guest_identity` **now exists in production**: the
+> migration was applied at **08:29:17Z on 2026-07-23** as ledger
+> `20260723082917 add_non_import_guest_identity_creator`, and the post-apply
+> catalog read returned exactly one overload with ACL
+> `{postgres=X/postgres,service_role=X/postgres}`. **This changes nothing about
+> the remediation the paragraph describes**, which was correct and complete when
+> made: correcting the file in place was the right treatment at that time,
+> precisely because the file was then unapplied. It does mean the same treatment
+> is **no longer available** for this migration — a further correction to it
+> would now have to be a new migration, not an in-place edit. The falsifying
+> event is the **guest-identity apply at 08:29:17Z**, not the matcher apply at
+> 15:12:21Z.
 
 - **FINDING-1 (HIGH) — resolved.** The candidate-counting query and the
   auto-selection query eleven lines below it applied different predicates: the
@@ -2924,6 +3055,41 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md
+  (record only, redesign lineage, documentation-only and local: **nothing applied,
+  deployed, pushed, merged, or read from production** — no Supabase MCP call, no
+  `wrangler`, no `/api/deploy-info`, and `src/**`, `supabase/**` and `scripts/**`
+  were not edited. Records **twelve defects in ASSIGNING BRIEFS** across the
+  guest-identity and matcher work items, **plus one open question**. They are
+  defects in how the planning layer writes assignments, **not** in any worker's
+  conduct — in every case a worker caught the defect and stopped, reported, or
+  applied the stricter reading — and no session is named or graded. The twelve:
+  amended-prompt reconciliation; fingerprint versus ingestion; an unsatisfiable
+  path prohibition in a linked-worktree repository; an unsatisfiable hard stop (a
+  115-entry ledger required while "any matcher-named entry" was a stop, though that
+  ledger necessarily holds `20260720021300` and `20260722144034`); an
+  under-specified file list that named the `.ts` but not the `.md`; a leaked
+  verification baseline; transport truncation; a false premise about document
+  content, the **second** of its class; the under-specified file list **repeated**
+  one work item later, omitting the very document a rule originates in; the
+  **working-tree publish hazard**; skill-versus-brief conflict; and **brief
+  staleness from concurrent work**, where a pinned HEAD moved between authoring and
+  delivery **twice** and the pin is what made the staleness visible. **Defect 10 is
+  recorded as an OPEN HAZARD with NO fix applied and none recommended as decided**:
+  the updater reads 24 of 25 catalogued documents from the **filesystem** and one
+  (`DEPLOY-STATE`) from **Git**, so a hook firing while another session holds
+  uncommitted edits publishes content that exists in **no commit** — it happened at
+  least **twice** here, was found **independently by two sessions**, and is the same
+  class already fixed once for `DEPLOY-STATE`. Verified: the 24+1 split, that the
+  tree was dirty with two modified canonical documents, that the hook fired and ran
+  the updater both times. **NOT verified and each needing its own read-only
+  investigation:** whether the updater has a clean-tree guard, and whether the tree
+  was dirty at the exact moment each hook fired. **Open question recorded, not
+  resolved:** `docs/redesign/DOCUMENT-OWNERSHIP-MAP.md` does not exist — no file, no
+  history, no ref — yet an audit brief instructed a session to run a coverage layer
+  against it; whether it was planned and never built or the requirement is stale is
+  the owner's ruling. **No blocker's disposition changed, Step 4.3 NOT marked
+  complete, Step 4.4 not begun, no skill audited, catalogued, indexed or edited**)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md
   (production apply, redesign lineage: lands the `MATCHER-OVERLOAD-EXPAND-APPLY`
   work item — verdict **PASS**. Gated migration `20260723130000` is **APPLIED to
@@ -3027,7 +3193,14 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   a deleted transcript from a report produced elsewhere; **gap 1e** — a ledger read
   cannot rule out a ledger-bypassing DDL path, the `pg_proc` read that would close
   it was withheld and the **owner has DECLINED to authorize it separately**, so it
-  closes only as a side effect of the eventual authorized apply; the project has
+  closes only as a side effect of the eventual authorized apply
+  [**SUPERSEDED 2026-07-23: that auto-close clause is withdrawn as unsound and
+  gap 1e is NARROWED, NOT CLOSED** — a post-apply catalog read cannot distinguish
+  an overload this apply created from one `create or replace` silently replaced,
+  and both leave two overloads; the pre-apply ledger read, the fact that
+  `apply_migration` always writes a ledger row, and the forensic sweep finding no
+  such commit or session make a ledger-bypassing path unlikely but do not exclude
+  it]; the project has
   **no local MCP invocation audit trail**, a structural audit limit recorded
   independently of this incident; and the updater's `latest.log` is **rolling**, so
   the 13:21:04Z run's log is gone. **The amended-prompt finding**, recorded as a
@@ -3041,7 +3214,16 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   **Production is unchanged and correct at 115, and there is no drift to repair.**
   **No production access, no apply, no deploy, no push, no merge**; `20260723130000`
   stays **GATED and UNAPPLIED**; Step 4.3 **not** marked complete, no blocker's
-  `Blocking` value changed, `PD-1`/`PD-2`/`PD-3` untouched)
+  `Blocking` value changed, `PD-1`/`PD-2`/`PD-3` untouched.
+  **SUPERSEDED 2026-07-23 15:12:21Z as to the ledger count and the gate status,
+  the two sentences above retained as this work item's own record:** the ledger is
+  now **116** with head `20260723151221` and `20260723130000` is **APPLIED**, by
+  the authorized apply recorded in the head bullet of this group — not by the
+  disputed 13:20:35Z report, which stays disproven. The forensic conclusion is
+  unchanged: no unaccounted entry ever landed and there is still no drift to
+  repair. This work item's own scope statements — no production access, nothing
+  applied or deployed by it, Step 4.3 not marked complete — remain accurate as
+  written)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-MERGE-AND-RECORD-CORRECTIONS.md
   (merge + documentation, redesign lineage: completes the merge a prior session
   correctly stopped on, resolves its two conflicts under an explicitly
@@ -3054,7 +3236,11 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   examined and passed** — is merged `--no-ff` as `2b2a3b00e` with both parents
   intact, from pre-merge HEAD `0053101ad` over merge base `92d4f6917`.
   **Migration `20260723130000` remains GATED and UNAPPLIED**; the production
-  ledger is untouched at 115 / `20260723082917` **[PRIOR]**. **The callsite half
+  ledger is untouched at 115 / `20260723082917` **[PRIOR]**
+  [**SUPERSEDED 2026-07-23 15:12:21Z**, the clause retained as this merge work
+  item's own record: the migration is now **APPLIED** as ledger `20260723151221`
+  and the ledger stands at **116** with that head; nothing the merge itself did or
+  claimed is affected by the later apply]. **The callsite half
   `5894c874a` is deliberately NOT merged** — merging it before the apply opens a
   window in which any unrelated deploy of the live lineage breaks live import
   matching with `PGRST202`/`42883`. **THE AUTHORIZED RULE WAS VERIFIED BEFORE

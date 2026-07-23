@@ -8,11 +8,19 @@ read-only and updating both files together.
 
 ## Current snapshot
 
-Attested **2026-07-23**: **115 entries**, head
-`20260723082917 add_non_import_guest_identity_creator`. The count and head are
-pinned in `PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that disagrees
-fails rather than silently overwriting. This production snapshot must be re-read
-live before any production-sensitive action.
+Attested **2026-07-23**: **116 entries**, head
+`20260723151221 add_service_role_import_name_matcher_overload`. The count and head
+are pinned in `PRODUCTION_LEDGER_ATTESTATION`, so a later attestation that
+disagrees fails rather than silently overwriting. This production snapshot must be
+re-read live before any production-sensitive action.
+
+> **SUPERSEDED 2026-07-23 15:12:21Z — the 115-entry snapshot and its provenance
+> block below are retained as history.** The block that follows describes the
+> **115**-entry snapshot and the `20260722160000` → `20260723082917` apply that
+> produced it. Both are accurate records of that moment and neither is the current
+> snapshot. The 116th entry is recorded in "The 116th entry" below, and the
+> executable source of truth `src/lib/db/migration-ledger-map.ts` reads
+> **116 / `20260723151221`**.
 
 > **Provenance of the 115-entry snapshot — this one WAS read live.** Unlike the
 > 114-entry snapshot it replaces, both the count and the head were read directly
@@ -45,6 +53,52 @@ live before any production-sensitive action.
 > Nothing in this section is fresh production evidence; it restores agreement
 > between two repository files that had diverged.
 
+### The 116th entry — `20260723151221 add_service_role_import_name_matcher_overload`
+
+Applied to production **15:12:21Z on 2026-07-23 from this branch**, under a
+single-mutation authorization, as the **EXPAND** half of the 2026-07-22 matcher
+amendment. Repo file `20260723130000`; the apply tool stamped the UTC apply time
+over the filename version, so it is a renamed apply paired by **name**.
+
+**This is the FIRST application of this migration.** A 2026-07-23 report claimed
+an earlier apply at 13:20:35Z under ledger `20260723132035`; forensics disproved
+it, and the pre-apply ledger read by the applying session confirms it again —
+115 entries, no `20260723132035`, no matcher-overload entry. See
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`.
+
+It **drifted**, like the entry below it. The 114th entry remains the only
+non-drifting apply among the eleven whose source file is known.
+
+Verified read-only immediately after the apply, `pg_catalog` only — never by
+invoking either overload:
+
+- **Two** overloads of `public.match_import_player_names` now exist. The **new**
+  `(uuid, uuid, text[])` is `prosecdef` true, `proconfig` `search_path=""`, ACL
+  `{postgres=X/postgres,service_role=X/postgres}` — no `authenticated`, no `anon`,
+  and no surviving `PUBLIC` grant, so the load-bearing `revoke … from public` did
+  its job. `md5(prosrc)` `4c91b87f9f88848e840a7fa60d848f21`, `length` 5657.
+- The **existing** two-argument `(uuid, text[])` form is **UNCHANGED**:
+  `md5(prosrc)` `522f8cb0a2647c57e35da0a081f90480`, `length` 4191 — identical to
+  the 09:40:14Z baseline — and its ACL still includes `authenticated`. The apply
+  disturbed nothing the deployed Worker depends on.
+
+**APPLIED IS NOT DEPLOYED AND NOT CLOSED.** Nothing in production calls the new
+overload. The moved reader lives on the **live-site** lineage
+(`fix/matcher-service-role-overload-callsite` @ `5894c874a`) and is neither merged
+nor deployed; the deployed Worker still calls the two-argument form as
+`authenticated`. **Three gates remain, then the contraction** — merge the reader,
+deploy it, verify in production that a real import returns a **non-zero** match
+count — and only then `20260722012707`. Each is separately authorized and none is
+open. Step 4.3 is not complete.
+
+The rollback, valid only while nothing calls the function, is a single
+`drop function public.match_import_player_names(uuid, uuid, text[]);`. It was
+**not executed**, is **not authorized**, and must never be run once the moved
+reader is deployed, because that reader calls exactly this signature.
+
+Full record:
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md`.
+
 ### The 115th entry — `20260723082917 add_non_import_guest_identity_creator`
 
 Applied to production 08:29Z on 2026-07-23 **from this branch**, under a
@@ -54,6 +108,11 @@ over the filename version, so it is a renamed apply paired by **name**.
 
 It **drifted**, unlike the entry below it. That makes the 114th entry the only
 non-drifting apply among the ten whose source file is known.
+
+> **Superseded as to the count only, 2026-07-23 15:12:21Z; the sentence above is
+> retained as written.** The 116th entry added an eleventh apply whose source file
+> is known, and it drifted too. The count is now **eleven**; the conclusion is
+> unchanged — the 114th entry is still the only non-drifting one.
 
 Verified read-only immediately after the apply:
 
@@ -136,6 +195,17 @@ entries, and `20260722012707` is still the only remaining half of the
 source-bound replacement. Applied is not closed — `20260722144034` was an interim
 mitigation that independent review found insufficient as a closure; see the gated
 table below.
+
+> **SUPERSEDED 2026-07-23 15:12:21Z; the paragraph above is retained as the state
+> that was correct when written.** `20260723130000` **left** the gated set the
+> same day, applied as ledger `20260723151221` — recorded above as the 116th entry
+> and below as renamed drift. `GATED_UNAPPLIED` now holds **five** entries:
+> `20260717190000`, `20260719234500`, `20260720100000`, `20260720110000` and
+> `20260722012707`, matching `src/lib/db/migration-ledger-map.ts`. The rest of the
+> paragraph is unchanged and still current: `20260722012707` is still the only
+> remaining half of the source-bound replacement, and `20260722144034` is still an
+> insufficient interim mitigation rather than a closure. **Applying the expand half
+> closed nothing** — it opened none of the three gates that follow it.
 
 **Prior snapshots, retained.** The 110-entry snapshot (head
 `20260721201734 harden_claim_rpc_privacy`, independently verified 2026-07-21)
@@ -255,6 +325,7 @@ skips them by version.
 | `20260722012658_add_source_bound_import_identity_staging` | `20260722132159` | add_source_bound_import_identity_staging |
 | `20260722153000_close_authenticated_guest_identity_oracle` | `20260722153233` | close_authenticated_guest_identity_oracle |
 | `20260722160000_add_non_import_guest_identity_creator` | `20260723082917` | add_non_import_guest_identity_creator |
+| `20260723130000_add_service_role_import_name_matcher_overload` | `20260723151221` | add_service_role_import_name_matcher_overload |
 
 These files must **never** be renamed to their ledger versions casually and
 must never be pushed directly: a plain `supabase db push` would re-apply
@@ -453,6 +524,18 @@ This table is now the **six** entries of `GATED_UNAPPLIED` — `20260723130000`
 joined the set on 2026-07-23. **Three files have left it and are recorded above
 as renamed drift instead — two on 2026-07-22 and one on 2026-07-23:**
 
+> **SUPERSEDED 2026-07-23 15:12:21Z. The sentence above, and the
+> `20260723130000_add_service_role_import_name_matcher_overload` row of the table
+> above, are retained as history.** That row is **no longer gated**: it was applied
+> at 15:12:21Z as ledger `20260723151221` and is recorded above as the 116th entry
+> and in the renamed-drift table. This table is therefore now the **five** entries
+> of `GATED_UNAPPLIED` — `20260717190000`, `20260719234500`, `20260720100000`,
+> `20260720110000`, `20260722012707` — and **four** files have left the set, the
+> three below plus `20260723130000` as a fourth bullet. The retained row's gate
+> text still governs what comes after the apply: its ordering requirement — apply
+> before `20260722012707` **and** before deploying the moved reader — is unchanged
+> and still binding.
+
 - `20260722012658_add_source_bound_import_identity_staging` — the expansion half
   of the source-bound replacement, applied as `20260722132159`. Its contraction
   half `20260722012707` is still gated, and the compatible server reader is
@@ -471,6 +554,20 @@ as renamed drift instead — two on 2026-07-22 and one on 2026-07-23:**
   new function yet: the moved reader is still undeployed, and the CONTRACT drop
   of the deployed 7-argument `resolve_import_guest_identity` is still gated, with
   its own precondition — a production ACL read on that resolver — outstanding.
+- `20260723130000_add_service_role_import_name_matcher_overload` — the EXPAND half
+  of the 2026-07-22 matcher amendment. It **joined** the gated set on 2026-07-23
+  and **left** it the same day, applied at 15:12:21Z as `20260723151221` under a
+  single-mutation authorization. **Applied is not deployed and not closed.**
+  Nothing in production calls the new three-argument overload: the moved reader
+  lives on the live-site lineage (`fix/matcher-service-role-overload-callsite` @
+  `5894c874a`) and is neither merged nor deployed, and the deployed Worker still
+  calls the two-argument form as `authenticated`. **Three gates remain, then the
+  contraction** — merge the reader, deploy it, verify a real import returns a
+  non-zero match count in production, and only then `20260722012707`. Each is
+  separately authorized and none is open. This is the same shape as the
+  guest-identity pair above, and satisfying one pair's gates does not satisfy the
+  other's — see "'Deploy and verify the compatible reader' names TWO different
+  gates" below.
 
 When `20260722160000` joined the set on 2026-07-22, `20260720100000` stopped
 being an applicable expansion in the same change: it stays listed in
@@ -487,7 +584,7 @@ below restructures either sequence or changes what either step requires.
 
 | | **Guest-identity pair** | **Matcher pair** |
 | --- | --- | --- |
-| Expand | `20260722160000` → ledger `20260723082917`, applied 2026-07-23. Adds `public.create_or_reuse_guest_identity`, `service_role` only | `20260722012658` → ledger `20260722132159`, applied 2026-07-22. Adds source-bound staging and service-only gateways |
+| Expand | `20260722160000` → ledger `20260723082917`, applied 2026-07-23. Adds `public.create_or_reuse_guest_identity`, `service_role` only | `20260722012658` → ledger `20260722132159`, applied 2026-07-22. Adds source-bound staging and service-only gateways. **Added 2026-07-23 15:12:21Z: `20260723130000` → ledger `20260723151221`**, the `service_role`-only three-argument `match_import_player_names(uuid, uuid, text[])`. Both expand halves of this pair are now applied — and **applied is not deployed and not closed**: the reader below is still the next gate |
 | Reader to deploy | the moved non-import guest-creation call sites (`createOrReuseGuestPlayerByPersonalName` and its two product paths), on the admin client | the source-bound, server-only import-identity reader |
 | Contract | **the DROP of the deployed 7-argument `resolve_import_guest_identity`** — not authored, not authorized. Tracked as `ID-READER-CONTRACT` | **migration `20260722012707`** `retire_free_form_import_name_matcher`. Tracked as `ID-LEGACY-ORACLE` |
 | Blocker for the reader step | `ID-READER-DEPLOY` | `ID-READER-DEPLOY` |
@@ -632,6 +729,16 @@ applying it does to a deployed reader" — it is **not** a statement about how m
 trust the file moves, and this one downgrades the matcher's authorization from
 `auth.uid()` to an application-supplied id, which the amendment records as an
 accepted security cost.
+
+**Applied 2026-07-23 15:12:21Z as ledger `20260723151221`; applying it did not
+change its hazard class.** `expansion` was re-confirmed against the post-apply
+catalog rather than re-asserted from the file: two overloads now exist, the new
+one carrying ACL `{postgres=X/postgres,service_role=X/postgres}`, and the deployed
+two-argument form is unchanged (`md5(prosrc)`
+`522f8cb0a2647c57e35da0a081f90480`, `length` 4191). Nothing a deployed reader
+holds was removed or narrowed. The file count is unaffected — an apply does not
+add or remove a file — so the 56-file total and the 16/31/9 split above still
+stand, matching `MIGRATION_HAZARD_CLASS`.
 
 The two earlier 2026-07-23 changes each added a ledger entry but **no file**: the
 morning ledger reconciliation carried no file by decision, and the

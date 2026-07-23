@@ -233,11 +233,65 @@ Updated in this change:
 
 Intentionally unchanged:
 
+- `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` — **reviewed and NOT updated
+  by the apply session, because its brief did not authorize the edit.** That brief
+  named `src/lib/db/migration-ledger-map.ts` as the file to reconcile and did not
+  name this document, and its forbidden list then barred editing any file outside
+  the named set. The omission left this document asserting the pre-apply state —
+  115 entries, head `20260723082917`, `20260723130000` gated as the sixth entry of
+  `GATED_UNAPPLIED` — while the executable source of truth beside it read 116 /
+  `20260723151221`. **The remediation of 2026-07-23 updated it** to the applied
+  state in eight superseded-and-retained edits, and the two files now agree on
+  entry count, head version and name, the applied status of `20260723130000`,
+  `GATED_UNAPPLIED` membership, and the renamed-drift mapping count (16 on both
+  sides). See the dated correction block below.
 - `docs/redesign/DECISIONS.md` — the amendment already governs this sequence;
   this apply is its execution, not a new durable decision
 - `docs/redesign/MASTER-PLAN.md` — no project-wide direction changed; an
   authorized apply within an already-approved sequence is implementation status
 - the migration file itself, and every other gated migration
+
+## Correction — 2026-07-23, record only. The apply is unaffected
+
+**Nothing in this section changes what was applied, re-verifies it, or reopens
+it.** The apply of `20260723130000` at 15:12:21Z as ledger `20260723151221`
+**remains accepted exactly as recorded above.** No production access, migration,
+deploy, merge or push was involved in this correction, which is documentation-only
+and local.
+
+**What prompted it.** An independent audit returned **FAIL on the record** — not
+on the apply — and further defects were found on review and by the remediation
+sessions themselves. The common cause is that an apply makes a fact stale in more
+documents than the applying session was authorized to touch.
+
+**What it changed.**
+
+1. `docs/redesign/reference/MIGRATION-LEDGER-MAP.md` was brought to the applied
+   state, as described in the disposition above.
+2. Present-tense claims falsified by this apply — that production stands at 115,
+   that the head is `20260723082917`, that `20260723130000` is gated or unapplied
+   — carry **SUPERSEDED** banners in `docs/REDESIGN_STATE.md` and
+   `docs/CURRENT_STATUS.md`, with the original text retained. Claims falsified by
+   the **earlier** guest-identity apply of 08:29:17Z (`20260722160000` described as
+   gated and unapplied) are bannered with **that** timestamp, not this one.
+3. **Gap 1e is recorded as NARROWED, NOT CLOSED.** The pre-registered rule that it
+   would close "as a side effect of the eventual authorized apply's own catalog
+   verification" is **withdrawn as unsound**: this apply's post-apply catalog read
+   cannot distinguish an overload it created from one `create or replace` silently
+   replaced, because both leave two overloads and neither is reported. That
+   reasoning does **not** disturb anything this handoff asserts — the catalog read
+   recorded above is accurate as to shape and ACL, which is all it ever claimed.
+   The rule is neutralized at its origin in
+   `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`.
+4. The planning-layer defects behind this and the preceding work items are recorded
+   in
+   `docs/agent-handoffs/PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md`.
+
+**Unchanged:** the apply itself; every catalog and ledger value above; that
+**applied is not deployed and not closed**; the three remaining gates and the
+contraction after them; Step 4.3 is not complete; no blocker's disposition moved.
+**No second handoff was created for this apply** — one work item, one canonical
+record, which is this document.
 
 ## Prompt-integrity note
 

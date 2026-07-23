@@ -42,6 +42,29 @@ that report cited **never existed**. **The real apply is `20260723151221`, and i
 is the FIRST application of this migration.** Detail, and the four open items the
 forensics left, under "A report claiming the apply happened is DISPROVEN" below.
 
+**THE APPLY'S RECORD IS REMEDIATED (2026-07-23); the apply itself is unaffected
+and remains accepted.** Documentation-only and local — **no production access, no
+migration, no deploy, no merge, nothing pushed**, and `src/**`, `supabase/**` and
+`scripts/**` untouched. An independent audit returned FAIL **on the record**, not
+on the apply. The remediation (1) brought
+`docs/redesign/reference/MIGRATION-LEDGER-MAP.md` to the applied state, which the
+applying session's brief had not authorized it to touch, so that it now agrees with
+`src/lib/db/migration-ledger-map.ts` on entry count, head, the applied status of
+`20260723130000`, `GATED_UNAPPLIED` membership and the renamed-drift mapping count;
+(2) added **SUPERSEDED** banners, originals retained, to present-tense claims
+falsified by this apply — and, with the **08:29:17Z** timestamp instead, to claims
+falsified by the earlier guest-identity apply, where `20260722160000` is still
+described as gated and unapplied; (3) reclassified **gap 1e as NARROWED, NOT
+CLOSED**, withdrawing as unsound the pre-registered rule that it would close as a
+side effect of this apply's own catalog verification — a post-apply read cannot
+distinguish an overload the apply created from one `create or replace` silently
+replaced; and (4) recorded **twelve planning-layer assignment defects plus one open
+question** in
+`docs/agent-handoffs/PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md`, with
+**defect 10, the working-tree publish hazard, left as an OPEN HAZARD — no fix
+applied and none recommended as decided.** **Step 4.3 is NOT marked complete, Step
+4.4 is not begun, and no blocker's disposition changed.**
+
 ## Current objective
 
 Preserve the source-bound import-identity design and close the remaining
@@ -554,6 +577,23 @@ handoff.
 `GATED_UNAPPLIED`. The production ledger is untouched at 115 / `20260723082917`
 **[PRIOR]**.
 
+> **SUPERSEDED 2026-07-23 15:12:21Z; the paragraph above, this section's heading,
+> and the four-gate sequence below are retained as the state that was correct when
+> written.** `20260723130000` is **APPLIED to production**, recorded as ledger
+> `20260723151221 add_service_role_import_name_matcher_overload` at **15:12:21Z**.
+> It is therefore **no longer** an entry of `GATED_UNAPPLIED`, which now holds
+> **five**: `20260717190000`, `20260719234500`, `20260720100000`, `20260720110000`
+> and `20260722012707`. The production ledger stands at **116** entries with that
+> head, not 115 / `20260723082917`. **The remaining sequence is THREE gates, not
+> four** — the first, "apply `20260723130000`", is closed; merge the moved reader,
+> deploy it, verify a real import returns a non-zero match count in production, and
+> only then contraction `20260722012707`. **Unchanged and still current:** the
+> merge this section records applied, deployed, pushed and read nothing;
+> `fix/matcher-service-role-overload-callsite` @ `5894c874a` is still deliberately
+> unmerged and on no remote; **applied is not deployed and not closed**; and Step
+> 4.3 is not complete. See
+> `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-EXPAND-APPLIED.md`.
+
 **Work-item verdict: `MATCHER-OVERLOAD-EXPAND-MERGE` — PASS.** Its record is
 `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-MERGE-AND-RECORD-CORRECTIONS.md`
 (the merge, the authorized row-level conflict rule and its verification, the four
@@ -596,6 +636,19 @@ not.** Verdict of the investigation that settled it: **PASS**. Evidence class
 **[PRIOR]** — the findings come from that read-only session's report and were not
 re-derived by the session recording them.
 
+> **SUPERSEDED 2026-07-23 15:12:21Z; this section's heading and the paragraph
+> above are retained as the state that was correct when written.** `20260723130000`
+> **is now applied** — read the instruction above as "the 13:20:35Z claim is
+> false", which it still is, and **not** as "the migration is unapplied", which it
+> no longer is. The **authorized** apply happened at **15:12:21Z** and landed as
+> ledger `20260723151221`; the ledger is **116**, not 115. **The disproof below is
+> not weakened by this** — it disproves a specific claimed apply at 13:20:35Z under
+> `20260723132035`, and the later authorized apply is a different event, recorded
+> separately and confirmed by that session's own pre-apply live ledger read (115
+> entries, no `20260723132035`, no matcher-overload entry). The two disputed
+> commits are still absent from every object database, and no unaccounted entry
+> ever landed.
+
 **What was claimed.** A session returned a detailed report asserting it had
 applied `20260723130000` to production at **13:20:35Z** under ledger version
 **`20260723132035`**, moved the ledger from **115 to 116**, verified **two
@@ -631,6 +684,16 @@ and **`03cdafcbc`**. **Every one of those is disproven or uncorroborated.**
 **Production is unchanged and correct at 115 entries. There is no drift to
 repair, and no remediation is owed.**
 
+> **SUPERSEDED 2026-07-23 15:12:21Z as to the count; the sentence above is
+> retained as the state that was correct when written.** The production ledger now
+> holds **116** entries, head
+> `20260723151221 add_service_role_import_name_matcher_overload`, moved there by
+> the **authorized** apply of `20260723130000` at 15:12:21Z — not by the disputed
+> 13:20:35Z report, which stays disproven. **The forensic conclusion itself is
+> unchanged:** no unaccounted or unauthorized entry ever landed, there is still no
+> drift to repair, and no remediation is owed for that incident. Only the count and
+> head moved, and they moved for a recorded reason.
+
 **A prior observation is corrected: "no dangling commits" was FALSE.** There are
 **88**, plus **145** in `lost-found/commit/`. Cause: `Select-Object -First 20`
 truncated the `git fsck` output, whose first 20 lines happen to be 6 blobs and 14
@@ -648,6 +711,27 @@ trees. **The conclusion is unaffected** — neither disputed SHA is among them.
    close it was withheld and **the owner has DECLINED to authorize it
    separately**; it closes as a side effect of the eventual authorized apply's own
    catalog verification. **Open until then.**
+
+   > **SUPERSEDED 2026-07-23 as to the auto-close rule only; the item above is
+   > retained as written.** The clause "it closes as a side effect of the eventual
+   > authorized apply's own catalog verification" is **withdrawn as unsound**, and
+   > gap 1e is recorded as **NARROWED, NOT CLOSED**. The apply has since occurred
+   > (15:12:21Z), so leaving the rule standing would have deemed the gap closed
+   > **without anyone deciding it**. **Why the rule does not work:** a POST-apply
+   > catalog read cannot distinguish "no overload existed and this apply created
+   > one" from "an overload already existed and `create or replace` silently
+   > replaced it". `create or replace` reports neither case, and **both yield two
+   > overloads afterwards** — which is precisely what the post-apply read observed,
+   > so that observation cannot discriminate between them. A PRE-apply catalog read
+   > would have settled it definitively; none was required or performed. **What
+   > still stands, and is why the gap is narrowed rather than merely left open:**
+   > the pre-apply ledger read found no matcher entry; `apply_migration` always
+   > writes a ledger row; and the forensic sweep found no commit and no session
+   > that made such a call. A ledger-bypassing path is therefore **unlikely — but
+   > it is not excluded by catalog evidence.** The defective auto-close rule
+   > **originated in an assigning brief, not in the forensics session's own
+   > reasoning**; it is neutralized at its origin in
+   > `docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`.
 3. **The project has NO local MCP invocation audit trail.** The only trace of any
    MCP tool call is inside session transcripts; if a transcript is absent, **there
    is no local record that any call it made ever happened.** A structural audit
@@ -724,7 +808,7 @@ proven but by a different mechanism.
 | ID-READER-CLIENT | `createOrReuseGuestPlayerByPersonalName` must not call the revoked RPC as `authenticated` | **Resolved LOCALLY 2026-07-22, remediated after an independent audit returned FAIL, and MERGED into `redesign/tm-stats-dashboard-rebuild` on 2026-07-23; **migration APPLIED 2026-07-23 as ledger `20260723082917`, reader still undeployed**. Re-audited 2026-07-23: the targeted re-audit found the SQL and TypeScript remediation correct and complete and returned FAIL on documentation and coverage only; all four of its findings are addressed and its FAIL is answered.** Gated `20260720100000` retired as a no-op tombstone, so its `authenticated` re-grant can never be applied. New gated `20260722160000` adds service_role-only `create_or_reuse_guest_identity`, authorized on an explicit server-verified `p_requesting_user_id` and writing no import alias; both non-import call paths moved to the admin client. The audit's HIGH finding — the candidate-counting and auto-selection predicates disagreed about claimed players, so a same-name collision could auto-select a claimed player and fail with `P0002` — was reproduced and fixed in the unapplied file: the predicate is now evaluated once into `v_candidate_ids` and both uses derive from it. `p_requesting_user_id` was also made required, matching the four applied gateways. Executably proven and mutation-proven on a disposable cluster. **Closed out 2026-07-23**: probe P1 was re-run against the tightened clause 8b it had never been re-run against and still fails there with `P0002` (harness exit 3), so the remediation is proven at the current file state, not merely at the state the probe was originally run against. See `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CANDIDATE-PREDICATE-REMEDIATION.md` and `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-REMEDIATION-CLOSEOUT.md` | Redesign deploy |
 | ID-READER-CONTRACT | Drop the deployed 7-argument `resolve_import_guest_identity` | Not authored, not authorized. The expand half is applied (ledger `20260723082917`) and is additive, so the function is still in place. The drop is valid only after the moved reader is deployed and production-verified and a fresh zero-caller re-sweep passes. **SUPERSEDED 2026-07-23 by owner decision as to the reader-deploy half, with the original sentence retained immediately above as history. THE DROP'S PRECONDITIONS ARE NOW THREE:** (1) **RE-DERIVE THE SIGNATURE LIVE** from the production catalog before any drop statement is written, because `drop function if exists` against a signature that does not exist succeeds silently against nothing; (2) **RE-RUN THE CATALOG SWEEP** for database-internal callers — function bodies, view definitions, triggers and dependency records across all non-system schemas — with a positive control, because the existing sweep is dated 2026-07-23 and production can move; and (3) **VERIFY THE DEPLOYED EDGE FUNCTIONS**, an area the catalog sweep explicitly does not cover and for which the repository holds only a prior record (`20260722153000:40-41` calls the project's only edge function, `temporary-asset-uploader`, a two-line disabled stub returning 410 [REPO]) rather than an observation. Decision text: `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 - The seven-argument resolver drop: replacing the reader-deploy precondition"; summary under "The seven-argument drop's preconditions" above. **Residual risk accepted by the decision:** consumers outside the database and dynamic SQL that never stores the name literally; the body is preserved in `20260718212339` [REPO] and can be recreated. **TRACKED CONSEQUENCE, inherited by the session that performs the drop:** dropping the function makes this repository's record of it permanently stale — two migrations create it (`20260718050924`, `20260718212339`) and the executable harness asserts it **EXISTS** (`supabase/tests/executable/run.sh:254`; `non-import-guest-identity-after.sql:71,77`) [REPO] — the same class of repository-versus-production divergence the carry convention prevents, arriving from the opposite direction. **It must be handled as part of the drop's own work, not discovered afterwards**, and handling it is separately unauthorized. **The drop closes NO oracle**: authenticated EXECUTE was already revoked as ledger `20260722153233` and the ACL is `{postgres,service_role}` only **as of the authorized catalog read of 2026-07-23 09:40:14Z** — a [PRIOR] record, re-derived live by precondition 1 before any drop — so no status line or summary may describe this drop as closing or mitigating an exposure. **Its stated precondition — a production ACL read on `resolve_import_guest_identity` — is SATISFIED as of 2026-07-23 09:40:14Z**, by a separately authorized read-only session; the expand session was explicitly forbidden from making that read and did not make it. Result, evidence class **[PRIOR]**, recorded above under "The production catalog read" and on the canonical `DEPLOY-STATE.md`: exactly one overload, `public.resolve_import_guest_identity(uuid,text,text,text,text,uuid,boolean)`, OID `21767`, `prosecdef` true, `search_path=""`, `md5(prosrc)` `2892f3189a15f04c35641473541fc5bd`; `proacl` `{postgres=X/postgres,service_role=X/postgres}`, so **`service_role` holds EXECUTE and `authenticated`/`anon`/`PUBLIC` do not** — the `service_role` discrepancy is **RESOLVED** and the applied revoke migration's header was correct. **The signature must still be RE-DERIVED LIVE before any drop statement is authored**: a signature taken from a report is not one read from the catalog, and `drop function if exists` against a wrong signature succeeds silently against nothing. **Finding recorded 2026-07-23, disposition UNCHANGED: no reader on any lineage was found that calls this function.** Swept at production source commit `865df0108f2f7b9df000ad3aeb8fcd394e6242a5` (zero `src/` occurrences; the only hits are `DEPLOY-STATE.md` prose), at rollback target `d12e33ad0` (zero `src/` occurrences), and at `redesign/…` `44eed2e21` (comments, the ledger map, and a test asserting the RPC is **not** called). Positive control on the same commit finds `.rpc(` in fourteen `src/` files and finds `match_import_player_names`, so the absence is real, not a broken search [GIT]. **The sweep does NOT cover** database-internal callers since the expand landed, edge functions as deployed, consumers outside this repository, or whether the swept commit is what production actually serves (that commit is **[PRIOR]** from the canonical ledger; the authenticated `/api/deploy-info` confirmation is itself recorded there as outstanding). **"No caller was found" is not "the drop is safe": the reader-deploy precondition is NOT relaxed and remains in force.** Changing it is an owner decision and has not been made — see "Pending owner decisions". **SUPERSEDED 2026-07-23, original retained: that owner decision HAS since been made**, and the reader-deploy precondition is replaced by the three stated at the head of this cell. The first clause stands unchanged — "no caller was found" is still not "the drop is safe", which is precisely why two of this sweep's uncovered areas became preconditions 2 and 3 rather than being dismissed. The pointer to "Pending owner decisions" is stale for this item only: the reader-deploy question was never registered as a numbered `PD-`, and `PD-1`, `PD-2` and `PD-3` are unaffected and remain open. Two preconditions were real regardless of that decision — the authorized production ACL and signature read, and a fresh production-side catalog sweep for database-internal callers — and **both were satisfied on 2026-07-23 at 09:40:14Z [PRIOR]**. The production-side sweep found **no** database-internal caller: zero hits across 172 function bodies, 41 views, 0 materialized views and 13 user triggers in 12 non-system schemas, and zero `pg_depend` rows on OID `21767`, with positive controls returning hits on the same query shapes and two blindness checks clean (no SQL-standard function body anywhere, and the resolver in no extension). **It does not cover** Edge Functions as deployed, consumers outside the database, whether the commit production serves matches any swept tree, or runtime-constructed dynamic SQL — and a further sweep is required if production changes before the drop is authored. **Satisfying these two preconditions is not authorization to drop, and does not relax `ID-READER-DEPLOY`, which still stands.** **Amended 2026-07-23, original retained: still not authorization to drop.** `ID-READER-DEPLOY` still stands as the reader-deploy gate and is **not dissolved**, but by owner decision it is no longer a precondition of this drop. Detail: `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`, whose own "The precondition stands and is NOT relaxed by this finding" passage is **superseded by the same decision and was NOT edited here** — that file was outside this documentation task's permitted edit set, and correcting it is outstanding | Step 4.3 closure |
 | ID-READER-DEPLOY | Compatible source-bound reader must be deployed and production-verified | **ACTIVE GATE as of 2026-07-23.** Not authorized or deployed. The database side is now ready — `create_or_reuse_guest_identity` exists and is `service_role`-only — but nothing in production calls it, and applying the expand granted no deploy authority. **Amended 2026-07-23 by owner decision — NOT dissolved, NOT removed, NOT complete.** This gate stands in full: the moved redesign reader is still undeployed, still needs to ship, and still gates contraction `20260722012707`, which is genuinely deploy-gated because the deployed application calls `match_import_player_names` through a user-session client and executes as `authenticated`. **What changed is only its reach: it is no longer a precondition of the `ID-READER-CONTRACT` drop**, which now carries the three preconditions stated in that row. See `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 - The seven-argument resolver drop: replacing the reader-deploy precondition" | Legacy contraction |
-| ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live. **Its EXPAND half is now BUILT LOCALLY** (2026-07-23) under owner decision **PD-1**: gated migration `20260723130000_add_service_role_import_name_matcher_overload` adds a `service_role`-only three-argument overload, and the live-site reader moved to the admin client on branch `fix/matcher-service-role-overload-callsite`. **Nothing was applied, deployed or pushed.** Four separately-authorized steps remain, in this order and no other: apply `20260723130000`; deploy the moved reader; verify in production that a real import returns a **non-zero** match count (a zero-match pass is indistinguishable from the silent failure mode); only then apply `20260722012707`. **RE-GATED, NEVER CLOSED**: `20260722012707` revokes from `public`/`anon`/`authenticated` only, drops nothing, and leaves `service_role`'s EXECUTE intact, so the two-argument function survives as a live callable object and free-form matching continues under `service_role`. Every post-contraction status line must therefore say "re-gated"; "closed" or "retired" would be false. That is not a style preference — it is asserted executably by `supabase/tests/executable/matcher-service-role-overload-post-contraction.sql`. **The enumeration oracle stays OPEN either way**, because candidate names are browser-supplied through the analyze server action. **MERGED 2026-07-23 into `redesign/tm-stats-dashboard-rebuild` by `--no-ff` merge of `fix/matcher-service-role-overload-expand` @ `bb5370ab4`, the exact commit an independent audit examined and returned PASS on** [GIT]. The migration is **still GATED and UNAPPLIED** and the merge applied, deployed, pushed and read nothing; the callsite half remains deliberately unmerged pending the apply. The audit's four findings are dispositioned above under "The matcher overload EXPAND half is merged" — one MEDIUM description defect corrected comment-and-prose-only, one LOW dangling reference filled with verified facts, record corrections applied, and the wire-contract finding recorded as `MATCHER-WIRE-CONTRACT` rather than fixed | Step 4.3 closure |
+| ID-LEGACY-ORACLE | Retire authenticated execution of `match_import_player_names` with migration `20260722012707` | Gated and unapplied; interim coarsening remains live. **Its EXPAND half is now BUILT LOCALLY** (2026-07-23) under owner decision **PD-1**: gated migration `20260723130000_add_service_role_import_name_matcher_overload` adds a `service_role`-only three-argument overload, and the live-site reader moved to the admin client on branch `fix/matcher-service-role-overload-callsite`. **Nothing was applied, deployed or pushed.** Four separately-authorized steps remain, in this order and no other: apply `20260723130000`; deploy the moved reader; verify in production that a real import returns a **non-zero** match count (a zero-match pass is indistinguishable from the silent failure mode); only then apply `20260722012707`. **RE-GATED, NEVER CLOSED**: `20260722012707` revokes from `public`/`anon`/`authenticated` only, drops nothing, and leaves `service_role`'s EXECUTE intact, so the two-argument function survives as a live callable object and free-form matching continues under `service_role`. Every post-contraction status line must therefore say "re-gated"; "closed" or "retired" would be false. That is not a style preference — it is asserted executably by `supabase/tests/executable/matcher-service-role-overload-post-contraction.sql`. **The enumeration oracle stays OPEN either way**, because candidate names are browser-supplied through the analyze server action. **MERGED 2026-07-23 into `redesign/tm-stats-dashboard-rebuild` by `--no-ff` merge of `fix/matcher-service-role-overload-expand` @ `bb5370ab4`, the exact commit an independent audit examined and returned PASS on** [GIT]. The migration is **still GATED and UNAPPLIED** and the merge applied, deployed, pushed and read nothing; the callsite half remains deliberately unmerged pending the apply. **SUPERSEDED 2026-07-23 15:12:21Z as to `20260723130000`'s gate status, the sentences above retained as the state that was correct when written: that migration is now APPLIED to production** as ledger `20260723151221 add_service_role_import_name_matcher_overload`, so the **four** separately-authorized steps listed above are now **THREE** — its first step, the apply, is closed, and the remaining three are deploy the moved reader, verify a real import returns a non-zero match count in production, and only then apply `20260722012707`. **This blocker's own disposition is UNCHANGED and it is NOT closed:** `20260722012707` is itself still gated and unapplied, the interim coarsening `20260722144034` is still live and still insufficient as a closure, the enumeration oracle stays **OPEN**, and **applied is not deployed and not closed**. The `Gated and unapplied` label opening this cell refers to `20260722012707` and remains correct. The audit's four findings are dispositioned above under "The matcher overload EXPAND half is merged" — one MEDIUM description defect corrected comment-and-prose-only, one LOW dangling reference filled with verified facts, record corrections applied, and the wire-contract finding recorded as `MATCHER-WIRE-CONTRACT` rather than fixed | Step 4.3 closure |
 | MATCHER-MANUAL-ENTRY-REPLACEMENT | Design a source-bound (or otherwise structured) replacement for the manual-entry player-matching paths, so free-form arbitrary-candidate-array matching stops being the permanent answer | **OWED, NOT DESIGNED, NOT AUTHORIZED. Registered 2026-07-23 as a gate, deliberately, because the amendment's own guard against it is prose.** `docs/redesign/DECISIONS.md` §"AMENDMENT: interim service-role re-gate of the import matcher" states the amendment "must not become permanent by default" and "ships with a recorded commitment to the source-bound design and a dated review of that commitment". Building `20260723130000` is precisely the action that makes leaving this open comfortable, so the commitment is recorded here as a tracked item rather than left in prose. **What is owed:** two of the three matcher call sites — `log_game_player_resolution` (`src/lib/db/log-game-player-resolution.ts`) and `roster_display_name_fallback` (`src/lib/db/player-repo.ts`), both on the live-site lineage — are NON-import paths with no parsed-log source evidence, and the four applied source-bound gateways of `20260722012658` structurally cannot serve them: `resolve_staged_import_player_identity` requires a `private.import_identity_staging` row whose `source_player_texts` came from a parsed import and enforces exact source-text binding; that table is FK-bound to `public.games`/`public.game_log_imports`; and creation through it writes a `player_import_aliases` row with `source_type 'game_log'` unconditionally, which for a typed name would fabricate the import provenance the source-bound design exists to prevent [REPO]. The overload does not resolve this — it keeps free-form matching alive under `service_role` on exactly those paths, indefinitely and with no forcing function. **Dated review of the commitment owed by 2026-08-23**, one month from the build. Designing or building the replacement requires its own explicit assignment | Nothing today; it is what makes the interim permanent by default |
 | MATCHER-WIRE-CONTRACT | The three-argument matcher's parameter names must stay identical across the two lineages that each assert them separately | **Recorded 2026-07-23 as independent-audit FINDING-4, NOT fixed and deliberately NOT scoped. Inherent to the split, not a defect introduced by it.** The overload's wire contract is **asserted on both lineages and compared by neither.** The redesign lineage declares `public.match_import_player_names(p_group_id uuid, p_requesting_user_id uuid, p_imported_names text[])` in `20260723130000:150-153` and asserts it in the executable harness; the live-site lineage passes the named-argument object `{ p_group_id, p_imported_names, p_requesting_user_id }` at `src/lib/db/import-player-resolution-repo.ts:306-310` on `fix/matcher-service-role-overload-callsite` and asserts *that* in its own vitest suite [GIT]. **Nothing cross-checks the two.** A parameter rename on either side would leave **both suites green** and fail only in production, at the REST boundary, with `PGRST203` — because PostgREST resolves overloads by argument NAME. **The audit verified by hand that they currently match, and this session re-derived that independently: all three names agree** [GIT]. The exposure is to future edits, not to today's state. It is structural: the migration ledger, harness, state documents and validator exist only on the redesign lineage while the matcher's call sites exist only on the live-site one, which is the same reason the two halves are separate branches at all. **Mitigating it — a shared contract fixture, a generated type, or a cross-lineage assertion — is a separate assignment and was deliberately not started.** Failure is loud and reversible, and it surfaces at the deploy gate alongside the non-zero-match verification, not at the apply | Nothing today; future-edit safety across the lineage split |
 | STEP-4.3-AUDIT | Fresh independent closure audit | Not completed after the current production boundary. It must also account for the recorded harness coverage gap: `run.sh` exit 0 does not cover the coarsened `match_import_player_names` disclosure or its candidate-input bound. A targeted re-audit of the merged `ID-READER-CLIENT` remediation is the evidenced next step and is separately unauthorized | Step 4.3 closure |
@@ -790,6 +874,23 @@ build and merge, so they remain an accurate record of production and were never 
 claim about the repository after that date. **Still no disposition change**:
 `ID-LEGACY-ORACLE` is unchanged, the enumeration oracle stays **OPEN**, and
 `20260722012707` remains gated and unapplied.
+
+> **SUPERSEDED 2026-07-23 15:12:21Z as to the production half; the paragraph
+> above is retained as the state that was correct when written.** That paragraph
+> **self-certifies** — it says the production half is "unchanged and still
+> current" — and it is that self-certification which is now false, so read it as a
+> record of 2026-07-23 before 15:12:21Z rather than as a standing claim.
+> `20260723130000` is **no longer ABSENT FROM PRODUCTION** and **no longer GATED
+> and UNAPPLIED**: it was applied at **15:12:21Z** as ledger
+> `20260723151221 add_service_role_import_name_matcher_overload`, and the ledger
+> stands at **116**, not 115 / `20260723082917`. **What is unchanged and still
+> current:** the `[PRIOR]` 09:40:14Z catalog values remain an accurate record of
+> the two-argument function, which the post-apply read confirmed **untouched**
+> (`md5(prosrc)` `522f8cb0a2647c57e35da0a081f90480`, `length` `4191`, ACL still
+> including `authenticated`); the 13:20:35Z report stays **disproven**;
+> `ID-LEGACY-ORACLE` is still unchanged; the enumeration oracle stays **OPEN**;
+> and `20260722012707` **is still gated and unapplied**. **Applied is not deployed
+> and not closed** — three gates remain before that contraction.
 
 **Established [PRIOR], added 2026-07-23 by read-only design scoping.** A separate
 session priced the amendment on a disposable PostgreSQL 18.4 cluster and answered

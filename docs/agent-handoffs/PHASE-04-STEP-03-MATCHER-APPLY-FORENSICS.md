@@ -165,6 +165,57 @@ The `pg_proc` catalog read that would close this gap **was withheld**, and the
 verification.** It remains **open** until then, and this record does not treat it
 as closed.
 
+> **SUPERSEDED 2026-07-23 as to the auto-close rule; the paragraph above is
+> retained verbatim as written. THIS IS THE RULE'S ORIGIN, and it is neutralized
+> here.**
+>
+> **Disposition now: gap 1e is NARROWED, NOT CLOSED.**
+>
+> The withdrawn clause is "it closes as a side effect of the eventual authorized
+> apply's own catalog verification". That apply has since occurred — 15:12:21Z on
+> 2026-07-23, ledger `20260723151221` — so leaving the rule standing would have
+> **deemed the gap closed without anyone deciding it**. A pre-registered rule that
+> discharges itself on a future event, with no one evaluating the evidence when
+> the event arrives, is the defect being corrected here.
+>
+> **Why the rule is unsound, independently of when it fires.** A **POST**-apply
+> catalog read cannot distinguish:
+>
+> - no overload existed, and this apply created one; from
+> - an overload already existed, and `create or replace` silently replaced it.
+>
+> `create or replace` reports neither case — it neither errors nor announces a
+> replacement — and **both leave two overloads afterwards**, which is exactly what
+> the post-apply read observed. The observation is therefore consistent with both
+> histories and discriminates between them not at all. A **PRE**-apply catalog
+> read would have settled it definitively; **none was required and none was
+> performed**, so the evidence that would have closed the gap does not exist and
+> cannot now be obtained for that moment.
+>
+> **What does still stand, and is why this is a narrowing rather than merely a
+> reopening:**
+>
+> - the pre-apply **ledger** read found no matcher-overload entry and no entry in
+>   the disputed window;
+> - `apply_migration` **always** writes a ledger row, so any apply through the
+>   supported path would have left one; and
+> - the forensic sweep in this record found **no commit and no session** that made
+>   such a call.
+>
+> A ledger-bypassing path is therefore **unlikely — but it is not excluded by
+> catalog evidence**, and no later catalog read can exclude it either.
+>
+> **Provenance of the defect.** The auto-close rule **originated in an assigning
+> brief, not in this session's own reasoning.** The session recorded the
+> disposition it was given. Recorded that way because the corrective value lies in
+> the planning layer, not in this investigation, whose findings are unaffected:
+> see
+> `docs/agent-handoffs/PHASE-04-STEP-03-PLANNING-LAYER-ASSIGNMENT-DEFECTS.md`.
+>
+> **Nothing else in this record changes.** The disputed 13:20:35Z report stays
+> disproven, the two disputed commits stay absent from every object database
+> swept, and the verdict stays **PASS**.
+
 ### 3. The project has NO local MCP invocation audit trail
 
 The **only** trace of any MCP tool call is inside session transcripts. If a
