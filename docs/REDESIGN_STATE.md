@@ -2190,6 +2190,50 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-DRAFT-NAME-RESIDUE-INVESTIGATION.md
+  (read-only investigation, **nothing fixed**: converts `DRAFT-NAME-RESIDUE`
+  from an inferred audit finding into **executed fact**, and finds it was
+  **understated**. A probe drove the REAL save path — `logGameDraftSchema.parse`
+  → `resolveLogGamePlayerReferences` → `saveDraftGame` → the `game_revisions`
+  insert — against a disposable PostgreSQL 18 cluster carrying the replayed real
+  migration history, adapting only the Supabase transport, then read the row
+  back with raw SQL. A typed personal name belonging to a **removed** seat is
+  persisted in `game_revisions.snapshot` at **six sites**: as the object KEY of
+  `playerScores`, `playerSelections` and `playerStyles`, and as the VALUE of
+  `milestoneClaims.*.winnerPlayerId`, `awardClaims.*.fundedByPlayerId` and
+  `awardClaims.*.firstPlaceWinnerPlayerIds[]`. The mechanism is proven by
+  contrast: the **retained** seat's typed name WAS resolved to a real UUID
+  through `create_or_reuse_guest_identity` in the same call — only the removed
+  reference stayed raw, because `remapRecord`'s `replacements.get(key) ?? key`
+  has no entry for a reference absent from `selectedPlayerIds`, and
+  `compactRecord` prunes by value emptiness only, never by key membership.
+  **It reaches the browser**: the value was measured in the `initialValues` prop
+  of `<LogGameWizard>`, a `'use client'` component (the last hop, Next.js wire
+  serialization, is labelled [INFERENCE], not measured). **It survives
+  finalization permanently** — revisions are never deleted anywhere in `src/**`
+  or `supabase/migrations/**`, finalization only ADDS a row, and the finalized
+  revision snapshot itself carries `playerSelections`/`playerStyles` residue;
+  claims naming a removed reference were measured **ACCEPTED** by
+  `buildFinalizedGamePayload`, which checks presence not membership. Permanent
+  per-player tables stay clean — the name lives **only** in
+  `game_revisions.snapshot`. **Exposure**, from the policies as written:
+  every member of the game's group, plus any linked participant once the game is
+  finalized; **not public**, and **not** limited to the drafting user — `/games`
+  renders a resume link and `getDraftGameForm` is scoped to the CALLER's active
+  group. **One bug, not a family**: the import draft path keys by resolved UUID
+  and is unaffected; `sourcePlayerText` is separate and contract-sanctioned.
+  **No guard is failing — the case was never covered**, and no test asserts it.
+  Contract: the **unqualified** "browser hydration data" bullet under
+  Data-boundary requirements IS engaged; the Public-surfaces list is NOT.
+  Records a correction: the finding's phrase "must never enter draft snapshots"
+  tracks a **code comment about a different field**, not a contract clause.
+  Three fix options priced, with existing stored drafts flagged as the expensive
+  half needing separate authorization; recommends Option A + C, states the
+  at-rest residual risk plainly, and leaves the Step 4.3 closure classification
+  **explicitly to the owner** — assessed as recordable rather than blocking, but
+  genuinely contestable. **No production read or write, no deploy, no migration
+  applied, no push, no `src/`/`supabase/`/`scripts/` change**; probe reverted
+  with tree hash `f985cd958` proven byte-identical)
 - docs/agent-handoffs/PROJECT-RECORD-RECONCILIATION-2026-07-23.md
   (documentation and comment text only: reconciles the governing documents
   against the repository after a read-only investigation found them stale in
