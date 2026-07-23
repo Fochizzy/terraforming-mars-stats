@@ -241,3 +241,28 @@ Still outstanding after those corrections:
 `src/lib/player-identity/guest-identity.test.ts:14` carries the same superseded
 `resolve_import_guest_identity` claim and was outside the integration task's
 permitted file set.
+
+---
+
+## 8. Third and final stale comment corrected (2026-07-23)
+
+`src/lib/player-identity/guest-identity.test.ts` — the F-01 privacy-boundary
+header comment placed existing-guest reuse, ambiguity, and duplicate detection
+"server-side in `resolve_import_guest_identity`". Corrected the same way as the
+two records in section 7: imports resolve through
+`resolve_staged_import_player_identity`, the two NON-import paths through the
+`service_role`-only `create_or_reuse_guest_identity`, and
+`resolve_import_guest_identity` no longer serves either path.
+
+Comment text only — every changed line is a `//` comment. No statement,
+expression, import, assertion, or test name changed, so the file's executable
+behaviour is byte-for-byte equivalent. No logic, migration, schema, deploy, or
+production change, and no blocker changed disposition.
+
+This closes the stale-record set opened in section 7. All three instances of the
+superseded `resolve_import_guest_identity` routing claim are now corrected. The
+remaining `resolve_import_guest_identity` references in `src/` are current and
+intentional: the historical entries in `src/lib/db/migration-ledger-map.ts`, the
+two "no longer serves either path" corrections themselves, and the assertions in
+`src/lib/db/import-player-identity-repo.test.ts` that prove the RPC is *not*
+called.

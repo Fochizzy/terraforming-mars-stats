@@ -11,7 +11,10 @@ import {
 // Private first/last names, normalized personal names, and private matching
 // keys are never serialized into candidates, so browser-side matching is
 // limited to linked players' public usernames. Existing-guest reuse, ambiguity,
-// and duplicate detection now happen server-side in resolve_import_guest_identity.
+// and duplicate detection now happen server-side in the resolution RPCs:
+// resolve_staged_import_player_identity for imports, and the service_role-only
+// create_or_reuse_guest_identity for the two NON-import guest paths.
+// resolve_import_guest_identity no longer serves either path.
 const linkedPlayer: ImportPlayerIdentityCandidate = {
   id: '11111111-1111-4111-8111-111111111111',
   isAccessible: true,

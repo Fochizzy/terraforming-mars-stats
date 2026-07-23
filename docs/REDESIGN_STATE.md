@@ -82,6 +82,18 @@ production change, and no blocker changed disposition.
   `src/lib/player-identity/guest-identity.test.ts` still carries the same
   superseded claim and was outside the correction task's permitted file set.
 
+**Third and final stale comment corrected (2026-07-23).**
+`src/lib/player-identity/guest-identity.test.ts` no longer routes existing-guest
+reuse, ambiguity, and duplicate detection through `resolve_import_guest_identity`;
+it now names `resolve_staged_import_player_identity` for imports and the
+`service_role`-only `create_or_reuse_guest_identity` for the two NON-import
+paths. Comment text only — every changed line is a `//` comment, and no
+statement, expression, import, assertion, or test name changed. This closes the
+stale-record set above; all three instances of the superseded routing claim are
+corrected. No logic, migration, schema, deploy, or production change, and no
+blocker changed disposition. Handoff section 8 of
+`docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-CLIENT-EXPAND-BUILT-LOCAL.md`.
+
 ### Production release-boundary reconciliation (2026-07-22)
 
 The newer production apply record supersedes older statements below that both
