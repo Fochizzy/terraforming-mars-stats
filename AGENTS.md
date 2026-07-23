@@ -153,6 +153,16 @@ Before stopping:
 - Run or explicitly defer the post-commit planning-pack synchronization
 - Report files changed, tests, migrations, assumptions, and limitations
 
+### Identifier verification before reporting
+
+Before returning a report, mechanically verify every identifier it asserts:
+each claimed commit SHA with `git rev-parse --verify -q <sha>^{commit}`, and each
+claimed migration ledger version against the ledger the session actually read. A
+non-resolving identifier is a STOP, not a footnote. The check proves an
+identifier exists, not that it means what the report says; it is a floor, not a
+ceiling. Authority: `docs/redesign/DECISIONS.md` -> "Project-wide - a report may
+not assert an identifier the reporting session cannot resolve".
+
 ## Master Plan Review and Maintenance
 
 ### Required review before work

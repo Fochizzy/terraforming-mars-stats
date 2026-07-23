@@ -70,6 +70,19 @@ These must remain distinct from:
 - Run tests before handoff.
 - Commit before switching agents.
 
+## Reporting integrity
+
+- Before returning a report, mechanically verify every identifier it asserts:
+  each claimed commit SHA with `git rev-parse --verify -q <sha>^{commit}`, and
+  each claimed migration ledger version against the ledger the session actually
+  read.
+- A non-resolving identifier is a STOP, not a footnote.
+- The check proves an identifier exists, not that it means what the report says.
+  It is a floor, not a ceiling, and passing it is not evidence that a report is
+  accurate.
+- Authority: `docs/redesign/DECISIONS.md` -> "Project-wide - a report may not
+  assert an identifier the reporting session cannot resolve".
+
 ## Claude Project context delivery
 
 - The permanent native Google Doc `TM PROJECT MASTER CONTEXT` is the required

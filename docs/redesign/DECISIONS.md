@@ -1663,3 +1663,65 @@ actual hook against a stubbed updater with no real Drive write.
 The written CLAUDE.md step 8 remains authoritative and correct if hooks are
 disabled; the hook is an enforcement aid, not a replacement for the instruction.
 Handoff: `docs/agent-handoffs/PLANNING-PACK-POST-COMMIT-SYNC-HOOK.md`.
+
+## Project-wide - a report may not assert an identifier the reporting session cannot resolve
+
+Decided by the owner on **2026-07-23**. Governance and reporting only. It changes
+no phase, blocker, release, migration, or production state, authorizes no work,
+and relaxes no precondition.
+
+### The decision
+
+**A worker or audit report may not assert an identifier that the reporting
+session cannot resolve at the moment of writing.**
+
+Before returning a report, the session **mechanically verifies every identifier
+it asserts**:
+
+- **every claimed commit SHA**, via `git rev-parse --verify -q <sha>^{commit}`;
+- **every claimed migration ledger version**, via membership in the ledger the
+  session **actually read**.
+
+**A non-resolving identifier is a STOP, not a footnote.** The session does not
+return the report with the identifier flagged, hedged, or annotated; it stops and
+reports the failure.
+
+The check is **mechanical, requires no judgement, and runs in well under a
+second**. It is not a review step and carries no analytical burden.
+
+### What this does NOT cover, stated honestly
+
+**It verifies that an identifier EXISTS, not that it means what the report says.**
+It would not catch:
+
+- a **real commit** cited as containing a change it does not contain;
+- a **real ledger entry** described with the wrong content;
+- false claims about **ACLs, body fingerprints, or overload counts**;
+- a **harness claim that was never run**;
+- work claimed on **another machine**; or
+- **material omission**.
+
+**It is a floor, not a ceiling.** No session may treat passing it as evidence
+that a report is accurate, and no reviewer may treat it as a substitute for
+reading the report.
+
+### Provenance
+
+The check was **identified and demonstrated by the `MATCHER-APPLY-FORENSICS`
+session**, which ran it against the disputed production-apply report: **both
+claimed SHAs FAIL**. A control proves it **PASSES** on the two real commits of
+that window (`2b2a3b00e`, `a9429e213`), so **it is not vacuously failing** — it
+discriminates. Record:
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`.
+
+That incident is also why the rule is stated as a **stop** rather than a
+disclosure requirement: the disputed report asserted two commit SHAs that had
+never been written, and a single `git rev-parse` on either would have caught it
+before the report left the session.
+
+### Scope
+
+This entry defines the reporting requirement. It is referenced — not restated —
+from the reporting-requirement sections of `docs/redesign/MASTER-RULES.md`,
+`AGENTS.md`, and `CLAUDE.md`, which remain pointers to this text. This entry is
+authoritative over every summary of it.

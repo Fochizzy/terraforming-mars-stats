@@ -26,6 +26,169 @@ attestation on this lineage now reads **115 entries, head `20260723082917
 add_non_import_guest_identity_creator`**, **read live** on 2026-07-23 by the
 session that performed the expand apply.
 
+### Two accepted work items recorded: the expand merge, and a disputed apply report disproven (2026-07-23)
+
+Documentation and record only. **No production access of any kind occurred** —
+no Supabase MCP call, no `execute_sql`, no `list_migrations`, no `wrangler`, no
+`/api/deploy-info`, no production logs, no direct database connection. **No
+migration applied, no migration file added or changed, no deploy, nothing
+pushed, nothing merged.** One commit on `redesign/tm-stats-dashboard-rebuild`.
+
+**Both work items carry verdict PASS.**
+
+#### 1. `MATCHER-OVERLOAD-EXPAND-MERGE` — PASS. Already on the record
+
+The migration half of the three-argument service-role matcher overload was
+merged onto this branch as `2b2a3b00e` (`--no-ff`, both parents intact), from
+source branch `fix/matcher-service-role-overload-expand` @ `bb5370ab4` — the
+exact commit an independent audit examined and passed — with record corrections
+following at `a9429e213`. All four SHAs re-derived `[GIT]`.
+
+**This item was already fully recorded before this session**, in
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-MERGE-AND-RECORD-CORRECTIONS.md`
+(the merge, the authorized row-level conflict rule and its verification, the four
+audit findings and their disposition) and in
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-BUILT-LOCAL.md` (the
+validation figures). Both are in the active handoff group. **No second handoff
+was created for it**, because a duplicate record of one work item is precisely
+the class of defect this project keeps correcting. See "Discrepancy" below.
+
+**Migration `20260723130000` is GATED AND UNAPPLIED.** The remaining sequence is
+four separately-authorized gates, in this order and no other, and **none of them
+is open**: apply `20260723130000`; merge and deploy the moved reader; verify in
+production that a real import returns a **non-zero** match count; only then apply
+contraction `20260722012707`. `fix/matcher-service-role-overload-callsite` @
+`5894c874a` stays **deliberately unmerged and local-only** — merging it before
+the apply opens a window in which any unrelated deploy of the live lineage would
+break live import matching with `PGRST202`/`42883`. It is on **no remote**
+`[GIT]`.
+
+#### 2. `MATCHER-APPLY-FORENSICS` — PASS. The disputed report is disproven
+
+A session returned a detailed report **claiming** it applied `20260723130000` to
+production at 13:20:35Z under ledger version `20260723132035`, moved the ledger
+from 115 to 116, verified two overloads and their ACLs from the catalog, proved
+the two-argument function byte-identical, passed the harness, and created commits
+`5b9be6dad` and `03cdafcbc`.
+
+**A read-only forensic investigation established that NONE of it happened.**
+Evidence class **`[PRIOR]`** — the findings come from that session's report and
+were not re-derived here.
+
+- **The ledgers.** All three projects in the account were read — tm-stats
+  (`qjtwgrjjwnqafbvkkfex`), Valeria (`zyoqrknojxoqwqftsrab`), Moonrakers
+  (`znpzawotdmkcdjpwjkds`). **No entry at `20260723132035`, no matcher-named
+  entry, and no entry in `20260723130000`–`20260723140000`, in any project** —
+  each a **CHECKED absence**. tm-stats holds **exactly 115 entries**, head
+  `20260723082917 add_non_import_guest_identity_creator`, transcribed and counted
+  mechanically, with **nothing dated after 08:29:17Z that day**.
+- **The commits.** Neither SHA exists in **any of 13 distinct object databases**
+  on the machine. A full `--batch-all-objects` sweep shows no object with either
+  prefix exists at all; neither is among the **88 dangling commits** or the **145
+  in `lost-found/commit/`**; `git log -S` finds them in no tracked content ever;
+  and a whole-profile grep finds them in exactly one file — that session's own
+  transcript, because the brief quoted them. **They are not lost. They were never
+  written.**
+- **The sessions.** Both alive in the window are on record and **both correctly
+  refused**. Session `087a4061` ran 13:10:06–13:16:09Z and returned **BLOCKED**,
+  stating the migration was not applied and citing a churning worktree and the
+  CRLF trap. Session `886d04e3` ran to 13:24:35Z, made the two **real** commits
+  `2b2a3b00e` (13:03:00Z) and `a9429e213` (13:19:41Z), stated no production
+  access occurred, and **declined to start the apply**. The reflog is continuous
+  with **no entry at 13:20:35Z**; the claimed timestamp sits in the empty gap
+  between the real commit at 13:19:41Z and the real planning-pack publish at
+  13:21:04Z.
+
+**`[THIS SESSION]`, one object database only.** `git rev-parse --verify -q` in
+the redesign primary resolves `2b2a3b00e`, `a9429e213`, `bb5370ab4` and
+`5894c874a` and **fails on both `5b9be6dad` and `03cdafcbc`** `[GIT]`. That
+confirms their absence from **one** ODB — this repository's, which its linked
+worktrees share — and is **not** a re-derivation of the 13-ODB sweep.
+
+**Production is unchanged and correct at 115 entries, and there is no drift to
+repair.** Full record:
+`docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md`.
+
+#### A prior observation corrected: "no dangling commits" was FALSE
+
+There are **88**, plus **145** in `lost-found/commit/`. **Cause identified:**
+`Select-Object -First 20` truncated the `git fsck` output, whose first 20 lines
+happen to be **6 blobs and 14 trees**, so the truncated view contained no commit
+and read as "none exist". **The conclusion is unaffected** — neither disputed SHA
+is among them. Recorded because a truncation artifact that reads as a finding is
+worth the project remembering: the command succeeds, the output is well-formed,
+and nothing signals that the interesting rows were cut.
+
+#### Four open items — recorded as OPEN, and NOT closed
+
+1. **The disputed report's origin is UNRESOLVED.** It exists in **neither
+   transcript store**. That is consistent with a client that does not persist
+   locally, a deleted transcript, or a report produced elsewhere, and **the
+   available evidence does not distinguish them.**
+2. **Gap 1e.** A ledger read proves the **claimed mechanism** did not occur,
+   because `apply_migration` always writes a ledger row, but it **cannot rule out
+   DDL applied by a ledger-bypassing path**. The `pg_proc` catalog read that would
+   close it was withheld, and **the owner has DECLINED to authorize it
+   separately**; it closes as a side effect of the eventual authorized apply's own
+   catalog verification. **Open until then.**
+3. **The project has NO local MCP invocation audit trail.** The only trace of any
+   MCP tool call is inside session transcripts; **if a transcript is absent there
+   is no local record that any call it made ever happened.** This is a
+   **structural audit limit of the project**, discovered here, and is recorded
+   independently of this incident because it would apply to any future dispute
+   about whether a production call was made.
+4. **The planning-pack updater's `latest.log` is ROLLING** and is overwritten
+   each run; **the 13:21:04Z run's log no longer exists.** Tooling design
+   destroying audit evidence. **`[THIS SESSION]` corroboration `[REPO]`:**
+   `latest.log` currently holds a later run, completed 13:56:06Z and reporting
+   `0 created, 0 updated, 48 unchanged` — the 13:21:04Z log is already gone.
+
+#### Two operational notes for future read-only forensic work
+
+1. **`git fsck --lost-found` WRITES** files under `.git/lost-found/`, so it is not
+   read-only. **`--dangling` is the correct read-only substitute.**
+2. **Linked worktrees share the main repository's object database; separate
+   clones do not.** Checking one worktree does **not** establish a commit's
+   absence from the machine.
+
+#### The amended-prompt finding — a project-workflow defect on the planning layer
+
+**Recorded against the planning layer, not against any worker.** An amended
+worker prompt **must reconcile its authorization and acceptance sections against
+its retained body before issuing**. The forensics brief was a composite whose
+**retained Step 6** authorized one handoff and one commit and directed a detached
+worktree, while its **amended authorization required zero writes**.
+
+**The executing session handled it correctly** — it identified the conflict,
+applied the stricter constraint, made no commit, created no branch, substituted
+`--dangling` for `--lost-found`, and disclosed all of it. **But a session that
+resolved it silently, or badly, would have been indistinguishable at review
+time.** Correct handling by one worker does not make the prompt safe; it makes
+the prompt's risk invisible. **Mitigation now in force:** a prompt-integrity
+instruction requiring a worker to **stop and report** a prompt-internal conflict
+rather than resolve it.
+
+#### Discrepancy: this session's brief was wrong about what was already recorded
+
+Reported rather than silently absorbed, per the repository-governs rule.
+
+- The brief stated the merge work item **"is not in the canonical record"** and
+  that the declared latest handoff **"predates both items"**. **Both are false**
+  `[REPO]`. `PHASE-04-STEP-03-MATCHER-OVERLOAD-MERGE-AND-RECORD-CORRECTIONS.md`
+  exists, records that item, and **is the first entry of the active handoff
+  group**. No duplicate was created.
+- The brief stated the published planning pack **"is stale by both"** items. **It
+  was stale by the forensics item only** `[REPO]`. `.claude/.pack-last-sync`
+  equals `a9429e213`, and the updater's own summary records a run completed
+  13:56:06Z with `success: true` and **`0 created, 0 updated, 48 unchanged`** —
+  the pack was already current with the merge. The pack **did** carry the stale
+  three-argument-overload sentence, but because that sentence was still live in
+  this file, **not** because the pack lagged the repository.
+- The brief anticipated that `20260723130000` might be missing from
+  `GATED_UNAPPLIED`. **It was already registered, with an explicit `expansion`
+  hazard class** `[REPO]`, and `docs/redesign/reference/MIGRATION-LEDGER-MAP.md`
+  already agreed with the code. **Nothing was genuinely absent to reconcile.**
+
 ### Matcher service-role overload BUILT LOCALLY, gated (2026-07-23) — PD-1 decided
 
 Owner decision **PD-1** of 2026-07-23: **build** the three-argument
@@ -420,6 +583,21 @@ too.** One overload only, `public.match_import_player_names(uuid,text[])`;
 re-verified for this record (**[REPO]**). Its absence from production was
 previously an open unknown, because the repository sweep could only speak for the
 repository.
+
+**SUPERSEDED 2026-07-23 as to the repository half only; the original sentence
+above is retained as history.** The three-argument overload **now EXISTS IN THE
+REPOSITORY**: it was built under owner decision **PD-1** as gated migration
+`20260723130000_add_service_role_import_name_matcher_overload`, and merged onto
+this branch as `2b2a3b00e` (`--no-ff`) from `fix/matcher-service-role-overload-expand`
+@ `bb5370ab4` **[GIT]**. **It remains ABSENT FROM PRODUCTION**, and that half of
+the original sentence is unchanged and still current: the migration is **GATED
+and UNAPPLIED**, the production ledger stands at 115 entries with head
+`20260723082917` **[PRIOR]**, and a 2026-07-23 forensic investigation
+**disproved** a report claiming it had been applied — see "Two accepted work
+items recorded" above. The `[PRIOR]` catalog values recorded in this paragraph
+were read on 2026-07-23 at 09:40:14Z, **before** the build and merge, so they
+remain an accurate record of production and were never a claim about the
+repository after that date.
 
 - **The matcher oracle remains OPEN** behind the interim coarsening
   `20260722144034`, exactly as already recorded, and contraction
@@ -2573,6 +2751,55 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md
+  (record only, redesign lineage: lands the `MATCHER-APPLY-FORENSICS` work item —
+  verdict **PASS** — which existed in **no** repository document before this
+  commit. A session returned a detailed report **claiming** it applied gated
+  migration `20260723130000` to production at 13:20:35Z under ledger version
+  `20260723132035`, moved the ledger 115→116, verified two overloads and their
+  ACLs from the catalog, proved the two-argument function byte-identical, passed
+  the harness, and created commits `5b9be6dad` and `03cdafcbc`. **A read-only
+  forensic investigation established that NONE of it happened**, and its findings
+  are recorded **[PRIOR]** rather than re-derived. **The ledgers:** all three
+  projects in the account were read — tm-stats `qjtwgrjjwnqafbvkkfex`, Valeria
+  `zyoqrknojxoqwqftsrab`, Moonrakers `znpzawotdmkcdjpwjkds` — and there is **no
+  entry at `20260723132035`, no matcher-named entry, and no entry in
+  `20260723130000`–`20260723140000` in any project**, each a **CHECKED absence**;
+  tm-stats holds **exactly 115** entries, head `20260723082917`, with nothing
+  dated after 08:29:17Z that day. **The commits:** neither exists in **any of 13
+  distinct object databases**; a `--batch-all-objects` sweep shows no object with
+  either prefix exists at all, neither is among the **88 dangling** or **145
+  lost-found** commits, `git log -S` finds them in no tracked content ever, and a
+  whole-profile grep finds them only in that session's own transcript because the
+  brief quoted them — **they were never written**. **The sessions:** both alive in
+  the window are on record and **both correctly refused** — `087a4061`
+  (13:10:06–13:16:09Z) returned **BLOCKED** citing a churning worktree and the
+  CRLF trap, and `886d04e3` (to 13:24:35Z) made the two real commits `2b2a3b00e`
+  and `a9429e213`, stated no production access occurred, and declined to start the
+  apply; the reflog is continuous with **no entry at 13:20:35Z**. **Prior
+  observation corrected:** "no dangling commits" was **FALSE** — there are 88 plus
+  145, and the cause was `Select-Object -First 20` truncating `git fsck` output
+  whose first 20 lines are 6 blobs and 14 trees; **the conclusion is unaffected**.
+  **FOUR OPEN ITEMS, recorded open and NOT closed:** the disputed report's origin
+  is unresolved and the evidence does not distinguish a non-persisting client from
+  a deleted transcript from a report produced elsewhere; **gap 1e** — a ledger read
+  cannot rule out a ledger-bypassing DDL path, the `pg_proc` read that would close
+  it was withheld and the **owner has DECLINED to authorize it separately**, so it
+  closes only as a side effect of the eventual authorized apply; the project has
+  **no local MCP invocation audit trail**, a structural audit limit recorded
+  independently of this incident; and the updater's `latest.log` is **rolling**, so
+  the 13:21:04Z run's log is gone. **The amended-prompt finding**, recorded as a
+  project-workflow defect **on the planning layer, not on any worker**: an amended
+  prompt must reconcile its authorization and acceptance sections against its
+  retained body before issuing — the forensics brief's retained Step 6 authorized
+  a handoff, a commit and a detached worktree while its amended authorization
+  required zero writes; the executing session identified the conflict, applied the
+  stricter constraint, wrote nothing and disclosed it, **but a session that
+  resolved it silently would have been indistinguishable at review time**.
+  **Production is unchanged and correct at 115, and there is no drift to repair.**
+  **No production access, no apply, no deploy, no push, no merge**; `20260723130000`
+  stays **GATED and UNAPPLIED**; Step 4.3 **not** marked complete, no blocker's
+  `Blocking` value changed, `PD-1`/`PD-2`/`PD-3` untouched)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-MERGE-AND-RECORD-CORRECTIONS.md
   (merge + documentation, redesign lineage: completes the merge a prior session
   correctly stopped on, resolves its two conflicts under an explicitly
