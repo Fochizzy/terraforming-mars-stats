@@ -258,3 +258,126 @@ actual output for this commit is recorded in the task report.
 **None.** Merging `chore/agent-skills-tier-1` requires new owner authorization, as
 do creating and registering any index, cataloguing the skills, mirroring them into
 `AGENTS.md`, and adding any further skill.
+
+---
+
+# Amendment — second commit, 2026-07-23 (three further skills)
+
+The first commit (`0e59efd049e28e23bc1e1a7bf75560d049a7facf`) was **not
+rewritten**. Same branch, same worktree, same base lineage.
+
+The first increment's report identified six documented governance surfaces the
+original seven skills did not cover. The owner authorized three of them. The other
+three — an import/export evidence contract, an upstream reference-catalog
+authority skill, and asset handling — were **not** authorized and were **not**
+built.
+
+**Category is unchanged:** local tooling and governance only. No phase, blocker,
+release, migration, or production fact changed. **No production access of any kind
+occurred** in this increment either — no Supabase call, no `execute_sql`, no
+`list_migrations`, no `wrangler`, no `/api/deploy-info`, no deploy, no migration,
+no push, no merge. No file under `src/**`, `supabase/**`, or `scripts/**` was
+touched; `CLAUDE.md`, `AGENTS.md`, and `docs/redesign/CLAUDE-PROJECT-SOURCES.json`
+remain unedited.
+
+## What was added
+
+| Skill | What it carries |
+|---|---|
+| `tm-identity-privacy` | The boundary question — exclusion from the payload rather than concealment in the UI; missing username never falls back to a personal name; username and personal-name matching stay separate mechanisms; a claim preserves the existing player ID. Routes every rule to `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`. |
+| `tm-conflict-and-authority` | Do not resolve a conflict silently; the six-step procedure; and the separation that evidence corrects a fact but never grants scope, with the shapes that failure takes enumerated — including "nothing forbade it". |
+| `tm-production-action-preflight` | Name the authorizing sentence; read the ledger from Git; reconcile filename against ledger version by name; byte identity; expand/contract ordering; bound the write; the two separate actions owed afterwards. |
+
+`tm-production-action-preflight` is the highest-risk of the ten and is written to
+be inert on its own: it opens by stating that it authorizes nothing, that it does
+not make an action allowable, and that it is only for a session **already holding
+an explicit, named authorization**. Its first step is to quote the sentence that
+authorizes the specific action, and it states that absence of a prohibition is not
+authorization.
+
+## Evidence for this increment
+
+**The byte-identity step is measured, not recalled** [GIT]. Run in this repository
+against a committed migration whose working copy has CRLF terminators:
+
+| Check | Result |
+|---|---|
+| `git rev-parse "HEAD:$F"` | `98aeff9e…` (canonical object) |
+| `git hash-object "$F"` | `98aeff9e…` — **matches, and is a false pass** |
+| `git hash-object --no-filters "$F"` | `2b17b046…` |
+| `sha256sum "$F"` | `e71fab89…` |
+| `git show "HEAD:$F" \| sha256sum` | `6d2f4768…` |
+
+The working-tree bytes genuinely differ from the reviewed object, yet the default
+`git hash-object` reports a match because it applies the EOL filter. The skill
+therefore directs that migration SQL be sent from `git show <ref>:<path>` and that
+any identity check use `--no-filters` or a content hash.
+
+**A claim was dropped after checking it** [REPO]. An early draft was going to state
+that `supabase db push` must never be used. `docs/deployment.md` → `## Launch
+order` prescribes exactly that for standing up a new project, so the blanket
+prohibition is false. The skill now says the apply mechanism is not a free choice
+and must be confirmed against the current authoritative records for that class of
+change, rather than inventing a rule the documents contradict.
+
+**A pointer was corrected during verification** [REPO]. A draft cited
+`docs/archive/`, which does not exist — `docs/AUTHORITATIVE_DOCUMENTS.md` →
+`## Historical documents` records that. It now cites that rule instead of the
+absent path.
+
+**Pointer verification across all ten skills:** 33 path pointers and 59 heading
+pointers, each heading matched verbatim against a document the same skill names.
+All resolve, exit 0.
+
+## Validation for this increment
+
+The whole branch diff against the base — committed and pending — is
+`.claude/skills/**` plus `docs/REDESIGN_STATE.md` and this handoff. **No file
+under `src/`, `supabase/`, or `scripts/` was touched**, verified with
+`git diff --name-only` plus `git ls-files --others`, so no input read by `tsc`,
+ESLint, Vitest, or the build changed.
+
+The code-facing checks were therefore run from the **primary checkout at
+`d63e6b0d7`** — byte-identical source to this branch — via the runner this task
+added. `--require-maintenance` was run in the **task worktree**, because it
+inspects the working tree and only means anything there.
+
+| Check | Where | Exit | Result |
+|---|---|---|---|
+| `npm.cmd run test` | primary @ `d63e6b0d7` | 0 | 178 files / 982 tests — matches baseline |
+| `npx tsc --noEmit` | primary @ `d63e6b0d7` | 0 | no diagnostics |
+| `npm.cmd run lint` | primary @ `d63e6b0d7` | 0 | exactly the 4 baseline warnings, no new one |
+| `npm.cmd run validate:claude-context` | primary @ `d63e6b0d7` | 0 | passes |
+| `validate:claude-context -- --require-maintenance` | task worktree | 0 | satisfied by this change |
+| Executable PostgreSQL harness | — | **not re-run** | no migration or SQL file changed; the baseline at `d63e6b0d7` stands |
+| `npm.cmd run build` | — | **not re-run** | no application code changed; the baseline at `d63e6b0d7` stands |
+
+Baselines in `scripts/baselines.json` are **unchanged** and still pinned to
+`d63e6b0d781b7c1d14be611b2f4b7dc05c53c66e`. Nothing in this increment re-measured
+them.
+
+## Document disposition for this increment
+
+`docs/REDESIGN_STATE.md` — updated: the tooling subsection gains an amendment
+paragraph and the active-group entry is rewritten to describe ten skills in two
+increments. This handoff — updated with this amendment.
+
+`docs/CURRENT_STATUS.md`, `docs/AUTHORITATIVE_DOCUMENTS.md`,
+`docs/redesign/DECISIONS.md`, `docs/redesign/MASTER-PLAN.md`,
+`docs/redesign/CLAUDE-PROJECT-SOURCES.json`, `CLAUDE.md` and `AGENTS.md` — each
+re-tested against its own maintenance rule for this increment and **unchanged**,
+for the same reasons recorded above. Adding three more procedure-and-pointer
+skills changes no phase, blocker, release, migration, or next-action state, adds
+no authority, approves no durable decision, and alters no project-wide direction.
+
+## Planning-pack synchronization for this amendment
+
+Made in `C:\tmp\tm-agent-skills-tier-1`, which is **not** the updater's tree.
+Synchronization is **PENDING** for this commit and Drive is not current for it.
+The marker was not touched, the hook was not disabled, and the updater was not run
+manually. The hook's actual observed behaviour is recorded in the task report.
+
+## Next approved action, unchanged
+
+**None.** Merging, cataloguing, indexing, the `AGENTS.md` mirror, and any further
+skill all still require new owner authorization.

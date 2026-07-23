@@ -1367,6 +1367,41 @@ changed. `docs/redesign/CLAUDE-PROJECT-SOURCES.json`, `CLAUDE.md`, and
 Cataloguing the skills, creating any index for them, and mirroring them into
 `AGENTS.md` all remain **unauthorized** and are open owner decisions.
 
+**Amended 2026-07-23 (second commit on the same branch; the first commit was not
+rewritten).** The owner authorized three further skills after the first increment
+identified six documented governance surfaces the original seven did not cover:
+
+- `tm-identity-privacy` — routes to the authoritative guest-identity and
+  claimed-name privacy contract. Carries the boundary test (exclusion from the
+  payload, not concealment in the UI), that a missing username never falls back to
+  a personal name, that username and personal-name matching stay separate
+  mechanisms, and that a claim preserves the existing player ID. States that it
+  authorizes no schema change, no migration, and no production identity mutation.
+- `tm-conflict-and-authority` — the conflict procedure, and the separation that
+  evidence corrects a fact but never grants scope. Enumerates the shapes that
+  failure takes, including "nothing forbade it".
+- `tm-production-action-preflight` — for a session that **already holds** a named
+  authorization; it opens by stating that it grants none. Covers naming the
+  authorizing sentence, reading the ledger from Git, that a migration filename is
+  not its ledger version and entries pair by name, byte identity, expand/contract
+  ordering, bounding the write, and the two separate actions owed afterwards.
+
+The byte-identity step is grounded in a measurement taken in this repository, not
+in recollection: on a committed migration with CRLF terminators, `git hash-object`
+returned the canonical object hash — a false pass — while `git hash-object
+--no-filters` and a `sha256` comparison against `git show` both showed the
+working-tree bytes differ. The skill therefore directs that migration SQL be sent
+from `git show`, and that any identity check use `--no-filters` or a content hash.
+
+One pointer was corrected during verification: an early draft cited
+`docs/archive/`, which does not exist. It now cites the rule that governs archived
+material instead. Across all ten skills, 33 path pointers and 59 heading pointers
+were verified to resolve.
+
+The unchanged-document reasoning above was re-tested for this increment and still
+holds: no phase, blocker, release, migration, or next-action state changed, and no
+authority was added, moved, superseded, or archived.
+
 Handoff: `docs/agent-handoffs/AGENT-SKILLS-TIER-1.md`.
 
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
@@ -2804,16 +2839,19 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 ## Latest handoff
 
 - docs/agent-handoffs/AGENT-SKILLS-TIER-1.md
-  (local tooling and governance only: seven Claude Code skills under
-  `.claude/skills/` encoding existing governance procedure — evidence classes and
-  report sections, the validation battery with baselines measured in that task at
-  `d63e6b0d7`, task preflight, handoff writing, planning-pack synchronization,
-  the missing/zero/unsupported distinction, and canonical-first lookup. Procedure
-  and pointers only; no contract text restated; every pointer verified to resolve.
-  Each skill states it authorizes nothing. **No phase, blocker, release,
-  migration, or production change; no production access; branch
-  `chore/agent-skills-tier-1` unmerged.** Cataloguing, indexing, and the
-  `AGENTS.md` mirror remain unauthorized owner decisions)
+  (local tooling and governance only: ten Claude Code skills under
+  `.claude/skills/`, in two separately authorized increments, encoding existing
+  governance procedure — evidence classes and report sections, the validation
+  battery with baselines measured in that task at `d63e6b0d7`, task preflight,
+  handoff writing, planning-pack synchronization, the missing/zero/unsupported
+  distinction, canonical-first lookup, and then identity-and-name privacy,
+  conflict and authority, and production-action preflight. Procedure and pointers
+  only; no contract text restated; all 33 path and 59 heading pointers verified to
+  resolve. Each skill states it authorizes nothing, and the production-action one
+  states it grants no permission and is only for a session already holding a named
+  authorization. **No phase, blocker, release, migration, or production change; no
+  production access; branch `chore/agent-skills-tier-1` unmerged.** Cataloguing,
+  indexing, and the `AGENTS.md` mirror remain unauthorized owner decisions)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md
   (record only, redesign lineage: lands the `MATCHER-APPLY-FORENSICS` work item —
   verdict **PASS** — which existed in **no** repository document before this
