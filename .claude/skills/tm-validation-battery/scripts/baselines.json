@@ -1,0 +1,50 @@
+{
+  "$comment": "Recorded validation baselines. Single source for these numbers; SKILL.md points here rather than repeating them. Re-measure only from a clean tree at a known commit, and update measuredAtCommit in the same edit.",
+  "measuredAtCommit": "d63e6b0d781b7c1d14be611b2f4b7dc05c53c66e",
+  "measuredOn": "2026-07-23",
+  "measuredInTree": "primary redesign checkout, clean, at measuredAtCommit",
+  "checks": {
+    "harness": {
+      "command": "PGBIN=\"/c/Program Files/PostgreSQL/18/bin\" bash supabase/tests/executable/run.sh",
+      "exitCode": 0,
+      "terminalMarker": "ALL EXECUTABLE MIGRATION TESTS PASSED",
+      "otherMarkers": ["ALL_ASSERTIONS_PASSED", "ALL_FIXTURE_ASSERTIONS_PASSED"]
+    },
+    "test": {
+      "command": "npm.cmd run test",
+      "exitCode": 0,
+      "testFiles": 178,
+      "tests": 982,
+      "failed": 0
+    },
+    "tsc": {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "diagnostics": 0
+    },
+    "lint": {
+      "command": "npm.cmd run lint",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": [
+        "src/features/insights/score-profile-panel.tsx:172:19:@next/next/no-img-element",
+        "src/features/insights/score-profile-panel.tsx:192:19:@next/next/no-img-element",
+        "src/features/insights/score-profile-panel.tsx:216:13:@next/next/no-img-element",
+        "src/lib/db/analytics-repo.ts:1132:10:@typescript-eslint/no-unused-vars"
+      ]
+    },
+    "build": {
+      "command": "npm.cmd run build",
+      "exitCode": 0
+    },
+    "context": {
+      "command": "npm.cmd run validate:claude-context",
+      "exitCode": 0
+    },
+    "context-maintenance": {
+      "command": "npm.cmd run validate:claude-context -- --require-maintenance",
+      "exitCodeOnCleanTree": 1,
+      "note": "Compares the working tree against HEAD. On a clean tree it fails by design because no state-document or handoff edit is present. Run it once the documentation edits exist and before the commit; a clean-tree failure is not a broken baseline."
+    }
+  }
+}

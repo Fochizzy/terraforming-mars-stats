@@ -1337,6 +1337,159 @@ actual hook with a stubbed updater and no real Drive write. This amendment is
 itself made in a worktree that is not the updater's tree, so its own planning-pack
 synchronization is PENDING until the branch merges into the updater's tree.
 
+### Agent skills encoding existing governance procedure (2026-07-23)
+
+Local tooling and governance only. No phase, blocker, release, migration, or
+production fact changed. This is **not** Phase 4 or Phase 5 work, and it does not
+change Step 4.3 or Step 4.4 status. No production access of any kind occurred.
+
+Branch `chore/agent-skills-tier-1`, created from
+`redesign/tm-stats-dashboard-rebuild` at base commit `d63e6b0d7` in the isolated
+worktree `C:\tmp\tm-agent-skills-tier-1`. ~~**Unmerged**; merging it requires
+separate owner authorization.~~ **Superseded 2026-07-23: the owner authorized the
+merge and it landed as a `--no-ff` merge into
+`redesign/tm-stats-dashboard-rebuild`.** See the merge record at the end of this
+subsection. Cataloguing the skills, creating any index for them, and mirroring
+them into `AGENTS.md` remain separate unauthorized owner decisions.
+
+Seven Claude Code skills were added under `.claude/skills/`:
+`tm-evidence-and-report`, `tm-validation-battery`, `tm-task-preflight`,
+`tm-handoff-writer`, `tm-planning-pack-sync`, `tm-no-fabrication`, and
+`tm-canonical-first`. Each holds **procedure and pointers only** and states that
+it authorizes nothing. None restates contract text: where a requirement is
+canonical, the skill cites the document and heading instead of copying it, so a
+skill cannot become a competing source of truth. Every path and heading pointer
+was verified mechanically (30 path pointers, 35 heading pointers, all resolving).
+
+`tm-validation-battery` additionally carries an executable
+(`scripts/run-battery.ps1`) and the baselines it compares against
+(`scripts/baselines.json`), measured **in this task** from a clean primary
+checkout at `d63e6b0d7`: the executable PostgreSQL harness, `npm run test`
+(178 files / 982 tests), `npx tsc --noEmit` (0 diagnostics), `npm run lint`
+(0 errors, the exact 4 pre-existing warnings recorded individually),
+`npm run build`, and `validate:claude-context`. A control run against a
+deliberately perturbed baseline failed as it should, so the comparison
+discriminates rather than passing vacuously.
+
+`validate:claude-context -- --require-maintenance` is recorded as a **completion
+gate, not a state check**: it compares the working tree against `HEAD`, so on a
+clean tree it fails by design. That is not a broken baseline, and the runner
+skips it on a clean tree with that reason stated rather than reporting a
+meaningless failure.
+
+`docs/CURRENT_STATUS.md` and `docs/AUTHORITATIVE_DOCUMENTS.md` were intentionally
+left unchanged, assessed independently against their own maintenance rules: no
+phase, blocker, release, migration, or next-action state changed, and no
+authority was added, moved, superseded, or archived — a skill is not an authority
+and each defers to the documents it cites. `docs/redesign/DECISIONS.md` is
+unchanged because no durable decision was approved here.
+`docs/redesign/MASTER-PLAN.md` is unchanged because no project-wide goal,
+governance rule, phase structure, milestone, architecture, contract, or gate
+changed. `docs/redesign/CLAUDE-PROJECT-SOURCES.json`, `CLAUDE.md`, and
+`AGENTS.md` are unchanged and were outside the authorized edit set.
+
+Cataloguing the skills, creating any index for them, and mirroring them into
+`AGENTS.md` all remain **unauthorized** and are open owner decisions.
+
+**Amended 2026-07-23 (second commit on the same branch; the first commit was not
+rewritten).** The owner authorized three further skills after the first increment
+identified six documented governance surfaces the original seven did not cover:
+
+- `tm-identity-privacy` — routes to the authoritative guest-identity and
+  claimed-name privacy contract. Carries the boundary test (exclusion from the
+  payload, not concealment in the UI), that a missing username never falls back to
+  a personal name, that username and personal-name matching stay separate
+  mechanisms, and that a claim preserves the existing player ID. States that it
+  authorizes no schema change, no migration, and no production identity mutation.
+- `tm-conflict-and-authority` — the conflict procedure, and the separation that
+  evidence corrects a fact but never grants scope. Enumerates the shapes that
+  failure takes, including "nothing forbade it".
+- `tm-production-action-preflight` — for a session that **already holds** a named
+  authorization; it opens by stating that it grants none. Covers naming the
+  authorizing sentence, reading the ledger from Git, that a migration filename is
+  not its ledger version and entries pair by name, byte identity, expand/contract
+  ordering, bounding the write, and the two separate actions owed afterwards.
+
+The byte-identity step is grounded in a measurement taken in this repository, not
+in recollection: on a committed migration with CRLF terminators, `git hash-object`
+returned the canonical object hash — a false pass — while `git hash-object
+--no-filters` and a `sha256` comparison against `git show` both showed the
+working-tree bytes differ. The skill therefore directs that migration SQL be sent
+from `git show`, and that any identity check use `--no-filters` or a content hash.
+
+One pointer was corrected during verification: an early draft cited
+`docs/archive/`, which does not exist. It now cites the rule that governs archived
+material instead. Across all ten skills, 33 path pointers and 59 heading pointers
+were verified to resolve.
+
+The unchanged-document reasoning above was re-tested for this increment and still
+holds: no phase, blocker, release, migration, or next-action state changed, and no
+authority was added, moved, superseded, or archived.
+
+**Amended 2026-07-23 (third commit on the same branch; neither earlier commit was
+rewritten) — permission audit.** Every skill was re-read line by line against the
+governing files, including `docs/redesign/MASTER-PLAN.md` →
+`## 2. Authority and Scope Control`, `### Scope rule`, `## 4. Non-Negotiable
+Constraints` (its `### Repository safety` and `### Prohibited actions`),
+`### 8.2 Formula governance`, `### 8.3 Sample and denominator rules` and
+`### 8.4 Analytics language`, which the first two increments had not cited.
+
+The audit found and closed **eleven** places where a skill read as more permissive
+than the documents. The material ones: adding a dependency was written as
+forbidden only when it duplicated an existing one, where the rule is that no
+dependency may be added without approval; failing to find an existing formula
+implied writing one, where formulas may not be invented during implementation and
+only approved formulas may be implemented; production preflight reads were written
+as a bounded good rather than as production access needing their own
+authorization; worktree creation was unconditional rather than contingent on the
+assignment; the handoff writer assumed writing was permitted; "lift the shared
+copy" invited an unrelated refactor; "mark low-sample" invited inventing a
+threshold; and creating a table, view, migration, or schema change was not named
+as needing separate approval. The prohibited-action list, the repository-safety
+prohibition on altering the separate non-redesign checkout, and the contract rule
+that an instruction may add stricter requirements but never weaken the privacy
+contract are now cited from the skills that can reach them.
+
+**One documentary tension was reconciled rather than silently resolved.**
+`docs/redesign/MASTER-PLAN.md` → `### Repository safety` says to work only in the
+primary redesign path, while assignments and established practice direct isolated
+worktrees outside it. Read with the authority order in `## 2. Authority and Scope
+Control`, the explicit assignment outranks the master plan, and the prohibition's
+subject is the separate non-redesign checkout, which must never be altered. The
+skills therefore carry the prohibition and do not carry a worktree ban. Recorded
+here rather than decided in silence; if the owner reads it the other way, the
+skill text is what changes.
+
+After the audit, 34 path pointers and 73 heading pointers resolve across the ten
+skills. No skill gained a permission, and every change made one narrower.
+
+**Merged 2026-07-23 by owner authorization.** `chore/agent-skills-tier-1` landed in
+`redesign/tm-stats-dashboard-rebuild` as a `--no-ff` merge of four commits. The
+only conflict was this document's `## Latest handoff` group, where this branch and
+the concurrent matcher-overload production-apply commit each added a head entry;
+both entries are retained, the production record first. The ten skills are live
+under `.claude/skills/`.
+
+The recorded baselines are still pinned to `d63e6b0d7`, which is now an ancestor
+of the merge commit with a `src/` file changed since. Re-measuring them at the
+merge commit is the immediate next action and is **not** done by this commit; the
+result is recorded in a follow-up commit alongside the updated
+`measuredAtCommit`.
+
+**Corrected 2026-07-23 (fourth commit; no skill file changed).** The base branch
+moved while this work was in progress, so two statements are corrected in the
+handoff. The second increment's code-facing checks were recorded as running
+against source byte-identical to this branch; the checkout they ran in was
+afterwards found to carry a concurrent session's uncommitted change under `src/`,
+and the timing relative to the run cannot be established, so that claim is struck
+and retained rather than defended. The measured results were unchanged from
+baseline either way. And the baselines remain pinned to `d63e6b0d7`, which is now
+an **ancestor** of the branch tip with a `src/` file changed since: they are not
+automatically valid there, and a re-measure from a clean tree at the then-current
+commit is owed before this branch merges.
+
+Handoff: `docs/agent-handoffs/AGENT-SKILLS-TIER-1.md`.
+
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)
 
 Branch `fix/import-identity-source-bound-matching`, merged into
@@ -2817,6 +2970,29 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   contains two — and the session **stopped and quoted both passages rather than
   resolving it**; the owner corrected the clause to mean an entry naming the
   matcher **overload**, and only then did the apply proceed)
+- docs/agent-handoffs/AGENT-SKILLS-TIER-1.md
+  (local tooling and governance only: ten Claude Code skills under
+  `.claude/skills/`, built in two separately authorized increments and then
+  audited in a third, encoding existing governance procedure — evidence classes
+  and report sections, the validation battery with baselines measured in that task
+  at `d63e6b0d7`, task preflight, handoff writing, planning-pack synchronization,
+  the missing/zero/unsupported distinction, canonical-first lookup,
+  identity-and-name privacy, conflict and authority, and production-action
+  preflight. Procedure and pointers only; no contract text restated; all 34 path
+  and 73 heading pointers verified to resolve. Each skill states it authorizes
+  nothing, and the production-action one states it grants no permission and is
+  only for a session already holding a named authorization. **The permission audit
+  closed eleven places where a skill read as more permissive than the governing
+  documents** — dependencies, inventing formulas, unauthorized preflight reads,
+  unconditional worktree creation, assumed write permission, unrelated refactors,
+  invented sample thresholds, and unnamed separate-approval items — and cited
+  `MASTER-PLAN.md` → `## 4. Non-Negotiable Constraints` and `### Scope rule`,
+  which the build increments had not. No skill gained a permission. **No phase,
+  blocker, release, migration, or production change, and no production access.**
+  **MERGED** by owner authorization on 2026-07-23. Cataloguing the skills,
+  creating any index, and the `AGENTS.md` mirror remain unauthorized owner
+  decisions; the baselines remain pinned to `d63e6b0d7`, now an ancestor, and
+  re-measuring them at the merge commit is the immediate next action)
 - docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-APPLY-FORENSICS.md
   (record only, redesign lineage: lands the `MATCHER-APPLY-FORENSICS` work item —
   verdict **PASS** — which existed in **no** repository document before this
