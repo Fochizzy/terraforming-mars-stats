@@ -2347,6 +2347,41 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/PHASE-04-STEP-03-MATCHER-OVERLOAD-DESIGN-SCOPING.md
+  (read-only design scoping, redesign lineage: prices the 2026-07-22 AMENDMENT's
+  interim service-role re-gate of `public.match_import_player_names` so the owner
+  can weigh building it against deploying the redesign lineage instead. **Decides
+  nothing, builds nothing**; no `supabase/**`, `src/**` or `scripts/**` file was
+  created or changed on any lineage, and **no production read occurred** — every
+  production value is [PRIOR] or [UNVERIFIED]. **The amendment's "overload"
+  wording SURVIVES**: the guest-identity `42725` ambiguity does not transfer,
+  because the matcher's base signature `(uuid, text[])` carries **no defaults**,
+  so an appended third parameter is not forced to default — proven on a
+  disposable PostgreSQL 18.4 cluster, together with the control reproducing the
+  guest-identity failure. **Binding constraint: the third parameter must carry NO
+  default**; `default null` reproduces 42725 on every existing 2-arg call at
+  expand time. **The server-side id-resolution mitigation transfers**, and more
+  cheaply than the amendment implies: all call sites funnel through one wrapper,
+  `matchImportPlayerNames`, which already builds its own client and already
+  resolves the user id from `auth.getUser()`, so the change is **one function in
+  one file** and no threading is introduced. **There are THREE call sites, not
+  the two the amendment names** (the third, `roster_display_name_fallback`, is
+  dormant only because the `normalized_display_name` grant survives). **The
+  live-site lineage already has the admin client** and existing consumers, but
+  whether `SUPABASE_SERVICE_ROLE_KEY` is bound on the live Worker is
+  **[UNVERIFIED]** and is a precondition of the deploy step. **The manual-entry
+  gap is NOT resolved** — two of three call sites are non-import paths the
+  applied source-bound gateways structurally cannot serve. **HIGH finding: the
+  null requesting-user id fails SILENTLY** — an unguarded pool returns zero rows
+  with no error, and the helper an implementer would reuse returns null by
+  design, so every import would show all players unmatched with a clean log; both
+  the SQL null rejection and a fail-closed resolver are required. **The redesign
+  lineage has ZERO matcher call sites** (verified with a positive control), so
+  deploying it satisfies the contraction's real precondition outright, with no
+  overload built. Proposed SQL is labelled PROPOSED — NOT APPROVED and exists
+  only in the handoff. Authorizes nothing: not the overload, not
+  `20260722012707`, not a migration, deploy, production read, merge or push, and
+  it resolves no owner decision.)
 - docs/agent-handoffs/PHASE-04-STEP-03-GUEST-IDENTITY-PRODUCTION-CATALOG-READ.md
   (documentation only, on two lineages: records an authorized read-only
   production catalog read made 2026-07-23 09:40:14Z against
