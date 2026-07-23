@@ -356,6 +356,59 @@ Every production change, deploy or database-only, in one sequence. Merged
 from four forked copies on 2026-07-22; the source copy is noted where it
 was not copy A.
 
+### Space tag icon replacement — production Storage change — 2026-07-23 01:14:21 UTC
+
+**This is a Storage-only record. No application deployment and no database
+migration occurred as part of this entry** — the worker version, source commit,
+and migration ledger head in "Current production" are unchanged by it. Recorded
+here because the production-action rule covers any production write, not only
+deploys and migrations.
+
+Applied under owner instruction ("Replace the supabase asset in tags labeled
+space with this"), supplying
+`C:\Users\izzyh\Documents\Terraforming Mars\assets\Tags\Space.png`.
+
+**Change.** One object in the public `tm-tag-icons` bucket, project `tm-stats`
+(`qjtwgrjjwnqafbvkkfex`):
+
+| | Pre-change | Applied |
+|---|---|---|
+| `space.webp` bytes | 21,056 | 19,658 |
+| SHA-256 | `c208aee474d0597561b12b235502e76ae2028597a6bd7ea0f0d93555dd6a165d` | `fdf6f85ec72c8a5a7ed28a7358ab3405c83bbcf5bb5ee2697254aae11e94f52b` |
+| Geometry | WebP 128×128, alpha | WebP 128×128, alpha |
+
+`content-type: image/webp` and `cache-control: max-age=3600` are unchanged. The
+resolver already mapped `space` to `space.webp`, so **no code changed and
+nothing needed deploying** for the new art to serve.
+
+**One superseded intermediate upload, disclosed.** The first upload followed the
+geometry recorded in the 2026-07-17 tag handoff (lossless, no resize) and was
+wrong for the current bucket: 1024×1024, 477,338 bytes. It was live from
+01:13:08.465Z to 01:14:21.263Z (~73s) before being replaced in place by the
+correctly sized object above. The canonical path never changed and no code
+referenced anything new, so no consumer saw a missing or broken asset — only,
+briefly, an oversized correct image.
+
+**Verified after the corrected upload:** re-download hash matched; the public
+URL returns HTTP 200, `image/webp`, `public, max-age=3600`, 19,658 bytes,
+byte-identical; corner alpha `0,0,0,0` with centre `255`, matching the
+`jovian.webp` sibling; the served bytes were rendered and confirmed to be the
+supplied artwork. Final bucket state: 21 objects, 313,154 bytes, all
+`image/webp` at `max-age=3600`.
+
+**Rollback** is a single re-upload of the retained pre-change object at
+`…\Terraforming Mars Redesign\.npm-cache\tm-space-tag-replacement-20260722\backup\space.webp`
+(`c208aee4…`) with the same content type and cache control. Clients may hold the
+prior art for up to one hour regardless, by that cache control.
+
+**Stale documentation found, not reconciled.** `docs/redesign/ASSET-INVENTORY.md`
+still records this bucket as 21 objects / 14,910,938 bytes at 1254×1254. Live it
+is 21 objects / 313,154 bytes at 128×128. No handoff or commit records the
+downscale, which happened between 2026-07-17 and 2026-07-22. Reconciling that
+inventory needs its own assignment. Handoff:
+`docs/agent-handoffs/SPACE-TAG-ICON-REPLACEMENT-2026-07-22.md` on
+`redesign/tm-stats-dashboard-rebuild`.
+
 ### Ledger #106 claim-RPC privacy hardening — production database change — 2026-07-21 20:17:34 UTC
 
 **This is a database-only migration record. No application deployment occurred
