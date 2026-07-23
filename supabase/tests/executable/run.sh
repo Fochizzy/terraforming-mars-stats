@@ -129,6 +129,15 @@ SOURCE_BOUND_CONTRACTION="$MIGRATIONS/20260722012707_retire_free_form_import_nam
 # one database. Applying it to production did NOT authorize the reader deploy or
 # the CONTRACT drop of the deployed 7-argument resolver; both remain gated.
 NON_IMPORT_GUEST_MIGRATION="$MIGRATIONS/20260722160000_add_non_import_guest_identity_creator.sql"
+# GATED / UNAPPLIED. The EXPAND half of the 2026-07-22 matcher amendment: adds a
+# service_role-only THREE-argument overload of public.match_import_player_names
+# whose authorization gate AND candidate pool both derive from an explicit
+# requesting-user id instead of auth.uid(). Excluded from the production-history
+# replay for the ordinary reason — it is not applied to production. It is applied
+# below BEFORE SOURCE_BOUND_CONTRACTION, because that is the mandatory
+# expand-then-contract order and because its two-argument-still-resolves
+# assertion needs `authenticated` to still hold its grant when it runs.
+MATCHER_OVERLOAD_MIGRATION="$MIGRATIONS/20260723130000_add_service_role_import_name_matcher_overload.sql"
 
 # Modelled pre-image of production-only ledger entry 20260720021300, which has
 # no repo file. Installing it is what makes COARSEN_MIGRATION a REPLACE rather
@@ -172,6 +181,7 @@ for f in "$MIGRATIONS"/*.sql; do
   [ "$f" = "$SOURCE_BOUND_EXPANSION" ] && continue
   [ "$f" = "$SOURCE_BOUND_CONTRACTION" ] && continue
   [ "$f" = "$NON_IMPORT_GUEST_MIGRATION" ] && continue
+  [ "$f" = "$MATCHER_OVERLOAD_MIGRATION" ] && continue
   if [ "$f" = "$CLAIM_GRANT_MIGRATION" ]; then
     echo "   model production-only ledger entry 20260712115539 (no repo file)"
     PSQL -q -f "$CLAIM_PREIMAGE"
@@ -306,12 +316,35 @@ fi
 echo "== source-bound AFTER proof (legacy matcher still callable) =="
 PSQL -q -f "$HERE/source-bound-import-identity.sql"
 
+# EXPAND-then-CONTRACT for the matcher amendment, in that order and on this one
+# database. The BEFORE half pins the two-argument function's body hash, ACL and
+# comment so the AFTER half can prove the expand left it byte-identical, and
+# installs sentinel probe fixtures plus a second group with its own member.
+echo "== matcher service-role overload: BEFORE (pin the two-argument identity, install sentinel probes) =="
+PSQL -q -f "$HERE/matcher-service-role-overload-before.sql"
+
+echo "== apply gated matcher service-role overload (EXPAND) =="
+PSQL -q -f "$MATCHER_OVERLOAD_MIGRATION"
+
+echo "== repeat-safety: apply the matcher overload a second time =="
+PSQL -q -f "$MATCHER_OVERLOAD_MIGRATION"
+
+echo "== matcher service-role overload: AFTER (gate/pool agreement, null rejection, grants, two-argument untouched) =="
+PSQL -f "$HERE/matcher-service-role-overload.sql"
+
 echo "== apply separate gated legacy-matcher contraction =="
 PSQL -q -f "$SOURCE_BOUND_CONTRACTION"
 
 echo "== repeat-safety: apply source-bound contraction a second time =="
 PSQL -q -f "$SOURCE_BOUND_CONTRACTION"
 PSQL -q -f "$HERE/source-bound-import-identity-contraction.sql"
+
+# The contraction RE-GATES the free-form matcher; it does not close it. The file
+# above already pins that service_role kept the TWO-argument grant; this one pins
+# that the service-role OVERLOAD survives and still matches, which is what the
+# moved reader depends on.
+echo "== matcher service-role overload survives the contraction (re-gated, not closed) =="
+PSQL -q -f "$HERE/matcher-service-role-overload-post-contraction.sql"
 
 echo "== apply 20260722160000 non-import guest-identity creator (ID-READER-CLIENT expand) — APPLIED to production as ledger 20260723082917, deferred from the replay so the BEFORE/AFTER pair spans the expand on one database =="
 PSQL -q -f "$NON_IMPORT_GUEST_MIGRATION"

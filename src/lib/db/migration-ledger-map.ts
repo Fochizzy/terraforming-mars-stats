@@ -307,6 +307,26 @@ export const GATED_UNAPPLIED: readonly string[] = [
   // they share a reader-deploy step but are different migrations with
   // different evidence. See docs/redesign/reference/MIGRATION-LEDGER-MAP.md.
   '20260722012707',
+  // The EXPAND half of the 2026-07-22 matcher amendment: a service_role-only
+  // three-argument overload of public.match_import_player_names whose
+  // authorization gate AND candidate pool both derive from an explicit
+  // requesting-user id. BUILT LOCALLY ONLY. Applying it is a separate gate that
+  // has not been opened, and applying it would NOT authorize the deploy of the
+  // moved reader, the production verification, or the contraction above.
+  //
+  // ORDER IS MANDATORY AND IS THE WHOLE POINT OF THE PAIRING. This file must be
+  // applied BEFORE 20260722012707, and 20260722012707 must not be applied until
+  // the moved reader is deployed AND verified in production. Applying the
+  // contraction first breaks every import and both manual player-resolution
+  // paths with 42501; deploying the moved reader before this file breaks them
+  // with PGRST202/42883.
+  //
+  // The reader that will call it lives on the LIVE-SITE lineage
+  // (fix/live-compare-data-remove-declared-style,
+  // src/lib/db/import-player-resolution-repo.ts), not on this branch, so this
+  // file's caller cannot be observed from here. That split is why the apply and
+  // the deploy are separately gated rather than one step.
+  '20260723130000',
   // 20260722160000 (the EXPAND half of the ID-READER-CLIENT repair) was listed
   // here until 2026-07-23. It is now APPLIED — ledger 20260723082917 — and is
   // registered as a renamed apply instead. Applying it did NOT authorize the
@@ -635,6 +655,32 @@ export const MIGRATION_HAZARD_CLASS: Readonly<
   // one new function, one overload, ACL {postgres,service_role}, and the
   // deployed resolver untouched. Still an expansion.
   '20260722160000': 'expansion', // add_non_import_guest_identity_creator
+  // Derived from this file's SQL, not copied from its sibling.
+  //
+  // Every statement in it names ONE signature — the three-argument
+  // public.match_import_player_names(uuid, uuid, text[]) — and that signature
+  // does not exist until the `create or replace` at the top of the same file
+  // creates it. There is no DROP, no ALTER, no tightened constraint, and no
+  // statement that mentions the deployed two-argument (uuid, text[]) signature
+  // at all, so nothing a deployed reader or writer holds today is removed or
+  // narrowed. The three revokes are on the object the file itself creates,
+  // including the load-bearing `from public` revoke that removes CREATE
+  // FUNCTION's implicit PUBLIC grant, so they strand nothing that ever worked.
+  //
+  // The one place a reader might reasonably expect a contraction — the
+  // requesting-user argument carrying no default — is not one either. A missing
+  // default cannot narrow an existing call, because no existing call names this
+  // signature; the executable harness measures that both the positional and the
+  // named two-argument call still resolve to the two-argument function with this
+  // overload present.
+  //
+  // Safe to apply ahead of the code that uses it, which is precisely the order
+  // the amendment mandates: expand, deploy the moved reader, verify, only then
+  // contract. Do not read `expansion` as "low risk": this file downgrades the
+  // matcher's authorization from auth.uid() to an application-supplied id, which
+  // the amendment records as an accepted security cost. Hazard class describes
+  // what applying it does to a deployed reader, not how much trust it moves.
+  '20260723130000': 'expansion', // add_service_role_import_name_matcher_overload
   // B-05. Revokes only the PUBLIC pseudo-role grant (and anon on
   // claim_player_profiles_by_name) while granting explicit EXECUTE to
   // `authenticated` on all three claim RPCs. The revoked PUBLIC grant is the
