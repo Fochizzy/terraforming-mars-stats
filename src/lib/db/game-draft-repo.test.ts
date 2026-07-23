@@ -1244,6 +1244,11 @@ describe('getSavedGameForm', () => {
 });
 
 describe('listSavedGames', () => {
+  // Roster entries are `players.id` values, and the repo tells an id apart from
+  // a name typed into a draft by its uuid shape, so these have to be real uuids.
+  const PLAYER_1 = '22222222-2222-4222-8222-000000000001';
+  const PLAYER_2 = '22222222-2222-4222-8222-000000000002';
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -1284,26 +1289,28 @@ describe('listSavedGames', () => {
             created_at: '2026-07-08T09:00:00.000Z',
             game_id: 'game-draft',
             snapshot: {
-              selectedPlayerIds: ['player-1', 'player-2'],
+              // A draft may still name a player who has no roster row yet.
+              selectedPlayerIds: [PLAYER_1, 'Typed Player'],
             },
           },
           {
             created_at: '2026-07-08T08:00:00.000Z',
             game_id: 'game-final',
             snapshot: {
-              selectedPlayerIds: ['player-1', 'Typed Player'],
+              selectedPlayerIds: [PLAYER_1, PLAYER_2],
             },
           },
         ],
         error: null,
       }),
     };
-    const playersQuery = {
+    const gamePlayersQuery = {
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
         data: [
-          { display_name: 'Friday Mars', id: 'player-1' },
-          { display_name: 'Izzy Hodnett', id: 'player-2' },
+          { game_id: 'game-final', player_id: PLAYER_1 },
+          { game_id: 'game-final', player_id: PLAYER_2 },
         ],
         error: null,
       }),
@@ -1312,8 +1319,8 @@ describe('listSavedGames', () => {
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
       rpc: vi.fn().mockResolvedValue({
         data: [
-          { is_linked: true, player_id: 'player-1', public_name: 'FridayMars' },
-          { is_linked: true, player_id: 'player-2', public_name: 'Izzy' },
+          { is_linked: true, player_id: PLAYER_1, public_name: 'FridayMars' },
+          { is_linked: true, player_id: PLAYER_2, public_name: 'Izzy' },
         ],
         error: null,
       }),
@@ -1326,8 +1333,8 @@ describe('listSavedGames', () => {
           return revisionsQuery;
         }
 
-        if (table === 'players') {
-          return playersQuery;
+        if (table === 'game_players') {
+          return gamePlayersQuery;
         }
 
         throw new Error(`Unexpected table ${table}`);
@@ -1356,7 +1363,7 @@ describe('listSavedGames', () => {
         gameId: 'game-draft',
         groupId: '11111111-1111-4111-8111-111111111111',
         playerCount: 2,
-        playerNames: ['FridayMars', 'Izzy'],
+        playerNames: ['FridayMars', 'Typed'],
         playedOn: '2026-07-07',
         status: 'draft',
         updatedAt: '2026-07-08T09:00:00.000Z',
@@ -1365,7 +1372,7 @@ describe('listSavedGames', () => {
         gameId: 'game-final',
         groupId: '11111111-1111-4111-8111-111111111111',
         playerCount: 2,
-        playerNames: ['FridayMars', 'Typed'],
+        playerNames: ['FridayMars', 'Izzy'],
         playedOn: '2026-07-06',
         status: 'finalized',
         updatedAt: '2026-07-08T08:00:00.000Z',
@@ -1380,10 +1387,10 @@ describe('listSavedGames', () => {
       'game-draft',
       'game-final',
     ]);
-    expect(playersQuery.eq).toHaveBeenCalledWith(
-      'group_id',
-      '11111111-1111-4111-8111-111111111111',
-    );
+    expect(gamePlayersQuery.in).toHaveBeenCalledWith('game_id', [
+      'game-draft',
+      'game-final',
+    ]);
   });
 
   it('can list saved games across multiple accessible groups', async () => {
@@ -1422,27 +1429,25 @@ describe('listSavedGames', () => {
             created_at: '2026-07-08T09:00:00.000Z',
             game_id: 'game-1',
             snapshot: {
-              selectedPlayerIds: ['player-1'],
+              selectedPlayerIds: [PLAYER_1],
             },
           },
           {
             created_at: '2026-07-08T08:00:00.000Z',
             game_id: 'game-2',
             snapshot: {
-              selectedPlayerIds: ['player-2'],
+              selectedPlayerIds: [PLAYER_2],
             },
           },
         ],
         error: null,
       }),
     };
-    const playersQuery = {
+    const gamePlayersQuery = {
       select: vi.fn().mockReturnThis(),
-      in: vi.fn().mockResolvedValue({
-        data: [
-          { display_name: 'Friday Mars', id: 'player-1' },
-          { display_name: 'Sam Terraformer', id: 'player-2' },
-        ],
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [{ game_id: 'game-2', player_id: PLAYER_2 }],
         error: null,
       }),
     };
@@ -1450,8 +1455,8 @@ describe('listSavedGames', () => {
     vi.mocked(createSupabaseServerClient).mockResolvedValue({
       rpc: vi.fn().mockResolvedValue({
         data: [
-          { is_linked: true, player_id: 'player-1', public_name: 'FridayMars' },
-          { is_linked: true, player_id: 'player-2', public_name: 'Sam' },
+          { is_linked: true, player_id: PLAYER_1, public_name: 'FridayMars' },
+          { is_linked: true, player_id: PLAYER_2, public_name: 'Sam' },
         ],
         error: null,
       }),
@@ -1464,8 +1469,8 @@ describe('listSavedGames', () => {
           return revisionsQuery;
         }
 
-        if (table === 'players') {
-          return playersQuery;
+        if (table === 'game_players') {
+          return gamePlayersQuery;
         }
 
         throw new Error(`Unexpected table ${table}`);
@@ -1502,10 +1507,127 @@ describe('listSavedGames', () => {
       'group-1',
       'group-2',
     ]);
-    expect(playersQuery.in).toHaveBeenCalledWith('group_id', [
-      'group-1',
-      'group-2',
+    expect(gamePlayersQuery.in).toHaveBeenCalledWith('game_id', [
+      'game-1',
+      'game-2',
     ]);
+  });
+
+  it('labels a finalized game from game_players when its snapshot ids were orphaned', async () => {
+    // The 2026-07-16 imports: the snapshot still names the guest placeholder
+    // rows a later roster merge deleted, so nothing resolves them and the raw
+    // uuids used to render as the player names.
+    const orphanedGuestIds = [
+      '20acf24b-4943-4aa4-bfbb-c2bbf660662c',
+      'ed2fe61e-1e63-42d0-9d01-07fb4a29380e',
+    ];
+    const liveRosterIds = [
+      '2f403b56-604f-4eb3-9b99-00f6eb506eee',
+      'b91c6ac5-947a-44d8-937c-e94444532915',
+    ];
+    const gamesQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: [
+          {
+            group_id: 'group-1',
+            id: 'game-orphaned',
+            player_count: 2,
+            played_on: '2026-07-16',
+            status: 'finalized',
+            updated_at: '2026-07-16T06:23:30.476Z',
+          },
+          {
+            group_id: 'group-1',
+            id: 'draft-orphaned',
+            player_count: 1,
+            played_on: '2026-07-16',
+            status: 'draft',
+            updated_at: '2026-07-16T05:00:00.000Z',
+          },
+        ],
+        error: null,
+      }),
+    };
+    const revisionsQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [
+          {
+            created_at: '2026-07-16T06:23:30.476Z',
+            game_id: 'game-orphaned',
+            snapshot: { selectedPlayerIds: orphanedGuestIds },
+          },
+          {
+            created_at: '2026-07-16T05:00:00.000Z',
+            game_id: 'draft-orphaned',
+            snapshot: { selectedPlayerIds: [orphanedGuestIds[0]] },
+          },
+        ],
+        error: null,
+      }),
+    };
+    const gamePlayersQuery = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: liveRosterIds.map((playerId) => ({
+          game_id: 'game-orphaned',
+          player_id: playerId,
+        })),
+        error: null,
+      }),
+    };
+    const rpc = vi.fn().mockResolvedValue({
+      data: [
+        { is_linked: true, player_id: liveRosterIds[0], public_name: 'fochizzy' },
+        { is_linked: true, player_id: liveRosterIds[1], public_name: 'revloki' },
+      ],
+      error: null,
+    });
+
+    vi.mocked(createSupabaseServerClient).mockResolvedValue({
+      rpc,
+      from: vi.fn((table: string) => {
+        if (table === 'games') {
+          return gamesQuery;
+        }
+
+        if (table === 'game_revisions') {
+          return revisionsQuery;
+        }
+
+        if (table === 'game_players') {
+          return gamePlayersQuery;
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    } as never);
+
+    const listed = (await repo.listSavedGames({
+      groupId: 'group-1',
+      limit: 12,
+    })) as Array<{ gameId: string; playerNames: string[] }>;
+
+    expect(listed[0]).toMatchObject({
+      gameId: 'game-orphaned',
+      playerNames: ['fochizzy', 'revloki'],
+    });
+    // A draft has no game_players rows to fall back to, but an id that resolves
+    // to nothing is still never rendered as itself.
+    expect(listed[1]).toMatchObject({
+      gameId: 'draft-orphaned',
+      playerNames: ['Unknown player'],
+    });
+    // The finalized game's orphans are superseded before the lookup; the
+    // draft's is still asked about, since a draft has nothing better to use.
+    expect(rpc).toHaveBeenCalledWith('get_public_player_names', {
+      p_player_ids: [...liveRosterIds, orphanedGuestIds[0]],
+    });
   });
 });
 
