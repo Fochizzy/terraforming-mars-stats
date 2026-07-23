@@ -6,7 +6,11 @@ description: Use when finishing any TM Stats task that needs a record under docs
 # Writing a handoff
 
 This skill is procedure. It authorizes nothing — writing a handoff does not
-approve the work it describes, close a blocker, or grant the next step.
+approve the work it describes, close a blocker, or grant the next step. Nor does
+it authorize the writing itself: if your assignment permits no writes, you write
+no handoff and no state edit, and you report that instead. An assignment that
+authorizes a document while forbidding writes is a conflict to disclose, not to
+resolve by picking the permissive reading — see `tm-conflict-and-authority`.
 
 A handoff exists so a session that was not present can reconstruct what happened
 and what it may rely on. Write for that reader.

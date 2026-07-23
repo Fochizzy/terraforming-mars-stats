@@ -1402,6 +1402,43 @@ The unchanged-document reasoning above was re-tested for this increment and stil
 holds: no phase, blocker, release, migration, or next-action state changed, and no
 authority was added, moved, superseded, or archived.
 
+**Amended 2026-07-23 (third commit on the same branch; neither earlier commit was
+rewritten) — permission audit.** Every skill was re-read line by line against the
+governing files, including `docs/redesign/MASTER-PLAN.md` →
+`## 2. Authority and Scope Control`, `### Scope rule`, `## 4. Non-Negotiable
+Constraints` (its `### Repository safety` and `### Prohibited actions`),
+`### 8.2 Formula governance`, `### 8.3 Sample and denominator rules` and
+`### 8.4 Analytics language`, which the first two increments had not cited.
+
+The audit found and closed **eleven** places where a skill read as more permissive
+than the documents. The material ones: adding a dependency was written as
+forbidden only when it duplicated an existing one, where the rule is that no
+dependency may be added without approval; failing to find an existing formula
+implied writing one, where formulas may not be invented during implementation and
+only approved formulas may be implemented; production preflight reads were written
+as a bounded good rather than as production access needing their own
+authorization; worktree creation was unconditional rather than contingent on the
+assignment; the handoff writer assumed writing was permitted; "lift the shared
+copy" invited an unrelated refactor; "mark low-sample" invited inventing a
+threshold; and creating a table, view, migration, or schema change was not named
+as needing separate approval. The prohibited-action list, the repository-safety
+prohibition on altering the separate non-redesign checkout, and the contract rule
+that an instruction may add stricter requirements but never weaken the privacy
+contract are now cited from the skills that can reach them.
+
+**One documentary tension was reconciled rather than silently resolved.**
+`docs/redesign/MASTER-PLAN.md` → `### Repository safety` says to work only in the
+primary redesign path, while assignments and established practice direct isolated
+worktrees outside it. Read with the authority order in `## 2. Authority and Scope
+Control`, the explicit assignment outranks the master plan, and the prohibition's
+subject is the separate non-redesign checkout, which must never be altered. The
+skills therefore carry the prohibition and do not carry a worktree ban. Recorded
+here rather than decided in silence; if the owner reads it the other way, the
+skill text is what changes.
+
+After the audit, 34 path pointers and 73 heading pointers resolve across the ten
+skills. No skill gained a permission, and every change made one narrower.
+
 Handoff: `docs/agent-handoffs/AGENT-SKILLS-TIER-1.md`.
 
 ### Source-bound import identity replacement - BUILT locally, release-stopped (2026-07-21)

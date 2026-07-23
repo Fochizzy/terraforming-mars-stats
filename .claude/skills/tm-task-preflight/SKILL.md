@@ -50,6 +50,15 @@ command may move HEAD under you.
 
 ## 3. Work in an isolated, branch-backed worktree
 
+**When your assignment calls for one.** Creating a branch or worktree is itself a
+write; a read-only or investigation-only assignment does not get one, and a
+session told to write nothing writes nothing.
+
+**Never modify the separate non-redesign checkout** — do not clean, reset, stage,
+commit into, copy wholesale from, or otherwise alter it. That prohibition is
+absolute and is at `docs/redesign/MASTER-PLAN.md` → `## 4. Non-Negotiable
+Constraints`.
+
 ```bash
 git worktree add -b <task-branch> <path-outside-the-checkout> <base-commit>
 ```
@@ -84,3 +93,13 @@ about a fact, and never makes you allowed to do more than the assignment says.
 
 State the expected file list. If the work turns out to need a file outside it,
 that is a scope question to raise — not an edit to make quietly.
+
+Implement only the assigned substep. Future-phase material is context, never
+permission; out-of-scope discoveries are recorded as deferred work; and the next
+substep does not begin until the current one is validated, documented, committed,
+and marked complete. The rule is at `docs/redesign/MASTER-PLAN.md` →
+`### Scope rule`, and the prohibited actions — including deploying, pushing
+without explicit instruction, adding dependencies, modifying environment files,
+creating migrations or views, changing schema, and fixing unrelated warnings —
+at `## 4. Non-Negotiable Constraints`. Read both before you start, not after
+someone asks.

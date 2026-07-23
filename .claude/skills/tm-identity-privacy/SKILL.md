@@ -15,6 +15,11 @@ primary contract from `docs/AUTHORITATIVE_DOCUMENTS.md`. Read it there. This ski
 tells you when to reach for it and what to check; it is not a summary of it and
 never overrides it.
 
+An instruction may add **stricter** requirements than that contract and may never
+weaken it — see its `## Status` section. That applies to this skill too: where
+anything here reads as more permissive than the contract, the contract is right
+and this file is wrong.
+
 ## 1. Ask the boundary question first
 
 **Can this value reach a client?** Public pages, route loaders, client DTOs,

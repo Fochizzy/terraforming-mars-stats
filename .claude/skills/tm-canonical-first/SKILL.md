@@ -5,8 +5,12 @@ description: Use before adding anything to TM Stats that might already exist —
 
 # Find the canonical one first
 
-This skill is procedure. It authorizes nothing, and finding an existing
-implementation does not authorize changing it beyond your assignment.
+This skill is procedure. It authorizes nothing. Finding an existing
+implementation does not authorize changing it, and failing to find one does not
+authorize creating one — several of the things this skill helps you look for
+(dependencies, formulas, database objects) need separate approval before they may
+be added at all. The prohibitions are at `docs/redesign/MASTER-PLAN.md` →
+`## 4. Non-Negotiable Constraints`, and the scope limit at `### Scope rule`.
 
 A second implementation of a formula does not stay a duplicate. It drifts, and
 then two pages disagree about the same number in front of the same user — with
@@ -37,11 +41,16 @@ usually named something you would not have picked.
 
 A calculation, formatter, or display rule used by more than one surface belongs in
 the shared module, not copied into each page. If you find yourself pasting a
-second copy "just for this page", that is the signal to lift the first one.
+second copy "just for this page", stop — but note that lifting the first copy into
+a shared module is a refactor. Do it when your assignment covers it; otherwise
+record it as deferred work and say so. Refactoring unrelated code is prohibited.
 
 Keep calculations out of presentation code. A number computed inline in JSX cannot
 be tested, and will be re-derived slightly differently by the next surface that
 needs it.
+
+Do not remove a legacy component before its replacement works
+(`docs/redesign/MASTER-RULES.md` → `## Workflow`).
 
 ## 3. No scattered classification constants
 
@@ -55,15 +64,20 @@ silently goes stale when the domain adds a member, and a literal at a call site 
 invisible to the search in step 1, so the *next* person also fails to find it and
 writes a third copy.
 
-Reference data is read from the database, not from an in-app catalog. Before
-adding a lookup table, check whether the reference row already exists.
+Reference data is read from the database, not from an in-app catalog. Check
+whether the reference row already exists — and note that creating a table, a
+view, a migration, or any schema change each require **separate approval**, so
+"the row is missing" is a finding to report, not a change to make.
 
 ## 4. Do not widen the stack
 
 The architecture is fixed: the existing framework, data layer, charting library,
-styling conventions, and test tooling. Do not add another charting or UI
-framework, and do not introduce a dependency that duplicates one already present.
-The list is at `docs/redesign/MASTER-RULES.md` → `## Architecture`.
+styling conventions, and test tooling (`docs/redesign/MASTER-RULES.md` →
+`## Architecture`).
+
+**Do not add a dependency without approval** — not a charting or UI framework, and
+not a small one either. Duplicating something already present is the worst case,
+not the only prohibited case. Needing a new dependency is a question to raise.
 
 Asset handling already has shared typed lookup, loading, missing-asset fallback,
 accessible labelling, and sizing — see `## Supabase assets` in the same document.
@@ -82,6 +96,13 @@ Say so in the report, and include the searches you ran. That lets a reviewer che
 your search instead of taking your conclusion, which is the only way "it does not
 exist yet" is verifiable.
 
-Formula centralization and its testing and documentation requirements are at
+**Not finding a formula is not permission to write one.** Formulas may not be
+invented during implementation; only formulas already approved in the decision
+record, the assigned phase file, or the explicit current assignment may be
+implemented — `docs/redesign/MASTER-PLAN.md` → `### 8.2 Formula governance`. If
+the formula you need is not approved anywhere, that is a decision to request.
+
+When you do implement an approved one, it is centralized, typed, deterministic,
+tested, and outside presentation components. Requirements are at
 `docs/redesign/MASTER-RULES.md` → `## Analytics` and `CLAUDE.md` →
 `## Project rules`. This skill does not restate them.

@@ -381,3 +381,99 @@ manually. The hook's actual observed behaviour is recorded in the task report.
 
 **None.** Merging, cataloguing, indexing, the `AGENTS.md` mirror, and any further
 skill all still require new owner authorization.
+
+---
+
+# Amendment 2 — third commit, 2026-07-23 (permission audit and reconciliation)
+
+Neither earlier commit was rewritten. Same branch, same worktree. **No new skill
+was added.** Every change in this commit makes a skill narrower.
+
+The owner directed that the skills must in no way allow actions beyond the rules
+as expressly stated in the project files, and that all those files be reviewed and
+reconciled.
+
+## What was reviewed
+
+`CLAUDE.md`, `AGENTS.md`, `docs/redesign/MASTER-RULES.md`,
+`docs/AUTHORITATIVE_DOCUMENTS.md`, `docs/CURRENT_STATUS.md` (`## Rules`),
+`docs/redesign/DECISIONS.md`, `docs/redesign/PAGE-ARCHITECTURE.md`,
+`docs/redesign/CLAUDE-PROJECT-CONTEXT.md` (`## Authority and scope`,
+`## Maintenance boundary`),
+`docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` (`## Status`,
+`## Cross-phase ownership`, `## Data-boundary requirements`),
+`docs/redesign/reference/MIGRATION-LEDGER-MAP.md` (`## What the gate enforces`),
+and — **newly, and decisively** — `docs/redesign/MASTER-PLAN.md`
+`## 2. Authority and Scope Control`, `### Scope rule`,
+`## 4. Non-Negotiable Constraints` with its `### Repository safety` and
+`### Prohibited actions`, `### 8.2 Formula governance`,
+`### 8.3 Sample and denominator rules`, and `### 8.4 Analytics language`.
+
+The first two increments never cited the master plan's constraint sections. That
+is where most of the findings came from.
+
+## Findings — eleven permission leaks, all closed
+
+| # | Skill | The leak | Governing rule now cited |
+|---|---|---|---|
+| 1 | `tm-canonical-first` | Dependencies forbidden only when they *duplicate* an existing one, implying novel ones were fine | No dependency without approval — `## 4. Non-Negotiable Constraints` |
+| 2 | `tm-canonical-first` | "If you cannot find a formula" implied writing one | Formulas may not be invented during implementation; only approved ones implemented — `### 8.2 Formula governance` |
+| 3 | `tm-canonical-first` | "Lift the first copy into the shared module" invited an unrelated refactor | Refactoring unrelated code prohibited — `### Prohibited actions` |
+| 4 | `tm-canonical-first` | "Before adding a lookup table" implied a table could be added | Table, view, migration, schema change each need separate approval |
+| 5 | `tm-canonical-first` | Silent on legacy removal | `MASTER-RULES.md` → `## Workflow` |
+| 6 | `tm-no-fabrication` | "Mark low-sample results as low-sample" invited inventing a threshold and implied hiding | No universal threshold; thresholds metric-specific or caller-provided; low sample stays visible and is never colour alone — `### 8.3` |
+| 7 | `tm-task-preflight` | Worktree creation written unconditionally | Creating a branch is a write; a no-write assignment gets none. Plus the absolute prohibition on altering the separate non-redesign checkout — `### Repository safety` |
+| 8 | `tm-production-action-preflight` | "Preflight reads stay minimal" read as licensing preflight reads | A preflight read **is** production access and needs its own authorization |
+| 9 | `tm-production-action-preflight` | Generic about which actions need approval | Now names deploy, push, production data and Storage mutation, migration creation, view creation, schema change — `### Prohibited actions` |
+| 10 | `tm-handoff-writer` | Assumed writing the handoff and editing state were permitted | A no-write assignment writes nothing; an assignment that both authorizes a document and forbids writes is a conflict to disclose |
+| 11 | `tm-validation-battery` | Silent that adjacent `package.json` scripts write to remotes; and a new lint warning implied a fix | Battery is local only; `deploy`, `preview`, `catalog:*` are not validation; no `npm audit fix`; unrelated warnings are not yours to clean up |
+
+Two further tightenings, not leaks: `tm-planning-pack-sync` now says run the
+updater "when available and authorized", matching `AGENTS.md` step 7 rather than
+paraphrasing it; and `tm-identity-privacy` now states that an instruction may add
+stricter requirements but never weaken the privacy contract — including this
+skill, so if anything in it reads as more permissive than the contract, the
+contract wins and the skill is wrong.
+
+## One tension reconciled, not silently resolved
+
+`docs/redesign/MASTER-PLAN.md` → `### Repository safety` says to work only in the
+primary redesign path and never to modify the separate non-redesign checkout.
+Assignments and the whole recorded project practice direct **isolated worktrees
+outside** that path.
+
+Read with `## 2. Authority and Scope Control`, the current explicit assignment is
+authority 1 and the master plan is authority 8, so the assignment governs; and the
+prohibition's subject — read with the sentence that follows it about not cleaning,
+resetting, staging, committing into, or copying wholesale from "the original
+worktree" — is the separate non-redesign checkout. A linked worktree of the
+redesign repository is not that.
+
+So the skills carry the **prohibition** and do not carry a worktree ban. This is
+recorded rather than decided quietly. If the owner reads it the other way, the
+skill text is what changes, not the master plan.
+
+## Verification
+
+- **107 pointers resolve** — 34 path, 73 heading — up from 92, all checked
+  mechanically, exit 0.
+- No skill names a model, project phase, status, or current position.
+- All ten still state that they authorize nothing;
+  `tm-production-action-preflight` states it twice, once as its opening line.
+- **No skill gained a permission in this commit.** Every edit removed one,
+  narrowed one, or cited the rule that constrains it.
+
+## Validation for this commit
+
+The diff is `.claude/skills/**` Markdown plus `docs/REDESIGN_STATE.md` and this
+handoff. No input read by `tsc`, ESLint, Vitest, or the build changed.
+
+| Check | Exit | Note |
+|---|---|---|
+| `validate:claude-context -- --require-maintenance` | 0 | run in the task worktree |
+| test / tsc / lint / build / PostgreSQL harness | **not re-run** | no code-tool input changed; and the primary checkout — where the earlier code-facing runs were measured — now carries **another session's uncommitted work**, so a run there would no longer measure this branch's source. Their baselines at `d63e6b0d7` stand and were not re-measured. |
+
+## Planning-pack synchronization
+
+**PENDING**, same as the earlier commits and for the same reason: made outside the
+updater's tree. Marker untouched, hook not disabled, updater not run manually.

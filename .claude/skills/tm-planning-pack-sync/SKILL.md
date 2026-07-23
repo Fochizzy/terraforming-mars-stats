@@ -11,9 +11,9 @@ describes what to do about synchronization for work you were already allowed to 
 
 ## After the commit
 
-Run the authorized desktop updater, **or** explicitly report synchronization as
-pending with the reason. There is no third option, and "the commit is done" is not
-a synchronization report.
+Run the desktop updater **when it is available and authorized**, **or** explicitly
+report synchronization as pending with the reason. There is no third option, and
+"the commit is done" is not a synchronization report.
 
 The requirement is at `CLAUDE.md` → `## Documentation and Claude Project
 synchronization gate` (step 8) and `AGENTS.md` → `### Documentation and

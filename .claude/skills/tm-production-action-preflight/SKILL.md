@@ -24,6 +24,13 @@ are about to do — this migration, this statement, this deploy.
 
 If you cannot name the sentence, stop and report. See `tm-conflict-and-authority`.
 
+Several of these are prohibited outright unless separately approved, and this
+skill does not soften any of them: **deploying**; **pushing** without explicit
+instruction; **mutating Supabase production data or Storage**; **creating a
+migration**; **creating a database view**; **modifying schema**. The list is at
+`docs/redesign/MASTER-PLAN.md` → `## 4. Non-Negotiable Constraints`. A separate
+approval is per-action and does not carry to the next one.
+
 ## 2. Read the canonical ledger, from Git
 
 The deploy and production-write ledger is a **Git object**, read from the ref
@@ -76,9 +83,10 @@ confirms nothing.
 - **Expand before contract.** Verify between the halves. Know which migrations are
   gated and why, and do not apply a gated one because it is next in the directory.
 - **One statement.** Know what it does, what it locks, and how it reverses.
-- **Preflight reads stay minimal** — counts, booleans, catalog and ACL facts.
-  Prefer COUNT-only over reading rows, and never read personal rows to satisfy
-  curiosity.
+- **A preflight read is production access too.** It needs its own authorization —
+  this skill grants none, and "I only looked" is not a defence. When a read *is*
+  authorized, keep it to the minimum that answers the question: counts, booleans,
+  catalog and ACL facts, COUNT-only over reading rows, and never personal rows.
 - **Never mutate production identities during validation.** See
   `tm-identity-privacy`.
 - **The apply mechanism is not a free choice.** Use the path the current

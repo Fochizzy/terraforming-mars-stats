@@ -6,7 +6,10 @@ description: Use whenever TM Stats data might be absent, partial, or unproven �
 # Do not fabricate data
 
 This skill is procedure. It authorizes nothing, and following it does not make a
-data change approved.
+data change approved. It does not authorize creating a migration, a database
+view, or a schema change — each needs separate approval
+(`docs/redesign/MASTER-PLAN.md` → `## 4. Non-Negotiable Constraints`) — nor
+mutating any production data.
 
 The rules it enforces live at `docs/redesign/MASTER-RULES.md` → `## Data
 integrity`, `## Temporal analytics`, and `## Analytics`; `AGENTS.md` →
@@ -66,14 +69,21 @@ When a value is missing, render an explicit unavailable or partial-data state.
 Say which, and say what is missing. A blank cell, a zero, and a dash all read as
 data.
 
-Carry the denominator and the sample size to the surface with any derived metric,
-and mark low-sample results as low-sample. A rate without its denominator cannot
-be judged by the person reading it.
+Carry the denominator and the sample size to the surface with any derived metric.
+A rate without its denominator cannot be judged by the person reading it.
+
+Sample state and metric value are related but distinct, and low sample is
+surfaced, not hidden: low-sample categories stay visible unless something
+explicitly filters them out, and low sample is never signalled by colour alone.
+**Do not invent a threshold** — there is no universal minimum, and a threshold is
+metric-specific or caller-provided. Rules: `docs/redesign/MASTER-PLAN.md` →
+`### 8.3 Sample and denominator rules`.
 
 ## 5. Language
 
 Report association, not cause, unless something establishes cause. "Wins more
 often when X" is a measurement; "wins because of X" is a claim you did not make.
+Wording rules: `docs/redesign/MASTER-PLAN.md` → `### 8.4 Analytics language`.
 
 ## 6. When you cannot get the value
 

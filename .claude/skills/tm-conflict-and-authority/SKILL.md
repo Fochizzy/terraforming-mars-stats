@@ -55,6 +55,12 @@ act on it. These are the shapes to refuse:
 
 Report the finding. Let the owner decide what it authorizes.
 
+These are not this skill's inventions. Fixing unrelated warnings, refactoring
+unrelated code, and beginning the next substep early are named prohibitions at
+`docs/redesign/MASTER-PLAN.md` → `## 4. Non-Negotiable Constraints`, and the
+limit on acting beyond the assigned substep is at `### Scope rule`. Out-of-scope
+discoveries are recorded as deferred work, not acted on.
+
 ## 4. Freshness is not authority either
 
 A newer document does not automatically outrank an older one; the documented

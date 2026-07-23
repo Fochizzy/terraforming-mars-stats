@@ -9,6 +9,12 @@ This skill is procedure. It authorizes nothing. Passing the battery does not mak
 a change correct, in scope, or releasable, and it is not evidence that a report
 is accurate.
 
+**The battery is local only.** Every check below runs against the checkout or a
+disposable local database. Do not substitute a script that writes to a remote —
+`deploy`, `preview`, and the `catalog:*` publishers sit next to these in
+`package.json` and are not validation. Do not run `npm audit fix`; it is
+prohibited (`docs/redesign/MASTER-PLAN.md` → `## 4. Non-Negotiable Constraints`).
+
 ## The checks
 
 Run from the repository root. The scripts are defined in `package.json`; the
@@ -69,7 +75,8 @@ skipped check is printed as `SKIPPED` with its reason and is counted as not run.
   skipped, failed, or unrun checks into "passed".
 - **Lint exits 0 with warnings.** A new warning is a regression even though the
   command succeeded; that is why the baseline stores the exact warning list and
-  not a count.
+  not a count. Report it. Fixing a warning your change did not cause is a
+  different task — unrelated warnings are not yours to clean up.
 - **A changed test count is a result, not noise.** Report added and removed tests.
 - **A build that fails in a fresh worktree** may be failing on a missing local env
   file rather than on your change. Establish which before you report it, and say
