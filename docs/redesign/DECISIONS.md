@@ -2073,7 +2073,7 @@ RPC **must gate on `is_group_member`.** Without that gate, "group-scoped" (D-9) 
 that the search reads only a username and an alias inside a group the caller already
 belongs to — **does not hold.**
 
-## Phase 4 Step 4.3 — replacement player-identity, account, and vouching model (decision record: D-1–D-33), 2026-07-23
+## Phase 4 Step 4.3 — replacement player-identity, account, and vouching model (decision record: D-1–D-49), 2026-07-23
 
 Recorded 2026-07-23 by `RECORD-IDENTITY-DESIGN-AND-RULINGS` (step 4.33), from an owner
 design conversation of the same date. **This is a DECISION RECORD, not a finding
@@ -2087,6 +2087,20 @@ The design supersedes, in direction, the earlier §"2026-07-17 — Guest identit
 claim, and public-name privacy" decision above; that entry is retained as history and is
 **not rewritten**. Where this model and the privacy contract interact, the privacy
 contract remains authoritative for semantic meaning until the owner amends it.
+
+> **EXTENDED 2026-07-24 by `RECORD-REGISTRATION-SEARCH-AND-REPUDIATION` — D-34–D-49,
+> C-3–C-8, and two items recorded OPEN.** The original record (D-1–D-33) **fused two
+> things**: how a person **enters** the system, and how a person **claims existing
+> history**. The owner has since **separated them**, closed a shadowing hole, established a
+> group-membership gate, split search into **two distinct operations**, and added a
+> **repudiation path** for games wrongly attributed to a person. That is recorded in the
+> subsections "Entry — registration", "Claiming — taking an existing username", "Groups —
+> membership", "Search and Add — two operations, not one", and "Repudiation — correcting a
+> wrong attribution", with consequences C-3–C-8 and both open items under "Open and
+> deferred". **The heading's range was updated from D-1–D-33 to D-1–D-49 as navigational
+> metadata only**; no existing decision, ruling, or finding was amended, reworded, or
+> deleted. The extension **builds nothing and decides nothing new** beyond what the owner
+> separated.
 
 ### Identity and display
 
@@ -2185,6 +2199,15 @@ contract remains authoritative for semantic meaning until the owner amends it.
 
 ### Vouch request lifecycle
 
+> **SCOPE NARROWED 2026-07-24 — these entries apply to CLAIMS ONLY, never to entry.**
+> D-34 makes **registration unvouched**: a new account with an unused username plays
+> immediately. The lifecycle below — all-participants notification (D-28), one-week owner
+> escalation (D-29), two-week expiry (D-30), retry allowed (D-31), and no auto-approval
+> anywhere (D-33) — governs a **claim on an existing profile** (D-36), and nothing about
+> entering the system. **Their content is unchanged: not one of these entries is amended,
+> reworded, withdrawn, or deleted — only their scope is stated.** Vouching exists to
+> protect **existing history**, not to gate participation.
+
 - **D-28** — A vouch request is sent to **every participant** in the profile's games.
   **Any one** of them may approve; **no single named approver** exists.
 - **D-29** — After **one week** without approval the request **escalates to the group
@@ -2195,9 +2218,112 @@ contract remains authoritative for semantic meaning until the owner amends it.
 - **D-32** — While a request is pending the person **continues to play** under the
   unregistered profile. Each new game adds participants, and therefore adds potential
   approvers, so a retry after expiry has a **larger pool** than the original request did.
+
+  > **PURPOSE CHANGED 2026-07-24 — the rule's content is unchanged; what it is *for* is
+  > not.** D-32 was written as a **workaround for being locked out** while a claim was
+  > pending. Under unvouched registration (D-34) it is no longer that, because **nobody is
+  > locked out** — a person with an unused username simply registers and plays. D-32 is now
+  > an **accumulation mechanism**: each game logged under the unregistered profile (D-38)
+  > adds a participant and therefore a **potential approver**, so a retry after expiry
+  > (D-31) draws on a larger pool than the original request did. The entry above is **not
+  > amended, reworded, or withdrawn**; only its purpose is restated.
+
 - **D-33** — **NO AUTO-APPROVAL ANYWHERE.** Neither approval on timeout nor an objection
   window is permitted: **silence must never mean yes.** An objection window has the
   identical defect and merely looks safer.
+
+### Entry — registration (D-34–D-35, added 2026-07-24)
+
+Entry and claiming are **separate acts**. These two entries govern entry only.
+
+- **D-34** — **REGISTRATION IS UNVOUCHED.** A new account with an **unused** username
+  plays **immediately** — no vouch, no approval, no waiting. **The reasoning, recorded
+  because it is what makes the rule safe rather than lax: vouching exists to protect
+  EXISTING HISTORY, not to gate participation.** A person taking a username nobody holds
+  has no history to take, so there is nothing for a voucher to protect and no one to ask.
+- **D-35** — **NO GROUP INVITATION IS REQUIRED** to join a group. The gate is the
+  shared-logged-game rule (D-39), **not** an invitation, and not an approval by an
+  existing member.
+
+### Claiming — taking an existing username (D-36–D-38, added 2026-07-24)
+
+- **D-36** — **TAKING AN EXISTING USERNAME IS THE CLAIM.** It is **not** a parallel flow
+  entered deliberately — it is the **same act**, registration, with the claim **detected**
+  at that moment. An **unused** username proceeds under D-34; a username **already held by
+  any profile** triggers the vouching flow (the lifecycle at D-28–D-33, whose scope is
+  claims only). **CONSEQUENCE, RECORDED EXPLICITLY: SHADOWING IS CLOSED.** A person
+  **cannot passively occupy another's identity**, because occupying it is precisely the
+  thing that requires approval — there is no path that quietly registers a name someone
+  else already answers to.
+- **D-37** — **USERNAMES ARE UNIQUE ACROSS ALL PROFILES** — guest and registered alike,
+  **one namespace**. This is the **precondition D-36 depends on**: without a shared
+  namespace, "you cannot take an existing username" has **nothing to check against**, and
+  the shadowing hole D-36 closes would reopen through guest profiles.
+- **D-38** — **WHILE A CLAIM IS PENDING** the person remains **unregistered** and logs
+  games as a **guest** until the claim resolves. **No temporary account**, and **no rename
+  on approval** — approval attaches the email to the existing row (D-15), it does not
+  migrate one identity onto another.
+
+### Groups — membership (D-39, added 2026-07-24)
+
+- **D-39** — **GROUP MEMBERSHIP REQUIRES A SHARED LOGGED GAME.** You are in a group when
+  you have **logged a game with its members**. This is **RETROSPECTIVE**: membership
+  **follows from the game**, so the sequence is **add → game logged → membership**, never
+  membership first. There is no invitation step (D-35) and no separate join request.
+
+### Search and Add — two operations, not one (D-40–D-43, added 2026-07-24)
+
+Search and Add are **two distinct operations** with different scopes, different matching,
+and different preconditions. Collapsing them back into one would undo the disclosure
+properties recorded at C-6.
+
+- **D-40** — **SEARCH is discovery.** **Substring** matching over usernames and optional
+  aliases; **GROUP-SCOPED**; returns a **selectable list ordered by co-play** (D-11); and
+  it **REQUIRES MEMBERSHIP**. It is for finding people **already in the group**.
+- **D-41** — **ADD is entry by prior knowledge.** **EXACT USERNAME ONLY**; resolves
+  **GLOBALLY**; returns **one profile or nothing**. It **reveals nothing**, because the
+  username had to be **given to you** before you could type it — the operation confirms
+  what the caller already knew rather than disclosing what they did not.
+- **D-42** — **ADD MUST NOT FALL BACK TO SEARCH** when an exact match fails. **"No profile
+  with that username" is the correct answer.** Offering near-matches would **rebuild the
+  global enumeration oracle inside the safe operation**, which is the precise thing the
+  split exists to prevent.
+- **D-43** — **ADD MUST NOT REQUIRE MEMBERSHIP.** Membership is **retrospective** (D-39),
+  so requiring it would mean **nothing could ever bootstrap** — no first game could be
+  logged with anyone not already reachable, and the group could never acquire its first
+  shared game.
+
+### Repudiation — correcting a wrong attribution (D-44–D-49, added 2026-07-24)
+
+A game is logged by one person, who selects the other participants. Repudiation is the
+path by which a person corrects a slot that was attributed to them wrongly.
+
+- **D-44** — **REPUDIATION IS SELF-SERVICE.** A person may state, **from their own game
+  history**, that a game slot **was not them**. **No confirmation from the logger is
+  required.** **The reasoning, recorded because this is the exact inverse of the claim rule
+  and the asymmetry is deliberate:** vouching gates **ACQUIRING** history, because taking
+  history that is not yours needs permission — **disowning history that is not yours does
+  not**. Requiring the logger's confirmation would let **the person who made the error
+  decide whether it was an error**, and would **stall indefinitely** if they stop playing
+  or simply do not respond.
+- **D-45** — **REPUDIATION IS RECORDED, NOT SILENT.** **Who** repudiated, **when**, and
+  **what the slot held before**. This makes a **wrongful** repudiation **visible rather
+  than preventing it** — the appropriate weight at group scale, where the participants were
+  at the table and would notice.
+- **D-46** — **THE LOGGER RE-PICKS.** The person who logged the game is **re-prompted** to
+  pick or add the correct player. **Notify ALL participants** — the **same fan-out the
+  vouching flow uses** (D-28) — so the correction does not stall because one person is not
+  looking.
+- **D-47** — **THE REPUDIATOR IS EXCLUDED FROM THAT SLOT ONLY.** Per-slot and per-game.
+  **NOT a global exclusion**: one repudiation must **not** remove a person from the group
+  or from future games.
+- **D-48** — **THE GAME REMAINS VALID** while the slot is unresolved. Voiding a four-player
+  game because one slot is contested **punishes three people for someone else's error**.
+- **D-49** — **AN UNRESOLVED SLOT IS UNAVAILABLE, NOT ABSENT.** The metrics contract must
+  treat it as an **unavailable state**, never silently reducing the field size. **A
+  four-player game must not become a three-player game** — every margin in it would shift.
+  This is the **coverage-state pattern the phase documents already specify**, applied to
+  **participation** rather than to a metric.
 
 ### Build constraints that follow from the decisions (not separately ruled)
 
@@ -2225,6 +2351,87 @@ contract remains authoritative for semantic meaning until the owner amends it.
   authentication requirement.** This consequence is **recorded, not acted on**:
   `docs/redesign/phases/09-*.md` and `docs/redesign/phases/11-*.md` are **NOT edited** on
   the strength of it.
+
+### Consequences of the registration and search model (C-3–C-6, added 2026-07-24)
+
+These **follow from D-34–D-43**; **none is a separate decision**, and none is resolved
+here. They continue the C-series begun above.
+
+- **C-3 — X-3 IS UPGRADED FROM HOUSEKEEPING TO LOAD-BEARING.** The finding meant is
+  `docs/agent-handoffs/RECORD-IDENTITY-FEASIBILITY-FINDINGS.md` → §"X-3 —
+  `is_username_available` is called but defined nowhere". **Disambiguation, because this
+  identifier collides:** a **different X-3** exists in
+  `docs/agent-handoffs/AUDIT-SESSION-RECORDS-2026-07-23.md` (about a `MASTER-PLAN` phase
+  list); every reference must name the handoff, exactly as the identity/analytics Q-series
+  qualifier above requires. That feasibility finding records that `is_username_available`
+  is called at `submit-username-auth.ts`, is **defined in no committed migration**, and
+  **FAILS OPEN** — errors fall through to signup, leaving the UNIQUE constraint as the
+  real guard. **Under D-36 that check stops being housekeeping and becomes the mechanism
+  that decides whether registration proceeds or triggers vouching.** It must therefore
+  **FAIL CLOSED**, and it must span **ALL profiles** (D-37) — which today it **cannot**,
+  because guest usernames are not in the registered-username namespace at all (C-4).
+  **Recorded as a consequence only: no migration is written and none is designed here**,
+  and X-3 is not edited where it lives.
+- **C-4 — THE SHARED NAMESPACE REQUIRES THE UNIFICATION, and this is now the THIRD thing
+  depending on it.** `docs/agent-handoffs/RECORD-IDENTITY-FEASIBILITY-FINDINGS.md` →
+  §"F-1 — the schema does not currently implement the unified-profile model" records that
+  the unique username lives on `user_profiles`, **which guests do not have**, and that
+  `players.username` is **nullable, unconstrained and un-indexed**. A shared namespace
+  (D-37) is therefore **not a constraint that can be added to the current schema** — it
+  presupposes the unification rather than following from it. It joins the two already
+  recorded dependencies — **where guest usernames live**, and **whether an email attaches
+  to an existing row or to a new entity** — making the **unmade unification design choice**
+  (identity Q-2) carry **three** dependents. **That choice is neither resolved nor
+  recommended here.**
+- **C-5 — THE GROUP GATE CONFIRMS R-12's FOOTING; R-12 needs no revisiting.** R-12 permits
+  substring search over usernames and aliases **because the caller is already in the
+  group**, and carries `is_group_member` as its build constraint. D-39 makes membership
+  require a **shared logged game**, which cannot be self-asserted without a game actually
+  being logged — so the precondition R-12 rests on is **a real barrier rather than a
+  turnstile**. **R-12 therefore stands unchanged and is not reopened**; the reason is
+  recorded so a later reader does not mistake the group scope for a UI convention.
+- **C-6 — THE SEARCH/ADD SPLIT CLOSES CROSS-GROUP DISCLOSURE.** The deployed matcher's
+  candidate pool **spans every group the caller belongs to** (the disclosure recorded at
+  D-9). Under the D-40/D-41 split, **discovery never crosses a group boundary** — D-40 is
+  group-scoped and membership-gated — and **the only operation that does cross requires
+  prior knowledge of the exact username** (D-41), with D-42 forbidding any near-match
+  fallback that would leak the difference between "wrong name" and "no such profile". The
+  disclosure is closed **by construction**, not by policy.
+- **C-7 — REPUDIATION IS THE CORRECTIVE FOR MIS-SELECTION, WHICH THIS DESIGN MAKES MORE
+  LIKELY.** Picking from a **list of usernames a person may not recognise** (D-40) is
+  **easier to get wrong** than typing a name someone gave you (D-41). The search design and
+  the repudiation path (D-44–D-49) are therefore **counterparts, not independent
+  features** — recorded so a later reader does not ship the selection UI and treat
+  repudiation as optional polish.
+- **C-8 — REPUDIATION IS CONSUMED BY TWO PHASES, and both dependencies are recorded.**
+  **Phase 5** owns game detail and replay, where a slot is **displayed and repudiated**;
+  **Phase 7** owns the **ratings that an unresolved slot affects** (D-49). Neither phase
+  document is edited here.
+
+### Open and deferred (recorded OPEN 2026-07-24, neither resolved)
+
+**Do derived values recompute after a repudiation? — OPEN, deferred to Phase 7.** Elo is
+**sequential**, so recomputing one game **cascades through every rating after it**; and
+co-play counts (D-11), win differentials and margins all change for **everyone who played
+in that game**, not only for the repudiator. **Recompute, or leave historical values and
+affect only future ones**, is a **Phase 7 question, and Phase 7 is not built.** It is
+recorded here **as open and deferred to whoever builds the rating pipeline**, and is
+**deliberately not decided** — neither option is recommended.
+
+**Known residual — unilateral group join.**
+**A game is logged by ONE person.** Someone could therefore log a game **asserting they
+played with you**, and thereby **join your group unilaterally** — membership being
+retrospective (D-39), the assertion is the thing that creates it, and no invitation or
+approval stands in the way (D-35).
+
+**Scale condition, which is the whole of why it is tolerable today.** At the recorded
+transition scope (D-25 — **four registered users and one guest**) this is **visible and
+harmless**: every participant knows every other, and a false assertion would be noticed
+at once. **It is the kind of thing that matters at a hundred users**, where such an
+assertion is neither visible nor self-correcting.
+
+**Recorded as a known residual with its scale condition, and deliberately left open. No
+fix is designed, proposed, or recommended here**, and recording it implies none.
 
 ### Open questions — the IDENTITY Q-series — recorded as OPEN, none resolved here (repository reads, queued at step 4.38)
 

@@ -33,6 +33,45 @@ accompanied it and nothing in production calls the new three-argument overload.*
 are the three remaining gates before contraction `20260722012707`, and **none of
 them is open**. Applied is not deployed and is not closed.
 
+**2026-07-24 — the registration, search and repudiation model is RECORDED; entry and
+claiming are now SEPARATE (documentation only).** Work item
+`RECORD-REGISTRATION-SEARCH-AND-REPUDIATION` extended the identity decision record from
+**D-1–D-33 to D-1–D-49**, the range derived from the file rather than assumed. The
+original record **fused** how a person *enters* the system with how a person *claims
+existing history*; the owner separated them and added a **repudiation path** for games
+wrongly attributed to a person.
+**Registration is UNVOUCHED** (D-34) — vouching protects existing history, it does not
+gate participation — and **taking an existing username IS the claim** (D-36), detected
+at registration, which **closes shadowing**: a person cannot passively occupy another's
+identity because occupying it is the thing that needs approval. Its precondition is a
+**single username namespace across guest and registered profiles** (D-37). **Group
+membership is retrospective** — it requires a **shared logged game**, so the sequence is
+add → game → membership (D-39), with no invitation (D-35). **Search and Add are two
+operations** (D-40–D-43): Search is group-scoped, membership-gated substring discovery;
+Add is exact-username, global entry by prior knowledge, and must **neither fall back to
+search nor require membership**. **Repudiation** (D-44–D-49) lets a person state from
+their own history that **a slot was not them**, with **no confirmation from the logger** —
+the deliberate inverse of the claim rule, because acquiring history needs permission and
+disowning it does not; it is **recorded rather than silent**, **the logger re-picks** with
+all-participant fan-out, the exclusion is **per-slot only**, **the game stays valid**, and
+an unresolved slot is **UNAVAILABLE rather than absent** so a four-player game never
+silently becomes a three-player one. The already-recorded **vouch lifecycle (D-28–D-33) is
+scope-narrowed to CLAIMS ONLY** and **D-32's purpose changed** to an accumulation
+mechanism — both recorded **beside** those entries **without amending them**.
+Consequences **C-3–C-8** record that the `is_username_available` finding is **upgraded to
+load-bearing and must fail CLOSED**, that the shared namespace makes the **unification the
+third dependency** on that unmade design choice, that **R-12 needs no revisiting**, that
+the split **closes cross-group disclosure**, that **repudiation and the search design are
+counterparts** rather than independent features, and that repudiation is **consumed by
+Phase 5 and Phase 7**. **Two items are recorded OPEN**: whether derived values
+**recompute after a repudiation** — Elo is sequential, so one change cascades — which is
+**deferred to Phase 7 and not decided**; and the **unilateral group join** residual, since
+a game is logged by one person — harmless at the D-25 transition scope, material at a
+hundred users. **Nothing was built, decided beyond recording, or resolved**; no contract,
+phase document, `CURRENT_STATUS.md` or `MASTER-RULES.md` was edited; no migration or code
+was written; and the unification choice remains the owner's. Handoff:
+`docs/agent-handoffs/RECORD-REGISTRATION-SEARCH-AND-REPUDIATION.md`.
+
 **2026-07-24 — the blocker table is RECONCILED to ruling R-6 (documentation only);
 audit finding AUD-1 is answered.** Work item `RECONCILE-BLOCKER-TABLE-TO-R6`
 corrected the two `docs/CURRENT_STATUS.md` blocker rows whose `Blocking` value
@@ -3235,6 +3274,43 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/RECORD-REGISTRATION-SEARCH-AND-REPUDIATION.md
+  (documentation-only recording that **separates entry from claiming** and adds a
+  **repudiation path** in the identity design record; redesign lineage and local:
+  **nothing built, applied, deployed, pushed, merged, or read from production** — no
+  Supabase MCP, no `execute_sql`, no `list_migrations`, no `wrangler`, no
+  `/api/deploy-info`, no production SQL; **no code, schema, migration or RPC written**, and
+  the planning-pack updater was not run by hand. Extends the identity decision record from
+  **D-1–D-33 to D-1–D-49** — numbering derived from the file, not assumed. Records
+  **D-34–D-35** (registration is UNVOUCHED; no group invitation), **D-36–D-38** (taking an
+  existing username **IS** the claim, so **SHADOWING IS CLOSED**; usernames unique across
+  **all** profiles as its precondition; guest play while a claim is pending), **D-39**
+  (group membership requires a **shared logged game**, retrospective: add → game →
+  membership), **D-40–D-43** (SEARCH is group-scoped, membership-gated substring
+  **discovery**; ADD is **exact-username, global** entry by prior knowledge, with both
+  guards recorded — **no fallback to search** and **no membership requirement**), and
+  **D-44–D-49** (**repudiation is self-service** — disowning history needs no permission,
+  the deliberate inverse of the claim rule; **recorded, not silent**; **the logger
+  re-picks** with all-participant fan-out; **excluded from that slot only**, never
+  globally; **the game remains valid**; and an unresolved slot is **UNAVAILABLE, not
+  absent**, so a four-player game never silently becomes a three-player one). Adds
+  consequences **C-3–C-8**: X-3 (the `is_username_available` finding, disambiguated from
+  the unrelated X-3) is **upgraded to load-bearing and must fail CLOSED**; the shared
+  namespace makes the unification the **third** dependency on that unmade design choice;
+  **R-12 needs no revisiting** and why; the search/add split **closes cross-group
+  disclosure**; **repudiation and the search design are counterparts**, since picking from
+  a list is easier to get wrong than typing a name; and repudiation is **consumed by Phase
+  5 and Phase 7**. Adds **scope notes beside the vouch-lifecycle entries (claims only,
+  never entry) and beside D-32 (purpose changed to an accumulation mechanism) WITHOUT
+  amending them** — proven by a word-diff with **zero deletions** in that region. Records
+  **two items OPEN and unresolved**: whether derived values **recompute after a
+  repudiation** (Elo is sequential, so it cascades — **deferred to Phase 7**, not decided),
+  and the **unilateral group join** residual with its scale condition (harmless at the D-25
+  transition scope, material at a hundred users; **no fix designed**). **No existing
+  decision, ruling or finding was amended or deleted** (the single diff deletion is the
+  record's heading range, navigational metadata); the unification choice is **not
+  resolved**; `GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`, `CURRENT_STATUS.md`, `MASTER-RULES.md`
+  and every phase document are **untouched**; and **no line-number citation was added**.)
 - docs/agent-handoffs/SUPERSEDE-COPY-READY-PROMPTS.md
   (documentation-only placement of **superseding notes immediately before four
   `## Copy-ready agent execution prompt` blocks** in `docs/redesign/phases/`; redesign
