@@ -452,7 +452,9 @@ is a separate work item.
 - **"Opponent-adjusted performance" — SUPERSEDED IN PART; the three clauses resolve
   separately.**
   - **rating** — SUPERSEDED by **R-13**: the 2026-07-21 seasonal-ELO decision
-    (`DECISIONS.md:1146-1204`) stands and supplies the rating model the row said did
+    (`DECISIONS.md` → its three "Phase 7 — Leaderboard" sections: "rating color bands",
+    "eligibility and Confidence marker", and "opponent-adjustment boundary, tie-breaking,
+    and default scope") stands and supplies the rating model the row said did
     not exist.
   - **expected result** — SUPERSEDED by **R-13**: the same decision supplies the
     expected-result basis.

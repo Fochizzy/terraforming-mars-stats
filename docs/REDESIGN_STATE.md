@@ -3235,6 +3235,55 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/REMEDIATE-RECORD-NAVIGABILITY.md
+  (documentation-only remediation of the three remaining record-navigability findings
+  from the read-only coherence audit `84f4a6d9e` — **AUD-2**, **AUD-3**, **AUD-4** —
+  plus the migration-scope addendum; redesign lineage and local: **nothing built,
+  applied, deployed, pushed, merged, or read from production** — no Supabase MCP, no
+  `execute_sql`, no `list_migrations`, no `wrangler`, no `/api/deploy-info`; **no phase
+  document, migration, or `src/**` file edited**, and the planning-pack updater was not
+  run by hand. **AUD-2 — the numbers were REPLACED, not corrected**, because a corrected
+  number breaks again on the next insertion above it (process rule **P-2**). The sweep
+  found **eleven** `DECISIONS.md`-internal line-citation tokens against the audit's
+  **seven**: the audit's set was again a **SUBSET**, missing **R-15**'s `:1204` (genuinely
+  stale — its quoted ordering sentence is at `:1216-1217`), both of **analytics Q-5**'s
+  tokens (which resolved correctly and were replaced anyway, because the rule governs the
+  class, not the staleness), and **R-12**'s second token. Every replacement is a
+  **section-and-text anchor**, and all were **mechanically verified to resolve — 14
+  checks, 0 failures**. The two propagated `:1146-1204` citations in
+  `docs/redesign/DATA-CAPABILITIES.md` and `docs/redesign/CANONICAL-ANALYTICS-DEFINITIONS.md`
+  were replaced the same way, **anchor replacement only, no other change to either file**;
+  `METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` was swept and **carries no
+  `DECISIONS.md` line citation**. **R-6's stale `04-log-a-game.md:476` is CROSS-FILE and
+  deliberately left as written**, with every other cross-file citation. **AUD-3 —
+  disambiguated, NOT renumbered** (renumbering would invalidate references in
+  already-committed dated handoffs): both Q-series headings now name their series and
+  carry a qualifier stating that **a bare "Q-3" names nothing on its own** and that every
+  reference must be qualified, and the identity bullets are labelled `Q-n (identity)` to
+  match the analytics convention. The two already-tripped mislabels in
+  `RECORD-IDENTITY-FEASIBILITY-FINDINGS.md` — **F-7** and **X-1**, both citing "analytics
+  Q-3" for the **identity Q-3** matcher gate — are corrected and **MARKED as corrections,
+  not silently edited**, each recording that the label was **wrong when written** rather
+  than superseded, and X-1's marker recording that **its line citation `:2225` was
+  correct and only its label was wrong**. **AUD-4** — D-15 now carries a pointer to
+  **F-1**, and **D-15 is NOT amended: proven byte-unchanged by an identical sha256** of
+  its three lines at HEAD and in the worktree. **No ruling, decision, finding or
+  discrepancy amended anywhere — proven by a word-diff whose complete deletion set across
+  all four changed files is the eleven citations, four bare Q-labels, and F-7/X-1's four
+  `analytics` label tokens.** The **addendum** records the six identity stores plus the
+  seventh sink **`game_revisions.snapshot`**, framed as **scope, not decisions** — every
+  item an unmade choice — and states explicitly that **R-11 dissolved the
+  `DRAFT-NAME-RESIDUE` FINDING but not the SINK**: no new real names means no new residue,
+  which says nothing about names already frozen in snapshots written before the model
+  changes, so a migration cleaning all six stores and leaving those is **only partly
+  done**. **Recorded, not fixed:** this change itself moved three line citations inside
+  the dated audit record (`DECISIONS.md:2125`→`:2126`, `:2219`, `:2368`) — AUD-2's own
+  mechanism demonstrated live, and that handoff is a dated record this project does not
+  rewrite. **AUD-5 untouched**; `MATCHER-MANUAL-ENTRY-REPLACEMENT` **not reclassified**;
+  `ID-READER-CONTRACT` **given no destination**. **This record corrects how the record is
+  navigated and decides, resolves, and authorizes nothing** — not the closure audit, not
+  the reader deploy, not the drop, not the contraction, not Phase 5, not Step 4.4.
+  Handoff: `docs/agent-handoffs/REMEDIATE-RECORD-NAVIGABILITY.md`.)
 - docs/agent-handoffs/RECONCILE-BLOCKER-TABLE-TO-R6.md
   (documentation-only reconciliation of the `CURRENT_STATUS.md` blocker table to owner
   ruling **R-6**, answering audit finding **AUD-1**; redesign lineage and local:

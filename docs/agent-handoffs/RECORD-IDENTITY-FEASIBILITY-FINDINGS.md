@@ -153,9 +153,24 @@ prohibition stays in force over private personal-name stores and the claim path 
 excluded. **THE SECOND TENSION IS OPEN and is an owner judgement:** does "otherwise
 structured" admit a **membership-derived candidate list**, or does the owner intend
 **source-binding specifically** for these paths? Recorded as **OPEN**; not resolved, and
-this item's disposition is **not changed**. (It intersects the analytics-side open
-question recorded as analytics **Q-3**, which asks the same of group-scoped structured
+this item's disposition is **not changed**. (It intersects the open question recorded as
+**identity Q-3** — `docs/redesign/DECISIONS.md` → "Open questions — the IDENTITY
+Q-series", the Q-3 bullet beginning "Does group-scoped structured search (D-8/D-9)
+satisfy `MATCHER-MANUAL-ENTRY-REPLACEMENT`?" — which asks the same of group-scoped structured
 search — also left open.)
+
+> **CORRECTION 2026-07-24 by `REMEDIATE-RECORD-NAVIGABILITY`, answering audit finding
+> AUD-3. Marked, not silently edited.** As committed, the parenthesis above read: "It
+> intersects the **analytics-side** open question recorded as analytics **Q-3**, which
+> asks the same of group-scoped structured search — also left open." **That label was
+> wrong when written** — not made wrong by any later event — so this is a **correction,
+> not a supersession**. `DECISIONS.md` carries **two independent Q-series**: **analytics
+> Q-3** is the R-16 ranking-metric question ("which of the two is the ranking metric?"),
+> unrelated to this finding, while **identity Q-3** is the matcher gate that asks exactly
+> what F-7 asks and whose answer would take a Phase 5 entry gate off the board. A reader
+> following the original reference landed on the wrong question. **Corrected: the label
+> and its "analytics-side" framing only.** The finding, its evidence, its disposition,
+> and the **OPEN** state of its second tension are **unchanged**.
 
 ---
 
@@ -169,13 +184,30 @@ item by that name. The asymmetry is recorded; the missing entry is **not** creat
 **Re-derivation nuance [REPO, re-derived]:** since `9fc2c96f`, the intervening
 identity-recording commit (`588218504`, this session's series) added DECISIONS **rulings**
 that name the item — R-10 ("`MATCHER-MANUAL-ENTRY-REPLACEMENT` is the sixth tracked open
-item", `DECISIONS.md:1997`), R-6's Phase-5 re-registration (`:1960`), and analytics Q-3
-(`:2225`). So the literal "named only in `CURRENT_STATUS.md:812`" is now **superseded**:
+item", `DECISIONS.md:1997`), R-6's Phase-5 re-registration (`:1960`), and **identity Q-3**
+(`DECISIONS.md` → "Open questions — the IDENTITY Q-series", the Q-3 bullet beginning "Does
+group-scoped structured search (D-8/D-9) satisfy `MATCHER-MANUAL-ENTRY-REPLACEMENT`?").
+So the literal "named only in `CURRENT_STATUS.md:812`" is now **superseded**:
 the name appears in DECISIONS. But those are **rulings referencing** the item; there is
 still **no defining blocker entry** for it in DECISIONS — the item's requirement and
 disposition live only in the `CURRENT_STATUS.md:812` table row. The asymmetry X-1 records
 (the definition lives in one document) therefore persists; only its "named only" phrasing
 is dated. **The missing entry is deliberately not created.**
+
+> **CORRECTION 2026-07-24 by `REMEDIATE-RECORD-NAVIGABILITY`, answering audit finding
+> AUD-3. Marked, not silently edited.** As committed, the third item in the list above
+> read "and analytics Q-3 (`:2225`)". **The LABEL was wrong when written; the LINE
+> CITATION was correct.** `DECISIONS.md:2225` did resolve to the **identity** Q-3 bullet
+> at the time of writing — so this is a **correction of the label only**, not a
+> supersession, and not a claim that the original pointed at the wrong line. Calling that
+> bullet "analytics Q-3" mis-routes a reader to the R-16 ranking-metric question, which
+> does **not** name `MATCHER-MANUAL-ENTRY-REPLACEMENT` and so would not support the
+> sentence it was cited for. **Two changes, both mechanical:** the label is corrected to
+> **identity Q-3**, and the line citation `:2225` is replaced with a section-and-text
+> anchor — because the same commit that carries this correction inserts text **above**
+> line 2225 in `DECISIONS.md`, which would have made a correct citation stale. The
+> discrepancy, its evidence, and its standing conclusion (the asymmetry persists; the
+> missing entry is not created) are **unchanged**.
 
 ## X-2 — the guest-row count is six, not one
 
@@ -219,6 +251,82 @@ committed to this repository", and `:12-15` records the reconstruction evidence
 (read-only against production, 2026-07-19: both columns plain nullable text, no default,
 no index/constraint). The columns are **real in production [PRIOR]**; their **repository
 definition is a faithful reconstruction, not the original.**
+
+---
+
+# ADDENDUM (added 2026-07-24 by `REMEDIATE-RECORD-NAVIGABILITY`) — what a migration off personal names must DECIDE, per store
+
+**THIS IS SCOPE, NOT DECISIONS.** Every item below is an **unmade choice**. Nothing here
+decides a migration, recommends one, amends F-1–F-7 or X-1–X-5, resolves any of them,
+reclassifies any blocker, or authorizes any write. **No migration is written and none is
+authorized.**
+
+**Why it is here.** The feasibility investigation established what a migration off
+personal names would have to decide, **store by store**. That did not reach the committed
+F-series, so a session scoping the migration would have had to rediscover it. It is
+recorded now so the scope is found **before** scoping rather than after.
+
+## The identity stores — SIX decisions
+
+| # | Store | The unmade choice |
+|---|---|---|
+| 1 | `private.player_private_identities` | **Retain or remove** `guest_first_name`, `guest_last_name`, `normalized_personal_name`. |
+| 2 | `private.player_legacy_identities` | **Keep as evidence, or purge.** |
+| 3 | `public.player_import_aliases` | **Partition by `identity_mode`.** Only `personal_name` rows and rows whose mode is **null** carry name material; `username` rows do not. |
+| 4 | `public.players.full_name` | **Drop or neutralize — AND stop the live-site writers**, or re-dirtying continues. |
+| 5 | `public.players.username` | Same choice as (4), and it travels with it: both columns are written by the same live-site paths. |
+| 6 | `public.players.display_name` | **Neutral at HEAD**, but **legacy rows may still hold typed names.** |
+
+**Object and column evidence [REPO, re-derived 2026-07-24]** — cited by object name rather
+than by line, so these references do not go stale the way the ones AUD-2 found did:
+`private.player_private_identities` declares `guest_first_name`, `guest_last_name` and
+`normalized_personal_name` in `20260718050924_claimable_guest_identity_privacy.sql`.
+`private.player_legacy_identities` (`20260719223000`) declares `legacy_full_name` /
+`legacy_username`, and its own table comment describes it as the "Private preservation of
+pre-remediation public.players.full_name/username for unlinked players".
+`player_import_aliases.identity_mode` is constrained by
+`player_import_aliases_identity_mode_check` to `null | 'username' | 'personal_name'` (same
+migration), and `20260722012658` comments that a **null** mode means "an alias … predates
+the mode" — which is why the partition has **three** classes, not two.
+`public.players.full_name` and `public.players.username` are the schema-only
+reconstruction **X-5** records (`20260712114538_add_player_username_full_name.sql`).
+**[PRIOR]** for the live-site writers: **R-11** records `createPlayerIfMissing` and
+`updatePlayerIdentity` (`src/lib/db/player-repo.ts`) and `resolveOrCreateImportGroup`
+(`src/lib/db/import-group-repo.ts`) as still writing personal-name material — and **X-4**
+records that they are **removed at redesign HEAD but live on the production lineage**,
+which is exactly why "stop the writers" belongs inside choices (4)/(5) rather than beside
+them.
+
+## The seventh sink, and the reason this addendum matters — `game_revisions.snapshot`
+
+`public.game_revisions.snapshot` is declared **`jsonb not null`** on
+`public.game_revisions` in `20260703120000_create_core_tables.sql`
+**[REPO, re-derived]**. **Typed names persist in existing snapshots [PRIOR]** — recorded
+from the feasibility investigation; no production read was made here and none is
+authorized.
+
+**THE FINDING IS DISSOLVED; THE SINK IS NOT.** Owner ruling **R-11** dissolved
+`DRAFT-NAME-RESIDUE`: under the identity model no real name is stored on a seat (D-1) and
+aliases never leave the server (D-13), so there is "no personal name that could survive
+into a draft snapshot". **That is a statement about names not yet written.** R-11's own
+text records the dissolutions as **"prospective on the identity model being built"** — it
+says **nothing** about names **already frozen** in snapshots written **before** the model
+changes. **No new real names means no new residue; it does not mean no residue.**
+
+**Consequence for scoping, stated so it cannot be missed:** a migration that cleans all
+six stores above and leaves `game_revisions.snapshot` untouched is **only partly done**.
+Whether existing snapshots are rewritten, redacted, or deliberately retained as historical
+evidence is **the seventh unmade choice** — and it is the one no sweep of the identity
+tables will surface, because the sink is **not** an identity table.
+
+## What this addendum does NOT do
+
+It does not decide any of the seven choices, rank them, sequence them, or estimate them. It
+does not amend or reopen **R-11** — the dissolution of `DRAFT-NAME-RESIDUE` stands exactly
+as ruled, and the distinction drawn here is the one R-11's own "prospective" wording
+already implies. It does not reclassify `GUEST-LABEL-REDIRTY` or any other blocker. It
+performs no production read, so the actual contents of `game_revisions.snapshot` remain
+**[UNVERIFIED]** here. It authorizes no migration, no write, and no phase.
 
 ---
 

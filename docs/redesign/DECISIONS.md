@@ -2031,10 +2031,11 @@ dispositions; each is annotated in `docs/CURRENT_STATUS.md` with its dissolution
 
 ### R-12 — substring matching is NARROWED, not repealed — **OVERRIDE**
 
-**Ruling.** The rule at `docs/redesign/DECISIONS.md:1261-1263` **[PROJECT-DOC]** —
-"No substring, prefix, fuzzy, or similarity matching" — is **narrowed, not
-repealed.** D-8 requires **username substring search**; the owner **overrides that
-rule for the SEARCH PATH ONLY.**
+**Ruling.** The rule in this document's "Phase 4 Step 4.3 - Import identity
+classification and source-bound matching" section — the "Exact relationship to the log"
+bullet, at the sentence beginning "No substring, prefix, fuzzy, or similarity matching"
+**[PROJECT-DOC]** — is **narrowed, not repealed.** D-8 requires **username substring
+search**; the owner **overrides that rule for the SEARCH PATH ONLY.**
 
 **THIS IS A DELIBERATE OVERRIDE.** The record states the reasoning, because the
 reasoning is what makes the override **safe rather than convenient**: the original
@@ -2051,8 +2052,8 @@ it:**
 
 - **The rule remains IN FULL FORCE** for matching against
   `private.player_private_identities`, `private.player_legacy_identities`, and **any
-  normalized personal-name value.** The original text at `:1261-1263` is **not
-  deleted or reworded** — the guest-identity oracle sequence (the
+  normalized personal-name value.** The original text of that "Exact relationship to the
+  log" bullet is **not deleted or reworded** — the guest-identity oracle sequence (the
   `resolve_import_guest_identity` / `match_import_player_names` matchers and the
   applied `authenticated`-EXECUTE revokes and gated contraction around them)
   **depends on it.**
@@ -2125,6 +2126,20 @@ contract remains authoritative for semantic meaning until the owner amends it.
 - **D-15** — **Registered and unregistered profiles are the same entity.** The only
   differences are an attached email and the ability to log in. Claiming attaches an
   email to an existing row; it transfers nothing, and **no history moves.**
+  - **POINTER, added 2026-07-24 by `REMEDIATE-RECORD-NAVIGABILITY` answering audit
+    finding AUD-4. D-15 above is NOT amended and its text is unchanged.** The current
+    schema **does not implement** this. The finding that measures the distance is **F-1**
+    in `docs/agent-handoffs/RECORD-IDENTITY-FEASIBILITY-FINDINGS.md` → "F-1 — the schema
+    does not currently implement the unified-profile model": `public.players` is
+    **group-scoped** (one row per person per group), `public.user_profiles` is **global**
+    (registered users only), and the **unique login/search username lives on
+    `user_profiles`** — the table a guest does not have. F-1 points back at this design;
+    **this pointer is the return leg**, so a reader planning the build finds F-1 **before**
+    scoping rather than after. **D-15 still stands as the target**; F-1 establishes the
+    distance to it, not an error in it. The owner design choice F-1 frames — **merge the
+    tables**, or **introduce a new per-person entity with `players` demoted to a
+    participation row** — is **NOT made** in either document. Identity Q-2 above asks the
+    same question from the decision side.
 - **D-16** — **An email is required to register.** There is no username-and-PIN-only
   account, so every account that can log in has a recovery path.
 - **D-17** — Login is by **username OR email**, plus a **6-digit PIN.**
@@ -2211,20 +2226,34 @@ contract remains authoritative for semantic meaning until the owner amends it.
   `docs/redesign/phases/09-*.md` and `docs/redesign/phases/11-*.md` are **NOT edited** on
   the strength of it.
 
-### Open questions — recorded as OPEN, none resolved here (repository reads, queued at step 4.38)
+### Open questions — the IDENTITY Q-series — recorded as OPEN, none resolved here (repository reads, queued at step 4.38)
+
+> **DISAMBIGUATION QUALIFIER (added 2026-07-24 by `REMEDIATE-RECORD-NAVIGABILITY`,
+> answering audit finding AUD-3). This is the IDENTITY Q-series.** This document carries
+> **two independent `Q-1..Q-N` sequences** — this identity set, and the **analytics** set
+> under "Analytics open questions" later in this file. **They are different questions
+> under the same numbers.** A bare "Q-3" therefore names **nothing** on its own: identity
+> Q-3 is the matcher gate below, while analytics Q-3 is the R-16 ranking-metric question.
+> **Every reference to a question in either series MUST be qualified** — write "identity
+> Q-3" or "analytics Q-3", never "Q-3". **Neither series is renumbered**, because
+> renumbering would invalidate references in already-committed, dated handoffs. The
+> collision has already been tripped once: `RECORD-IDENTITY-FEASIBILITY-FINDINGS.md`
+> cited "analytics Q-3" in **F-7** and **X-1** where it meant **identity Q-3**; both are
+> corrected and marked in that handoff.
 
 All four are **repository reads**; **no owner decision is outstanding** on any of them,
 and **none is answered or recommended here.**
 
-- **Q-1** — Does Supabase Auth support a 6-digit PIN credential, or does D-17 require
-  custom authentication or mapping the PIN onto a password field?
-- **Q-2** — Are `public.user_profiles` and `public.players` already the same entity under
-  D-15, or does D-15 require unifying them? This determines whether the build is one work
-  item or five.
-- **Q-3** — Does group-scoped structured search (D-8/D-9) satisfy
+- **Q-1 (identity)** — Does Supabase Auth support a 6-digit PIN credential, or does D-17
+  require custom authentication or mapping the PIN onto a password field?
+- **Q-2 (identity)** — Are `public.user_profiles` and `public.players` already the same
+  entity under D-15, or does D-15 require unifying them? This determines whether the build
+  is one work item or five.
+- **Q-3 (identity)** — Does group-scoped structured search (D-8/D-9) satisfy
   `MATCHER-MANUAL-ENTRY-REPLACEMENT`? Candidates would come from the group rather than
-  from the browser. If so, a Phase 5 entry gate comes off the board.
-- **Q-4** — Does the single guest row in D-25 carry import evidence — aliases,
+  from the browser. If so, a Phase 5 entry gate comes off the board. **This is the
+  question mis-cited as "analytics Q-3" — analytics Q-3 is a different question.**
+- **Q-4 (identity)** — Does the single guest row in D-25 carry import evidence — aliases,
   `player_import_aliases`, private identity records? Migrating a guest with import
   provenance is a different operation from one without.
 
@@ -2249,9 +2278,10 @@ standing process governance rather than analytics decisions.
 
 Where the four analytics contracts and the Phase 2 undecided list treat opponent and
 leaderboard analytics as unavailable or undecided, they have **not** been reconciled to
-the ELO decision recorded at `docs/redesign/DECISIONS.md:1146-1204` (the 2026-07-21
-analytics-decisions session: rating color bands, eligibility/Confidence marker, and the
-opponent-adjustment/tie-break/scope boundary). **The decision governs; the contracts
+the ELO decision recorded in this document's three "Phase 7 — Leaderboard" sections (the
+2026-07-21 analytics-decisions session: "Phase 7 — Leaderboard rating color bands",
+"Phase 7 — Leaderboard eligibility and Confidence marker", and "Phase 7 — Leaderboard
+opponent-adjustment boundary, tie-breaking, and default scope"). **The decision governs; the contracts
 lag it.** Lines now known stale, recorded here and **not edited**:
 
 - `DATA-CAPABILITIES.md:421` — "no rating, expected result, or adjusted model exists"
@@ -2293,7 +2323,11 @@ Verification caveats (recorded, not resolved):
   recurs at further sites (e.g. `07:867`, `10:324`, `11:305`, `11:404`, `12:669`,
   `09:790`, `20:746/787/820/1028`), so the reconciliation must sweep for all of them.
 - The Win Point Differential **metric** keeps its own separate **minimum-wins** gate
-  (`DECISIONS.md:1192`, `:1231`) because a winner-margin metric needs wins; that is a
+  (this document's "Phase 7 — Leaderboard eligibility and Confidence marker" section, the
+  bullet beginning "The Win Point Differential metric ranking keeps its own separate
+  minimum-wins"; and its "Phase 7 — Leaderboard opponent-adjustment boundary,
+  tie-breaking, and default scope" section, the bullet beginning "Metric rankings reuse
+  the same shape") because a winner-margin metric needs wins; that is a
   per-metric threshold under (b), distinct from the universal games-played floor under
   (a). This interaction is **surfaced, not resolved** (process rule P-1).
 
@@ -2305,8 +2339,9 @@ These are **different objects and must not be conflated.**
   transparent opponent adjustment" step: raw / expected / adjusted margin) requires a
   **rating per opponent.** ELO now supplies one (R-13), so it **has an anchor and
   stands.** Its **dependency on Phase 7 is recorded**: it cannot be built before ratings
-  exist. `DECISIONS.md:1204` already fixes the ordering ("The ELO rating is the single
-  opponent-strength model. Phase 7 produces it; Phase 17 consumes it"); the dependency is
+  exist. This document's "Phase 7 — Leaderboard opponent-adjustment boundary,
+  tie-breaking, and default scope" section already fixes the ordering ("The ELO rating is
+  the single opponent-strength model. Phase 7 produces it; Phase 17 consumes it"); the dependency is
   now **stated rather than implied.**
 - The **Group-Chemistry expected-performance model**
   (`18-objectives-endgame-and-chemistry.md:85`, the "18.5 — Define group chemistry
@@ -2323,7 +2358,8 @@ players:
 - **(b)** Score against the **field average.**
 
 This **supersedes** the "baseline undecided" state recorded in Phase 2
-(`DECISIONS.md:643`, the "baseline for overall point differential" bullet) and at
+(this document's "Phase 2 questions that remain undecided" section, the "baseline for
+overall point differential" bullet under "Step 2.0 does not decide:") and at
 `DATA-CAPABILITIES.md:399` (row "Overall point differential", "Requires further
 verification"), and gives the four phase sites that use the metric an anchor:
 `07-leaderboard.md:779`, `17-competition-and-board.md:105`,
@@ -2358,7 +2394,18 @@ from recorded data", rows 11–14 — the derived ratio family). The contradicti
 whether raw logs are stored immutably enough for a reparse to reach them is a separate
 open question (analytics Q-8).
 
-### Analytics open questions — recorded OPEN, none resolved here
+### Analytics open questions — the ANALYTICS Q-series — recorded OPEN, none resolved here
+
+> **DISAMBIGUATION QUALIFIER (added 2026-07-24 by `REMEDIATE-RECORD-NAVIGABILITY`,
+> answering audit finding AUD-3). This is the ANALYTICS Q-series.** This document carries
+> **two independent `Q-1..Q-N` sequences** — this analytics set, and the **identity** set
+> under "Open questions — the IDENTITY Q-series" earlier in this file. **They are
+> different questions under the same numbers.** A bare "Q-3" therefore names **nothing**
+> on its own: analytics Q-3 is the R-16 ranking-metric question below, while identity Q-3
+> is the `MATCHER-MANUAL-ENTRY-REPLACEMENT` matcher gate that controls a Phase 5 entry
+> gate. **Every reference to a question in either series MUST be qualified** — write
+> "analytics Q-3" or "identity Q-3", never "Q-3". **Neither series is renumbered**,
+> because renumbering would invalidate references in already-committed, dated handoffs.
 
 These are the analytics / Phase-2 open questions from the same 2026-07-23 conversation.
 They are **distinct** from the identity-design open questions **Q-1–Q-4** in the identity
@@ -2376,9 +2423,13 @@ decision-record section above; where this project later cites them, they are the
 - **Q-3 (analytics)** — R-16: which of the two is the ranking metric? Four phase sites
   treat overall point differential as one rankable value.
 - **Q-4 (analytics)** — R-16: does the field average include the player's own score?
-- **Q-5 (analytics)** — R-16 vs the existing metric. `DECISIONS.md` records a version-1
-  **sole-winner Win Point Differential** (`:587-588`, `:615-616`: winner score minus
-  highest non-winning score; tied-first indeterminate). R-16(a) is that same number for
+- **Q-5 (analytics)** — R-16 vs the existing metric. This document records a version-1
+  **sole-winner Win Point Differential** in two places — the "Phase 2 canonical
+  calculation versioning" section, bullet beginning "The sole-winner Win Point
+  Differential implementation is winner score minus", and the "Phase 2 repository and
+  query policy" section, bullet beginning "The version 1 sole-winner Win Point
+  Differential is supported for game scope" (winner score minus highest non-winning
+  score; tied-first indeterminate). R-16(a) is that same number for
   the winner specifically. Does R-16 supersede it as the general case, or do they
   coexist? (Two similarly named metrics computed differently is how the card-acquisition
   confusion started.)

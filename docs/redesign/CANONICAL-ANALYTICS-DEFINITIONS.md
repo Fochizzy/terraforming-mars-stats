@@ -148,7 +148,9 @@ paragraph's wording is unchanged, and no definition is added here — reconcilin
 registry itself is separate, unauthorized work.
 
 - **expected-score** (within "expected-score/efficiency/style/award calculations") —
-  **SUPERSEDED by R-13.** The 2026-07-21 seasonal-ELO decision (`DECISIONS.md:1146-1204`)
+  **SUPERSEDED by R-13.** The 2026-07-21 seasonal-ELO decision (`DECISIONS.md` → its
+  three "Phase 7 — Leaderboard" sections: "rating color bands", "eligibility and
+  Confidence marker", and "opponent-adjustment boundary, tie-breaking, and default scope")
   stands and supplies the expected-score basis this Step 2.4 registry excluded; the
   exclusion lagged that decision, and the decision governs. Only the **expected-score**
   item is superseded — "efficiency", "style", and the remaining items are unaffected.
