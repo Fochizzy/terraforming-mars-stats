@@ -373,6 +373,53 @@ Step 4.3 must not:
 > The claim flow itself is the peer-vouching model recorded as **D-22/D-28–D-33**
 > in `docs/redesign/DECISIONS.md`. (The recording assignment cited line 356, the
 > blank line above the bullet; the prohibition text is at line 357.)
+>
+> **EXTENDED 2026-07-24 by `CORRECT-PERSONAL-NAME-PHASE-SITES` under owner ruling R-18
+> — a SECOND and SEPARATE supersession, recorded inside this same note because this
+> document keeps one supersession note. The R-8 override above is UNCHANGED: it is not
+> restated, narrowed, widened, or reopened here.** Two items in the lists above are
+> superseded, and **both are retained in place, not deleted or reworded**:
+>
+> - under "Step 4.3 guest identity scope", in the "Step 4.3 must allow the importer to:"
+>   list, the item **"create a new unlinked guest using first name and last name"**; and
+> - under the same section's "Step 4.3 must:" list, the item **"keep username and
+>   personal-name matching separate"**.
+>
+> Both **give way** to the identity model recorded in `docs/redesign/DECISIONS.md` →
+> "Phase 4 Step 4.3 — replacement player-identity, account, and vouching model (decision
+> record: D-1–D-49), 2026-07-23" — the first to **D-1**, **D-3**, **D-4** and **D-37**,
+> the second to **D-1**, **D-4**, **D-8**, **D-40** and **D-41**. The ruling that removes
+> the basis they rested on is `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — owner
+> ruling R-18 on the governing-document conflicts with the identity model, 2026-07-24".
+> It clears the first item where it supersedes `docs/redesign/MASTER-RULES.md` → "Guest
+> player identity and claimed-name privacy" → **"a guest may be identified using either
+> username or first and last name"**, and
+> `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` → "Guest identity modes"
+> (its framing sentence and the "First-and-last-name mode" subsection), → "Required
+> identity lifecycle" **step 2**, and → "Cross-phase ownership" (Phase 4's **"explicit
+> username or first-and-last-name identity mode"**). It clears the second where it
+> supersedes `docs/redesign/MASTER-RULES.md` → **"username and personal-name matching are
+> separate"** and
+> `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` → "Username and
+> personal-name separation" (the sentence naming the two as separate concepts). **Read
+> those decisions where they live; their content is deliberately not restated here**
+> (process rule **P-2**, `docs/redesign/MASTER-RULES.md` → "Conflict handling and
+> canonical-home process rules").
+>
+> **NOTHING ELSE IN THIS DOCUMENT IS SUPERSEDED BY THIS NOTE, and the rest of its
+> personal-name text STAYS IN FORCE** — "Step 4.3 must:" → "keep private claim
+> information separate from public display data"; "Step 4.3 must not:" → "overload one
+> field with incompatible username and personal-name semantics" and "expose private
+> personal-name claim data publicly"; the whole of "Claimed-player privacy requirement";
+> and "Step 4.5 closure requirement" → "private personal-name values are not placed into
+> public-facing contracts". R-18 records why those remain load-bearing, at its section
+> "What R-18 does NOT reach — the remaining protections STAY IN FORCE". **None of them is
+> marked, softened, or made easier to satisfy by this note.**
+>
+> **Corrected is not buildable.** This note records that the two items above no longer
+> govern. It **supplies no replacement instruction**, and supplying one is neither
+> performed nor authorized here; that specification gap is recorded as **C-1** in
+> `docs/agent-handoffs/ALIGN-PHASES-TO-IDENTITY-MODEL.md`.
 
 ## Claimed-player privacy requirement
 

@@ -62,6 +62,76 @@ Phase 4 creates or reuses claimable unlinked guests but deliberately does not cl
 > identification among its non-negotiable rules. A conflict of that shape is surfaced by a
 > worker and resolved in neither direction (process rule P-1,
 > `docs/redesign/MASTER-RULES.md`). **Nothing here decides it.**
+>
+> **EXTENDED 2026-07-24 by `CORRECT-PERSONAL-NAME-PHASE-SITES` under owner ruling R-18 —
+> STEPS 1 AND 2 ARE NOW CORRECTED. The paragraph immediately above is retained exactly as
+> `ALIGN-PHASES-TO-IDENTITY-MODEL` recorded it, and is neither reworded nor withdrawn; the
+> basis it named has since been removed.** Both governing documents it cited have been
+> superseded on the point, so the conflict it surfaced under process rule **P-1** no longer
+> exists. **This one note carries every personal-name supersession in this document; there
+> is no second note.** The following are superseded, and **each is retained in place, not
+> deleted or reworded**:
+>
+> - "Required claim lifecycle" **step 1**, **"The registrant supplies the approved username
+>   and personal-name registration data."**
+> - "Required claim lifecycle" **step 2**, **"The server searches eligible unlinked guest
+>   identities by normalized username and by normalized first name plus last name using
+>   separate matching rules."**
+> - "Required tests", the **"exact private-name candidate"** item only, within "Exact
+>   username candidate, exact private-name candidate, multiple candidates, partial
+>   suggestion, no candidate, decline all, and continue without claim."
+> - The instruction **"Protected candidate search by username and private personal name"**,
+>   at each of its five occurrences: the "6.2 - Registration candidate lookup and
+>   confirmation" row of "Expanded working sequence"; the same row of "Phase 6 working
+>   sequence"; "Step 6.2 — Registration candidate lookup and confirmation" → "Source-defined
+>   scope"; that step's "Stage C — Implement the source step" checklist item; and that
+>   step's "Step completion gate" checklist item.
+>
+> All of them **give way** to the identity model recorded in `docs/redesign/DECISIONS.md` →
+> "Phase 4 Step 4.3 — replacement player-identity, account, and vouching model (decision
+> record: D-1–D-49), 2026-07-23": step 1 to **D-1**, **D-3**, **D-4** and **D-37**; the
+> "exact private-name candidate" test item to **D-1**, **D-3**, **D-4**, **D-36** and
+> **D-37**; and step 2 together with the five candidate-search occurrences to **D-1**,
+> **D-3**, **D-4**, **D-36**, **D-37** and **D-41**. The ruling that removes the basis they
+> rested on is `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — owner ruling R-18 on the
+> governing-document conflicts with the identity model, 2026-07-24". It clears step 1 where
+> it supersedes `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` →
+> "Cross-phase ownership" (registration and onboarding's **"first-name and last-name
+> collection"**) and `docs/redesign/MASTER-RULES.md` → "Guest player identity and
+> claimed-name privacy" → **"a guest may be identified using either username or first and
+> last name"**. It clears step 2 and the five candidate-search occurrences where it
+> supersedes that contract's "Required identity lifecycle" **step 6** and its
+> "Registration-time candidate lookup" (the requirement to search using the registered first
+> and last name), with `docs/redesign/MASTER-RULES.md` → **"username and personal-name
+> matching are separate"** covering step 2's "separate matching rules" clause. It clears the
+> test item where it supersedes that contract's "Registration-time candidate lookup" (the
+> **"one exact private-name candidate"** return shape) and its "Required tests" (the **"exact
+> private-name candidate"** registration-claim test). **Read those decisions where they
+> live; their content is deliberately not restated here** (process rule **P-2**,
+> `docs/redesign/MASTER-RULES.md` → "Conflict handling and canonical-home process rules").
+>
+> **NOTHING ELSE IN THIS DOCUMENT IS SUPERSEDED BY THIS NOTE, and the rest of its
+> personal-name text STAYS IN FORCE** — the whole of "Public-name privacy standard"; "My
+> Profile scope" → the private account-edit sentence; the "Known test full names" and
+> "Missing username" items under "Required tests"; every "Private first name, last name,
+> full name, aliases, normalized matching values, email, and authentication identifiers
+> must never be included in public/client contracts", every "A missing username must
+> resolve to the neutral privacy-safe fallback, never to a personal name or identifier",
+> and every "Exclude private names, aliases, normalized matching values, email, and
+> authentication identifiers from public/client payloads rather than hiding them after
+> serialization" across Steps 6.1–6.6; the "Prerequisites" full-name audit; and the
+> "Acceptance checklist" private-name items. R-18 records why those remain load-bearing, at
+> its section "What R-18 does NOT reach — the remaining protections STAY IN FORCE". **None
+> of them is marked, softened, or made easier to satisfy by this note.** The claim
+> transaction's "adds or preserves group membership" in step 6, and the candidate-disclosure
+> boundary in step 3 and under "Required tests", are **also untouched**: R-18 did not reach
+> them, and they remain the open questions
+> `docs/agent-handoffs/ALIGN-PHASES-TO-IDENTITY-MODEL.md` recorded.
+>
+> **Corrected is not buildable.** This note records that the items above no longer govern.
+> It **supplies no replacement instruction**, and supplying one is neither performed nor
+> authorized here; that specification gap is recorded as **C-1** and **C-4** in
+> `docs/agent-handoffs/ALIGN-PHASES-TO-IDENTITY-MODEL.md`.
 
 1.  The registrant supplies the approved username and personal-name registration data.
 
@@ -562,6 +632,38 @@ authoritative for semantic meaning until the owner amends it, and
 carries personal-name identification among its non-negotiable rules. That conflict is
 surfaced, not resolved (process rule P-1, `docs/redesign/MASTER-RULES.md`), and nothing
 here decides it.
+
+**EXTENDED 2026-07-24 by `CORRECT-PERSONAL-NAME-PHASE-SITES` under owner ruling R-18 —
+THE PERSONAL-NAME POINT IS NOW RULED. The paragraph immediately above is retained exactly
+as `ALIGN-PHASES-TO-IDENTITY-MODEL` recorded it, and is neither reworded nor withdrawn;
+the basis it named has since been removed.** Both governing documents it cited have been
+superseded on the point, so the conflict it surfaced under process rule P-1 no longer
+exists. The block's third paragraph instructs the executing session to "Search candidates
+by registered username and private first-plus-last name using separate normalized rules".
+**That instruction gives way** to the identity model recorded in
+`docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — replacement player-identity, account,
+and vouching model (decision record: D-1–D-49), 2026-07-23": **D-1**, **D-3**, **D-4**,
+**D-36**, **D-37** and **D-41**. The ruling that removes the basis it rested on is
+`docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — owner ruling R-18 on the
+governing-document conflicts with the identity model, 2026-07-24", where it supersedes
+`docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` → "Required identity
+lifecycle" step 6 and → "Registration-time candidate lookup" (the requirement to search
+using the registered first and last name), and `docs/redesign/MASTER-RULES.md` → "Guest
+player identity and claimed-name privacy" → "username and personal-name matching are
+separate". The same supersession is recorded against this file's "Required claim
+lifecycle" section, which this block restates. **Read those decisions where they live;
+their content is deliberately not restated here** (process rule P-2,
+`docs/redesign/MASTER-RULES.md`).
+
+**The block's fourth paragraph is NOT superseded.** Its requirement that private names and
+aliases be absent from public and client payloads, metadata, exports, hydration, logs,
+telemetry, and analytics events **stays in force**, because R-18 reached none of the
+protections over personal names already stored — see `docs/redesign/DECISIONS.md` → "Phase
+4 Step 4.3 — owner ruling R-18 on the governing-document conflicts with the identity
+model, 2026-07-24" → "What R-18 does NOT reach — the remaining protections STAY IN FORCE".
+**Corrected is not buildable:** this note records what must not be executed as written and
+**supplies no replacement instruction**; that specification gap is recorded as **C-4** in
+`docs/agent-handoffs/ALIGN-PHASES-TO-IDENTITY-MODEL.md`.
 
 **The block below is retained verbatim as carried source text**, governed by this file's
 Preservation rule above, and is deliberately **not** rewritten. **On the claim-completion

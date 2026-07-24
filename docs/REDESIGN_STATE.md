@@ -133,6 +133,44 @@ production**; no phase document, no other contract and no `CURRENT_STATUS.md` wa
 decision content was restated and no line-number citation added. Handoff:
 `docs/agent-handoffs/CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL.md`.
 
+**2026-07-24 — the PHASE-DOCUMENT personal-name sites R-18 cleared are now CORRECTED
+(documentation only). The phase documents stop being WRONG on personal names; they do NOT
+become BUILDABLE.** Work item `CORRECT-PERSONAL-NAME-PHASE-SITES` swept **all twenty-one
+phase documents** and found **87 personal-name requirement sites** across eleven of them:
+**11 corrected, 75 left exactly as written, 1 unattributable.** The test applied to every
+site was **not** its topic but **which governing requirement it rests on, and whether that
+requirement is one of R-18's fourteen** — so R-18 was read in both halves, including "What
+R-18 does NOT reach", before any classification. **The 11 class-A sites are in phases 04 and
+06 only**: phase 04's guest creation by first and last name and its separate personal-name
+matching rule; phase 06's lifecycle steps 1 and 2, its "exact private-name candidate" test,
+the five occurrences of "Protected candidate search by username and private personal name",
+and the copy-ready block's candidate-search instruction. **Each names the specific R-18 site
+that cleared it**, and each note points at the decisions without restating one — proven by a
+grep over the added lines for every cited mechanic and value returning **zero**, with **zero
+line-number citations** and every numeral accounted for as an identifier, phase/step name or
+date. **The 75 class-F sites are provably untouched**, which is the load-bearing half:
+**zero deleted lines** across a diff of **149 added, 0 deleted, two files**. They stay in
+force because personal names remain stored until an unwritten migration runs, exactly as
+R-18 recorded. **No copy-ready block was edited** — phase 06's block body and the numbered
+lifecycle list are both **byte-identical** by sha256 against `git show HEAD:<path>`, at the
+same hashes the prior sweep recorded; **sixteen blocks** were found across both heading
+variants. **All three notes EXTENDED an existing supersession note; none was added**, and
+the paragraphs whose basis R-18 removed were retained verbatim rather than reworded.
+**Recorded against the eighteen sites previously cited:** the comparable capture-and-matching
+subfamily here is **fifteen, in 04 and 06 only** — **nothing in phase 20 is a capture or
+matching site**; all twelve of its personal-name sites are privacy validation, which
+`ALIGN-PHASES-TO-IDENTITY-MODEL`'s own class B-12 also recorded as consistent. That
+discrepancy is **reported, not reconciled**, and nothing turns on it. **The three blocked
+families were re-surfaced and none touched** — the "or an approved public handle"
+D-2-versus-D-21 question, phase 06's "adds or preserves group membership", and phase 06's
+candidate-disclosure boundary — nor was any class-C gap, analytics question, or PIN-gating
+consequence acted on. **CORRECTED IS NOT BUILDABLE:** removing a wrong instruction supplies
+no right one, and the replacement specification is class-C gaps **C-1** and **C-4**, **not
+authorized and not written here**. Nothing was built, applied, deployed, pushed, merged, or
+read from production; no governing document, contract, decision record or
+`CURRENT_STATUS.md` was edited. Handoff:
+`docs/agent-handoffs/CORRECT-PERSONAL-NAME-PHASE-SITES.md`.
+
 **2026-07-24 — the blocker table is RECONCILED to ruling R-6 (documentation only);
 audit finding AUD-1 is answered.** Work item `RECONCILE-BLOCKER-TABLE-TO-R6`
 corrected the two `docs/CURRENT_STATUS.md` blocker rows whose `Blocking` value
@@ -3335,6 +3373,53 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/CORRECT-PERSONAL-NAME-PHASE-SITES.md
+  (documentation-only correction of the **phase-document** personal-name sites that owner
+  ruling **R-18** cleared; redesign lineage and local: **nothing built, applied, deployed,
+  pushed, merged, or read from production** — no Supabase MCP, no `execute_sql`, no
+  `list_migrations`, no `wrangler`, no `/api/deploy-info`, no production SQL; the
+  planning-pack updater was not run by hand. **All twenty-one phase documents swept, twice,
+  by two independent term families** — noun and verb — with the second pass surfacing
+  nothing the first missed. **87 personal-name requirement sites across eleven documents:
+  A=11, F=75, U=1.** The test applied was **which governing requirement each site rests on,
+  and whether it is one of R-18's fourteen** — not the site's topic — so R-18 was read in
+  **both** halves, including "What R-18 does NOT reach", before any classification, and both
+  governing documents were read in their post-R-18 state so each superseded requirement was
+  read at its own note. **Every class-A site names the R-18 site that cleared it**; the two
+  in `04-log-a-game.md` and nine in `06-my-profile.md`, one of the nine being inside the
+  copy-ready block. **Recorded because it decided seven of the eleven:** the contract's
+  "Claim candidate privacy" **permission** to use a personal name privately is **not** among
+  the fourteen and **stays in force**; what R-18 superseded is the separate **requirement**
+  that registration search by the registered first and last name — the phase sites are
+  mandates, so they rest on the superseded requirement, and conflating the two in the other
+  direction would have wrongly corrected a live protection. **Every class-F site is provably
+  untouched — the load-bearing half of this change** — by a diff of **149 added, 0 deleted**
+  across two files: **zero deletions** means no existing line was removed, reworded, or
+  annotated, and the 75 protections stay in force over the personal names still stored until
+  the unwritten name-removal migration runs. **The single class-U site was reported and
+  corrected nothing.** **No copy-ready block was edited** — phase 06's block body
+  (`fe8ef277…`) and the numbered "Required claim lifecycle" list (`fe36dd47…`) are both
+  **byte-identical** to `git show HEAD:<path>`, at the hashes the prior sweep recorded, and
+  phase 04's superseded bullet lists (`07bb38c3…`) and class-F sections (`007cfcc9…`) match
+  too. **Sixteen copy-ready blocks found across both heading variants**, phase 07's being
+  plain text rather than blockquoted. **All three notes EXTENDED an existing supersession
+  note; none was added**, and the paragraphs whose basis R-18 removed were **retained
+  verbatim**, not reworded, so the evidence of why the conflict existed survives.
+  **Against the eighteen previously cited:** the comparable capture-and-matching subfamily is
+  **fifteen, in 04 and 06 only** — **nothing in phase 20 is a capture or matching site**, all
+  twelve of its personal-name sites being privacy validation that
+  `ALIGN-PHASES-TO-IDENTITY-MODEL`'s own class B-12 recorded as consistent; the discrepancy
+  is **reported, not reconciled**, and had those sites been in the family they would still
+  classify **F**. **The three blocked families were re-surfaced and none touched** — the
+  D-2-versus-D-21 "approved public handle" question, phase 06's "adds or preserves group
+  membership", and phase 06's candidate-disclosure boundary — and no class-C gap, analytics
+  question or PIN-gating consequence was acted on; **phases 09 and 11 were not edited**.
+  **CORRECTED IS NOT BUILDABLE**, stated in all three notes as well as the handoff: removing
+  a wrong instruction supplies no right one, and the replacement specification is class-C
+  gaps **C-1** and **C-4**, **not authorized and not written**. **No requirement was added to
+  any phase document**, no decision content restated, no line-number citation added, and no
+  governing document, contract, decision record, `CURRENT_STATUS.md` or
+  `AUTHORITATIVE_DOCUMENTS.md` edited.)
 - docs/agent-handoffs/CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL.md
   (documentation-only correction of the **two governing documents** that still required what
   the identity model forbids, plus the owner ruling **R-18** that authorizes it; redesign
