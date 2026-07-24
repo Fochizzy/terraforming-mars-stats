@@ -1036,6 +1036,36 @@ The source step order is preserved. Each row is a bounded implementation assignm
 
 ## Copy-ready agent execution prompt
 
+**SUPERSEDED IN PART — READ THIS BEFORE PASTING THE PROMPT BELOW.** Owner ruling **R-14**
+(2026-07-23) supersedes the minimum-wins eligibility instruction carried inside the block,
+under `FINAL WIN DIFFERENTIAL VALIDATION`, which lists "minimum wins" among the conditions
+to regression-test. The governing eligibility rules are
+`docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` → "Universal eligibility
+floor and per-metric display gates (owner ruling R-14, 2026-07-23)", whose ruling text is
+recorded as **R-14** in `docs/redesign/DECISIONS.md`. **No threshold value is restated
+here; the contract holds the number** (process rule P-2,
+`docs/redesign/MASTER-RULES.md`).
+
+What R-14 changes for that instruction:
+
+- validation must also cover the **universal eligibility floor counted in games played**,
+  which applies in addition and is **not** a wins count;
+- **above the floor, thresholds are per-metric**, and the mechanism by which a metric
+  declares its own threshold is **open analytics question Q-1**, so a regression test
+  cannot yet pin "minimum wins" to a settled value; and
+- the behaviour to be regression-tested below a present threshold is a **display gate, not
+  a labelling rule** — the result is **hidden**, not shown flagged as low-sample.
+
+**Surfaced, not resolved.** R-14 separately records that the **Win Point Differential
+metric keeps its own minimum-wins gate**, as a per-metric threshold distinct from the
+universal games-played floor, and that its value **is not yet set**. Whether that gate or
+the floor governs the validation in this block is therefore an **owner question that is
+not decided here** (process rule P-1, `docs/redesign/MASTER-RULES.md`).
+
+**The block below is retained verbatim as carried source text**, governed by this file's
+Preservation rule above, and is deliberately **not** rewritten. **On this point it must
+not be executed as written.**
+
 > Perform Phase 20 only: final legacy cleanup and production hardening after every replacement destination is working.
 >
 > Remove duplicate legacy rendering, dead aliases, unused imports, hidden alternate layouts, duplicate calculations, title-string hacks, stale links, and obsolete CSS. Preserve redirects for bookmarked URLs and do not delete code still used by target routes.

@@ -3235,6 +3235,52 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/SUPERSEDE-COPY-READY-PROMPTS.md
+  (documentation-only placement of **superseding notes immediately before four
+  `## Copy-ready agent execution prompt` blocks** in `docs/redesign/phases/`; redesign
+  lineage and local: **nothing built, applied, deployed, pushed, merged, or read from
+  production** — no Supabase MCP, no `execute_sql`, no `list_migrations`, no `wrangler`,
+  no `/api/deploy-info`; **no contract, decision, ruling, migration, or `src/**` file
+  edited**, and the planning-pack updater was not run by hand.
+  `SWEEP-MINIMUM-WINS-TO-ELIGIBILITY` (`87e5fbd4`) correctly left three carried-source
+  sites verbatim, which left the superseded instruction **in the one place most likely to
+  be executed** — a session handed a phase assignment pastes the copy-ready prompt. **No
+  owner exception was needed:** each Preservation rule governs the block's **content**, so
+  a note placed **before** the block satisfies it exactly. **Nothing inside any block was
+  changed — proven byte-identical** by `sha256` of each block body against
+  `git show HEAD:<path>` (`09` `e77b665a…`, `12` `258e50b8…`, `18` `cd90d94e…`,
+  `20` `10e0b742…`), with **zero deleted lines** across the change (`30 0`, `31 0`,
+  `23 0`, `30 0`) and one hunk per file anchored at its copy-ready heading. **The sweep of
+  all fifteen copy-ready blocks against R-5–R-17 found FOUR superseded instructions against
+  the three known** — the fourth is `18-objectives-endgame-and-chemistry.md`'s
+  unconditional "implement … a transparent **Group Chemistry** model", which **R-15** rules
+  **gives way**; `10`'s chemistry instruction is already conditional and R-15 **confirms**
+  it, so it was left. **The brief's characterisation of `09` was half wrong and the notes
+  were written to the record instead:** R-14(c) does supersede "or qualify", but all three
+  R-14 sites gate **Win Point Differential**, and R-14's own caveat records that this
+  metric **keeps its own minimum-wins gate** with **its value not yet set**, marking the
+  interaction **surfaced, not resolved** (**P-1**). Each note therefore says the
+  games-played floor applies **in addition**, that **analytics Q-1** leaves "the
+  minimum-wins threshold" naming no settled value, and that **which gate governs is an
+  owner question not decided here**. **Six further hits were REPORTED AND CORRECTED
+  NOTHING**, five because the governing question is open: `07` (analytics **Q-2**, and
+  **R-13** declares Phase 7 correct as written), `13` and `14` (**Q-1**/**Q-7**), `17`
+  (**R-16**, but which of the two metrics ranks is **Q-3**), `18`'s Award Funding ROI
+  (**Q-7**, so the note is scoped to chemistry only and says so), and a **systemic
+  five-block** item — `08`/`09`/`12`/`16`/`19` all instruct cards-bought pace, which
+  `DATA-CAPABILITIES.md` row 15 declares not currently possible and **R-17** leaves
+  "recorded, not acted on" (**Q-8**). **No threshold value was written into any note** —
+  the `DECISIONS.md` R-14 heading contains the number and was deliberately not quoted;
+  proven **zero** by grep over the 95 added lines. **No line-number citation was added**,
+  proven zero. **Q-1, Q-2, Q-3, Q-7 and Q-8 remain open, no ruling was recorded, no
+  contract was reconciled, no blocker's disposition changed, and all twenty phase documents
+  remain planned and not started.** `MATCHER-MANUAL-ENTRY-REPLACEMENT` **not
+  reclassified**; `ID-READER-CONTRACT` **given no destination**; **AUD-5, the cross-file
+  citation sweep, and the prior sweep's class-B/C/D2/D3 dispositions untouched**. **This
+  authorizes nothing** — not the contract reconciliation, not a phase, not the closure
+  audit, not the reader deploy, not the drop, not the contraction, not Phase 5, not Step
+  4.4.
+  Handoff: `docs/agent-handoffs/SUPERSEDE-COPY-READY-PROMPTS.md`.)
 - docs/agent-handoffs/SWEEP-MINIMUM-WINS-TO-ELIGIBILITY.md
   (documentation-only correction of **wins-based eligibility** language across
   `docs/redesign/phases/` to a pointer at the R-14 eligibility contract; redesign

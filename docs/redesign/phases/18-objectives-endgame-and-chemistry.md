@@ -523,6 +523,29 @@ The source step order is preserved. Each row is a bounded implementation assignm
 
 ## Copy-ready agent execution prompt
 
+**SUPERSEDED IN PART — READ THIS BEFORE PASTING THE PROMPT BELOW.** Owner ruling **R-15**
+(2026-07-23, recorded in `docs/redesign/DECISIONS.md`) supersedes this block's instruction
+to implement **a transparent Group Chemistry model**, and its instruction to define and
+test that model's **expected-performance baseline** before labelling a metric Group
+Chemistry. R-15 finds that the Group-Chemistry expected-performance model has **no
+canonical definition anywhere** and is **not** supplied by the ELO rating — a model of how
+players perform **together** is a different object from a rating **per player** — and rules
+that it **gives way**.
+
+**Not superseded, and not to be conflated with it.** **Opponent-adjusted margin** survives
+under the same ruling, because ELO supplies the per-opponent rating it requires. R-15
+states plainly that the two are different objects; this note supersedes neither that metric
+nor any other analytic in the block.
+
+**Also carried in this block, and NOT ruled.** **Award Funding ROI** stands against
+`docs/redesign/CANONICAL-ANALYTICS-DEFINITIONS.md`'s exclusion of award calculations. That
+conflict is **open analytics question Q-7**, expressly not discussed and not ruled, and
+**nothing here decides it** (process rule P-1, `docs/redesign/MASTER-RULES.md`).
+
+**The block below is retained verbatim as carried source text**, governed by this file's
+Preservation rule above, and is deliberately **not** rewritten. **On the Group Chemistry
+point it must not be executed as written.**
+
 > Perform Phase 18 only: implement Milestone & Award Economics, Award Funding ROI, Objective Conversion, Final Terraforming Actions, Finishing Impact, group score/placement distributions, and a transparent Group Chemistry model.
 >
 > Use only recorded eligibility, attempt, claim, funding, win, scoring, map, and final-action data. Do not imply attempts or map location metrics exist when they do not. Expand the current FinalTerraformingActionTable into distribution, player finishing impact, action frequency, action win rate, overall win rate, delta, average finish generation, detail, and supporting games.

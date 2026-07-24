@@ -681,6 +681,37 @@ Every recommendation must include:
 
 ## Copy-ready agent execution prompt
 
+**SUPERSEDED IN PART — READ THIS BEFORE PASTING THE PROMPT BELOW.** Owner ruling **R-14**
+(2026-07-23) supersedes the minimum-wins eligibility instruction carried inside the block,
+under `IMPROVEMENT WIN DIFFERENTIAL RULES`, which permits recommendation rules to use win
+point differential only above the minimum-wins threshold. The governing eligibility rules
+are `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` → "Universal
+eligibility floor and per-metric display gates (owner ruling R-14, 2026-07-23)", whose
+ruling text is recorded as **R-14** in `docs/redesign/DECISIONS.md`. **No threshold value
+is restated here; the contract holds the number** (process rule P-2,
+`docs/redesign/MASTER-RULES.md`).
+
+What R-14 changes for that instruction:
+
+- a **universal eligibility floor counted in games played** applies in addition, and it is
+  **not** a wins count — below it a profile does not appear in analytics at all, so no
+  recommendation may be produced for it;
+- **above the floor, thresholds are per-metric**, and the mechanism by which a metric
+  declares its own threshold is **open analytics question Q-1**, so "the minimum-wins
+  threshold" names no settled value; and
+- a threshold is a **display gate, not a labelling rule** — below a present threshold a
+  result is **hidden**, not shown flagged as low-sample.
+
+**Surfaced, not resolved.** R-14 separately records that the **Win Point Differential
+metric keeps its own minimum-wins gate**, as a per-metric threshold distinct from the
+universal games-played floor, and that its value **is not yet set**. Whether that gate or
+the floor governs the rules in this block is therefore an **owner question that is not
+decided here** (process rule P-1, `docs/redesign/MASTER-RULES.md`).
+
+**The block below is retained verbatim as carried source text**, governed by this file's
+Preservation rule above, and is deliberately **not** rewritten. **On this point it must
+not be executed as written.**
+
 > Perform Phase 12 only: build /improvement version one with a deterministic, typed recommendation engine. Do not use free-form generated AI commentary as the source of recommendations.
 >
 > Implement Overview, Recommendations, Focus Areas, and Evidence. Add Action Plan, Progress, and History only if real server persistence exists or after an explicitly approved migration.
