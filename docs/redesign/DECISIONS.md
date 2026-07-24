@@ -1887,14 +1887,14 @@ exists, and the owner has now ruled for Design B, which is not a guard.
   creating an autorun, and any write outside the repository (including delivery) each require
   their own owner authorization.
 
-## Phase 4 Step 4.3 — owner rulings R-5–R-11 on the pending decisions and finding dispositions, 2026-07-23
+## Phase 4 Step 4.3 — owner rulings R-5–R-12 on the pending decisions and finding dispositions, 2026-07-23
 
 Recorded 2026-07-23 by the documentation-only work item
 `RECORD-IDENTITY-DESIGN-AND-RULINGS` (step 4.33). These rulings come from an owner
 design conversation of 2026-07-23; this entry **writes them down**. It continues the
 `R-` ruling series whose latest prior member is R-4 (the updater clean-tree guard,
 above). **This record decides nothing, builds nothing, and resolves none of the four
-open questions Q-1–Q-4 below.** Two of these rulings — **R-6** and **R-8** — are
+open questions Q-1–Q-4 below.** Three of these rulings — **R-6**, **R-8**, and **R-12** — are
 deliberate **OVERRIDES** of higher-authority records; each says so in its own text,
 names what it overrides, and states why, so a reader who later finds the contradiction
 finds the explanation with it. Evidence class for the rulings is **[OWNER-DECISION]**
@@ -2016,6 +2016,49 @@ under the model, rather than being patched while its shape remains.
 decision record, not an implementation. Recording the dissolution **fixes nothing
 today** and **authorizes no build.** The three blocker rows keep their present
 dispositions; each is annotated in `docs/CURRENT_STATUS.md` with its dissolution note.
+
+### R-12 — substring matching is NARROWED, not repealed — **OVERRIDE**
+
+**Ruling.** The rule at `docs/redesign/DECISIONS.md:1261-1263` **[PROJECT-DOC]** —
+"No substring, prefix, fuzzy, or similarity matching" — is **narrowed, not
+repealed.** D-8 requires **username substring search**; the owner **overrides that
+rule for the SEARCH PATH ONLY.**
+
+**THIS IS A DELIBERATE OVERRIDE.** The record states the reasoning, because the
+reasoning is what makes the override **safe rather than convenient**: the original
+rule protected matching against **private personal-name stores**, where a
+caller-controlled substring query is an **oracle over data the subject never chose
+to expose.** Under D-1 and D-2 the search instead matches a **username the person
+selected** and an **alias they may set** (D-3/D-6), inside a **group they already
+belong to** (D-9). **Different data, different act** — the protection the rule
+provides does not reach the search path, so narrowing it there does not weaken it
+where it matters.
+
+**What this override does NOT touch — recorded so a later reader cannot over-apply
+it:**
+
+- **The rule remains IN FULL FORCE** for matching against
+  `private.player_private_identities`, `private.player_legacy_identities`, and **any
+  normalized personal-name value.** The original text at `:1261-1263` is **not
+  deleted or reworded** — the guest-identity oracle sequence (the
+  `resolve_import_guest_identity` / `match_import_player_names` matchers and the
+  applied `authenticated`-EXECUTE revokes and gated contraction around them)
+  **depends on it.**
+- **The claim path is EXPLICITLY EXCLUDED from this override.** Migration
+  `20260721173000` (`20260721173000_harden_claim_rpc_privacy.sql` **[REPO]**)
+  hardened `list_claimable_player_profiles`, `claim_player_profile`, and
+  `claim_player_profiles_by_name` from `like`-based **partial** matching to **exact
+  whole-value** matching with a **3-character floor and a 10-row cap**, because
+  caller-controlled partial matching there was an **enumeration oracle over
+  claimable profiles.** Those RPCs **remain exact-match.** A reader applying
+  "substring is now allowed" consistently would relax them; **this record exists to
+  prevent that.**
+
+**Build constraint (follows from the override; not separately ruled).** The search
+RPC **must gate on `is_group_member`.** Without that gate, "group-scoped" (D-9) is a
+**UI convention rather than a security boundary**, and the safety reasoning above —
+that the search reads only a username and an alias inside a group the caller already
+belongs to — **does not hold.**
 
 ## Phase 4 Step 4.3 — replacement player-identity, account, and vouching model (decision record: D-1–D-33), 2026-07-23
 

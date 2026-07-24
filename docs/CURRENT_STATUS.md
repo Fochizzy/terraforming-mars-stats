@@ -1017,7 +1017,7 @@ sites, not two**; and the contraction **re-gates rather than closes** (no status
 line may say "closed"). **Six-item count (ruling R-10):**
 `MATCHER-MANUAL-ENTRY-REPLACEMENT` is confirmed as a **sixth** tracked open item
 **alongside these five findings**, so PD-1's tracked open set is **six, not five**.
-Full text: `docs/redesign/DECISIONS.md` → "owner rulings R-5–R-11" → R-5 and R-10.
+Full text: `docs/redesign/DECISIONS.md` → "owner rulings R-5–R-12" → R-5 and R-10.
 **Nothing is built, applied, or authorized by this disposition.**
 
 ### PD-2 — May Step 4.3 close with `ID-LEGACY-ORACLE` still open?

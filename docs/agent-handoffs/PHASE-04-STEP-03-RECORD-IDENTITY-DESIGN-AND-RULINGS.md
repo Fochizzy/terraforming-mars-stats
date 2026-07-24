@@ -1,21 +1,54 @@
 # PHASE-04-STEP-03-RECORD-IDENTITY-DESIGN-AND-RULINGS — an owner design conversation and its rulings written into the canonical record; nothing built, decided beyond recording, or resolved
 
+> ## AMENDMENT — 2026-07-23 — R-12 recorded; the ruling set is now R-5–R-12
+>
+> The initial recording commit `588218504` recorded owner rulings **R-5–R-11**
+> only. **Ruling R-12** — "substring matching is NARROWED, not repealed", the
+> **third OVERRIDE** alongside R-6 and R-8 — was **missing** from it (that commit
+> predated R-12's addition to the assignment; R-12 sits out of numeric order in the
+> updated brief, inserted between R-10 and R-11). Its absence left a live
+> **unexplained contradiction** in `docs/redesign/DECISIONS.md`: D-8 requires
+> username substring search while the rule at `:1261-1263` forbids substring
+> matching, with no reconciling override between them.
+>
+> A **follow-up completion commit** (documentation only; same tree and branch; base
+> `588218504`) closes that gap. It adds **R-12** to `docs/redesign/DECISIONS.md`
+> (labelled OVERRIDE; overrides the `:1261-1263` no-substring rule **for the
+> group-scoped username/alias search path ONLY**; records what it does **NOT**
+> override — the rule stays **in full force** for the private personal-name stores
+> `private.player_private_identities` / `private.player_legacy_identities` / any
+> normalized personal-name value, and the **exact-match claim path** hardened by
+> migration `20260721173000` is **excluded** — plus the `is_group_member` build
+> constraint), renames the section title `R-5–R-11` → `R-5–R-12`, corrects the
+> override count from **two** to **three**, and reconciles the routed
+> "R-5–R-11" cross-references in `docs/CURRENT_STATUS.md`, `docs/REDESIGN_STATE.md`,
+> `docs/redesign/phases/04-log-a-game.md`, and
+> `docs/redesign/phases/05-games-detail-and-replay.md`.
+>
+> **Still documentation only:** nothing built, applied, deployed, pushed, merged,
+> or read from production; **no open question answered**; the
+> `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` contract is still
+> **not edited**. The body below is the initial recording's handoff; where it says
+> "R-5–R-11" or "two overrides" of the first commit's own facts, those are that
+> commit's record and are superseded by this amendment.
+
 **Headline.** A long owner design conversation produced a replacement
 player-identity model and resolved several pending decisions, all of it living
 only in a chat thread. This work item (`RECORD-IDENTITY-DESIGN-AND-RULINGS`, step
-4.33) **writes it down**: owner rulings **R-5–R-11**, the identity/account/vouching
+4.33) **writes it down**: owner rulings **R-5–R-12**, the identity/account/vouching
 **decision record D-1–D-33**, its consequences **C-1/C-2**, and the four open
 questions **Q-1–Q-4** (recorded OPEN, none answered). It **builds nothing, decides
-nothing beyond recording, and resolves none of the four open questions.** Two
-rulings — **R-6** and **R-8** — are deliberate **OVERRIDES** of higher-authority
-records and are recorded as such, each naming what it overrides and why.
+nothing beyond recording, and resolves none of the four open questions.** Three
+rulings — **R-6**, **R-8**, and **R-12** — are deliberate **OVERRIDES** of
+higher-authority records and are recorded as such, each naming what it overrides and
+why. (R-12 was added in a follow-up completion commit — see the amendment above.)
 
 ## Header — the eight facts
 
 1. **Title.** Recorded an owner design conversation and its rulings into the
-   canonical documents: R-5–R-11, D-1–D-33, C-1/C-2, Q-1–Q-4. Documentation only;
-   nothing built, applied, deployed, or resolved. Two overrides recorded as
-   overrides.
+   canonical documents: R-5–R-12, D-1–D-33, C-1/C-2, Q-1–Q-4. Documentation only;
+   nothing built, applied, deployed, or resolved. Three overrides recorded as
+   overrides (R-12 added in the follow-up completion commit).
 2. **Date.** 2026-07-23.
 3. **Branch.** `redesign/tm-stats-dashboard-rebuild` (redesign lineage).
 4. **Worktree.** `C:\Users\izzyh\Documents\Terraforming Mars Redesign` — the
@@ -67,9 +100,9 @@ four questions in the brief's section 6, which are recorded **as open**.
 
 # WHAT WAS RECORDED
 
-## Owner rulings R-5–R-11 → `docs/redesign/DECISIONS.md`
+## Owner rulings R-5–R-12 → `docs/redesign/DECISIONS.md`
 
-New section "Phase 4 Step 4.3 — owner rulings R-5–R-11 …, 2026-07-23", continuing
+New section "Phase 4 Step 4.3 — owner rulings R-5–R-12 …, 2026-07-23", continuing
 the `R-` ruling series (latest prior member R-4, the updater clean-tree guard).
 
 - **R-5 — PD-1 AMENDED, not retired.** The interim `service_role` re-gate (the
@@ -90,6 +123,12 @@ the `R-` ruling series (latest prior member R-4, the updater clean-tree guard).
   problems by the identity model rather than remediated — a stronger claim than a
   fix. `GUEST-LABEL-REDIRTY`'s three writers still change. The dissolutions are
   prospective on the model being built and fix nothing today.
+- **R-12 — substring matching NARROWED, not repealed. OVERRIDE.** Added in the
+  follow-up completion commit (see amendment at top). Overrides the `:1261-1263`
+  no-substring rule **for the group-scoped username/alias search path only**; the
+  rule stays in full force for the private personal-name stores and the exact-match
+  claim path (migration `20260721173000`) is excluded; the search RPC must gate on
+  `is_group_member`. Quoted in full below.
 
 ### R-6, quoted as recorded (an OVERRIDE)
 
@@ -135,6 +174,27 @@ the `R-` ruling series (latest prior member R-4, the updater clean-tree guard).
 > recorded beside it in the phase file noting this override. (The prohibition text
 > sits at `:357`; the assignment cited `:356`, which is the blank line above it —
 > the same prohibition.)
+
+### R-12, quoted as recorded (an OVERRIDE) — added in the follow-up completion commit
+
+> **Ruling.** The rule at `docs/redesign/DECISIONS.md:1261-1263` — "No substring,
+> prefix, fuzzy, or similarity matching" — is **narrowed, not repealed.** D-8
+> requires **username substring search**; the owner **overrides that rule for the
+> SEARCH PATH ONLY**, because the original rule protected matching against private
+> personal-name stores (where a substring query is an oracle over data the subject
+> never chose to expose), whereas the search matches a username the person selected
+> and an alias they may set, inside a group they already belong to — different data,
+> different act.
+>
+> **What this override does NOT touch:** the rule remains **in full force** for
+> `private.player_private_identities`, `private.player_legacy_identities`, and any
+> **normalized personal-name value** (the original is not deleted or reworded — the
+> guest-identity oracle sequence depends on it); and the **claim path is explicitly
+> excluded** — migration `20260721173000` hardened `list_claimable_player_profiles`,
+> `claim_player_profile`, and `claim_player_profiles_by_name` to **exact whole-value
+> matching** (3-character floor, 10-row cap), and those **remain exact-match.**
+> **Build constraint:** the search RPC must gate on `is_group_member`, or
+> "group-scoped" is a UI convention rather than a security boundary.
 
 ## The identity decision record D-1–D-33 (+ C-1, C-2, Q-1–Q-4) → `docs/redesign/DECISIONS.md`
 
@@ -217,7 +277,8 @@ design decision.
 
 ## Files changed (this session)
 
-- `docs/redesign/DECISIONS.md` — two new sections: owner rulings R-5–R-11, and the
+- `docs/redesign/DECISIONS.md` — two new sections: owner rulings R-5–R-12 (R-12
+  added in the follow-up completion commit; see amendment at top), and the
   D-1–D-33 decision record with C-1/C-2 and Q-1–Q-4.
 - `docs/CURRENT_STATUS.md` — PD-1/PD-2/PD-3 disposition notes, the six-item count,
   and three dissolution annotations on the blocker rows.

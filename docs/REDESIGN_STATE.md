@@ -33,7 +33,7 @@ accompanied it and nothing in production calls the new three-argument overload.*
 are the three remaining gates before contraction `20260722012707`, and **none of
 them is open**. Applied is not deployed and is not closed.
 
-**2026-07-23 — the replacement identity design and owner rulings R-5–R-11 are now
+**2026-07-23 — the replacement identity design and owner rulings R-5–R-12 are now
 RECORDED (documentation only).** Work item `RECORD-IDENTITY-DESIGN-AND-RULINGS`
 (step 4.33) wrote an owner design conversation and its rulings into the canonical
 record: the identity/account/vouching model (**D-1–D-33**), its two consequences
@@ -2966,10 +2966,15 @@ production change requires that separate authorization under expand/contract.
 
 **2026-07-23 — recording update (`RECORD-IDENTITY-DESIGN-AND-RULINGS`, step 4.33),
 documentation only.** The replacement identity design (D-1–D-33) and rulings
-R-5–R-11 are now recorded in `docs/redesign/DECISIONS.md`. **Ruling R-6 (an
+R-5–R-12 are now recorded in `docs/redesign/DECISIONS.md`. **Ruling R-6 (an
 OVERRIDE) sets Step 4.3 to close on the fresh independent read-only audit alone**,
 with `ID-LEGACY-ORACLE` and `MATCHER-MANUAL-ENTRY-REPLACEMENT` re-registered as
 Phase 5 entry gates and a skills audit (R-9) queued between Phase 4 and Phase 5.
+**Ruling R-12 (an OVERRIDE) narrows the no-substring rule for the group-scoped
+username/alias search path only** — the private-store rule and the exact-match
+claim path stay untouched, and the search RPC must still gate on `is_group_member`.
+R-12 was recorded in a follow-up completion commit after it was found missing from
+the initial recording commit `588218504`, which recorded R-5–R-11 only.
 **The next actions are unchanged in kind and each remains separately
 unauthorized:** the four repository reads Q-1–Q-4 are queued at step 4.38 and are
 **not answered here**; building the identity model, amending
@@ -3164,7 +3169,7 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   and local: **nothing applied, deployed, pushed, merged, or read from
   production**; no write outside the repository, no
   `src/**`/`supabase/**`/`scripts/**` edit, no phase started, and **no open
-  question answered**. Recorded owner rulings **R-5–R-11** and the replacement
+  question answered**. Recorded owner rulings **R-5–R-12** and the replacement
   player-identity/account/vouching **decision record D-1–D-33**, its consequences
   **C-1/C-2** and open questions **Q-1–Q-4** into `docs/redesign/DECISIONS.md`; the
   PD-1/PD-2/PD-3 dispositions, the six-item count, and three finding
@@ -3175,8 +3180,11 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
   Step 4.3** (prohibition retained, superseded in place); the Phase 5 **entry
   gates** from **R-6** into `docs/redesign/phases/05-games-detail-and-replay.md`;
   and D-24's profile screen as an **additive** section in
-  `docs/redesign/phases/06-my-profile.md`. **R-6 and R-8 are each recorded as a
-  deliberate OVERRIDE**, naming what it overrides and why.
+  `docs/redesign/phases/06-my-profile.md`. **R-6, R-8, and R-12 are each recorded
+  as a deliberate OVERRIDE**, naming what it overrides and why. (**R-12** — the
+  substring-matching OVERRIDE, search-path only — was added in a follow-up
+  completion commit after it was found missing from the initial recording commit
+  `588218504`, which recorded R-5–R-11 only.)
   `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` — the contract the
   design affects — was **deliberately NOT edited**; amending it is a separate owner
   act. No blocker's `Blocking` value was changed except the three dissolution

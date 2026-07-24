@@ -44,7 +44,7 @@ Replay analyzes one game, while Global, Group, and Individual Insights analyze m
 
 ## Phase 5 entry gates (recorded 2026-07-23 — owner ruling R-6)
 
-Registered by `RECORD-IDENTITY-DESIGN-AND-RULINGS` (step 4.33). Owner ruling **R-6** sets Step 4.3 to close on its fresh independent read-only audit **alone** — a deliberate **OVERRIDE** of the authority ranking (see `docs/redesign/DECISIONS.md` → "owner rulings R-5–R-11" → R-6) — and **re-registers the following two items as gates on PHASE 5 ENTRY** rather than on Step 4.3 closure. Phase 5 must not begin until each is satisfied under its own separate authorization:
+Registered by `RECORD-IDENTITY-DESIGN-AND-RULINGS` (step 4.33). Owner ruling **R-6** sets Step 4.3 to close on its fresh independent read-only audit **alone** — a deliberate **OVERRIDE** of the authority ranking (see `docs/redesign/DECISIONS.md` → "owner rulings R-5–R-12" → R-6) — and **re-registers the following two items as gates on PHASE 5 ENTRY** rather than on Step 4.3 closure. Phase 5 must not begin until each is satisfied under its own separate authorization:
 
 - **`ID-LEGACY-ORACLE`** — retire authenticated execution of `match_import_player_names` (contraction `20260722012707`), which remains gated and unapplied; its release sequence (deploy the moved reader, verify a non-zero production match, then contract) is unchanged by this re-registration.
 
