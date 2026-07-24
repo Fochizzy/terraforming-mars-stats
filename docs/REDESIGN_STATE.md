@@ -52,6 +52,18 @@ open question was answered, and
 design affects — was deliberately **not** edited. See the
 `RECORD-IDENTITY-DESIGN-AND-RULINGS` handoff in the `Latest handoff` group.
 
+**2026-07-23 — the analytics rulings and two process rules are now RECORDED
+(documentation only).** Work item `RECORD-ANALYTICS-RULINGS` wrote the owner analytics
+rulings **R-13–R-17** and analytics open questions **Q-1–Q-9** into
+`docs/redesign/DECISIONS.md`, the two standing process rules **P-1**/**P-2** into
+`docs/redesign/MASTER-RULES.md`, and **merged the Phase 2 undecided list to one canonical
+home** (DECISIONS), reducing `docs/redesign/phases/02-analytics-foundation.md` to a
+pointer. R-13/R-14 name stale/wrong contract and phase lines **without editing them**:
+**no analytics contract and no phase document except `02` was edited**, the nine
+minimum-wins sites were **not** corrected, and **no open question was answered**. This is
+a recording, not the contract reconciliation — that reconciliation is a separate work
+item. See the `RECORD-ANALYTICS-RULINGS` handoff in the `Latest handoff` group.
+
 **THE APPLY'S RECORD IS REMEDIATED (2026-07-23), and the apply itself is
 unaffected.** Documentation-only and local: **no production access, no migration,
 no deploy, no merge, nothing pushed**, and `src/**`, `supabase/**` and
@@ -3164,6 +3176,19 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/RECORD-ANALYTICS-RULINGS.md
+  (documentation-only recording of owner analytics rulings and two process rules,
+  redesign lineage and local: **nothing built, applied, deployed, pushed, merged, or
+  read from production**; no contract reconciliation and **no edit to any of the four
+  analytics contracts**; no edit to any phase document except `02` (pointer only); no
+  minimum-wins site corrected; **no open question answered**. Recorded process rules
+  **P-1**/**P-2** into `docs/redesign/MASTER-RULES.md`; analytics rulings **R-13–R-17**
+  and analytics open questions **Q-1–Q-9** into `docs/redesign/DECISIONS.md`; and the
+  Phase 2 undecided list merged to one canonical home (DECISIONS) with
+  `docs/redesign/phases/02-analytics-foundation.md` reduced to a pointer (the two-list
+  diff is reported in the handoff). R-13/R-14 name stale/wrong contract and phase lines
+  **without editing them**. **This record decides, builds, resolves, and authorizes
+  nothing.** Handoff: `docs/agent-handoffs/RECORD-ANALYTICS-RULINGS.md`.)
 - docs/agent-handoffs/PHASE-04-STEP-03-RECORD-IDENTITY-DESIGN-AND-RULINGS.md
   (documentation-only recording of an owner design conversation, redesign lineage
   and local: **nothing applied, deployed, pushed, merged, or read from

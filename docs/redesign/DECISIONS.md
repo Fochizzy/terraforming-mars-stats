@@ -636,6 +636,18 @@ The full boundary is documented in
 
 ## Phase 2 questions that remain undecided
 
+**Canonical home (owner ruling, 2026-07-23).** This list is the **single canonical
+location** for the Phase 2 undecided questions (process rule **P-2** in
+`docs/redesign/MASTER-RULES.md`). The former copy in
+`docs/redesign/phases/02-analytics-foundation.md` now **points here** instead of
+restating them. Reasoning: sixteen later phase documents assume answers to these
+questions, so they are **project-wide open decisions that happened to be raised during
+Phase 2**, not Phase 2's private business. Some items are now **partly addressed by
+owner rulings R-13–R-17 above** — in particular **R-16** supersedes the "baseline for
+overall point differential" bullet, and **R-13**/**R-15** bear on the
+opponent/player-strength bullet — but the bullets themselves are **retained here
+unedited**; reconciling each is separate work.
+
 Step 2.0 does not decide:
 
 - the tied-first numeric or exclusion result for canonical win point
@@ -2215,3 +2227,170 @@ and **none is answered or recommended here.**
 - **Q-4** — Does the single guest row in D-25 carry import evidence — aliases,
   `player_import_aliases`, private identity records? Migrating a guest with import
   provenance is a different operation from one without.
+
+## Phase 2 / analytics — owner rulings R-13–R-17 on the phase-vs-contract conflicts, 2026-07-23
+
+Recorded 2026-07-23 by the documentation-only work item `RECORD-ANALYTICS-RULINGS`.
+These rulings come from an owner conversation resolving conflicts that
+`INSTALL-PHASE-PACK-05-20` surfaced between the sixteen installed phase documents and
+the four analytics contracts (`DATA-CAPABILITIES.md`,
+`CANONICAL-ANALYTICS-DEFINITIONS.md`, `ANALYTICS-REPOSITORY-QUERY-CONTRACTS.md`,
+`METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`). This entry **records the rulings
+only**; it does **not** perform the contract reconciliation they imply — that is a
+separate, larger work item, and no contract file is edited here. R-13 and R-14 name
+lines as stale/wrong **without editing them**. Evidence class **[OWNER-DECISION]** for
+the rulings; cited repository lines are **[PROJECT-DOC]**/**[REPO]**, and the
+sample-log observation in R-17 is **[PRIOR]**. The two process rules from the same
+conversation (**P-1**, **P-2**) are recorded in `docs/redesign/MASTER-RULES.md` →
+"Conflict handling and canonical-home process rules", not here, because they are
+standing process governance rather than analytics decisions.
+
+### R-13 — the 2026-07-21 seasonal-ELO decision stands; the contracts are stale
+
+Where the four analytics contracts and the Phase 2 undecided list treat opponent and
+leaderboard analytics as unavailable or undecided, they have **not** been reconciled to
+the ELO decision recorded at `docs/redesign/DECISIONS.md:1146-1204` (the 2026-07-21
+analytics-decisions session: rating color bands, eligibility/Confidence marker, and the
+opponent-adjustment/tie-break/scope boundary). **The decision governs; the contracts
+lag it.** Lines now known stale, recorded here and **not edited**:
+
+- `DATA-CAPABILITIES.md:421` — "no rating, expected result, or adjusted model exists"
+  (row "Opponent-adjusted performance"). The **rating** and **expected-result** clauses
+  are superseded by the ELO decision. The **adjusted-model** clause is conditionally
+  true — see R-15.
+- `CANONICAL-ANALYTICS-DEFINITIONS.md`'s exclusion of **expected-score** (its "Explicit
+  exclusions", `:134-138`, lists "expected-score … calculations").
+- **Phase 7** (`07-leaderboard.md`) is **correct as written and does not give way**; the
+  staleness is on the contract side, not Phase 7.
+
+### R-14 — minimum eligibility: a three-game floor, and no universal threshold
+
+`METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` (its "Minimum-Sample Rules", `:103-109`,
+stating at `:105` "There is no universal low-sample threshold") is **RIGHT** that no
+universal low-sample threshold exists. The phase documents that assume one are **wrong**.
+This is the first conflict resolving **in the contracts' favour**. Three parts:
+
+- **(a)** A **universal eligibility floor of THREE GAMES PLAYED.** Below it a profile
+  does not appear in analytics at all.
+- **(b)** Above the floor, **thresholds are per-metric.** Win rate stabilises far sooner
+  than card-acquisition conversion. The **mechanism** by which a metric declares its own
+  threshold is **not decided** — see analytics Q-1 below.
+- **(c)** A threshold is a **DISPLAY GATE, not a labelling rule.** Below it the result is
+  **hidden**, not shown flagged as low-sample.
+
+**The phase sites are wrong in KIND, not merely in value** — they reference minimum
+**WINS**; the rule is minimum **GAMES PLAYED.** The owner-named sites, all verified as
+win-based references: `08-global-insights.md:209`, `09-individual-insights.md:242`,
+`10-group-insights.md:225`, `11-compare.md:207`, `12-improvement.md:243`,
+`17-competition-and-board.md:139`, and `20-release-hardening.md:781` each carry "enforce
+minimum-wins eligibility"; `07-leaderboard.md:470` carries "qualifying-win aggregation".
+**Correcting them is the reconciliation work item, not this one.**
+
+Verification caveats (recorded, not resolved):
+- The brief named **"nine phase sites"** but enumerated **eight**; the eight are recorded
+  above (seven verbatim, `07:470` as a win-based test line). No ninth is invented.
+- The list is **representative, not exhaustive** — the same win-based eligibility pattern
+  recurs at further sites (e.g. `07:867`, `10:324`, `11:305`, `11:404`, `12:669`,
+  `09:790`, `20:746/787/820/1028`), so the reconciliation must sweep for all of them.
+- The Win Point Differential **metric** keeps its own separate **minimum-wins** gate
+  (`DECISIONS.md:1192`, `:1231`) because a winner-margin metric needs wins; that is a
+  per-metric threshold under (b), distinct from the universal games-played floor under
+  (a). This interaction is **surfaced, not resolved** (process rule P-1).
+
+### R-15 — Group Chemistry is unanchored and gives way; opponent-adjusted margin survives
+
+These are **different objects and must not be conflated.**
+
+- **Opponent-adjusted margin** (`17-competition-and-board.md:89`, the "17.3 — Build
+  transparent opponent adjustment" step: raw / expected / adjusted margin) requires a
+  **rating per opponent.** ELO now supplies one (R-13), so it **has an anchor and
+  stands.** Its **dependency on Phase 7 is recorded**: it cannot be built before ratings
+  exist. `DECISIONS.md:1204` already fixes the ordering ("The ELO rating is the single
+  opponent-strength model. Phase 7 produces it; Phase 17 consumes it"); the dependency is
+  now **stated rather than implied.**
+- The **Group-Chemistry expected-performance model**
+  (`18-objectives-endgame-and-chemistry.md:85`, the "18.5 — Define group chemistry
+  transparently" step) has **no canonical definition anywhere** and is **not** supplied
+  by ELO. A model of how players perform **together** is a different object from a rating
+  **per player.** It **gives way.**
+
+### R-16 — overall point differential is two player-level metrics
+
+Overall point differential is **two player-level metrics**, both scaled by the number of
+players:
+- **(a)** Score minus the **next closest player** (both above and below where
+  applicable).
+- **(b)** Score against the **field average.**
+
+This **supersedes** the "baseline undecided" state recorded in Phase 2
+(`DECISIONS.md:643`, the "baseline for overall point differential" bullet) and at
+`DATA-CAPABILITIES.md:399` (row "Overall point differential", "Requires further
+verification"), and gives the four phase sites that use the metric an anchor:
+`07-leaderboard.md:779`, `17-competition-and-board.md:105`,
+`13-card-and-tag-analytics.md:638`, and `11-compare.md:768`. The metrics are defined in
+**shape but not completely** — four open sub-questions are recorded below (analytics
+Q-3–Q-6). Neither `DATA-CAPABILITIES.md:399` nor the Phase 2 bullet is edited here;
+recording R-16 supersedes their undecided state without touching them.
+
+### R-17 — the six card-acquisition primitives
+
+These are the **primitives.** The ratio family the phase documents currently specify
+(purchase conversion, hand share, hand utilization, carryover, purchase pace, seen pace)
+is **derived** from them.
+
+1. **Cards purchased** — cumulative, excluding the initial deal.
+2. **Initial cards purchased** — separable from (1), recorded alongside the
+   corporation's starting money. Counts cards **kept and paid for**, not offered.
+   Starting money is fixed per corporation and comes from **reference data**, not the log.
+3. **Research-phase purchases** — per generation. The research phase counts as buying.
+4. **Cards obtained free** — preludes, corporation starting hands, card effects that
+   grant cards.
+5. **Total cards that entered hand** — cumulative over the whole game. **Not** peak hand
+   size, **not** end-of-game holdings.
+6. **Cards sold** as a standard action.
+
+**Sample-log finding [PRIOR]** (from an owner-supplied log examined 2026-07-23): **five
+of the six** appear recoverable from raw log content — "kept N project cards", "bought N
+card(s)" resolving per generation, named draw lines attributable to a player, and "sold N
+patents". This **contradicts** `DATA-CAPABILITIES.md:581-584` ("Not currently possible
+from recorded data", rows 11–14 — the derived ratio family). The contradiction is
+**recorded, not acted on.** That line is **not edited**: one log is not the corpus, and
+whether raw logs are stored immutably enough for a reparse to reach them is a separate
+open question (analytics Q-8).
+
+### Analytics open questions — recorded OPEN, none resolved here
+
+These are the analytics / Phase-2 open questions from the same 2026-07-23 conversation.
+They are **distinct** from the identity-design open questions **Q-1–Q-4** in the identity
+decision-record section above; where this project later cites them, they are the
+**analytics** Q-series. **None is answered or recommended here.**
+
+- **Q-1 (analytics)** — The per-metric threshold mechanism (R-14b). Does each metric
+  declare its own threshold, or is there a small set of tiers metrics select from?
+  Deferred deliberately: the right answer depends on where each metric actually
+  stabilises, which needs real data.
+- **Q-2 (analytics)** — Does Phase 7 conflict with the display gate? `07-leaderboard.md`
+  has a "visibility and provisional state" section, suggesting a provisional ELO appears
+  somewhere, while R-14c hides results below the threshold. The tension is surfaced, not
+  resolved.
+- **Q-3 (analytics)** — R-16: which of the two is the ranking metric? Four phase sites
+  treat overall point differential as one rankable value.
+- **Q-4 (analytics)** — R-16: does the field average include the player's own score?
+- **Q-5 (analytics)** — R-16 vs the existing metric. `DECISIONS.md` records a version-1
+  **sole-winner Win Point Differential** (`:587-588`, `:615-616`: winner score minus
+  highest non-winning score; tied-first indeterminate). R-16(a) is that same number for
+  the winner specifically. Does R-16 supersede it as the general case, or do they
+  coexist? (Two similarly named metrics computed differently is how the card-acquisition
+  confusion started.)
+- **Q-6 (analytics)** — R-16 and tied-first. Two players level at the top means the gap to
+  the next player is zero for both. The existing metric left tied-first indeterminate;
+  R-16 inherits it.
+- **Q-7 (analytics)** — Award Funding ROI (`18-objectives-endgame-and-chemistry.md:526`)
+  and Corporation Adjusted Win Rate (`14-corporation-and-prelude-analytics.md:69-70`)
+  against `CANONICAL-ANALYTICS-DEFINITIONS.md:135-138`, which excludes award calculations
+  and corporation weighting. **Not discussed and not ruled.** Outstanding: is that
+  exclusion a considered design decision, or a placeholder nobody revisited?
+- **Q-8 (analytics)** — Whether raw game logs are stored immutably enough that a reparse
+  could recover R-17's primitives for existing games. Queued as a repository read.
+- **Q-9 (analytics)** — Whether corporation reference data exists and carries starting
+  money, which R-17(2) depends on. Queued as a repository read.

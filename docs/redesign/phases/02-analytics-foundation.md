@@ -387,13 +387,16 @@ ID, deterministic, and directly tested for explicit zero, missing operands,
 zero denominator, partial data, empty inputs, even/odd medians, ties, exclusions,
 and stable ordering.
 
-The following remain undecided and block corresponding Step 2.4 work: the
-numeric/exclusion policy for tied-first win margin; the definition of overall
-point differential; leaderboard methodology and eligibility; opponent/player
-strength adjustment; approved sample and coverage thresholds; versioned range
-construction; corporation weighting; final-action formulas/source; and whether
-current expected-score, efficiency, style, and award-ROI heuristics are accepted
-canonical definitions. Existing implementations are evidence, not approval.
+The Phase 2 questions that remain undecided have a **single canonical home**:
+`docs/redesign/DECISIONS.md` → "Phase 2 questions that remain undecided". They are
+project-wide open decisions raised during Phase 2 — sixteen later phase documents
+assume answers to them — not Phase 2's private business, and are recorded once there
+rather than restated here (process rule P-2 in `docs/redesign/MASTER-RULES.md`). They
+still block the corresponding Step 2.4 work, and existing implementations remain
+evidence, not approval. Some are now partly addressed by owner rulings R-13–R-17 in
+`docs/redesign/DECISIONS.md` (notably R-16 on overall point differential). The
+DECISIONS list is the broader, authoritative version; if this pointer and that list
+ever diverge, the DECISIONS list governs.
 
 ### Card-acquisition integrity
 

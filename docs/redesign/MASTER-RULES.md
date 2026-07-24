@@ -83,6 +83,50 @@ These must remain distinct from:
 - Authority: `docs/redesign/DECISIONS.md` -> "Project-wide - a report may not
   assert an identifier the reporting session cannot resolve".
 
+## Conflict handling and canonical-home process rules
+
+Standing process rules for all future work, recorded 2026-07-23 from an owner
+conversation. They are process governance, **not** analytics decisions; the analytics
+rulings they arose alongside are recorded separately in
+`docs/redesign/DECISIONS.md` -> "owner rulings R-13-R-17".
+
+### P-1 - a phase/contract conflict is never resolved by default
+
+Where a phase document specifies an analytic that a task-specific contract says is
+unavailable or undecided, neither gives way automatically. The conflict is
+**surfaced as an owner question**. A worker reports it and resolves it in neither
+direction. The authority order (`docs/AUTHORITATIVE_DOCUMENTS.md`) determines which
+document outranks the other; it does **not** license a worker to act on that ranking
+silently.
+
+This makes conflict-reporting a **standing obligation** of any work item that
+installs or edits a phase document - it is not something an individual brief has to
+remember to ask for. The worker records the conflict and stops at recording;
+performing the reconciliation is a separate, explicitly authorized work item.
+
+### P-2 - one canonical home per fact; pointers everywhere else
+
+A fact asserted in two documents and updated in one is the defect class this project
+has now recorded **six times** - five in the planning-layer defect register, plus
+the Phase 2 undecided list that existed in two places. The rule: **each fact has
+exactly one canonical location, and every other document points at it rather than
+restating it.**
+
+Three live applications, recorded so they are not lost:
+
+- `docs/redesign/MASTER-PLAN.md` and `docs/redesign/PAGE-ARCHITECTURE.md` must
+  **point at the phase documents** rather than restate per-phase scope.
+- The **Phase 2 undecided list resolves to one home** -
+  `docs/redesign/DECISIONS.md` -> "Phase 2 questions that remain undecided" - with
+  `docs/redesign/phases/02-analytics-foundation.md` pointing at it (done under the
+  `RECORD-ANALYTICS-RULINGS` work item).
+- The **planning-layer defect count itself** is currently replicated across files and
+  should collapse to one canonical statement with pointers.
+
+Applying P-2 beyond the Phase 2 list (collapsing the MASTER-PLAN / PAGE-ARCHITECTURE
+restatements and the defect-count replication) is separate work, not performed by the
+rule's recording.
+
 ## Claude Project context delivery
 
 - The permanent native Google Doc `TM PROJECT MASTER CONTEXT` is the required
