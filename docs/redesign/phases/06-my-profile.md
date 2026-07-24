@@ -39,6 +39,30 @@ Phase 4 creates or reuses claimable unlinked guests but deliberately does not cl
 
 ## Required claim lifecycle
 
+> **SUPERSEDED IN PART — recorded 2026-07-24 by `ALIGN-PHASES-TO-IDENTITY-MODEL`. The
+> numbered lifecycle below is retained, not deleted or reworded; this note states only
+> which part of it no longer governs.** In that lifecycle, step 4 makes the registrant's
+> own confirmation the operative approval, and step 6 links the existing player ID
+> directly after step 5's revalidation — so a claim completes without any approval from
+> outside the registration session. **That completion path gives way** to the identity
+> model recorded in `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — replacement
+> player-identity, account, and vouching model (decision record: D-1–D-49), 2026-07-23":
+> **D-22** and **D-36**, the entries **D-28–D-33** under that section's "Vouch request
+> lifecycle", and **D-38** under its "Claiming — taking an existing username". **Read
+> those decisions where they live; their content is deliberately not restated here**
+> (process rule P-2, `docs/redesign/MASTER-RULES.md`). This document already cites
+> **D-22** in "Additive scope — 2026-07-23 identity design decision (D-24)", for reclaim.
+>
+> **Steps 1 and 2 are NOT corrected here.** They take personal-name registration data and
+> match candidates on normalized first-plus-last name. **D-1** bears on that, but the same
+> decision record leaves the governing contract
+> `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` authoritative for
+> semantic meaning until the owner amends it, and `docs/redesign/MASTER-RULES.md` →
+> "Guest player identity and claimed-name privacy" still carries personal-name
+> identification among its non-negotiable rules. A conflict of that shape is surfaced by a
+> worker and resolved in neither direction (process rule P-1,
+> `docs/redesign/MASTER-RULES.md`). **Nothing here decides it.**
+
 1.  The registrant supplies the approved username and personal-name registration data.
 
 2.  The server searches eligible unlinked guest identities by normalized username and by normalized first name plus last name using separate matching rules.
@@ -516,6 +540,32 @@ The source step order is preserved. Each row is a bounded implementation assignm
 - [ ] The next source step has not begun.
 
 ## Copy-ready phase prompt
+
+**SUPERSEDED IN PART — READ THIS BEFORE PASTING THE PROMPT BELOW.** Recorded 2026-07-24
+by `ALIGN-PHASES-TO-IDENTITY-MODEL`. The block's third paragraph instructs the executing
+session to require explicit confirmation and server-side revalidation and then link the
+existing player ID — completing a claim without any approval from outside the
+registration session. **That instruction gives way** to the identity model recorded in
+`docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — replacement player-identity, account,
+and vouching model (decision record: D-1–D-49), 2026-07-23": **D-22** and **D-36**, the
+entries **D-28–D-33** under that section's "Vouch request lifecycle", and **D-38** under
+its "Claiming — taking an existing username". The same supersession is recorded against
+this file's "Required claim lifecycle" section, which this block restates. **Read those
+decisions where they live; their content is deliberately not restated here** (process
+rule P-2, `docs/redesign/MASTER-RULES.md`).
+
+**Also carried in the same paragraph, and NOT ruled here.** The instruction to search
+candidates by private first-plus-last name stands against **D-1**, while the same
+decision record leaves `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`
+authoritative for semantic meaning until the owner amends it, and
+`docs/redesign/MASTER-RULES.md` → "Guest player identity and claimed-name privacy" still
+carries personal-name identification among its non-negotiable rules. That conflict is
+surfaced, not resolved (process rule P-1, `docs/redesign/MASTER-RULES.md`), and nothing
+here decides it.
+
+**The block below is retained verbatim as carried source text**, governed by this file's
+Preservation rule above, and is deliberately **not** rewritten. **On the claim-completion
+point it must not be executed as written.**
 
 > Complete only the explicitly assigned Phase 6 substep. Treat registration claim, public-name privacy, and stable player identity as authorization-sensitive work.
 >

@@ -3274,6 +3274,45 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/ALIGN-PHASES-TO-IDENTITY-MODEL.md
+  (documentation-only sweep of **all twenty-one phase documents**, phase 04 included,
+  against the identity model **D-1–D-49** and consequences **C-1–C-8**, which every phase
+  document predates; redesign lineage and local: **nothing built, applied, deployed,
+  pushed, merged, or read from production** — no Supabase MCP, no `execute_sql`, no
+  `list_migrations`, no `wrangler`, no `/api/deploy-info`, no production SQL; **no code,
+  schema, migration or RPC written**, and the planning-pack updater was not run by hand.
+  Class counts: **A=2, B=15 families, C=8 gaps, D=4 families**. **Both class-A
+  contradictions are the same defect in `06-my-profile.md`** — the claim completes on the
+  **registrant's own confirmation**, with no approval from outside the registration
+  session, contradicting **D-22, D-28–D-33, D-36, D-38**; one site is the "Required claim
+  lifecycle", the other the copy-ready block's third paragraph. Both corrected by
+  **additive notes that POINT at the decisions and restate none of their content** —
+  proven by a grep over the fifty added lines for every cited mechanic and value returning
+  **zero**, with **zero line-number citations** and **zero deleted lines**. **No
+  copy-ready block was edited** — the block body and the numbered lifecycle list are both
+  proven **byte-identical** by sha256 against `git show HEAD:<path>`. Found that **there
+  are sixteen copy-ready blocks, not fifteen**: phase 06's heading is `## Copy-ready phase
+  prompt`, and it is the **only** block carrying identity content. Phase 06 **carried no
+  prior copy-ready note, so one was added, not extended**; 09/12/18/20's existing notes
+  were **not touched**. **All eight class-C gaps are REPORTED AND NONE FILLED** — the
+  search/add split (Phase 04, D-40–D-43); the **repudiation path**, whose word appears
+  **nowhere in any phase document** (Phases 05 and 07 per C-8, D-44–D-49); the unresolved
+  participation slot as an **unavailable state, not a reduced field** (Phases 02/05/07,
+  D-49); registration/claiming/vouching as user-facing surfaces (Phase 06, plus Step 4.3
+  per R-8); **PIN gating, with phases 09 and 11 explicitly NOT edited**, preserving C-2's
+  recorded-not-acted-on disposition; account deletion, the assigned pseudonym and the
+  released username (D-20/D-21/D-23/D-26); group membership by **shared logged game**
+  (D-35/D-39); and the **shared username namespace** (D-37, C-3/C-4). **Four class-D
+  families were surfaced and corrected in neither direction under process rule P-1**, the
+  largest being the **personal-name capture and matching sites**, which **D-1** would make
+  false but which `GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` — left authoritative for semantic
+  meaning by the decision record itself until the owner amends it — and the
+  `MASTER-RULES.md` non-negotiable list still require. **No phase-versus-contract conflict
+  was touched**; no open question in either Q-series was answered; **the unification design
+  choice (identity Q-2) remains unmade**; `MATCHER-MANUAL-ENTRY-REPLACEMENT` was not
+  reclassified and `ID-READER-CONTRACT` got no destination; and `DECISIONS.md`,
+  `CURRENT_STATUS.md`, `MASTER-RULES.md` and every contract are **untouched**. **This
+  authorizes nothing.**)
 - docs/agent-handoffs/RECORD-REGISTRATION-SEARCH-AND-REPUDIATION.md
   (documentation-only recording that **separates entry from claiming** and adds a
   **repudiation path** in the identity design record; redesign lineage and local:
