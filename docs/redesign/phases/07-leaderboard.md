@@ -8,6 +8,32 @@ Extract formal rankings from Group Insights into a dedicated, explainable destin
 >
 > **Decision effect:** Overall leaderboard rank is now seasonal ELO. The existing GroupDashboard weighted-score calculation is a retirement target, not a calculation to reuse or preserve as a leaderboard metric.
 
+> **SUPERSEDED IN PLACE by owner ruling R-14 (2026-07-23) — wins-based eligibility.**
+> This document previously required **"minimum-wins eligibility"**. That was wrong **in
+> kind**, not merely in value: the eligibility rule counts **games played**, not wins.
+> The affected site now **points at** the rule instead of restating it —
+> `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` → "Universal
+> eligibility floor and per-metric display gates (owner ruling R-14, 2026-07-23)", whose
+> ruling text is recorded as **R-14** in `docs/redesign/DECISIONS.md`. **No threshold
+> value is restated here; the contract holds the number** (process rule P-2,
+> `docs/redesign/MASTER-RULES.md`).
+>
+> **Corrected in this document:** the win point differential item under
+> `Acceptance checklist`.
+>
+> **Deliberately not corrected.** (1) `Cross-cutting contract — Win point differential
+> analysis` still reads "Require a visible minimum number of qualifying wins". R-14 allows
+> **per-metric** thresholds above the games-played floor, and whether a win-margin metric's
+> own threshold may be counted in qualifying wins is exactly **open analytics question
+> Q-1** — correcting it would require inventing the mechanism Q-1 defers, so it was left
+> untouched. (2) This document's `Minimum games` filter field and its `minimum-games`
+> filter references are **games-based and already correct** — they are population filters,
+> not the eligibility rule. (3) The `qualifying-win aggregation` test line asserts an
+> aggregation property, not eligibility.
+>
+> The pre-correction wording is retained in git history rather than in a per-site banner —
+> a deliberate departure from per-site marking, recorded in the handoff.
+
 ## Status
 
 Phase 7 is **planned and not started** unless `docs/REDESIGN_STATE.md` and a later explicit owner assignment say otherwise.
@@ -864,7 +890,7 @@ Before editing, return a preflight report with the input-data contract, weighted
 - [ ] Placement analysis is real or honestly unavailable.
 - [ ] Ranking, metric selection, placement analysis, focus-player detail, and methodology form one coordinated dashboard.
 - [ ] Player selection is synchronized across the ranking and supporting graphics.
-- [ ] Win point differential uses the canonical runner-up margin, visible samples, minimum-wins eligibility, and tested tie handling.
+- [ ] Win point differential uses the canonical runner-up margin, visible samples, the eligibility rules recorded for owner ruling R-14 in `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`, and tested tie handling.
 - [ ] ELO and Phase 17 opponent-adjusted analysis remain distinct.
 - [ ] Public player labels use the centralized resolver and private names are absent from public/client contracts.
 - [ ] Group Insights no longer owns the full leaderboard.

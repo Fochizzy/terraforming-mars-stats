@@ -6,6 +6,32 @@ Create an evidence-based improvement product using transparent deterministic rul
 >
 > **Preservation rule:** The source steps, their order, their dependencies, and their stop conditions are unchanged. The stage headings in this Markdown file only divide each source step into smaller reviewable checkpoints using the guide’s existing `Read → Inspect → Plan → Implement → Test → Render/Review → Document → Commit → Handoff` process.
 
+> **SUPERSEDED IN PLACE by owner ruling R-14 (2026-07-23) — wins-based eligibility.**
+> This document previously required **"minimum-wins eligibility"**. That was wrong **in
+> kind**, not merely in value: the eligibility rule counts **games played**, not wins.
+> The affected site now **points at** the rule instead of restating it —
+> `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` → "Universal
+> eligibility floor and per-metric display gates (owner ruling R-14, 2026-07-23)", whose
+> ruling text is recorded as **R-14** in `docs/redesign/DECISIONS.md`. **No threshold
+> value is restated here; the contract holds the number** (process rule P-2,
+> `docs/redesign/MASTER-RULES.md`).
+>
+> **Corrected in this document:** `Step 12.2 — Create deterministic rules` → `Stage B —
+> Define the bounded contract`.
+>
+> **NOT corrected, and readers must not build from it unaltered.** The
+> `Copy-ready agent execution prompt` section, under `IMPROVEMENT WIN DIFFERENTIAL RULES`,
+> still reads "only above the minimum-wins threshold". It is **carried source text**
+> governed by this file's Preservation rule above, so it was left **verbatim** rather than
+> rewritten. **Whether carried source text may be corrected in place is an owner question
+> and has not been decided.**
+>
+> The pre-correction wording is retained in git history rather than in a per-site banner —
+> a deliberate departure from per-site marking, recorded in the handoff. **The per-metric
+> threshold mechanism above the floor is open analytics question Q-1** and is deliberately
+> **not** specified here; sites in this document reading "when the player has enough
+> qualifying wins" were therefore left untouched as Q-1-dependent.
+
 ## Status
 
 Phase 12 is **planned and not started** unless `docs/REDESIGN_STATE.md` and a later explicit owner assignment say otherwise. This file does not authorize implementation, migration, production mutation, push, deployment, or work on a later phase.
@@ -240,7 +266,7 @@ The source step order is preserved. Each row is a bounded implementation assignm
 - Keep calculations outside presentation JSX and keep one calculation/query path for every value reused across global, group, player, game, or comparison contexts.
 - Mark unsupported or partial capabilities honestly. Do not create a field, formula, event, coordinate, identity fact, or historical value that the repository cannot support.
 - Use the canonical winning score minus highest opponent score formula only for qualifying wins and keep tied-first outcomes separate.
-- Show qualifying wins and total games, enforce minimum-wins eligibility, and aggregate from qualifying game-level margins.
+- Show qualifying wins and total games, apply the eligibility rules recorded for owner ruling R-14 in `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`, and aggregate from qualifying game-level margins.
 
 ### Stage C — Implement the source step
 

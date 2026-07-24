@@ -3235,6 +3235,58 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/SWEEP-MINIMUM-WINS-TO-ELIGIBILITY.md
+  (documentation-only correction of **wins-based eligibility** language across
+  `docs/redesign/phases/` to a pointer at the R-14 eligibility contract; redesign
+  lineage and local: **nothing built, applied, deployed, pushed, merged, or read from
+  production** — no Supabase MCP, no `execute_sql`, no `list_migrations`, no `wrangler`,
+  no `/api/deploy-info`; **no contract, decision, ruling, migration, or `src/**` file
+  edited**, and the planning-pack updater was not run by hand. Multiple phase documents
+  instructed a builder to "enforce **minimum-wins** eligibility", which is wrong **in
+  kind**, not merely in value — owner ruling **R-14**'s floor counts **games played**,
+  not wins — and a phase document is accepted design at rank 4, so a Phase 8 or 10
+  session would have built it and the error would have surfaced only at review.
+  **The cited lists were AGAIN A SUBSET, for the fifth time.** They named **eighteen**
+  sites, of which only **fourteen** were class A; the sweep of all 22 phase files, by
+  **text** not line number, found **one further class-A site** — the
+  `Validate win point differential analytics` row of `Expanded working sequence` in
+  `20-release-hardening.md` — and **twenty-seven** further sites in the other classes,
+  **forty-two** classified in total. **Fifteen class-A sites in eight documents** now
+  **point at** `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` instead
+  of restating the rule. **No threshold value was written into any phase document** —
+  fifteen copies of one fact is precisely the defect class **P-2** forbids, and an early
+  draft that cited the R-14 heading verbatim (which contains the value) was caught and
+  replaced with a bare **R-14** pointer before commit; proven **zero** by grep over the
+  changed set. **No line-number citation was added anywhere**, proven zero against the
+  added-lines diff. The canonical class-A line has **three clauses** and only the middle
+  one was wrong, so the display and aggregation clauses were preserved — a
+  find-and-replace would have destroyed both. **Class B untouched** — the ten
+  games-based `Minimum games` filter sites in `07` and `17` are **already correct**
+  (the brief anticipated two in `07`; there are six in `07` and four in `17`), and they
+  appear in the diff only inside the note prose describing them. **Class C untouched** —
+  six win-based test/acceptance assertions assert aggregation or display, not
+  eligibility. **Class D reported and corrected nothing (11):** three carried-source
+  sites under `## Copy-ready agent execution prompt` in `09`, `12` and `20`, left
+  **verbatim** under each file's own Preservation rule — **whether carried source text
+  may be corrected in place is an OPEN OWNER QUESTION** (process rule **P-1**), and this
+  is a **live hazard** because that prompt is the text most likely to be pasted and
+  executed, with `09`'s "Hide or qualify" conflicting with R-14 **twice** since a result
+  below a present threshold is **hidden, not flagged**; seven wins-based per-metric
+  gates in `07`, `09` and `12` left because **open analytics question Q-1** defers the
+  mechanism and correcting them would require inventing it; and `07`'s
+  `Minimum-history threshold` deferred row, which R-14 may now partly supply but only an
+  owner may say so. **One supersession note per document, not per site** — a
+  **deliberate departure** from per-site marking, taken because the change is uniform
+  and high-volume and per-site banners would bury eight accepted-design documents in
+  markers on the eve of their being built from; originals remain in git history.
+  **Q-1 remains open, no per-metric mechanism was specified, no threshold value changed,
+  no blocker's disposition changed, and all eight documents remain planned and not
+  started.** `MATCHER-MANUAL-ENTRY-REPLACEMENT` **not reclassified**;
+  `ID-READER-CONTRACT` **given no destination**; **AUD-5 and the cross-file citation
+  sweep untouched**. **This corrects one error in accepted design and authorizes
+  nothing** — not a phase, not the closure audit, not the reader deploy, not the drop,
+  not the contraction, not Phase 5, not Step 4.4.
+  Handoff: `docs/agent-handoffs/SWEEP-MINIMUM-WINS-TO-ELIGIBILITY.md`.)
 - docs/agent-handoffs/REMEDIATE-RECORD-NAVIGABILITY.md
   (documentation-only remediation of the three remaining record-navigability findings
   from the read-only coherence audit `84f4a6d9e` — **AUD-2**, **AUD-3**, **AUD-4** —

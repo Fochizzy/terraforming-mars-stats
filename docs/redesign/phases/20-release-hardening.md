@@ -6,6 +6,33 @@ Remove duplication only after replacements are proven, then complete accessibili
 >
 > **Preservation rule:** The source steps, their order, their dependencies, and their stop conditions are unchanged. The stage headings in this Markdown file only divide each source step into smaller reviewable checkpoints using the guide’s existing `Read → Inspect → Plan → Implement → Test → Render/Review → Document → Commit → Handoff` process.
 
+> **SUPERSEDED IN PLACE by owner ruling R-14 (2026-07-23) — wins-based eligibility.**
+> This document previously required **"minimum-wins eligibility"**. That was wrong **in
+> kind**, not merely in value: the eligibility rule counts **games played**, not wins.
+> The affected sites now **point at** the rule instead of restating it —
+> `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` → "Universal
+> eligibility floor and per-metric display gates (owner ruling R-14, 2026-07-23)", whose
+> ruling text is recorded as **R-14** in `docs/redesign/DECISIONS.md`. **No threshold
+> value is restated here; the contract holds the number** (process rule P-2,
+> `docs/redesign/MASTER-RULES.md`).
+>
+> **Corrected in this document:** the `Validate win point differential analytics` row of
+> `Expanded working sequence`; and `Step source unnumbered — Validate win point
+> differential analytics` under each of `Source-defined scope`, `Stage B — Define the
+> bounded contract`, `Stage C — Implement the source step`, and `Step completion gate`.
+>
+> **NOT corrected, and readers must not build from it unaltered.** The
+> `Copy-ready agent execution prompt` section, under `FINAL WIN DIFFERENTIAL VALIDATION`,
+> still lists "minimum wins" among the properties to regression-test. It is **carried
+> source text** governed by this file's Preservation rule above, so it was left
+> **verbatim** rather than rewritten. **Whether carried source text may be corrected in
+> place is an owner question and has not been decided.**
+>
+> The pre-correction wording is retained in git history rather than in a per-site banner —
+> a deliberate departure from per-site marking, recorded in the handoff. **The per-metric
+> threshold mechanism above the floor is open analytics question Q-1** and is deliberately
+> **not** specified here.
+
 ## Status
 
 Phase 20 is **planned and not started** unless `docs/REDESIGN_STATE.md` and a later explicit owner assignment say otherwise. This file does not authorize implementation, migration, production mutation, push, deployment, or work on a later phase.
@@ -89,7 +116,7 @@ The source step order is preserved. Each row is a bounded implementation assignm
 | 20.5 — Run full regression | npm test; npx tsc --noEmit; npm run lint; and the remaining source-defined items | Commit and hand off this source step; do not begin the next source heading. |
 | 20.6 — Produce final documentation | Route list; Page/view list; Component list; and the remaining source-defined items | Commit and hand off this source step; do not begin the next source heading. |
 | 20.7 — Validate production asset integration | Verify every tag, point-source, and corporation graphic resolves through the shared Supabase layer.; Check public or signed URL behavior in production-like builds and confirm RLS does not expose protected storage.; Check image dimensions, cumulative layout shift, lazy loading, caching, dark-theme contrast, fallback rendering, alt text, and keyboard-accessible surrounding controls.; and the remaining source-defined items | Commit and hand off this source step; do not begin the next source heading. |
-| Source heading — Validate win point differential analytics | Confirm one canonical formula is used across Individual, Group, Global, Compare, Leaderboard, Improvement, and Competition.; Verify multiplayer runner-up selection, tie handling, incomplete games, minimum-wins eligibility, close/decisive thresholds, and group/global aggregation weighting.; Compare displayed samples and supporting games against repository-level fixtures or known records.; and the remaining source-defined items | Apply and validate this source contract at this exact position before continuing. |
+| Source heading — Validate win point differential analytics | Confirm one canonical formula is used across Individual, Group, Global, Compare, Leaderboard, Improvement, and Competition.; Verify multiplayer runner-up selection, tie handling, incomplete games, the eligibility rules recorded for owner ruling R-14 in `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`, close/decisive thresholds, and group/global aggregation weighting.; Compare displayed samples and supporting games against repository-level fixtures or known records.; and the remaining source-defined items | Apply and validate this source contract at this exact position before continuing. |
 | 20.9 — Validate per-generation cards bought and TR analytics | Verify one canonical storage/query contract is used by Log a Game, imports, Game Detail, Replay, Global, Individual, Group, Compare, and Improvement.; Test explicit zero versus missing, generation ordering, duplicates, partial games, games of different lengths, TR checkpoint labels, legal decreases, corrections, and RLS.; Verify cards-bought bars, TR stepped lines, selected-generation details, filters, URL state, evidence tables, and accessible summaries remain synchronized.; and the remaining source-defined items | Commit and hand off this source step; do not begin the next source heading. |
 | 20.10 — Validate identity privacy and public data boundaries | Search the repository for public use of full_name, first_name, last_name, display_name, normalized personal-name values, private aliases, select(*), complete profile records, and direct player-name fallbacks.; Use known test personal names to inspect public pages, page source, hydration, APIs, RPCs, views, metadata, titles, URLs, structured data, exports, logs, telemetry, and analytics events.; Verify every public player label uses the centralized resolver and resolves claimed players to username or a neutral fallback.; and the remaining source-defined items | Commit and hand off this source step; do not begin the next source heading. |
 
@@ -743,7 +770,7 @@ The source step order is preserved. Each row is a bounded implementation assignm
 ### Source-defined scope
 
 - Confirm one canonical formula is used across Individual, Group, Global, Compare, Leaderboard, Improvement, and Competition.
-- Verify multiplayer runner-up selection, tie handling, incomplete games, minimum-wins eligibility, close/decisive thresholds, and group/global aggregation weighting.
+- Verify multiplayer runner-up selection, tie handling, incomplete games, the eligibility rules recorded for owner ruling R-14 in `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`, close/decisive thresholds, and group/global aggregation weighting.
 - Compare displayed samples and supporting games against repository-level fixtures or known records.
 - Verify all win-margin charts and tables remain synchronized under filters and use accessible labels and alternatives.
 
@@ -778,13 +805,13 @@ The source step order is preserved. Each row is a bounded implementation assignm
 - Require canonical map, space, placement, ownership, attribution, provenance, and coverage fields before enabling spatial analysis.
 - Do not infer coordinates, ownership, actor, or board completion from final totals or incomplete events.
 - Use the canonical winning score minus highest opponent score formula only for qualifying wins and keep tied-first outcomes separate.
-- Show qualifying wins and total games, enforce minimum-wins eligibility, and aggregate from qualifying game-level margins.
+- Show qualifying wins and total games, apply the eligibility rules recorded for owner ruling R-14 in `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`, and aggregate from qualifying game-level margins.
 
 ### Stage C — Implement the source step
 
 - Implement the source requirements in the exact order shown below; these are not optional examples:
   - [ ] Confirm one canonical formula is used across Individual, Group, Global, Compare, Leaderboard, Improvement, and Competition.
-  - [ ] Verify multiplayer runner-up selection, tie handling, incomplete games, minimum-wins eligibility, close/decisive thresholds, and group/global aggregation weighting.
+  - [ ] Verify multiplayer runner-up selection, tie handling, incomplete games, the eligibility rules recorded for owner ruling R-14 in `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`, close/decisive thresholds, and group/global aggregation weighting.
   - [ ] Compare displayed samples and supporting games against repository-level fixtures or known records.
   - [ ] Verify all win-margin charts and tables remain synchronized under filters and use accessible labels and alternatives.
 - Remove or change only behavior proven redundant, unreachable, unsafe, inaccessible, or inconsistent with an accepted contract.
@@ -817,7 +844,7 @@ The source step order is preserved. Each row is a bounded implementation assignm
 ### Step completion gate
 
 - [ ] Confirm one canonical formula is used across Individual, Group, Global, Compare, Leaderboard, Improvement, and Competition.
-- [ ] Verify multiplayer runner-up selection, tie handling, incomplete games, minimum-wins eligibility, close/decisive thresholds, and group/global aggregation weighting.
+- [ ] Verify multiplayer runner-up selection, tie handling, incomplete games, the eligibility rules recorded for owner ruling R-14 in `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`, close/decisive thresholds, and group/global aggregation weighting.
 - [ ] Compare displayed samples and supporting games against repository-level fixtures or known records.
 - [ ] Verify all win-margin charts and tables remain synchronized under filters and use accessible labels and alternatives.
 - [ ] No source step, formula, process, route, or persistence meaning was reordered or replaced.

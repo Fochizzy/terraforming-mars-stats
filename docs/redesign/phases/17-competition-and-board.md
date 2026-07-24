@@ -6,6 +6,28 @@ Complete opponent and spatial analytics with transparent methods and real geomet
 >
 > **Preservation rule:** The source steps, their order, their dependencies, and their stop conditions are unchanged. The stage headings in this Markdown file only divide each source step into smaller reviewable checkpoints using the guide’s existing `Read → Inspect → Plan → Implement → Test → Render/Review → Document → Commit → Handoff` process.
 
+> **SUPERSEDED IN PLACE by owner ruling R-14 (2026-07-23) — wins-based eligibility.**
+> This document previously required **"minimum-wins eligibility"**. That was wrong **in
+> kind**, not merely in value: the eligibility rule counts **games played**, not wins.
+> The affected site now **points at** the rule instead of restating it —
+> `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` → "Universal
+> eligibility floor and per-metric display gates (owner ruling R-14, 2026-07-23)", whose
+> ruling text is recorded as **R-14** in `docs/redesign/DECISIONS.md`. **No threshold
+> value is restated here; the contract holds the number** (process rule P-2,
+> `docs/redesign/MASTER-RULES.md`).
+>
+> **Corrected in this document:** `Step 17.1 — Build Head-to-Head` → `Stage B — Define the
+> bounded contract`.
+>
+> **Deliberately not corrected:** this document's `Minimum games` filter field and its
+> `minimum-game filtering` references are **games-based and already correct** — they are
+> population filters, not the eligibility rule, and were left untouched.
+>
+> The pre-correction wording is retained in git history rather than in a per-site banner —
+> a deliberate departure from per-site marking, recorded in the handoff. **The per-metric
+> threshold mechanism above the floor is open analytics question Q-1** and is deliberately
+> **not** specified here.
+
 ## Status
 
 Phase 17 is **planned and not started** unless `docs/REDESIGN_STATE.md` and a later explicit owner assignment say otherwise. This file does not authorize implementation, migration, production mutation, push, deployment, or work on a later phase.
@@ -136,7 +158,7 @@ The source step order is preserved. Each row is a bounded implementation assignm
 - Define the eligible encounter set, opponent or lineup identity, tie treatment, minimum sample, and scope filters before calculating the result.
 - Do not treat repeated games from one player or lineup as independent evidence without showing the distribution and sample.
 - Use the canonical winning score minus highest opponent score formula only for qualifying wins and keep tied-first outcomes separate.
-- Show qualifying wins and total games, enforce minimum-wins eligibility, and aggregate from qualifying game-level margins.
+- Show qualifying wins and total games, apply the eligibility rules recorded for owner ruling R-14 in `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md`, and aggregate from qualifying game-level margins.
 
 ### Stage C — Implement the source step
 
