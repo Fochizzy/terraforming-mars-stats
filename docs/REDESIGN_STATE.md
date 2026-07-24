@@ -64,6 +64,20 @@ minimum-wins sites were **not** corrected, and **no open question was answered**
 a recording, not the contract reconciliation — that reconciliation is a separate work
 item. See the `RECORD-ANALYTICS-RULINGS` handoff in the `Latest handoff` group.
 
+**2026-07-23 — the identity-build feasibility findings are now RECORDED (documentation
+only).** Work item `RECORD-IDENTITY-FEASIBILITY-FINDINGS` committed the [PRIOR] findings
+of the read-only feasibility investigation (`IDENTITY-BUILD-FEASIBILITY-READS`, step 4.38)
+into a new handoff: **F-1–F-7** (the gap between the recorded identity design D-1–D-33 and
+the current schema — chiefly **F-1**, that `public.players` is group-scoped and the
+login/search username lives on the global `user_profiles`, so there is no per-person row
+for a guest to attach an email to) and discrepancies **X-1–X-5**. Several findings were
+cheaply **re-derived** from the repository this session; **X-2's six-vs-one guest-count
+conflict stays unresolved** (a forbidden production read). **No design was amended, no
+blocker reclassified, no disposition changed, no migration or code written**, and
+`CURRENT_STATUS.md` gained **pointers only** beside the `MATCHER-MANUAL-ENTRY-REPLACEMENT`
+and `GUEST-LABEL-REDIRTY` rows. See the `RECORD-IDENTITY-FEASIBILITY-FINDINGS` handoff in
+the `Latest handoff` group.
+
 **THE APPLY'S RECORD IS REMEDIATED (2026-07-23), and the apply itself is
 unaffected.** Documentation-only and local: **no production access, no migration,
 no deploy, no merge, nothing pushed**, and `src/**`, `supabase/**` and
@@ -3176,6 +3190,22 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/RECORD-IDENTITY-FEASIBILITY-FINDINGS.md
+  (documentation-only recording of the identity-build feasibility findings from the
+  read-only `IDENTITY-BUILD-FEASIBILITY-READS` (step 4.38) investigation, redesign lineage
+  and local: **nothing built, applied, deployed, pushed, merged, or read from
+  production**; no design amended, **no blocker reclassified, no disposition or status
+  cell changed**, no DECISIONS entry created, no migration or code written, **no open
+  question answered**. Records **F-1–F-7** (the gap to the recorded identity design —
+  chiefly **F-1**: `public.players` is group-scoped while the login/search username lives
+  on the global `user_profiles`, so a guest has no per-person profile row to attach an
+  email to; **F-3**: login works but per-account lockout does not exist) and **X-1–X-5**
+  (incl. **X-2** six-vs-one guest count, unresolved — a forbidden production read — and
+  **X-4** the player-repo lineage split). Several findings **re-derived** this session;
+  the rest stay **[PRIOR]** from HEAD `9fc2c96f`. `CURRENT_STATUS.md` gained **pointers
+  only** beside the `MATCHER-MANUAL-ENTRY-REPLACEMENT` (`:812`) and `GUEST-LABEL-REDIRTY`
+  (`:818`) rows. **This record decides, builds, resolves, and authorizes nothing.**
+  Handoff: `docs/agent-handoffs/RECORD-IDENTITY-FEASIBILITY-FINDINGS.md`.)
 - docs/agent-handoffs/RECORD-ANALYTICS-RULINGS.md
   (documentation-only recording of owner analytics rulings and two process rules,
   redesign lineage and local: **nothing built, applied, deployed, pushed, merged, or
