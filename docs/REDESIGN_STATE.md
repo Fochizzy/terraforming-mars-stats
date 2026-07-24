@@ -3209,6 +3209,26 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/AUDIT-SESSION-RECORDS-2026-07-23.md
+  (read-only coherence/citation audit of the eight 2026-07-23 documentation commits,
+  redesign lineage and local: **nothing corrected, built, applied, deployed, pushed,
+  merged, or read from production** — no Supabase MCP, no `execute_sql`, no
+  `list_migrations`, no `wrangler`, no `/api/deploy-info`; **no audited document,
+  phase document, contract, or migration edited**. VERDICT **FAIL**. Most
+  consequential defect **AUD-1**: the rank-2 `CURRENT_STATUS.md` blocker table still
+  marks `ID-READER-CONTRACT` (`:809`) and `ID-LEGACY-ORACLE` (`:811`) "Blocking:
+  Step 4.3 closure", contradicting owner ruling **R-6** (same file's PD-2 disposition
+  `:1049-1065` + `DECISIONS.md`), which closes Step 4.3 on the audit **alone** — so a
+  fresh closure session reads the wrong closure scope and the authority order points
+  the wrong way. Also **AUD-2** ~12-line-stale `DECISIONS.md`/phase self-citations in
+  R-6, R-12 and R-13/R-14/R-16 (quoted text verbatim-findable; propagated into two
+  communal-doc reconciliation notes); **AUD-3** the identity vs analytics Q-series
+  collision, already tripped — F-7/X-1 cite "analytics Q-3" for the identity Q-3
+  matcher gate; **AUD-4** the one-directional D-15↔F-1 pointer; **AUD-5** the
+  self-disclosed, uncollapsed planning-layer defect-count replication (P-2). Q-5
+  communal corrections and Q-6 dissolved-finding annotations audited as sound.
+  **This record corrects, resolves, and authorizes nothing.** Handoff:
+  `docs/agent-handoffs/AUDIT-SESSION-RECORDS-2026-07-23.md`.)
 - docs/agent-handoffs/RECONCILE-COMMUNAL-DOCUMENTS.md
   (documentation-only application of owner rulings **R-13–R-17** and P-2's canonical-home
   principle across the seven communal documents, redesign lineage and local: **nothing
