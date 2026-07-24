@@ -33,6 +33,32 @@ accompanied it and nothing in production calls the new three-argument overload.*
 are the three remaining gates before contraction `20260722012707`, and **none of
 them is open**. Applied is not deployed and is not closed.
 
+**2026-07-24 — the blocker table is RECONCILED to ruling R-6 (documentation only);
+audit finding AUD-1 is answered.** Work item `RECONCILE-BLOCKER-TABLE-TO-R6`
+corrected the two `docs/CURRENT_STATUS.md` blocker rows whose `Blocking` value
+still read "Step 4.3 closure" after **R-6** removed them as closure gates — the
+material record-integrity defect the 2026-07-23 read-only audit returned **FAIL**
+on, because a fresh closure session reading the rank-2 table and following the
+documented authority order got a **larger closure criterion than the owner ruled**.
+`ID-LEGACY-ORACLE` now reads **Phase 5 entry** with an R-6 pointer;
+`ID-READER-CONTRACT`'s false closure claim is **removed** and what it gates
+instead is recorded as an **OPEN OWNER QUESTION**, because R-6 states no
+replacement destination for it and none was inferred — deliberately not by analogy
+with `ID-LEGACY-ORACLE`. Both originals are retained in place, marked superseded
+with the date and R-6. **`STEP-4.3-AUDIT` was deliberately left untouched**: R-6
+keeps the fresh independent audit as the surviving closure gate, so its
+"Step 4.3 closure" value is correct. Both rank-2 files were swept in full: the
+audit's cited set proved **complete, not a subset** — three `Blocking`-column
+Step-4.3-closure claims exist, two defective and one correct — and
+`docs/REDESIGN_STATE.md` carries **no** blocker table, so it had no equivalent
+site to correct. **No `Requirement`, `Current status`, or description text was
+altered (proven by a zero-deletion word-diff), no blocker was reclassified, closed
+or reopened, no ruling was amended, no destination was inferred, and AUD-2's stale
+line citations were deliberately NOT corrected** — nor was any new line-number
+citation introduced. **Nothing was built, applied, deployed, pushed, merged, or
+read from production.** See the `RECONCILE-BLOCKER-TABLE-TO-R6` handoff in the
+`Latest handoff` group.
+
 **2026-07-23 — the replacement identity design and owner rulings R-5–R-12 are now
 RECORDED (documentation only).** Work item `RECORD-IDENTITY-DESIGN-AND-RULINGS`
 (step 4.33) wrote an owner design conversation and its rulings into the canonical
@@ -3209,6 +3235,33 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/RECONCILE-BLOCKER-TABLE-TO-R6.md
+  (documentation-only reconciliation of the `CURRENT_STATUS.md` blocker table to owner
+  ruling **R-6**, answering audit finding **AUD-1**; redesign lineage and local:
+  **nothing built, applied, deployed, pushed, merged, or read from production** — no
+  Supabase MCP, no `execute_sql`, no `list_migrations`, no `wrangler`, no
+  `/api/deploy-info`; **no phase document, contract, migration, or ruling edited**, and
+  the planning-pack updater was not run by hand. Both rank-2 files swept in full: the
+  audit's cited set proved **complete, not a subset** — exactly three `Blocking`-column
+  Step-4.3-closure claims exist, and `docs/REDESIGN_STATE.md` carries **no** blocker
+  table, so it had no equivalent site. **`ID-LEGACY-ORACLE` corrected to `Phase 5
+  entry`** with an R-6 pointer and the original retained as superseded;
+  **`ID-READER-CONTRACT`'s false "Step 4.3 closure" claim removed**, its replacement
+  destination recorded as an **OPEN OWNER QUESTION** because R-6 states none — and
+  **deliberately NOT inferred** by analogy with `ID-LEGACY-ORACLE`;
+  **`STEP-4.3-AUDIT` left untouched** because R-6 keeps the fresh independent audit as
+  the surviving closure gate. **No `Requirement`, `Current status`, or description text
+  altered — proven by a zero-deletion word-diff**; no blocker reclassified, closed or
+  reopened; **AUD-2/AUD-3/AUD-4/AUD-5 not fixed** and **no new line-number citation
+  introduced**. Residuals recorded, not acted on: PD-2's "Established" paragraph now
+  describes the pre-correction table; `MATCHER-MANUAL-ENTRY-REPLACEMENT`'s `Nothing
+  today` understates R-6's Phase 5 entry re-registration but makes no closure claim, so
+  changing it would be a forbidden reclassification; and this file's dated ordering
+  statements placing the closure audit after the contraction, the historical remediation
+  migrations, and the backfill/re-neutralization pair are left as written. **This record
+  corrects a record and authorizes nothing** — not the closure audit, not the reader
+  deploy, not the drop, not the contraction, not Phase 5, not Step 4.4. Handoff:
+  `docs/agent-handoffs/RECONCILE-BLOCKER-TABLE-TO-R6.md`.)
 - docs/agent-handoffs/AUDIT-SESSION-RECORDS-2026-07-23.md
   (read-only coherence/citation audit of the eight 2026-07-23 documentation commits,
   redesign lineage and local: **nothing corrected, built, applied, deployed, pushed,
