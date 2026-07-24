@@ -137,3 +137,25 @@ thresholds, corporation or pairing weighting, final-action metrics,
 expected-score/efficiency/style/award calculations, source capture, repository
 queries, SQL/views, migrations, schemas, page routes, navigation, dependencies,
 or production data.
+
+### Reconciliation note (owner rulings, 2026-07-23)
+
+The "Explicit exclusions" paragraph above is **retained as written**. This note records
+where an owner ruling has since overtaken **one** item in that list, and where two other
+items are deliberately **left in force** pending an unruled question. Authority:
+`docs/redesign/DECISIONS.md` → "Phase 2 / analytics — owner rulings R-13–R-17". The
+paragraph's wording is unchanged, and no definition is added here — reconciling the
+registry itself is separate, unauthorized work.
+
+- **expected-score** (within "expected-score/efficiency/style/award calculations") —
+  **SUPERSEDED by R-13.** The 2026-07-21 seasonal-ELO decision (`DECISIONS.md:1146-1204`)
+  stands and supplies the expected-score basis this Step 2.4 registry excluded; the
+  exclusion lagged that decision, and the decision governs. Only the **expected-score**
+  item is superseded — "efficiency", "style", and the remaining items are unaffected.
+- **corporation or pairing weighting** and **award calculations** (also in this list) —
+  **NOT superseded; the exclusions stand.** Whether excluding them is a considered design
+  decision or an unrevisited placeholder is **open analytics question Q-7**
+  (`DECISIONS.md` → "Q-7 (analytics)"), which weighs Award Funding ROI (Phase 18) and
+  Corporation Adjusted Win Rate (Phase 14) against this exclusion and is explicitly
+  **unruled**. Nothing here changes those exclusions; this note only records that the
+  question about them is open.

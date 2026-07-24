@@ -64,6 +64,25 @@ minimum-wins sites were **not** corrected, and **no open question was answered**
 a recording, not the contract reconciliation — that reconciliation is a separate work
 item. See the `RECORD-ANALYTICS-RULINGS` handoff in the `Latest handoff` group.
 
+**2026-07-23 — the analytics rulings are now APPLIED to the seven communal documents
+(documentation only).** Work item `RECONCILE-COMMUNAL-DOCUMENTS` applied owner rulings
+**R-13–R-17** and P-2's canonical-home principle across the seven communal documents
+`RECORD-ANALYTICS-RULINGS` left describing the pre-install world.
+`docs/redesign/DATA-CAPABILITIES.md`, `docs/redesign/CANONICAL-ANALYTICS-DEFINITIONS.md`,
+and `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` were corrected **in
+place with every original retained** (R-16/R-13/R-15 supersessions; the R-17 ratio-family
+contradiction marked **CONTESTED**, not corrected; the R-14 three-game floor / display
+gate added while `:105` was left intact). `docs/redesign/PAGE-ARCHITECTURE.md` had its
+per-page specification **de-duplicated to phase-document pointers**;
+`docs/redesign/MASTER-PLAN.md` carried **no** per-phase restatement to strip and gained
+**navigation pointers only**. The Phase 2 list merge was **verified already done** (not
+redone), and the master guide `.docx` is a binary file **left for separate handling**.
+**No phase document was edited, no minimum-wins site was corrected, no open question was
+answered, and CANONICAL's award/corporation-weighting exclusions were left untouched.**
+This applies the rulings to the communal contracts; the **phase-document** reconciliation
+(the minimum-wins sweep) remains a separate work item. See the
+`RECONCILE-COMMUNAL-DOCUMENTS` handoff in the `Latest handoff` group.
+
 **2026-07-23 — the identity-build feasibility findings are now RECORDED (documentation
 only).** Work item `RECORD-IDENTITY-FEASIBILITY-FINDINGS` committed the [PRIOR] findings
 of the read-only feasibility investigation (`IDENTITY-BUILD-FEASIBILITY-READS`, step 4.38)
@@ -3190,6 +3209,25 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/RECONCILE-COMMUNAL-DOCUMENTS.md
+  (documentation-only application of owner rulings **R-13–R-17** and P-2's canonical-home
+  principle across the seven communal documents, redesign lineage and local: **nothing
+  built, applied, deployed, pushed, merged, or read from production**; **no phase document
+  edited**, no minimum-wins site corrected, **no open question answered**, and CANONICAL's
+  award/corporation-weighting exclusions untouched. **Group B** corrected
+  `docs/redesign/DATA-CAPABILITIES.md` (R-16 at `:399`; R-13/R-15 at `:421`; R-17 marked
+  **CONTESTED** at `:581-584`, not corrected), `docs/redesign/CANONICAL-ANALYTICS-DEFINITIONS.md`
+  (expected-score superseded by R-13; Q-7 pointer only), and
+  `docs/redesign/METRIC-SAMPLE-COVERAGE-ELIGIBILITY-CONTRACTS.md` (R-14 floor /
+  display-gate added, `:105` intact, Q-1 recorded open) **in place with originals
+  retained**. **Group A** de-duplicated `docs/redesign/PAGE-ARCHITECTURE.md` per-page
+  scope to pointers (more deletions than insertions) and added **navigation-only**
+  pointers to `docs/redesign/MASTER-PLAN.md`, which carried **no** restatement to strip.
+  **Group C** verified the Phase 2 list merge already performed by
+  `RECORD-ANALYTICS-RULINGS` and did **not** redo it; the two-list diff is reported in the
+  handoff. The master guide `.docx` is binary and **left for separate handling**. **This
+  record decides, builds, resolves, and authorizes nothing.** Handoff:
+  `docs/agent-handoffs/RECONCILE-COMMUNAL-DOCUMENTS.md`.)
 - docs/agent-handoffs/RECORD-IDENTITY-FEASIBILITY-FINDINGS.md
   (documentation-only recording of the identity-build feasibility findings from the
   read-only `IDENTITY-BUILD-FEASIBILITY-READS` (step 4.38) investigation, redesign lineage

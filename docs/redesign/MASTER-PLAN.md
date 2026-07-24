@@ -1282,8 +1282,31 @@ Before Step 2.2 specifically, confirm:
 
 ### Phase files
 
+Navigation only — each phase document is canonical for its own scope; this list
+names paths and nothing about their contents (process rule P-2 in
+`docs/redesign/MASTER-RULES.md`).
+
+- `docs/redesign/phases/00-repository-audit.md`
 - `docs/redesign/phases/01-shared-components.md`
 - `docs/redesign/phases/02-analytics-foundation.md`
+- `docs/redesign/phases/03-navigation-and-routes.md`
+- `docs/redesign/phases/04-log-a-game.md`
+- `docs/redesign/phases/05-games-detail-and-replay.md`
+- `docs/redesign/phases/06-my-profile.md`
+- `docs/redesign/phases/07-leaderboard.md`
+- `docs/redesign/phases/08-global-insights.md`
+- `docs/redesign/phases/09-individual-insights.md`
+- `docs/redesign/phases/10-group-insights.md`
+- `docs/redesign/phases/11-compare.md`
+- `docs/redesign/phases/12-improvement.md`
+- `docs/redesign/phases/13-card-and-tag-analytics.md`
+- `docs/redesign/phases/14-corporation-and-prelude-analytics.md`
+- `docs/redesign/phases/15-scoring-and-play-style.md`
+- `docs/redesign/phases/16-engine-state-tempo-and-conditions.md`
+- `docs/redesign/phases/17-competition-and-board.md`
+- `docs/redesign/phases/18-objectives-endgame-and-chemistry.md`
+- `docs/redesign/phases/19-compare-and-improvement-expansion.md`
+- `docs/redesign/phases/20-release-hardening.md`
 
 ### Relevant handoffs
 

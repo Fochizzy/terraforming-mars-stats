@@ -64,37 +64,28 @@ and active-route behavior from one typed source.
 
 ## Page responsibilities
 
+The primary analytics destinations are specified by their phase documents under
+`docs/redesign/phases/`, which govern their own pages. This section points at
+those documents rather than restating per-page scope (process rule P-2 in
+`docs/redesign/MASTER-RULES.md`):
+
+- My Profile — `docs/redesign/phases/06-my-profile.md`
+- Global Insights — `docs/redesign/phases/08-global-insights.md`
+- Individual Insights — `docs/redesign/phases/09-individual-insights.md`
+- Group Insights — `docs/redesign/phases/10-group-insights.md`
+- Compare — `docs/redesign/phases/11-compare.md`, `docs/redesign/phases/19-compare-and-improvement-expansion.md`
+- Improvement — `docs/redesign/phases/12-improvement.md`, `docs/redesign/phases/19-compare-and-improvement-expansion.md`
+- Leaderboard — `docs/redesign/phases/07-leaderboard.md`
+
+Games Library, Game Detail, and Game Replay are specified by
+`docs/redesign/phases/05-games-detail-and-replay.md`.
+
+The destinations below are not governed by a phase 5-20 document and retain their
+scope here.
+
 ### Log a Game
 
 Game entry, imports, drafts, validation, and finalization.
-
-### My Profile
-
-Identity, recent activity, groups, data status, and shortcuts.
-
-### Global Insights
-
-Global meta, conditions, cards, tags, corporations, objectives, and board trends.
-
-### Individual Insights
-
-One-player scoring, style, engine, cards, competition, board, tempo, and objectives.
-
-### Group Insights
-
-Group performance, members, chemistry, lineups, conditions, and games.
-
-### Compare
-
-Side-by-side comparison of compatible entities.
-
-### Improvement
-
-Recommendations, evidence, focus areas, action plans, and progress.
-
-### Leaderboard
-
-Formal rankings, placement analysis, and methodology.
 
 ### Card Database
 

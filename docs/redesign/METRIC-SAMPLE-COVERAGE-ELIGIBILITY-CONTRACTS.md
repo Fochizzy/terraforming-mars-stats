@@ -120,6 +120,35 @@ An absent threshold is an explicit state, not proof that the sample is large
 enough. Low-sample categories remain visible unless an explicit filter excludes
 them.
 
+## Universal eligibility floor and per-metric display gates (owner ruling R-14, 2026-07-23)
+
+Owner ruling **R-14** (`docs/redesign/DECISIONS.md` → "R-14 — minimum eligibility: a
+three-game floor, and no universal threshold") is recorded here as this contract's
+eligibility rules. R-14 **upholds** the "Minimum-Sample Rules" statement above that
+**there is no universal low-sample threshold** — the first phase-versus-contract conflict
+to resolve in the contract's favour — and that sentence is left **unchanged**. R-14 adds
+three rules that are **distinct** from it:
+
+- **A universal eligibility floor of three games played.** Below three games played a
+  profile **does not appear in analytics at all**. This is a **profile-existence gate**,
+  not a per-metric statistical-stability threshold; it does **not** reintroduce a
+  universal low-sample threshold, and the "no universal low-sample threshold" sentence
+  above still holds.
+- **Above the floor, thresholds are per-metric.** Win rate stabilises far sooner than
+  card-acquisition conversion, so each metric's threshold is its own. This is the
+  `metric-specific` policy already named above, not a new global default.
+- **A threshold is a display gate, not a labelling rule.** When a per-metric threshold
+  exists and a result falls **below** it, the result is **hidden**, not shown flagged as
+  low-sample. This governs the below-a-present-threshold case, and is distinct from the
+  absent-threshold case above (a category with no threshold remains visible unless a
+  filter excludes it).
+
+**Open — not decided here.** The **mechanism** by which a metric declares its own
+threshold — each metric carrying its own number, versus selecting from a small set of
+tiers — is **open analytics question Q-1** (`docs/redesign/DECISIONS.md`), deferred until
+real data shows where each metric stabilises. **No mechanism is invented here**, and the
+phase documents cannot yet be pointed at one; supplying it is separate work.
+
 ## Coverage Rules
 
 Measured coverage continues to distinguish:
