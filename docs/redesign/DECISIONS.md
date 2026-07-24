@@ -2755,3 +2755,112 @@ These **follow** from the entries above; **none is a separate decision**.
   the current schema** — the constraint had no single table to live on — and **is
   implementable under this shape** (D-53). Recorded as the **removal of that obstruction**,
   not as its implementation.
+
+## Phase 4 Step 4.3 — owner ruling R-18 on the governing-document conflicts with the identity model, 2026-07-24
+
+Recorded 2026-07-24 by the documentation-only work item
+`CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL`. It continues the `R-` owner-ruling series,
+whose latest prior member is **R-17**. The identity `D-` and `C-` series are deliberately
+**not** extended: this is a **ruling that disposes of a document conflict**, which is what
+this file's `R-` series records (compare §"Phase 2 / analytics — owner rulings R-13–R-17 on
+the phase-vs-contract conflicts"), rather than a new design decision or a consequence of
+one. Highest prior identifiers read from this file when this was recorded: **R-17**,
+**D-59**, **C-12**. Evidence class **[OWNER-DECISION]**.
+
+**This entry rules; it builds nothing.** It authorizes no code, schema, migration, RPC,
+test, deploy, or production write, and it **amends no existing decision, ruling, or
+finding**.
+
+### R-18 — where the identity model and the two governing documents conflict, the identity model governs
+
+`ALIGN-PHASES-TO-IDENTITY-MODEL` surfaced eighteen phase-document sites it could correct in
+**neither** direction under process rule **P-1**, because two governing documents still
+required what the identity model forbids. The owner has now ruled on **both**: **the
+identity model recorded above in §"Phase 4 Step 4.3 — replacement player-identity, account,
+and vouching model (decision record: D-1–D-49), 2026-07-23" governs.** That record's own
+statement — that the privacy contract stays authoritative for semantic meaning until the
+owner amends it — is **satisfied by this ruling for the requirements named below, and for
+nothing beyond them**.
+
+**In `docs/redesign/MASTER-RULES.md` → "Guest player identity and claimed-name privacy",
+two of the non-negotiable rules are superseded:**
+
+- "a guest may be identified using either username or first and last name"
+- "username and personal-name matching are separate"
+
+**In `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`, twelve requirements are
+superseded:**
+
+- "Required identity lifecycle" — **step 2** (identifying an unlinked guest by a username or
+  by first name and last name) and **step 6** (registration searching a normalized
+  first-and-last name against private guest name information or a private name alias).
+- "Guest identity modes" — the framing sentence establishing **two** explicit identity modes,
+  and the **"First-and-last-name mode"** subsection in its entirety.
+- "Username and personal-name separation" — the sentence stating that username matching and
+  personal-name matching are separate concepts.
+- "Registration-time candidate lookup" — the requirement to search using the registered first
+  and last name, and the "one exact private-name candidate" return shape.
+- "Cross-phase ownership" — Phase 4's "explicit username or first-and-last-name identity
+  mode" and registration's "first-name and last-name collection".
+- "Required tests" — the two "entered with first and last name" guest-creation tests and the
+  "exact private-name candidate" registration-claim test.
+
+Superseding decisions, by identifier: **D-1**, **D-2**, **D-3**, **D-4**, **D-8**, **D-36**,
+**D-37**, **D-40**, **D-41**. **Their content is deliberately not restated here**; each is
+recorded above in this file (process rule **P-2**, `docs/redesign/MASTER-RULES.md` →
+"Conflict handling and canonical-home process rules").
+
+**Every superseded requirement is retained in place**, in its own document, with its original
+text unchanged and a note marking it superseded and pointing here. **Nothing was deleted from
+either document, no list was renumbered, and nothing was relocated.**
+
+### What R-18 does NOT reach — the remaining protections STAY IN FORCE
+
+**The identity model changes what is stored going forward. It does not retroactively erase
+what is already stored.** Personal names remain in `private.player_private_identities`,
+`private.player_legacy_identities`, `public.player_import_aliases` and
+`game_revisions.snapshot`. **The migration that would remove them is unwritten and
+unauthorized**, and this ruling neither designs, authorizes, nor begins it — a production
+write carries its own authorization requirements (**C-10**).
+
+**Therefore every requirement in `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`
+not named above, and every non-negotiable rule in `docs/redesign/MASTER-RULES.md` → "Guest
+player identity and claimed-name privacy" not named above, STAYS IN FORCE — and is
+load-bearing over that stored data until the migration runs.** This is recorded explicitly
+because the natural misreading of a supersession is that it clears the whole section. It does
+not. The disclosure boundaries, the public-surface exclusions, the neutral-fallback rule, the
+data-boundary and import-evidence rules, the anti-bleed matching rules and the missing-value
+rules all protect names that still exist. **None of them was marked, annotated, softened, or
+described as easier to satisfy**, and the sweep that produced this ruling left every one of
+them byte-unchanged.
+
+**Sites the sweep could not classify were corrected in neither direction** and are recorded
+in the `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` handoff. Two of them are the
+already-recorded "another explicitly approved public handle" question, which **this ruling
+does not resolve**.
+
+### What this ruling does and does not unblock
+
+- **It does unblock.** The eighteen phase-document sites that
+  `ALIGN-PHASES-TO-IDENTITY-MODEL` classified unresolvable on personal-name capture and
+  matching were held by **both** documents at once. With both corrected, that basis is gone
+  and those sites become correctable.
+- **It does not correct them.** Sweeping the phase documents is **separate work and is not
+  performed or authorized here.** No phase document was edited by this ruling, and this entry
+  must not be read as having cleared those sites.
+- **It does not touch the name-removal migration.** Until that migration runs, the
+  protections in the section above are load-bearing.
+
+### Structural observation — recorded as an observation, not an action
+
+**A design requirement was living in a rules document, where the supersession discipline that
+governs this file does not reach it.** The identity model was recorded across several commits,
+each superseding earlier entries here; **none of them touched
+`docs/redesign/MASTER-RULES.md`**, because nothing in that path had reason to. That is why the
+contradiction survived commits that would otherwise have caught it, and why it surfaced only
+when a phase sweep ran into it from the outside.
+
+**This is recorded so the mechanism is visible, not to license a fix.** Whether requirements
+of that kind should be relocated out of `MASTER-RULES.md` — leaving pointers under **P-2** —
+is a **separate owner question**. **No relocation is performed, proposed, or recommended
+here**, and recording the observation implies none.

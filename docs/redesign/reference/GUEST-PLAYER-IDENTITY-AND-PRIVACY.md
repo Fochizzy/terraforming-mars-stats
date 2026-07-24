@@ -25,6 +25,24 @@ A phase-specific instruction must not weaken this contract.
 
 ## Required identity lifecycle
 
+> **SUPERSEDED IN PART — recorded 2026-07-24 by
+> `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` under owner ruling R-18. The numbered
+> lifecycle below is retained in full, not deleted or reworded; this note states only
+> which of its steps no longer govern, and it reaches no further than the two named
+> here.** **Step 2**, which identifies an unlinked guest "using either: a username, or
+> first name and last name", and **step 6**, which has registration search "normalized
+> registered first-and-last name against approved private guest name information or a
+> private name alias", both **give way** to the identity model recorded in
+> `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — replacement player-identity,
+> account, and vouching model (decision record: D-1–D-49), 2026-07-23": **D-1**, **D-3**,
+> **D-4**, **D-36**, **D-37**, **D-40** and **D-41**. The ruling that makes the model
+> govern here, and that records what it does **not** reach, is
+> `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — owner ruling R-18 on the
+> governing-document conflicts with the identity model, 2026-07-24". **Read those
+> decisions where they live; their content is deliberately not restated here** (process
+> rule **P-2**, `docs/redesign/MASTER-RULES.md` → "Conflict handling and canonical-home
+> process rules").
+
 TM Stats supports player identities that may exist before the person creates a
 registered account.
 
@@ -84,6 +102,23 @@ Do not display an unlinked guest as a registered account.
 
 ## Guest identity modes
 
+> **SUPERSEDED IN PART — recorded 2026-07-24 by
+> `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` under owner ruling R-18. Everything
+> below is retained in full, not deleted or reworded; this note states only which parts
+> no longer govern, and it reaches no further than the two named here.** The sentence
+> **"A new guest may be entered using one of two explicit identity modes"** and the
+> **"First-and-last-name mode"** subsection below, in its entirety, **give way** to the
+> identity model recorded in `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 —
+> replacement player-identity, account, and vouching model (decision record: D-1–D-49),
+> 2026-07-23": **D-1**, **D-2**, **D-3**, **D-4** and **D-37**. The same supersession is
+> recorded again at that subsection's own heading. The ruling that makes the model govern
+> here, and that records what it does **not** reach, is `docs/redesign/DECISIONS.md` →
+> "Phase 4 Step 4.3 — owner ruling R-18 on the governing-document conflicts with the
+> identity model, 2026-07-24". **Read those decisions where they live; their content is
+> deliberately not restated here** (process rule **P-2**,
+> `docs/redesign/MASTER-RULES.md` → "Conflict handling and canonical-home process
+> rules").
+
 A new guest may be entered using one of two explicit identity modes.
 
 ### Username mode
@@ -103,6 +138,19 @@ Requirements:
 - retain original import evidence where applicable
 
 ### First-and-last-name mode
+
+> **SUPERSEDED — recorded 2026-07-24 by `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL`
+> under owner ruling R-18. This subsection is retained in full, not deleted or reworded;
+> this note records that it no longer governs, and it reaches no further than this
+> subsection.** It **gives way** to the identity model recorded in
+> `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — replacement player-identity,
+> account, and vouching model (decision record: D-1–D-49), 2026-07-23": **D-1**, **D-2**,
+> **D-3**, **D-4** and **D-37**. The ruling that makes the model govern here, and that
+> records what it does **not** reach, is `docs/redesign/DECISIONS.md` → "Phase 4 Step
+> 4.3 — owner ruling R-18 on the governing-document conflicts with the identity model,
+> 2026-07-24". **Read those decisions where they live; their content is deliberately not
+> restated here** (process rule **P-2**, `docs/redesign/MASTER-RULES.md` → "Conflict
+> handling and canonical-home process rules").
 
 The game logger provides:
 
@@ -153,6 +201,22 @@ Partial matching must never automatically link or claim an identity.
 
 ## Username and personal-name separation
 
+> **SUPERSEDED IN PART — recorded 2026-07-24 by
+> `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` under owner ruling R-18. Everything
+> below is retained in full, not deleted or reworded; this note states only which part no
+> longer governs, and it reaches no further than the one sentence named here.** The
+> sentence **"Username matching and personal-name matching are separate concepts"**
+> **gives way** to the identity model recorded in `docs/redesign/DECISIONS.md` → "Phase 4
+> Step 4.3 — replacement player-identity, account, and vouching model (decision record:
+> D-1–D-49), 2026-07-23": **D-1**, **D-4**, **D-8**, **D-40** and **D-41**. The ruling
+> that makes the model govern here, and that records what it does **not** reach — in
+> particular over the personal-name data already stored — is
+> `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — owner ruling R-18 on the
+> governing-document conflicts with the identity model, 2026-07-24". **Read those
+> decisions where they live; their content is deliberately not restated here** (process
+> rule **P-2**, `docs/redesign/MASTER-RULES.md` → "Conflict handling and canonical-home
+> process rules").
+
 Username matching and personal-name matching are separate concepts.
 
 Use separate centralized normalization and comparison utilities.
@@ -172,6 +236,23 @@ Do not convert missing identity information into an empty value that
 participates in matching.
 
 ## Registration-time candidate lookup
+
+> **SUPERSEDED IN PART — recorded 2026-07-24 by
+> `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` under owner ruling R-18. Everything
+> below is retained in full, not deleted or reworded; this note states only which parts no
+> longer govern, and it reaches no further than the two named here.** The requirement that
+> **registration search eligible unlinked guests using both the registered username and
+> "the registered first and last name"**, and the **"one exact private-name candidate"**
+> entry in the list of shapes candidate lookup may return, **give way** to the identity
+> model recorded in `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — replacement
+> player-identity, account, and vouching model (decision record: D-1–D-49), 2026-07-23":
+> **D-1**, **D-3**, **D-4**, **D-36**, **D-37** and **D-41**. The ruling that makes the
+> model govern here, and that records what it does **not** reach, is
+> `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — owner ruling R-18 on the
+> governing-document conflicts with the identity model, 2026-07-24". **Read those
+> decisions where they live; their content is deliberately not restated here** (process
+> rule **P-2**, `docs/redesign/MASTER-RULES.md` → "Conflict handling and canonical-home
+> process rules").
 
 Registration must search eligible unlinked guests using both:
 
@@ -484,6 +565,22 @@ Do not:
 
 ## Cross-phase ownership
 
+> **SUPERSEDED IN PART — recorded 2026-07-24 by
+> `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` under owner ruling R-18. Both ownership
+> lists below are retained in full, not deleted or reworded; this note states only which
+> entries no longer govern, and it reaches no further than the two named here.** The Phase
+> 4 entry **"explicit username or first-and-last-name identity mode"** and the
+> registration-and-onboarding entry **"first-name and last-name collection"** **give way**
+> to the identity model recorded in `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 —
+> replacement player-identity, account, and vouching model (decision record: D-1–D-49),
+> 2026-07-23": **D-1**, **D-3**, **D-4** and **D-37**. Neither phase's remaining ownership
+> is altered by this note. The ruling that makes the model govern here, and that records
+> what it does **not** reach, is `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — owner
+> ruling R-18 on the governing-document conflicts with the identity model, 2026-07-24".
+> **Read those decisions where they live; their content is deliberately not restated
+> here** (process rule **P-2**, `docs/redesign/MASTER-RULES.md` → "Conflict handling and
+> canonical-home process rules").
+
 Phase 4 manual-entry and import work owns:
 
 - unmatched-player resolution
@@ -556,6 +653,25 @@ requirements:
 9. request explicit migration authorization.
 
 ## Required tests
+
+> **SUPERSEDED IN PART — recorded 2026-07-24 by
+> `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` under owner ruling R-18. Every test
+> below is retained in full, not deleted or reworded; this note states only which required
+> tests no longer govern, and it reaches no further than the three named here.** Under
+> "Guest creation and reuse", **"unmatched imported player entered with first and last
+> name"** and **"unmatched manually entered player entered with first and last name"**;
+> and under "Registration claim", **"exact private-name candidate"**. All three test the
+> identification and matching mechanism superseded elsewhere in this document, and they
+> **give way** with it, to the identity model recorded in `docs/redesign/DECISIONS.md` →
+> "Phase 4 Step 4.3 — replacement player-identity, account, and vouching model (decision
+> record: D-1–D-49), 2026-07-23": **D-1**, **D-3**, **D-4**, **D-36** and **D-37**. The
+> ruling that makes the model govern here, and that records what it does **not** reach —
+> in particular the "Public privacy" tests, which are outside it — is
+> `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — owner ruling R-18 on the
+> governing-document conflicts with the identity model, 2026-07-24". **Read those
+> decisions where they live; their content is deliberately not restated here** (process
+> rule **P-2**, `docs/redesign/MASTER-RULES.md` → "Conflict handling and canonical-home
+> process rules").
 
 Test at minimum:
 

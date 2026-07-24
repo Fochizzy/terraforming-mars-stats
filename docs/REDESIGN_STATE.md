@@ -99,6 +99,40 @@ backfill or migration was begun; the operative audit scope was not authored; and
 `04-log-a-game.md` gained one pointer with its closure criterion byte-unchanged.**
 Handoff: `docs/agent-handoffs/RECORD-UNIFICATION-SHAPE-AND-AUDIT-SCOPE.md`.
 
+**2026-07-24 — the two GOVERNING DOCUMENTS are CORRECTED to the identity model; owner ruling
+R-18 is recorded (documentation only).** Work item
+`CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` applied the owner's ruling that **where the
+identity model and the two governing documents conflict, the identity model governs**,
+recorded as **R-18** — the number derived from the file (highest prior `R-` was **R-17**; the
+`D-` and `C-` series are deliberately **not** extended, because this disposes of a document
+conflict rather than deciding design). Both documents were swept **entirely**: **130 sites**,
+of which **14 are superseded, 110 stay in force, and 6 could not be classified**.
+`docs/redesign/MASTER-RULES.md` carried **2** superseded rules — guest identification by
+first and last name, and separate personal-name matching — and
+`docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md` carried **12**, across its
+lifecycle, identity modes, matching separation, candidate lookup, cross-phase ownership and
+required tests. **That is fourteen against the one site named as known** — the sixth time in
+this project that a cited set has proved a subset. **Every superseded requirement is retained
+in place**, marked and pointed at R-18; **nothing was deleted, renumbered, relocated or
+restructured**, proven by a diff of **131 lines added and zero deleted**. **The 110 class-F
+sites were left exactly as written** — not marked, not annotated, not softened, and not
+described as easier to satisfy — because **the identity model changes what is stored going
+forward and does not erase what is already stored**: personal names remain in
+`private.player_private_identities`, `private.player_legacy_identities`,
+`public.player_import_aliases` and `game_revisions.snapshot`, and the migration that would
+remove them is **unwritten and unauthorized**. Those protections are **load-bearing until it
+runs**. **This unblocks** the eighteen phase-document sites `ALIGN-PHASES-TO-IDENTITY-MODEL`
+could correct in neither direction, which **both** documents held at once — **but it does NOT
+correct them**: that is a separate phase sweep, **not authorized here**, and **no phase
+document was edited**. A structural observation is recorded and **not acted on**: a **design**
+requirement was living in a **rules** document, outside the supersession discipline that
+governs `DECISIONS.md`, which is why the contradiction survived several commits that would
+otherwise have caught it; whether such requirements should be relocated is a **separate owner
+question**. **Nothing was built, applied, deployed, pushed, merged, or read from
+production**; no phase document, no other contract and no `CURRENT_STATUS.md` was edited; no
+decision content was restated and no line-number citation added. Handoff:
+`docs/agent-handoffs/CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL.md`.
+
 **2026-07-24 — the blocker table is RECONCILED to ruling R-6 (documentation only);
 audit finding AUD-1 is answered.** Work item `RECONCILE-BLOCKER-TABLE-TO-R6`
 corrected the two `docs/CURRENT_STATUS.md` blocker rows whose `Blocking` value
@@ -3301,6 +3335,43 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL.md
+  (documentation-only correction of the **two governing documents** that still required what
+  the identity model forbids, plus the owner ruling **R-18** that authorizes it; redesign
+  lineage and local: **nothing built, applied, deployed, pushed, merged, or read from
+  production** — no Supabase MCP, no `execute_sql`, no `list_migrations`, no `wrangler`, no
+  `/api/deploy-info`, no production SQL; the planning-pack updater was not run by hand.
+  Numbering derived from the file, not assumed: highest prior `R-`, `D-` and `C-` were
+  **R-17**, **D-59** and **C-12**, and the ruling continues the `R-` series as **R-18**
+  because this file's convention places owner rulings that dispose of a conflict there,
+  leaving `D-` and `C-` unextended. **Both documents were swept entirely — 130 sites, S=14,
+  F=110, U=6.** `MASTER-RULES.md`: **S=2, F=13, U=0**;
+  `GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`: **S=12, F=97, U=6**. **Fourteen class-S sites
+  against the one known** — twelve of them in the contract, which no prior work item had
+  swept. **Every class-S site is superseded in place with its original retained**, marked by
+  eight blockquote notes that **point at the decisions and restate none of their content** —
+  proven by a grep over the added lines for every cited mechanic and value returning
+  **zero**, with **zero line-number citations** and a diff of **131 added, 0 deleted** across
+  both files. **Every class-F site is provably untouched**, which is the load-bearing half of
+  this change: the identity model changes what is **stored going forward** and does **not**
+  erase existing data, so the disclosure boundaries, public-surface exclusions, neutral
+  fallback, data-boundary and import-evidence rules, anti-bleed matching rules and
+  missing-value rules **all stay in force** over the personal names still held in
+  `private.player_private_identities`, `private.player_legacy_identities`,
+  `public.player_import_aliases` and `game_revisions.snapshot`. **The six class-U sites were
+  reported and none corrected**, two of them being the **D-2-versus-D-21** question this work
+  item is forbidden to resolve. **This DOES unblock** the eighteen phase-document sites
+  `ALIGN-PHASES-TO-IDENTITY-MODEL` could correct in neither direction, because both documents
+  held them at once; **it does NOT correct them** — that is a separate, unauthorized sweep and
+  **no phase document was edited** — and **it does NOT authorize, design or begin the
+  name-removal migration**, which remains unwritten. A **structural observation** is recorded
+  and not acted on: a **design** requirement living in a **rules** document escaped the
+  supersession discipline governing `DECISIONS.md`, which is why the contradiction survived
+  several commits; whether such requirements should be relocated is a separate owner question
+  and **no relocation was performed, proposed or recommended**. **No requirement was deleted,
+  no list renumbered or reordered, no section restructured, no existing decision, ruling or
+  finding amended, and `AUTHORITATIVE_DOCUMENTS.md` and `CURRENT_STATUS.md` were not
+  edited.**)
 - docs/agent-handoffs/RECORD-UNIFICATION-SHAPE-AND-AUDIT-SCOPE.md
   (documentation-only recording of **two owner decisions that had been outstanding and
   blocking** — the **unification shape** and the **Step 4.3 closure-audit scope**; redesign

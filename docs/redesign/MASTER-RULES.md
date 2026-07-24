@@ -207,6 +207,21 @@ The authoritative cross-phase contract is:
 
 `docs/redesign/reference/GUEST-PLAYER-IDENTITY-AND-PRIVACY.md`
 
+> **SUPERSEDED IN PART - recorded 2026-07-24 by
+> `CORRECT-GOVERNING-DOCUMENTS-TO-IDENTITY-MODEL` under owner ruling R-18. The list below
+> is retained in full, not deleted or reworded; this note states only which of its rules
+> no longer govern, and it reaches no further than the two named here.** The rules
+> **"a guest may be identified using either username or first and last name"** and
+> **"username and personal-name matching are separate"** give way to the identity model
+> recorded in `docs/redesign/DECISIONS.md` -> "Phase 4 Step 4.3 - replacement
+> player-identity, account, and vouching model (decision record: D-1-D-49), 2026-07-23":
+> **D-1**, **D-3**, **D-4**, **D-8**, **D-37**, **D-40** and **D-41**. The ruling that
+> makes the model govern here, and that records what it does **not** reach, is
+> `docs/redesign/DECISIONS.md` -> "Phase 4 Step 4.3 - owner ruling R-18 on the
+> governing-document conflicts with the identity model, 2026-07-24". **Read those
+> decisions where they live; their content is deliberately not restated here** (process
+> rule **P-2**, "Conflict handling and canonical-home process rules" above).
+
 Non-negotiable rules:
 
 - unmatched players may exist as unlinked guests before account registration
