@@ -2652,3 +2652,106 @@ decision-record section above; where this project later cites them, they are the
   could recover R-17's primitives for existing games. Queued as a repository read.
 - **Q-9 (analytics)** — Whether corporation reference data exists and carries starting
   money, which R-17(2) depends on. Queued as a repository read.
+
+## Phase 4 Step 4.3 — the unification shape and the closure-audit scope (D-50–D-59, C-9–C-12), 2026-07-24
+
+Recorded 2026-07-24 by the documentation-only work item
+`RECORD-UNIFICATION-SHAPE-AND-AUDIT-SCOPE`. Two owner decisions that had been outstanding
+and **blocking** are now made: **the unification shape**, which gates the entire identity
+build and carries the three dependents already recorded against it, and **the scope of the
+Step 4.3 closure audit**. Numbering continues the existing series — the highest prior
+identifiers were **D-49** and **C-8**. Evidence class **[OWNER-DECISION]** throughout.
+
+**This entry records a SHAPE, not a design.** It writes **no schema, no migration, no
+table definition, no column list, no constraint, and no SQL**. Naming the entity, its
+columns, or its constraints beyond what is stated below is **design work and is not done
+here**. It **starts no build, no backfill, and no migration**, and it **amends no existing
+decision, ruling, or finding**.
+
+### The unification shape — chosen (D-50–D-54)
+
+- **D-50** — **A NEW PER-PERSON PROFILE ENTITY IS INTRODUCED.** It holds the identity that
+  belongs to **a person** rather than to **a participation**: the username, the optional
+  alias, the email when one is attached, the PIN state, and the pseudonym assigned on
+  deletion.
+- **D-51** — **`public.players` IS DEMOTED TO PARTICIPATION.** It keeps its `group_id` and
+  gains a reference to the profile entity. It remains **one row per person per group** —
+  which is what `group_id NOT NULL` always meant.
+- **D-52** — **EVERY EXISTING INBOUND FOREIGN KEY TO `players(id)` REMAINS VALID.**
+  Recorded as a **PROPERTY TO PRESERVE**, not as a benefit merely claimed: `game_players`,
+  the import-review composite, the persisted metric snapshots, the Venus and Colonies
+  facts, `game_log_events.owner_player_id`, `private.player_private_identities`,
+  `private.player_legacy_identities`, and `public.player_import_aliases` all continue to
+  reference **participation**, which is what they were always about. **A build that breaks
+  any of them has departed from this shape.**
+- **D-53** — **THE SHARED USERNAME NAMESPACE LIVES ON THE PROFILE ENTITY.** This is what
+  makes **D-36** expressible: guests and registered people occupy one table, so one
+  uniqueness constraint spans both. Under the current schema there is **no such table**,
+  which is why D-36 could not be implemented.
+- **D-54** — **THE CHANGE IS ADDITIVE AND FOLLOWS EXPAND/CONTRACT.** Add the entity,
+  backfill, read from both while both exist, then contract. **The project's own
+  expand/contract rules govern the sequence**, and nothing here relaxes them.
+
+**Build-time detail — explicitly NOT decided here.** Whether `public.user_profiles` folds
+into the new entity or survives as a thin auth attachment is **left open for a session that
+can read the schema**. What **is** decided is D-53. The rest — the `handle_new_auth_user`
+trigger, the RLS policies referencing `user_profiles`, and the email and PIN columns — is
+**not settled by this entry**.
+
+**The cost, recorded honestly.** A **join on every identity read**, and a **backfill
+creating one profile row per distinct person**. At the recorded transition scope (D-25)
+that backfill is **trivial** — which is an argument for doing it **now** rather than at a
+hundred users.
+
+### Why not the alternative — the rejected merge (D-55)
+
+- **D-55** — **MERGING `players` AND `user_profiles` INTO ONE PROFILE TABLE IS REJECTED**,
+  and the reason is **structural rather than a preference**. `players` is **group-scoped**,
+  so merging means the profile carries `group_id`, and a person in three groups becomes
+  **three profiles** — which contradicts **D-9**'s single per-person identity outright.
+  Making it work would require **un-scoping `players` first**, which touches every inbound
+  foreign key listed at D-52. **Recorded so this fork is not revisited:** a future session
+  reaching it should find here **why the shorter-sounding path is the longer one**.
+
+### The Step 4.3 closure-audit scope — the principle (D-56–D-59)
+
+- **D-56** — **THE STEP 4.3 CLOSURE AUDIT IS SCOPED TO THE WORK DELIVERED, NOT TO THE
+  PHASE CONTRACT AS WRITTEN.** It examines what Step 4.3 actually built — import
+  validation evidence and claimable guest identity — against the decisions governing it
+  **at audit time**.
+- **D-57** — **IT EXPLICITLY INCLUDES R-8's OVERRIDE.** `docs/redesign/phases/04-log-a-game.md`
+  carries a Step 4.3 must-not that **R-8** overrides. An audit scoped to the contract **as
+  written** would **fail the build for doing what the owner ruled it should do**. **The
+  auditor measures against the overriding decision**, not against the superseded
+  prohibition.
+- **D-58** — **IT EXPLICITLY EXCLUDES THE PHASE 5 ENTRY GATES.** **R-6** moved
+  `ID-LEGACY-ORACLE` and `MATCHER-MANUAL-ENTRY-REPLACEMENT` out of Step 4.3 closure. **The
+  audit does not examine them.**
+- **D-59** — **THE OPERATIVE SCOPE STATEMENT IS AUTHORED WHEN THE AUDIT IS COMMISSIONED**,
+  from the principle above, and is **deliberately deferred here**. The reason is recorded:
+  **the identity build does not exist yet**, and under D-50–D-54 it is now a **schema
+  migration** — an audit **cannot sensibly enumerate what it will examine before the thing
+  exists**. **No operative scope statement is authored by this entry.**
+
+### Consequences (C-9–C-12)
+
+These **follow** from the entries above; **none is a separate decision**.
+
+- **C-9 — THE IDENTITY BUILD IS NOW A SCHEMA MIGRATION, and its shape has changed.** The
+  recorded plan treated it as **application work** — rewrite three writers, add username
+  assignment. Under D-50–D-54 it **begins with a new entity, a backfill, and a reference
+  column on `players`**. **Recorded so a session picking up the plan does not start at the
+  writers.**
+- **C-10 — THE BACKFILL IS A PRODUCTION WRITE.** It requires its **own per-action
+  authorization**, a **dry run**, an **expected row count**, and a **rollback** before it
+  is authorized. None of those exists today, and none is created here.
+- **C-11 — X-3 NOW HAS A TARGET.** The finding recorded in
+  `docs/agent-handoffs/RECORD-IDENTITY-FEASIBILITY-FINDINGS.md` → §"X-3 —
+  `is_username_available` is called but defined nowhere" — **disambiguated** from the
+  unrelated X-3 in `docs/agent-handoffs/AUDIT-SESSION-RECORDS-2026-07-23.md` — was upgraded
+  to load-bearing at **C-3**. Under D-50/D-53 **it checks the profile entity**, which spans
+  guests and registered people. **Its target is now defined, and it must fail CLOSED.**
+- **C-12 — D-36 BECOMES EXPRESSIBLE.** The shared namespace was **unimplementable under
+  the current schema** — the constraint had no single table to live on — and **is
+  implementable under this shape** (D-53). Recorded as the **removal of that obstruction**,
+  not as its implementation.

@@ -489,6 +489,14 @@ Step 4.3 is closed only after a fresh independent read-only audit passes. Do not
 begin Step 4.4; it requires an explicit assignment. Step 4.4 consumes the
 canonical capture model through `readCanonicalGameCapture` rather than
 reparsing raw logs.
+
+> **POINTER — added 2026-07-24; the criterion above is UNCHANGED.** This document
+> states the Step 4.3 closure **criterion** and states no **scope** for that audit.
+> The scope is recorded in `docs/redesign/DECISIONS.md` → "Phase 4 Step 4.3 — the
+> unification shape and the closure-audit scope" → "The Step 4.3 closure-audit scope
+> — the principle". **Nothing about that scope is restated here**, and this pointer
+> changes no obligation, prohibition, or criterion in this document.
+
 ## Step 4.5 closure requirement
 
 Phase 4 closure must verify that:

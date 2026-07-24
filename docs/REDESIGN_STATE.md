@@ -72,6 +72,33 @@ phase document, `CURRENT_STATUS.md` or `MASTER-RULES.md` was edited; no migratio
 was written; and the unification choice remains the owner's. Handoff:
 `docs/agent-handoffs/RECORD-REGISTRATION-SEARCH-AND-REPUDIATION.md`.
 
+**2026-07-24 — the UNIFICATION SHAPE and the CLOSURE-AUDIT SCOPE are now RECORDED; both
+owner decisions are made (documentation only).** Work item
+`RECORD-UNIFICATION-SHAPE-AND-AUDIT-SCOPE` recorded **D-50–D-59** and **C-9–C-12**, the
+ranges derived from the file (highest prior were D-49 and C-8). **This closes the choice
+the note above left open**, and with it the three recorded dependents — where guest
+usernames live, whether an email attaches to an existing row or a new entity, and the
+shared username namespace D-36 requires. **The shape (D-50–D-54):** a **new per-person
+profile entity** carries identity belonging to a person rather than a participation;
+**`public.players` is demoted to participation**, keeping `group_id` and gaining a
+reference to that entity; **every existing inbound foreign key to `players(id)` remains
+valid**, recorded as a **PROPERTY TO PRESERVE** rather than a benefit claimed; the
+**shared username namespace lives on the profile entity**; and the change is **additive
+under expand/contract**. Whether `user_profiles` folds or survives is **build-time detail,
+explicitly not decided**. **D-55** records the **rejected** merge with its structural
+reason — `players` is group-scoped, so merging turns a person in three groups into three
+profiles. **The audit scope (D-56–D-59)** is scoped to **the work delivered rather than
+the phase contract as written**, **includes R-8's override**, **excludes the Phase 5 entry
+gates**, and **defers the operative scope statement** to commissioning, because the
+identity build does not yet exist. **Consequences C-9–C-12:** the identity build **is now
+a schema migration**, so its recorded plan no longer starts at the writers; the
+**backfill is a production write** requiring its own authorization, dry run, expected row
+count and rollback; **X-3 now has a target and must fail CLOSED**; and **D-36 becomes
+expressible**. **No schema, migration, column, constraint or SQL was written; no build,
+backfill or migration was begun; the operative audit scope was not authored; and
+`04-log-a-game.md` gained one pointer with its closure criterion byte-unchanged.**
+Handoff: `docs/agent-handoffs/RECORD-UNIFICATION-SHAPE-AND-AUDIT-SCOPE.md`.
+
 **2026-07-24 — the blocker table is RECONCILED to ruling R-6 (documentation only);
 audit finding AUD-1 is answered.** Work item `RECONCILE-BLOCKER-TABLE-TO-R6`
 corrected the two `docs/CURRENT_STATUS.md` blocker rows whose `Blocking` value
@@ -3274,6 +3301,39 @@ Handoff: `docs/agent-handoffs/PHASE-04-STEP-03-ID-READER-EXPAND-APPLIED.md`.
 
 ## Latest handoff
 
+- docs/agent-handoffs/RECORD-UNIFICATION-SHAPE-AND-AUDIT-SCOPE.md
+  (documentation-only recording of **two owner decisions that had been outstanding and
+  blocking** — the **unification shape** and the **Step 4.3 closure-audit scope**; redesign
+  lineage and local: **nothing built, applied, deployed, pushed, merged, or read from
+  production** — no Supabase MCP, no `execute_sql`, no `list_migrations`, no `wrangler`, no
+  `/api/deploy-info`, no production SQL; the planning-pack updater was not run by hand.
+  Numbering derived from the file, not assumed: highest prior identifiers **D-49** and
+  **C-8**, so this records **D-50–D-59** and **C-9–C-12**. **The unification shape
+  (D-50–D-54):** a **new per-person profile entity** holds identity that belongs to a
+  person rather than a participation; **`public.players` is demoted to participation**,
+  keeping `group_id` and gaining a reference to the profile entity; **every existing
+  inbound foreign key to `players(id)` remains valid**, recorded as a **PROPERTY TO
+  PRESERVE** — a build that breaks one has departed from the shape; the **shared username
+  namespace lives on the profile entity**, which is what makes D-36 expressible; and the
+  change is **additive under expand/contract**. Whether `user_profiles` folds or survives
+  is recorded as **build-time detail, explicitly NOT decided**, and the cost — a join on
+  every identity read plus a one-row-per-person backfill — is recorded honestly.
+  **D-55** records the **rejected merge** with its **structural** reasoning: `players` is
+  group-scoped, so merging would make a person in three groups into three profiles,
+  contradicting D-9. **The audit scope (D-56–D-59):** scoped to **the work delivered, not
+  the phase contract as written**; **explicitly includes R-8's override** so the auditor
+  does not fail the build for doing what the owner ruled; **explicitly excludes the Phase 5
+  entry gates** that R-6 moved out; and the **operative scope statement is deferred** to
+  commissioning time, because the identity build does not exist yet. **C-9–C-12:** the
+  identity build **is now a schema migration** and its shape changed, so a session picking
+  up the plan must not start at the writers; the **backfill is a production write** needing
+  its own authorization, dry run, expected row count and rollback; **X-3 now has a target**
+  and must fail **CLOSED**; and **D-36 becomes expressible**. `04-log-a-game.md` gained
+  **one pointer only** — the closure criterion is **byte-unchanged**, proven by a diff with
+  **zero deletions** in that file. **No schema, migration, table definition, column list,
+  constraint or SQL was written anywhere**; `user_profiles`' fate was **not decided**; the
+  **operative audit scope was not authored**; no existing decision, ruling or finding was
+  amended; and **no line-number citation was added**.)
 - docs/agent-handoffs/ALIGN-PHASES-TO-IDENTITY-MODEL.md
   (documentation-only sweep of **all twenty-one phase documents**, phase 04 included,
   against the identity model **D-1–D-49** and consequences **C-1–C-8**, which every phase
